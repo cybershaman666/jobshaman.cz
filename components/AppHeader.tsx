@@ -125,8 +125,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md">
-            <div className="flex h-16 items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1920px] mx-auto gap-2 sm:gap-4">
+        <header className="sticky top-0 z-50 w-full border-b border-slate-200/20 dark:border-slate-800/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.96)_0%,rgba(30,41,59,0.94)_100%)] text-white backdrop-blur-md shadow-[0_16px_42px_-30px_rgba(15,23,42,0.65)]">
+            <div className="flex h-[4.35rem] items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1920px] mx-auto gap-2 sm:gap-4">
                 {/* Logo */}
                 <div
                     className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
@@ -137,30 +137,30 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         setIsOnboardingCompany(false);
                     }}
                 >
-                    <div className="p-1 rounded-lg transition-colors bg-transparent">
+                    <div className="rounded-lg transition-colors bg-transparent">
                         <img
-                            src="/logo.png"
+                            src="/logo-alt.png"
                             alt="JobShaman"
-                            className="w-6 h-6 bg-transparent"
+                            className="h-11 sm:h-12 w-auto bg-transparent object-contain"
                         />
                     </div>
                     <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block">
-                        <span className="text-slate-900 dark:text-white">Job</span>
-                        <span className="text-cyan-600 dark:text-cyan-400">Shaman</span>
+                        <span className="text-white">Job</span>
+                        <span className="text-amber-500">Shaman</span>
                     </span>
                 </div>
 
                 {/* Mobile Menu Button */}
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="sm:hidden flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                    className="sm:hidden flex items-center justify-center p-2 text-slate-300 hover:text-white transition-colors"
                     title={t('header.menu')}
                 >
                     {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
 
                 {/* Desktop Navigation */}
-                <nav className="hidden sm:flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
+                <nav className="hidden sm:flex items-center gap-1.5">
                     {!showCompanyLanding && (
                         <>
                             <button
@@ -169,7 +169,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.LIST); 
                                     setSelectedJobId(null); 
                                 }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
                             >
                                 {t('nav.offers')}
                             </button>
@@ -181,7 +181,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         handleAuthAction('login');
                                     }
                                 }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
                                 title={t('nav.profile')}
                             >
                                 <User className="w-4 h-4" />
@@ -194,7 +194,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             onClick={() => {
                                 void handleBusinessClick();
                             }}
-                            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
                         >
                             <Briefcase size={14} />
                             <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>
@@ -211,7 +211,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             <div className="relative">
                                 <button
                                     onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-xs font-bold"
+                                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/8 text-slate-200 hover:text-white transition-colors text-xs font-bold ring-1 ring-white/10"
                                     aria-label={t('header.language')}
                                     title={t('header.language')}
                                 >
@@ -225,7 +225,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     <ChevronDown size={14} />
                                 </button>
                                 {languageMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-32 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
+                                    <div className="absolute right-0 mt-2 w-32 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
                                         {languages.map((lang) => (
                                             <button
                                                 key={lang.code}
@@ -258,7 +258,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         <select
                             value={i18n.language}
                             onChange={(e) => changeLanguage(e.target.value)}
-                            className="lg:hidden text-xs bg-transparent border-none focus:ring-0 text-slate-500 font-bold"
+                            className="lg:hidden text-xs bg-transparent border-none focus:ring-0 text-slate-500 font-bold dark:[color-scheme:dark]"
                         >
                             {languages.map((lang) => (
                                 <option key={lang.code} value={lang.code}>{lang.name}</option>

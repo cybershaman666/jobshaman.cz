@@ -49,6 +49,10 @@ interface ScrapedJob {
     verification_notes?: string;
     ai_analysis?: any;
     country_code?: string;
+    open_dialogues_count?: number | string;
+    dialogue_capacity_limit?: number | string;
+    reaction_window_hours?: number | string;
+    reaction_window_days?: number | string;
 }
 
 // ... (skipping constants)
@@ -278,6 +282,10 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     const extractedDescription = extractHiringStageMetadata(scrapedJob.description);
     const hiringStage = normalizeJobHiringStage((scrapedJob as any)?.hiring_stage) || extractedDescription.hiringStage;
     const fullDesc = extractedDescription.description || 'Popis pozice není k dispozici.';
+    const openDialoguesCount = safeParseInt(scrapedJob.open_dialogues_count);
+    const dialogueCapacityLimit = safeParseInt(scrapedJob.dialogue_capacity_limit);
+    const reactionWindowHours = safeParseInt(scrapedJob.reaction_window_hours);
+    const reactionWindowDays = safeParseInt(scrapedJob.reaction_window_days);
 
     const jhi = includeJhi
         ? calculateJHI({
@@ -328,7 +336,11 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         country_code: scrapedJob.country_code,
         language_code: scrapedJob.language_code,
         // Map cached AI analysis if present
-        aiAnalysis: scrapedJob.ai_analysis
+        aiAnalysis: scrapedJob.ai_analysis,
+        ...(openDialoguesCount !== undefined ? { open_dialogues_count: openDialoguesCount } : {}),
+        ...(dialogueCapacityLimit !== undefined ? { dialogue_capacity_limit: dialogueCapacityLimit } : {}),
+        ...(reactionWindowHours !== undefined ? { reaction_window_hours: reactionWindowHours } : {}),
+        ...(reactionWindowDays !== undefined ? { reaction_window_days: reactionWindowDays } : {})
     };
 };
 
@@ -1826,7 +1838,11 @@ export const fetchJobsWithFilters = async (
                     country_code: row.country_code,
                     language_code: row.language_code,
                     legality_status: row.legality_status,
-                    verification_notes: row.verification_notes
+                    verification_notes: row.verification_notes,
+                    open_dialogues_count: row.open_dialogues_count,
+                    dialogue_capacity_limit: row.dialogue_capacity_limit,
+                    reaction_window_hours: row.reaction_window_hours,
+                    reaction_window_days: row.reaction_window_days
                 }, includeJhi);
 
                 (job as any).distance_km = row.distance_km;
@@ -1875,7 +1891,11 @@ export const fetchJobsWithFilters = async (
                     country_code: row.country_code,
                     language_code: row.language_code,
                     legality_status: row.legality_status,
-                    verification_notes: row.verification_notes
+                    verification_notes: row.verification_notes,
+                    open_dialogues_count: row.open_dialogues_count,
+                    dialogue_capacity_limit: row.dialogue_capacity_limit,
+                    reaction_window_hours: row.reaction_window_hours,
+                    reaction_window_days: row.reaction_window_days
                 }, includeJhi);
                 (job as any).distance_km = row.distance_km;
                 const displayScoreSource = sortMode === 'recommended'
@@ -2618,7 +2638,19 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 salary_to: salaryTo || undefined,
                 salary_timeframe: scraped.salary_timeframe,
                 legality_status: scraped.legality_status,
-                legality_reasons: scraped.verification_notes ? scraped.verification_notes.split(',').map((s: string) => s.trim()) : []
+                legality_reasons: scraped.verification_notes ? scraped.verification_notes.split(',').map((s: string) => s.trim()) : [],
+                ...(safeParseInt((scraped as any).open_dialogues_count) !== undefined
+                    ? { open_dialogues_count: safeParseInt((scraped as any).open_dialogues_count) }
+                    : {}),
+                ...(safeParseInt((scraped as any).dialogue_capacity_limit) !== undefined
+                    ? { dialogue_capacity_limit: safeParseInt((scraped as any).dialogue_capacity_limit) }
+                    : {}),
+                ...(safeParseInt((scraped as any).reaction_window_hours) !== undefined
+                    ? { reaction_window_hours: safeParseInt((scraped as any).reaction_window_hours) }
+                    : {}),
+                ...(safeParseInt((scraped as any).reaction_window_days) !== undefined
+                    ? { reaction_window_days: safeParseInt((scraped as any).reaction_window_days) }
+                    : {})
             };
         } catch (innerError) {
             console.error("Mapping error for job ID:", item.id, innerError);

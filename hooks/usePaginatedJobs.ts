@@ -429,7 +429,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
 
     // UI state
-    const [showFilters, setShowFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(true);
     const [expandedSections, setExpandedSections] = useState({
         location: true,
         contract: true,

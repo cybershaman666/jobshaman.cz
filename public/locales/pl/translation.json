@@ -2,7 +2,7 @@
   "app": {
     "title": "JobShaman",
     "description": "Profesjonalna analiza ofert",
-    "search_placeholder": "Szukaj stanowiska, firmy...",
+    "search_placeholder": "Znajdź swoje wyzwanie, firmę...",
     "search_saved_placeholder": "Szukaj w zapisanych...",
     "filters": "Filtry",
     "searching": "Szukam ofert...",
@@ -44,6 +44,17 @@
     "clear": "Wyczyść",
     "demo_alert": "Tryb demo aktywny",
     "saving": "Zapisywanie..."
+  },
+  "home": {
+    "discovery": {
+      "badge": "Cyfrowy pierwszy kontakt",
+      "title": "Reaguj na realne wyzwanie zespołu, a nie na głośny szum rekrutacji.",
+      "meta": "Rola najpierw pokazuje prawdę. Twoja odpowiedź otwiera prywatny dialog bez zbędnej presji.",
+      "slots_label": "Aktywne dialogi",
+      "step_role_truth": "Prawda roli",
+      "step_short_reply": "Krótka reakcja",
+      "step_clear_state": "Jasny status"
+    }
   },
   "filters": {
     "location_commute": "Lokalizacja i dojazd",
@@ -1385,6 +1396,36 @@
       "workplace_address_placeholder": "Adres biura",
       "contact_email": "E-mail kontaktowy",
       "contact_email_placeholder": "jobs@firma.pl",
+      "hiring_stage_label": "Status rekrutacji",
+      "hiring_stage_help": "Kandydaci zobacza, na jakim etapie jest proces i czy nadal aktywnie oceniacie.",
+      "hiring_stage_options": {
+        "collecting_cvs": "Zbieramy CV",
+        "reviewing_first_10": "Przeglad pierwszych 10 kandydatow",
+        "shortlisting": "Krotka lista",
+        "final_interviews": "Finalne rozmowy",
+        "offer_stage": "Etap oferty"
+      },
+      "handshake": {
+        "title": "Pierwszy kontakt / pierwsza odpowiedz",
+        "desc": "Firma idzie pierwsza. Ustaw pytanie otwierajace i odpowiedz na dwa pytania prawdy, ktore kandydat zobaczy przed reakcja.",
+        "first_reply": "Pierwsza odpowiedz",
+        "first_reply_placeholder": "Opisz pierwsza realna sytuacje, na ktora kandydat ma odpowiedziec, i jaki trade-off chcesz zobaczyc.",
+        "truth_hard": "Co jest naprawde trudne w tej roli?",
+        "truth_hard_placeholder": "Nazwij niewygodna realnosc roli: gdzie ludzie sie gubia, co tworzy presje i czego zespol nie ukryje.",
+        "truth_fail": "Jaki typ osoby zwykle tutaj nie daje rady?",
+        "truth_fail_placeholder": "Badz konkretny w niedopasowaniu: jaki styl pracy, mindset lub tempo zwykle nie dziala w tym zespole."
+      },
+      "rollout_schema_check": "Kontrola schematu rolloutu",
+      "rollout_ready": "Gotowe",
+      "rollout_attention": "Uwaga",
+      "rollout_ok": "ok",
+      "rollout_missing": "brak",
+      "rollout_sample_rows": "przykladowe wiersze",
+      "rollout_tables": {
+        "job_applications": "job_applications",
+        "job_drafts": "job_drafts",
+        "job_versions": "job_versions"
+      },
       "section_ai_polished": "Dopracowane z pomoca AI.",
       "section_human_hint": "Napisz ta czesc jasno i po ludzku.",
       "section_labels": {

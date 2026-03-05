@@ -16,6 +16,7 @@ import EnterpriseSignup from './components/EnterpriseSignup';
 import ApplicationModal from './components/ApplicationModal';
 import ProfileEditor from './components/ProfileEditor';
 import CookieBanner from './components/CookieBanner';
+import WelcomePage from './components/WelcomePage';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
 import JobListSidebar from './components/JobListSidebar';
@@ -33,13 +34,14 @@ import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
-import { createJobApplication } from './services/jobApplicationService';
+import { createJobApplication, fetchCompanyDialogues, fetchMyDialogueCapacity, fetchMyDialogues } from './services/jobApplicationService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
 import { mapJcfpmToJhiPreferencesWithExplanation } from './services/jcfpmService';
 import { createDefaultJHIPreferences } from './services/profileDefaults';
+import { getCompanyDialogueCapacity } from './services/billingService';
 import {
     deriveActivationState,
     getNextActivationStep,
@@ -81,6 +83,23 @@ const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 
+const ACTIVE_DIALOGUE_STATUSES = new Set([
+    'pending',
+    'reviewed',
+    'shortlisted'
+]);
+
+const CLOSED_DIALOGUE_STATUSES = new Set([
+    'rejected',
+    'hired',
+    'withdrawn',
+    'closed',
+    'closed_timeout',
+    'closed_rejected',
+    'closed_withdrawn',
+    'closed_role_filled'
+]);
+
 const normalizeSavedJobId = (jobId: string): string => {
     const raw = String(jobId || '').trim();
     if (!raw) return '';
@@ -107,6 +126,8 @@ const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 
 export default function App() {
     const { t, i18n } = useTranslation();
+    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined') {
@@ -197,6 +218,10 @@ export default function App() {
     const [isMobileScreen, setIsMobileScreen] = useState(false);
     const [mobileViewOverride, setMobileViewOverride] = useState<'swipe' | 'list' | null>(null);
     const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
+    const [candidateDialogueCapacity, setCandidateDialogueCapacity] = useState<{ active: number; limit: number; remaining: number } | null>(null);
+    const [candidateDialogueCounts, setCandidateDialogueCounts] = useState({ active: 0, closed: 0 });
+    const [companyDialogueCounts, setCompanyDialogueCounts] = useState({ active: 0, closed: 0 });
+    const [dialogueMetricsLoading, setDialogueMetricsLoading] = useState(false);
 
     const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
     const onboardingDismissedRef = useRef(false);
@@ -237,6 +262,7 @@ export default function App() {
             normalizedPath === '/profil/jcfpm';
     }, [viewState, normalizedPath]);
     const usePageScrollLayout = !isImmersiveAssessmentRoute && viewState === ViewState.PROFILE;
+    const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST;
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
@@ -681,6 +707,77 @@ export default function App() {
         }
         return personalized;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const resetMetrics = () => {
+            if (cancelled) return;
+            setCandidateDialogueCapacity(null);
+            setCandidateDialogueCounts({ active: 0, closed: 0 });
+            setCompanyDialogueCounts({ active: 0, closed: 0 });
+        };
+
+        const loadDialogueMetrics = async () => {
+            if (!userProfile.isLoggedIn) {
+                resetMetrics();
+                return;
+            }
+
+            setDialogueMetricsLoading(true);
+            try {
+                if (userProfile.role === 'recruiter') {
+                    if (!companyProfile?.id) {
+                        resetMetrics();
+                        return;
+                    }
+
+                    const rows = await fetchCompanyDialogues(companyProfile.id, undefined, 500);
+                    if (cancelled) return;
+                    const active = rows.reduce(
+                        (sum, row) => sum + (ACTIVE_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
+                        0
+                    );
+                    const closed = rows.reduce(
+                        (sum, row) => sum + (CLOSED_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
+                        0
+                    );
+                    setCompanyDialogueCounts({ active, closed });
+                    setCandidateDialogueCapacity(null);
+                    setCandidateDialogueCounts({ active: 0, closed: 0 });
+                    return;
+                }
+
+                const [capacity, rows] = await Promise.all([
+                    fetchMyDialogueCapacity(),
+                    fetchMyDialogues(120)
+                ]);
+                if (cancelled) return;
+
+                const active = rows.reduce(
+                    (sum, row) => sum + (ACTIVE_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
+                    0
+                );
+                const closed = rows.reduce(
+                    (sum, row) => sum + (CLOSED_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
+                    0
+                );
+                setCandidateDialogueCapacity(capacity);
+                setCandidateDialogueCounts({ active, closed });
+                setCompanyDialogueCounts({ active: 0, closed: 0 });
+            } catch (error) {
+                console.warn('Failed to load dialogue metrics for discovery card:', error);
+                resetMetrics();
+            } finally {
+                if (!cancelled) setDialogueMetricsLoading(false);
+            }
+        };
+
+        void loadDialogueMetrics();
+        return () => {
+            cancelled = true;
+        };
+    }, [userProfile.isLoggedIn, userProfile.id, userProfile.role, companyProfile?.id]);
 
     const todayNewJobsCount = useMemo(() => {
         const today = new Date();
@@ -1891,6 +1988,36 @@ export default function App() {
         }
     };
 
+    const companyDialogueCapacity = companyProfile ? getCompanyDialogueCapacity(companyProfile) : null;
+    const recruiterRoleTruthCount = Number(
+        companyProfile?.subscription?.usage?.roleOpensUsed
+        ?? companyProfile?.subscription?.usage?.activeJobsCount
+        ?? 0
+    );
+
+    const discoverySlotsUsed = userProfile.role === 'recruiter'
+        ? (companyDialogueCapacity?.used ?? null)
+        : (candidateDialogueCapacity?.active ?? null);
+    const discoverySlotsLimit = userProfile.role === 'recruiter'
+        ? (companyDialogueCapacity?.limit ?? null)
+        : (candidateDialogueCapacity?.limit ?? null);
+    const discoverySlotsLimitLabel = discoverySlotsLimit == null
+        ? null
+        : (discoverySlotsLimit >= 999999 ? '∞' : discoverySlotsLimit.toLocaleString(i18n.language));
+    const discoverySlotsUsedLabel = discoverySlotsUsed == null
+        ? null
+        : discoverySlotsUsed.toLocaleString(i18n.language);
+
+    const discoveryRoleTruthCount = userProfile.role === 'recruiter'
+        ? recruiterRoleTruthCount
+        : Math.max(0, jobsForDisplay.length);
+    const discoveryShortReplyCount = userProfile.role === 'recruiter'
+        ? companyDialogueCounts.active
+        : candidateDialogueCounts.active;
+    const discoveryClearStateCount = userProfile.role === 'recruiter'
+        ? companyDialogueCounts.closed
+        : candidateDialogueCounts.closed;
+
     const renderContent = () => {
         // Handle static pages based on pathname
         const pathname = window.location.pathname;
@@ -2136,150 +2263,305 @@ export default function App() {
                 {/* Vercel Analytics */}
                 {vercelAnalyticsEnabled && <Analytics />}
 
-                {/* MOBILE SWIPE VIEW - Only show for logged-in users on mobile */}
-                {isMobileSwipeView && userProfile.isLoggedIn ? (
-                    <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
-                        <MobileSwipeJobBrowser
-                            jobs={jobsForDisplay}
-                            swipeStateStorageKey={userProfile.id || 'anonymous'}
-                            savedJobIds={savedJobIds}
-                            onToggleSave={handleToggleSave}
-                            onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
-                            onOpenDetails={handleOpenJobDetailsFromSwipe}
-                            onSwitchToList={() => {
-                                setMobileViewOverride('list');
-                                setIsMobileSwipeView(false);
-                            }}
-                            isLoadingMore={loadingMore}
-                            isLoading={isLoadingJobs}
-                            hasMore={hasMore}
-                            onLoadMore={loadMoreJobs}
-                            theme={theme}
-                        />
-                    </div>
-                ) : (
-                    <>
-                        {isMobileScreen && userProfile.isLoggedIn && (
-                            <div className="lg:hidden px-3 pt-2">
-                                <button
-                                    onClick={() => {
-                                        setMobileViewOverride('swipe');
-                                        setIsMobileSwipeView(true);
+                <div className="col-span-1 lg:col-span-12 h-full min-h-0">
+                    <div className="h-full min-h-0 rounded-[1.25rem] border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.92)_0%,_rgba(248,250,252,0.96)_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.08),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.92)_0%,_rgba(15,23,42,0.96)_100%)] shadow-[0_24px_70px_-52px_rgba(15,23,42,0.34)] p-2 lg:p-3">
+                        {/* MOBILE SWIPE VIEW - Only show for logged-in users on mobile */}
+                        {isMobileSwipeView && userProfile.isLoggedIn ? (
+                            <div className="h-full overflow-hidden">
+                                <MobileSwipeJobBrowser
+                                    jobs={jobsForDisplay}
+                                    swipeStateStorageKey={userProfile.id || 'anonymous'}
+                                    savedJobIds={savedJobIds}
+                                    onToggleSave={handleToggleSave}
+                                    onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
+                                    onOpenDetails={handleOpenJobDetailsFromSwipe}
+                                    onSwitchToList={() => {
+                                        setMobileViewOverride('list');
+                                        setIsMobileSwipeView(false);
                                     }}
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-sm hover:bg-white dark:hover:bg-slate-900 transition-colors"
-                                >
-                                    {t('job.swipe_view')}
-                                </button>
+                                    isLoadingMore={loadingMore}
+                                    isLoading={isLoadingJobs}
+                                    hasMore={hasMore}
+                                    onLoadMore={loadMoreJobs}
+                                    theme={theme}
+                                />
+                            </div>
+                        ) : (
+                            <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3">
+                                <div className="lg:col-span-5 xl:col-span-5 min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-3">
+                                    <div className="lg:col-span-2 min-h-0 flex flex-col gap-2 lg:gap-3 h-full">
+                                        <JobListSidebar
+                                            fullWidth
+                                            showSearchPanel
+                                            showJobFeed={false}
+                                            selectedJobId={selectedJobId}
+                                            searchTerm={searchTerm}
+                                            setSearchTerm={setSearchTerm}
+                                            performSearch={performSearch}
+                                            showFilters={showFilters}
+                                            setShowFilters={setShowFilters}
+                                            expandedSections={expandedSections}
+                                            toggleSection={toggleSection}
+                                            filterCity={filterCity}
+                                            setFilterCity={setFilterCity}
+                                            enableCommuteFilter={enableCommuteFilter}
+                                            setEnableCommuteFilter={setEnableCommuteFilter}
+                                            filterMaxDistance={filterMaxDistance}
+                                            setFilterMaxDistance={setFilterMaxDistance}
+                                            filterContractType={filterContractType}
+                                            toggleContractTypeFilter={toggleContractTypeFilter}
+                                            filterDate={filterDate}
+                                            setFilterDate={setFilterDate}
+                                            filterMinSalary={filterMinSalary}
+                                            setFilterMinSalary={setFilterMinSalary}
+                                            filterExperience={filterExperience}
+                                            toggleExperienceFilter={toggleExperienceFilter}
+                                            filterBenefits={filterBenefits}
+                                            toggleBenefitFilter={toggleBenefitFilter}
+                                            filterLanguage={filterLanguage}
+                                            setFilterLanguage={setFilterLanguage}
+                                            sortBy={sortBy}
+                                            setSortBy={setSortBy}
+                                            isLoadingJobs={isLoadingJobs}
+                                            isSearching={isSearching}
+                                            filteredJobs={jobsForDisplay}
+                                            impressionSessionKey={impressionSessionKey}
+                                            savedJobIds={savedJobIds}
+                                            handleToggleSave={handleToggleSave}
+                                            handleJobSelect={handleJobSelect}
+                                            theme={theme}
+                                            userProfile={userProfile}
+                                            jobListRef={jobListRef}
+                                            loadingMore={loadingMore}
+                                            hasMore={hasMore}
+                                            totalCount={totalCount}
+                                            loadRealJobs={loadRealJobs}
+                                            backendPolling={backendPolling}
+                                            globalSearch={globalSearch}
+                                            setGlobalSearch={setGlobalSearch}
+                                            abroadOnly={abroadOnly}
+                                            setAbroadOnly={setAbroadOnly}
+                                            onUseCurrentLocation={handleUseCurrentLocation}
+                                            onTrackImpression={(job, position) => {
+                                                trackJobInteraction({
+                                                    jobId: job.id,
+                                                    eventType: 'impression',
+                                                    sessionId: searchSessionIdRef.current,
+                                                    requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
+                                                    scoringVersion: (job as any)?.aiMatchScoringVersion,
+                                                    modelVersion: (job as any)?.aiMatchModelVersion,
+                                                    metadata: {
+                                                        source: 'desktop_list',
+                                                        position
+                                                    }
+                                                });
+                                            }}
+                                        />
+
+                                        {isMobileScreen && userProfile.isLoggedIn && (
+                                            <div className="lg:hidden px-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setMobileViewOverride('swipe');
+                                                        setIsMobileSwipeView(true);
+                                                    }}
+                                                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-sm hover:bg-white dark:hover:bg-slate-900 transition-colors"
+                                                >
+                                                    {t('job.swipe_view')}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="lg:col-span-3 min-h-0 flex flex-col gap-2 lg:gap-3">
+                                        <div className="hidden lg:block rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(140deg,rgba(255,255,255,0.92),rgba(239,246,255,0.86))] dark:bg-[linear-gradient(140deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] px-3.5 py-2.5 shadow-[0_12px_24px_-30px_rgba(15,23,42,0.24)]">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-700 dark:text-slate-200">
+                                                        {isCsLike ? 'Digitální první kontakt' : t('home.discovery.badge', { defaultValue: 'Digital first contact' })}
+                                                    </div>
+                                                    <div className="mt-0.5 text-[16px] font-bold text-slate-900 dark:text-white leading-snug">
+                                                        {t('home.discovery.title', {
+                                                            defaultValue: isCsLike
+                                                                ? 'Reaguj na skutečnou týmovou výzvu, ne na hlučný nábor.'
+                                                                : 'React to a real team problem, not a noisy funnel.'
+                                                        })}
+                                                    </div>
+                                                    <div className="mt-1 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                                                        {t('home.discovery.meta', {
+                                                            defaultValue: isCsLike
+                                                                ? 'Role ukáže pravdu jako první. Tvoje reakce otevře soukromý dialog bez zbytečného tlaku.'
+                                                                : 'The role shows truth first. Your reply opens a private, low-pressure thread.'
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-lg border border-white/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/30 px-3 py-1.5 text-right shrink-0">
+                                                    <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
+                                                        {t('home.discovery.slots_label', { defaultValue: isCsLike ? 'Aktivní dialogy' : 'Active dialogues' })}
+                                                    </div>
+                                                    <div className="text-[18px] font-bold text-slate-900 dark:text-white">
+                                                        {dialogueMetricsLoading && (!discoverySlotsUsedLabel || !discoverySlotsLimitLabel)
+                                                            ? '…'
+                                                            : `${discoverySlotsUsedLabel ?? '—'} / ${discoverySlotsLimitLabel ?? '—'}`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 grid grid-cols-3 gap-1.5">
+                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
+                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryRoleTruthCount.toLocaleString(i18n.language)}</div>
+                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
+                                                        {t('home.discovery.step_role_truth', { defaultValue: isCsLike ? 'Pravda role' : 'Role truth' })}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
+                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
+                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
+                                                        {t('home.discovery.step_short_reply', { defaultValue: isCsLike ? 'Krátká reakce' : 'Short reply' })}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
+                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryClearStateCount.toLocaleString(i18n.language)}</div>
+                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
+                                                        {t('home.discovery.step_clear_state', { defaultValue: isCsLike ? 'Jasný stav' : 'Clear state' })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 min-h-0">
+                                            <JobListSidebar
+                                                fullWidth
+                                                showSearchPanel={false}
+                                                showJobFeed
+                                                selectedJobId={selectedJobId}
+                                                searchTerm={searchTerm}
+                                                setSearchTerm={setSearchTerm}
+                                                performSearch={performSearch}
+                                                showFilters={showFilters}
+                                                setShowFilters={setShowFilters}
+                                                expandedSections={expandedSections}
+                                                toggleSection={toggleSection}
+                                                filterCity={filterCity}
+                                                setFilterCity={setFilterCity}
+                                                enableCommuteFilter={enableCommuteFilter}
+                                                setEnableCommuteFilter={setEnableCommuteFilter}
+                                                filterMaxDistance={filterMaxDistance}
+                                                setFilterMaxDistance={setFilterMaxDistance}
+                                                filterContractType={filterContractType}
+                                                toggleContractTypeFilter={toggleContractTypeFilter}
+                                                filterDate={filterDate}
+                                                setFilterDate={setFilterDate}
+                                                filterMinSalary={filterMinSalary}
+                                                setFilterMinSalary={setFilterMinSalary}
+                                                filterExperience={filterExperience}
+                                                toggleExperienceFilter={toggleExperienceFilter}
+                                                filterBenefits={filterBenefits}
+                                                toggleBenefitFilter={toggleBenefitFilter}
+                                                filterLanguage={filterLanguage}
+                                                setFilterLanguage={setFilterLanguage}
+                                                sortBy={sortBy}
+                                                setSortBy={setSortBy}
+                                                isLoadingJobs={isLoadingJobs}
+                                                isSearching={isSearching}
+                                                filteredJobs={jobsForDisplay}
+                                                impressionSessionKey={impressionSessionKey}
+                                                savedJobIds={savedJobIds}
+                                                handleToggleSave={handleToggleSave}
+                                                handleJobSelect={handleJobSelect}
+                                                theme={theme}
+                                                userProfile={userProfile}
+                                                jobListRef={jobListRef}
+                                                loadingMore={loadingMore}
+                                                hasMore={hasMore}
+                                                totalCount={totalCount}
+                                                loadRealJobs={loadRealJobs}
+                                                backendPolling={backendPolling}
+                                                globalSearch={globalSearch}
+                                                setGlobalSearch={setGlobalSearch}
+                                                abroadOnly={abroadOnly}
+                                                setAbroadOnly={setAbroadOnly}
+                                                onUseCurrentLocation={handleUseCurrentLocation}
+                                                onTrackImpression={(job, position) => {
+                                                    trackJobInteraction({
+                                                        jobId: job.id,
+                                                        eventType: 'impression',
+                                                        sessionId: searchSessionIdRef.current,
+                                                        requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
+                                                        scoringVersion: (job as any)?.aiMatchScoringVersion,
+                                                        modelVersion: (job as any)?.aiMatchModelVersion,
+                                                        metadata: {
+                                                            source: 'desktop_list',
+                                                            position
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedJobId ? (
+                                    <JobDetailView
+                                        mounted={mounted}
+                                        selectedJobId={selectedJobId}
+                                        selectedJob={selectedJob || null}
+                                        dynamicJHI={dynamicJHI}
+                                        savedJobIds={savedJobIds}
+                                        handleToggleSave={handleToggleSave}
+                                        setSelectedJobId={handleJobSelect}
+                                        setIsApplyModalOpen={setIsApplyModalOpen}
+                                        detailScrollRef={detailScrollRef}
+                                        userProfile={userProfile}
+                                        commuteAnalysis={commuteAnalysis}
+                                        showCommuteDetails={showCommuteDetails}
+                                        showLoginPrompt={showLoginPrompt}
+                                        showAddressPrompt={showAddressPrompt}
+                                        handleAuthAction={handleAuthAction}
+                                        setViewState={setViewState}
+                                        showFinancialMethodology={showFinancialMethodology}
+                                        setShowFinancialMethodology={setShowFinancialMethodology}
+                                        getTransportIcon={getTransportIcon}
+                                        formatJobDescription={formatJobDescription}
+                                        theme={theme}
+                                        aiAnalysis={aiAnalysis}
+                                        analyzing={analyzing}
+                                        handleAnalyzeJob={handleAnalyzeJob}
+                                        selectedBlogPostSlug={selectedBlogPostSlug}
+                                        handleBlogPostSelect={handleBlogPostSelect}
+                                        totalJobsCount={welcomeActiveJobsCount ?? totalCount}
+                                        todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
+                                        onApplyToJob={handleApplyToJob}
+                                        onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
+                                        onSaveOptimizedCv={handleSaveOptimizedCvToProfile}
+                                    />
+                                ) : (
+                                    <section className="hidden lg:flex lg:col-span-7 xl:col-span-7 min-h-0 h-full flex-col">
+                                        <div className="min-h-0 h-full">
+                                            <WelcomePage
+                                                compact
+                                                onTryFree={() => handleAuthAction('register')}
+                                                onBrowseOffers={() => {
+                                                    setViewState(ViewState.LIST);
+                                                    setSelectedJobId(null);
+                                                }}
+                                                totalJobsCount={welcomeActiveJobsCount ?? totalCount}
+                                                todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
+                                                selectedBlogPostSlug={selectedBlogPostSlug}
+                                                handleBlogPostSelect={handleBlogPostSelect}
+                                            />
+                                        </div>
+                                    </section>
+                                )}
                             </div>
                         )}
-                        {/* DESKTOP VIEW: LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
-                        <JobListSidebar
-                            selectedJobId={selectedJobId}
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            performSearch={performSearch}
-                            showFilters={showFilters}
-                            setShowFilters={setShowFilters}
-                            expandedSections={expandedSections}
-                            toggleSection={toggleSection}
-                            filterCity={filterCity}
-                            setFilterCity={setFilterCity}
-                            enableCommuteFilter={enableCommuteFilter}
-                            setEnableCommuteFilter={setEnableCommuteFilter}
-                            filterMaxDistance={filterMaxDistance}
-                            setFilterMaxDistance={setFilterMaxDistance}
-                            filterContractType={filterContractType}
-                            toggleContractTypeFilter={toggleContractTypeFilter}
-                            filterDate={filterDate}
-                            setFilterDate={setFilterDate}
-                            filterMinSalary={filterMinSalary}
-                            setFilterMinSalary={setFilterMinSalary}
-                            filterExperience={filterExperience}
-                            toggleExperienceFilter={toggleExperienceFilter}
-                            filterBenefits={filterBenefits}
-                            toggleBenefitFilter={toggleBenefitFilter}
-                            filterLanguage={filterLanguage}
-                            setFilterLanguage={setFilterLanguage}
-                            sortBy={sortBy}
-                            setSortBy={setSortBy}
-                            isLoadingJobs={isLoadingJobs}
-                            isSearching={isSearching}
-                            filteredJobs={jobsForDisplay}
-                            impressionSessionKey={impressionSessionKey}
-                            savedJobIds={savedJobIds}
-                            handleToggleSave={handleToggleSave}
-                            handleJobSelect={handleJobSelect}
-                            theme={theme}
-                            userProfile={userProfile}
-                            jobListRef={jobListRef}
-                            loadingMore={loadingMore}
-                            hasMore={hasMore}
-                            totalCount={totalCount}
-                            loadRealJobs={loadRealJobs}
-                            backendPolling={backendPolling}
-                            globalSearch={globalSearch}
-                            setGlobalSearch={setGlobalSearch}
-                            abroadOnly={abroadOnly}
-                            setAbroadOnly={setAbroadOnly}
-                            onUseCurrentLocation={handleUseCurrentLocation}
-                            onTrackImpression={(job, position) => {
-                                trackJobInteraction({
-                                    jobId: job.id,
-                                    eventType: 'impression',
-                                    sessionId: searchSessionIdRef.current,
-                                    requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
-                                    scoringVersion: (job as any)?.aiMatchScoringVersion,
-                                    modelVersion: (job as any)?.aiMatchModelVersion,
-                                    metadata: {
-                                        source: 'desktop_list',
-                                        position
-                                    }
-                                });
-                            }}
-                        />
-
-                        {/* DESKTOP VIEW: RIGHT COLUMN: Detail View (or Welcome Guide) */}
-                        <JobDetailView
-                            mounted={mounted}
-                            selectedJobId={selectedJobId}
-                            selectedJob={selectedJob || null}
-                            dynamicJHI={dynamicJHI}
-                            savedJobIds={savedJobIds}
-                            handleToggleSave={handleToggleSave}
-                            setSelectedJobId={handleJobSelect}
-                            setIsApplyModalOpen={setIsApplyModalOpen}
-                            detailScrollRef={detailScrollRef}
-                            userProfile={userProfile}
-                            commuteAnalysis={commuteAnalysis}
-                            showCommuteDetails={showCommuteDetails}
-                            showLoginPrompt={showLoginPrompt}
-                            showAddressPrompt={showAddressPrompt}
-                            handleAuthAction={handleAuthAction}
-                            setViewState={setViewState}
-                            showFinancialMethodology={showFinancialMethodology}
-                            setShowFinancialMethodology={setShowFinancialMethodology}
-                            getTransportIcon={getTransportIcon}
-                            formatJobDescription={formatJobDescription}
-                            theme={theme}
-                            aiAnalysis={aiAnalysis}
-                            analyzing={analyzing}
-                            handleAnalyzeJob={handleAnalyzeJob}
-                            selectedBlogPostSlug={selectedBlogPostSlug}
-                            handleBlogPostSelect={handleBlogPostSelect}
-                            totalJobsCount={welcomeActiveJobsCount ?? totalCount}
-                            todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
-                            onApplyToJob={handleApplyToJob}
-                            onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
-                            onSaveOptimizedCv={handleSaveOptimizedCvToProfile}
-                        />
-                    </>
-                )}
+                    </div>
+                </div>
             </>
         );
     };
 
     return (
-        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-grid-bg text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-grid-bg app-grid-bg--soft text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
             {!isImmersiveAssessmentRoute && (
                 <AppHeader
                     viewState={viewState}
@@ -2330,14 +2612,14 @@ export default function App() {
             <main className={
                 isImmersiveAssessmentRoute
                     ? "flex-1 min-h-0 w-full overflow-hidden"
-                    : `flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 ${usePageScrollLayout ? '' : 'overflow-hidden'}`
+                    : `flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-5 lg:px-6 pt-2 ${isHomeListView ? 'pb-px' : 'pb-3'} ${usePageScrollLayout ? '' : 'overflow-hidden'}`
             }>
                 <div className={
                     isImmersiveAssessmentRoute
                         ? "h-full"
                         : usePageScrollLayout
-                            ? "grid grid-cols-1 lg:grid-cols-12 gap-6"
-                            : "grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]"
+                            ? "grid grid-cols-1 lg:grid-cols-12 gap-4"
+                            : "grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100dvh-106px)]"
                 }>
                     <Suspense
                         fallback={

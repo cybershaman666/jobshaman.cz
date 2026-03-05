@@ -31,6 +31,8 @@ export interface JobLifecycleUpdateResult {
     via: 'api' | 'unavailable' | 'failed';
 }
 
+export type RoleLifecycleUpdateResult = JobLifecycleUpdateResult;
+
 export interface JobDraftUpsertInput {
     status?: JobDraft['status'];
     title?: string;
@@ -55,11 +57,46 @@ export interface JobDraftUpsertInput {
     editor_state?: Record<string, unknown> | null;
 }
 
+export type CompanyRoleUpsertInput = JobDraftUpsertInput;
+
 const jsonHeaders = { 'Content-Type': 'application/json' };
 let jobDraftApiUnavailable = false;
 let rolloutSchemaApiUnavailable = false;
 const shouldDisableDraftApi = (status: number): boolean =>
     [404, 409, 500, 501, 502, 503].includes(status);
+
+const extractHandshakeState = (row: any) => {
+    const editorState = row?.editor_state && typeof row.editor_state === 'object' ? row.editor_state : {};
+    const handshake = editorState?.handshake && typeof editorState.handshake === 'object' ? editorState.handshake : {};
+    return {
+        first_reply_prompt: row?.first_reply_prompt ?? handshake?.first_reply_prompt ?? '',
+        company_truth_hard: row?.company_truth_hard ?? handshake?.company_truth_hard ?? '',
+        company_truth_fail: row?.company_truth_fail ?? handshake?.company_truth_fail ?? '',
+    };
+};
+
+const normalizeRoleDraft = (row: any): JobDraft => ({
+    ...(row || {}),
+    ...extractHandshakeState(row),
+    id: row?.id ?? row?.role_id ?? '',
+    job_id: row?.job_id ?? row?.published_job_id ?? row?.jobId ?? row?.publishedJobId ?? null,
+}) as JobDraft;
+
+const extractRolePayload = (payload: any): JobDraft | null =>
+    payload?.draft
+        ? normalizeRoleDraft(payload.draft)
+        : payload?.role
+            ? normalizeRoleDraft(payload.role)
+            : null;
+
+const extractRoleList = (payload: any): JobDraft[] => {
+    const rows = Array.isArray(payload?.drafts)
+        ? payload.drafts
+        : Array.isArray(payload?.roles)
+            ? payload.roles
+            : [];
+    return rows.map(normalizeRoleDraft);
+};
 
 const toJson = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
@@ -85,12 +122,12 @@ export const listCompanyJobDrafts = async (): Promise<JobDraft[]> => {
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles`, {
             method: 'GET',
             headers: jsonHeaders
         });
-        const payload = await toJson<{ drafts: JobDraft[] }>(response);
-        return Array.isArray(payload?.drafts) ? payload.drafts : [];
+        const payload = await toJson<{ drafts?: JobDraft[]; roles?: JobDraft[] }>(response);
+        return extractRoleList(payload);
     } catch (error) {
         markDraftApiUnavailableIfNeeded(error);
         throw error;
@@ -102,12 +139,12 @@ export const getCompanyJobDraft = async (draftId: string): Promise<JobDraft | nu
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts/${draftId}`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${draftId}`, {
             method: 'GET',
             headers: jsonHeaders
         });
-        const payload = await toJson<{ draft: JobDraft }>(response);
-        return payload?.draft || null;
+        const payload = await toJson<{ draft?: JobDraft; role?: JobDraft }>(response);
+        return extractRolePayload(payload);
     } catch (error) {
         markDraftApiUnavailableIfNeeded(error);
         throw error;
@@ -119,13 +156,17 @@ export const createCompanyJobDraft = async (input: JobDraftUpsertInput): Promise
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles`, {
             method: 'POST',
             headers: jsonHeaders,
             body: JSON.stringify(input)
         });
-        const payload = await toJson<{ draft: JobDraft }>(response);
-        return payload.draft;
+        const payload = await toJson<{ draft?: JobDraft; role?: JobDraft }>(response);
+        const role = extractRolePayload(payload);
+        if (!role) {
+            throw new ApiRequestError(500, 'Missing role payload');
+        }
+        return role;
     } catch (error) {
         markDraftApiUnavailableIfNeeded(error);
         throw error;
@@ -137,13 +178,17 @@ export const updateCompanyJobDraft = async (draftId: string, input: JobDraftUpse
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts/${draftId}`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${draftId}`, {
             method: 'PATCH',
             headers: jsonHeaders,
             body: JSON.stringify(input)
         });
-        const payload = await toJson<{ draft: JobDraft }>(response);
-        return payload.draft;
+        const payload = await toJson<{ draft?: JobDraft; role?: JobDraft }>(response);
+        const role = extractRolePayload(payload);
+        if (!role) {
+            throw new ApiRequestError(500, 'Missing role payload');
+        }
+        return role;
     } catch (error) {
         markDraftApiUnavailableIfNeeded(error);
         throw error;
@@ -155,7 +200,7 @@ export const validateCompanyJobDraft = async (draftId: string): Promise<JobValid
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts/${draftId}/validate`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${draftId}/validate`, {
             method: 'POST',
             headers: jsonHeaders
         });
@@ -175,7 +220,7 @@ export const publishCompanyJobDraft = async (
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/job-drafts/${draftId}/publish`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${draftId}/publish`, {
             method: 'POST',
             headers: jsonHeaders,
             body: JSON.stringify({ change_summary: changeSummary || null })
@@ -187,12 +232,25 @@ export const publishCompanyJobDraft = async (
     }
 };
 
+export const listCompanyRoles = listCompanyJobDrafts;
+export const getCompanyRole = getCompanyJobDraft;
+export const createCompanyRole = createCompanyJobDraft;
+export const updateCompanyRole = updateCompanyJobDraft;
+export const validateCompanyRole = validateCompanyJobDraft;
+export const publishCompanyRole = publishCompanyJobDraft;
+export const listCompanyRoleDrafts = listCompanyJobDrafts;
+export const getCompanyRoleDraft = getCompanyJobDraft;
+export const createCompanyRoleDraft = createCompanyJobDraft;
+export const updateCompanyRoleDraft = updateCompanyJobDraft;
+export const validateCompanyRoleDraft = validateCompanyJobDraft;
+export const publishCompanyRoleDraft = publishCompanyJobDraft;
+
 export const createEditDraftFromJob = async (jobId: string | number): Promise<JobDraft> => {
     if (jobDraftApiUnavailable) {
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/edit-draft`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${jobId}/edit-draft`, {
             method: 'POST',
             headers: jsonHeaders
         });
@@ -209,7 +267,7 @@ export const duplicateJobIntoDraft = async (jobId: string | number): Promise<Job
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/duplicate`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${jobId}/duplicate`, {
             method: 'POST',
             headers: jsonHeaders
         });
@@ -226,7 +284,7 @@ export const listJobVersions = async (jobId: string | number): Promise<JobVersio
         throw new ApiRequestError(404, 'Job draft API unavailable');
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/versions`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${jobId}/versions`, {
             method: 'GET',
             headers: jsonHeaders
         });
@@ -246,7 +304,7 @@ export const updateCompanyJobLifecycle = async (
         return { ok: false, via: 'unavailable' };
     }
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/lifecycle`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/roles/${jobId}/lifecycle`, {
             method: 'PATCH',
             headers: jsonHeaders,
             body: JSON.stringify({ status })
@@ -264,6 +322,11 @@ export const updateCompanyJobLifecycle = async (
         return { ok: false, via: 'failed' };
     }
 };
+
+export const createEditDraftFromRole = createEditDraftFromJob;
+export const duplicateRoleIntoDraft = duplicateJobIntoDraft;
+export const listRoleVersions = listJobVersions;
+export const updateCompanyRoleLifecycle = updateCompanyJobLifecycle;
 
 export const fetchCompanySchemaRolloutStatus = async (): Promise<CompanySchemaRolloutStatus | null> => {
     if (rolloutSchemaApiUnavailable || jobDraftApiUnavailable) return null;

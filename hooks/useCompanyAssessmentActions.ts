@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
-import { Assessment, ApplicationDossier, Job } from '../types';
+import { Assessment, DialogueDossier, Job } from '../types';
 
 interface AssessmentContext {
   jobId?: string;
@@ -7,6 +7,7 @@ interface AssessmentContext {
   candidateEmail?: string;
   candidateId?: string;
   candidateName?: string;
+  dialogueId?: string;
   applicationId?: string;
   assessmentId?: string;
   assessmentName?: string;
@@ -14,7 +15,7 @@ interface AssessmentContext {
 
 interface UseCompanyAssessmentActionsArgs {
   jobs: Job[];
-  selectedApplicationDetail: ApplicationDossier | null;
+  selectedDialogueDetail: DialogueDossier | null;
   assessmentLibrary: Assessment[];
   duplicateAssessment: (assessmentId: string) => Promise<Assessment | null>;
   archiveAssessment: (assessmentId: string) => Promise<boolean>;
@@ -30,9 +31,9 @@ interface UseCompanyAssessmentActionsArgs {
   setShowInvitationModal: Dispatch<SetStateAction<boolean>>;
 }
 
-export const useCompanyAssessmentActions = ({
+export const useCompanyDialogueAssessmentActions = ({
   jobs,
-  selectedApplicationDetail,
+  selectedDialogueDetail,
   assessmentLibrary,
   duplicateAssessment,
   archiveAssessment,
@@ -53,24 +54,25 @@ export const useCompanyAssessmentActions = ({
     setActiveTab('assessments');
   };
 
-  const handleCreateAssessmentFromApplication = () => {
-    if (!selectedApplicationDetail) return;
-    setAssessmentJobId(String(selectedApplicationDetail.job_id));
+  const handleCreateAssessmentFromDialogue = () => {
+    if (!selectedDialogueDetail) return;
+    setAssessmentJobId(String(selectedDialogueDetail.job_id));
     setAssessmentContext((prev) => ({
       ...prev,
-      jobId: String(selectedApplicationDetail.job_id),
-      jobTitle: selectedApplicationDetail.job_title || prev?.jobTitle,
-      candidateEmail: selectedApplicationDetail.candidate_profile_snapshot?.email || selectedApplicationDetail.candidate_email || prev?.candidateEmail,
-      candidateId: selectedApplicationDetail.candidate_id || prev?.candidateId,
-      candidateName: selectedApplicationDetail.candidate_profile_snapshot?.name || selectedApplicationDetail.candidate_name || prev?.candidateName,
-      applicationId: selectedApplicationDetail.id,
+      jobId: String(selectedDialogueDetail.job_id),
+      jobTitle: selectedDialogueDetail.job_title || prev?.jobTitle,
+      candidateEmail: selectedDialogueDetail.candidate_profile_snapshot?.email || selectedDialogueDetail.candidate_email || prev?.candidateEmail,
+      candidateId: selectedDialogueDetail.candidate_id || prev?.candidateId,
+      candidateName: selectedDialogueDetail.candidate_profile_snapshot?.name || selectedDialogueDetail.candidate_name || prev?.candidateName,
+      dialogueId: selectedDialogueDetail.id,
+      applicationId: selectedDialogueDetail.id,
     }));
     setActiveTab('assessments');
   };
 
-  const handleInviteCandidateFromApplication = () => {
-    if (!selectedApplicationDetail) return;
-    handleCreateAssessmentFromApplication();
+  const handleInviteCandidateFromDialogue = () => {
+    if (!selectedDialogueDetail) return;
+    handleCreateAssessmentFromDialogue();
     setShowInvitationModal(true);
   };
 
@@ -114,10 +116,14 @@ export const useCompanyAssessmentActions = ({
 
   return {
     handleCreateAssessmentFromJob,
-    handleCreateAssessmentFromApplication,
-    handleInviteCandidateFromApplication,
+    handleCreateAssessmentFromDialogue,
+    handleInviteCandidateFromDialogue,
+    handleCreateAssessmentFromApplication: handleCreateAssessmentFromDialogue,
+    handleInviteCandidateFromApplication: handleInviteCandidateFromDialogue,
     handleUseSavedAssessment,
     handleDuplicateAssessment,
     handleArchiveAssessment
   };
 };
+
+export const useCompanyAssessmentActions = useCompanyDialogueAssessmentActions;

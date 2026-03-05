@@ -38,8 +38,9 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     onStepViewed,
     onStepCompleted
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const cvInputRef = useRef<HTMLInputElement>(null);
+    const isCsLike = ['cs', 'sk'].includes((i18n.language || 'cs').split('-')[0].toLowerCase());
 
     const [step, setStep] = useState<Step>(1);
     const [address, setAddress] = useState(profile.address || '');
@@ -70,6 +71,21 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
 
     const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
     const isPremium = String(profile.subscription?.tier || 'free').toLowerCase() === 'premium';
+    const supportStepCopy = isCsLike ? {
+        title: 'Doplňte podpůrný kontext',
+        desc: 'CV nebo AI draft tu fungují jen jako volitelný podpůrný podklad. Přidejte dokument, pokud chcete mít po ruce další kontext pro firmy.',
+        uploadBody: 'Nahrajte životopis nebo jiný podpůrný dokument. Použije se jen tehdy, když si tým vyžádá víc detailu.',
+        uploadCta: 'Nahrát dokument',
+        dictateCta: 'Vytvořit AI draft podkladů',
+        success: 'Podpůrný dokument je připravený'
+    } : {
+        title: 'Add supporting context',
+        desc: 'A CV or AI draft works here as optional supporting context. Add a document only if you want extra material ready for teams that ask for more detail.',
+        uploadBody: 'Upload a resume or another supporting document. It is used only when a team asks for extra context.',
+        uploadCta: 'Upload document',
+        dictateCta: 'Create an AI context draft',
+        success: 'Supporting document is ready'
+    };
 
     useEffect(() => {
         if (!isOpen) return;
@@ -321,7 +337,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                             setAddressStatus('idle');
                         }}
                         placeholder={t('profile.address_placeholder')}
-                        className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                        className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none dark:[color-scheme:dark]"
                     />
                 </div>
             </div>
@@ -392,7 +408,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         value={desiredRole}
                         onChange={(e) => setDesiredRole(e.target.value)}
                         placeholder={t('onboarding.pref_role_placeholder', { defaultValue: 'Např. Product Manager / Backend Engineer' })}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -402,7 +418,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onChange={(e) => setDesiredSalaryMin(e.target.value)}
                         inputMode="numeric"
                         placeholder="45000"
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -412,7 +428,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onChange={(e) => setDesiredSalaryMax(e.target.value)}
                         inputMode="numeric"
                         placeholder="90000"
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -420,7 +436,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     <select
                         value={desiredEmploymentType}
                         onChange={(e) => setDesiredEmploymentType(e.target.value as EmploymentChoice)}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
                     >
                         <option value="full_time">{t('onboarding.pref_type_full', { defaultValue: 'Full-time' })}</option>
                         <option value="part_time">{t('onboarding.pref_type_part', { defaultValue: 'Part-time' })}</option>
@@ -434,7 +450,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     <select
                         value={profileVisibility}
                         onChange={(e) => setProfileVisibility(e.target.value as VisibilityChoice)}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
                     >
                         <option value="private">{t('onboarding.visibility_private', { defaultValue: 'Private' })}</option>
                         <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: 'Only recruiters' })}</option>
@@ -447,7 +463,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         value={skillsInput}
                         onChange={(e) => setSkillsInput(e.target.value)}
                         placeholder={t('onboarding.pref_skills_placeholder', { defaultValue: 'Např. SQL, komunikace se zákazníkem, Python, triáž' })}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white min-h-[90px]"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white min-h-[90px] dark:[color-scheme:dark]"
                     />
                 </label>
             </div>
@@ -474,14 +490,18 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const renderCvStep = () => (
         <div className="space-y-6">
             <div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{t('onboarding.step_cv.title')}</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">{t('onboarding.step_cv.desc')}</p>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    {t('onboarding.step_cv.title', { defaultValue: supportStepCopy.title })}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                    {t('onboarding.step_cv.desc', { defaultValue: supportStepCopy.desc })}
+                </p>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
                 <FileText size={32} className="mx-auto text-cyan-600 dark:text-cyan-400 mb-3" />
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    {t('profile.upload_cv_desc')}
+                    {t('profile.upload_cv_desc', { defaultValue: supportStepCopy.uploadBody })}
                 </p>
                 <input
                     ref={cvInputRef}
@@ -497,7 +517,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 transition-colors disabled:opacity-50"
                 >
                     {isUploadingCv ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                    {t('onboarding.cta_upload')}
+                    {t('onboarding.cta_upload', { defaultValue: supportStepCopy.uploadCta })}
                 </button>
             </div>
 
@@ -506,19 +526,19 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     if (isPremium) {
                         setShowAIGuide(true);
                     } else {
-                        onOpenPremium(t('onboarding.feature_dictate', { defaultValue: 'Nadiktování CV' }));
+                        onOpenPremium(t('onboarding.feature_dictate', { defaultValue: isCsLike ? 'AI draft podkladů' : 'AI supporting draft' }));
                     }
                 }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 rounded-xl text-sm font-semibold hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
             >
                 <Sparkles size={16} />
-                {t('onboarding.cta_dictate')}
+                {t('onboarding.cta_dictate', { defaultValue: supportStepCopy.dictateCta })}
             </button>
 
             {cvStatus === 'success' && (
                 <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
                     <CheckCircle size={16} />
-                    {t('onboarding.cv.upload_success')}
+                    {t('onboarding.cv.upload_success', { defaultValue: supportStepCopy.success })}
                 </div>
             )}
             {cvStatus === 'error' && (

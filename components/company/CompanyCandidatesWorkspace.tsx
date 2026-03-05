@@ -187,7 +187,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             <select
                                 value={selectedJobId}
                                 onChange={(e) => onSelectedJobChange(e.target.value)}
-                                className="w-full bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0 p-0"
+                                className="w-full bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0 p-0 dark:[color-scheme:dark]"
                             >
                                 {jobs.map((job) => (
                                     <option key={job.id} value={job.id} className="bg-white dark:bg-slate-900">{job.title}</option>
@@ -255,14 +255,14 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={t('company.candidates.search_placeholder', { defaultValue: 'Search by name, role, skill, value, keyword...' })}
-                            className="w-full bg-transparent outline-none placeholder:text-slate-400"
+                            className="w-full bg-transparent outline-none placeholder:text-slate-400 dark:[color-scheme:dark]"
                         />
                     </label>
 
                     <select
                         value={candidateRoleFilter}
                         onChange={(e) => setCandidateRoleFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200"
+                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.all_roles', { defaultValue: 'All candidate roles' })}</option>
                         {candidateRoleOptions.map((role) => (
@@ -273,7 +273,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                     <select
                         value={fitFilter}
                         onChange={(e) => setFitFilter(e.target.value as typeof fitFilter)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200"
+                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.fit_all', { defaultValue: 'Any fit score' })}</option>
                         <option value="high">{t('company.candidates.filters.fit_high', { defaultValue: 'Fit 75+' })}</option>
@@ -285,7 +285,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                     <select
                         value={jcfpmFilter}
                         onChange={(e) => setJcfpmFilter(e.target.value as typeof jcfpmFilter)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200"
+                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.jcfpm_all', { defaultValue: 'JCFPM: all' })}</option>
                         <option value="with">{t('company.candidates.filters.jcfpm_with', { defaultValue: 'Has JCFPM' })}</option>
@@ -297,7 +297,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                            className="w-full bg-transparent outline-none"
+                            className="w-full bg-transparent outline-none dark:[color-scheme:dark]"
                         >
                             <option value="recent">{t('company.candidates.sort.recent', { defaultValue: 'Newest first' })}</option>
                             <option value="fit_desc">{t('company.candidates.sort.fit_desc', { defaultValue: 'Best fit first' })}</option>

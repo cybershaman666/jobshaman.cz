@@ -2,6 +2,7 @@ import React from 'react';
 import { Assessment, AssessmentMode } from '../types';
 import { FEATURE_ASSESSMENT_COCKPIT_V2 } from '../constants';
 import AssessmentTaker from './AssessmentTaker';
+import { resolveAssessmentMode } from './assessmentMode';
 
 interface Props {
   assessment: Assessment;
@@ -14,8 +15,7 @@ interface Props {
   forceAssessmentMode?: AssessmentMode;
 }
 
-export const resolveAssessmentMode = (cockpitEnabled: boolean): 'game' | 'classic' =>
-  cockpitEnabled ? 'game' : 'classic';
+export { resolveAssessmentMode } from './assessmentMode';
 
 const AssessmentExperienceRouter: React.FC<Props> = ({
   assessment,

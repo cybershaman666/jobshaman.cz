@@ -182,11 +182,11 @@ export const EmailTemplates = {
   }),
 
   jobApplication: (formData: any, job: any) => ({
-    subject: `Nová přihláška: ${formData.firstName} ${formData.lastName} na pozici ${job.title}`,
+    subject: `Nový handshake: ${formData.firstName} ${formData.lastName} na roli ${job.title}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #1e40af; margin-bottom: 20px;">Nová přihláška na JobShaman</h2>
+          <h2 style="color: #1e40af; margin-bottom: 20px;">Nový handshake na JobShaman</h2>
           
           <div style="margin-bottom: 20px;">
             <h3 style="color: #374151; margin-bottom: 10px;">Informace o kandidátovi:</h3>
@@ -213,22 +213,22 @@ export const EmailTemplates = {
           
           ${formData.cvFile ? `
           <div style="margin-bottom: 20px;">
-            <h3 style="color: #374151; margin-bottom: 10px;">CV:</h3>
-            <p style="color: #059669;"><strong>✓ CV bylo nahráno</strong></p>
+            <h3 style="color: #374151; margin-bottom: 10px;">Podpůrný dokument:</h3>
+            <p style="color: #059669;"><strong>✓ Podpůrný dokument byl nahrán</strong></p>
           </div>
           ` : ''}
 
           ${formData.cvSelectedName ? `
           <div style="margin-bottom: 20px;">
-            <h3 style="color: #374151; margin-bottom: 10px;">Vybrané CV:</h3>
+            <h3 style="color: #374151; margin-bottom: 10px;">Vybraný podpůrný dokument:</h3>
             <p><strong>${formData.cvSelectedName}</strong></p>
-            ${formData.cvSelectedUrl ? `<p><a href="${formData.cvSelectedUrl}" target="_blank" rel="noopener noreferrer">Otevřít CV</a></p>` : ''}
+            ${formData.cvSelectedUrl ? `<p><a href="${formData.cvSelectedUrl}" target="_blank" rel="noopener noreferrer">Otevřít dokument</a></p>` : ''}
           </div>
           ` : ''}
           
           <div style="background-color: #f0f9ff; padding: 15px; border-radius: 5px; border-left: 4px solid #3b82f6;">
             <p style="margin: 0; color: #1e40af;">
-              <strong>Další kroky:</strong> Profil kandidáta je k dispozici v admin rozhraní.
+              <strong>Další krok:</strong> Otevřete detail handshaku v admin rozhraní a pokračujte v dialogu.
             </p>
           </div>
         </div>

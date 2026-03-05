@@ -14,7 +14,7 @@ const OverviewAssessmentLibraryItem: React.FC<OverviewAssessmentLibraryItemProps
   const { t } = useTranslation();
 
   return (
-    <div className="company-surface-subtle rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/70 p-4">
+    <div className="company-surface-subtle rounded-[1rem] border border-slate-200/80 bg-white/85 p-4 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/70">
       <div className="text-sm font-semibold text-slate-900 dark:text-white">{assessment.title}</div>
       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{assessment.role}</div>
       <div className="mt-3 flex flex-wrap gap-2">

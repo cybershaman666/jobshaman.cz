@@ -4,32 +4,44 @@ import { Activity, BrainCircuit, PenTool, Radar, Users, Zap } from 'lucide-react
 import WorkspaceSyncBadge from './WorkspaceSyncBadge';
 
 interface CompanyWorkspaceHeroProps {
+  dialoguesLoading?: boolean;
   applicationsLoading: boolean;
+  dialoguesLastSyncedAt?: string | null;
   applicationsLastSyncedAt?: string | null;
   liveRolesCount: number;
   reviewQueueCount: number;
   savedAssessmentsCount: number;
+  onRefreshDialogues?: () => void;
   onRefreshApplications: () => void;
   onOpenJobs: () => void;
+  onOpenDialogues?: () => void;
   onOpenApplications: () => void;
   onOpenAssessments: () => void;
 }
 
 const CompanyWorkspaceHero: React.FC<CompanyWorkspaceHeroProps> = ({
+  dialoguesLoading,
   applicationsLoading,
+  dialoguesLastSyncedAt,
   applicationsLastSyncedAt,
   liveRolesCount,
   reviewQueueCount,
   savedAssessmentsCount,
+  onRefreshDialogues,
   onRefreshApplications,
   onOpenJobs,
+  onOpenDialogues,
   onOpenApplications,
   onOpenAssessments
 }) => {
   const { t } = useTranslation();
+  const resolvedDialoguesLoading = dialoguesLoading ?? applicationsLoading;
+  const resolvedDialoguesLastSyncedAt = dialoguesLastSyncedAt ?? applicationsLastSyncedAt;
+  const handleRefreshDialogues = onRefreshDialogues || onRefreshApplications;
+  const handleOpenDialogues = onOpenDialogues || onOpenApplications;
 
   return (
-    <div className="company-surface-elevated overflow-hidden rounded-[30px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.18),_transparent_34%),radial-gradient(circle_at_78%_18%,_rgba(14,165,233,0.12),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(135deg,_rgba(255,255,255,0.99),_rgba(248,250,252,0.95))] p-5 shadow-[0_30px_70px_-44px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.2),_transparent_34%),radial-gradient(circle_at_78%_18%,_rgba(14,165,233,0.16),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]">
+    <div className="company-surface-elevated overflow-hidden rounded-[1.15rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.18),_transparent_34%),radial-gradient(circle_at_78%_18%,_rgba(14,165,233,0.12),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(135deg,_rgba(255,255,255,0.99),_rgba(248,250,252,0.95))] p-4 shadow-[0_26px_56px_-40px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(8,145,178,0.2),_transparent_34%),radial-gradient(circle_at_78%_18%,_rgba(14,165,233,0.16),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <div className="space-y-4">
           <div className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700 backdrop-blur dark:border-cyan-900/30 dark:bg-slate-950/45 dark:text-cyan-300">
@@ -43,11 +55,11 @@ const CompanyWorkspaceHero: React.FC<CompanyWorkspaceHeroProps> = ({
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {t('company.workspace.subtitle', {
-                  defaultValue: 'Keep open roles, incoming applicants, and assessment progress in one clear flow. Go deeper only when you need to edit, compare, or decide.'
+                  defaultValue: 'Keep live roles, active candidate dialogues, and assessment progress in one clear flow. Go deeper only when you need to edit, compare, or decide.'
                 })}
               </p>
             </div>
-            <div className="rounded-[24px] border border-white/80 bg-white/80 p-4 shadow-[0_20px_38px_-30px_rgba(15,23,42,0.28)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
+            <div className="rounded-[1rem] border border-white/80 bg-white/80 p-4 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.24)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                 <Radar size={12} className="text-cyan-600 dark:text-cyan-300" />
                 {t('company.workspace.control_room', { defaultValue: 'HR control room' })}
@@ -76,7 +88,7 @@ const CompanyWorkspaceHero: React.FC<CompanyWorkspaceHeroProps> = ({
                     tone: 'text-emerald-700 dark:text-emerald-300'
                   }
                 ].map((item) => (
-                  <div key={item.key} className="rounded-2xl border border-slate-200/80 bg-white/85 p-3 dark:border-slate-800 dark:bg-slate-900/70">
+                  <div key={item.key} className="rounded-[0.95rem] border border-slate-200/80 bg-white/85 p-3 dark:border-slate-800 dark:bg-slate-900/70">
                     <div className={`flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${item.tone}`}>
                       <item.icon size={12} />
                       <span className="truncate">{item.label}</span>
@@ -89,40 +101,40 @@ const CompanyWorkspaceHero: React.FC<CompanyWorkspaceHeroProps> = ({
           </div>
         </div>
 
-        <div className="rounded-[26px] border border-white/80 bg-white/80 p-4 shadow-[0_20px_38px_-30px_rgba(15,23,42,0.28)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
+        <div className="rounded-[1rem] border border-white/80 bg-white/80 p-4 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.24)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
                 {t('company.workspace.sync.console', { defaultValue: 'Live console' })}
               </div>
               <div className="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
-                {t('company.workspace.actions.review_queue', { defaultValue: 'Review applicants' })}
+                {t('company.workspace.actions.review_queue', { defaultValue: 'Review dialogues' })}
               </div>
             </div>
             <WorkspaceSyncBadge
-              loading={applicationsLoading}
-              syncedAt={applicationsLastSyncedAt}
+              loading={resolvedDialoguesLoading}
+              syncedAt={resolvedDialoguesLastSyncedAt}
               syncedKey="company.workspace.sync.live_queue"
               syncedDefault="Live queue synced {{time}}"
-              onRefresh={onRefreshApplications}
+              onRefresh={handleRefreshDialogues}
             />
           </div>
           <div className="mt-4 space-y-2">
-            <button onClick={onOpenJobs} className="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_16px_28px_-18px_rgba(15,23,42,0.9)] transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white">
+            <button onClick={onOpenJobs} className="flex w-full items-center justify-between rounded-[0.95rem] bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_16px_28px_-20px_rgba(15,23,42,0.56)] transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white">
               <span className="flex items-center gap-2">
                 <PenTool size={16} />
                 {t('company.workspace.actions.new_role', { defaultValue: 'Create or edit roles' })}
               </span>
               <span className="text-xs uppercase tracking-[0.18em] opacity-70">{liveRolesCount}</span>
             </button>
-            <button onClick={onOpenApplications} className="company-pill-surface flex w-full items-center justify-between rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button onClick={handleOpenDialogues} className="company-pill-surface flex w-full items-center justify-between rounded-[0.95rem] border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-[0_14px_28px_-26px_rgba(15,23,42,0.18)] backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800">
               <span className="flex items-center gap-2">
                 <Users size={16} />
-                {t('company.workspace.actions.review_queue', { defaultValue: 'Review applicants' })}
+                {t('company.workspace.actions.review_queue', { defaultValue: 'Review dialogues' })}
               </span>
               <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{reviewQueueCount}</span>
             </button>
-            <button onClick={onOpenAssessments} className="company-pill-surface flex w-full items-center justify-between rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button onClick={onOpenAssessments} className="company-pill-surface flex w-full items-center justify-between rounded-[0.95rem] border border-slate-200/80 bg-white/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-[0_14px_28px_-26px_rgba(15,23,42,0.18)] backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800">
               <span className="flex items-center gap-2">
                 <BrainCircuit size={16} />
                 {t('company.workspace.actions.assessments', { defaultValue: 'Open assessment hub' })}

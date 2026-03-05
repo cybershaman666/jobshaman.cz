@@ -13,10 +13,30 @@ interface CVManagerProps {
 
 const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium = false }) => {
   const { t } = useTranslation();
+  const locale = typeof navigator !== 'undefined' ? navigator.language.toLowerCase() : 'en';
+  const isCsLike = locale.startsWith('cs') || locale.startsWith('sk');
   const [cvs, setCvs] = useState<CVDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [reparsingId, setReparsingId] = useState<string | null>(null);
+
+  const copy = isCsLike ? {
+    title: 'Knihovna dokumentu',
+    upload: 'Pridat dokument',
+    emptyTitle: 'Zatim tu nejsou zadne podpurne dokumenty.',
+    emptyBody: 'Pridej CV nebo jiny doplnujici dokument. V handshaku zustavaji volitelne.',
+    active: 'Aktivne pouzivany',
+    tipTitle: 'Tip:',
+    tipBody: 'Drz si 1 az 2 aktualni podpurne dokumenty. Nejsou povinne, ale mohou doplnit kontext tam, kde to dava smysl.'
+  } : {
+    title: 'Document library',
+    upload: 'Add document',
+    emptyTitle: 'No supporting documents yet.',
+    emptyBody: 'Add a CV or another supporting file. In the handshake flow, these stay optional.',
+    active: 'Currently in use',
+    tipTitle: 'Tip:',
+    tipBody: 'Keep 1 to 2 current supporting documents ready. They are optional, but useful when extra context helps.'
+  };
 
   useEffect(() => {
     loadCVs();
@@ -187,12 +207,12 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{t('cv_manager.title')}</h3>
+      <div className="p-6 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg">
+        <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{copy.title}</h3>
         <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 cursor-pointer transition-colors">
           <Upload size={16} />
-          <span>{t('cv_manager.upload_new')}</span>
+          <span>{copy.upload}</span>
           <input
             type="file"
             accept=".pdf,.docx"
@@ -216,8 +236,8 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
         {cvs.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-slate-400">
             <FileText size={48} className="mx-auto mb-4 text-gray-300 dark:text-slate-600" />
-            <p>{t('cv_manager.no_cvs')}</p>
-            <p className="text-sm">{t('cv_manager.first_cv_desc')}</p>
+            <p>{copy.emptyTitle}</p>
+            <p className="text-sm">{copy.emptyBody}</p>
           </div>
         ) : (
           cvs.map((cv) => (
@@ -255,7 +275,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                         {cv.isActive && (
                           <span className="flex items-center gap-1 text-green-600 dark:text-emerald-400 font-medium">
                             <Check size={14} />
-                            {t('cv_manager.active')}
+                            {copy.active}
                           </span>
                         )}
                       </div>
@@ -330,7 +350,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
       {cvs.length > 0 && (
         <div className="mt-6 p-4 bg-yellow-50 dark:bg-amber-950/30 border border-yellow-200 dark:border-amber-800 rounded-lg">
           <p className="text-sm text-yellow-800 dark:text-amber-200">
-            <strong>{t('cv_manager.tip_title')}</strong> {t('cv_manager.tip_desc')}
+            <strong>{copy.tipTitle}</strong> {copy.tipBody}
           </p>
         </div>
       )}

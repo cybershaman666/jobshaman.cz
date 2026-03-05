@@ -2,7 +2,7 @@
   "app": {
     "title": "JobShaman",
     "description": "Professional Job Offer Analysis",
-    "search_placeholder": "Search position, company...",
+    "search_placeholder": "Find your challenge, company...",
     "search_saved_placeholder": "Search saved...",
     "filters": "Filters",
     "searching": "Searching for job offers...",
@@ -44,6 +44,17 @@
     "clear": "Clear",
     "demo_alert": "Demo mode active",
     "saving": "Saving..."
+  },
+  "home": {
+    "discovery": {
+      "badge": "Digital first contact",
+      "title": "React to a real team challenge, not to noisy hiring.",
+      "meta": "The role shows truth first. Your reply opens a private, low-pressure thread.",
+      "slots_label": "Active dialogues",
+      "step_role_truth": "Role truth",
+      "step_short_reply": "Short reply",
+      "step_clear_state": "Clear state"
+    }
   },
   "filters": {
     "location_commute": "Location & Commute",
@@ -1220,6 +1231,36 @@
       "workplace_address_placeholder": "Office address",
       "contact_email": "Contact email",
       "contact_email_placeholder": "jobs@company.com",
+      "hiring_stage_label": "Hiring status",
+      "hiring_stage_help": "Candidates will see where the process currently is and whether you are still actively reviewing.",
+      "hiring_stage_options": {
+        "collecting_cvs": "Collecting CVs",
+        "reviewing_first_10": "Reviewing first 10 candidates",
+        "shortlisting": "Shortlisting",
+        "final_interviews": "Final interviews",
+        "offer_stage": "Offer stage"
+      },
+      "handshake": {
+        "title": "Handshake / first reply",
+        "desc": "The company goes first. Set the opening prompt and answer the two truth questions candidates should see before they respond.",
+        "first_reply": "First reply",
+        "first_reply_placeholder": "Describe the first real situation candidates should respond to and what kind of trade-off you want to see.",
+        "truth_hard": "What is actually hard about this role?",
+        "truth_hard_placeholder": "Name the uncomfortable reality of the role: where people struggle, what creates pressure, and what the team cannot hide.",
+        "truth_fail": "What type of person typically fails here?",
+        "truth_fail_placeholder": "Be explicit about the mismatch: what working style, mindset, or pace usually does not work in this team."
+      },
+      "rollout_schema_check": "Rollout schema check",
+      "rollout_ready": "Ready",
+      "rollout_attention": "Attention",
+      "rollout_ok": "ok",
+      "rollout_missing": "missing",
+      "rollout_sample_rows": "sample rows",
+      "rollout_tables": {
+        "job_applications": "job_applications",
+        "job_drafts": "job_drafts",
+        "job_versions": "job_versions"
+      },
       "section_ai_polished": "Polished with AI support.",
       "section_human_hint": "Write this part in a clear, human tone.",
       "section_labels": {

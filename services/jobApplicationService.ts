@@ -2,16 +2,17 @@ import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
 import {
-    ApplicationDossier,
+    DialogueDossier,
     ApplicationJcfpmShareLevel,
-    ApplicationMessage,
-    CandidateApplicationDetail,
-    CandidateApplicationSummary,
+    DialogueMessage,
+    DialogueDetail,
+    CandidateDialogueCapacity,
+    DialogueSummary,
     CompanyApplicationRow
 } from '../types';
-let companyApplicationsApiUnavailable = false;
+let companyDialoguesApiUnavailable = false;
 
-const shouldDisableCompanyApplicationsApi = (status: number): boolean =>
+const shouldDisableCompanyDialoguesApi = (status: number): boolean =>
     [404, 409, 500, 501, 502, 503].includes(status);
 
 export interface MutationResult {
@@ -19,7 +20,7 @@ export interface MutationResult {
     via: 'api' | 'fallback' | 'failed';
 }
 
-export interface ApplicationMessageCreatePayload {
+export interface DialogueMessageCreatePayload {
     body?: string | null;
     attachments?: Array<{
         name: string;
@@ -30,7 +31,9 @@ export interface ApplicationMessageCreatePayload {
     }>;
 }
 
-export interface CreateJobApplicationDetails {
+export type ApplicationMessageCreatePayload = DialogueMessageCreatePayload;
+
+export interface OpenDialogueDetails {
     coverLetter?: string | null;
     cvDocumentId?: string | null;
     cvSnapshot?: {
@@ -53,13 +56,74 @@ export interface CreateJobApplicationDetails {
     sharedJcfpmPayload?: Record<string, any> | null;
 }
 
-const mapCandidateApplication = (row: any): CandidateApplicationSummary => ({
+export type CreateJobApplicationDetails = OpenDialogueDetails;
+
+export interface OpenDialogueResult {
+    status: string;
+    dialogue_id?: string;
+    dialogue?: DialogueDossier;
+    candidate_capacity?: CandidateDialogueCapacity;
+}
+
+export type CreateJobApplicationResult = {
+    status: string;
+    application_id?: string;
+    application?: DialogueDossier;
+    candidate_capacity?: CandidateDialogueCapacity;
+};
+
+const normalizeDialogueLikeRow = (row: any): any => {
+    if (!row || typeof row !== 'object') return row;
+    return {
+        ...row,
+        id: row?.id ?? row?.dialogue_id ?? '',
+        job_id: row?.job_id ?? row?.role_id ?? row?.jobId ?? row?.roleId ?? undefined,
+        job_title: row?.job_title ?? row?.role_title ?? row?.jobTitle ?? row?.roleTitle ?? undefined,
+    };
+};
+
+const extractDialogueLikePayload = (payload: any): any =>
+    normalizeDialogueLikeRow(payload?.application ?? payload?.dialogue ?? null);
+
+const extractDialogueLikeList = (payload: any): any[] => {
+    const rows = Array.isArray(payload?.applications)
+        ? payload.applications
+        : Array.isArray(payload?.dialogues)
+            ? payload.dialogues
+            : [];
+    return rows.map(normalizeDialogueLikeRow);
+};
+
+const extractCandidateDialogueCapacity = (payload: any): CandidateDialogueCapacity | undefined => {
+    const row = payload?.candidate_capacity;
+    if (!row || typeof row !== 'object') return undefined;
+    const active = Number(row?.active ?? 0);
+    const limit = Number(row?.limit ?? 0);
+    const remaining = Number(row?.remaining ?? Math.max(0, limit - active));
+    return {
+        active: Number.isFinite(active) ? active : 0,
+        limit: Number.isFinite(limit) ? limit : 0,
+        remaining: Number.isFinite(remaining) ? remaining : 0,
+    };
+};
+
+const mapDialogueLifecycleFields = (row: any) => ({
+    dialogue_deadline_at: row?.dialogue_deadline_at ?? row?.dialogueDeadlineAt ?? null,
+    dialogue_current_turn: row?.dialogue_current_turn ?? row?.dialogueCurrentTurn ?? null,
+    dialogue_timeout_hours: row?.dialogue_timeout_hours ?? row?.dialogueTimeoutHours ?? undefined,
+    dialogue_closed_reason: row?.dialogue_closed_reason ?? row?.dialogueClosedReason ?? null,
+    dialogue_closed_at: row?.dialogue_closed_at ?? row?.dialogueClosedAt ?? null,
+    dialogue_is_overdue: Boolean(row?.dialogue_is_overdue ?? row?.dialogueIsOverdue ?? false),
+});
+
+const mapDialogueSummary = (row: any): DialogueSummary => ({
     id: String(row?.id || ''),
     job_id: row?.job_id,
     company_id: row?.company_id ?? undefined,
     status: row?.status ?? 'pending',
     submitted_at: row?.submitted_at ?? row?.created_at ?? row?.applied_at,
     updated_at: row?.updated_at ?? row?.submitted_at ?? row?.created_at ?? row?.applied_at,
+    ...mapDialogueLifecycleFields(row),
     source: row?.source ?? undefined,
     has_cover_letter: Boolean(row?.has_cover_letter ?? row?.cover_letter),
     has_cv: Boolean(row?.has_cv ?? row?.cv_snapshot?.fileUrl ?? row?.cv_snapshot?.originalName ?? row?.cv_document_id),
@@ -70,14 +134,14 @@ const mapCandidateApplication = (row: any): CandidateApplicationSummary => ({
     job_snapshot: row?.job_snapshot ?? undefined,
 });
 
-export const createJobApplication = async (
+export const openDialogue = async (
     jobId: string | number,
     source?: string,
     metadata?: Record<string, any>,
-    details?: CreateJobApplicationDetails
-): Promise<{ status: string; application_id?: string; application?: ApplicationDossier } | null> => {
+    details?: OpenDialogueDetails
+): Promise<OpenDialogueResult | null> => {
     try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/applications`, {
+        const response = await authenticatedFetch(`${BACKEND_URL}/dialogues`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -93,90 +157,117 @@ export const createJobApplication = async (
             })
         });
         if (!response.ok) return null;
-        return await response.json();
+        const payload = await response.json();
+        const dialogue = extractDialogueLikePayload(payload);
+        return {
+            status: String(payload?.status || ''),
+            dialogue_id: payload?.dialogue_id ?? payload?.application_id ?? dialogue?.id ?? undefined,
+            dialogue: dialogue ?? undefined,
+            candidate_capacity: extractCandidateDialogueCapacity(payload),
+        };
     } catch {
         return null;
     }
 };
 
-export const fetchCompanyApplicationDetail = async (
-    applicationId: string
-): Promise<ApplicationDossier | null> => {
-    if (!applicationId) return null;
-    if (companyApplicationsApiUnavailable) {
-        return await fetchCompanyApplicationDetailFallback(applicationId);
+export const fetchCompanyDialogueDetail = async (
+    dialogueId: string
+): Promise<DialogueDossier | null> => {
+    if (!dialogueId) return null;
+    if (companyDialoguesApiUnavailable) {
+        return await fetchCompanyDialogueDetailFallback(dialogueId);
     }
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/company/applications/${applicationId}`,
+            `${BACKEND_URL}/company/dialogues/${dialogueId}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) {
-            if (shouldDisableCompanyApplicationsApi(response.status)) {
-                companyApplicationsApiUnavailable = true;
+            if (shouldDisableCompanyDialoguesApi(response.status)) {
+                companyDialoguesApiUnavailable = true;
             }
-            return await fetchCompanyApplicationDetailFallback(applicationId);
+            return await fetchCompanyDialogueDetailFallback(dialogueId);
         }
         const payload = await response.json();
-        return payload?.application || null;
+        return extractDialogueLikePayload(payload);
     } catch {
-        companyApplicationsApiUnavailable = true;
-        return await fetchCompanyApplicationDetailFallback(applicationId);
+        companyDialoguesApiUnavailable = true;
+        return await fetchCompanyDialogueDetailFallback(dialogueId);
     }
 };
 
-export const fetchCandidateApplications = async (
+export const fetchMyDialogues = async (
     limit: number = 80
-): Promise<CandidateApplicationSummary[]> => {
+): Promise<DialogueSummary[]> => {
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/jobs/applications/me?limit=${Math.max(1, Math.min(200, Math.floor(limit || 80)))}`,
+            `${BACKEND_URL}/dialogues/me?limit=${Math.max(1, Math.min(200, Math.floor(limit || 80)))}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) return [];
         const payload = await response.json();
-        if (!Array.isArray(payload?.applications)) return [];
-        return payload.applications.map(mapCandidateApplication);
+        return extractDialogueLikeList(payload).map(mapDialogueSummary);
     } catch {
         return [];
     }
 };
 
-export const fetchCandidateApplicationDetail = async (
-    applicationId: string
-): Promise<CandidateApplicationDetail | null> => {
-    if (!applicationId) return null;
+export const fetchCandidateDialogueCapacity = async (): Promise<CandidateDialogueCapacity | null> => {
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/jobs/applications/${applicationId}`,
+            `${BACKEND_URL}/dialogues/me?limit=1`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) return null;
         const payload = await response.json();
-        if (!payload?.application) return null;
-        return {
-            ...mapCandidateApplication(payload.application),
-            reviewed_at: payload.application.reviewed_at ?? null,
-            reviewed_by: payload.application.reviewed_by ?? null,
-            cover_letter: payload.application.cover_letter ?? null,
-            cv_document_id: payload.application.cv_document_id ?? null,
-            cv_snapshot: payload.application.cv_snapshot ?? null,
-            candidate_profile_snapshot: payload.application.candidate_profile_snapshot ?? null,
-            shared_jcfpm_payload: payload.application.shared_jcfpm_payload ?? null,
-            application_payload: payload.application.application_payload ?? null,
-        } as CandidateApplicationDetail;
+        return extractCandidateDialogueCapacity(payload) ?? null;
     } catch {
         return null;
     }
 };
 
-export const withdrawCandidateApplication = async (
-    applicationId: string
-): Promise<MutationResult> => {
-    if (!applicationId) return { ok: false, via: 'failed' };
+export const fetchMyDialogueDetail = async (
+    dialogueId: string
+): Promise<DialogueDetail | null> => {
+    if (!dialogueId) return null;
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/jobs/applications/${applicationId}/withdraw`,
+            `${BACKEND_URL}/dialogues/${dialogueId}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return null;
+        const payload = await response.json();
+        const dialogue = extractDialogueLikePayload(payload);
+        if (!dialogue) return null;
+        return {
+            ...mapDialogueSummary(dialogue),
+            reviewed_at: dialogue.reviewed_at ?? null,
+            reviewed_by: dialogue.reviewed_by ?? null,
+            cover_letter: dialogue.cover_letter ?? null,
+            cv_document_id: dialogue.cv_document_id ?? null,
+            cv_snapshot: dialogue.cv_snapshot ?? null,
+            candidate_profile_snapshot: dialogue.candidate_profile_snapshot ?? null,
+            shared_jcfpm_payload: dialogue.shared_jcfpm_payload ?? null,
+            application_payload: dialogue.application_payload ?? null,
+            assets: Array.isArray(dialogue.assets) ? dialogue.assets : [],
+            audio_transcript_status: dialogue.audio_transcript_status ?? 'not_applicable',
+            ai_summary_status: dialogue.ai_summary_status ?? 'unavailable',
+            fit_evidence_status: dialogue.fit_evidence_status ?? 'unavailable',
+            ai_summary: dialogue.ai_summary ?? null,
+            fit_evidence: dialogue.fit_evidence ?? null,
+        } as DialogueDetail;
+    } catch {
+        return null;
+    }
+};
+
+export const withdrawMyDialogue = async (
+    dialogueId: string
+): Promise<MutationResult> => {
+    if (!dialogueId) return { ok: false, via: 'failed' };
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/dialogues/${dialogueId}/withdraw`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' } }
         );
         if (response.ok) return { ok: true, via: 'api' };
@@ -186,46 +277,47 @@ export const withdrawCandidateApplication = async (
     }
 };
 
-const mapApplicationMessage = (row: any): ApplicationMessage => ({
+const mapDialogueMessage = (row: any): DialogueMessage => ({
     id: String(row?.id || ''),
-    application_id: String(row?.application_id || ''),
+    application_id: String(row?.application_id || row?.dialogue_id || ''),
     company_id: row?.company_id ?? null,
     candidate_id: row?.candidate_id ?? null,
     sender_user_id: row?.sender_user_id ?? null,
     sender_role: row?.sender_role === 'candidate' ? 'candidate' : 'recruiter',
     body: String(row?.body || ''),
     attachments: Array.isArray(row?.attachments) ? row.attachments : [],
+    audio_transcript_status: row?.audio_transcript_status ?? undefined,
     created_at: row?.created_at ?? new Date().toISOString(),
     read_by_candidate_at: row?.read_by_candidate_at ?? null,
     read_by_company_at: row?.read_by_company_at ?? null,
 });
 
-export const fetchCandidateApplicationMessages = async (
-    applicationId: string
-): Promise<ApplicationMessage[]> => {
-    if (!applicationId) return [];
+export const fetchMyDialogueMessages = async (
+    dialogueId: string
+): Promise<DialogueMessage[]> => {
+    if (!dialogueId) return [];
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/jobs/applications/${applicationId}/messages`,
+            `${BACKEND_URL}/dialogues/${dialogueId}/messages`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) return [];
         const payload = await response.json();
         if (!Array.isArray(payload?.messages)) return [];
-        return payload.messages.map(mapApplicationMessage);
+        return payload.messages.map(mapDialogueMessage);
     } catch {
         return [];
     }
 };
 
-export const sendCandidateApplicationMessage = async (
-    applicationId: string,
-    payload: ApplicationMessageCreatePayload
-): Promise<ApplicationMessage | null> => {
-    if (!applicationId) return null;
+export const sendMyDialogueMessage = async (
+    dialogueId: string,
+    payload: DialogueMessageCreatePayload
+): Promise<DialogueMessage | null> => {
+    if (!dialogueId) return null;
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/jobs/applications/${applicationId}/messages`,
+            `${BACKEND_URL}/dialogues/${dialogueId}/messages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -237,38 +329,38 @@ export const sendCandidateApplicationMessage = async (
         );
         if (!response.ok) return null;
         const data = await response.json();
-        return data?.message ? mapApplicationMessage(data.message) : null;
+        return data?.message ? mapDialogueMessage(data.message) : null;
     } catch {
         return null;
     }
 };
 
-export const fetchCompanyApplicationMessages = async (
-    applicationId: string
-): Promise<ApplicationMessage[]> => {
-    if (!applicationId) return [];
+export const fetchCompanyDialogueMessages = async (
+    dialogueId: string
+): Promise<DialogueMessage[]> => {
+    if (!dialogueId) return [];
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/company/applications/${applicationId}/messages`,
+            `${BACKEND_URL}/company/dialogues/${dialogueId}/messages`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) return [];
         const payload = await response.json();
         if (!Array.isArray(payload?.messages)) return [];
-        return payload.messages.map(mapApplicationMessage);
+        return payload.messages.map(mapDialogueMessage);
     } catch {
         return [];
     }
 };
 
-export const sendCompanyApplicationMessage = async (
-    applicationId: string,
-    payload: ApplicationMessageCreatePayload
-): Promise<ApplicationMessage | null> => {
-    if (!applicationId) return null;
+export const sendCompanyDialogueMessage = async (
+    dialogueId: string,
+    payload: DialogueMessageCreatePayload
+): Promise<DialogueMessage | null> => {
+    if (!dialogueId) return null;
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/company/applications/${applicationId}/messages`,
+            `${BACKEND_URL}/company/dialogues/${dialogueId}/messages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -280,58 +372,57 @@ export const sendCompanyApplicationMessage = async (
         );
         if (!response.ok) return null;
         const data = await response.json();
-        return data?.message ? mapApplicationMessage(data.message) : null;
+        return data?.message ? mapDialogueMessage(data.message) : null;
     } catch {
         return null;
     }
 };
 
-export const fetchCompanyApplications = async (
+export const fetchCompanyDialogues = async (
     companyId: string,
     jobId?: string,
     limit: number = 500
 ): Promise<CompanyApplicationRow[]> => {
     if (!companyId) return [];
-    if (companyApplicationsApiUnavailable) {
-        return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+    if (companyDialoguesApiUnavailable) {
+        return await fetchCompanyDialoguesFallback(companyId, jobId, limit);
     }
     const params = new URLSearchParams({
         company_id: companyId,
         limit: String(limit)
     });
-    if (jobId) params.set('job_id', jobId);
+    if (jobId) params.set('role_id', jobId);
 
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/company/applications?${params.toString()}`,
+            `${BACKEND_URL}/company/dialogues?${params.toString()}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) {
-            if (shouldDisableCompanyApplicationsApi(response.status)) {
-                companyApplicationsApiUnavailable = true;
+            if (shouldDisableCompanyDialoguesApi(response.status)) {
+                companyDialoguesApiUnavailable = true;
             }
-            return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+            return await fetchCompanyDialoguesFallback(companyId, jobId, limit);
         }
         const payload = await response.json();
-        if (!Array.isArray(payload?.applications)) return [];
-        return payload.applications.map(mapCompanyApplicationRow);
+        return extractDialogueLikeList(payload).map(mapCompanyDialogueRow);
     } catch {
-        companyApplicationsApiUnavailable = true;
-        return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+        companyDialoguesApiUnavailable = true;
+        return await fetchCompanyDialoguesFallback(companyId, jobId, limit);
     }
 };
 
-export const updateCompanyApplicationStatus = async (
-    applicationId: string,
+export const updateCompanyDialogueStatus = async (
+    dialogueId: string,
     status: string
 ): Promise<MutationResult> => {
-    if (!applicationId) return { ok: false, via: 'failed' };
-    if (companyApplicationsApiUnavailable) {
-        return await updateCompanyApplicationStatusFallback(applicationId, status);
+    if (!dialogueId) return { ok: false, via: 'failed' };
+    if (companyDialoguesApiUnavailable) {
+        return await updateCompanyDialogueStatusFallback(dialogueId, status);
     }
     try {
         const response = await authenticatedFetch(
-            `${BACKEND_URL}/company/applications/${applicationId}/status`,
+            `${BACKEND_URL}/company/dialogues/${dialogueId}/status`,
             {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -339,24 +430,28 @@ export const updateCompanyApplicationStatus = async (
             }
         );
         if (response.ok) return { ok: true, via: 'api' };
-        if (shouldDisableCompanyApplicationsApi(response.status)) {
-            companyApplicationsApiUnavailable = true;
+        if (shouldDisableCompanyDialoguesApi(response.status)) {
+            companyDialoguesApiUnavailable = true;
         }
-        return await updateCompanyApplicationStatusFallback(applicationId, status);
+        return await updateCompanyDialogueStatusFallback(dialogueId, status);
     } catch {
-        companyApplicationsApiUnavailable = true;
-        return await updateCompanyApplicationStatusFallback(applicationId, status);
+        companyDialoguesApiUnavailable = true;
+        return await updateCompanyDialogueStatusFallback(dialogueId, status);
     }
 };
 
-const mapCompanyApplicationRow = (row: any): CompanyApplicationRow => ({
+const mapCompanyDialogueRow = (row: any): CompanyApplicationRow => ({
     ...row,
+    id: row?.id ?? row?.dialogue_id ?? '',
+    job_id: row?.job_id ?? row?.role_id ?? row?.jobId ?? row?.roleId ?? row?.job_id,
+    job_title: row?.job_title ?? row?.role_title ?? row?.jobTitle ?? row?.roleTitle ?? row?.job_title,
     hasCoverLetter: row?.has_cover_letter ?? row?.hasCoverLetter ?? false,
     hasCv: row?.has_cv ?? row?.hasCv ?? false,
     jcfpmShareLevel: row?.jcfpm_share_level ?? row?.jcfpmShareLevel ?? 'do_not_share',
     hasJcfpm: row?.has_jcfpm ?? row?.hasJcfpm ?? false,
     candidateHeadline: row?.candidate_headline ?? row?.candidateHeadline ?? undefined,
     submitted_at: row?.submitted_at ?? row?.created_at ?? row?.applied_at,
+    ...mapDialogueLifecycleFields(row),
 }) as CompanyApplicationRow;
 
 const fetchLinkedJobs = async (jobIds: Array<string | number>): Promise<Map<string, { title?: string | null }>> => {
@@ -375,7 +470,7 @@ const fetchLinkedProfiles = async (profileIds: string[]): Promise<Map<string, { 
     return new Map(data.map((row: any) => [String(row.id), { full_name: row.full_name, email: row.email }]));
 };
 
-const fetchCompanyApplicationsFallback = async (
+const fetchCompanyDialoguesFallback = async (
     companyId: string,
     jobId?: string,
     limit: number = 500
@@ -398,7 +493,7 @@ const fetchCompanyApplicationsFallback = async (
     const jobMap = await fetchLinkedJobs(data.map((row: any) => row.job_id).filter(Boolean));
     const profileMap = await fetchLinkedProfiles(data.map((row: any) => String(row.candidate_id || '')).filter(Boolean));
 
-    return data.map((row: any) => mapCompanyApplicationRow({
+    return data.map((row: any) => mapCompanyDialogueRow({
         ...row,
         job_title: row?.job_title ?? jobMap.get(String(row.job_id))?.title ?? null,
         candidate_name:
@@ -421,12 +516,12 @@ const fetchCompanyApplicationsFallback = async (
     }));
 };
 
-const fetchCompanyApplicationDetailFallback = async (applicationId: string): Promise<ApplicationDossier | null> => {
-    if (!supabase || !applicationId) return null;
+const fetchCompanyDialogueDetailFallback = async (dialogueId: string): Promise<DialogueDossier | null> => {
+    if (!supabase || !dialogueId) return null;
     const { data, error } = await supabase
         .from('job_applications')
         .select('*')
-        .eq('id', applicationId)
+        .eq('id', dialogueId)
         .maybeSingle();
     if (error || !data) return null;
 
@@ -436,7 +531,7 @@ const fetchCompanyApplicationDetailFallback = async (applicationId: string): Pro
     ]);
 
     return {
-        ...(mapCompanyApplicationRow({
+        ...(mapCompanyDialogueRow({
             ...data,
             job_title: jobMap.get(String(data.job_id || ''))?.title ?? null,
             candidate_name:
@@ -454,6 +549,7 @@ const fetchCompanyApplicationDetailFallback = async (applicationId: string): Pro
         }) as unknown as CompanyApplicationRow),
         company_id: data.company_id,
         source: data.source ?? null,
+        ...mapDialogueLifecycleFields(data),
         reviewed_at: data.reviewed_at ?? null,
         reviewed_by: data.reviewed_by ?? null,
         cover_letter: data.cover_letter ?? null,
@@ -463,19 +559,48 @@ const fetchCompanyApplicationDetailFallback = async (applicationId: string): Pro
         jcfpm_share_level: data.jcfpm_share_level ?? 'do_not_share',
         shared_jcfpm_payload: data.shared_jcfpm_payload ?? null,
         application_payload: data.application_payload ?? null
-    } as ApplicationDossier;
+    } as DialogueDossier;
 };
 
-const updateCompanyApplicationStatusFallback = async (
-    applicationId: string,
+const updateCompanyDialogueStatusFallback = async (
+    dialogueId: string,
     status: string
 ): Promise<MutationResult> => {
-    if (!supabase || !applicationId) return { ok: false, via: 'failed' };
+    if (!supabase || !dialogueId) return { ok: false, via: 'failed' };
     const { error } = await supabase
         .from('job_applications')
         .update({ status })
-        .eq('id', applicationId);
+        .eq('id', dialogueId);
     return error
         ? { ok: false, via: 'failed' }
         : { ok: true, via: 'fallback' };
 };
+
+export const createJobApplication = async (
+    jobId: string | number,
+    source?: string,
+    metadata?: Record<string, any>,
+    details?: CreateJobApplicationDetails
+): Promise<CreateJobApplicationResult | null> => {
+    const result = await openDialogue(jobId, source, metadata, details);
+    if (!result) return null;
+    return {
+        status: result.status,
+        application_id: result.dialogue_id,
+        application: result.dialogue,
+        candidate_capacity: result.candidate_capacity,
+    };
+};
+
+export const fetchCandidateApplications = fetchMyDialogues;
+export const fetchMyDialogueCapacity = fetchCandidateDialogueCapacity;
+export const fetchCandidateApplicationDetail = fetchMyDialogueDetail;
+export const withdrawCandidateApplication = withdrawMyDialogue;
+export const fetchCandidateApplicationMessages = fetchMyDialogueMessages;
+export const sendCandidateApplicationMessage = sendMyDialogueMessage;
+export const fetchCompanyApplications = fetchCompanyDialogues;
+export const fetchCompanyApplicationDetail = fetchCompanyDialogueDetail;
+export const fetchCompanyApplicationMessages = fetchCompanyDialogueMessages;
+export const sendCompanyApplicationMessage = sendCompanyDialogueMessage;
+export const updateCompanyApplicationStatus = updateCompanyDialogueStatus;
+export const createDialogue = openDialogue;

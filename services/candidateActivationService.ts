@@ -2,7 +2,9 @@ import { CandidateActivationStateV1, UserProfile } from '../types';
 
 type ActivationStep = CandidateActivationStateV1['last_prompted_step'];
 
-const MIN_CV_TEXT_LENGTH = 180;
+// Compatibility note: the persisted state still uses `cv_ready`,
+// but product-wise this now means "supporting context is ready".
+const MIN_SUPPORTING_TEXT_LENGTH = 180;
 const DEFAULT_COMPLETION_STATE: CandidateActivationStateV1 = {
   location_verified: false,
   cv_ready: false,
@@ -19,9 +21,9 @@ export const getCurrentActivationState = (profile: UserProfile): CandidateActiva
   return existing ? { ...DEFAULT_COMPLETION_STATE, ...existing } : { ...DEFAULT_COMPLETION_STATE };
 };
 
-const resolveCvReady = (profile: UserProfile): boolean => {
+const resolveSupportingContextReady = (profile: UserProfile): boolean => {
   if ((profile.cvUrl || '').trim().length > 0) return true;
-  return (profile.cvText || '').trim().length >= MIN_CV_TEXT_LENGTH;
+  return (profile.cvText || '').trim().length >= MIN_SUPPORTING_TEXT_LENGTH;
 };
 
 const resolveSkillsCount = (profile: UserProfile): number =>
@@ -47,12 +49,12 @@ export const getNextActivationStep = (state: CandidateActivationStateV1): Activa
 export const deriveActivationState = (profile: UserProfile): CandidateActivationStateV1 => {
   const existing = getCurrentActivationState(profile);
   const locationVerified = Boolean(profile.coordinates || (profile.address || '').trim());
-  const cvReady = resolveCvReady(profile);
+  const supportingContextReady = resolveSupportingContextReady(profile);
   const skillsConfirmedCount = resolveSkillsCount(profile);
   const preferencesReady = resolvePreferencesReady(profile);
   const completed = [
     locationVerified,
-    cvReady,
+    supportingContextReady,
     skillsConfirmedCount >= 3,
     preferencesReady,
     Boolean(existing.first_quality_action_at),
@@ -60,7 +62,7 @@ export const deriveActivationState = (profile: UserProfile): CandidateActivation
 
   return {
     location_verified: locationVerified,
-    cv_ready: cvReady,
+    cv_ready: supportingContextReady,
     skills_confirmed_count: skillsConfirmedCount,
     preferences_ready: preferencesReady,
     first_quality_action_at: existing.first_quality_action_at,
@@ -68,7 +70,7 @@ export const deriveActivationState = (profile: UserProfile): CandidateActivation
     last_prompted_step: getNextActivationStep({
       ...existing,
       location_verified: locationVerified,
-      cv_ready: cvReady,
+      cv_ready: supportingContextReady,
       skills_confirmed_count: skillsConfirmedCount,
       preferences_ready: preferencesReady,
     }),

@@ -8,6 +8,40 @@ export type PremiumFeature =
     | 'COMPANY_RECOMMENDATIONS'
     | 'COMPANY_UNLIMITED_JOBS';
 
+const getRoleOpensLimit = (tier: string): number => {
+    switch (tier) {
+        case 'enterprise':
+            return 999999;
+        case 'professional':
+            return 25;
+        case 'growth':
+            return 10;
+        case 'starter':
+            return 3;
+        case 'trial':
+        case 'free':
+        default:
+            return 1;
+    }
+};
+
+const getDialogueSlotsLimit = (tier: string): number => {
+    switch (tier) {
+        case 'enterprise':
+            return 999999;
+        case 'professional':
+            return 100;
+        case 'growth':
+            return 40;
+        case 'starter':
+            return 12;
+        case 'trial':
+        case 'free':
+        default:
+            return 3;
+    }
+};
+
 /**
  * Checks if a user is an administrator (server-side verified only).
  * SECURITY: This function should only be used for display purposes.
@@ -61,46 +95,53 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
     }
 };
 
+export const getCompanyRoleCapacity = (company: CompanyProfile): { used: number; limit: number; remaining: number } => {
+    const tier = String(company.subscription?.tier || 'free').toLowerCase();
+    const used = Number(
+        company.subscription?.usage?.roleOpensUsed
+        ?? company.subscription?.usage?.activeJobsCount
+        ?? 0
+    );
+    const limit = getRoleOpensLimit(tier);
+    const remaining = limit >= 999999 ? 999999 : Math.max(0, limit - used);
+    return { used, limit, remaining };
+};
+
+export const getCompanyDialogueCapacity = (company: CompanyProfile): { used: number; limit: number; remaining: number } => {
+    const tier = String(company.subscription?.tier || 'free').toLowerCase();
+    const used = Number(company.subscription?.usage?.activeDialogueSlotsUsed ?? 0);
+    const limit = getDialogueSlotsLimit(tier);
+    const remaining = limit >= 999999 ? 999999 : Math.max(0, limit - used);
+    return { used, limit, remaining };
+};
+
+export const canCompanyOpenRole = (company: CompanyProfile, _userEmail?: string): { allowed: boolean; reason?: string } => {
+    const { used, limit } = getCompanyRoleCapacity(company);
+    if (limit < 999999 && used >= limit) {
+        return {
+            allowed: false,
+            reason: `Dosáhli jste limitu ${limit} otevření role pro váš aktuální plán.`
+        };
+    }
+    return { allowed: true };
+};
+
+export const canCompanyOpenDialogue = (company: CompanyProfile): { allowed: boolean; reason?: string } => {
+    const { used, limit } = getCompanyDialogueCapacity(company);
+    if (limit < 999999 && used >= limit) {
+        return {
+            allowed: false,
+            reason: `Dosáhli jste limitu ${limit} aktivních dialogových slotů pro váš aktuální plán.`
+        };
+    }
+    return { allowed: true };
+};
+
 /**
- * Checks if a company can post a new job.
+ * Legacy alias. Prefer canCompanyOpenRole().
  */
 export const canCompanyPostJob = (company: CompanyProfile, _userEmail?: string): { allowed: boolean; reason?: string } => {
-    const tier = company.subscription?.tier || 'free';
-    const activeJobs = company.subscription?.usage?.activeJobsCount || 0;
-
-    // Free and trial tier limit: 1 active job
-    if ((tier === 'free' || tier === 'trial') && activeJobs >= 1) {
-        return {
-            allowed: false,
-            reason: 'Dosáhli jste limitu 1 aktivního inzerátu pro váš aktuální plán.'
-        };
-    }
-
-    // Starter tier limit: 3 active jobs
-    if (tier === 'starter' && activeJobs >= 3) {
-        return {
-            allowed: false,
-            reason: 'Dosáhli jste limitu 3 aktivních inzerátů pro tarif Starter.'
-        };
-    }
-
-    // Growth tier limit: 10 active jobs
-    if (tier === 'growth' && activeJobs >= 10) {
-        return {
-            allowed: false,
-            reason: 'Dosáhli jste limitu 10 aktivních inzerátů pro tarif Growth.'
-        };
-    }
-
-    // Professional tier limit: 20 active jobs
-    if (tier === 'professional' && activeJobs >= 20) {
-        return {
-            allowed: false,
-            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro tarif Professional.'
-        };
-    }
-
-    return { allowed: true };
+    return canCompanyOpenRole(company, _userEmail);
 };
 
 /**

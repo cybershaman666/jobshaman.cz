@@ -2,7 +2,7 @@
   "app": {
     "title": "JobShaman",
     "description": "Profesionálna Analýza Ponúk",
-    "search_placeholder": "Hľadať pozíciu, firmu...",
+    "search_placeholder": "Nájdi svoju výzvu, firmu...",
     "search_saved_placeholder": "Hľadať v uložených...",
     "filters": "Filtre",
     "searching": "Hľadám ponuky...",
@@ -44,6 +44,17 @@
       "net_unknown": "Čistý príjem sa nedá spoľahlivo odhadnúť"
     },
     "clear": "Vymazať"
+  },
+  "home": {
+    "discovery": {
+      "badge": "Digitálny prvý kontakt",
+      "title": "Reaguj na skutočnú tímovú výzvu, nie na hlučný nábor.",
+      "meta": "Rola najprv ukáže pravdu. Tvoja reakcia otvorí súkromný dialóg bez zbytočného tlaku.",
+      "slots_label": "Aktívne dialógy",
+      "step_role_truth": "Pravda roly",
+      "step_short_reply": "Krátka reakcia",
+      "step_clear_state": "Jasný stav"
+    }
   },
   "filters": {
     "location_commute": "Lokalita a Dojazd",
@@ -1433,6 +1444,36 @@
       "workplace_address_placeholder": "Adresa kancelarie",
       "contact_email": "Kontaktni e-mail",
       "contact_email_placeholder": "jobs@firma.sk",
+      "hiring_stage_label": "Stav naboru",
+      "hiring_stage_help": "Kandidati uvidia, v akej faze je proces a ci stale aktivne vyhodnocujete.",
+      "hiring_stage_options": {
+        "collecting_cvs": "Zbierame reakcie",
+        "reviewing_first_10": "Prechadzame prvych 10 kandidatov",
+        "shortlisting": "Uzsie vyberanie",
+        "final_interviews": "Finalne kola",
+        "offer_stage": "Ponukova faza"
+      },
+      "handshake": {
+        "title": "Prvy kontakt / uvodna odpoved",
+        "desc": "Firma ide prva. Nastavte uvodne zadanie a odpovedzte na dve otazky pravdy, ktore kandidat uvidi pred reakciou.",
+        "first_reply": "Uvodna odpoved",
+        "first_reply_placeholder": "Popiste prvu realnu situaciu, na ktoru ma kandidat reagovat, a aky trade-off chcete vidiet.",
+        "truth_hard": "Co je na tejto roli skutocne tazke?",
+        "truth_hard_placeholder": "Pomenujte neprijemnu realitu role: kde ludia narazaju, co vytvara tlak a co tim nemoze skryt.",
+        "truth_fail": "Aky typ cloveka tu typicky zlyhava?",
+        "truth_fail_placeholder": "Budte konkretni v nesulade: aky styl prace, mindset alebo tempo v tomto time obvykle nefunguje."
+      },
+      "rollout_schema_check": "Kontrola rollout schemy",
+      "rollout_ready": "Pripravene",
+      "rollout_attention": "Pozor",
+      "rollout_ok": "ok",
+      "rollout_missing": "chyba",
+      "rollout_sample_rows": "ukazkove riadky",
+      "rollout_tables": {
+        "job_applications": "job_applications",
+        "job_drafts": "job_drafts",
+        "job_versions": "job_versions"
+      },
       "section_ai_polished": "Vyladene s AI podporou.",
       "section_human_hint": "Napiste tuto cast jasne a ludsky.",
       "section_labels": {

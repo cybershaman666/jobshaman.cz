@@ -302,6 +302,10 @@ body {
   --app-grid-color: rgba(15, 23, 42, 0.06);
   /* Slate 900 */
   --app-grid-size: 36px;
+  --app-grid-accent-a: rgba(14, 165, 233, 0.08);
+  --app-grid-accent-b: rgba(34, 197, 94, 0.07);
+  --app-grid-surface-top: rgba(255, 255, 255, 0.96);
+  --app-grid-surface-bottom: rgba(248, 250, 252, 0.98);
   --cockpit-bg-0: #02130f;
   --cockpit-bg-1: #04261d;
   --cockpit-bg-2: #0b3a31;
@@ -319,6 +323,10 @@ body {
   /* Slate 950 */
   --app-grid-color: rgba(148, 163, 184, 0.08);
   /* Slate 400 */
+  --app-grid-accent-a: rgba(14, 165, 233, 0.12);
+  --app-grid-accent-b: rgba(34, 197, 94, 0.08);
+  --app-grid-surface-top: rgba(2, 6, 23, 0.96);
+  --app-grid-surface-bottom: rgba(15, 23, 42, 0.98);
   --cockpit-bg-0: #010d0a;
   --cockpit-bg-1: #03221a;
   --cockpit-bg-2: #0a332b;
@@ -557,19 +565,25 @@ body {
 .app-grid-bg {
   background-color: var(--app-bg-color);
   background-image:
-    linear-gradient(var(--app-grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--app-grid-color) 1px, transparent 1px);
-  background-size: var(--app-grid-size) var(--app-grid-size);
+    radial-gradient(circle at top left, var(--app-grid-accent-a, rgba(14, 165, 233, 0.08)), transparent 30%),
+    radial-gradient(circle at top right, var(--app-grid-accent-b, rgba(34, 197, 94, 0.07)), transparent 34%),
+    linear-gradient(180deg, var(--app-grid-surface-top, rgba(255, 255, 255, 0.96)), var(--app-grid-surface-bottom, rgba(248, 250, 252, 0.98)));
+  background-size: auto;
   background-position: center;
 }
 
 .app-grid-bg--soft {
-  --app-grid-size: 44px;
-  --app-grid-color: rgba(15, 23, 42, 0.04);
+  --app-grid-accent-a: rgba(14, 165, 233, 0.08);
+  --app-grid-accent-b: rgba(34, 197, 94, 0.07);
+  --app-grid-surface-top: rgba(255, 255, 255, 0.96);
+  --app-grid-surface-bottom: rgba(248, 250, 252, 0.98);
 }
 
 .dark .app-grid-bg--soft {
-  --app-grid-color: rgba(148, 163, 184, 0.06);
+  --app-grid-accent-a: rgba(14, 165, 233, 0.12);
+  --app-grid-accent-b: rgba(34, 197, 94, 0.08);
+  --app-grid-surface-top: rgba(2, 6, 23, 0.96);
+  --app-grid-surface-bottom: rgba(15, 23, 42, 0.98);
 }
 
 body {

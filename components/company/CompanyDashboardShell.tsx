@@ -18,9 +18,9 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
 
   const tabs: Array<{ key: CompanyDashboardTab; label: string; icon: LucideIcon }> = [
     { key: 'overview', label: t('company.dashboard.tabs.overview', { defaultValue: 'Overview' }), icon: Activity },
-    { key: 'jobs', label: t('company.jobs.nav', { defaultValue: 'Jobs' }), icon: Briefcase },
+    { key: 'jobs', label: t('company.jobs.nav', { defaultValue: 'Roles' }), icon: Briefcase },
     { key: 'settings', label: t('company.dashboard.tabs.dna_culture'), icon: Settings },
-    { key: 'applications', label: t('company.applications.nav', { defaultValue: 'Applications' }), icon: Building2 },
+    { key: 'applications', label: t('company.applications.nav', { defaultValue: 'Dialogues' }), icon: Building2 },
     { key: 'assessments', label: t('company.dashboard.tabs.assessments'), icon: BrainCircuit },
     { key: 'candidates', label: t('company.dashboard.tabs.candidates'), icon: Users }
   ];
@@ -28,9 +28,9 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
   const ActiveTabIcon = activeTabMeta.icon;
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto min-h-full pb-10">
-      <div className="mb-6 overflow-hidden rounded-[32px] border border-slate-200/80 bg-[radial-gradient(circle_at_8%_18%,_rgba(6,182,212,0.16),_transparent_30%),radial-gradient(circle_at_92%_16%,_rgba(16,185,129,0.14),_transparent_24%),radial-gradient(circle_at_50%_100%,_rgba(14,165,233,0.10),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.92))] p-5 shadow-[0_30px_80px_-44px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_8%_18%,_rgba(6,182,212,0.22),_transparent_30%),radial-gradient(circle_at_92%_16%,_rgba(16,185,129,0.18),_transparent_24%),radial-gradient(circle_at_50%_100%,_rgba(14,165,233,0.12),_transparent_40%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.92))]">
-        <div className="mb-5 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+    <div className="w-full max-w-[1920px] mx-auto min-h-full pb-8">
+      <div className="mb-4 overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-[radial-gradient(circle_at_8%_18%,_rgba(6,182,212,0.16),_transparent_30%),radial-gradient(circle_at_92%_16%,_rgba(16,185,129,0.14),_transparent_24%),radial-gradient(circle_at_50%_100%,_rgba(14,165,233,0.10),_transparent_40%),linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.92))] p-4 shadow-[0_20px_46px_-40px_rgba(15,23,42,0.26)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_8%_18%,_rgba(6,182,212,0.22),_transparent_30%),radial-gradient(circle_at_92%_16%,_rgba(16,185,129,0.18),_transparent_24%),radial-gradient(circle_at_50%_100%,_rgba(14,165,233,0.12),_transparent_40%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.92))]">
+        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
           <div>
             <div className="inline-flex items-center rounded-full border border-cyan-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700 backdrop-blur dark:border-cyan-900/40 dark:bg-slate-950/40 dark:text-cyan-300">
               {t('company.shell.badge', { defaultValue: 'Hiring command' })}
@@ -42,7 +42,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[24px] border border-white/80 bg-white/82 p-4 shadow-[0_20px_40px_-32px_rgba(15,23,42,0.35)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="rounded-[1rem] border border-white/80 bg-white/82 p-4 shadow-[0_14px_22px_-28px_rgba(15,23,42,0.22)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 <ActiveTabIcon size={12} className="text-cyan-600 dark:text-cyan-300" />
                 {t('company.shell.current_module', { defaultValue: 'Current module' })}
@@ -51,7 +51,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
                 {activeTabMeta.label}
               </div>
             </div>
-            <div className="rounded-[24px] border border-white/80 bg-white/82 p-4 shadow-[0_20px_40px_-32px_rgba(15,23,42,0.35)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="rounded-[1rem] border border-white/80 bg-white/82 p-4 shadow-[0_14px_22px_-28px_rgba(15,23,42,0.22)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {t('company.shell.active_modules', { defaultValue: 'Active modules' })}
               </div>
@@ -59,18 +59,18 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
                 {tabs.length}
               </div>
             </div>
-            <div className="rounded-[24px] border border-white/80 bg-white/82 p-4 shadow-[0_20px_40px_-32px_rgba(15,23,42,0.35)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="rounded-[1rem] border border-white/80 bg-white/82 p-4 shadow-[0_14px_22px_-28px_rgba(15,23,42,0.22)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/60">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {t('company.shell.workspace_label', { defaultValue: 'Hiring workspace' })}
               </div>
               <div className="mt-3 text-sm font-medium leading-6 text-slate-900 dark:text-white">
-                {t('company.shell.workspace_desc', { defaultValue: 'One place for open roles, candidate responses, screening, and daily team focus.' })}
+                {t('company.shell.workspace_desc', { defaultValue: 'One place for live roles, active dialogues, screening, and the next team action.' })}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 rounded-[24px] border border-white/80 bg-white/75 p-2 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
+        <div className="flex flex-wrap gap-2 rounded-[1rem] border border-white/80 bg-white/75 p-2 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/55">
           {tabs.map((tab) => (
             <button
               key={tab.key}

@@ -11,11 +11,19 @@ interface Props {
     companyId: string;
     jobTitleFilter?: string;
     candidateEmailFilter?: string;
+    dialogueIdFilter?: string;
     applicationIdFilter?: string;
 }
 
-const AssessmentResultsList: React.FC<Props> = ({ companyId, jobTitleFilter, candidateEmailFilter, applicationIdFilter }) => {
+const AssessmentResultsList: React.FC<Props> = ({
+    companyId,
+    jobTitleFilter,
+    candidateEmailFilter,
+    dialogueIdFilter,
+    applicationIdFilter
+}) => {
     const { t } = useTranslation();
+    const resolvedDialogueIdFilter = dialogueIdFilter || applicationIdFilter;
     const [results, setResults] = useState<AssessmentResult[]>([]);
     const [invitationContextById, setInvitationContextById] = useState<Record<string, { candidate_email?: string; metadata?: Record<string, any> | null }>>({});
     const [loading, setLoading] = useState(true);
@@ -126,8 +134,8 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId, jobTitleFilter, can
         const matchesCandidateEmail = candidateEmailFilter
             ? invitationEmail.toLowerCase() === candidateEmailFilter.toLowerCase()
             : true;
-        const matchesApplication = applicationIdFilter
-            ? String(result.application_id || invitationMeta?.application_id || '') === applicationIdFilter
+        const matchesApplication = resolvedDialogueIdFilter
+            ? String(result.application_id || invitationMeta?.application_id || '') === resolvedDialogueIdFilter
             : true;
         return matchesJobTitle && matchesCandidateEmail && matchesApplication;
     });

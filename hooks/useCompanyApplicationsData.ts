@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ApplicationDossier, CompanyApplicationRow } from '../types';
+import { CompanyApplicationRow, DialogueDossier } from '../types';
 import {
-  fetchCompanyApplicationDetail,
-  fetchCompanyApplications
+  fetchCompanyDialogueDetail,
+  fetchCompanyDialogues
 } from '../services/jobApplicationService';
 
 interface UseCompanyApplicationsDataArgs {
@@ -11,75 +11,75 @@ interface UseCompanyApplicationsDataArgs {
   selectedJobId?: string;
 }
 
-export const useCompanyApplicationsData = ({
+export const useCompanyDialoguesData = ({
   companyId,
   activeTab,
   selectedJobId
 }: UseCompanyApplicationsDataArgs) => {
-  const [applications, setApplications] = useState<CompanyApplicationRow[]>([]);
-  const [applicationsLoading, setApplicationsLoading] = useState(false);
-  const [applicationsUpdating, setApplicationsUpdating] = useState<Record<string, boolean>>({});
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
-  const [selectedApplicationDetail, setSelectedApplicationDetail] = useState<ApplicationDossier | null>(null);
-  const [applicationDetailLoading, setApplicationDetailLoading] = useState(false);
-  const [lastApplicationsSyncAt, setLastApplicationsSyncAt] = useState<string | null>(null);
+  const [dialogues, setDialogues] = useState<CompanyApplicationRow[]>([]);
+  const [dialoguesLoading, setDialoguesLoading] = useState(false);
+  const [dialoguesUpdating, setDialoguesUpdating] = useState<Record<string, boolean>>({});
+  const [selectedDialogueId, setSelectedDialogueId] = useState<string | null>(null);
+  const [selectedDialogueDetail, setSelectedDialogueDetail] = useState<DialogueDossier | null>(null);
+  const [dialogueDetailLoading, setDialogueDetailLoading] = useState(false);
+  const [lastDialoguesSyncAt, setLastDialoguesSyncAt] = useState<string | null>(null);
 
-  const refreshApplications = async (options?: {
+  const refreshDialogues = async (options?: {
     jobId?: string;
     silent?: boolean;
   }) => {
     if (!companyId) return;
     const jobId = options?.jobId ?? (activeTab === 'applications' ? (selectedJobId || undefined) : undefined);
     if (!options?.silent) {
-      setApplicationsLoading(true);
+      setDialoguesLoading(true);
     }
     try {
-      const rows = await fetchCompanyApplications(companyId, jobId, 500);
-      setApplications(rows);
-      setLastApplicationsSyncAt(new Date().toISOString());
+      const rows = await fetchCompanyDialogues(companyId, jobId, 500);
+      setDialogues(rows);
+      setLastDialoguesSyncAt(new Date().toISOString());
     } finally {
       if (!options?.silent) {
-        setApplicationsLoading(false);
+        setDialoguesLoading(false);
       }
     }
   };
 
-  const openApplicationDetail = async (applicationId: string) => {
-    if (!applicationId) return;
-    setSelectedApplicationId(applicationId);
-    setApplicationDetailLoading(true);
+  const openDialogueDetail = async (dialogueId: string) => {
+    if (!dialogueId) return;
+    setSelectedDialogueId(dialogueId);
+    setDialogueDetailLoading(true);
     try {
-      const detail = await fetchCompanyApplicationDetail(applicationId);
-      setSelectedApplicationDetail(detail);
+      const detail = await fetchCompanyDialogueDetail(dialogueId);
+      setSelectedDialogueDetail(detail);
     } finally {
-      setApplicationDetailLoading(false);
+      setDialogueDetailLoading(false);
     }
   };
 
-  const closeApplicationDetail = () => {
-    setSelectedApplicationId(null);
-    setSelectedApplicationDetail(null);
+  const closeDialogueDetail = () => {
+    setSelectedDialogueId(null);
+    setSelectedDialogueDetail(null);
   };
 
-  const setApplicationUpdating = (applicationId: string, updating: boolean) => {
-    setApplicationsUpdating((prev) => ({ ...prev, [applicationId]: updating }));
+  const setDialogueUpdating = (dialogueId: string, updating: boolean) => {
+    setDialoguesUpdating((prev) => ({ ...prev, [dialogueId]: updating }));
   };
 
-  const applyApplicationStatusLocally = (
-    applicationId: string,
+  const applyDialogueStatusLocally = (
+    dialogueId: string,
     status: CompanyApplicationRow['status']
   ) => {
-    setApplications((prev) => prev.map((app) => (
-      app.id === applicationId ? { ...app, status } : app
+    setDialogues((prev) => prev.map((app) => (
+      app.id === dialogueId ? { ...app, status } : app
     )));
-    setSelectedApplicationDetail((prev) => (
-      prev && prev.id === applicationId ? { ...prev, status } : prev
+    setSelectedDialogueDetail((prev) => (
+      prev && prev.id === dialogueId ? { ...prev, status } : prev
     ));
   };
 
   useEffect(() => {
     if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview')) return;
-    void refreshApplications({
+    void refreshDialogues({
       jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined
     });
   }, [companyId, activeTab, selectedJobId]);
@@ -87,18 +87,18 @@ export const useCompanyApplicationsData = ({
   useEffect(() => {
     if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview')) return;
 
-    const refreshVisibleApplications = () => {
-      void refreshApplications({
+    const refreshVisibleDialogues = () => {
+      void refreshDialogues({
         jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined,
         silent: true
       });
     };
 
-    const intervalId = window.setInterval(refreshVisibleApplications, 30000);
-    const handleFocus = () => refreshVisibleApplications();
+    const intervalId = window.setInterval(refreshVisibleDialogues, 30000);
+    const handleFocus = () => refreshVisibleDialogues();
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        refreshVisibleApplications();
+        refreshVisibleDialogues();
       }
     };
 
@@ -113,17 +113,31 @@ export const useCompanyApplicationsData = ({
   }, [companyId, activeTab, selectedJobId]);
 
   return {
-    applications,
-    applicationsLoading,
-    applicationsUpdating,
-    selectedApplicationId,
-    selectedApplicationDetail,
-    applicationDetailLoading,
-    lastApplicationsSyncAt,
-    refreshApplications,
-    openApplicationDetail,
-    closeApplicationDetail,
-    setApplicationUpdating,
-    applyApplicationStatusLocally
+    dialogues,
+    dialoguesLoading,
+    dialoguesUpdating,
+    selectedDialogueId,
+    selectedDialogueDetail,
+    dialogueDetailLoading,
+    lastDialoguesSyncAt,
+    refreshDialogues,
+    openDialogueDetail,
+    closeDialogueDetail,
+    setDialogueUpdating,
+    applyDialogueStatusLocally,
+    applications: dialogues,
+    applicationsLoading: dialoguesLoading,
+    applicationsUpdating: dialoguesUpdating,
+    selectedApplicationId: selectedDialogueId,
+    selectedApplicationDetail: selectedDialogueDetail,
+    applicationDetailLoading: dialogueDetailLoading,
+    lastApplicationsSyncAt: lastDialoguesSyncAt,
+    refreshApplications: refreshDialogues,
+    openApplicationDetail: openDialogueDetail,
+    closeApplicationDetail: closeDialogueDetail,
+    setApplicationUpdating: setDialogueUpdating,
+    applyApplicationStatusLocally: applyDialogueStatusLocally
   };
 };
+
+export const useCompanyApplicationsData = useCompanyDialoguesData;

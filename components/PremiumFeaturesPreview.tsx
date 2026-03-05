@@ -25,12 +25,36 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const price = getPremiumPriceDisplay(i18n.language || 'cs');
+  const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const isCsLike = locale === 'cs' || locale === 'sk';
   const rawTier = String(userProfile.subscription?.tier || 'free').toLowerCase();
   const normalizedTier = rawTier !== 'premium' && rawTier.endsWith('_premium') ? 'premium' : rawTier;
   const isPremium = normalizedTier === 'premium';
 
   // If user is not logged in or has no id, show a simpler version
   const isIncomplete = !userProfile.isLoggedIn || !userProfile.id;
+
+  const copy = isCsLike ? {
+    title: 'Odemkni premium handshake nastroje',
+    subtitle: 'Vic AI podpory pro podklady, follow-up zpravy a cistsi signal pred prvnim rozhovorem.',
+    liteFeatures: [
+      ['Drafy podpurnych podkladu', 'Pripravis si klidnejsi supporting context bez CV-first tonu.'],
+      ['AI prepis prvni odpovedi', 'Vyladis prvni reakci i navazujici zpravy do lidskeho tonu.'],
+      ['Chytre follow-upy', 'Pripomenes se bez spamu a s lepsim nacasovanim.']
+    ],
+    priceLine: 'Jednim tarifem odemknes celou premium vrstvu pro handshake workflow.',
+    whyUpgrade: 'Proc to dává smysl'
+  } : {
+    title: 'Unlock premium handshake tools',
+    subtitle: 'More AI help for supporting context, follow-up messages, and cleaner signal before the first interview.',
+    liteFeatures: [
+      ['Supporting context drafts', 'Prepare calmer supporting context without a CV-first tone.'],
+      ['AI first-reply rewrites', 'Refine your opening reply and follow-up messages in a more human tone.'],
+      ['Smarter follow-ups', 'Stay visible without spamming and with better timing.']
+    ],
+    priceLine: 'One plan unlocks the full premium layer for the handshake workflow.',
+    whyUpgrade: 'Why it is worth it'
+  };
 
   const premiumFeatures = [
     {
@@ -95,9 +119,9 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
           <div className="flex items-center gap-3">
             <Star className="w-6 h-6 text-white" fill="white" />
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-white">{t('premium.unlock_title')}</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white">{copy.title}</h2>
               <p className="text-blue-100 text-sm mt-1">
-                {t('premium.unlock_subtitle')}
+                {copy.subtitle}
               </p>
             </div>
           </div>
@@ -105,34 +129,20 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 
         <div className="px-6 md:px-8 py-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-start gap-3">
-              <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">{t('premium.short_cv_templates')}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{t('premium.short_cv_templates_desc')}</p>
+            {[FileText, Wand2, Mail].map((Icon, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <Icon className={`w-6 h-6 flex-shrink-0 mt-0.5 ${index === 0 ? 'text-blue-600' : index === 1 ? 'text-purple-600' : 'text-green-600'}`} />
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">{copy.liteFeatures[index][0]}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{copy.liteFeatures[index][1]}</p>
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Wand2 className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">{t('premium.short_ai_rewrite')}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{t('premium.short_ai_rewrite_desc')}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Mail className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">{t('premium.short_ai_letter')}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{t('premium.short_ai_letter_desc')}</p>
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl border border-blue-200 dark:border-blue-800 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <p className="text-slate-600 dark:text-slate-300 mb-1">{t('premium.price_access_all')}</p>
+              <p className="text-slate-600 dark:text-slate-300 mb-1">{copy.priceLine}</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {price.eurMonthlyLabel} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
               </p>
@@ -165,9 +175,9 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
               <Star className="w-6 h-6 text-white" fill="white" />
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white">{t('premium.unlock_title')}</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-white">{copy.title}</h2>
               <p className="text-blue-100 text-sm md:text-base mt-1">
-                {t('premium.unlock_desc_full')}
+                {copy.subtitle}
               </p>
             </div>
           </div>
@@ -215,7 +225,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-8">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-500" />
-            {t('premium.why_upgrade')}
+            {copy.whyUpgrade}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

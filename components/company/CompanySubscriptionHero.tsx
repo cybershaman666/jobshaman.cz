@@ -20,6 +20,24 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const normalizedTier = String(subscription?.tier || 'free').toLowerCase();
+  const derivedRoleOpensAvailable = normalizedTier === 'enterprise'
+    ? 999
+    : normalizedTier === 'professional'
+      ? 25
+      : normalizedTier === 'growth'
+        ? 10
+        : normalizedTier === 'starter'
+          ? 3
+          : 1;
+  const derivedDialogueSlotsAvailable = normalizedTier === 'enterprise'
+    ? 999
+    : normalizedTier === 'professional'
+      ? 100
+      : normalizedTier === 'growth'
+        ? 40
+        : normalizedTier === 'starter'
+          ? 12
+          : 3;
   const assessmentsUsed = subscription?.assessmentsUsed ?? companyProfile?.subscription?.usage?.aiAssessmentsUsed ?? 0;
   const assessmentsAvailable = subscription?.assessmentsAvailable ?? (
     normalizedTier === 'enterprise'
@@ -32,17 +50,20 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
             ? 15
             : 0
   );
-  const jobPostingsUsed = subscription?.jobPostingsUsed ?? companyProfile?.subscription?.usage?.activeJobsCount ?? 0;
-  const jobPostingsAvailable = subscription?.jobPostingsAvailable ?? (normalizedTier === 'enterprise' ? 999 : 1);
-  const teamAccessLabel = ['professional', 'enterprise'].includes(normalizedTier)
-    ? t('company.subscription.unlimited')
-    : t('company.subscription.active');
+  const roleOpensUsed = subscription?.roleOpensUsed
+    ?? companyProfile?.subscription?.usage?.roleOpensUsed
+    ?? subscription?.jobPostingsUsed
+    ?? companyProfile?.subscription?.usage?.activeJobsCount
+    ?? 0;
+  const roleOpensAvailable = subscription?.roleOpensAvailable ?? derivedRoleOpensAvailable;
+  const dialogueSlotsUsed = subscription?.dialogueSlotsUsed ?? companyProfile?.subscription?.usage?.activeDialogueSlotsUsed ?? 0;
+  const dialogueSlotsAvailable = subscription?.dialogueSlotsAvailable ?? derivedDialogueSlotsAvailable;
   const nextPaymentLabel = subscription?.expiresAt && !isFreeLikeTier
     ? new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')
     : null;
 
   return (
-    <div className="company-surface rounded-[22px] border border-cyan-200/80 bg-[linear-gradient(135deg,_rgba(236,254,255,0.96),_rgba(239,246,255,0.92))] p-3.5 shadow-[0_18px_38px_-34px_rgba(6,182,212,0.38)] dark:border-cyan-900/30 dark:bg-[linear-gradient(135deg,_rgba(8,47,73,0.45),_rgba(15,23,42,0.9))]">
+    <div className="company-surface rounded-[1.05rem] border border-cyan-200/80 bg-[linear-gradient(135deg,_rgba(236,254,255,0.96),_rgba(239,246,255,0.92))] p-3.5 shadow-[0_18px_34px_-30px_rgba(6,182,212,0.36)] dark:border-cyan-900/30 dark:bg-[linear-gradient(135deg,_rgba(8,47,73,0.45),_rgba(15,23,42,0.9))]">
       <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -81,7 +102,7 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-2 border-t border-cyan-200/80 pt-3 sm:grid-cols-3 xl:grid-cols-1 dark:border-cyan-900/30">
-        <div className="company-surface-subtle rounded-2xl border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
+        <div className="company-surface-subtle rounded-[0.95rem] border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
           <div className="mb-1 flex items-center gap-2">
             <Zap className="h-4 w-4 text-cyan-600 dark:text-cyan-300" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('company.subscription.ai_assessments')}</span>
@@ -89,23 +110,33 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
           <div className="text-sm font-semibold text-slate-950 dark:text-white">{assessmentsAvailable}</div>
           <div className="text-xs text-slate-500 dark:text-slate-400">{assessmentsUsed} {t('company.subscription.used')}</div>
         </div>
-        <div className="company-surface-subtle rounded-2xl border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
+        <div className="company-surface-subtle rounded-[0.95rem] border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
           <div className="mb-1 flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-cyan-600 dark:text-cyan-300" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('company.subscription.job_ads')}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {t('company.subscription.role_opens', { defaultValue: 'Role opens' })}
+            </span>
           </div>
           <div className="text-sm font-semibold text-slate-950 dark:text-white">
-            {jobPostingsUsed} / {jobPostingsAvailable === 999 ? t('company.subscription.unlimited') : jobPostingsAvailable}
+            {`${roleOpensUsed || 0} / ${(roleOpensAvailable === 999 || roleOpensAvailable === 9999) ? t('company.subscription.unlimited') : (roleOpensAvailable ?? 0)}`}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t('company.subscription.used')}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t('company.subscription.used', { defaultValue: 'used this period' })}
+          </div>
         </div>
-        <div className="company-surface-subtle rounded-2xl border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
+        <div className="company-surface-subtle rounded-[0.95rem] border border-white/70 bg-white/85 p-2.5 dark:border-slate-800 dark:bg-slate-950/35">
           <div className="mb-1 flex items-center gap-2">
             <Users className="h-4 w-4 text-cyan-600 dark:text-cyan-300" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('company.subscription.team_members')}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {t('company.subscription.dialogue_slots', { defaultValue: 'Dialogue slots' })}
+            </span>
           </div>
-          <div className="text-sm font-semibold text-slate-950 dark:text-white">{companyProfile?.members?.length || 1}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{teamAccessLabel}</div>
+          <div className="text-sm font-semibold text-slate-950 dark:text-white">
+            {`${dialogueSlotsUsed || 0} / ${(dialogueSlotsAvailable === 999 || dialogueSlotsAvailable === 9999) ? t('company.subscription.unlimited') : (dialogueSlotsAvailable ?? 0)}`}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t('company.subscription.active', { defaultValue: 'occupied now' })}
+          </div>
         </div>
       </div>
     </div>

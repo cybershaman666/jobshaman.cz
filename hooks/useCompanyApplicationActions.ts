@@ -1,66 +1,69 @@
 import { CompanyApplicationRow } from '../types';
-import { updateCompanyApplicationStatus } from '../services/jobApplicationService';
+import { updateCompanyDialogueStatus } from '../services/jobApplicationService';
 
-export const useCompanyApplicationActions = ({
-  applications,
+export const useCompanyDialogueActions = ({
+  dialogues,
   companyId,
   activeTab,
   selectedJobId,
   refreshActivityLog,
-  refreshApplications,
+  refreshDialogues,
   appendActivityEvent,
-  setApplicationUpdating,
-  applyApplicationStatusLocally
+  setDialogueUpdating,
+  applyDialogueStatusLocally
 }: {
-  applications: CompanyApplicationRow[];
+  dialogues: CompanyApplicationRow[];
   companyId?: string;
   activeTab: string;
   selectedJobId: string;
   refreshActivityLog: (companyId?: string) => Promise<void>;
-  refreshApplications: (options?: { jobId?: string; silent?: boolean }) => Promise<void>;
+  refreshDialogues: (options?: { jobId?: string; silent?: boolean }) => Promise<void>;
   appendActivityEvent: (
     eventType: string,
     payload: Record<string, any>,
     subjectType?: string,
     subjectId?: string
   ) => void | Promise<void>;
-  setApplicationUpdating: (applicationId: string, updating: boolean) => void;
-  applyApplicationStatusLocally: (applicationId: string, status: CompanyApplicationRow['status']) => void;
+  setDialogueUpdating: (dialogueId: string, updating: boolean) => void;
+  applyDialogueStatusLocally: (dialogueId: string, status: CompanyApplicationRow['status']) => void;
 }) => {
-  const handleApplicationStatusChange = async (
-    applicationId: string,
+  const handleDialogueStatusChange = async (
+    dialogueId: string,
     status: CompanyApplicationRow['status']
   ) => {
-    if (!applicationId) return;
-    setApplicationUpdating(applicationId, true);
-    const result = await updateCompanyApplicationStatus(applicationId, status);
+    if (!dialogueId) return;
+    setDialogueUpdating(dialogueId, true);
+    const result = await updateCompanyDialogueStatus(dialogueId, status);
     if (result.ok) {
-      const target = applications.find((app) => app.id === applicationId);
-      applyApplicationStatusLocally(applicationId, status);
+      const target = dialogues.find((app) => app.id === dialogueId);
+      applyDialogueStatusLocally(dialogueId, status);
       if (result.via === 'fallback') {
         appendActivityEvent('application_status_changed', {
-          application_id: applicationId,
+          application_id: dialogueId,
+          dialogue_id: dialogueId,
           status,
           candidate_name: target?.candidate_name || null,
           job_title: target?.job_title || null
-        }, 'application', applicationId);
+        }, 'application', dialogueId);
       } else if (result.via === 'api' && companyId) {
         await Promise.all([
           refreshActivityLog(companyId),
-          refreshApplications({
+          refreshDialogues({
             jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined,
             silent: true
           })
         ]);
       } else {
-        await refreshApplications({
+        await refreshDialogues({
           jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined,
           silent: true
         });
       }
     }
-    setApplicationUpdating(applicationId, false);
+    setDialogueUpdating(dialogueId, false);
   };
 
-  return { handleApplicationStatusChange };
+  return { handleDialogueStatusChange, handleApplicationStatusChange: handleDialogueStatusChange };
 };
+
+export const useCompanyApplicationActions = useCompanyDialogueActions;

@@ -5,6 +5,7 @@ interface CompanyDashboardContentProps {
   activeTab: CompanyDashboardTab;
   overview: () => React.ReactNode;
   jobs: () => React.ReactNode;
+  dialogues?: () => React.ReactNode;
   applications: () => React.ReactNode;
   assessments: () => React.ReactNode;
   candidates: () => React.ReactNode;
@@ -15,6 +16,7 @@ const CompanyDashboardContent: React.FC<CompanyDashboardContentProps> = ({
   activeTab,
   overview,
   jobs,
+  dialogues,
   applications,
   assessments,
   candidates,
@@ -26,7 +28,7 @@ const CompanyDashboardContent: React.FC<CompanyDashboardContentProps> = ({
     case 'jobs':
       return <>{jobs()}</>;
     case 'applications':
-      return <>{applications()}</>;
+      return <>{(dialogues || applications)()}</>;
     case 'assessments':
       return <>{assessments()}</>;
     case 'candidates':

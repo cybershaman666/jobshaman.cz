@@ -39,6 +39,10 @@ type SubscriptionStatus = {
   assessmentsUsed: number;
   jobPostingsAvailable: number;
   jobPostingsUsed?: number;
+  roleOpensAvailable?: number;
+  roleOpensUsed?: number;
+  dialogueSlotsAvailable?: number;
+  dialogueSlotsUsed?: number;
   stripeSubscriptionId?: string;
   canceledAt?: string;
 };
@@ -47,6 +51,43 @@ type SubscriptionStatusCache = {
   userId?: string;
   data?: SubscriptionStatus;
   cachedAt?: string;
+};
+
+const normalizeSubscriptionStatus = (status: SubscriptionStatus): SubscriptionStatus => {
+  const normalizedTier = String(status?.tier || 'free').toLowerCase();
+  const derivedRoleOpensAvailable = normalizedTier === 'enterprise'
+    ? 999
+    : normalizedTier === 'professional'
+      ? 25
+      : normalizedTier === 'growth'
+        ? 10
+        : normalizedTier === 'starter'
+          ? 3
+          : 1;
+  const derivedDialogueSlotsAvailable = normalizedTier === 'enterprise'
+    ? 999
+    : normalizedTier === 'professional'
+      ? 100
+      : normalizedTier === 'growth'
+        ? 40
+        : normalizedTier === 'starter'
+          ? 12
+          : 3;
+
+  const roleOpensUsed = status.roleOpensUsed ?? status.jobPostingsUsed ?? 0;
+  const roleOpensAvailable = status.roleOpensAvailable ?? status.jobPostingsAvailable ?? derivedRoleOpensAvailable;
+  const dialogueSlotsUsed = status.dialogueSlotsUsed ?? 0;
+  const dialogueSlotsAvailable = status.dialogueSlotsAvailable ?? derivedDialogueSlotsAvailable;
+
+  return {
+    ...status,
+    roleOpensUsed,
+    roleOpensAvailable,
+    dialogueSlotsUsed,
+    dialogueSlotsAvailable,
+    jobPostingsUsed: status.jobPostingsUsed ?? roleOpensUsed,
+    jobPostingsAvailable: status.jobPostingsAvailable ?? roleOpensAvailable
+  };
 };
 
 const readCachedSubscriptionStatus = (userId: string): { data: SubscriptionStatus; cachedAt?: string } | null => {
@@ -163,10 +204,15 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         assessmentsAvailable: 150,
         assessmentsUsed: 2,
-        jobPostingsAvailable: 20
+        jobPostingsAvailable: 20,
+        roleOpensAvailable: 25,
+        roleOpensUsed: 1,
+        dialogueSlotsAvailable: 100,
+        dialogueSlotsUsed: 4,
       };
-      writeCachedSubscriptionStatus(userId, mockResult);
-      return mockResult;
+      const normalizedMockResult = normalizeSubscriptionStatus(mockResult);
+      writeCachedSubscriptionStatus(userId, normalizedMockResult);
+      return normalizedMockResult;
     }
 
     const maxRetries = 3;
@@ -220,8 +266,9 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
         }
 
         const data: SubscriptionStatus = await response.json();
-        writeCachedSubscriptionStatus(userId, data);
-        return data;
+        const normalized = normalizeSubscriptionStatus(data);
+        writeCachedSubscriptionStatus(userId, normalized);
+        return normalized;
       } catch (err: any) {
         lastError = err instanceof Error ? err : new Error(String(err));
         const isAborted = lastError.name === 'AbortError';
@@ -245,16 +292,20 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     }
     const cached = readCachedSubscriptionStatus(userId);
     if (cached) {
-      return cached.data;
+      return normalizeSubscriptionStatus(cached.data);
     }
-    return {
+    return normalizeSubscriptionStatus({
       tier: 'free',
       tierName: 'Free',
       status: 'inactive',
       assessmentsAvailable: 0,
       assessmentsUsed: 0,
-      jobPostingsAvailable: 0
-    };
+      jobPostingsAvailable: 0,
+      roleOpensAvailable: 0,
+      roleOpensUsed: 0,
+      dialogueSlotsAvailable: 0,
+      dialogueSlotsUsed: 0,
+    });
   }
   })();
 

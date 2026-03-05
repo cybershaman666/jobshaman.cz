@@ -4,18 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Copy, Eye, Loader2, PauseCircle, PlayCircle, RefreshCw, Save, Sparkles, UploadCloud, XCircle } from 'lucide-react';
 import { CompanyProfile, Job, JobDraft, JobHiringStage, JobValidationReport, JobVersion } from '../types';
 import {
-  createCompanyJobDraft,
-  createEditDraftFromJob,
+  createCompanyRole as createCompanyJobDraft,
+  createEditDraftFromRole,
   fetchCompanySchemaRolloutStatus,
-  duplicateJobIntoDraft,
+  duplicateRoleIntoDraft,
   isMissingFeatureError,
-  listCompanyJobDrafts,
-  listJobVersions,
-  publishCompanyJobDraft,
-  updateCompanyJobDraft,
-  updateCompanyJobLifecycle,
+  listCompanyRoles as listCompanyJobDrafts,
+  listRoleVersions,
+  publishCompanyRole as publishCompanyJobDraft,
+  updateCompanyRole as updateCompanyJobDraft,
+  updateCompanyRoleLifecycle,
   CompanySchemaRolloutStatus,
-  validateCompanyJobDraft
+  validateCompanyRole as validateCompanyJobDraft
 } from '../services/companyJobDraftService';
 import { optimizeJobDescription } from '../services/geminiService';
 import { supabase } from '../services/supabaseService';
@@ -27,6 +27,11 @@ type JobDraftTextSection =
   | 'requirements'
   | 'nice_to_have'
   | 'application_instructions';
+
+type JobDraftHandshakeField =
+  | 'first_reply_prompt'
+  | 'company_truth_hard'
+  | 'company_truth_fail';
 
 interface CompanyJobEditorProps {
   companyProfile: CompanyProfile;
@@ -130,6 +135,16 @@ const normalizeHiringStage = (value: unknown): JobHiringStage | null => {
   return null;
 };
 
+const extractHandshakeFields = (draft: Partial<JobDraft> | null | undefined): Record<JobDraftHandshakeField, string> => {
+  const editorState = ((draft?.editor_state || {}) as Record<string, unknown>);
+  const handshake = ((editorState.handshake || {}) as Record<string, unknown>);
+  return {
+    first_reply_prompt: String(draft?.first_reply_prompt ?? handshake.first_reply_prompt ?? '').trim(),
+    company_truth_hard: String(draft?.company_truth_hard ?? handshake.company_truth_hard ?? '').trim(),
+    company_truth_fail: String(draft?.company_truth_fail ?? handshake.company_truth_fail ?? '').trim()
+  };
+};
+
 const attachHiringStageMetadata = (description: string, hiringStage?: JobHiringStage | null): string => {
   const normalizedStage = normalizeHiringStage(hiringStage) || DEFAULT_HIRING_STAGE;
   const marker = `<!-- jobshaman:hiring_stage=${normalizedStage} -->`;
@@ -137,33 +152,37 @@ const attachHiringStageMetadata = (description: string, hiringStage?: JobHiringS
   return trimmedDescription ? `${marker}\n\n${trimmedDescription}` : marker;
 };
 
-const toDraftInput = (draft: JobDraft) => ({
-  status: draft.status,
-  title: draft.title,
-  role_summary: draft.role_summary,
-  team_intro: draft.team_intro,
-  responsibilities: draft.responsibilities,
-  requirements: draft.requirements,
-  nice_to_have: draft.nice_to_have,
-  benefits_structured: draft.benefits_structured || [],
-  salary_from: draft.salary_from ?? null,
-  salary_to: draft.salary_to ?? null,
-  salary_currency: draft.salary_currency,
-  salary_timeframe: draft.salary_timeframe,
-  contract_type: draft.contract_type || null,
-  work_model: draft.work_model || null,
-  workplace_address: draft.workplace_address || null,
-  location_public: draft.location_public || null,
-  application_instructions: draft.application_instructions,
-  contact_email: draft.contact_email || null,
-  quality_report: draft.quality_report || null,
-  ai_suggestions: draft.ai_suggestions || null,
-  editor_state: {
-    ...((draft.editor_state || {}) as Record<string, unknown>),
-    selected_section: ((draft.editor_state || {}) as Record<string, unknown>).selected_section || 'role_summary',
-    hiring_stage: normalizeHiringStage(draft.hiring_stage) || DEFAULT_HIRING_STAGE
-  }
-});
+const toDraftInput = (draft: JobDraft) => {
+  const handshake = extractHandshakeFields(draft);
+  return {
+    status: draft.status,
+    title: draft.title,
+    role_summary: draft.role_summary,
+    team_intro: draft.team_intro,
+    responsibilities: draft.responsibilities,
+    requirements: draft.requirements,
+    nice_to_have: draft.nice_to_have,
+    benefits_structured: draft.benefits_structured || [],
+    salary_from: draft.salary_from ?? null,
+    salary_to: draft.salary_to ?? null,
+    salary_currency: draft.salary_currency,
+    salary_timeframe: draft.salary_timeframe,
+    contract_type: draft.contract_type || null,
+    work_model: draft.work_model || null,
+    workplace_address: draft.workplace_address || null,
+    location_public: draft.location_public || null,
+    application_instructions: draft.application_instructions,
+    contact_email: draft.contact_email || null,
+    quality_report: draft.quality_report || null,
+    ai_suggestions: draft.ai_suggestions || null,
+    editor_state: {
+      ...((draft.editor_state || {}) as Record<string, unknown>),
+      selected_section: ((draft.editor_state || {}) as Record<string, unknown>).selected_section || 'role_summary',
+      hiring_stage: normalizeHiringStage(draft.hiring_stage) || DEFAULT_HIRING_STAGE,
+      handshake
+    }
+  };
+};
 
 const composePreviewMarkdown = (
   draft: JobDraft,
@@ -183,8 +202,12 @@ const composePreviewMarkdown = (
     niceToHave: string;
     benefits: string;
     applicationDetails: string;
+    firstReply: string;
+    companyTruthHard: string;
+    companyTruthFail: string;
   }
 ): string => {
+  const handshake = extractHandshakeFields(draft);
   const sections: string[] = [
     `# ${draft.title || labels.untitledRole}`,
     `**${labels.company}:** ${companyName}`,
@@ -199,6 +222,9 @@ const composePreviewMarkdown = (
     draft.responsibilities ? `## ${labels.responsibilities}\n${compactLines(draft.responsibilities).map((line) => `- ${line}`).join('\n')}` : '',
     draft.requirements ? `## ${labels.requirements}\n${compactLines(draft.requirements).map((line) => `- ${line}`).join('\n')}` : '',
     draft.nice_to_have ? `## ${labels.niceToHave}\n${compactLines(draft.nice_to_have).map((line) => `- ${line}`).join('\n')}` : '',
+    handshake.first_reply_prompt ? `## ${labels.firstReply}\n${handshake.first_reply_prompt}` : '',
+    handshake.company_truth_hard ? `## ${labels.companyTruthHard}\n${handshake.company_truth_hard}` : '',
+    handshake.company_truth_fail ? `## ${labels.companyTruthFail}\n${handshake.company_truth_fail}` : '',
     draft.benefits_structured?.length ? `## ${labels.benefits}\n${draft.benefits_structured.map((line) => `- ${line}`).join('\n')}` : '',
     draft.application_instructions ? `## ${labels.applicationDetails}\n${draft.application_instructions}` : ''
   ];
@@ -208,6 +234,9 @@ const composePreviewMarkdown = (
 
 const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Partial<JobDraft> => ({
   title: '',
+  first_reply_prompt: '',
+  company_truth_hard: '',
+  company_truth_fail: '',
   role_summary: '',
   team_intro: '',
   responsibilities: '',
@@ -225,7 +254,12 @@ const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Pa
   status: 'draft',
   editor_state: {
     selected_section: 'role_summary',
-    hiring_stage: DEFAULT_HIRING_STAGE
+    hiring_stage: DEFAULT_HIRING_STAGE,
+    handshake: {
+      first_reply_prompt: '',
+      company_truth_hard: '',
+      company_truth_fail: ''
+    }
   },
   hiring_stage: DEFAULT_HIRING_STAGE
 });
@@ -242,14 +276,18 @@ const createLocalValidationReport = (draft: JobDraft): JobValidationReport => {
   const hasSalary = typeof draft.salary_from === 'number' || typeof draft.salary_to === 'number';
   const location = (draft.location_public || draft.workplace_address || '').trim();
   const contactEmail = (draft.contact_email || '').trim();
+  const handshake = extractHandshakeFields(draft);
 
   if (!title) blockingIssues.push('Add a role title.');
   if (!roleSummary) blockingIssues.push('Add a role summary.');
+  if (!handshake.company_truth_hard) blockingIssues.push('Add what is genuinely hard about this role.');
+  if (!handshake.company_truth_fail) blockingIssues.push('Add what type of person usually fails here.');
   if (!hasSalary) warnings.push('Add a visible salary range to improve transparency.');
   if (!location) warnings.push('Add a public location or workplace address.');
   if (!contactEmail && !draft.application_instructions.trim()) blockingIssues.push('Add an application destination or clear instructions.');
   if (requirements.length < 2) warnings.push('Requirements are still thin. Add at least two concrete must-haves.');
   if (benefits.length === 0) warnings.push('List at least one concrete benefit.');
+  if (!handshake.first_reply_prompt) warnings.push('Add a first reply prompt so candidates know how to begin the handshake.');
   if (roleSummary.length < 120) suggestions.push('Expand the role summary so candidates understand what success looks like.');
   if (benefits.some((item) => /competitive|great culture|dynamic/i.test(item))) {
     suggestions.push('Replace vague benefits with specifics candidates can evaluate.');
@@ -281,6 +319,9 @@ const createLocalDraftRecord = (
     company_id: seed?.company_id || companyProfile.id || 'local',
     status: seed?.status || 'draft',
     title: seed?.title ?? '',
+    first_reply_prompt: extractHandshakeFields(seed).first_reply_prompt,
+    company_truth_hard: extractHandshakeFields(seed).company_truth_hard,
+    company_truth_fail: extractHandshakeFields(seed).company_truth_fail,
     role_summary: seed?.role_summary ?? '',
     team_intro: seed?.team_intro ?? '',
     responsibilities: seed?.responsibilities ?? '',
@@ -299,16 +340,19 @@ const createLocalDraftRecord = (
 const normalizeDraft = (draft: JobDraft): JobDraft => {
   const editorState = ((draft.editor_state || {}) as Record<string, unknown>);
   const hiringStage = normalizeHiringStage(draft.hiring_stage ?? editorState.hiring_stage) || DEFAULT_HIRING_STAGE;
+  const handshake = extractHandshakeFields(draft);
 
   return {
     ...draft,
+    ...handshake,
     hiring_stage: hiringStage,
     benefits_structured: ensureArray(draft.benefits_structured),
     quality_report: normalizeValidationReport(draft.quality_report),
     editor_state: {
       ...editorState,
       selected_section: editorState.selected_section || 'role_summary',
-      hiring_stage: hiringStage
+      hiring_stage: hiringStage,
+      handshake
     }
   };
 };
@@ -476,7 +520,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     const loadVersions = async () => {
       setVersionsLoading(true);
       try {
-        const rows = normalizeVersionRows(await listJobVersions(draft.job_id as string | number));
+        const rows = normalizeVersionRows(await listRoleVersions(draft.job_id as string | number));
         if (!active) return;
         setVersions(rows);
       } catch (error) {
@@ -497,7 +541,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     let active = true;
     const openSeedDraft = async () => {
       try {
-        const nextDraft = normalizeDraft(await createEditDraftFromJob(seedJobId));
+        const nextDraft = normalizeDraft(await createEditDraftFromRole(seedJobId));
         if (!active) return;
         setDrafts((prev) => {
           const withoutDuplicate = prev.filter((item) => item.id !== nextDraft.id);
@@ -909,7 +953,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         setStatusMessage('A new local draft was created from the live job.');
         return;
       }
-      const duplicated = await duplicateJobIntoDraft(draft.job_id);
+      const duplicated = await duplicateRoleIntoDraft(draft.job_id);
       updateDraft(duplicated);
       setStatusMessage('A new duplicate draft was created from the live job.');
     } catch (error) {
@@ -954,7 +998,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         onJobLifecycleChange?.(draft.job_id, status, { skipAudit: false, refreshJobs: false });
         return;
       }
-      const result = await updateCompanyJobLifecycle(draft.job_id, status);
+      const result = await updateCompanyRoleLifecycle(draft.job_id, status);
       if (!result.ok && result.via === 'unavailable') {
         setUsesLocalFallback(true);
         if (!supabase) {
@@ -1003,6 +1047,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     responsibilities: t('company.job_editor.section_labels.responsibilities', { defaultValue: 'Responsibilities' }),
     requirements: t('company.job_editor.section_labels.requirements', { defaultValue: 'Requirements' }),
     niceToHave: t('company.job_editor.section_labels.nice_to_have', { defaultValue: 'Nice to Have' }),
+    firstReply: t('company.job_editor.handshake.first_reply', { defaultValue: 'First reply' }),
+    companyTruthHard: t('company.job_editor.handshake.truth_hard', { defaultValue: 'Company truth: what is actually hard?' }),
+    companyTruthFail: t('company.job_editor.handshake.truth_fail', { defaultValue: 'Company truth: who typically fails here?' }),
     benefits: t('company.job_editor.benefits_label', { defaultValue: 'Benefits' }),
     applicationDetails: t('company.job_editor.section_labels.application_instructions', { defaultValue: 'Application Details' })
   }), [t]);
@@ -1039,7 +1086,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           </div>
 
           <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-            {t('company.job_editor.resume_draft', { defaultValue: 'Resume draft' })}
+            {t('company.job_editor.resume_draft', { defaultValue: 'Role drafts' })}
           </div>
 
           {loadingDrafts ? (
@@ -1086,14 +1133,16 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/92 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                Rollout schema check
+                {t('company.job_editor.rollout_schema_check', { defaultValue: 'Rollout schema check' })}
               </div>
               <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
                 schemaStatus.all_ready
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                   : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
               }`}>
-                {schemaStatus.all_ready ? 'Ready' : 'Attention'}
+                {schemaStatus.all_ready
+                  ? t('company.job_editor.rollout_ready', { defaultValue: 'Ready' })
+                  : t('company.job_editor.rollout_attention', { defaultValue: 'Attention' })}
               </span>
             </div>
             <div className="space-y-2 text-sm">
@@ -1104,13 +1153,17 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               ].map(({ label, probe }) => (
                 <div key={label} className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 px-3 py-2 dark:bg-slate-950/20">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-slate-800 dark:text-slate-100">{label}</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">
+                      {t(`company.job_editor.rollout_tables.${label}`, { defaultValue: label })}
+                    </span>
                     <span className={probe.ready ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
-                      {probe.ready ? 'ok' : 'missing'}
+                      {probe.ready
+                        ? t('company.job_editor.rollout_ok', { defaultValue: 'ok' })
+                        : t('company.job_editor.rollout_missing', { defaultValue: 'missing' })}
                     </span>
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    sample rows: {probe.sample_rows}
+                    {t('company.job_editor.rollout_sample_rows', { defaultValue: 'sample rows' })}: {probe.sample_rows}
                     {probe.issue ? ` • ${probe.issue}` : ''}
                   </div>
                 </div>
@@ -1218,28 +1271,28 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.title}
                     onChange={(e) => patchDraft({ title: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={t('company.job_editor.role_title_placeholder', { defaultValue: 'Senior Product Designer' })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    {t('company.job_editor.hiring_stage', { defaultValue: 'Hiring status' })}
+                    {t('company.job_editor.hiring_stage_label', { defaultValue: 'Hiring status' })}
                   </label>
                   <select
                     value={draft.hiring_stage || DEFAULT_HIRING_STAGE}
                     onChange={(e) => patchDraft({ hiring_stage: e.target.value as JobHiringStage })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                   >
                     {HIRING_STAGE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
-                        {t(`company.job_editor.hiring_stage.${option.value}`, { defaultValue: option.label })}
+                        {t(`company.job_editor.hiring_stage_options.${option.value}`, { defaultValue: option.label })}
                       </option>
                     ))}
                   </select>
                   <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-                    {t('company.job_editor.hiring_stage_desc', {
+                    {t('company.job_editor.hiring_stage_help', {
                       defaultValue: 'Candidates will see where the process currently is and whether you are still actively reviewing.'
                     })}
                   </div>
@@ -1252,7 +1305,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.salary_from ?? ''}
                     onChange={(e) => patchDraft({ salary_from: normalizeNumber(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={t('company.job_editor.salary_from_placeholder', { defaultValue: '60000' })}
                     inputMode="numeric"
                   />
@@ -1264,7 +1317,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.salary_to ?? ''}
                     onChange={(e) => patchDraft({ salary_to: normalizeNumber(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={t('company.job_editor.salary_to_placeholder', { defaultValue: '90000' })}
                     inputMode="numeric"
                   />
@@ -1277,7 +1330,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.contract_type || ''}
                     onChange={(e) => patchDraft({ contract_type: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={t('company.job_editor.contract_type_placeholder', { defaultValue: 'HPP' })}
                   />
                 </div>
@@ -1288,7 +1341,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <select
                     value={draft.work_model || 'On-site'}
                     onChange={(e) => patchDraft({ work_model: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                   >
                     <option value="On-site">{t('company.job_editor.work_setup_options.on_site', { defaultValue: 'On-site' })}</option>
                     <option value="Hybrid">{t('company.job_editor.work_setup_options.hybrid', { defaultValue: 'Hybrid' })}</option>
@@ -1303,7 +1356,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.location_public || ''}
                     onChange={(e) => patchDraft({ location_public: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={t('company.job_editor.public_location_placeholder', { defaultValue: 'Prague / Hybrid' })}
                   />
                 </div>
@@ -1314,7 +1367,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <input
                     value={draft.workplace_address || ''}
                     onChange={(e) => patchDraft({ workplace_address: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                     placeholder={companyProfile.address || t('company.job_editor.workplace_address_placeholder', { defaultValue: 'Office address' })}
                   />
                 </div>
@@ -1328,6 +1381,63 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     onChange={(e) => patchDraft({ contact_email: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                     placeholder={userEmail || t('company.job_editor.contact_email_placeholder', { defaultValue: 'jobs@company.com' })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_22px_44px_-34px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/92 space-y-4">
+              <div>
+                <div className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">
+                  {t('company.job_editor.handshake.title', { defaultValue: 'Handshake / first reply' })}
+                </div>
+                <div className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {t('company.job_editor.handshake.desc', {
+                    defaultValue: 'The company goes first. Set the opening prompt and answer the two truth questions candidates should see before they respond.'
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.handshake.first_reply', { defaultValue: 'First reply' })}
+                  </label>
+                  <textarea
+                    value={draft.first_reply_prompt || ''}
+                    onChange={(e) => patchDraft({ first_reply_prompt: e.target.value })}
+                    className="min-h-[92px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
+                    placeholder={t('company.job_editor.handshake.first_reply_placeholder', {
+                      defaultValue: 'Describe the first real situation candidates should respond to and what kind of trade-off you want to see.'
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.handshake.truth_hard', { defaultValue: 'What is actually hard about this role?' })}
+                  </label>
+                  <textarea
+                    value={draft.company_truth_hard || ''}
+                    onChange={(e) => patchDraft({ company_truth_hard: e.target.value })}
+                    className="min-h-[132px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
+                    placeholder={t('company.job_editor.handshake.truth_hard_placeholder', {
+                      defaultValue: 'Name the uncomfortable reality of the role: where people struggle, what creates pressure, and what the team cannot hide.'
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.handshake.truth_fail', { defaultValue: 'What type of person typically fails here?' })}
+                  </label>
+                  <textarea
+                    value={draft.company_truth_fail || ''}
+                    onChange={(e) => patchDraft({ company_truth_fail: e.target.value })}
+                    className="min-h-[132px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
+                    placeholder={t('company.job_editor.handshake.truth_fail_placeholder', {
+                      defaultValue: 'Be explicit about the mismatch: what working style, mindset, or pace usually does not work in this team.'
+                    })}
                   />
                 </div>
               </div>
@@ -1392,7 +1502,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                           selected_section: section.key
                         }
                       })}
-                      className={`min-h-[140px] w-full rounded-xl border px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white ${
+                      className={`min-h-[140px] w-full rounded-xl border px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white dark:[color-scheme:dark] ${
                         activeSection === section.key
                           ? 'border-cyan-200 bg-cyan-50/50 dark:border-cyan-800 dark:bg-cyan-950/10'
                           : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/40'
@@ -1415,7 +1525,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <textarea
                   value={(draft.benefits_structured || []).join('\n')}
                   onChange={(e) => patchDraft({ benefits_structured: compactLines(e.target.value) })}
-                  className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                  className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                   placeholder={t('company.job_editor.benefits_placeholder', { defaultValue: 'Add one benefit per line.' })}
                 />
               </div>
@@ -1426,7 +1536,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <input
                   value={changeSummary}
                   onChange={(e) => setChangeSummary(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                   placeholder={t('company.job_editor.change_summary_placeholder', { defaultValue: 'Summarize the changes for your team.' })}
                 />
               </div>

@@ -65,6 +65,31 @@ def _count_company_active_jobs(company_id: str) -> int:
     except Exception:
         return 0
 
+
+def _count_company_active_dialogues(company_id: str) -> int:
+    if not company_id:
+        return 0
+    try:
+        resp = supabase.table("job_applications").select("id,status").eq("company_id", company_id).execute()
+        total = 0
+        for row in resp.data or []:
+            status = str((row or {}).get("status") or "pending").lower()
+            if status in {
+                "withdrawn",
+                "rejected",
+                "hired",
+                "closed",
+                "closed_timeout",
+                "closed_rejected",
+                "closed_withdrawn",
+                "closed_role_filled",
+            }:
+                continue
+            total += 1
+        return total
+    except Exception:
+        return 0
+
 @router.get("/subscription-status")
 @limiter.limit("30/minute")
 async def get_subscription_status(request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)):
@@ -77,13 +102,13 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     tier_limits = {
-        "free": {"assessments": 0, "job_postings": 1, "name": "Free"},
-        "premium": {"assessments": 0, "job_postings": 0, "name": "Premium"},
-        "starter": {"assessments": 15, "job_postings": 3, "name": "Starter"},
-        "growth": {"assessments": 60, "job_postings": 10, "name": "Growth"},
-        "professional": {"assessments": 150, "job_postings": 20, "name": "Professional"},
-        "trial": {"assessments": 0, "job_postings": 1, "name": "Free (Trial)"},
-        "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
+        "free": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 3, "name": "Free"},
+        "premium": {"assessments": 0, "job_postings": 0, "role_opens": 0, "dialogue_slots": 0, "name": "Premium"},
+        "starter": {"assessments": 15, "job_postings": 3, "role_opens": 3, "dialogue_slots": 12, "name": "Starter"},
+        "growth": {"assessments": 60, "job_postings": 10, "role_opens": 10, "dialogue_slots": 40, "name": "Growth"},
+        "professional": {"assessments": 150, "job_postings": 20, "role_opens": 25, "dialogue_slots": 100, "name": "Professional"},
+        "trial": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 3, "name": "Free (Trial)"},
+        "enterprise": {"assessments": 999999, "job_postings": 999, "role_opens": 999, "dialogue_slots": 9999, "name": "Enterprise"},
     }
 
     sub_details = {"tier": "free", "status": "inactive"}
@@ -129,16 +154,25 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         # Fallback to free tier on database error instead of crashing
     tier = sub_details.get("tier", "free")
     limits = tier_limits.get(tier, tier_limits["free"])
+    real_job_count = 0
+    real_dialogue_count = 0
 
     if resolved_is_company_context:
         try:
             target_company_id = resolved_company_id or require_company_access(user, user.get("company_id"))
             real_job_count = _count_company_active_jobs(target_company_id)
+            real_dialogue_count = _count_company_active_dialogues(target_company_id)
         except:
             real_job_count = 0
+            real_dialogue_count = 0
 
     # Fetch usage data from subscription_usage table
-    stats = {"ai_assessments_used": 0, "active_jobs_count": 0}
+    stats = {
+        "ai_assessments_used": 0,
+        "active_jobs_count": 0,
+        "active_dialogue_slots_used": 0,
+        "role_opens_used": 0,
+    }
     try:
         if sub_details.get("id"):
             usage_resp = supabase.table("subscription_usage").select("*").eq("subscription_id", sub_details["id"]).order("period_end", desc=True).limit(1).execute()
@@ -146,6 +180,8 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                 usage = usage_resp.data[0]
                 stats["ai_assessments_used"] = usage.get("ai_assessments_used", 0)
                 stats["active_jobs_count"] = usage.get("active_jobs_count", 0)
+                stats["active_dialogue_slots_used"] = usage.get("active_dialogue_slots_used", 0)
+                stats["role_opens_used"] = usage.get("role_opens_used", 0)
     except Exception as e:
         print(f"⚠️ Error fetching usage stats: {e}")
 
@@ -163,6 +199,10 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "assessmentsUsed": used_assessments,
         "jobPostingsAvailable": limits["job_postings"],
         "jobPostingsUsed": real_job_count if resolved_is_company_context else stats["active_jobs_count"],
+        "roleOpensAvailable": limits["role_opens"],
+        "roleOpensUsed": stats["role_opens_used"],
+        "dialogueSlotsAvailable": limits["dialogue_slots"],
+        "dialogueSlotsUsed": real_dialogue_count if resolved_is_company_context else stats["active_dialogue_slots_used"],
     }
 
 @router.post("/verify-billing")

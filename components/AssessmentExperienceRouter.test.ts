@@ -1,4 +1,4 @@
-import { resolveAssessmentMode } from './AssessmentExperienceRouter';
+import { resolveAssessmentMode } from './assessmentMode';
 
 describe('resolveAssessmentMode', () => {
   it('returns game mode when cockpit is enabled', () => {

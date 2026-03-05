@@ -1,30 +1,142 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApplicationDossier } from '../../types';
+import { DialogueDossier } from '../../types';
 import {
-    fetchCompanyApplicationMessages,
-    sendCompanyApplicationMessage
+    fetchCompanyDialogueMessages,
+    sendCompanyDialogueMessage
 } from '../../services/jobApplicationService';
 import ApplicationMessageCenter from '../ApplicationMessageCenter';
 import AssessmentResultsList from '../AssessmentResultsList';
 import SectionHeader from './SectionHeader';
 
 interface ApplicationDossierDetailProps {
-    dossier: ApplicationDossier;
+    dossier: DialogueDossier;
+    dialogue?: DialogueDossier;
     companyId: string;
     locale: string;
     onCreateAssessmentFromApplication: () => void;
     onInviteCandidateFromApplication: () => void;
+    onCreateAssessmentFromDialogue?: () => void;
+    onInviteCandidateFromDialogue?: () => void;
 }
 
 const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
     dossier,
+    dialogue: dialogueProp,
     companyId,
     locale,
     onCreateAssessmentFromApplication,
-    onInviteCandidateFromApplication
+    onInviteCandidateFromApplication,
+    onCreateAssessmentFromDialogue,
+    onInviteCandidateFromDialogue
 }) => {
     const { t } = useTranslation();
+    const dialogue = dialogueProp || dossier;
+    const handleCreateAssessment = onCreateAssessmentFromDialogue || onCreateAssessmentFromApplication;
+    const handleInviteCandidate = onInviteCandidateFromDialogue || onInviteCandidateFromApplication;
+    if (!dialogue) return null;
+
+    const getReadableStatus = (status: DialogueDossier['status']) => {
+        switch (status) {
+            case 'reviewed':
+                return t('company.dashboard.status.approved', { defaultValue: 'Reviewed' });
+            case 'shortlisted':
+                return t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' });
+            case 'rejected':
+            case 'closed_rejected':
+                return t('company.dashboard.status.refused', { defaultValue: 'Rejected' });
+            case 'hired':
+                return t('company.dashboard.status.hired', { defaultValue: 'Hired' });
+            case 'withdrawn':
+            case 'closed_withdrawn':
+                return t('company.applications.status.withdrawn', { defaultValue: 'Withdrawn' });
+            case 'closed_timeout':
+                return t('company.applications.status.timeout', { defaultValue: 'Closed by timeout' });
+            case 'closed_role_filled':
+                return t('company.applications.status.role_filled', { defaultValue: 'Role filled' });
+            case 'closed':
+                return t('company.applications.status.closed', { defaultValue: 'Closed' });
+            default:
+                return t('company.dashboard.status.pending', { defaultValue: 'Pending' });
+        }
+    };
+
+    const getTimingMeta = () => {
+        const closedReason = String(dossier.dialogue_closed_reason || '').trim().toLowerCase();
+        if (dossier.status === 'closed_timeout' || closedReason === 'timeout') {
+            return {
+                label: t('company.applications.timeout_closed', { defaultValue: 'This dialogue was closed because neither side replied in time.' }),
+                className: 'border-amber-200 bg-amber-50/80 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300'
+            };
+        }
+        const deadlineValue = String(dossier.dialogue_deadline_at || '').trim();
+        if (!deadlineValue || !['pending', 'reviewed', 'shortlisted'].includes(String(dossier.status || 'pending'))) {
+            return null;
+        }
+        const deadline = new Date(deadlineValue);
+        if (Number.isNaN(deadline.getTime())) return null;
+        const msRemaining = deadline.getTime() - Date.now();
+        const actorLabel =
+            dossier.dialogue_current_turn === 'candidate'
+                ? t('company.applications.turn_candidate', { defaultValue: 'Waiting for candidate' })
+                : t('company.applications.turn_company', { defaultValue: 'Your reply is due' });
+        if (dossier.dialogue_is_overdue || msRemaining <= 0) {
+            return {
+                label: `${actorLabel} • ${t('company.applications.deadline_passed', { defaultValue: 'deadline passed' })}`,
+                className: 'border-amber-200 bg-amber-50/80 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300'
+            };
+        }
+        return {
+            label: `${actorLabel} • ${deadline.toLocaleString(locale === 'cs' ? 'cs-CZ' : 'en-US')}`,
+            className: 'border-sky-200 bg-sky-50/80 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300'
+        };
+    };
+
+    const getClosedReasonMeta = () => {
+        if (['pending', 'reviewed', 'shortlisted'].includes(String(dossier.status || 'pending'))) {
+            return null;
+        }
+        const normalizedReason = String(dossier.dialogue_closed_reason || dossier.status || '').trim().toLowerCase();
+        switch (normalizedReason) {
+            case 'timeout':
+            case 'closed_timeout':
+                return {
+                    label: t('company.applications.close_reason_timeout', { defaultValue: 'The reply window expired before either side responded.' }),
+                    className: 'border-amber-200 bg-amber-50/80 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300'
+                };
+            case 'rejected':
+            case 'closed_rejected':
+                return {
+                    label: t('company.applications.close_reason_rejected', { defaultValue: 'This dialogue was closed without moving the candidate forward.' }),
+                    className: 'border-rose-200 bg-rose-50/80 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300'
+                };
+            case 'withdrawn':
+            case 'closed_withdrawn':
+                return {
+                    label: t('company.applications.close_reason_withdrawn', { defaultValue: 'The candidate withdrew from this dialogue.' }),
+                    className: 'border-slate-200 bg-slate-50/80 text-slate-700 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-300'
+                };
+            case 'closed_role_filled':
+                return {
+                    label: t('company.applications.close_reason_role_filled', { defaultValue: 'The role was filled before this dialogue continued.' }),
+                    className: 'border-indigo-200 bg-indigo-50/80 text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:text-indigo-300'
+                };
+            case 'hired':
+                return {
+                    label: t('company.applications.close_reason_hired', { defaultValue: 'This dialogue ended in a hire decision.' }),
+                    className: 'border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
+                };
+            case 'closed':
+            default:
+                return {
+                    label: t('company.applications.close_reason_generic', { defaultValue: 'This dialogue was closed without an active next step.' }),
+                    className: 'border-slate-200 bg-slate-50/80 text-slate-700 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-300'
+                };
+        }
+    };
+
+    const timingMeta = getTimingMeta();
+    const closeReasonMeta = getClosedReasonMeta();
 
     return (
         <div className="space-y-4">
@@ -42,12 +154,17 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                         {t('company.dashboard.table.status', { defaultValue: 'Status' })}
                     </div>
                     <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {String(dossier.status || 'pending')}
+                        {getReadableStatus(dossier.status)}
+                        {closeReasonMeta ? (
+                            <div className="mt-2 text-xs font-normal leading-5 text-slate-600 dark:text-slate-300">
+                                {closeReasonMeta.label}
+                            </div>
+                        ) : null}
                     </div>
                 </div>
                 <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 bg-slate-50/80 dark:bg-slate-950/30">
                     <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
-                        {t('company.workspace.timeline.application_received', { defaultValue: 'Application received' })}
+                        {t('company.workspace.timeline.application_received', { defaultValue: 'Handshake opened' })}
                     </div>
                     <div className="text-sm font-semibold text-slate-900 dark:text-white">
                         {dossier.submitted_at
@@ -64,6 +181,12 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                     </div>
                 </div>
             </div>
+
+            {(timingMeta || closeReasonMeta) ? (
+                <div className={`rounded-2xl border px-4 py-3 text-sm font-medium ${(timingMeta || closeReasonMeta)?.className}`}>
+                    {(timingMeta || closeReasonMeta)?.label}
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-[22px] border border-slate-200/80 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-950/20 shadow-[0_16px_32px_-28px_rgba(15,23,42,0.38)]">
@@ -135,21 +258,21 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 <div className="rounded-[22px] border border-slate-200/80 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-950/20 shadow-[0_16px_32px_-28px_rgba(15,23,42,0.38)]">
                     <SectionHeader
                         title={t('company.applications.detail.assessment_actions', { defaultValue: 'Next assessment steps' })}
-                        subtitle={t('company.applications.detail.assessment_hint', { defaultValue: 'Keep this applicant linked while you launch screening or send an invite.' })}
+                        subtitle={t('company.applications.detail.assessment_hint', { defaultValue: 'Keep this dialogue linked while you launch screening or send an invite.' })}
                         className="mb-3"
                     />
                     <div className="flex flex-wrap gap-2">
                         <button
-                            onClick={onCreateAssessmentFromApplication}
+                            onClick={handleCreateAssessment}
                             className="px-3 py-2 rounded-full border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
                         >
                             {t('company.dashboard.actions.create_assessment', { defaultValue: 'Create assessment' })}
                         </button>
                         <button
-                            onClick={onInviteCandidateFromApplication}
+                            onClick={handleInviteCandidate}
                             className="px-3 py-2 rounded-full border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
                         >
-                            {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite this applicant' })}
+                            {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this dialogue' })}
                         </button>
                     </div>
                 </div>
@@ -231,7 +354,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 </div>
             ) : (
                 <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-950/20">
-                    {t('company.candidates.no_jcfpm_shared', { defaultValue: 'This applicant did not share their deeper profile signal with the application.' })}
+                    {t('company.candidates.no_jcfpm_shared', { defaultValue: 'This candidate did not share a deeper profile signal with the handshake.' })}
                 </div>
             )}
 
@@ -243,24 +366,31 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 />
                 <AssessmentResultsList
                     companyId={companyId}
-                    applicationIdFilter={dossier.id}
-                    candidateEmailFilter={dossier.candidate_profile_snapshot?.email || dossier.candidate_email || undefined}
+                    dialogueIdFilter={dialogue.id}
+                    applicationIdFilter={dialogue.id}
+                    candidateEmailFilter={dialogue.candidate_profile_snapshot?.email || dialogue.candidate_email || undefined}
                 />
             </div>
 
             <ApplicationMessageCenter
-                applicationId={dossier.id}
+                dialogueId={dialogue.id}
+                applicationId={dialogue.id}
                 storageOwnerId={companyId}
                 viewerRole="recruiter"
-                heading={t('company.applications.detail.messages_title', { defaultValue: 'Internal message thread' })}
+                dialogueStatus={dialogue.status}
+                dialogueDeadlineAt={dialogue.dialogue_deadline_at || null}
+                dialogueCurrentTurn={dialogue.dialogue_current_turn || null}
+                dialogueClosedReason={dialogue.dialogue_closed_reason || null}
+                dialogueIsOverdue={Boolean(dialogue.dialogue_is_overdue)}
+                heading={t('company.applications.detail.messages_title', { defaultValue: 'Dialogue thread' })}
                 subtitle={t('company.applications.detail.messages_desc', {
-                    defaultValue: 'Use asynchronous internal messages for clarifications, document requests, and follow-up without live chat pressure.'
+                    defaultValue: 'Use asynchronous dialogue messages for clarifications, document requests, and follow-up without live chat pressure.'
                 })}
                 emptyText={t('company.applications.detail.messages_empty', {
-                    defaultValue: 'No internal messages yet. Start the thread when you need additional information or want to share a document.'
+                    defaultValue: 'No messages yet. Start the dialogue when you need additional information or want to share a document.'
                 })}
-                fetchMessages={fetchCompanyApplicationMessages}
-                sendMessage={sendCompanyApplicationMessage}
+                fetchMessages={fetchCompanyDialogueMessages}
+                sendMessage={sendCompanyDialogueMessage}
             />
         </div>
     );

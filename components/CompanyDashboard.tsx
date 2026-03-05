@@ -7,11 +7,11 @@ import CompanySettings from './CompanySettings';
 import PlanUpgradeModal from './PlanUpgradeModal';
 import { useCompanyJobsData } from '../hooks/useCompanyJobsData';
 import { useCompanyActivityLog } from '../hooks/useCompanyActivityLog';
-import { useCompanyApplicationsData } from '../hooks/useCompanyApplicationsData';
+import { useCompanyDialoguesData } from '../hooks/useCompanyApplicationsData';
 import { useCompanyAssessmentsData } from '../hooks/useCompanyAssessmentsData';
 import { useCompanyCandidatesData } from '../hooks/useCompanyCandidatesData';
-import { useCompanyAssessmentActions } from '../hooks/useCompanyAssessmentActions';
-import { useCompanyApplicationActions } from '../hooks/useCompanyApplicationActions';
+import { useCompanyDialogueAssessmentActions } from '../hooks/useCompanyAssessmentActions';
+import { useCompanyDialogueActions } from '../hooks/useCompanyApplicationActions';
 import { useCompanyJobActions } from '../hooks/useCompanyJobActions';
 import { useCompanyDashboardNavigation } from '../hooks/useCompanyDashboardNavigation';
 import CompanyApplicationsWorkspace from './company/CompanyApplicationsWorkspace';
@@ -56,6 +56,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         candidateEmail?: string;
         candidateId?: string;
         candidateName?: string;
+        dialogueId?: string;
         applicationId?: string;
         assessmentId?: string;
         assessmentName?: string;
@@ -86,19 +87,19 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         appendActivityEvent
     } = useCompanyActivityLog(companyProfile?.id);
     const {
-        applications,
-        applicationsLoading,
-        applicationsUpdating,
-        selectedApplicationId,
-        selectedApplicationDetail,
-        applicationDetailLoading,
-        lastApplicationsSyncAt,
-        refreshApplications,
-        openApplicationDetail,
-        closeApplicationDetail,
-        setApplicationUpdating,
-        applyApplicationStatusLocally
-    } = useCompanyApplicationsData({
+        dialogues,
+        dialoguesLoading,
+        dialoguesUpdating,
+        selectedDialogueId,
+        selectedDialogueDetail,
+        dialogueDetailLoading,
+        lastDialoguesSyncAt,
+        refreshDialogues,
+        openDialogueDetail,
+        closeDialogueDetail,
+        setDialogueUpdating,
+        applyDialogueStatusLocally
+    } = useCompanyDialoguesData({
         companyId: companyProfile?.id,
         activeTab,
         selectedJobId
@@ -127,14 +128,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     } = useCompanyCandidatesData(companyProfile?.id, activeTab, selectedJobId, t);
     const {
         handleCreateAssessmentFromJob,
-        handleCreateAssessmentFromApplication,
-        handleInviteCandidateFromApplication,
+        handleCreateAssessmentFromDialogue,
+        handleInviteCandidateFromDialogue,
         handleUseSavedAssessment,
         handleDuplicateAssessment,
         handleArchiveAssessment
-    } = useCompanyAssessmentActions({
+    } = useCompanyDialogueAssessmentActions({
         jobs,
-        selectedApplicationDetail,
+        selectedDialogueDetail,
         assessmentLibrary,
         duplicateAssessment,
         archiveAssessment,
@@ -144,16 +145,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         setActiveTab,
         setShowInvitationModal
     });
-    const { handleApplicationStatusChange } = useCompanyApplicationActions({
-        applications,
+    const { handleDialogueStatusChange } = useCompanyDialogueActions({
+        dialogues,
         companyId: companyProfile?.id,
         activeTab,
         selectedJobId,
         refreshActivityLog,
-        refreshApplications,
+        refreshDialogues,
         appendActivityEvent,
-        setApplicationUpdating,
-        applyApplicationStatusLocally
+        setDialogueUpdating,
+        applyDialogueStatusLocally
     });
     const {
         handleEditorLifecycleChange,
@@ -210,7 +211,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 usage: {
                     ...companyProfile.subscription?.usage,
                     aiAssessmentsUsed: subscription.assessmentsUsed || 0,
-                    activeJobsCount: subscription.jobPostingsUsed || 0
+                    activeJobsCount: subscription.roleOpensUsed ?? subscription.jobPostingsUsed ?? companyProfile.subscription?.usage?.activeJobsCount ?? 0,
+                    activeDialogueSlotsUsed: subscription.dialogueSlotsUsed ?? companyProfile.subscription?.usage?.activeDialogueSlotsUsed ?? 0,
+                    roleOpensUsed: subscription.roleOpensUsed ?? subscription.jobPostingsUsed ?? companyProfile.subscription?.usage?.roleOpensUsed ?? 0
                 }
             } as any
         };
@@ -237,7 +240,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const handleOpenApplications = (jobId: string) => {
         setSelectedJobId(jobId);
-        closeApplicationDetail();
+        closeDialogueDetail();
         setActiveTab('applications');
     };
 
@@ -247,9 +250,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         averageConversion,
         openApplications
     } = useMemo(() => buildOverviewMetrics({
-        applications,
+        applications: dialogues,
         jobStats
-    }), [applications, jobStats]);
+    }), [dialogues, jobStats]);
 
     const recruiterActionQueue = useMemo(() => buildRecruiterActionQueue({
         t,
@@ -260,7 +263,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         assessmentLibraryCount: assessmentLibrary.length,
         onEditJob: handleEditJob,
         onOpenApplicationQueue: handleOpenApplications,
-        onOpenApplicationDetail: openApplicationDetail,
+        onOpenApplicationDetail: openDialogueDetail,
         onOpenAssessments: () => setActiveTab('assessments'),
         onOpenJobs: () => setActiveTab('jobs')
     }), [assessmentLibrary.length, openApplications, selectedJobId, t, visibleJobs, jobStats]);
@@ -268,16 +271,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const workspaceActivity = useMemo(() => buildWorkspaceActivity({
         t,
         visibleJobs,
-        applications,
+        applications: dialogues,
         assessmentLibrary,
         assessmentInvitations,
         assessmentResultsAudit,
         companyActivityLog
-    }), [applications, assessmentInvitations, assessmentLibrary, assessmentResultsAudit, companyActivityLog, t, visibleJobs]);
+    }), [dialogues, assessmentInvitations, assessmentLibrary, assessmentResultsAudit, companyActivityLog, t, visibleJobs]);
 
     const todayActionPlan = useMemo(() => buildTodayActionPlan({
         t,
-        applications,
+        applications: dialogues,
         assessmentLibraryCount: assessmentLibrary.length,
         candidateBenchmarks,
         jobs,
@@ -286,7 +289,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         workspaceActivity,
         onOpenJobs: () => setActiveTab('jobs'),
         onOpenApplications: () => setActiveTab('applications'),
-        onOpenApplicationDetail: openApplicationDetail,
+        onOpenApplicationDetail: openDialogueDetail,
         onOpenAssessments: () => setActiveTab('assessments'),
         onOpenCandidates: () => setActiveTab('candidates'),
         onEditJob: handleEditJob,
@@ -294,7 +297,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             setSelectedJobId(jobId);
             setActiveTab('jobs');
         }
-    }), [applications, assessmentLibrary.length, candidateBenchmarks, jobs, jobStats, t, visibleJobs, workspaceActivity]);
+    }), [dialogues, assessmentLibrary.length, candidateBenchmarks, jobs, jobStats, t, visibleJobs, workspaceActivity]);
 
     useEffect(() => {
         let active = true;
@@ -317,7 +320,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             t,
             subscription,
             effectiveSubscriptionTier: effectiveCompanyProfile.subscription?.tier || 'free',
-            applications,
+            applications: dialogues,
             candidateBenchmarks
         });
 
@@ -338,8 +341,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 candidateCoverageLabel={candidateCoverageLabel}
                 assessmentLibrary={assessmentLibrary}
                 assessmentLibraryLoading={assessmentLibraryLoading}
-                applicationsLoading={applicationsLoading}
-                applicationsLastSyncedAt={lastApplicationsSyncAt}
+                dialoguesLoading={dialoguesLoading}
+                applicationsLoading={dialoguesLoading}
+                dialoguesLastSyncedAt={lastDialoguesSyncAt}
+                applicationsLastSyncedAt={lastDialoguesSyncAt}
+                recentDialogues={recentApplications}
                 recentApplications={recentApplications}
                 recruiterActionQueue={recruiterActionQueue}
                 todayActionPlan={todayActionPlan}
@@ -348,16 +354,20 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 onOpenJobs={() => setActiveTab('jobs')}
                 onOpenApplications={() => setActiveTab('applications')}
                 onRefreshApplications={() => {
-                    void refreshApplications({
+                    void refreshDialogues({
                         jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined
                     });
                 }}
                 onOpenAssessments={() => setActiveTab('assessments')}
                 onOpenCandidates={() => setActiveTab('candidates')}
                 onOpenSettings={() => setActiveTab('settings')}
+                onOpenDialogue={(dialogueId) => {
+                    setActiveTab('applications');
+                    openDialogueDetail(dialogueId);
+                }}
                 onOpenApplication={(applicationId) => {
                     setActiveTab('applications');
-                    openApplicationDetail(applicationId);
+                    openDialogueDetail(applicationId);
                 }}
                 onEditJob={handleEditJob}
                 onOpenJobApplications={handleOpenApplications}
@@ -374,7 +384,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 userEmail={userEmail}
                 seedJobId={editorSeedJobId}
                 onSeedConsumed={() => setEditorSeedJobId(null)}
-                onCreateDraft={() => setEditorSeedJobId(null)}
                 onEditJob={handleEditJob}
                 onOpenApplications={handleOpenApplications}
                 onCreateAssessment={(jobId) => {
@@ -393,26 +402,35 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             jobs={jobs}
             selectedJobId={selectedJobId}
             selectedJob={selectedJob}
-            applications={applications}
-            applicationsLoading={applicationsLoading}
-            applicationsUpdating={applicationsUpdating}
-            selectedApplicationId={selectedApplicationId}
-            selectedApplicationDetail={selectedApplicationDetail}
-            applicationDetailLoading={applicationDetailLoading}
-            lastSyncedAt={lastApplicationsSyncAt}
+            dialogues={dialogues}
+            applications={dialogues}
+            dialoguesLoading={dialoguesLoading}
+            applicationsLoading={dialoguesLoading}
+            dialoguesUpdating={dialoguesUpdating}
+            applicationsUpdating={dialoguesUpdating}
+            selectedDialogueId={selectedDialogueId}
+            selectedApplicationId={selectedDialogueId}
+            selectedDialogueDetail={selectedDialogueDetail}
+            selectedApplicationDetail={selectedDialogueDetail}
+            dialogueDetailLoading={dialogueDetailLoading}
+            applicationDetailLoading={dialogueDetailLoading}
+            lastSyncedAt={lastDialoguesSyncAt}
             companyId={companyProfile.id || ''}
             onSelectedJobChange={setSelectedJobId}
             onOpenJobs={() => setActiveTab('jobs')}
             onRefresh={() => {
-                void refreshApplications({
-                    jobId: selectedJobId || undefined
-                });
-            }}
-            onOpenApplication={openApplicationDetail}
-            onCloseDetail={closeApplicationDetail}
-            onStatusChange={handleApplicationStatusChange}
-            onCreateAssessmentFromApplication={handleCreateAssessmentFromApplication}
-            onInviteCandidateFromApplication={handleInviteCandidateFromApplication}
+                    void refreshDialogues({
+                        jobId: selectedJobId || undefined
+                    });
+                }}
+            onOpenDialogue={openDialogueDetail}
+            onOpenApplication={openDialogueDetail}
+            onCloseDetail={closeDialogueDetail}
+            onStatusChange={handleDialogueStatusChange}
+            onCreateAssessmentFromDialogue={handleCreateAssessmentFromDialogue}
+            onCreateAssessmentFromApplication={handleCreateAssessmentFromDialogue}
+            onInviteCandidateFromDialogue={handleInviteCandidateFromDialogue}
+            onInviteCandidateFromApplication={handleInviteCandidateFromDialogue}
         />
     );
 
@@ -435,6 +453,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             onToggleInvitations={() => setShowInvitationsList((prev) => !prev)}
             onOpenInvitationModal={() => setShowInvitationModal(true)}
             onCloseInvitationModal={() => setShowInvitationModal(false)}
+            onBackToDialogue={() => setActiveTab('applications')}
             onBackToApplication={() => setActiveTab('applications')}
             onUseSavedAssessment={handleUseSavedAssessment}
             onDuplicateAssessment={handleDuplicateAssessment}
@@ -442,7 +461,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             onInvitationSent={() => {
                 setShowInvitationsList(true);
                 appendActivityEvent('assessment_invited', {
-                    application_id: assessmentContext?.applicationId || null,
+                    application_id: assessmentContext?.dialogueId || assessmentContext?.applicationId || null,
                     job_id: assessmentContext?.jobId || null,
                     job_title: assessmentContext?.jobTitle || null,
                     candidate_name: assessmentContext?.candidateName || null,
@@ -498,6 +517,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 overview={renderWorkspaceOverview}
                 settings={() => effectiveCompanyProfile ? <CompanySettings profile={effectiveCompanyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} /> : null}
                 jobs={renderJobs}
+                dialogues={renderApplications}
                 applications={renderApplications}
                 assessments={renderAssessments}
                 candidates={renderCandidates}

@@ -10,7 +10,9 @@ export const useCompanyDashboardNavigation = () => {
     try {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      if (tab === 'assessments') {
+      if (tab === 'dialogues') {
+        setActiveTab('applications');
+      } else if (tab === 'assessments') {
         setActiveTab('assessments');
       }
     } catch {

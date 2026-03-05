@@ -17,7 +17,7 @@ except Exception:
     FastApiIntegration = None
 
 from .core.limiter import limiter
-from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push, profile, analytics, benchmarks, tests
+from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push, profile, analytics, benchmarks, tests, assets
 from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 from .services.daily_digest import run_daily_job_digest
@@ -183,6 +183,7 @@ app.include_router(profile.router, tags=["Profile"])
 app.include_router(analytics.router, tags=["Analytics"])
 app.include_router(benchmarks.router, tags=["Benchmarks"])
 app.include_router(tests.router, tags=["Tests"])
+app.include_router(assets.router, tags=["Assets"])
 
 from .core.security import cleanup_csrf_sessions
 

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApplicationJcfpmShareLevel, Job, UserProfile, CVDocument } from '../types';
-import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown } from 'lucide-react';
+import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown, MessageSquare, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
 import { supabase, trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
-import { createJobApplication } from '../services/jobApplicationService';
+import { openDialogue } from '../services/jobApplicationService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { buildEmployerVisibleJcfpmPayload } from '../services/jcfpmService';
 
@@ -18,9 +18,25 @@ interface ApplicationModalProps {
 
 type Step = 'form' | 'submitting' | 'success';
 
+const extractMarkdownSection = (description: string, headings: string[]): string => {
+  if (!description.trim() || headings.length === 0) return '';
+  const normalizedHeadings = headings.map((heading) => heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(
+    `^#{2,3}\\s*(?:${normalizedHeadings.join('|')})\\s*$\\n([\\s\\S]*?)(?=\\n#{2,3}\\s+|$)`,
+    'im'
+  );
+  const match = description.match(pattern);
+  if (!match?.[1]) return '';
+  return match[1]
+    .replace(/^\s*[-*]\s+/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+};
+
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
+  const isCsLike = locale === 'cs' || locale === 'sk';
   const jcfpmUiCopy = {
     cs: {
       shareDesc: 'Pokud JCFPM nasdílíte, firma dostane jen kompaktní srovnávací profil pro hiring rozhodnutí. Osobní narativní rozbor zůstává jen vám.',
@@ -71,6 +87,76 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
     premiumLocked: 'Premium: employer sharing',
   };
+  const handshakeUiCopy = isCsLike ? {
+    title: 'Otevri digitalni prvni kontakt',
+    subtitle: 'Misto klasickeho CV funnelu odpovis na kratke situace, ktere ukazou jak premyslis. Video neni potreba.',
+    truthTitle: 'Co firma slibuje predem',
+    truthPoints: [
+      `Role: ${job.title}`,
+      `Firma: ${job.company}`,
+      `Kontext: ${job.location || 'lokace bude upresnena v dialogu'}`,
+      'Uzavreni dialogu ma vzdy jasny stav a duvod.'
+    ],
+    promptsTitle: 'Tvoje uvazovani v praxi',
+    promptOne: `Kdybys mel(a) v prvnich 30 dnech posunout roli "${job.title}", na co by ses soustredil(a) jako prvni?`,
+    promptTwo: 'Narazis na nejasnost nebo konflikt priorit. Jak si urcis dalsi krok a co bys komunikoval(a)?',
+    promptHint: 'Odpovedi jsou soukrome, text-first a maji ukazat zpusob premysleni. Kratce a konkretne.',
+    supportingTitle: 'Doplnujici kontext (volitelne)',
+    supportingDesc: 'CV, kontaktni detaily a cover letter zustavaji k dispozici, ale uz nejsou jadrem prvniho kontaktu.',
+    send: 'Otevrit handshake',
+    sending: 'Oteviram handshake',
+    successTitle: 'Handshake byl otevren',
+    successDesc: `Firma ${job.company} dostala tvuj uvodní signal a muze navazat dalsim krokem bez zbytecneho tlaku.`,
+    missingAnswers: 'Nejdřív prosím odpověz na oba mikro-scenáře.'
+  } : {
+    title: 'Open a digital first contact',
+    subtitle: 'Instead of a classic CV funnel, respond to two short situations that reveal how you think. No video required.',
+    truthTitle: 'What the company commits to upfront',
+    truthPoints: [
+      `Role: ${job.title}`,
+      `Company: ${job.company}`,
+      `Context: ${job.location || 'location will be clarified in the dialogue'}`,
+      'Every closed dialogue must end with a clear status and reason.'
+    ],
+    promptsTitle: 'How you think in practice',
+    promptOne: `If you had to move the "${job.title}" role forward in your first 30 days, what would you focus on first?`,
+    promptTwo: 'You hit ambiguity or a priority conflict. How do you decide the next move and what do you communicate?',
+    promptHint: 'Responses stay private, text-first, and should show how you think. Keep them concise and concrete.',
+    supportingTitle: 'Supporting context (optional)',
+    supportingDesc: 'CV, contact details, and a cover letter remain available, but they are no longer the core of first contact.',
+    send: 'Open handshake',
+    sending: 'Opening handshake',
+    successTitle: 'Handshake opened',
+    successDesc: `${job.company} received your initial signal and can continue from a calmer, structured first step.`,
+    missingAnswers: 'Please answer both micro-scenarios first.'
+  };
+  const parsedFirstReply = extractMarkdownSection(job.description || '', ['First Reply']);
+  const parsedTruthHard = extractMarkdownSection(job.description || '', ['Company Truth: What Is Actually Hard?']);
+  const parsedTruthFail = extractMarkdownSection(job.description || '', ['Company Truth: Who Typically Struggles?']);
+  const effectivePromptOne = parsedFirstReply || handshakeUiCopy.promptOne;
+  const effectivePromptTwo = handshakeUiCopy.promptTwo;
+  const effectiveTruthPoints = [
+    `Role: ${job.title}`,
+    `Firma: ${job.company}`,
+    `Kontext: ${job.location || 'lokace bude upresnena v dialogu'}`
+  ];
+  if (!isCsLike) {
+    effectiveTruthPoints[1] = `Company: ${job.company}`;
+    effectiveTruthPoints[2] = `Context: ${job.location || 'location will be clarified in the dialogue'}`;
+  }
+  if (parsedTruthHard) {
+    effectiveTruthPoints.push(parsedTruthHard);
+  }
+  if (parsedTruthFail) {
+    effectiveTruthPoints.push(parsedTruthFail);
+  }
+  if (!parsedTruthHard && !parsedTruthFail) {
+    effectiveTruthPoints.push(
+      isCsLike
+        ? 'Uzavreni dialogu ma vzdy jasny stav a duvod.'
+        : 'Every closed dialogue must end with a clear status and reason.'
+    );
+  }
   const [step, setStep] = useState<Step>('form');
 
   // Form State
@@ -90,6 +176,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState('');
   const [jcfpmShareLevel, setJcfpmShareLevel] = useState<ApplicationJcfpmShareLevel>('summary');
+  const [handshakeAnswers, setHandshakeAnswers] = useState({
+    scenarioOne: '',
+    scenarioTwo: '',
+    optionalNote: ''
+  });
+  const [showSupportingContext, setShowSupportingContext] = useState(false);
 
   // AI State
   const [aiPrompt, setAiPrompt] = useState('');
@@ -186,6 +278,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   };
 
   const handleSubmit = async () => {
+    if (!handshakeAnswers.scenarioOne.trim() || !handshakeAnswers.scenarioTwo.trim()) {
+      alert(handshakeUiCopy.missingAnswers);
+      return;
+    }
     setStep('submitting');
 
     try {
@@ -224,9 +320,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       let applicationStatus: 'created' | 'exists' | null = null;
 
       try {
-        const backendResult = await createJobApplication(
+        const backendResult = await openDialogue(
           job.id,
-          'application_modal',
+          'handshake_modal',
           {
             job_title: job.title,
             job_company: job.company,
@@ -234,6 +330,15 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             job_url: job.url || null,
             job_source: job.source || null,
             job_contact_email: job.contact_email || null,
+            handshake_entrypoint: 'candidate_modal',
+            handshake_mode: 'micro_dialogue_v1',
+            handshake_prompts: [effectivePromptOne, effectivePromptTwo],
+            handshake_responses: [
+              handshakeAnswers.scenarioOne.trim(),
+              handshakeAnswers.scenarioTwo.trim()
+            ],
+            handshake_optional_note: handshakeAnswers.optionalNote.trim() || null,
+            role_truth: effectiveTruthPoints,
             cover_letter_present: Boolean(coverLetter?.trim()),
             has_saved_cv: Boolean(useSavedCv && selectedCvSnapshot),
             has_uploaded_cv: Boolean(!useSavedCv && cvFile),
@@ -263,7 +368,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             applied_at: new Date().toISOString(),
             submitted_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            source: 'application_modal',
+            source: 'handshake_modal',
             cover_letter: coverLetter || null,
             cv_document_id: useSavedCv ? selectedCvId : null,
             cv_snapshot: selectedCvSnapshot,
@@ -277,6 +382,15 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
               job_url: job.url || null,
               job_source: job.source || null,
               job_contact_email: job.contact_email || null,
+              handshake_entrypoint: 'candidate_modal',
+              handshake_mode: 'micro_dialogue_v1',
+              handshake_prompts: [effectivePromptOne, effectivePromptTwo],
+              handshake_responses: [
+                handshakeAnswers.scenarioOne.trim(),
+                handshakeAnswers.scenarioTwo.trim()
+              ],
+              handshake_optional_note: handshakeAnswers.optionalNote.trim() || null,
+              role_truth: effectiveTruthPoints,
               manual_contact_fields: {
                 first_name: formData.firstName,
                 last_name: formData.lastName,
@@ -321,6 +435,11 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       // Send email notification
       const applicationPayload = {
         ...formData,
+        handshakePromptOne: effectivePromptOne,
+        handshakePromptTwo: effectivePromptTwo,
+        handshakeAnswerOne: handshakeAnswers.scenarioOne,
+        handshakeAnswerTwo: handshakeAnswers.scenarioTwo,
+        handshakeOptionalNote: handshakeAnswers.optionalNote,
         coverLetter,
         cvFile: cvFile ? cvFile.name : null,
         cvSelectedName: selectedCv?.originalName || selectedCv?.label || null,
@@ -345,7 +464,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           job_id: job.id,
           job_title: job.title,
           jcfpm_share_level: effectiveJcfpmShareLevel,
-          has_cover_letter: Boolean(coverLetter?.trim())
+          has_cover_letter: Boolean(coverLetter?.trim()),
+          handshake_mode: 'micro_dialogue_v1',
+          scenario_one_length: handshakeAnswers.scenarioOne.trim().length,
+          scenario_two_length: handshakeAnswers.scenarioTwo.trim().length
         }
       });
 
@@ -367,9 +489,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           <div className="w-20 h-20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
             <CheckCircle size={40} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('apply.success_title')}</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{handshakeUiCopy.successTitle}</h2>
           <p className="text-slate-600 dark:text-slate-300 mb-8 max-w-md mx-auto">
-            {t('apply.success_desc', { company: job.company })}
+            {handshakeUiCopy.successDesc}
           </p>
 
           {/* AI Feature Teaser */}
@@ -406,8 +528,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       return (
         <div className="flex flex-col items-center justify-center py-24 px-6 animate-in fade-in">
           <Loader2 size={48} className="text-indigo-600 dark:text-indigo-500 animate-spin mb-6" />
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('apply.submitting')}</h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">{t('apply.submitting_desc')}</p>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{handshakeUiCopy.sending}</h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">{handshakeUiCopy.subtitle}</p>
         </div>
       );
     }
@@ -415,11 +537,83 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     return (
       <div className="p-6 sm:p-8 space-y-8">
         {/* Header */}
-        <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('apply.title', { company: job.company })}</h2>
-          <p className="text-slate-500 dark:text-slate-300">{job.title}</p>
+        <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
+            <MessageSquare size={12} />
+            Digital first contact
+          </div>
+          <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{handshakeUiCopy.title}</h2>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">{handshakeUiCopy.subtitle}</p>
         </div>
 
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/20 p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <Shield size={16} />
+            {handshakeUiCopy.truthTitle}
+          </div>
+          <div className="mt-3 space-y-2">
+            {effectiveTruthPoints.map((point) => (
+              <div key={point} className="rounded-xl bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 border border-white/70 dark:border-slate-800">
+                {point}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{handshakeUiCopy.promptsTitle}</h3>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{handshakeUiCopy.promptHint}</p>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{effectivePromptOne}</p>
+              <textarea
+                value={handshakeAnswers.scenarioOne}
+                onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioOne: e.target.value }))}
+                className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                placeholder={isCsLike ? 'Krátce popiš první krok, trade-off a jak bys to komunikoval(a).' : 'Briefly describe the first move, the trade-off, and how you would communicate it.'}
+              />
+            </div>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{effectivePromptTwo}</p>
+              <textarea
+                value={handshakeAnswers.scenarioTwo}
+                onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioTwo: e.target.value }))}
+                className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                placeholder={isCsLike ? 'Zaměř se na způsob rozhodnutí, ne na perfektní sebeprezentaci.' : 'Focus on your decision process, not on polished self-presentation.'}
+              />
+            </div>
+            <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                {isCsLike ? 'Volitelny kontext' : 'Optional context'}
+              </p>
+              <textarea
+                value={handshakeAnswers.optionalNote}
+                onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, optionalNote: e.target.value }))}
+                className="mt-3 w-full h-20 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                placeholder={isCsLike ? 'Můžeš doplnit krátkou poznámku nebo kontext. Krátké audio přijde v další verzi.' : 'You can add a short note or context. Short audio will come in a later version.'}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20">
+          <button
+            type="button"
+            onClick={() => setShowSupportingContext((prev) => !prev)}
+            className="w-full flex items-center justify-between gap-4 px-4 py-4 text-left"
+          >
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{handshakeUiCopy.supportingTitle}</div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{handshakeUiCopy.supportingDesc}</div>
+            </div>
+            {showSupportingContext ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
+          </button>
+        </div>
+
+        {showSupportingContext && (
+        <>
         {/* 1. Contact Information */}
         <div className="space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.contact_info')}</h3>
@@ -432,7 +626,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={formData.firstName}
                 onChange={handleInputChange}
                 placeholder={t('apply.first_name')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
             </div>
             <div className="relative">
@@ -443,7 +637,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={formData.lastName}
                 onChange={handleInputChange}
                 placeholder={t('apply.last_name')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
             </div>
             <div className="relative">
@@ -454,7 +648,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder={t('apply.email')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
             </div>
             <div className="relative">
@@ -465,7 +659,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder={t('apply.phone')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
             </div>
             <div className="relative sm:col-span-2">
@@ -476,7 +670,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={formData.linkedin}
                 onChange={handleInputChange}
                 placeholder={t('apply.linkedin')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
             </div>
           </div>
@@ -485,13 +679,17 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         {/* 2. Documents */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cv_section')}</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
+              {t('apply.supporting_context_section', { defaultValue: isCsLike ? 'Podpůrné podklady' : 'Supporting context' })}
+            </h3>
             {(cvDocuments.length > 0 || user.cvText || user.cvUrl) && (
               <button
                 onClick={() => setUseSavedCv(!useSavedCv)}
                 className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
               >
-                {useSavedCv ? t('apply.upload_instead') : t('apply.use_saved_cv')}
+                {useSavedCv
+                  ? t('apply.upload_doc_instead', { defaultValue: isCsLike ? 'Nahrát jiný dokument' : 'Upload a different document' })
+                  : t('apply.use_saved_doc', { defaultValue: isCsLike ? 'Použít uložený dokument' : 'Use saved document' })}
               </button>
             )}
           </div>
@@ -502,7 +700,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 <FileText size={20} />
               </div>
               <div className="flex-1 space-y-2">
-                <p className="text-sm font-bold text-slate-900 dark:text-white">{t('apply.saved_cv_ready')}</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {t('apply.saved_doc_ready', { defaultValue: isCsLike ? 'Uložený podklad je připravený' : 'A saved document is ready' })}
+                </p>
                 {cvDocumentsLoading ? (
                   <p className="text-xs text-slate-500">{t('app.loading')}</p>
                 ) : cvDocuments.length > 0 ? (
@@ -516,7 +716,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                           await updateUserCVSelection(user.id, nextId);
                         }
                       }}
-                      className="w-full text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/40 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200"
+                      className="w-full text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/40 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 dark:[color-scheme:dark]"
                     >
                       {cvDocuments.map(doc => (
                         <option key={doc.id} value={doc.id}>
@@ -525,11 +725,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                       ))}
                     </select>
                     <p className="text-[11px] text-slate-500">
-                      {selectedCv?.originalName || t('apply.cv_from_profile')}
+                      {selectedCv?.originalName || t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500">{user.cvUrl ? 'CV_Document.pdf' : t('apply.cv_from_profile')}</p>
+                  <p className="text-xs text-slate-500">
+                    {user.cvUrl ? 'supporting_document.pdf' : t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
+                  </p>
                 )}
               </div>
               <CheckCircle className="text-emerald-500" size={20} />
@@ -599,7 +801,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder={t('apply.ai_prompt_placeholder')}
-                className="w-full p-2 text-sm border border-purple-300 dark:border-purple-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 h-20 bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white placeholder:text-slate-500"
+                className="w-full p-2 text-sm border border-purple-300 dark:border-purple-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 h-20 bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
               />
               <button
                 onClick={handleAiGenerate}
@@ -615,7 +817,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           <textarea
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
-            className="w-full h-40 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500"
+            className="w-full h-40 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
             placeholder={t('apply.cover_letter_placeholder')}
           />
         </div>
@@ -655,7 +857,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                     value="summary"
                     checked={jcfpmShareLevel === 'summary' || jcfpmShareLevel === 'full_report'}
                     onChange={() => setJcfpmShareLevel('summary')}
-                    className="mt-1"
+                    className="mt-1 dark:[color-scheme:dark]"
                   />
                   <span>
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -673,7 +875,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                     value="do_not_share"
                     checked={jcfpmShareLevel === 'do_not_share'}
                     onChange={() => setJcfpmShareLevel('do_not_share')}
-                    className="mt-1"
+                    className="mt-1 dark:[color-scheme:dark]"
                   />
                   <span>
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -718,6 +920,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             </div>
           </div>
         )}
+        </>
+        )}
 
         {/* Footer Actions */}
         <div className="flex gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -729,11 +933,11 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           </button>
           <button
             onClick={handleSubmit}
-            disabled={(!cvFile && !useSavedCv) || !formData.email || !formData.firstName}
+            disabled={!formData.email || !formData.firstName || !handshakeAnswers.scenarioOne.trim() || !handshakeAnswers.scenarioTwo.trim()}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(8,145,178,0.4)]"
           >
             <Send size={18} />
-            {t('apply.send')}
+            {handshakeUiCopy.send}
           </button>
         </div>
       </div>

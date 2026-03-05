@@ -128,10 +128,17 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="font-bold text-slate-900 dark:text-white">{t('my_invitations.title')}</h4>
-        <button onClick={load} className="text-sm text-slate-500 hover:text-cyan-600 transition-colors">{t('my_invitations.refresh')}</button>
+    <div className="space-y-3 rounded-[1.05rem] border border-slate-200 bg-white/90 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/70">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <div>
+          <h4 className="font-bold text-slate-900 dark:text-white">{t('my_invitations.title')}</h4>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {forCompany
+              ? t('my_invitations.company_hint', { defaultValue: 'Keep a clean overview of active assessment invitations.' })
+              : t('my_invitations.candidate_hint', { defaultValue: 'Resume invited assessments without leaving your handshake flow.' })}
+          </p>
+        </div>
+        <button onClick={load} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{t('my_invitations.refresh')}</button>
       </div>
 
       {loading && <div className="text-sm text-slate-500 animate-pulse">{t('my_invitations.loading')}</div>}
@@ -140,30 +147,30 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
           {t('my_invitations.retrying', { defaultValue: 'Zkouším znovu připojit backend…' })}
         </div>
       )}
-      {error && <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{error}</div>}
+      {error && <div className="rounded-[0.95rem] bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/20">{error}</div>}
 
       {!loading && !invitations.length && (
-        <div className="text-center p-8 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+        <div className="rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 p-7 text-center dark:border-slate-700 dark:bg-slate-900">
           <p className="text-slate-500">{t('my_invitations.empty')}</p>
         </div>
       )}
 
       <div className="space-y-3">
         {invitations.map(inv => (
-          <div key={inv.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <div key={inv.id} className="rounded-[1rem] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.45)] transition-all hover:shadow-[0_22px_40px_-30px_rgba(15,23,42,0.5)] dark:border-slate-700 dark:bg-slate-950/40">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <div className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                   {inv.metadata?.job_title || t('my_invitations.unknown_position')}
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">ID: {inv.assessment_id.slice(0, 6)}...</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 dark:bg-slate-800">ID: {inv.assessment_id.slice(0, 6)}...</span>
                   <span>{t('my_invitations.expires')}: {new Date(inv.expires_at).toLocaleDateString()}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`text-sm font-bold px-3 py-1 rounded-full ${inv.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                <div className={`rounded-full px-3 py-1 text-sm font-bold ${inv.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                   inv.status === 'expired' ? 'bg-slate-100 text-slate-500' :
                     'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400'
                   }`}>
@@ -174,7 +181,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
                 {inv.status === 'pending' && !forCompany && (
                   <button
                     onClick={() => handleStartAssessment(inv)}
-                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-600/20 transition-all hover:scale-105 active:scale-95"
+                    className="rounded-[0.95rem] bg-cyan-600 px-4 py-2 text-white font-bold shadow-[0_18px_32px_-22px_rgba(8,145,178,0.45)] transition-colors hover:bg-cyan-500 active:scale-95"
                   >
                     {t('my_invitations.start_test')}
                   </button>

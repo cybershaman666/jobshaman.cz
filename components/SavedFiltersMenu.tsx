@@ -75,11 +75,11 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
     });
 
     return (
-        <div className="saved-filters-menu">
-            <div className="saved-filters-actions">
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
                 {hasActiveFilters && (
                     <button
-                        className="btn-save-filter"
+                        className="inline-flex items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/55 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-cyan-50/70 dark:hover:bg-cyan-950/20"
                         onClick={() => setShowSaveModal(true)}
                         title={t('saved_filters.save_current_title')}
                     >
@@ -89,7 +89,7 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
 
                 {saved.length > 0 && (
                     <button
-                        className="btn-load-filter"
+                        className="inline-flex items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/55 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-cyan-50/70 dark:hover:bg-cyan-950/20"
                         onClick={() => setShowMenu(!showMenu)}
                         title={t('saved_filters.load_saved_title')}
                     >
@@ -99,16 +99,18 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
             </div>
 
             {showMenu && (
-                <div className="saved-filters-dropdown">
-                    <div className="saved-filters-header">
-                        <h4>{t('saved_filters.saved_searches')}</h4>
-                        <button onClick={() => setShowMenu(false)}>×</button>
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/92 dark:bg-slate-950/80 p-3 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.35)]">
+                    <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{t('saved_filters.saved_searches')}</h4>
+                        <button onClick={() => setShowMenu(false)} className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            ×
+                        </button>
                     </div>
-                    <div className="saved-list">
+                    <div className="mt-2 space-y-2">
                         {sortedSaved.map(filterSet => (
-                            <div key={filterSet.id} className="saved-item">
+                            <div key={filterSet.id} className="flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/55 p-2">
                                 <button
-                                    className="saved-item-favorite"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm"
                                     onClick={() => handleToggleFavorite(filterSet.id, filterSet.isFavorite)}
                                     title={filterSet.isFavorite ? t('saved_filters.unfavorite') : t('saved_filters.favorite')}
                                 >
@@ -116,15 +118,15 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                                 </button>
 
                                 <button
-                                    className="saved-item-load"
+                                    className="min-w-0 flex-1 text-left"
                                     onClick={() => handleLoad(filterSet)}
                                 >
-                                    <span className="saved-item-name">{filterSet.name}</span>
-                                    <span className="saved-item-usage">{t('saved_filters.used_count', { count: filterSet.usageCount })}</span>
+                                    <span className="block truncate text-xs font-semibold text-slate-800 dark:text-slate-100">{filterSet.name}</span>
+                                    <span className="block text-[10px] text-slate-500 dark:text-slate-400">{t('saved_filters.used_count', { count: filterSet.usageCount })}</span>
                                 </button>
 
                                 <button
-                                    className="saved-item-delete"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                     onClick={() => handleDelete(filterSet.id)}
                                     title={t('saved_filters.delete')}
                                 >
@@ -137,9 +139,9 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
             )}
 
             {showSaveModal && (
-                <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3>{t('saved_filters.modal_title')}</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4" onClick={() => setShowSaveModal(false)}>
+                    <div className="w-full max-w-sm rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('saved_filters.modal_title')}</h3>
                         <input
                             type="text"
                             value={saveName}
@@ -148,10 +150,15 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                             maxLength={100}
                             autoFocus
                             onKeyDown={e => e.key === 'Enter' && handleSave()}
+                            className="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-cyan-500 dark:[color-scheme:dark]"
                         />
-                        <div className="modal-actions">
-                            <button onClick={() => setShowSaveModal(false)}>{t('saved_filters.cancel')}</button>
-                            <button onClick={handleSave} className="btn-primary">{t('saved_filters.save')}</button>
+                        <div className="mt-3 flex justify-end gap-2">
+                            <button onClick={() => setShowSaveModal(false)} className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                {t('saved_filters.cancel')}
+                            </button>
+                            <button onClick={handleSave} className="rounded-xl bg-slate-950 dark:bg-white px-3 py-2 text-xs font-semibold text-white dark:text-slate-950">
+                                {t('saved_filters.save')}
+                            </button>
                         </div>
                     </div>
                 </div>

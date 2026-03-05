@@ -20,7 +20,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
           {title}
         </div>
         {subtitle && (
-          <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-xs leading-[1.45] text-slate-500 dark:text-slate-400">
             {subtitle}
           </div>
         )}

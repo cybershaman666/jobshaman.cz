@@ -52,8 +52,11 @@ interface Props {
     candidateCoverageLabel: string;
     assessmentLibrary: Assessment[];
     assessmentLibraryLoading: boolean;
+    dialoguesLoading?: boolean;
     applicationsLoading: boolean;
+    dialoguesLastSyncedAt?: string | null;
     applicationsLastSyncedAt?: string | null;
+    recentDialogues?: CompanyApplicationRow[];
     recentApplications: CompanyApplicationRow[];
     recruiterActionQueue: QueueItem[];
     todayActionPlan: TodayActionItem[];
@@ -65,6 +68,7 @@ interface Props {
     onOpenAssessments: () => void;
     onOpenCandidates: () => void;
     onOpenSettings: () => void;
+    onOpenDialogue?: (dialogueId: string) => void;
     onOpenApplication: (applicationId: string) => void;
     onEditJob: (jobId: string) => void;
     onOpenJobApplications: (jobId: string) => void;
@@ -86,8 +90,11 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
     candidateCoverageLabel,
     assessmentLibrary,
     assessmentLibraryLoading,
+    dialoguesLoading,
     applicationsLoading,
+    dialoguesLastSyncedAt,
     applicationsLastSyncedAt,
+    recentDialogues,
     recentApplications,
     recruiterActionQueue,
     todayActionPlan,
@@ -99,20 +106,29 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
     onOpenAssessments,
     onOpenCandidates,
     onOpenSettings,
+    onOpenDialogue,
     onOpenApplication,
     onEditJob,
     onOpenJobApplications
 }) => {
     const { t, i18n } = useTranslation();
+    const resolvedDialoguesLoading = dialoguesLoading ?? applicationsLoading;
+    const resolvedDialoguesLastSyncedAt = dialoguesLastSyncedAt ?? applicationsLastSyncedAt;
+    const resolvedRecentDialogues = recentDialogues ?? recentApplications;
+    const handleOpenDialogue = onOpenDialogue || onOpenApplication;
+    const roleOpensUsed = Number(subscription?.roleOpensUsed ?? companyProfile?.subscription?.usage?.roleOpensUsed ?? 0);
+    const roleOpensAvailable = typeof subscription?.roleOpensAvailable === 'number' ? Number(subscription.roleOpensAvailable) : null;
+    const dialogueSlotsUsed = Number(subscription?.dialogueSlotsUsed ?? companyProfile?.subscription?.usage?.activeDialogueSlotsUsed ?? 0);
+    const dialogueSlotsAvailable = typeof subscription?.dialogueSlotsAvailable === 'number' ? Number(subscription.dialogueSlotsAvailable) : null;
     const featuredTodayAction = todayActionPlan[0] || null;
     const secondaryTodayActions = todayActionPlan.slice(1, 3);
     const queuePreview = recruiterActionQueue.slice(0, 3);
-    const applicationPreview = recentApplications.slice(0, 3);
+    const dialoguePreview = resolvedRecentDialogues.slice(0, 3);
     const rolePreview = visibleJobs.slice(0, 3);
     const assessmentPreview = assessmentLibrary.slice(0, 3);
 
     return (
-        <div className="space-y-5 animate-in fade-in">
+        <div className="space-y-4 animate-in fade-in">
             <div className="space-y-4">
                 {visibleJobs.length === 0 && (
                     <CompanyQuickStartPanel
@@ -123,8 +139,8 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                 )}
 
                     <CompanyWorkspaceHero
-                        applicationsLoading={applicationsLoading}
-                        applicationsLastSyncedAt={applicationsLastSyncedAt}
+                        applicationsLoading={resolvedDialoguesLoading}
+                        applicationsLastSyncedAt={resolvedDialoguesLastSyncedAt}
                         liveRolesCount={visibleJobs.length}
                         reviewQueueCount={openApplicationsCount}
                         savedAssessmentsCount={assessmentLibrary.length}
@@ -138,13 +154,25 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                     <MetricCard
                         label={t('company.workspace.metrics.live_roles', { defaultValue: 'Live roles' })}
                         value={visibleJobs.length}
-                        hint={t('company.workspace.metrics.live_roles_hint', { defaultValue: 'Roles currently visible to candidates or in active rotation.' })}
+                        hint={roleOpensAvailable != null
+                            ? t('company.workspace.metrics.live_roles_hint', {
+                                defaultValue: '{{used}} / {{limit}} role opens used this period',
+                                used: roleOpensUsed,
+                                limit: roleOpensAvailable >= 999 ? t('company.subscription.unlimited') : roleOpensAvailable
+                            })
+                            : t('company.workspace.metrics.live_roles_hint', { defaultValue: 'Roles currently visible to candidates or in active rotation.' })}
                         className="relative"
                     />
                     <MetricCard
                         label={t('company.workspace.metrics.review_queue', { defaultValue: 'Review queue' })}
                         value={openApplicationsCount}
-                        hint={t('company.workspace.metrics.review_queue_hint', { defaultValue: 'Applications still need recruiter action or status progression.' })}
+                        hint={dialogueSlotsAvailable != null
+                            ? t('company.workspace.metrics.review_queue_hint', {
+                                defaultValue: '{{used}} / {{limit}} dialogue slots currently occupied',
+                                used: dialogueSlotsUsed,
+                                limit: dialogueSlotsAvailable >= 999 ? t('company.subscription.unlimited') : dialogueSlotsAvailable
+                            })
+                            : t('company.workspace.metrics.review_queue_hint', { defaultValue: 'Open dialogues still need recruiter action or a clear next step.' })}
                     />
                     <MetricCard
                         label={t('company.workspace.metrics.visibility', { defaultValue: 'Visibility' })}
@@ -169,13 +197,13 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                             subtitle={t('company.workspace.overview_focus_desc', { defaultValue: 'A simple view of what should happen next, who just applied, and where your team should focus first.' })}
                             action={(
                                 <button onClick={onOpenApplications} className="company-pill-surface px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-                                    {t('company.workspace.actions.open_full_queue', { defaultValue: 'Open hiring inbox' })}
+                                    {t('company.workspace.actions.open_full_queue', { defaultValue: 'Open dialogue inbox' })}
                                 </button>
                             )}
                         >
-                            <div className="space-y-5">
+                            <div className="space-y-4">
                                 {featuredTodayAction ? (
-                                    <div className="company-surface-soft rounded-[22px] border border-slate-200/80 dark:border-slate-800 p-4">
+                                    <div className="company-surface-soft rounded-[1.05rem] border border-slate-200/80 dark:border-slate-800 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.45)]">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                             <div className="min-w-0">
                                                 <div className="company-pill-surface inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-700 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
@@ -223,7 +251,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         </div>
 
                                         {queuePreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                                                 {t('company.workspace.queue_empty', { defaultValue: 'No urgent blockers right now. The queue will light up as new recruiter actions appear.' })}
                                             </div>
                                         ) : (
@@ -245,24 +273,24 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                                     {t('company.workspace.cards.recent_applications', { defaultValue: 'Newest candidate responses' })}
                                                 </div>
                                                 <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                                    {t('company.workspace.cards.recent_applications_desc', { defaultValue: 'See who just applied, open the profile, and move them forward in one click.' })}
+                                                    {t('company.workspace.cards.recent_applications_desc', { defaultValue: 'See who just opened a handshake, review the context, and move the dialogue forward in one click.' })}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {applicationsLoading ? (
+                                        {resolvedDialoguesLoading ? (
                                             <div className="text-sm text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
-                                        ) : applicationPreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
-                                                {t('company.workspace.cards.recent_applications_empty', { defaultValue: 'No applications yet. As soon as people apply, their profiles will land here first.' })}
+                                        ) : dialoguePreview.length === 0 ? (
+                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                                {t('company.workspace.cards.recent_applications_empty', { defaultValue: 'No dialogues yet. As soon as candidates open a handshake, their thread will land here first.' })}
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
-                                                {applicationPreview.map((app) => (
+                                                {dialoguePreview.map((app) => (
                                                     <OverviewRecentApplicationItem
                                                         key={app.id}
                                                         application={app}
-                                                        onOpenApplication={onOpenApplication}
+                                                        onOpenDialogue={handleOpenDialogue}
                                                     />
                                                 ))}
                                             </div>
@@ -306,14 +334,14 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
 
                         <WorkspacePanel
                             title={t('company.workspace.control_center_title', { defaultValue: 'Hiring overview' })}
-                            subtitle={t('company.workspace.control_center_desc', { defaultValue: 'A quick summary of open roles, ready-to-use screening, and the current state of your candidate flow.' })}
+                            subtitle={t('company.workspace.control_center_desc', { defaultValue: 'A quick summary of live roles, reusable screening, and the current state of your dialogue capacity.' })}
                             action={(
                                 <button onClick={onOpenJobs} className="company-pill-surface px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
                                     {t('company.workspace.actions.open_jobs', { defaultValue: 'Open roles' })}
                                 </button>
                             )}
                         >
-                            <div className="space-y-5">
+                            <div className="space-y-4">
                                 <div>
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -325,7 +353,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                     </div>
                                     <div className="mt-3 space-y-3">
                                         {rolePreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                                                 {t('company.workspace.empty_live_roles', { defaultValue: 'No active roles yet. Create your first role and this panel becomes your live hiring board.' })}
                                             </div>
                                         ) : rolePreview.map((job) => {
@@ -343,7 +371,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                     </div>
                                 </div>
 
-                                <div className="border-t border-slate-200/80 pt-5 dark:border-slate-800">
+                                <div className="border-t border-slate-200/80 pt-4 dark:border-slate-800">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                             {t('company.workspace.cards.assessment_library', { defaultValue: 'Assessment library' })}
@@ -356,7 +384,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         {assessmentLibraryLoading ? (
                                             <div className="text-sm text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
                                         ) : assessmentPreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                                                 {t('company.workspace.cards.assessment_library_empty', { defaultValue: 'No saved assessments yet. Create one once, and the team can reuse it right away.' })}
                                             </div>
                                         ) : (
@@ -373,7 +401,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                     </div>
                                 </div>
 
-                                <div className="border-t border-slate-200/80 pt-5 dark:border-slate-800">
+                                <div className="border-t border-slate-200/80 pt-4 dark:border-slate-800">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                             {t('company.workspace.cards.candidate_intelligence', { defaultValue: 'Candidate intelligence' })}
@@ -383,16 +411,16 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         </button>
                                     </div>
                                     <div className="mt-3 grid grid-cols-2 gap-3">
-                                        <div className="company-surface-soft rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                                        <div className="company-surface-soft rounded-[1rem] p-4 border border-slate-200 dark:border-slate-800 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.45)]">
                                             <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">{t('company.workspace.cards.candidate_count', { defaultValue: 'Candidate profiles' })}</div>
                                             <div className="text-2xl font-bold text-slate-900 dark:text-white">{candidatesCount}</div>
                                         </div>
-                                        <div className="company-surface-soft rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+                                        <div className="company-surface-soft rounded-[1rem] p-4 border border-slate-200 dark:border-slate-800 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.45)]">
                                             <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">{t('company.workspace.cards.candidate_coverage', { defaultValue: 'Assessment coverage' })}</div>
                                             <div className="text-sm font-semibold text-slate-900 dark:text-white">{candidateCoverageLabel}</div>
                                         </div>
                                     </div>
-                                    <div className="company-surface-soft mt-3 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                                    <div className="company-surface-soft mt-3 rounded-[1rem] border border-slate-200 dark:border-slate-800 p-4 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.45)]">
                                         <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">{t('company.workspace.cards.shortlist_health', { defaultValue: 'Shortlist health' })}</div>
                                         <div className="text-lg font-bold text-slate-900 dark:text-white">
                                             {candidateBenchmarks?.shortlist_rate?.value != null ? `${(candidateBenchmarks.shortlist_rate.value * 100).toFixed(1)}%` : '—'}

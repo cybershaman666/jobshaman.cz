@@ -2,7 +2,7 @@
   "app": {
     "title": "JobShaman",
     "description": "Professionelle Analyse von Stellenangeboten",
-    "search_placeholder": "Stelle, Unternehmen suchen...",
+    "search_placeholder": "Finde deine Herausforderung, Unternehmen...",
     "search_saved_placeholder": "In Gespeicherten suchen...",
     "filters": "Filter",
     "searching": "Suche nach Stellenangeboten...",
@@ -44,6 +44,17 @@
     "clear": "Löschen",
     "demo_alert": "Demo-Modus aktiv",
     "saving": "Speichern..."
+  },
+  "home": {
+    "discovery": {
+      "badge": "Digitaler Erstkontakt",
+      "title": "Reagiere auf eine echte Team-Herausforderung statt auf lautes Recruiting-Rauschen.",
+      "meta": "Die Rolle zeigt zuerst die Wahrheit. Deine Reaktion eröffnet einen privaten Dialog ohne unnötigen Druck.",
+      "slots_label": "Aktive Dialoge",
+      "step_role_truth": "Rollenwahrheit",
+      "step_short_reply": "Kurze Reaktion",
+      "step_clear_state": "Klarer Status"
+    }
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",
@@ -1427,6 +1438,36 @@
       "workplace_address_placeholder": "Bueroadresse",
       "contact_email": "Kontakt-E-Mail",
       "contact_email_placeholder": "jobs@firma.at",
+      "hiring_stage_label": "Hiring-Status",
+      "hiring_stage_help": "Kandidaten sehen, in welcher Phase der Prozess ist und ob Sie noch aktiv pruefen.",
+      "hiring_stage_options": {
+        "collecting_cvs": "Lebenslaeufe sammeln",
+        "reviewing_first_10": "Erste 10 Kandidaten pruefen",
+        "shortlisting": "Shortlist erstellen",
+        "final_interviews": "Finale Interviews",
+        "offer_stage": "Angebotsphase"
+      },
+      "handshake": {
+        "title": "Erstkontakt / erste Antwort",
+        "desc": "Das Unternehmen geht zuerst. Definieren Sie den Einstiegsimpuls und beantworten Sie zwei Wahrheitsfragen vor der Kandidatenreaktion.",
+        "first_reply": "Erste Antwort",
+        "first_reply_placeholder": "Beschreiben Sie die erste reale Situation, auf die Kandidaten reagieren sollen, und welchen Trade-off Sie sehen wollen.",
+        "truth_hard": "Was ist an dieser Rolle wirklich schwierig?",
+        "truth_hard_placeholder": "Benennen Sie die unbequeme Realitaet der Rolle: wo Menschen scheitern, was Druck erzeugt und was das Team nicht verstecken kann.",
+        "truth_fail": "Welcher Typ Mensch scheitert hier typischerweise?",
+        "truth_fail_placeholder": "Seien Sie beim Mismatch konkret: welcher Arbeitsstil, welches Mindset oder welches Tempo passt in diesem Team meist nicht."
+      },
+      "rollout_schema_check": "Rollout-Schema-Check",
+      "rollout_ready": "Bereit",
+      "rollout_attention": "Achtung",
+      "rollout_ok": "ok",
+      "rollout_missing": "fehlt",
+      "rollout_sample_rows": "Beispielzeilen",
+      "rollout_tables": {
+        "job_applications": "job_applications",
+        "job_drafts": "job_drafts",
+        "job_versions": "job_versions"
+      },
       "section_ai_polished": "Mit KI-Unterstuetzung verfeinert.",
       "section_human_hint": "Schreiben Sie diesen Abschnitt klar und menschlich.",
       "section_labels": {

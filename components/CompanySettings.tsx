@@ -283,7 +283,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-name"
                                         type="text"
                                         placeholder={t('company.settings.name_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.name || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
                                     />
@@ -297,7 +297,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-ico"
                                         type="text"
                                         placeholder={t('company.settings.ico_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.ico || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, ico: e.target.value })}
                                     />
@@ -311,7 +311,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-dic"
                                         type="text"
                                         placeholder={t('company.settings.dic_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.dic || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, dic: e.target.value })}
                                     />
@@ -325,7 +325,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-website"
                                         type="url"
                                         placeholder={t('company.settings.website_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.website || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, website: e.target.value })}
                                     />
@@ -339,7 +339,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-legal-address"
                                         type="text"
                                         placeholder={t('company.settings.legal_address_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.legal_address || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, legal_address: e.target.value })}
                                     />
@@ -353,7 +353,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-registry"
                                         type="text"
                                         placeholder={t('company.settings.registry_info_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.registry_info || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, registry_info: e.target.value })}
                                     />
@@ -368,7 +368,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 <textarea
                                     id="company-mission"
                                     name="company-mission"
-                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px] dark:[color-scheme:dark]"
                                     value={localProfile.philosophy || ''}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
                                     placeholder={t('company.settings.mission_placeholder')}
@@ -384,7 +384,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     <select
                                         id="company-tone"
                                         name="company-tone"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={localProfile.tone}
                                         onChange={(e) => setLocalProfile({ ...localProfile, tone: e.target.value })}
                                     >
@@ -402,7 +402,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     <select
                                         id="company-size"
                                         name="company-size"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={(localProfile as any).company_size || '1-10'}
                                         onChange={(e) => setLocalProfile({ ...localProfile, company_size: e.target.value } as any)}
                                     >
@@ -423,7 +423,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-industry"
                                         type="text"
                                         placeholder={t('company.settings.industry_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
                                         value={(localProfile as any).field_of_business || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, field_of_business: e.target.value } as any)}
                                     />

@@ -1,12 +1,11 @@
 import React, { RefObject, useEffect, useState } from 'react';
 import { Job, UserProfile, CommuteAnalysis, ViewState, AIAnalysisResult, SalaryBenchmarkResolved } from '../types';
 import FinancialCard from './FinancialCard';
-import WelcomePage from './WelcomePage';
 import JHIChart from './JHIChart';
 import BullshitMeter from './BullshitMeter';
 import TransparencyCard from './TransparencyCard';
 import ContextualRelevance from './ContextualRelevance';
-import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles, Home, Briefcase } from 'lucide-react';
+import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles, Home, Briefcase, MessageSquare, Shield, Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '../services/supabaseService';
@@ -14,6 +13,21 @@ import { removeAccents } from '../utils/benefits';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
 import { optimizeCvForAts } from '../services/geminiService';
 import { fetchSalaryBenchmark } from '../services/benchmarkService';
+
+const extractMarkdownSection = (description: string, headings: string[]): string => {
+    if (!description.trim() || headings.length === 0) return '';
+    const normalizedHeadings = headings.map((heading) => heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(
+        `^#{2,3}\\s*(?:${normalizedHeadings.join('|')})\\s*$\\n([\\s\\S]*?)(?=\\n#{2,3}\\s+|$)`,
+        'im'
+    );
+    const match = description.match(pattern);
+    if (!match?.[1]) return '';
+    return match[1]
+        .replace(/^\s*[-*]\s+/gm, '')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+};
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -83,6 +97,8 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     onSaveOptimizedCv
 }) => {
     const { t, i18n } = useTranslation();
+    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
     const rawTier = String(userProfile.subscription?.tier || 'free').toLowerCase();
     const normalizedTier = rawTier !== 'premium' && rawTier.endsWith('_premium') ? 'premium' : rawTier;
     const isPremium = normalizedTier === 'premium';
@@ -94,6 +110,65 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [isSavingOptimizedCv, setIsSavingOptimizedCv] = useState(false);
     const [optimizedCvSaved, setOptimizedCvSaved] = useState(false);
     const [salaryBenchmark, setSalaryBenchmark] = useState<SalaryBenchmarkResolved | null>(null);
+    const handshakeCopy = isCsLike ? {
+        badge: 'Pravda role',
+        subtitle: 'Nejdřív kontext a pravda o roli. Teprve potom handshake.',
+        externalCta: 'Otevřít zdroj role',
+        handshakeCta: 'Otevřít handshake',
+        truthTitle: 'Co je dobré vědět před prvním krokem',
+        truthIntro: 'Tato role by měla být otevřena jako krátký oboustranný dialog, ne jako anonymní upload dokumentů.',
+        promptTitle: 'Jak bude vypadat první handshake',
+        promptIntro: 'Kandidát nejdřív reaguje na krátké situace, které ukazují myšlení místo sebeprezentace.',
+        truthItems: [
+            'Firma má ukázat, co je na roli skutečně těžké.',
+            'První kontakt má být soukromý, krátký a bez video tlaku.',
+            'Výsledek má mít jasný stav a uzavření s důvodem.'
+        ]
+    } : {
+        badge: 'Role truth',
+        subtitle: 'Context and truth about the role come first. The handshake comes after that.',
+        externalCta: 'Open source role',
+        handshakeCta: 'Open handshake',
+        truthTitle: 'What to know before the first step',
+        truthIntro: 'This role should open as a short two-way dialogue, not as an anonymous document upload.',
+        promptTitle: 'What the first handshake looks like',
+        promptIntro: 'The candidate responds to short situations that reveal thinking instead of performance.',
+        truthItems: [
+            'The company should show what is actually hard about the role.',
+            'The first contact should stay private, short, and low-pressure.',
+            'The outcome should always end in a clear state and reason.'
+        ]
+    };
+    const contextToolsCopy = isCsLike ? {
+        stageCollecting: 'Sbírá doplňující podklady',
+        title: 'Vyladit podpůrný kontext',
+        desc: 'Použij svůj uložený AI draft nebo text profilu a rychle ho uprav pro tuto roli. Je to doplněk k handshaku, ne jeho náhrada.',
+        missing: 'Nejdřív si v profilu připrav AI draft nebo doplňující text.',
+        openProfile: 'Otevřít podklady',
+        optimize: 'Vyladit draft',
+        optimizing: 'Ladím draft',
+        resultTitle: 'Upravený draft pro tuto roli'
+    } : {
+        stageCollecting: 'Collecting supporting context',
+        title: 'Refine supporting context',
+        desc: 'Use your saved AI draft or profile text and quickly tailor it to this role. It supports the handshake, but it is not the handshake itself.',
+        missing: 'Prepare an AI draft or supporting profile text in your profile first.',
+        openProfile: 'Open supporting context',
+        optimize: 'Refine draft',
+        optimizing: 'Refining draft',
+        resultTitle: 'Refined draft for this role'
+    };
+    const analysisCopy = isCsLike
+        ? {
+            label: 'Analýza role',
+            title: 'Finanční a dojezdová realita',
+            desc: 'Tady uvidíš čistý dopad mzdy, dojíždění a dalších nákladů ve vztahu ke konkrétní roli.'
+        }
+        : {
+            label: 'Role analysis',
+            title: 'Financial and commute reality',
+            desc: 'This section shows the net impact of salary, commute, and related costs for this role.'
+        };
     const aiMatchScore = userProfile.isLoggedIn && typeof (selectedJob as any)?.aiMatchScore === 'number'
         ? Math.round((selectedJob as any).aiMatchScore)
         : null;
@@ -243,7 +318,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const getHiringStageLabel = (stage?: Job['hiring_stage'] | null): string | null => {
         switch (stage) {
             case 'collecting_cvs':
-                return t('job.hiring_stage.collecting_cvs', { defaultValue: 'Collecting CVs' });
+                return t('job.hiring_stage.collecting_supporting_context', { defaultValue: contextToolsCopy.stageCollecting });
             case 'reviewing_first_10':
                 return t('job.hiring_stage.reviewing_first_10', { defaultValue: 'Reviewing first 10 candidates' });
             case 'shortlisting':
@@ -306,7 +381,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 
         const sourceCv = (userProfile.cvAiText || userProfile.cvText || '').trim();
         if (!sourceCv) {
-            setCvOptimizationError(t('job_detail.cv_ai_tools_missing_cv'));
+            setCvOptimizationError(contextToolsCopy.missing);
             return;
         }
 
@@ -570,24 +645,103 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         return () => { active = false; };
     }, [selectedJob?.id]);
 
+    const primaryHandshakePrompts = selectedJob ? [
+        extractMarkdownSection(selectedJob.description || '', ['First Reply']) ||
+        (isCsLike
+            ? `Kdybys měl(a) v prvních 30 dnech posunout roli "${selectedJob.title}", na co by ses soustředil(a) jako první?`
+            : `If you had to move the "${selectedJob.title}" role forward in your first 30 days, what would you focus on first?`),
+        isCsLike
+            ? 'Narazíš na nejasnost nebo konflikt priorit. Jak určíš další krok a co bys komunikoval(a)?'
+            : 'You hit ambiguity or a priority conflict. How do you choose the next move and what do you communicate?'
+    ] : [];
+    const explicitRoleTruthHard = selectedJob
+        ? extractMarkdownSection(selectedJob.description || '', ['Company Truth: What Is Actually Hard?'])
+        : '';
+    const explicitRoleTruthFail = selectedJob
+        ? extractMarkdownSection(selectedJob.description || '', ['Company Truth: Who Typically Struggles?'])
+        : '';
+    const renderedRoleTruthItems = (explicitRoleTruthHard || explicitRoleTruthFail)
+        ? [explicitRoleTruthHard, explicitRoleTruthFail].filter(Boolean)
+        : handshakeCopy.truthItems;
+
+    const roleTruthSignals = selectedJob ? [
+        `${isCsLike ? 'Pozice' : 'Role'}: ${selectedJob.title}`,
+        `${isCsLike ? 'Kontext' : 'Context'}: ${selectedJob.location || (isCsLike ? 'bude upřesněn v dialogu' : 'clarified in the dialogue')}`,
+        `${isCsLike ? 'Model práce' : 'Work model'}: ${formatWorkModelLabel(selectedJob.work_model || selectedJob.type || '') || (isCsLike ? 'neuvedeno' : 'not specified')}`,
+        hiringStageLabel
+            ? `${isCsLike ? 'Aktuální rytmus hiringu' : 'Current hiring rhythm'}: ${hiringStageLabel}`
+            : `${isCsLike ? 'Stav dialogu' : 'Dialogue expectation'}: ${isCsLike ? 'první krok má být krátký a asynchronní' : 'the first step should stay short and async'}`
+    ] : [];
+    const detailChallengePreview = selectedJob
+        ? clampText(
+            stripToPlainText(selectedJob.description || '') ||
+            (isCsLike
+                ? 'Firma chce nejdřív vidět, jak přemýšlíš nad konkrétní výzvou týmu.'
+                : 'The company wants to see how you think about a concrete team problem first.'),
+            280
+        )
+        : '';
+    const detailChallengeTitle = isCsLike ? 'Skutečná výzva týmu' : 'Real team challenge';
+    const detailFirstReplyLabel = isCsLike ? 'První odpověď' : 'First reply';
+    const discoveryEmptyCopy = isCsLike ? {
+        badge: 'Discovery workspace',
+        title: 'Vyber roli vlevo a otevři detail bez zbytečného šumu.',
+        body: 'Hlavní práce se teď děje v seznamu, filtrech a rychlém porovnání rolí. Pravý panel má být sekundární, ne landing page.',
+        stats: [
+            `${totalJobsCount.toLocaleString(i18n.language)} aktivních rolí`,
+            `${todayNewJobsCount.toLocaleString(i18n.language)} nových signálů dnes`,
+            'Vyhledávání a filtry jsou teď primární navigace'
+        ],
+        checklistTitle: 'Jak používat tento workspace',
+        checklist: [
+            '1. Zúž výběr přes search cockpit a rychlé filtry vlevo.',
+            '2. Otevři detail jen u rolí, které dávají smysl pro handshake.',
+            '3. V detailu zkontroluj role truth a až potom otevři první kontakt.'
+        ],
+        cta: 'Přihlásit se a začít'
+    } : {
+        badge: 'Discovery workspace',
+        title: 'Choose a role on the left and open detail without extra noise.',
+        body: 'The main work now happens in the list, filters, and fast role comparison. The right panel should support discovery, not behave like a landing page.',
+        stats: [
+            `${totalJobsCount.toLocaleString(i18n.language)} active roles`,
+            `${todayNewJobsCount.toLocaleString(i18n.language)} fresh signals today`,
+            'Search and filters are now the primary navigation'
+        ],
+        checklistTitle: 'How to use this workspace',
+        checklist: [
+            '1. Narrow the field with the search cockpit and quick filters on the left.',
+            '2. Open detail only for roles that are worth a handshake.',
+            '3. Check role truth in the detail view before opening first contact.'
+        ],
+        cta: 'Sign in to start'
+    };
+
     return (
-        <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>
+        <section className={`lg:col-span-7 xl:col-span-7 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>
             {selectedJob && dynamicJHI ? (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex flex-col h-full overflow-hidden">
-                    <div className="p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex-none bg-white dark:bg-slate-900 z-10">
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div className="w-full">
+                <div className="bg-white/96 dark:bg-slate-900/96 border border-slate-200 dark:border-slate-800 rounded-[1.1rem] shadow-[0_18px_40px_-34px_rgba(15,23,42,0.28)] flex flex-col h-full overflow-hidden">
+                    <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex-none bg-white/95 dark:bg-slate-900/95 z-10">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0 flex-1">
                                 <button className="lg:hidden mb-4 flex items-center gap-1 text-slate-500 text-sm hover:text-slate-900 dark:hover:text-white" onClick={() => setSelectedJobId(null)}>&larr; {t('app.back')}</button>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{selectedJob.title}</h1>
-                                <div className="flex flex-wrap items-center gap-2 mt-3 text-slate-500 dark:text-slate-400 font-medium">
+                                <div className="inline-flex items-center gap-2 rounded-full bg-cyan-100 dark:bg-cyan-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                                    <MessageSquare size={12} />
+                                    {handshakeCopy.badge}
+                                </div>
+                                <h1 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{selectedJob.title}</h1>
+                                <p className="mt-1.5 max-w-2xl text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {handshakeCopy.subtitle}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 mt-2 text-[13px] text-slate-500 dark:text-slate-400 font-medium">
                                     {companyLogoUrl && (
-                                        <img src={companyLogoUrl} alt={selectedJob.company} className="w-7 h-7 rounded-md object-cover border border-slate-200 dark:border-slate-700" />
+                                        <img src={companyLogoUrl} alt={selectedJob.company} className="w-6 h-6 rounded-md object-cover border border-slate-200 dark:border-slate-700" />
                                     )}
                                     <span className="text-cyan-600 dark:text-cyan-400">{selectedJob.company}</span>
                                     <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
                                     <span className="text-slate-600 dark:text-slate-300">{selectedJob.location}</span>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                                         <Briefcase size={12} /> {formatJobTypeLabel(selectedJob.type)}
                                     </span>
@@ -598,41 +752,23 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-none">
-                                <div className="relative">
-                                    <button
-                                        onClick={handleShare}
-                                        className="p-2.5 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                                        title={t('app.share')}
-                                    >
-                                        <Share2 size={20} />
-                                    </button>
-                                    {shareTooltip && (
-                                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-lg">
-                                            {t('app.link_copied')}
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={() => handleToggleSave(selectedJob.id)} className={`p-2.5 rounded-lg border transition-all ${savedJobIds.includes(selectedJob.id) ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200'}`}>
-                                    <Bookmark size={20} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
-                                </button>
-
+                            <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[220px] lg:max-w-[260px] lg:items-end">
                                 {selectedJob.source !== 'jobshaman.cz' && selectedJob.url ? (
                                     onApplyToJob ? (
                                         <button
                                             onClick={() => onApplyToJob(selectedJob)}
-                                            className="flex items-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95"
+                                            className="flex w-full items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95 lg:w-auto"
                                         >
-                                            {t('app.i_am_interested')} <ArrowUpRight size={18} />
+                                            {handshakeCopy.externalCta} <ArrowUpRight size={16} />
                                         </button>
                                     ) : (
                                         <a
                                             href={selectedJob.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95"
+                                            className="flex w-full items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95 lg:w-auto"
                                         >
-                                            {t('app.i_am_interested')} <ArrowUpRight size={18} />
+                                            {handshakeCopy.externalCta} <ArrowUpRight size={16} />
                                         </a>
                                     )
                                 ) : (
@@ -644,32 +780,121 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                                 setIsApplyModalOpen(true);
                                             }
                                         }}
-                                        className="flex items-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95"
+                                        className="flex w-full items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95 lg:w-auto"
                                     >
-                                        {t('app.i_am_interested')} <ArrowUpRight size={18} />
+                                        {handshakeCopy.handshakeCta} <ArrowUpRight size={16} />
                                     </button>
                                 )}
+
+                                <div className="flex items-center gap-2 lg:justify-end">
+                                    <div className="relative">
+                                        <button
+                                            onClick={handleShare}
+                                            className="p-2 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                                            title={t('app.share')}
+                                        >
+                                            <Share2 size={18} />
+                                        </button>
+                                        {shareTooltip && (
+                                            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-lg">
+                                                {t('app.link_copied')}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={() => handleToggleSave(selectedJob.id)} className={`p-2 rounded-lg border transition-all ${savedJobIds.includes(selectedJob.id) ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                                        <Bookmark size={18} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true" style={{ overscrollBehavior: 'contain' }}>
                         {/* Detail Content */}
-                        <div className="p-6 sm:p-8 space-y-8">
-                            {/* Financial Card */}
-                            <FinancialCard
-                                selectedJob={selectedJob}
-                                userProfile={userProfile}
-                                commuteAnalysis={commuteAnalysis}
-                                salaryBenchmark={salaryBenchmark}
-                                showCommuteDetails={showCommuteDetails}
-                                showLoginPrompt={showLoginPrompt}
-                                showAddressPrompt={showAddressPrompt}
-                                handleAuthAction={handleAuthAction}
-                                setViewState={setViewState}
-                                showFinancialMethodology={showFinancialMethodology}
-                                setShowFinancialMethodology={setShowFinancialMethodology}
-                                getTransportIcon={getTransportIcon}
-                            />
+                        <div className="p-4 sm:p-5 space-y-5">
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
+                                <div className="xl:col-span-7 rounded-[0.95rem] border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(251,146,60,0.12),_transparent_28%),linear-gradient(145deg,rgba(255,255,255,0.97),rgba(239,246,255,0.9))] dark:bg-[radial-gradient(circle_at_top_right,_rgba(251,146,60,0.10),_transparent_28%),linear-gradient(145deg,rgba(15,23,42,0.92),rgba(12,74,110,0.18))] p-4 shadow-[0_16px_26px_-28px_rgba(14,165,233,0.2)]">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 dark:border-orange-900/40 bg-orange-50/90 dark:bg-orange-950/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-700 dark:text-orange-300">
+                                        <Sparkles size={12} />
+                                        {detailChallengeTitle}
+                                    </div>
+                                    <div className="mt-2.5 text-lg sm:text-xl font-bold leading-snug text-slate-900 dark:text-white">
+                                        {selectedJob.title}
+                                    </div>
+                                    <p className="mt-2.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                        {detailChallengePreview}
+                                    </p>
+                                    <div className="mt-3 rounded-[0.9rem] border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2.5">
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+                                            {handshakeCopy.badge}
+                                        </div>
+                                        <div className="mt-1 text-[13px] text-amber-950 dark:text-amber-100 leading-relaxed">
+                                            {handshakeCopy.subtitle}
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-1 gap-1.5">
+                                        {roleTruthSignals.slice(0, 3).map((item) => (
+                                            <div key={item} className="rounded-[0.85rem] border border-white/80 bg-white/80 px-3 py-2 text-[13px] text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
+                                                {item}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="xl:col-span-5 space-y-3">
+                                <div className="rounded-[0.95rem] border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                                        <Shield size={16} />
+                                        {handshakeCopy.truthTitle}
+                                    </div>
+                                    <p className="mt-2 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                                        {handshakeCopy.truthIntro}
+                                    </p>
+                                    <div className="mt-3 space-y-1.5">
+                                        {renderedRoleTruthItems.map((item) => (
+                                            <div key={item} className="rounded-[0.85rem] border border-amber-200/70 bg-amber-100/50 px-3 py-2 text-[13px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                                                {item}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[0.95rem] border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900/50 dark:bg-cyan-950/20">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-cyan-800 dark:text-cyan-300">
+                                        <Clock3 size={16} />
+                                        {detailFirstReplyLabel}
+                                    </div>
+                                    <p className="mt-2 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                                        {handshakeCopy.promptIntro}
+                                    </p>
+                                    <div className="mt-3 space-y-2">
+                                        {primaryHandshakePrompts.map((prompt) => (
+                                            <div key={prompt} className="rounded-[0.85rem] border border-cyan-200/70 bg-white px-3 py-2.5 text-[13px] font-medium text-slate-800 dark:border-cyan-900/40 dark:bg-slate-900/60 dark:text-slate-100">
+                                                {prompt}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (selectedJob.source !== 'jobshaman.cz' && selectedJob.url) {
+                                                if (onApplyToJob) {
+                                                    onApplyToJob(selectedJob);
+                                                } else {
+                                                    window.open(selectedJob.url, '_blank', 'noopener,noreferrer');
+                                                }
+                                            } else if (onApplyToJob) {
+                                                onApplyToJob(selectedJob);
+                                            } else {
+                                                setIsApplyModalOpen(true);
+                                            }
+                                        }}
+                                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[0.85rem] bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-4 py-2.5 text-sm font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95"
+                                    >
+                                        {selectedJob.source !== 'jobshaman.cz' && selectedJob.url ? handshakeCopy.externalCta : handshakeCopy.handshakeCta}
+                                        <ArrowUpRight size={16} />
+                                    </button>
+                                </div>
+                                </div>
+                            </div>
 
                             {hiringStageLabel && (
                                 <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 dark:border-cyan-900/40 dark:bg-cyan-950/20">
@@ -730,11 +955,39 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 </div>
                             )}
 
+                            <div className="space-y-2.5">
+                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-900/45 px-4 py-3">
+                                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                        {analysisCopy.label}
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                        {analysisCopy.title}
+                                    </div>
+                                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                        {analysisCopy.desc}
+                                    </p>
+                                </div>
+                                <FinancialCard
+                                    selectedJob={selectedJob}
+                                    userProfile={userProfile}
+                                    commuteAnalysis={commuteAnalysis}
+                                    salaryBenchmark={salaryBenchmark}
+                                    showCommuteDetails={showCommuteDetails}
+                                    showLoginPrompt={showLoginPrompt}
+                                    showAddressPrompt={showAddressPrompt}
+                                    handleAuthAction={handleAuthAction}
+                                    setViewState={setViewState}
+                                    showFinancialMethodology={showFinancialMethodology}
+                                    setShowFinancialMethodology={setShowFinancialMethodology}
+                                    getTransportIcon={getTransportIcon}
+                                />
+                            </div>
+
                             <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                                     <div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job_detail.cv_ai_tools_title')}</h3>
-                                        <p className="text-sm text-slate-600 dark:text-slate-300">{t('job_detail.cv_ai_tools_desc')}</p>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{contextToolsCopy.title}</h3>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300">{contextToolsCopy.desc}</p>
                                     </div>
                                     {!isPremium && (
                                         <button
@@ -752,13 +1005,13 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         disabled={isOptimizingCv}
                                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-300 dark:border-cyan-700 bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 text-sm font-semibold hover:bg-cyan-50 dark:hover:bg-cyan-900/30 disabled:opacity-60"
                                     >
-                                        {isOptimizingCv ? t('job_detail.cv_ai_tools_optimizing') : t('job_detail.cv_ai_tools_optimize')}
+                                        {isOptimizingCv ? contextToolsCopy.optimizing : contextToolsCopy.optimize}
                                     </button>
                                     <button
                                         onClick={openProfileForCvTools}
                                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
-                                        {t('job_detail.cv_ai_tools_open_profile')}
+                                        {contextToolsCopy.openProfile}
                                     </button>
                                 </div>
 
@@ -773,7 +1026,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 {!!optimizedCvText && (
                                     <div className="mt-5 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t('job_detail.cv_ai_tools_result_title')}</h4>
+                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{contextToolsCopy.resultTitle}</h4>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={handleSaveOptimizedCv}
@@ -923,18 +1176,66 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     </div>
                 </div>
             ) : (
-                <div className="h-full overflow-y-auto custom-scrollbar">
-                    <WelcomePage
-                        onTryFree={() => handleAuthAction('register')}
-                        onBrowseOffers={() => {
-                            setViewState(ViewState.LIST);
-                            setSelectedJobId(null);
-                        }}
-                        totalJobsCount={totalJobsCount}
-                        todayNewJobsCount={todayNewJobsCount}
-                        selectedBlogPostSlug={selectedBlogPostSlug}
-                        handleBlogPostSelect={handleBlogPostSelect}
-                    />
+                <div className="h-full flex flex-col">
+                    <div className="bg-white/88 dark:bg-slate-900/82 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8">
+                            <div className="max-w-3xl">
+                                <div className="inline-flex items-center gap-2 rounded-full bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
+                                    <MessageSquare size={12} />
+                                    {discoveryEmptyCopy.badge}
+                                </div>
+
+                                <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                                    {discoveryEmptyCopy.title}
+                                </h2>
+
+                                <p className="mt-4 max-w-2xl text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {discoveryEmptyCopy.body}
+                                </p>
+
+                                <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {discoveryEmptyCopy.stats.map((item) => (
+                                        <div key={item} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/40 px-4 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            {item}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(248,250,252,0.98)_100%)] dark:bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,0.92)_0%,_rgba(2,6,23,0.94)_100%)] p-5">
+                                    <div className="text-sm font-bold text-slate-900 dark:text-white">
+                                        {discoveryEmptyCopy.checklistTitle}
+                                    </div>
+                                    <div className="mt-4 space-y-3">
+                                        {discoveryEmptyCopy.checklist.map((item) => (
+                                            <div key={item} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
+                                                {item}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {!userProfile.isLoggedIn && (
+                                    <button
+                                        onClick={() => handleAuthAction('register')}
+                                        className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-slate-950 dark:bg-white px-6 py-3 text-sm font-bold text-white dark:text-slate-950"
+                                    >
+                                        {discoveryEmptyCopy.cta}
+                                        <ArrowUpRight size={18} />
+                                    </button>
+                                )}
+
+                                {selectedBlogPostSlug !== null && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBlogPostSelect(null)}
+                                        className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300"
+                                    >
+                                        {isCsLike ? 'Zavřít otevřený obsah a pokračovat ve výběru rolí' : 'Close any open article context and continue exploring roles'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </section>

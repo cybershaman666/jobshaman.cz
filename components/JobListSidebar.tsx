@@ -1,26 +1,28 @@
-import React, { RefObject, useEffect, useRef, useState } from 'react';
+import React, { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
 import {
-    Search,
-    Filter,
-    MapPin,
+    AlertTriangle,
+    ArrowUp,
     Car,
-    Activity,
+    CheckCircle2,
     ChevronDown,
     ChevronUp,
-    CheckCircle,
+    Filter,
+    Info,
+    MapPin,
     RefreshCw,
-    Globe,
-    ArrowUp,
-    AlertTriangle,
-    Info
+    Search,
+    X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilterSuggestions } from './FilterSuggestions';
 import { SavedFiltersMenu } from './SavedFiltersMenu';
 
 interface JobListSidebarProps {
+    fullWidth?: boolean;
+    showSearchPanel?: boolean;
+    showJobFeed?: boolean;
     selectedJobId: string | null;
     searchTerm: string;
     setSearchTerm: (term: string) => void;
@@ -73,6 +75,9 @@ interface JobListSidebarProps {
 }
 
 const JobListSidebar: React.FC<JobListSidebarProps> = ({
+    fullWidth = false,
+    showSearchPanel = true,
+    showJobFeed = true,
     selectedJobId,
     searchTerm,
     setSearchTerm,
@@ -125,44 +130,21 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const [showSortExplain, setShowSortExplain] = useState(false);
-    const hasNearConstraintMatches = filteredJobs.some((job) => job.constraint_mode === 'near');
+    const [isCompactMobileRail, setIsCompactMobileRail] = useState(false);
+    const [isMobileRailOpen, setIsMobileRailOpen] = useState(false);
+
     const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
     const lastRequestIdRef = useRef<string | null>(null);
-    const listContainerRef = useRef<HTMLDivElement | null>(null);
-    const listHeaderRef = useRef<HTMLDivElement | null>(null);
-    const [listHeight, setListHeight] = useState<number>(0);
-    const [listHeaderHeight, setListHeaderHeight] = useState<number>(0);
+    const hasNearConstraintMatches = filteredJobs.some((job) => job.constraint_mode === 'near');
+    const isFilterRailMode = showSearchPanel && !showJobFeed;
+    const hasLocationAnchor = Boolean(userProfile.address || userProfile.coordinates || filterCity);
 
     useEffect(() => {
-        if (!listContainerRef.current) return;
-        const node = listContainerRef.current;
-        const update = () => {
-            const next = Math.max(0, node.clientHeight);
-            setListHeight(next);
-        };
-        update();
-        const observer = new ResizeObserver(update);
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, []);
+        if (!showJobFeed || !onTrackImpression || filteredJobs.length === 0) return;
 
-    useEffect(() => {
-        if (!listHeaderRef.current) return;
-        const node = listHeaderRef.current;
-        const update = () => {
-            const next = Math.max(0, node.clientHeight);
-            setListHeaderHeight(next);
-        };
-        update();
-        const observer = new ResizeObserver(update);
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-        if (!onTrackImpression || filteredJobs.length === 0) return;
-        const currentRequestId = (filteredJobs[0] as any)?.requestId || (filteredJobs[0] as any)?.aiRecommendationRequestId || null;
+        const firstJob = filteredJobs[0] as any;
+        const currentRequestId = firstJob?.requestId || firstJob?.aiRecommendationRequestId || null;
         const currentSessionKey = impressionSessionKey || currentRequestId || 'no-request';
         if (lastRequestIdRef.current !== currentSessionKey) {
             seenImpressionsRef.current.clear();
@@ -178,10 +160,13 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                     const positionRaw = el.dataset.position;
                     const position = positionRaw ? parseInt(positionRaw, 10) : 0;
                     if (!jobId) return;
+
                     const dedupeKey = `${currentSessionKey}:${jobId}`;
                     if (seenImpressionsRef.current.has(dedupeKey)) return;
+
                     const job = filteredJobs.find((x) => x.id === jobId);
                     if (!job) return;
+
                     seenImpressionsRef.current.add(dedupeKey);
                     onTrackImpression(job, position || 0);
                 });
@@ -198,7 +183,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
         });
 
         return () => observer.disconnect();
-    }, [filteredJobs, jobListRef, onTrackImpression]);
+    }, [filteredJobs, impressionSessionKey, jobListRef, onTrackImpression, showJobFeed]);
 
     useEffect(() => {
         if (sortBy !== 'recommended') {
@@ -206,277 +191,308 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
         }
     }, [sortBy]);
 
+    useEffect(() => {
+        if (!isFilterRailMode) return;
+
+        const syncRailMode = () => {
+            const compact = window.innerWidth < 1024;
+            setIsCompactMobileRail(compact);
+            setIsMobileRailOpen(!compact);
+        };
+
+        syncRailMode();
+        window.addEventListener('resize', syncRailMode);
+        return () => window.removeEventListener('resize', syncRailMode);
+    }, [isFilterRailMode]);
+
+    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
+
+    const activeFilterCount =
+        (filterCity ? 1 : 0) +
+        (enableCommuteFilter ? 1 : 0) +
+        (globalSearch ? 1 : 0) +
+        (abroadOnly ? 1 : 0) +
+        (filterLanguage ? 1 : 0) +
+        (filterDate && filterDate !== 'all' ? 1 : 0) +
+        (filterMinSalary > 0 ? 1 : 0) +
+        filterContractType.length +
+        filterExperience.length +
+        filterBenefits.length;
+
+    const activeFilterChips = [
+        filterCity ? `${t('filters.location_commute')}: ${filterCity}` : null,
+        filterDate && filterDate !== 'all' ? t('filters.date_posted') : null,
+        filterLanguage ? `${t('filters.language')}: ${filterLanguage.toUpperCase()}` : null,
+        filterMinSalary > 0 ? `${t('filters.min_salary')}: ${filterMinSalary.toLocaleString(i18n.language)}` : null,
+        enableCommuteFilter ? t('filters.limit_by_commute') : null,
+        globalSearch ? t('filters.cross_border') : null,
+        abroadOnly ? t('filters.abroad_only') : null,
+        ...filterContractType.map((item) => {
+            const labels: Record<string, string> = {
+                hpp: t('job.contract_types.hpp'),
+                ico: t('job.contract_types.ico'),
+                'part-time': t('job.contract_types.part_time'),
+                brigada: t('job.contract_types.brigada')
+            };
+            return labels[item] || item;
+        }),
+        ...filterExperience
+    ].filter(Boolean) as string[];
+
+    const railContentVisible = !isFilterRailMode || !isCompactMobileRail || isMobileRailOpen;
+    const detailsVisible = railContentVisible && showFilters;
+
+    const uiCopy = isCsLike
+        ? {
+            railTitle: 'Filtry role',
+            clearAll: 'Reset',
+            openFilters: 'Otevřít filtry',
+            closeFilters: 'Sbalit filtry',
+            clearSearch: 'Vymazat hledání',
+            totalRoles: 'Celkem nabídek',
+            activeFilters: 'Aktivní filtry',
+            querySection: 'Co hledáš',
+            whereSection: 'Kde to má fungovat',
+            rankingSection: 'Jazyk a řazení',
+            toolsSection: 'Rychlé nástroje',
+            advancedOpen: 'Zobrazit pokročilé',
+            advancedClose: 'Skrýt pokročilé',
+            quickRegion: 'Hledat přeshraničně',
+            quickAbroad: 'Pouze zahraničí',
+            results: 'výsledků'
+        }
+        : {
+            railTitle: 'Role filters',
+            clearAll: 'Reset',
+            openFilters: 'Open filters',
+            closeFilters: 'Collapse filters',
+            clearSearch: 'Clear search',
+            totalRoles: 'Total',
+            activeFilters: 'Active filters',
+            querySection: 'What are you looking for',
+            whereSection: 'Where it should work',
+            rankingSection: 'Language and ranking',
+            toolsSection: 'Quick tools',
+            advancedOpen: 'Show advanced',
+            advancedClose: 'Hide advanced',
+            quickRegion: 'Cross-border search',
+            quickAbroad: 'Abroad only',
+            results: 'results'
+        };
+
+    const inputClass =
+        'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-950/65 px-3 py-2 text-[13px] text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 dark:[color-scheme:dark]';
+    const sectionTitleClass = 'text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-600 dark:text-slate-300';
+    const rowToggleClass =
+        'flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-2 text-xs text-slate-700 dark:text-slate-200';
+    const optionRowClass = 'flex items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-1.5';
+
+    const clearAllFilters = () => {
+        setFilterCity('');
+        setEnableCommuteFilter(false);
+        setFilterMaxDistance(30);
+        filterContractType.forEach((type) => toggleContractTypeFilter(type));
+        setFilterDate('all');
+        setFilterMinSalary(0);
+        filterExperience.forEach((level) => toggleExperienceFilter(level));
+        filterBenefits.forEach((benefit) => toggleBenefitFilter(benefit));
+        setFilterLanguage('');
+        setSortBy('recommended');
+        setGlobalSearch(false);
+        setAbroadOnly(false);
+    };
+
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const listViewportHeight = Math.max(240, listHeight - listHeaderHeight - 12);
-    const compactFilters = !userProfile?.isLoggedIn;
-    const hasLocationAnchor = !!(userProfile.address || userProfile.coordinates || filterCity);
+    const locationSuggestions = useMemo(() => {
+        const lang = (i18n.language || 'cs').split('-')[0];
+        const country = (userProfile.preferredCountryCode || '').toUpperCase();
+        const byCountry: Record<string, string[]> = {
+            CZ: ['Praha', 'Brno', 'Ostrava', 'Plzeň', 'Olomouc', 'Liberec', 'České Budějovice', 'Hradec Králové', 'Pardubice', 'Zlín'],
+            SK: ['Bratislava', 'Košice', 'Žilina', 'Prešov', 'Nitra', 'Trnava', 'Banská Bystrica'],
+            PL: ['Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Łódź', 'Szczecin'],
+            DE: ['Berlin', 'München', 'Hamburg', 'Köln', 'Frankfurt', 'Stuttgart'],
+            AT: ['Wien', 'Graz', 'Salzburg', 'Linz', 'Innsbruck']
+        };
+        const byLang: Record<string, string[]> = {
+            cs: byCountry.CZ,
+            sk: byCountry.SK,
+            pl: byCountry.PL,
+            de: byCountry.DE,
+            at: byCountry.AT,
+            en: ['Vienna', 'Warsaw', 'Prague', 'Bratislava', 'Berlin', 'Munich', 'Krakow']
+        };
+        return byCountry[country] || byLang[lang] || byCountry.CZ;
+    }, [i18n.language, userProfile.preferredCountryCode]);
+
+    const visibilityClass = showJobFeed ? (selectedJobId ? 'hidden lg:flex' : 'flex') : 'flex';
 
     return (
-        <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} h-full`}>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
-                {/* Fixed Header Section (Search & Filters) */}
-                <div className="flex-none bg-white dark:bg-slate-900 z-10 border-b border-slate-200 dark:border-slate-800">
-                    <div className={compactFilters ? "p-3 sm:p-4" : "p-4"}>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="text-slate-400" size={18} />
-                            </div>
-                            <input
-                                id="job-search"
-                                name="job_search"
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => {
-                                    const term = e.target.value;
-                                    setSearchTerm(term);
-                                    performSearch(term);
-                                    if (!term.trim()) {
-                                        loadRealJobs();
-                                    }
-                                }}
-                                onFocus={() => setShowFilters(true)}
-                                placeholder={t('app.search_placeholder')}
-                                className={`w-full pl-10 pr-10 ${compactFilters ? 'py-2 text-[13px]' : 'py-2.5 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all`}
-                            />
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className={`absolute inset-y-1 right-1 p-1.5 rounded-md transition-all ${showFilters ? 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400'}`}
-                                title={t('app.filters')}
-                            >
-                                <Filter size={16} className={showFilters ? "fill-current" : ""} />
-                            </button>
-                        </div>
-
-                        <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-2 gap-2"}>
-                            <div>
-                                <label htmlFor="filter-language" className="sr-only">
-                                    {t('filters.language')}
-                                </label>
-                                <select
-                                    id="filter-language"
-                                    name="filter_language"
-                                    value={filterLanguage}
-                                    onChange={(e) => setFilterLanguage(e.target.value)}
-                                    aria-label={t('filters.language')}
-                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+        <section
+            className={`${fullWidth ? 'col-span-1 lg:col-span-12' : 'lg:col-span-4 xl:col-span-4'} ${visibilityClass} min-h-0 flex flex-col gap-1.5 ${
+                showJobFeed || (isFilterRailMode && !isCompactMobileRail) ? 'h-full' : ''
+            }`}
+        >
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-white/86 dark:bg-slate-900/78 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.34)]">
+                {showSearchPanel && (
+                    <div
+                        className={`${
+                            showJobFeed ? 'border-b border-slate-200 dark:border-slate-800' : ''
+                        } ${isFilterRailMode ? 'flex min-h-0 flex-1 flex-col' : 'flex-none'}`}
+                    >
+                        {isFilterRailMode && isCompactMobileRail && (
+                            <div className="p-2 border-b border-slate-200/80 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMobileRailOpen((prev) => !prev)}
+                                    className="inline-flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-950/50 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200"
                                 >
-                                    <option value="">{t('filters.language_all')}</option>
-                                    <option value="cs">{t('filters.language_options.cs')}</option>
-                                    <option value="sk">{t('filters.language_options.sk')}</option>
-                                    <option value="en">{t('filters.language_options.en')}</option>
-                                    <option value="de">{t('filters.language_options.de')}</option>
-                                    <option value="pl">{t('filters.language_options.pl')}</option>
-                                    <option value="uk">{t('filters.language_options.uk')}</option>
-                                </select>
-                            </div>
-
-                            <div className="relative">
-                                <label htmlFor="sort-by" className="sr-only">
-                                    {t('filters.sort_by')}
-                                </label>
-                                <div className="flex items-center gap-1">
-                                    <select
-                                        id="sort-by"
-                                        name="sort_by"
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        aria-label={t('filters.sort_by')}
-                                        className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
-                                    >
-                                        <option value="recommended">{t('filters.sort_options.recommended')}</option>
-                                        <option value="newest">{t('filters.sort_options.newest')}</option>
-                                        <option value="distance">{t('filters.sort_options.distance')}</option>
-                                        <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
-                                        <option value="salary_desc">{t('filters.sort_options.salary_desc')}</option>
-                                    </select>
-                                    {sortBy === 'recommended' && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowSortExplain((prev) => !prev)}
-                                            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 hover:text-cyan-600 dark:hover:text-cyan-400 hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors shrink-0"
-                                            aria-label={t('filters.sort_explain.recommended')}
-                                            aria-expanded={showSortExplain}
-                                        >
-                                            <Info size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                                {sortBy === 'recommended' && showSortExplain && (
-                                    <div className="absolute top-full right-0 mt-1 z-20 w-64 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-[11px] leading-snug text-slate-600 dark:text-slate-300 shadow-md">
-                                        {t('filters.sort_explain.recommended')}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Collapsible Filters Container */}
-                    {showFilters && (
-                        <div className="px-4 pb-4 max-h-[40vh] overflow-y-auto custom-scrollbar border-t border-slate-100 dark:border-slate-800 pt-4 animate-in slide-in-from-top-2">
-                            {/* Saved Filters Menu */}
-                            <SavedFiltersMenu
-                                onLoadFilter={(filters) => {
-                                    if (filters.filterCity) setFilterCity(filters.filterCity);
-                                    if (filters.filterContractTypes) filters.filterContractTypes.forEach(type => {
-                                        if (!filterContractType.includes(type)) toggleContractTypeFilter(type);
-                                    });
-                                    if (filters.filterBenefits) filters.filterBenefits.forEach(benefit => {
-                                        if (!filterBenefits.includes(benefit)) toggleBenefitFilter(benefit);
-                                    });
-                                    if (filters.filterMaxDistance) setFilterMaxDistance(filters.filterMaxDistance);
-                                    if (filters.enableCommuteFilter !== undefined) setEnableCommuteFilter(filters.enableCommuteFilter);
-                                }}
-                                currentFilters={{
-                                    filterCity,
-                                    filterContractTypes: filterContractType,
-                                    filterBenefits,
-                                    filterMaxDistance,
-                                    enableCommuteFilter
-                                }}
-                                hasActiveFilters={!!(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
-                            />
-
-                            {/* Popular Filter Suggestions */}
-                            <FilterSuggestions
-                                onApplyFilter={(filters) => {
-                                    if (filters.filterCity) setFilterCity(filters.filterCity);
-                                    if (filters.filterContractTypes) filters.filterContractTypes.forEach(type => toggleContractTypeFilter(type));
-                                    if (filters.filterBenefits) filters.filterBenefits.forEach(benefit => toggleBenefitFilter(benefit));
-                                }}
-                                hasActiveFilters={!!(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
-                                userProfile={userProfile}
-                            />
-
-                            {/* FILTER: Location & Commute */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('location')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
-                                    <span>{t('filters.location_commute')}</span>
-                                    {expandedSections.location ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    <span>
+                                        {uiCopy.activeFilters}: {activeFilterCount}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-cyan-700 dark:text-cyan-300">
+                                        {isMobileRailOpen ? uiCopy.closeFilters : uiCopy.openFilters}
+                                        {isMobileRailOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </span>
                                 </button>
-                                {expandedSections.location && (
-                                    <div className="space-y-3 animate-in slide-in-from-top-1 fade-in duration-200">
+                            </div>
+                        )}
+
+                        {railContentVisible && (
+                            <>
+                                <header className="border-b border-slate-200/80 dark:border-slate-800 px-3 py-2.5">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">
+                                                {uiCopy.railTitle}
+                                            </div>
+                                            <div className="mt-0.5 text-[15px] font-bold text-slate-900 dark:text-white">
+                                                {isCsLike ? 'Digitální první kontakt' : t('home.discovery.badge', { defaultValue: 'Digital first contact' })}
+                                            </div>
+                                        </div>
+                                        {activeFilterCount > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={clearAllFilters}
+                                                className="rounded-md border border-rose-200 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-950/20 px-2 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300"
+                                            >
+                                                {uiCopy.clearAll}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/40 px-2.5 py-2">
+                                            <div className="text-[10px] uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">{uiCopy.totalRoles}</div>
+                                            <div className="mt-0.5 text-[18px] font-bold text-slate-900 dark:text-white leading-none">
+                                                {Math.max(totalCount, filteredJobs.length).toLocaleString(i18n.language)}
+                                            </div>
+                                        </div>
+                                        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/40 px-2.5 py-2">
+                                            <div className="text-[10px] uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">{uiCopy.activeFilters}</div>
+                                            <div className="mt-0.5 text-[18px] font-bold text-slate-900 dark:text-white leading-none">{activeFilterCount}</div>
+                                        </div>
+                                    </div>
+                                </header>
+
+                                <div className={`${isFilterRailMode ? 'custom-scrollbar min-h-0 flex-1 overflow-y-auto' : ''} px-3 py-2.5 space-y-3`}>
+                                    <section className="space-y-1.5">
+                                        <div className={sectionTitleClass}>{uiCopy.querySection}</div>
                                         <div className="relative">
-                                            <MapPin className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" size={16} />
+                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <Search size={15} className="text-slate-400" />
+                                            </div>
                                             <input
-                                                id="filter-city"
-                                                name="filter_city"
+                                                id="job-search"
+                                                name="job_search"
+                                                type="text"
+                                                value={searchTerm}
+                                                onChange={(e) => {
+                                                    const term = e.target.value;
+                                                    setSearchTerm(term);
+                                                    performSearch(term);
+                                                    if (!term.trim()) loadRealJobs();
+                                                }}
+                                                placeholder={t('app.search_placeholder')}
+                                                className={`${inputClass} pl-9 pr-9`}
+                                            />
+                                            {searchTerm && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearchTerm('');
+                                                        performSearch('');
+                                                        loadRealJobs();
+                                                    }}
+                                                    className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                                    aria-label={uiCopy.clearSearch}
+                                                >
+                                                    <X size={13} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </section>
+
+                                    <section className="space-y-2">
+                                        <div className={sectionTitleClass}>{uiCopy.whereSection}</div>
+
+                                        <div className="relative">
+                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <MapPin size={14} className="text-slate-400" />
+                                            </div>
+                                            <input
+                                                id="toolbar-filter-city"
+                                                name="toolbar_filter_city"
                                                 type="text"
                                                 value={filterCity}
                                                 onChange={(e) => setFilterCity(e.target.value)}
                                                 placeholder={t('filters.city_placeholder')}
-                                                list="location-suggestions"
-                                                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                                list="toolbar-location-suggestions"
+                                                className={`${inputClass} pl-9`}
                                             />
-                                            <datalist id="location-suggestions">
-                                                {((() => {
-                                                    const lang = (i18n.language || 'cs').split('-')[0];
-                                                    const country = (userProfile.preferredCountryCode || '').toUpperCase();
-                                                    const suggestionsByCountry: Record<string, string[]> = {
-                                                        CZ: [
-                                                            'Praha', 'Brno', 'Ostrava', 'Plzeň', 'Olomouc', 'Liberec', 'České Budějovice', 'Hradec Králové',
-                                                            'Pardubice', 'Zlín', 'Středočeský kraj', 'Jihočeský kraj', 'Jihomoravský kraj', 'Moravskoslezský kraj',
-                                                            'Plzeňský kraj', 'Olomoucký kraj', 'Ústecký kraj', 'Královéhradecký kraj', 'Pardubický kraj', 'Zlínský kraj'
-                                                        ],
-                                                        SK: [
-                                                            'Bratislava', 'Košice', 'Žilina', 'Prešov', 'Nitra', 'Trnava', 'Banská Bystrica',
-                                                            'Bratislavský kraj', 'Košický kraj', 'Žilinský kraj', 'Prešovský kraj', 'Banskobystrický kraj',
-                                                            'Trnavský kraj', 'Trenčiansky kraj', 'Nitriansky kraj'
-                                                        ],
-                                                        PL: [
-                                                            'Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Łódź', 'Szczecin', 'Bydgoszcz', 'Lublin',
-                                                            'Mazowieckie', 'Małopolskie', 'Dolnośląskie', 'Wielkopolskie', 'Pomorskie', 'Łódzkie', 'Śląskie',
-                                                            'Zachodniopomorskie', 'Kujawsko-Pomorskie', 'Lubelskie'
-                                                        ],
-                                                        DE: [
-                                                            'Berlin', 'München', 'Hamburg', 'Köln', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Leipzig', 'Dresden',
-                                                            'Bayern', 'Nordrhein-Westfalen', 'Baden-Württemberg', 'Hessen', 'Sachsen', 'Berlin', 'Hamburg'
-                                                        ],
-                                                        AT: [
-                                                            'Wien', 'Graz', 'Salzburg', 'Linz', 'Innsbruck', 'Klagenfurt', 'St. Pölten',
-                                                            'Wien', 'Steiermark', 'Salzburg', 'Oberösterreich', 'Tirol', 'Kärnten', 'Niederösterreich'
-                                                        ]
-                                                    };
-                                                    const suggestionsByLang: Record<string, string[]> = {
-                                                        cs: suggestionsByCountry.CZ,
-                                                        sk: suggestionsByCountry.SK,
-                                                        pl: suggestionsByCountry.PL,
-                                                        de: suggestionsByCountry.DE,
-                                                        at: suggestionsByCountry.AT,
-                                                        en: [
-                                                            'Vienna', 'Warsaw', 'Prague', 'Bratislava', 'Berlin', 'Munich', 'Krakow', 'Wroclaw',
-                                                            'Vienna', 'Warsaw', 'Prague', 'Brno', 'Gdansk', 'Hamburg', 'Frankfurt'
-                                                        ]
-                                                    };
-                                                    const list = suggestionsByCountry[country] || suggestionsByLang[lang] || suggestionsByCountry.CZ;
-                                                    return list.map((item) => <option key={item} value={item} />);
-                                                })())}
+                                            <datalist id="toolbar-location-suggestions">
+                                                {locationSuggestions.map((item) => (
+                                                    <option key={item} value={item} />
+                                                ))}
                                             </datalist>
                                         </div>
+
                                         {!filterCity && !userProfile.coordinates && (
                                             <button
-                                                onClick={(e) => { e.preventDefault(); onUseCurrentLocation(); }}
-                                                className="w-full text-xs font-semibold px-3 py-2 rounded-md border border-cyan-200 dark:border-cyan-700/60 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors"
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    onUseCurrentLocation();
+                                                }}
+                                                className="w-full rounded-lg border border-cyan-200 dark:border-cyan-700/60 bg-cyan-50 dark:bg-cyan-900/20 px-3 py-2 text-xs font-semibold text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30"
                                             >
                                                 {t('filters.use_current_location')}
                                             </button>
                                         )}
-                                        <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
-                                            <div className="flex items-center gap-2">
-                                                <Car size={16} className={`transition-colors ${enableCommuteFilter ? 'text-cyan-500' : 'text-slate-400'}`} />
-                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('filters.limit_by_commute')}</span>
-                                            </div>
-                                            <div className={`w-10 h-5 rounded-full relative transition-colors ${enableCommuteFilter ? 'bg-cyan-600' : 'bg-slate-300 dark:bg-slate-700'}`} onClick={(e) => { e.preventDefault(); setEnableCommuteFilter(!enableCommuteFilter); }}>
-                                                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${enableCommuteFilter ? 'left-6' : 'left-1'}`}></div>
-                                            </div>
+
+                                        <label className={rowToggleClass}>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Car size={14} className={enableCommuteFilter ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'} />
+                                                <span>{t('filters.limit_by_commute')}</span>
+                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                checked={enableCommuteFilter}
+                                                onChange={() => setEnableCommuteFilter(!enableCommuteFilter)}
+                                                className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                            />
                                         </label>
 
-                                        {/* Cross-border Filter Toggle */}
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); setGlobalSearch(!globalSearch); }}
-                                            className={`w-full flex items-center justify-between p-2 rounded-md border transition-all ${globalSearch ? 'bg-cyan-50 border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Globe size={16} className={`transition-colors ${globalSearch ? 'text-cyan-500' : 'text-slate-400'}`} />
-                                                <div className="text-left">
-                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
-                                                        {t('filters.cross_border')}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
-                                                        {globalSearch ? t('filters.search_all_desc') : t('filters.search_current_desc')}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${globalSearch ? 'border-cyan-500 bg-cyan-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                {globalSearch && <CheckCircle size={10} className="text-white" />}
-                                            </div>
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); setAbroadOnly(!abroadOnly); }}
-                                            className={`w-full flex items-center justify-between p-2 rounded-md border transition-all ${abroadOnly ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Globe size={16} className={`transition-colors ${abroadOnly ? 'text-amber-500' : 'text-slate-400'}`} />
-                                                <div className="text-left">
-                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
-                                                        {t('filters.abroad_only')}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
-                                                        {t('filters.abroad_only_desc')}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${abroadOnly ? 'border-amber-500 bg-amber-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                {abroadOnly && <CheckCircle size={10} className="text-white" />}
-                                            </div>
-                                        </button>
                                         {enableCommuteFilter && (
-                                            <div className={`p-3 rounded-md border ${hasLocationAnchor ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
-                                                <div className="flex justify-between text-xs mb-2">
-                                                    <span className="font-medium text-slate-500 dark:text-slate-400">{t('filters.max_distance')}</span>
-                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{hasLocationAnchor ? `${filterMaxDistance} km` : 'N/A'}</span>
+                                            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/45 px-2.5 py-2">
+                                                <div className="mb-1.5 flex items-center justify-between text-[11px]">
+                                                    <span className="text-slate-500 dark:text-slate-400">{t('filters.max_distance')}</span>
+                                                    <span className="font-mono text-cyan-700 dark:text-cyan-300">
+                                                        {hasLocationAnchor ? `${filterMaxDistance} km` : 'N/A'}
+                                                    </span>
                                                 </div>
                                                 <input
                                                     type="range"
@@ -484,344 +500,539 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     max="100"
                                                     step="5"
                                                     value={filterMaxDistance}
-                                                    onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))}
+                                                    onChange={(e) => setFilterMaxDistance(parseInt(e.target.value, 10))}
                                                     disabled={!hasLocationAnchor}
-                                                    className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
+                                                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-cyan-500 disabled:cursor-not-allowed dark:bg-slate-800"
                                                 />
                                                 {!hasLocationAnchor && (
-                                                    <p className="text-[10px] text-slate-500 mt-2 italic">{t('filters.radius_hint_no_location')}</p>
+                                                    <p className="mt-1 text-[10px] italic text-slate-500">{t('filters.radius_hint_no_location')}</p>
                                                 )}
                                             </div>
                                         )}
 
-                                        {loadingMore && hasMore && (
-                                            <div className="py-6 flex flex-col items-center justify-center text-slate-400">
-                                                <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
-                                                <p className="text-sm">{t('app.loading_more_offers')}</p>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            <label className={`${optionRowClass} ${globalSearch ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20' : 'bg-white/90 dark:bg-slate-950/45'}`}>
+                                                <span className="text-[11px]">{uiCopy.quickRegion}</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={globalSearch}
+                                                    onChange={() => setGlobalSearch(!globalSearch)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                />
+                                            </label>
+                                            <label className={`${optionRowClass} ${abroadOnly ? 'border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-900/20' : 'bg-white/90 dark:bg-slate-950/45'}`}>
+                                                <span className="text-[11px]">{uiCopy.quickAbroad}</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={abroadOnly}
+                                                    onChange={() => setAbroadOnly(!abroadOnly)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                />
+                                            </label>
+                                        </div>
+                                    </section>
+
+                                    <section className="space-y-1.5">
+                                        <div className={sectionTitleClass}>{uiCopy.rankingSection}</div>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            <select
+                                                id="filter-language"
+                                                name="filter_language"
+                                                value={filterLanguage}
+                                                onChange={(e) => setFilterLanguage(e.target.value)}
+                                                aria-label={t('filters.language')}
+                                                className={inputClass}
+                                            >
+                                                <option value="">{t('filters.language_all')}</option>
+                                                <option value="cs">{t('filters.language_options.cs')}</option>
+                                                <option value="sk">{t('filters.language_options.sk')}</option>
+                                                <option value="en">{t('filters.language_options.en')}</option>
+                                                <option value="de">{t('filters.language_options.de')}</option>
+                                                <option value="pl">{t('filters.language_options.pl')}</option>
+                                                <option value="uk">{t('filters.language_options.uk')}</option>
+                                            </select>
+
+                                            <div className="relative">
+                                                <select
+                                                    id="sort-by"
+                                                    name="sort_by"
+                                                    value={sortBy}
+                                                    onChange={(e) => setSortBy(e.target.value)}
+                                                    aria-label={t('filters.sort_by')}
+                                                    className={inputClass}
+                                                >
+                                                    <option value="recommended">{t('filters.sort_options.recommended')}</option>
+                                                    <option value="newest">{t('filters.sort_options.newest')}</option>
+                                                    <option value="distance">{t('filters.sort_options.distance')}</option>
+                                                    <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
+                                                    <option value="salary_desc">{t('filters.sort_options.salary_desc')}</option>
+                                                </select>
+                                                {sortBy === 'recommended' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSortExplain((prev) => !prev)}
+                                                        className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white/85 text-slate-500 hover:border-cyan-300 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-950/75 dark:text-slate-400 dark:hover:border-cyan-700 dark:hover:text-cyan-400"
+                                                        aria-label={t('filters.sort_explain.recommended')}
+                                                        aria-expanded={showSortExplain}
+                                                    >
+                                                        <Info size={13} />
+                                                    </button>
+                                                )}
+                                                {sortBy === 'recommended' && showSortExplain && (
+                                                    <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-2 text-[11px] leading-snug text-slate-600 shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                                        {t('filters.sort_explain.recommended')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section className="space-y-1.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className={sectionTitleClass}>{uiCopy.toolsSection}</div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowFilters(!showFilters)}
+                                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300"
+                                            >
+                                                <Filter size={12} />
+                                                {showFilters ? uiCopy.advancedClose : uiCopy.advancedOpen}
+                                            </button>
+                                        </div>
+
+                                        {activeFilterChips.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                                {activeFilterChips.map((chip) => (
+                                                    <span
+                                                        key={chip}
+                                                        className="rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/45 px-2 py-0.5 text-[10px] text-slate-600 dark:text-slate-300"
+                                                    >
+                                                        {chip}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
-                                    </div>
-                                )}
-                            </div>
+                                    </section>
 
-                            <hr className="border-slate-100 dark:border-slate-800 my-3" />
-
-                            {/* FILTER: Contract Type */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('contract')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>{t('filters.contract_type')}</span>
-                                    {expandedSections.contract ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                                {expandedSections.contract && (
-                                    <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-1">
-                                        {[
-                                            { value: 'hpp', label: t('job.contract_types.hpp') },
-                                            { value: 'ico', label: t('job.contract_types.ico') },
-                                            { value: 'part-time', label: t('job.contract_types.part_time') },
-                                            { value: 'brigada', label: t('job.contract_types.brigada') }
-                                        ].map(({ value, label }) => (
-                                            <button
-                                                key={value}
-                                                onClick={() => toggleContractTypeFilter(value)}
-                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(value) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <hr className="border-slate-100 dark:border-slate-800 my-3" />
-
-                            {/* FILTER: Date Posted */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('date')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>{t('filters.date_posted')}</span>
-                                    {expandedSections.date ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                                {expandedSections.date && (
-                                    <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1">
-                                        {[
-                                            { id: 'all', label: t('filters.any_time') },
-                                            { id: '24h', label: t('filters.last_24h') },
-                                            { id: '3d', label: t('filters.last_3d') },
-                                            { id: '7d', label: t('filters.last_7d') },
-                                            { id: '14d', label: t('filters.last_14d') }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => setFilterDate(opt.id)}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDate === opt.id ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800'}`}
-                                            >
-                                                <div className={`w-3 h-3 rounded-full border-2 border-current flex items-center justify-center`}>
-                                                    {filterDate === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-current" />}
-                                                </div>
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <hr className="border-slate-100 dark:border-slate-800 my-3" />
-
-                            {/* FILTER: Salary */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('salary')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>{t('filters.min_salary')}</span>
-                                    {expandedSections.salary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                                {expandedSections.salary && (
-                                    <div className="space-y-3 animate-in slide-in-from-top-1">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    id="filter-min-salary"
-                                                    name="filter_min_salary"
-                                                    type="number"
-                                                    value={filterMinSalary || ''}
-                                                    onChange={(e) => setFilterMinSalary(parseInt(e.target.value) || 0)}
-                                                    placeholder={t('filters.min_salary_placeholder')}
-                                                    className="w-full pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
-                                                />
-                                                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">{t('filters.currency_czk')}</span>
+                                    {detailsVisible && (
+                                        <section className="space-y-2 border-t border-slate-200/80 dark:border-slate-800 pt-2">
+                                            <div className="space-y-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSection('contract')}
+                                                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                                                >
+                                                    <span>{t('filters.contract_type')}</span>
+                                                    {expandedSections.contract ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                </button>
+                                                {expandedSections.contract && (
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        {[
+                                                            { value: 'hpp', label: t('job.contract_types.hpp') },
+                                                            { value: 'ico', label: t('job.contract_types.ico') },
+                                                            { value: 'part-time', label: t('job.contract_types.part_time') },
+                                                            { value: 'brigada', label: t('job.contract_types.brigada') }
+                                                        ].map(({ value, label }) => (
+                                                            <label
+                                                                key={value}
+                                                                className={`${optionRowClass} ${
+                                                                    filterContractType.includes(value)
+                                                                        ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20'
+                                                                        : 'bg-white/90 dark:bg-slate-950/45'
+                                                                }`}
+                                                            >
+                                                                <span className="text-[11px]">{label}</span>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={filterContractType.includes(value)}
+                                                                    onChange={() => toggleContractTypeFilter(value)}
+                                                                    className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                                />
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                        <input
-                                            id="filter-min-salary-range"
-                                            name="filter_min_salary_range"
-                                            type="range"
-                                            min="0"
-                                            max="150000"
-                                            step="5000"
-                                            value={filterMinSalary}
-                                            onChange={(e) => setFilterMinSalary(parseInt(e.target.value))}
-                                            className="w-full accent-cyan-500 cursor-pointer bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
-                                        />
-                                        <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                                            <span>{t('filters.salary_scale_min', { currency: t('filters.currency_czk') })}</span>
-                                            <span>{t('filters.salary_scale_max', { currency: t('filters.currency_czk') })}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
 
-                            <hr className="border-slate-100 dark:border-slate-800 my-3" />
+                                            <div className="space-y-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSection('date')}
+                                                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                                                >
+                                                    <span>{t('filters.date_posted')}</span>
+                                                    {expandedSections.date ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                </button>
+                                                {expandedSections.date && (
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        {[
+                                                            { id: 'all', label: t('filters.any_time') },
+                                                            { id: '24h', label: t('filters.last_24h') },
+                                                            { id: '3d', label: t('filters.last_3d') },
+                                                            { id: '7d', label: t('filters.last_7d') },
+                                                            { id: '14d', label: t('filters.last_14d') }
+                                                        ].map((item) => (
+                                                            <label
+                                                                key={item.id}
+                                                                className={`${optionRowClass} ${
+                                                                    filterDate === item.id
+                                                                        ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20'
+                                                                        : 'bg-white/90 dark:bg-slate-950/45'
+                                                                }`}
+                                                            >
+                                                                <span className="text-[11px]">{item.label}</span>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="filter-date"
+                                                                    checked={filterDate === item.id}
+                                                                    onChange={() => setFilterDate(item.id)}
+                                                                    className="h-4 w-4 border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                                />
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
 
-                            {/* FILTER: Experience Level */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('experience')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>{t('filters.experience_level')}</span>
-                                    {expandedSections.experience ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                                {expandedSections.experience && (
-                                    <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-1">
-                                        {[
-                                            { id: 'Junior', label: t('filters.junior') },
-                                            { id: 'Medior', label: t('filters.medior') },
-                                            { id: 'Senior', label: t('filters.senior') },
-                                            { id: 'Lead', label: t('filters.lead') }
-                                        ].map(level => (
-                                            <button
-                                                key={level.id}
-                                                onClick={() => toggleExperienceFilter(level.id)}
-                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterExperience.includes(level.id) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
-                                            >
-                                                {level.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                            <div className="space-y-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSection('salary')}
+                                                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                                                >
+                                                    <span>{t('filters.min_salary')}</span>
+                                                    {expandedSections.salary ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                </button>
+                                                {expandedSections.salary && (
+                                                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/45 p-2">
+                                                        <div className="relative">
+                                                            <input
+                                                                id="filter-min-salary"
+                                                                name="filter_min_salary"
+                                                                type="number"
+                                                                value={filterMinSalary || ''}
+                                                                onChange={(e) => setFilterMinSalary(parseInt(e.target.value, 10) || 0)}
+                                                                placeholder={t('filters.min_salary_placeholder')}
+                                                                className={`${inputClass} pr-10`}
+                                                            />
+                                                            <span className="absolute right-3 top-2.5 text-[11px] text-slate-400">{t('filters.currency_czk')}</span>
+                                                        </div>
+                                                        <input
+                                                            id="filter-min-salary-range"
+                                                            name="filter_min_salary_range"
+                                                            type="range"
+                                                            min="0"
+                                                            max="150000"
+                                                            step="5000"
+                                                            value={filterMinSalary}
+                                                            onChange={(e) => setFilterMinSalary(parseInt(e.target.value, 10))}
+                                                            className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-cyan-500 dark:bg-slate-800"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
 
-                            <hr className="border-slate-100 dark:border-slate-800 my-3" />
+                                            <div className="space-y-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSection('experience')}
+                                                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                                                >
+                                                    <span>{t('filters.experience_level')}</span>
+                                                    {expandedSections.experience ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                </button>
+                                                {expandedSections.experience && (
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        {[
+                                                            { id: 'Junior', label: t('filters.junior') },
+                                                            { id: 'Medior', label: t('filters.medior') },
+                                                            { id: 'Senior', label: t('filters.senior') },
+                                                            { id: 'Lead', label: t('filters.lead') }
+                                                        ].map((item) => (
+                                                            <label
+                                                                key={item.id}
+                                                                className={`${optionRowClass} ${
+                                                                    filterExperience.includes(item.id)
+                                                                        ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20'
+                                                                        : 'bg-white/90 dark:bg-slate-950/45'
+                                                                }`}
+                                                            >
+                                                                <span className="text-[11px]">{item.label}</span>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={filterExperience.includes(item.id)}
+                                                                    onChange={() => toggleExperienceFilter(item.id)}
+                                                                    className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                                />
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
 
-                            {/* FILTER: Benefits */}
-                            <div className="space-y-3">
-                                <button onClick={() => toggleSection('benefits')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>{t('filters.key_benefits.title')}</span>
-                                    {expandedSections.benefits ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                                {expandedSections.benefits && (
-                                    <div className="space-y-2 animate-in slide-in-from-top-1">
-                                        {[
-                                            { id: 'car', value: 'Auto pro osobní použití', label: t('filters.key_benefits.items.car') },
-                                            { id: 'kids_friendly', value: 'Přátelské k dětem', label: t('filters.key_benefits.items.kids_friendly') },
-                                            { id: 'flex_hours', value: 'Flexibilní hodiny', label: t('filters.key_benefits.items.flex_hours') },
-                                            { id: 'education', value: 'Vzdělávací kurzy', label: t('filters.key_benefits.items.education') },
-                                            { id: 'multisport', value: 'Multisport karta', label: t('filters.key_benefits.items.multisport') },
-                                            { id: 'meal', value: 'Příspěvek na stravu', label: t('filters.key_benefits.items.meal') },
-                                            { id: 'home_office', value: 'Home Office', label: t('filters.key_benefits.items.home_office') },
-                                            { id: 'vacation_5w', value: '5 týdnů dovolené', label: t('filters.key_benefits.items.vacation_5w') },
-                                            { id: 'dog_friendly', value: 'Dog Friendly', label: t('filters.key_benefits.items.dog_friendly') },
-                                            { id: 'stock', value: 'Zaměstnanecké akcie', label: t('filters.key_benefits.items.stock') }
-                                        ].map(benefit => (
-                                            <label key={benefit.id} className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit.value) ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-cyan-400'}`}>
-                                                    {filterBenefits.includes(benefit.value) && <CheckCircle size={10} className="text-white" />}
+                                            <div className="space-y-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSection('benefits')}
+                                                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                                                >
+                                                    <span>{t('filters.key_benefits.title')}</span>
+                                                    {expandedSections.benefits ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                                </button>
+                                                {expandedSections.benefits && (
+                                                    <div className="space-y-1.5">
+                                                        {[
+                                                            { id: 'car', value: 'Auto pro osobní použití', label: t('filters.key_benefits.items.car') },
+                                                            { id: 'kids_friendly', value: 'Přátelské k dětem', label: t('filters.key_benefits.items.kids_friendly') },
+                                                            { id: 'flex_hours', value: 'Flexibilní hodiny', label: t('filters.key_benefits.items.flex_hours') },
+                                                            { id: 'education', value: 'Vzdělávací kurzy', label: t('filters.key_benefits.items.education') },
+                                                            { id: 'multisport', value: 'Multisport karta', label: t('filters.key_benefits.items.multisport') },
+                                                            { id: 'meal', value: 'Příspěvek na stravu', label: t('filters.key_benefits.items.meal') },
+                                                            { id: 'home_office', value: 'Home Office', label: t('filters.key_benefits.items.home_office') },
+                                                            { id: 'vacation_5w', value: '5 týdnů dovolené', label: t('filters.key_benefits.items.vacation_5w') },
+                                                            { id: 'dog_friendly', value: 'Dog Friendly', label: t('filters.key_benefits.items.dog_friendly') },
+                                                            { id: 'stock', value: 'Zaměstnanecké akcie', label: t('filters.key_benefits.items.stock') }
+                                                        ].map((benefit) => (
+                                                            <label
+                                                                key={benefit.id}
+                                                                className={`${optionRowClass} ${
+                                                                    filterBenefits.includes(benefit.value)
+                                                                        ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20'
+                                                                        : 'bg-white/90 dark:bg-slate-950/45'
+                                                                }`}
+                                                            >
+                                                                <span className="inline-flex h-4 w-4 items-center justify-center rounded border border-slate-300 dark:border-slate-600">
+                                                                    {filterBenefits.includes(benefit.value) && (
+                                                                        <CheckCircle2 size={10} className="text-cyan-600 dark:text-cyan-300" />
+                                                                    )}
+                                                                </span>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="hidden"
+                                                                    checked={filterBenefits.includes(benefit.value)}
+                                                                    onChange={() => toggleBenefitFilter(benefit.value)}
+                                                                />
+                                                                <span className="min-w-0 flex-1 text-[11px] leading-snug text-slate-700 dark:text-slate-300">{benefit.label}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 p-2">
+                                                <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                                                    {t('saved_filters.saved_searches')}
                                                 </div>
-                                                <input type="checkbox" className="hidden" checked={filterBenefits.includes(benefit.value)} onChange={() => toggleBenefitFilter(benefit.value)} />
-                                                <span className="text-sm text-slate-700 dark:text-slate-300">{benefit.label}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Job List Container (Scrolls independently below fixed header) */}
-                <div ref={listContainerRef} className="flex-1 overflow-hidden p-4" style={{ overscrollBehavior: 'contain' }}>
-                    <div ref={listHeaderRef} style={{ position: 'relative' }}>
-                        {hasNearConstraintMatches && !isLoadingJobs && (
-                            <div className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
-                                <div className="flex items-start gap-2">
-                                    <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-cyan-700 dark:text-cyan-300" />
-                                    <div>
-                                        <p className="font-semibold">{t('app.near_matches_banner_title')}</p>
-                                        <p className="opacity-90">{t('app.near_matches_banner_desc')}</p>
-                                    </div>
+                                                <FilterSuggestions
+                                                    onApplyFilter={(filters) => {
+                                                        if (filters.filterCity) setFilterCity(filters.filterCity);
+                                                        if (filters.filterContractTypes) {
+                                                            filters.filterContractTypes.forEach((type) => {
+                                                                if (!filterContractType.includes(type)) toggleContractTypeFilter(type);
+                                                            });
+                                                        }
+                                                        if (filters.filterBenefits) {
+                                                            filters.filterBenefits.forEach((benefit) => {
+                                                                if (!filterBenefits.includes(benefit)) toggleBenefitFilter(benefit);
+                                                            });
+                                                        }
+                                                    }}
+                                                    hasActiveFilters={Boolean(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
+                                                    userProfile={userProfile}
+                                                />
+                                                <SavedFiltersMenu
+                                                    onLoadFilter={(filters) => {
+                                                        if (filters.filterCity) setFilterCity(filters.filterCity);
+                                                        if (filters.filterContractTypes) {
+                                                            filters.filterContractTypes.forEach((type) => {
+                                                                if (!filterContractType.includes(type)) toggleContractTypeFilter(type);
+                                                            });
+                                                        }
+                                                        if (filters.filterBenefits) {
+                                                            filters.filterBenefits.forEach((benefit) => {
+                                                                if (!filterBenefits.includes(benefit)) toggleBenefitFilter(benefit);
+                                                            });
+                                                        }
+                                                        if (filters.filterMaxDistance) setFilterMaxDistance(filters.filterMaxDistance);
+                                                        if (filters.enableCommuteFilter !== undefined) setEnableCommuteFilter(filters.enableCommuteFilter);
+                                                    }}
+                                                    currentFilters={{
+                                                        filterCity,
+                                                        filterContractTypes: filterContractType,
+                                                        filterBenefits,
+                                                        filterMaxDistance,
+                                                        enableCommuteFilter
+                                                    }}
+                                                    hasActiveFilters={Boolean(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
+                                                />
+                                            </div>
+                                        </section>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                        {isLoadingJobs && filteredJobs.length > 0 && (
-                            <div style={{ position: 'absolute', right: 12, top: 8 }} className="px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-                                <span className="job-shaman-loader" aria-hidden="true">
-                                    <span className="rain">
-                                        <span />
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </span>
-                                    <span className="pulse" />
-                                    <span className="drum" />
-                                    <span className="drumstick" />
-                                </span>
-                                <span>{t('app.searching')}</span>
-                            </div>
+                            </>
                         )}
                     </div>
-                    <div className="space-y-3">
-                        {isLoadingJobs && filteredJobs.length === 0 ? (
-                            <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                                <span className="job-shaman-loader is-lg mb-2" aria-hidden="true">
-                                    <span className="rain">
-                                        <span />
-                                        <span />
-                                        <span />
-                                        <span />
+                )}
+
+                {showJobFeed && (
+                    <div
+                        ref={jobListRef}
+                        className="custom-scrollbar flex-1 overflow-y-auto p-2"
+                        style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+                    >
+                        <div className="relative">
+                            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                                <div className="rounded-full border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/45 px-2.5 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                                    {filteredJobs.length.toLocaleString(i18n.language)} {uiCopy.results}
+                                </div>
+                                <div className="rounded-full border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/45 px-2.5 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                                    {t('filters.sort_by')}: {t(`filters.sort_options.${sortBy}`, { defaultValue: sortBy })}
+                                </div>
+                                {backendPolling && (
+                                    <div className="rounded-full border border-cyan-200 dark:border-cyan-900/60 bg-cyan-50 dark:bg-cyan-950/20 px-2.5 py-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-300">
+                                        {t('app.backend_wake_waiting')}
+                                    </div>
+                                )}
+                            </div>
+
+                            {hasNearConstraintMatches && !isLoadingJobs && (
+                                <div className="mb-2.5 rounded-[0.9rem] border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-cyan-700 dark:text-cyan-300" />
+                                        <div>
+                                            <p className="font-semibold">{t('app.near_matches_banner_title')}</p>
+                                            <p className="opacity-90">{t('app.near_matches_banner_desc')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isLoadingJobs && filteredJobs.length > 0 && (
+                                <div className="absolute right-3 top-2 flex items-center gap-2 px-1 text-xs text-slate-400 dark:text-slate-500">
+                                    <span className="job-shaman-loader" aria-hidden="true">
+                                        <span className="rain"><span /><span /><span /><span /></span>
+                                        <span className="pulse" />
+                                        <span className="drum" />
+                                        <span className="drumstick" />
                                     </span>
-                                    <span className="pulse" />
-                                    <span className="drum" />
-                                    <span className="drumstick" />
-                                </span>
-                                <p className="text-sm">{t('app.searching')}</p>
-                            </div>
-                        ) : filteredJobs.length > 0 ? (
-                            <div
-                                ref={jobListRef}
-                                className="custom-scrollbar overflow-y-auto"
-                                style={{ height: listViewportHeight, WebkitOverflowScrolling: 'touch' }}
-                            >
-                                {filteredJobs.map((job, index) => (
-                                    <div key={job.id} className="pb-3">
-                                        <div
-                                            ref={(el) => { cardRefs.current[job.id] = el; }}
-                                            data-job-id={job.id}
-                                            data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
-                                        >
-                                            <JobCard
-                                                job={job}
-                                                isSelected={selectedJobId === job.id}
-                                                isSaved={savedJobIds.includes(job.id)}
-                                                onToggleSave={() => handleToggleSave(job.id)}
-                                                onClick={() => handleJobSelect(job.id)}
-                                                variant={theme}
-                                                userProfile={userProfile}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
-                                <Search size={32} className="mb-4 opacity-50" />
-                                {isSearching ? (
-                                    <>
-                                        <p className="font-bold mb-2">{t('app.no_results_for_search', { query: searchTerm })}</p>
-                                        <p className="text-xs opacity-75 max-w-[200px] mb-4">
-                                            {t('app.try_different_keywords')}
-                                        </p>
-                                    </>
-                                ) : backendPolling ? (
-                                    <div className="flex flex-col items-center">
-                                        <p className="font-bold mb-2">{t('app.backend_wake_title')}</p>
-                                        <p className="text-xs opacity-75 max-w-[260px] mb-4">{t('app.backend_wake_desc')}</p>
-                                        <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
-                                            <span className="job-shaman-loader" aria-hidden="true">
-                                                <span className="rain">
-                                                    <span />
-                                                    <span />
-                                                    <span />
-                                                    <span />
-                                                </span>
-                                                <span className="pulse" />
-                                                <span className="drum" />
-                                                <span className="drumstick" />
-                                            </span>
-                                            <span>{t('app.backend_wake_waiting')}</span>
-                                        </div>
-                                        <button onClick={loadRealJobs} className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
-                                            <RefreshCw size={14} /> {t('app.try_again')}
-                                        </button>
-                                    </div>
-                                ) : (
+                                    <span>{t('app.searching')}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            {isLoadingJobs && filteredJobs.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <span className="job-shaman-loader is-lg mb-2" aria-hidden="true">
+                                        <span className="rain"><span /><span /><span /><span /></span>
+                                        <span className="pulse" />
+                                        <span className="drum" />
+                                        <span className="drumstick" />
+                                    </span>
+                                    <p className="text-sm">{t('app.searching')}</p>
+                                </div>
+                            ) : filteredJobs.length > 0 ? (
+                                <>
                                     <div>
-                                        <p className="font-bold mb-2">{t('app.no_jobs_found')}</p>
-                                        <p className="text-xs opacity-75 max-w-[200px] mb-4">{t('app.try_adjust_filters')}</p>
-                                        {totalCount === 0 && (
+                                        {filteredJobs.map((job, index) => (
+                                            <div key={job.id} className="pb-2">
+                                                <div
+                                                    ref={(el) => {
+                                                        cardRefs.current[job.id] = el;
+                                                    }}
+                                                    data-job-id={job.id}
+                                                    data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
+                                                >
+                                                    <JobCard
+                                                        job={job}
+                                                        isSelected={selectedJobId === job.id}
+                                                        isSaved={savedJobIds.includes(job.id)}
+                                                        onToggleSave={() => handleToggleSave(job.id)}
+                                                        onClick={() => handleJobSelect(job.id)}
+                                                        variant={theme}
+                                                        userProfile={userProfile}
+                                                        emphasis={index < 2 ? 'hero' : 'standard'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {!loadingMore && !hasMore && (
+                                        <p className="py-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
+                                            {t('app.no_more_results', { defaultValue: 'No more results' })}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center px-4 py-12 text-center text-slate-400 dark:text-slate-500">
+                                    <Search size={32} className="mb-4 opacity-50" />
+                                    {isSearching ? (
+                                        <>
+                                            <p className="mb-2 font-bold">{t('app.no_results_for_search', { query: searchTerm })}</p>
+                                            <p className="mb-4 max-w-[200px] text-xs opacity-75">{t('app.try_different_keywords')}</p>
+                                        </>
+                                    ) : backendPolling ? (
+                                        <div className="flex flex-col items-center">
+                                            <p className="mb-2 font-bold">{t('app.backend_wake_title')}</p>
+                                            <p className="mb-4 max-w-[260px] text-xs opacity-75">{t('app.backend_wake_desc')}</p>
+                                            <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                                                <span className="job-shaman-loader" aria-hidden="true">
+                                                    <span className="rain"><span /><span /><span /><span /></span>
+                                                    <span className="pulse" />
+                                                    <span className="drum" />
+                                                    <span className="drumstick" />
+                                                </span>
+                                                <span>{t('app.backend_wake_waiting')}</span>
+                                            </div>
                                             <button
                                                 onClick={loadRealJobs}
-                                                className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                                                className="mt-4 flex items-center gap-2 rounded-lg bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                                             >
                                                 <RefreshCw size={14} /> {t('app.try_again')}
                                             </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {loadingMore && (
-                            <div className="py-6 flex flex-col items-center justify-center text-slate-400">
-                                <span className="job-shaman-loader mb-2" aria-hidden="true">
-                                    <span className="rain">
-                                        <span />
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </span>
-                                    <span className="pulse" />
-                                    <span className="drum" />
-                                    <span className="drumstick" />
-                                </span>
-                                <p className="text-xs">{t('app.loading_more_offers')}</p>
-                            </div>
-                        )}
-                    </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="mb-2 font-bold">{t('app.no_jobs_found')}</p>
+                                            <p className="mb-4 max-w-[200px] text-xs opacity-75">{t('app.try_adjust_filters')}</p>
+                                            {totalCount === 0 && (
+                                                <button
+                                                    onClick={loadRealJobs}
+                                                    className="flex items-center gap-2 rounded-lg bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                                                >
+                                                    <RefreshCw size={14} /> {t('app.try_again')}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                    <div className="sticky bottom-3 mt-6 flex justify-end">
-                        <button
-                            onClick={handleScrollToTop}
-                            aria-label={t('app.back_to_top')}
-                            title={t('app.back_to_top')}
-                            className="flex items-center justify-center w-8 h-8 rounded-full border border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 hover:text-cyan-800 dark:border-cyan-500/40 dark:text-cyan-300 dark:bg-cyan-500/20 dark:hover:bg-cyan-500/30 transition-colors"
-                        >
-                            <ArrowUp size={14} />
-                        </button>
+                            {loadingMore && (
+                                <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+                                    <span className="job-shaman-loader mb-2" aria-hidden="true">
+                                        <span className="rain"><span /><span /><span /><span /></span>
+                                        <span className="pulse" />
+                                        <span className="drum" />
+                                        <span className="drumstick" />
+                                    </span>
+                                    <p className="text-xs">{t('app.loading_more_offers')}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pointer-events-none sticky bottom-3 mt-6 flex justify-end">
+                            <button
+                                onClick={handleScrollToTop}
+                                aria-label={t('app.back_to_top')}
+                                title={t('app.back_to_top')}
+                                className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50/95 text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800 dark:border-cyan-500/40 dark:bg-cyan-500/20 dark:text-cyan-300 dark:hover:bg-cyan-500/30"
+                            >
+                                <ArrowUp size={14} />
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </section>
     );

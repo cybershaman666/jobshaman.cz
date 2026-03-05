@@ -1263,7 +1263,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             <select
                                 value={selectedJobId}
                                 onChange={(e) => handleJobSelect(e.target.value)}
-                                className="w-full bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:[color-scheme:dark]"
                             >
                                 <option value="">{t('assessment_creator.select_job_placeholder')}</option>
                                 {jobs.map(job => (
@@ -1283,7 +1283,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
                             placeholder={t('assessment_creator.role_placeholder')}
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors"
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors dark:[color-scheme:dark]"
                         />
                     </div>
                     <div>
@@ -1292,7 +1292,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             value={skills}
                             onChange={(e) => setSkills(e.target.value)}
                             placeholder={t('assessment_creator.skills_placeholder')}
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none h-24 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors"
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none h-24 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors dark:[color-scheme:dark]"
                         />
                         {isExtracting && (
                             <div className="flex items-center gap-2 mt-1 text-xs text-cyan-500 italic">
@@ -1306,7 +1306,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                         <select
                             value={difficulty}
                             onChange={(e) => setDifficulty(e.target.value)}
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white transition-colors"
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white transition-colors dark:[color-scheme:dark]"
                         >
                             <option value="Junior">{t('assessment_creator.difficulty.junior')}</option>
                             <option value="Medior">{t('assessment_creator.difficulty.medior')}</option>

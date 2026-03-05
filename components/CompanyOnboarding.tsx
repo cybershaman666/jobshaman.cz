@@ -67,7 +67,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                         <div className="relative group">
                             <Building size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                             <input
-                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all dark:[color-scheme:dark]"
                                 placeholder={t('company_onboarding.step1.company_name_placeholder')}
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -78,7 +78,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                     <div className="relative">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">{t('company_onboarding.step1.ico')}</label>
                         <input
-                            className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                            className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all dark:[color-scheme:dark]"
                             placeholder={t('company_onboarding.step1.ico_placeholder')}
                             value={formData.ico}
                             onChange={e => setFormData({ ...formData, ico: e.target.value })}
@@ -88,7 +88,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                     <div className="relative">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">{t('company_onboarding.step1.dic')}</label>
                         <input
-                            className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                            className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all dark:[color-scheme:dark]"
                             placeholder={t('company_onboarding.step1.dic_placeholder')}
                             value={formData.dic}
                             onChange={e => setFormData({ ...formData, dic: e.target.value })}
@@ -100,7 +100,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                         <div className="relative group">
                             <MapPin size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                             <input
-                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all dark:[color-scheme:dark]"
                                 placeholder={t('company_onboarding.step1.address_placeholder')}
                                 value={formData.address}
                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
@@ -147,7 +147,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                         <div className="relative">
                             <Briefcase size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                             <input
-                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all dark:[color-scheme:dark]"
                                 placeholder={t('company_onboarding.step2.industry_placeholder')}
                                 value={formData.industry}
                                 onChange={e => setFormData({ ...formData, industry: e.target.value })}
@@ -160,7 +160,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
                         <div className="relative">
                             <FileText size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                             <textarea
-                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all min-h-[120px] resize-none"
+                                className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all min-h-[120px] resize-none dark:[color-scheme:dark]"
                                 placeholder={t('company_onboarding.step2.philosophy_placeholder')}
                                 value={formData.philosophy}
                                 onChange={e => setFormData({ ...formData, philosophy: e.target.value })}

@@ -44,29 +44,29 @@ export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFil
 
     if (isLoading) {
         return (
-            <div className="filter-suggestions loading">
-                <div className="suggestion-skeleton"></div>
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                {t('common.loading', { defaultValue: 'Loading...' })}
             </div>
         );
     }
 
     return (
-        <div className="filter-suggestions">
-            <h4 className="suggestions-title">
+        <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                 {userProfile.isLoggedIn ? t('filter_suggestions.title_personal') : t('filter_suggestions.title_popular')}
             </h4>
-            <div className="suggestion-chips">
+            <div className="mt-2 flex flex-wrap gap-2">
                 {suggestions.map((suggestion, index) => (
                     <button
                         key={index}
                         onClick={() => onApplyFilter(suggestion.filters)}
-                        className="suggestion-chip"
+                        className="inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/55 px-3 py-2 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-cyan-50/70 dark:hover:bg-cyan-950/20"
                         title={`${suggestion.avgResults} average results • ${suggestion.usageCount} uses`}
                     >
-                        <span className="chip-text">
+                        <span className="min-w-0 flex-1 truncate font-medium">
                             {AnalyticsService.formatFilterCombination(suggestion.filters)}
                         </span>
-                        <span className="chip-count">
+                        <span className="rounded-full bg-white dark:bg-slate-950 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                             {suggestion.usageCount}
                         </span>
                     </button>

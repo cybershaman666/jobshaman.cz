@@ -2,7 +2,7 @@
   "app": {
     "title": "JobShaman",
     "description": "Profesionální Analýza Nabídek",
-    "search_placeholder": "Hledat pozici, firmu...",
+    "search_placeholder": "Najdi svoji výzvu, firmu...",
     "search_saved_placeholder": "Hledat v uložených...",
     "filters": "Filtry",
     "searching": "Vyvolávám nabídky...",
@@ -41,9 +41,20 @@
       "net_below": "Čistý příjem pod limitem o {{amount}}",
       "net_unknown": "Čistý příjem nelze spolehlivě odhadnout"
     },
-    "clear": "Clear",
-    "demo_alert": "Demo alert",
-    "saving": "Saving"
+    "clear": "Vymazat",
+    "demo_alert": "Demo režim je aktivní",
+    "saving": "Ukládám..."
+  },
+  "home": {
+    "discovery": {
+      "badge": "Digitální první kontakt",
+      "title": "Reaguj na skutečnou týmovou výzvu, ne na hlučný nábor.",
+      "meta": "Role ukáže pravdu jako první. Tvoje reakce otevře soukromý dialog bez zbytečného tlaku.",
+      "slots_label": "Aktivní dialogy",
+      "step_role_truth": "Pravda role",
+      "step_short_reply": "Krátká reakce",
+      "step_clear_state": "Jasný stav"
+    }
   },
   "filters": {
     "location_commute": "Lokalita a Dojezd",
@@ -1274,6 +1285,36 @@
       "workplace_address_placeholder": "Adresa kanceláře",
       "contact_email": "Kontaktní e-mail",
       "contact_email_placeholder": "jobs@firma.cz",
+      "hiring_stage_label": "Stav náboru",
+      "hiring_stage_help": "Kandidáti uvidí, v jaké fázi se proces nachází a jestli stále aktivně vyhodnocujete.",
+      "hiring_stage_options": {
+        "collecting_cvs": "Sbíráme reakce",
+        "reviewing_first_10": "Procházíme prvních 10 kandidátů",
+        "shortlisting": "Užší výběr",
+        "final_interviews": "Finální kola",
+        "offer_stage": "Nabídková fáze"
+      },
+      "handshake": {
+        "title": "První kontakt / úvodní odpověď",
+        "desc": "Firma jde první. Nastavte úvodní zadání a zodpovězte dvě otázky pravdy, které kandidát uvidí před reakcí.",
+        "first_reply": "Úvodní odpověď",
+        "first_reply_placeholder": "Popište první reálnou situaci, na kterou má kandidát reagovat, a jaký trade-off chcete vidět.",
+        "truth_hard": "Co je na této roli skutečně těžké?",
+        "truth_hard_placeholder": "Pojmenujte nepříjemnou realitu role: kde lidé narážejí, co vytváří tlak a co tým nemůže skrýt.",
+        "truth_fail": "Jaký typ člověka tady typicky selže?",
+        "truth_fail_placeholder": "Buďte konkrétní v nesouladu: jaký styl práce, mindset nebo tempo v tomto týmu obvykle nefunguje."
+      },
+      "rollout_schema_check": "Kontrola rollout schématu",
+      "rollout_ready": "Připraveno",
+      "rollout_attention": "Pozor",
+      "rollout_ok": "ok",
+      "rollout_missing": "chybí",
+      "rollout_sample_rows": "ukázkové řádky",
+      "rollout_tables": {
+        "job_applications": "job_applications",
+        "job_drafts": "job_drafts",
+        "job_versions": "job_versions"
+      },
       "section_ai_polished": "Vyladěno s AI podporou.",
       "section_human_hint": "Pište tuto část jasně a lidsky.",
       "section_labels": {

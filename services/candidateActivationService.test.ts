@@ -1,13 +1,26 @@
-import { DEFAULT_USER_PROFILE } from '../constants';
 import { deriveActivationState, getNextActivationStep, markFirstQualityAction } from './candidateActivationService';
 import { UserProfile } from '../types';
 
+const BASE_PROFILE: UserProfile = {
+  isLoggedIn: false,
+  name: '',
+  address: '',
+  transportMode: 'public',
+  preferences: {
+    workLifeBalance: 50,
+    financialGoals: 50,
+    commuteTolerance: 45,
+    priorities: [],
+    profile_visibility: 'recruiter',
+  },
+};
+
 const buildProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
-  ...DEFAULT_USER_PROFILE,
+  ...BASE_PROFILE,
   isLoggedIn: true,
   role: 'candidate',
   preferences: {
-    ...DEFAULT_USER_PROFILE.preferences,
+    ...BASE_PROFILE.preferences,
   },
   ...overrides,
 });
@@ -27,7 +40,7 @@ describe('candidateActivationService', () => {
     const profile = buildProfile({
       skills: ['SQL', 'Python'],
       preferences: {
-        ...DEFAULT_USER_PROFILE.preferences,
+        ...BASE_PROFILE.preferences,
         desired_role: 'Data Analyst',
       },
     });
@@ -43,7 +56,7 @@ describe('candidateActivationService', () => {
       cvText: 'a'.repeat(220),
       skills: ['SQL', 'Python', 'Excel'],
       preferences: {
-        ...DEFAULT_USER_PROFILE.preferences,
+        ...BASE_PROFILE.preferences,
         desired_role: 'Data Analyst',
         desired_salary_min: 55000,
       },

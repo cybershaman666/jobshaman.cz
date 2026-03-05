@@ -193,7 +193,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       type="email"
                       name="email"
                       required
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:[color-scheme:dark]"
                       placeholder={t('company_registration.email_placeholder')}
                       value={formData.email}
                       onChange={handleChange}
@@ -212,7 +212,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       name="password"
                       required
                       minLength={8}
-                      className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:[color-scheme:dark]"
                       placeholder={t('company_registration.password_placeholder')}
                       value={formData.password}
                       onChange={handleChange}
@@ -241,7 +241,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       type="text"
                       name="companyName"
                       required
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:[color-scheme:dark]"
                       placeholder={t('company_registration.company_name_placeholder')}
                       value={formData.companyName}
                       onChange={handleChange}
@@ -258,7 +258,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       type="text"
                       name="ico"
                       required
-                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:[color-scheme:dark]"
                       placeholder={t('company_registration.ico_placeholder')}
                       value={formData.ico}
                       onChange={handleChange}
@@ -271,7 +271,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                     <input
                       type="url"
                       name="website"
-                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:[color-scheme:dark]"
                       placeholder={t('company_registration.web_placeholder')}
                       value={formData.website}
                       onChange={handleChange}
@@ -297,7 +297,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       name="agreedToTerms"
                       checked={formData.agreedToTerms}
                       onChange={handleChange}
-                      className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                      className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 dark:[color-scheme:dark]"
                     />
                     <span className="text-sm text-slate-600 dark:text-slate-400">
                       {t('company_registration.terms_agree')}
@@ -310,7 +310,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       name="agreedToPrivacy"
                       checked={formData.agreedToPrivacy}
                       onChange={handleChange}
-                      className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                      className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 dark:[color-scheme:dark]"
                     />
                     <span className="text-sm text-slate-600 dark:text-slate-400">
                       {t('company_registration.privacy_agree')}

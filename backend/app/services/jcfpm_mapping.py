@@ -127,8 +127,4 @@ def rank_roles(user: Dict[str, float], roles: List[dict], top_n: int = 10) -> Li
         if len(selected) >= top_n:
             return selected
 
-    for role in deferred_high_ai:
-        if len(selected) >= top_n:
-            break
-        selected.append(role)
     return selected[:top_n]

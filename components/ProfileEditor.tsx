@@ -88,6 +88,46 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const localeBase = (i18n.language || 'cs').split('-')[0];
+  const isCsLikeProfile = localeBase === 'cs' || localeBase === 'sk';
+  const supportingContextCopy = isCsLikeProfile
+    ? {
+        tabLabel: 'Podklady',
+        tabCaption: 'CV a doplňky',
+        aiDraftTitle: 'Uložený AI draft profilu',
+        aiDraftDesc: 'Můžete si ručně upravit a uložit AI draft, aby se nemusel generovat znovu.',
+        aiDraftLoad: 'Načíst základní CV text',
+        aiDraftPlaceholder: 'Vložte nebo upravte AI draft profilu...',
+        aiDraftSave: 'Uložit AI draft',
+        aiDraftSaved: 'AI draft byl uložen.',
+        sectionTitle: 'Podklady a CV',
+        sectionIntro: 'CV je tady jen volitelný podpůrný dokument. Můžete si uložit klasické CV, AI draft nebo další materiály pro chvíli, kdy si firma vyžádá kontext navíc.',
+        uploadedTitle: 'Podklad je připravený',
+        uploadedDesc: 'Dokument zůstane připravený jako volitelný kontext pro budoucí handshaky.',
+        replaceLabel: 'Nahradit dokument',
+        emptyTitle: 'Přidat CV nebo podpůrný dokument',
+        emptyDesc: 'Uložte si sem životopis nebo doplňující dokument pro firmy, které chtějí další kontext.',
+        selectLabel: 'Vybrat dokument',
+        libraryTitle: 'Knihovna dokumentů'
+      }
+    : {
+        tabLabel: 'Supporting context',
+        tabCaption: 'CV and supporting docs',
+        aiDraftTitle: 'Saved AI profile draft',
+        aiDraftDesc: 'You can edit and save the AI draft manually so it does not need to be generated again.',
+        aiDraftLoad: 'Load base CV text',
+        aiDraftPlaceholder: 'Paste or edit your AI profile draft here...',
+        aiDraftSave: 'Save AI draft',
+        aiDraftSaved: 'AI draft saved.',
+        sectionTitle: 'Supporting context and CV',
+        sectionIntro: 'Your CV is optional supporting context here. Keep a resume, AI draft, or other background material ready for teams that ask for extra detail.',
+        uploadedTitle: 'Supporting document is ready',
+        uploadedDesc: 'This file stays available as optional context for future handshakes.',
+        replaceLabel: 'Replace document',
+        emptyTitle: 'Add a CV or supporting document',
+        emptyDesc: 'Store a resume or extra background file here for teams that ask for more context.',
+        selectLabel: 'Select document',
+        libraryTitle: 'Document library'
+      };
   const profilePremiumCopy = {
     cs: {
       aiGuideBadge: 'Prémiový pomocník',
@@ -451,20 +491,35 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     key: ProfileTabKey;
     icon: React.ComponentType<{ className?: string }>;
     label: string;
+    caption?: string;
   }> = [
     { key: 'personal', icon: User, label: t('profile.personal_info', { defaultValue: 'Osobní údaje' }) },
-    { key: 'cv', icon: FileText, label: t('profile.cv_section', { defaultValue: 'CV' }) },
+    {
+      key: 'cv',
+      icon: FileText,
+      label: t('profile.supporting_context_tab', { defaultValue: supportingContextCopy.tabLabel }),
+      caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
+    },
     { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
     { key: 'settings', icon: Bell, label: t('profile.settings_title', { defaultValue: 'Email a nastavení' }) },
-    { key: 'saved', icon: Bookmark, label: t('profile.job_hub.title', { defaultValue: 'Správa nabídek' }) },
+    {
+      key: 'saved',
+      icon: Bookmark,
+      label: t('profile.job_hub.badge', { defaultValue: 'Handshake hub' }),
+      caption: t('profile.job_hub.tab_caption', { defaultValue: 'Dialogy a sloty' })
+    },
   ];
   const isPersonalTab = activeTab === 'personal';
   const isCvTab = activeTab === 'cv';
   const isJcfpmTab = activeTab === 'jcfpm';
   const isSettingsTab = activeTab === 'settings';
+  const profileInputClass = 'w-full rounded-[0.95rem] border border-slate-300 bg-white/90 px-4 py-2.5 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]';
+  const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-slate-300 bg-white/90 px-3 py-2 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]';
+  const profileIconButtonClass = 'rounded-[0.9rem] p-2 text-slate-500 transition-colors hover:bg-cyan-50 hover:text-cyan-600 dark:text-slate-400 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-400';
+  const profilePrimaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-[0.95rem] bg-cyan-600 px-5 py-2.5 font-medium text-white shadow-[0_18px_32px_-24px_rgba(6,182,212,0.34)] transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60';
 
   const renderAiGuidePanel = isCvTab ? (
-    <div className="h-full rounded-2xl border border-cyan-200/80 dark:border-cyan-800/60 bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950 shadow-xl overflow-hidden">
+    <div className="h-full overflow-hidden rounded-[1.05rem] border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-[0_22px_42px_-34px_rgba(8,145,178,0.28)] dark:border-cyan-800/60 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950">
       <div className="border-b border-cyan-200/80 dark:border-cyan-800/60 bg-white/70 dark:bg-cyan-950/10 px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
@@ -496,7 +551,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           ))}
         </div>
 
-        <div className="rounded-2xl border border-cyan-200/80 dark:border-cyan-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+        <div className="rounded-[1rem] border border-cyan-200/80 bg-white/80 p-4 dark:border-cyan-900/40 dark:bg-slate-900/70">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {t('profile.ai_guide_long_desc', {
               defaultValue: 'Nadiktujte svůj příběh a AI z něj sestaví použitelný profilový narativ, doporučení pro CV i konkrétní text, který můžete dál ručně ladit.'
@@ -507,7 +562,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isPremium ? (
               <button
                 onClick={() => setShowAIGuide(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 transition-colors hover:bg-cyan-700"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[0.95rem] bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_32px_-24px_rgba(6,182,212,0.34)] transition-colors hover:bg-cyan-700"
               >
                 <Sparkles className="h-4 w-4" />
                 {t('profile.ai_guide_start', { defaultValue: profilePremiumCopy.aiGuideStart })}
@@ -537,14 +592,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 p-4">
+        <div className="rounded-[1rem] border border-slate-200/80 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/70">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                {t('profile.ai_cv_editor.title', { defaultValue: 'Saved AI CV text' })}
+                {t('profile.ai_cv_editor.title', { defaultValue: supportingContextCopy.aiDraftTitle })}
               </h3>
               <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                {t('profile.ai_cv_editor.desc', { defaultValue: 'You can edit and save AI CV text manually to avoid repeated AI generation.' })}
+                {t('profile.ai_cv_editor.desc', { defaultValue: supportingContextCopy.aiDraftDesc })}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -553,7 +608,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 type="button"
                 className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                {t('profile.ai_cv_editor.load_cv', { defaultValue: 'Load base CV text' })}
+                {t('profile.ai_cv_editor.load_cv', { defaultValue: supportingContextCopy.aiDraftLoad })}
               </button>
               <button
                 onClick={() => setEditableCvAiText('')}
@@ -570,7 +625,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             onChange={(e) => setEditableCvAiText(e.target.value)}
             rows={5}
             className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-3 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-            placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: 'Paste or edit your AI CV text here...' })}
+            placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: supportingContextCopy.aiDraftPlaceholder })}
           />
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -588,7 +643,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   if (onRefreshProfile) {
                     await onRefreshProfile();
                   }
-                  alert(t('profile.ai_cv_editor.saved', { defaultValue: 'AI CV text saved.' }));
+                  alert(t('profile.ai_cv_editor.saved', { defaultValue: supportingContextCopy.aiDraftSaved }));
                 } catch (error) {
                   console.error('Saving AI CV text failed:', error);
                   alert(t('profile.save_error'));
@@ -596,11 +651,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   setIsSavingCvAiText(false);
                 }
               }}
-              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+              className="inline-flex items-center justify-center rounded-[0.95rem] bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
             >
               {isSavingCvAiText
                 ? t('profile.ai_cv_editor.saving', { defaultValue: 'Saving...' })
-                : t('profile.ai_cv_editor.save', { defaultValue: 'Save AI CV text' })}
+                : t('profile.ai_cv_editor.save', { defaultValue: supportingContextCopy.aiDraftSave })}
             </button>
           </div>
         </div>
@@ -609,7 +664,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   ) : null;
 
   const renderTransportPanel = isSettingsTab ? (
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
       <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -1266,7 +1321,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-6xl mx-auto py-8 space-y-6">
         {/* Header */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
@@ -1317,7 +1372,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <button
               onClick={handleSaveClick}
               disabled={isSavingProfile}
-              className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`${profilePrimaryButtonClass} w-full sm:w-auto px-6 py-3`}
             >
               <Save size={18} />
               {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
@@ -1335,7 +1390,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-lg p-2">
+        <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-2 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {profileTabs.map((tab) => {
               const Icon = tab.icon;
@@ -1344,8 +1399,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`rounded-xl border px-3 py-3 text-left transition-all ${isActive
-                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-lg shadow-cyan-500/20'
+                  className={`rounded-[0.95rem] border px-3 py-3 text-left transition-all ${isActive
+                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-[0_18px_34px_-26px_rgba(6,182,212,0.32)]'
                     : 'border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-cyan-300 hover:bg-white dark:hover:bg-slate-800'
                     }`}
                 >
@@ -1355,6 +1410,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold leading-tight">{tab.label}</div>
+                      {tab.caption ? (
+                        <div className={`mt-0.5 text-[11px] leading-tight ${isActive ? 'text-cyan-100/90' : 'text-slate-500 dark:text-slate-400'}`}>
+                          {tab.caption}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </button>
@@ -1370,7 +1430,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isPersonalTab && (
               <>
             {/* Personal Information Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1381,7 +1441,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                   <button
                     onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
-                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                    className={profileIconButtonClass}
                   >
                     <Edit size={16} />
                   </button>
@@ -1396,7 +1456,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="text"
                       value={formData.personal.name}
                       onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                     />
                   </div>
 
@@ -1406,7 +1466,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="text"
                       value={formData.personal.jobTitle}
                       onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                     />
                   </div>
                 </div>
@@ -1418,7 +1478,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="email"
                       value={formData.personal.email}
                       onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                     />
                   </div>
 
@@ -1428,7 +1488,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="tel"
                       value={formData.personal.phone}
                       onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                     />
                   </div>
                 </div>
@@ -1439,7 +1499,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     type="text"
                     value={formData.personal.address}
                     onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
+                    className={`w-full rounded-[0.95rem] border bg-white/90 px-4 py-2.5 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
                       addressVerificationStatus === 'error' ? 'border-rose-500' :
                         'border-slate-300 dark:border-slate-600'
                       }`}
@@ -1486,7 +1546,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.linkedIn}
                         onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
                         placeholder={t('profile.linkedin_placeholder')}
                       />
                     </div>
@@ -1500,7 +1560,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.portfolio}
                         onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
                         placeholder={t('profile.portfolio_placeholder')}
                       />
                     </div>
@@ -1514,7 +1574,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.github}
                         onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
                         placeholder={t('profile.github_placeholder')}
                       />
                     </div>
@@ -1532,14 +1592,21 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 {renderAiGuidePanel}
               </div>
               <div className="2xl:col-span-3">
-            {/* CV Upload Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            {/* Supporting Context Section */}
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-cyan-100 p-2 dark:bg-cyan-900/30">
                     <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                   </div>
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.cv_section')}</h2>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      {t('profile.supporting_context_section', { defaultValue: supportingContextCopy.sectionTitle })}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      {t('profile.supporting_context_desc', { defaultValue: supportingContextCopy.sectionIntro })}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1560,35 +1627,34 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     {profile.cvUrl ? (
                       <div>
                         <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                          {t('profile.cv_uploaded')}
+                          {t('profile.cv_uploaded', { defaultValue: supportingContextCopy.uploadedTitle })}
                         </p>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
-                          <span>{t('profile.cv_upload_success')}</span>
+                          <span>{t('profile.cv_upload_success', { defaultValue: supportingContextCopy.uploadedDesc })}</span>
                         </p>
                         <button
                           onClick={() => cvInputRef.current?.click()}
                           disabled={isUploadingCV}
-                          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                          className={`${profilePrimaryButtonClass} px-4 py-2 text-sm`}
                         >
-                          {t('profile.replace_cv')}
+                          {t('profile.replace_cv', { defaultValue: supportingContextCopy.replaceLabel })}
                         </button>
                       </div>
                     ) : (
                       <div>
                         <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                          {t('profile.upload_cv')}
+                          {t('profile.upload_cv', { defaultValue: supportingContextCopy.emptyTitle })}
                         </p>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                          {t('profile.upload_cv_desc')}
+                          {t('profile.upload_cv_desc', { defaultValue: supportingContextCopy.emptyDesc })}
                         </p>
                         <button
                           onClick={() => cvInputRef.current?.click()}
                           disabled={isUploadingCV}
-                          className={`px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
+                          className={`${profilePrimaryButtonClass} px-6 py-3 ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file')}
+                          {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file', { defaultValue: supportingContextCopy.selectLabel })}
                         </button>
                       </div>
                     )}
@@ -1597,7 +1663,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                 {profile.id && (
                   <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">{t('cv_manager.title')}</h4>
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+                      {t('cv_manager.title', { defaultValue: supportingContextCopy.libraryTitle })}
+                    </h4>
                     <CVManager userId={profile.id} isPremium={isPremium} />
                   </div>
                 )}
@@ -1611,7 +1679,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isCvTab && (
               <>
             {/* Work Experience Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1622,7 +1690,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                   <button
                     onClick={handleAddExperience}
-                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                    className={profileIconButtonClass}
                   >
                     <Plus size={16} />
                   </button>
@@ -1676,7 +1744,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={experience.company}
                                 onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.company_placeholder')}
                               />
                             </div>
@@ -1687,7 +1755,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={experience.role}
                                 onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.role_placeholder')}
                               />
                             </div>
@@ -1699,7 +1767,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                               type="text"
                               value={experience.duration}
                               onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
-                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                              className={profileCompactInputClass}
                               placeholder={t('profile.duration_placeholder')}
                             />
                           </div>
@@ -1709,7 +1777,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                             <textarea
                               value={experience.description}
                               onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
-                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                              className={`${profileCompactInputClass} resize-none`}
                               rows={3}
                               placeholder={t('profile.description_placeholder')}
                             />
@@ -1730,7 +1798,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {/* Education Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1741,7 +1809,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                   <button
                     onClick={handleAddEducation}
-                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                    className={profileIconButtonClass}
                   >
                     <Plus size={16} />
                   </button>
@@ -1795,7 +1863,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={edu.school}
                                 onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.school_placeholder')}
                               />
                             </div>
@@ -1806,7 +1874,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={edu.degree}
                                 onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.degree_placeholder')}
                               />
                             </div>
@@ -1819,7 +1887,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={edu.field}
                                 onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.field_placeholder')}
                               />
                             </div>
@@ -1830,7 +1898,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 type="text"
                                 value={edu.year}
                                 onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                className={profileCompactInputClass}
                                 placeholder={t('profile.year_placeholder')}
                               />
                             </div>
@@ -1849,7 +1917,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {/* Skills Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1863,7 +1931,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                   <button
                     onClick={handleAddSkill}
-                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                    className={profileIconButtonClass}
                   >
                     <Plus size={16} />
                   </button>
@@ -1935,7 +2003,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isSettingsTab && (
               <>
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -1976,7 +2044,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="time"
                       value={formData.notifications.dailyDigestTime}
                       onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                     />
                   </div>
                   <div>
@@ -1987,7 +2055,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="text"
                       value={formData.notifications.dailyDigestTimezone}
                       onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      className={profileInputClass}
                       placeholder="Europe/Prague"
                     />
                   </div>
@@ -2000,7 +2068,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <select
                     value={formData.personal.preferredCountryCode}
                     onChange={(e) => handlePersonalInfoChange('preferredCountryCode', e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    className={profileInputClass}
                   >
                     <option value="CZ">{profileCountryCopy.countries.CZ}</option>
                     <option value="SK">{profileCountryCopy.countries.SK}</option>
@@ -2043,7 +2111,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {renderTransportPanel}
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2063,7 +2131,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <select
                     value={formData.taxProfile.countryCode}
                     onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   >
                     <option value="CZ">CZ</option>
                     <option value="SK">SK</option>
@@ -2078,7 +2146,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     type="number"
                     value={formData.taxProfile.taxYear}
                     onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   />
                 </div>
                 <div>
@@ -2086,7 +2154,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <select
                     value={formData.taxProfile.employmentType}
                     onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   >
                     <option value="employee">{t('profile.tax.employee')}</option>
                     <option value="contractor">{t('profile.tax.contractor')}</option>
@@ -2097,7 +2165,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <select
                     value={formData.taxProfile.maritalStatus}
                     onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   >
                     <option value="single">{t('profile.tax.single')}</option>
                     <option value="married">{t('profile.tax.married')}</option>
@@ -2110,7 +2178,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     min={0}
                     value={formData.taxProfile.childrenCount}
                     onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   />
                 </div>
                 <div>
@@ -2120,7 +2188,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     min={0}
                     value={formData.taxProfile.spouseAnnualIncome || 0}
                     onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    className={profileCompactInputClass}
                   />
                 </div>
                 {formData.taxProfile.countryCode === 'DE' && (
@@ -2132,7 +2200,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <select
                         value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
                         onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                        className={profileCompactInputClass}
                       >
                         <option value="I">I</option>
                         <option value="II">II</option>
@@ -2149,7 +2217,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <select
                         value={formData.taxProfile.deChurchTaxRate ?? 0}
                         onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                        className={profileCompactInputClass}
                       >
                         <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
                         <option value={0.08}>8 %</option>
@@ -2167,7 +2235,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         step={0.1}
                         value={formData.taxProfile.deKvzRate ?? 2.9}
                         onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                        className={profileCompactInputClass}
                       />
                     </div>
                   </>
@@ -2180,7 +2248,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <select
                       value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
                       onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                      className={profileCompactInputClass}
                     >
                       <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
                       <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
@@ -2190,7 +2258,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2315,7 +2383,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         min={0}
                         value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
                         onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white disabled:cursor-not-allowed"
+                        className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
                       />
                     </div>
                     <div>
@@ -2325,7 +2393,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         min={0}
                         value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
                         onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white disabled:cursor-not-allowed"
+                        className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
                       />
                     </div>
                   </div>
@@ -2356,7 +2424,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {FEATURE_HAPPINESS_AUDIT_THREE && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -2395,7 +2463,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <div className="space-y-4">
                       <div className="rounded-xl border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/60 dark:bg-cyan-950/20 p-4">
                         <div className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300 mb-2">
-                          Quest 1 · The Resource Leak
+                          {isCsLikeProfile ? 'Úkol 1 · Únik zdrojů' : 'Quest 1 · The Resource Leak'}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
                           Když se podíváš na svůj měsíční výpis z účtu a odečteš čas strávený v kolonách (v tvém případě {monthlyCommuteHours} hodiny), kolik energie ti reálně zbývá na věci, které tě definují?
@@ -2415,7 +2483,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
                                 }`}
                             >
-                              {resourceLeakToggles[key] ? `Pipe ON: ${label}` : `Pipe OFF: ${label}`}
+                              {resourceLeakToggles[key]
+                                ? `${isCsLikeProfile ? 'Zapnuto' : 'Pipe ON'}: ${label}`
+                                : `${isCsLikeProfile ? 'Vypnuto' : 'Pipe OFF'}: ${label}`}
                             </button>
                           ))}
                         </div>
@@ -2426,7 +2496,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                       <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
                         <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
-                          Quest 2 · The Narrative Mirror
+                          {isCsLikeProfile ? 'Úkol 2 · Zrcadlo příběhu' : 'Quest 2 · The Narrative Mirror'}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
                           Kdybys měl vymazat všechna formální "buzzwordy" ze svého životopisu, co je ten jeden moment v tvé kariéře, kdy jsi měl pocit, že jsi nezastavitelný a dělal jsi přesně to, co umíš nejlíp?
@@ -2434,7 +2504,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         <textarea
                           value={narrativeStory}
                           onChange={(e) => setNarrativeStory(e.target.value)}
-                          placeholder="Nadiktuj svůj příběh..."
+                          placeholder={isCsLikeProfile ? 'Nadiktuj svůj příběh...' : 'Dictate your story...'}
                           className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                         />
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -2450,7 +2520,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                       <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20 p-4">
                         <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
-                          Quest 3 · The Cultural Northstar
+                          {isCsLikeProfile ? 'Úkol 3 · Kulturní severka' : 'Quest 3 · The Cultural Northstar'}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
                           Představ si, že tvůj šéf udělá zásadní chybu. Co je v tvém ideálním světě ta správná reakce firmy – upřímná omluva v tónu „přátelský profesionál“, nebo tiché opravení procesu?
@@ -2494,7 +2564,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                             min={0}
                             value={happinessAuditInput.salary}
                             onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, salary: Number(e.target.value) || 0 }))}
-                            className="mt-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                            className={`mt-1 ${profileCompactInputClass}`}
                           />
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
@@ -2504,7 +2574,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                             min={0}
                             value={happinessAuditInput.commute_cost}
                             onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_cost: Number(e.target.value) || 0 }))}
-                            className="mt-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                            className={`mt-1 ${profileCompactInputClass}`}
                           />
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
@@ -2564,58 +2634,66 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </fieldset>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2">Life-Sustainability Orbit</div>
+                      <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2">
+                        {isCsLikeProfile ? 'Orbit životní udržitelnosti' : 'Life-Sustainability Orbit'}
+                      </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
                           enableControls
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
                         >
                           <LifeSustainabilityOrbit output={happinessAuditOutput} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          Live 3D disabled.
+                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
                         </div>
                       )}
                     </div>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Career Anchor vs Drift</div>
+                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
+                        {isCsLikeProfile ? 'Kariérní kotva vs. drift' : 'Career Anchor vs Drift'}
+                      </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
                         >
                           <CareerAnchorDrift output={happinessAuditOutput} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          Live 3D disabled.
+                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
                         </div>
                       )}
                     </div>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">The Narrative Mirror</div>
+                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                        {isCsLikeProfile ? 'Zrcadlo příběhu' : 'The Narrative Mirror'}
+                      </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
                         >
                           <NebulaOfPotential frame={narrativeFrame} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          Live 3D disabled.
+                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
                         </div>
                       )}
                     </div>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">The Cultural Northstar</div>
+                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
+                        {isCsLikeProfile ? 'Kulturní severka' : 'The Cultural Northstar'}
+                      </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
                         >
                           <CulturalNorthstarCompass
                             alignmentScore={culturalAlignment}
@@ -2625,11 +2703,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          Live 3D disabled.
+                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
                         </div>
                       )}
                       <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                        Cultural alignment: {culturalAlignment}% · mismatch: {culturalMismatch}%
+                        {isCsLikeProfile
+                          ? `Kulturní sladění: ${culturalAlignment}% · nesoulad: ${culturalMismatch}%`
+                          : `Cultural alignment: ${culturalAlignment}% · mismatch: ${culturalMismatch}%`}
                       </div>
                     </div>
                   </div>
@@ -2641,10 +2721,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         : t('happiness_audit_3d.results', { defaultValue: 'Audit output' })}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div><span className="text-slate-500">Time ring</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">Energy ring</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">Sustainability</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">Drift</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Časový okruh' : 'Time ring'}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Energetický okruh' : 'Energy ring'}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Udržitelnost' : 'Sustainability'}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Drift' : 'Drift'}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
                     </div>
                     <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
                       {(happinessAuditOutput?.recommendations || []).map((item, index) => (
@@ -2663,7 +2743,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             )}
 
             {isJcfpmTab && (
-            <div id="jcfpm-card" className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div id="jcfpm-card" className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Career Fit & Potential Test
@@ -2754,7 +2834,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           redirectToCheckout('premium', profile.id);
                         }
                       }}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
+                      className="mt-3 inline-flex items-center gap-2 rounded-[0.9rem] border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
                     >
                       {t('profile.jcfpm.unlock_premium_results', { defaultValue: profilePremiumCopy.jcfpmUnlock })}
                     </button>
@@ -2764,7 +2844,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
             )}
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+            <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {t('profile.save_hint_bottom', { defaultValue: 'Po úpravách profilu změny uložte.' })}
@@ -2772,7 +2852,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <button
                   onClick={handleSaveClick}
                   disabled={isSavingProfile}
-                  className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`${profilePrimaryButtonClass} w-full sm:w-auto px-6 py-3`}
                 >
                   <Save size={18} />
                   {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
@@ -2790,7 +2870,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {isSettingsTab && profile.isLoggedIn && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2815,7 +2895,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         minLength={6}
                         value={passwordForm.nextPassword}
                         onChange={(e) => setPasswordForm(prev => ({ ...prev, nextPassword: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        className={profileInputClass}
                         placeholder="••••••••"
                       />
                     </div>
@@ -2828,7 +2908,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         minLength={6}
                         value={passwordForm.confirmPassword}
                         onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        className={profileInputClass}
                         placeholder="••••••••"
                       />
                     </div>
@@ -2838,7 +2918,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       type="button"
                       onClick={handlePasswordChange}
                       disabled={isChangingPassword}
-                      className="px-5 py-2.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                      className={`${profilePrimaryButtonClass} px-5 py-2.5`}
                     >
                       {isChangingPassword
                         ? t('app.saving')
@@ -2861,7 +2941,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isSettingsTab && (
               <>
             {/* Danger Zone */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 border-red-200 dark:border-red-900/30 overflow-hidden">
+            <div className="overflow-hidden rounded-[1.05rem] border-2 border-red-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-red-900/30 dark:bg-slate-800/95">
               <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -2878,7 +2958,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                  className="inline-flex items-center gap-2 rounded-[0.95rem] bg-red-600 px-4 py-2 text-white font-medium transition-colors hover:bg-red-700"
                 >
                   <Trash2 size={16} />
                   {t('profile.delete_account')}
@@ -2897,7 +2977,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="w-full">
             <Suspense
               fallback={
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-sm text-slate-600 dark:text-slate-300">
+                <div className="rounded-[1rem] border border-slate-200 bg-white/95 p-6 text-sm text-slate-600 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-800/95 dark:text-slate-300">
                   {t('app.loading')}
                 </div>
               }
@@ -2922,7 +3002,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       {/* Account Deletion Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="animate-in zoom-in-95 duration-200 w-full max-w-md overflow-hidden rounded-[1.1rem] border border-slate-200 bg-white/95 shadow-[0_28px_60px_-38px_rgba(15,23,42,0.28)] fade-in dark:border-slate-700 dark:bg-slate-800/95">
             <div className="p-8">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 mx-auto">
                 <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
@@ -2953,7 +3033,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     }
                   }}
                   disabled={isDeleting}
-                  className="w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-red-500/20 disabled:opacity-50 active:scale-[0.98]"
+                  className="flex w-full items-center justify-center gap-3 rounded-[1rem] bg-red-600 py-4 font-bold text-white shadow-[0_20px_34px_-24px_rgba(220,38,38,0.28)] transition-all hover:bg-red-700 disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isDeleting ? (
                     <div className="flex items-center gap-2">
@@ -2973,7 +3053,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-[0.98]"
+                  className="w-full rounded-[1rem] bg-slate-100 py-3 font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-[0.98] dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                 >
                   {t('profile.delete_account_cancel')}
                 </button>

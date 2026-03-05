@@ -10,8 +10,10 @@ from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobIntera
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
+from ..services.asset_service import load_assets_metadata, serialize_asset_metadata
 from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs, hybrid_search_jobs_v2
 from ..services.email import send_review_email, send_recruiter_legality_email
+from ..services.dialogue_composer import build_dialogue_enrichment
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
@@ -147,6 +149,24 @@ _COMPANY_TIER_JOB_LIMITS: dict[str, int] = {
     "enterprise": 999999,
 }
 
+_COMPANY_TIER_ROLE_OPEN_LIMITS: dict[str, int] = {
+    "free": 1,
+    "trial": 1,
+    "starter": 3,
+    "growth": 10,
+    "professional": 25,
+    "enterprise": 999999,
+}
+
+_COMPANY_TIER_DIALOGUE_SLOT_LIMITS: dict[str, int] = {
+    "free": 3,
+    "trial": 3,
+    "starter": 12,
+    "growth": 40,
+    "professional": 100,
+    "enterprise": 999999,
+}
+
 
 def _require_company_tier(user: dict, company_id: str, allowed_tiers: set[str]) -> str:
     fast_tier = (user.get("subscription_tier") or "").lower()
@@ -155,6 +175,8 @@ def _require_company_tier(user: dict, company_id: str, allowed_tiers: set[str]) 
 
     company_sub = _fetch_latest_subscription_by("company_id", company_id)
     if not company_sub or not _is_active_subscription(company_sub):
+        if "free" in allowed_tiers:
+            return "free"
         raise HTTPException(status_code=403, detail="Active subscription required")
 
     tier = (company_sub.get("tier") or "free").lower()
@@ -219,6 +241,480 @@ def _sync_company_active_jobs_usage(company_id: str) -> None:
     except Exception as exc:
         print(f"⚠️ Failed to sync active job usage for company {company_id}: {exc}")
 
+
+_DIALOGUE_TERMINAL_STATUSES: set[str] = {
+    "withdrawn",
+    "rejected",
+    "hired",
+    "closed",
+    "closed_timeout",
+    "closed_rejected",
+    "closed_withdrawn",
+    "closed_role_filled",
+}
+_CANDIDATE_ACTIVE_DIALOGUE_LIMIT: int = 5
+_DIALOGUE_RESPONSE_TIMEOUT_HOURS: int = 72
+_ROLE_DIALOGUE_PREVIEW_LIMIT: int = max(1, int(os.getenv("ROLE_DIALOGUE_PREVIEW_LIMIT", "25")))
+
+
+def _get_latest_usage_row_for_subscription(subscription_id: str) -> dict | None:
+    if not supabase or not subscription_id:
+        return None
+    try:
+        usage_resp = (
+            supabase
+            .table("subscription_usage")
+            .select("*")
+            .eq("subscription_id", subscription_id)
+            .order("period_end", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return usage_resp.data[0] if usage_resp.data else None
+    except Exception:
+        return None
+
+
+def _is_active_dialogue_status(status_value: Any) -> bool:
+    status = str(status_value or "pending").strip().lower()
+    if not status:
+        status = "pending"
+    return status not in _DIALOGUE_TERMINAL_STATUSES
+
+
+def _serialize_dialogue_runtime(row: dict | None) -> dict[str, Any]:
+    source = row or {}
+    payload = _safe_dict(source.get("application_payload"))
+    deadline_at = str(payload.get("dialogue_deadline_at") or "").strip() or None
+    current_turn = str(payload.get("dialogue_current_turn") or "").strip() or None
+    close_reason = str(payload.get("dialogue_closed_reason") or "").strip() or None
+    closed_at = str(payload.get("dialogue_closed_at") or "").strip() or None
+    timeout_hours_raw = payload.get("dialogue_timeout_hours")
+    try:
+        timeout_hours = int(timeout_hours_raw) if timeout_hours_raw is not None else _DIALOGUE_RESPONSE_TIMEOUT_HOURS
+    except Exception:
+        timeout_hours = _DIALOGUE_RESPONSE_TIMEOUT_HOURS
+
+    status = str(source.get("status") or "").strip().lower()
+    if status == "closed_timeout" and not close_reason:
+        close_reason = "timeout"
+    if status == "closed_timeout" and not closed_at:
+        closed_at = str(source.get("updated_at") or source.get("reviewed_at") or "").strip() or None
+
+    deadline_dt = _parse_iso_datetime(deadline_at or "")
+    is_overdue = bool(
+        deadline_dt
+        and _is_active_dialogue_status(source.get("status"))
+        and deadline_dt <= datetime.now(timezone.utc)
+    )
+
+    return {
+        "dialogue_deadline_at": deadline_at,
+        "dialogue_current_turn": current_turn,
+        "dialogue_timeout_hours": timeout_hours,
+        "dialogue_closed_reason": close_reason,
+        "dialogue_closed_at": closed_at,
+        "dialogue_is_overdue": is_overdue,
+    }
+
+
+def _build_dialogue_timeout_payload(existing_payload: Any, current_turn: str) -> dict[str, Any]:
+    payload = _safe_dict(existing_payload)
+    current_turn_value = str(current_turn or "").strip().lower() or "company"
+    payload["dialogue_timeout_hours"] = _DIALOGUE_RESPONSE_TIMEOUT_HOURS
+    payload["dialogue_current_turn"] = current_turn_value
+    payload["dialogue_deadline_at"] = (
+        datetime.now(timezone.utc) + timedelta(hours=_DIALOGUE_RESPONSE_TIMEOUT_HOURS)
+    ).isoformat()
+    payload.pop("dialogue_closed_reason", None)
+    payload.pop("dialogue_closed_at", None)
+    return payload
+
+
+def _build_closed_dialogue_payload(existing_payload: Any, close_reason: str) -> dict[str, Any]:
+    payload = _safe_dict(existing_payload)
+    payload["dialogue_timeout_hours"] = _DIALOGUE_RESPONSE_TIMEOUT_HOURS
+    payload.pop("dialogue_current_turn", None)
+    payload.pop("dialogue_deadline_at", None)
+    payload["dialogue_closed_reason"] = str(close_reason or "closed").strip().lower()
+    payload["dialogue_closed_at"] = now_iso()
+    return payload
+
+
+def _normalize_dialogue_close_reason(value: Any) -> str | None:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return None
+
+    mapping = {
+        "closed_timeout": "timeout",
+        "timeout": "timeout",
+        "closed_rejected": "rejected",
+        "rejected": "rejected",
+        "closed_withdrawn": "withdrawn",
+        "withdrawn": "withdrawn",
+        "closed_role_filled": "role_filled",
+        "role_filled": "role_filled",
+        "filled": "role_filled",
+        "hired": "hired",
+        "hire": "hired",
+        "closed": "closed",
+    }
+    if raw in mapping:
+        return mapping[raw]
+    if raw.startswith("closed_"):
+        return raw.replace("closed_", "", 1) or "closed"
+    return raw
+
+
+def _dialogue_close_reason_label(value: Any) -> str | None:
+    normalized = _normalize_dialogue_close_reason(value)
+    if not normalized:
+        return None
+
+    labels = {
+        "timeout": "Closed by timeout",
+        "rejected": "Rejected",
+        "withdrawn": "Candidate withdrew",
+        "role_filled": "Role filled",
+        "hired": "Hired",
+        "closed": "Closed",
+    }
+    if normalized in labels:
+        return labels[normalized]
+    return normalized.replace("_", " ").strip().title() or "Closed"
+
+
+def _build_dialogue_activity_payload(
+    application_id: str,
+    status: Any,
+    close_reason: Any = None,
+) -> dict[str, Any]:
+    status_value = str(status or "pending").strip().lower() or "pending"
+    normalized_close_reason = _normalize_dialogue_close_reason(close_reason or status_value)
+    payload: dict[str, Any] = {
+        "application_id": application_id,
+        "status": status_value,
+    }
+    if _is_active_dialogue_status(status_value):
+        return payload
+
+    payload["close_reason"] = normalized_close_reason or "closed"
+    payload["close_reason_label"] = _dialogue_close_reason_label(normalized_close_reason or "closed") or "Closed"
+    return payload
+
+
+def _normalize_role_status(value: Any) -> str | None:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return None
+
+    mapping = {
+        "published": "active",
+        "open": "active",
+        "reopened": "active",
+        "live": "active",
+    }
+    return mapping.get(raw, raw)
+
+
+def _role_status_label(value: Any) -> str | None:
+    normalized = _normalize_role_status(value)
+    if not normalized:
+        return None
+
+    labels = {
+        "active": "Active",
+        "paused": "Paused",
+        "closed": "Closed",
+        "archived": "Archived",
+        "draft": "Draft",
+        "published_linked": "Published",
+    }
+    if normalized in labels:
+        return labels[normalized]
+    return normalized.replace("_", " ").strip().title() or None
+
+
+def _build_role_activity_payload(
+    job_id: str,
+    job_title: str,
+    *,
+    version_number: Any = None,
+    previous_status: Any = None,
+    next_status: Any = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "job_id": str(job_id or "").strip(),
+        "job_title": str(job_title or "").strip(),
+    }
+
+    if version_number is not None:
+        payload["version_number"] = version_number
+
+    normalized_previous = _normalize_role_status(previous_status)
+    normalized_next = _normalize_role_status(next_status)
+    if normalized_previous:
+        payload["previous_status"] = normalized_previous
+        payload["previous_status_label"] = _role_status_label(normalized_previous) or normalized_previous.title()
+    if normalized_next:
+        payload["next_status"] = normalized_next
+        payload["next_status_label"] = _role_status_label(normalized_next) or normalized_next.title()
+
+    current_status = normalized_next or normalized_previous
+    if current_status:
+        payload["role_status"] = current_status
+        payload["role_status_label"] = _role_status_label(current_status) or current_status.title()
+
+    return payload
+
+
+def _persist_dialogue_state(application_id: str, application_payload: dict | None = None, status: str | None = None) -> bool:
+    if not supabase or not application_id:
+        return False
+
+    update_payload: dict[str, Any] = {}
+    if status is not None:
+        update_payload["status"] = status
+    if application_payload is not None:
+        update_payload["application_payload"] = application_payload
+    if not update_payload:
+        return False
+
+    try:
+        try:
+            with_timestamp = dict(update_payload)
+            with_timestamp["updated_at"] = now_iso()
+            supabase.table("job_applications").update(with_timestamp).eq("id", application_id).execute()
+            return True
+        except Exception as exc:
+            if _is_missing_column_error(exc, "updated_at"):
+                supabase.table("job_applications").update(update_payload).eq("id", application_id).execute()
+                return True
+            raise
+    except Exception as exc:
+        if application_payload is not None and _is_missing_column_error(exc, "application_payload"):
+            if status is None:
+                return False
+            status_payload = {"status": status}
+            try:
+                try:
+                    supabase.table("job_applications").update({
+                        "status": status,
+                        "updated_at": now_iso(),
+                    }).eq("id", application_id).execute()
+                except Exception as update_exc:
+                    if _is_missing_column_error(update_exc, "updated_at"):
+                        supabase.table("job_applications").update(status_payload).eq("id", application_id).execute()
+                    else:
+                        raise
+                return True
+            except Exception as status_exc:
+                print(f"⚠️ Failed to persist dialogue status for {application_id}: {status_exc}")
+                return False
+        print(f"⚠️ Failed to persist dialogue state for {application_id}: {exc}")
+        return False
+
+
+def _schedule_dialogue_timeout(row: dict | None, current_turn: str) -> dict:
+    source = dict(row or {})
+    application_id = str(source.get("id") or source.get("application_id") or "").strip()
+    payload = _build_dialogue_timeout_payload(source.get("application_payload"), current_turn=current_turn)
+    _persist_dialogue_state(application_id, application_payload=payload)
+    source["application_payload"] = payload
+    source["updated_at"] = now_iso()
+    return source
+
+
+def _expire_dialogue_if_needed(row: dict | None, sync_company_usage: bool = True) -> dict:
+    source = dict(row or {})
+    if not source or not _is_active_dialogue_status(source.get("status")):
+        return source
+
+    runtime = _serialize_dialogue_runtime(source)
+    if not runtime.get("dialogue_is_overdue"):
+        return source
+
+    application_id = str(source.get("id") or source.get("application_id") or "").strip()
+    closed_payload = _build_closed_dialogue_payload(source.get("application_payload"), close_reason="timeout")
+    persisted = _persist_dialogue_state(application_id, application_payload=closed_payload, status="closed_timeout")
+    source["status"] = "closed_timeout"
+    source["application_payload"] = closed_payload
+    source["updated_at"] = now_iso()
+    company_id = str(source.get("company_id") or "").strip()
+    if persisted and company_id:
+        _write_company_activity_log(
+            company_id=company_id,
+            event_type="application_status_changed",
+            payload=_build_dialogue_activity_payload(
+                application_id=application_id,
+                status="closed_timeout",
+                close_reason="timeout",
+            ),
+            actor_user_id=None,
+            subject_type="application",
+            subject_id=application_id,
+        )
+    if sync_company_usage and source.get("company_id"):
+        _sync_company_dialogue_slots_usage(str(source.get("company_id") or ""))
+    return source
+
+
+def _count_candidate_active_dialogues(candidate_id: str) -> int:
+    if not supabase or not candidate_id:
+        return 0
+    try:
+        try:
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("id,status,company_id,application_payload")
+                .eq("candidate_id", candidate_id)
+                .execute()
+            )
+        except Exception as exc:
+            if not _is_missing_column_error(exc, "application_payload"):
+                raise
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("id,status,company_id")
+                .eq("candidate_id", candidate_id)
+                .execute()
+            )
+        total = 0
+        for row in resp.data or []:
+            normalized_row = _expire_dialogue_if_needed(row, sync_company_usage=False)
+            if _is_active_dialogue_status((normalized_row or {}).get("status")):
+                total += 1
+        return total
+    except Exception:
+        return 0
+
+
+def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
+    used = _count_candidate_active_dialogues(candidate_id)
+    limit = _CANDIDATE_ACTIVE_DIALOGUE_LIMIT
+    return {
+        "active": used,
+        "limit": limit,
+        "remaining": max(0, limit - used),
+    }
+
+
+def _enforce_candidate_dialogue_limit(candidate_id: str) -> None:
+    current_active = _count_candidate_active_dialogues(candidate_id)
+    if current_active >= _CANDIDATE_ACTIVE_DIALOGUE_LIMIT:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Candidate limit reached: maximum {_CANDIDATE_ACTIVE_DIALOGUE_LIMIT} active dialogues",
+        )
+
+
+def _count_company_active_dialogues(company_id: str) -> int:
+    if not supabase or not company_id:
+        return 0
+    try:
+        try:
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("id,status,company_id,application_payload")
+                .eq("company_id", company_id)
+                .execute()
+            )
+        except Exception as exc:
+            if not _is_missing_column_error(exc, "application_payload"):
+                raise
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("id,status,company_id")
+                .eq("company_id", company_id)
+                .execute()
+            )
+        total = 0
+        for row in resp.data or []:
+            normalized_row = _expire_dialogue_if_needed(row, sync_company_usage=False)
+            if _is_active_dialogue_status((normalized_row or {}).get("status")):
+                total += 1
+        return total
+    except Exception:
+        return 0
+
+
+def _sync_company_dialogue_slots_usage(company_id: str) -> None:
+    if not supabase or not company_id:
+        return
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    subscription_id = str((company_sub or {}).get("id") or "")
+    if not subscription_id:
+        return
+    usage_row = _get_latest_usage_row_for_subscription(subscription_id)
+    if not usage_row:
+        return
+    active_dialogues = _count_company_active_dialogues(company_id)
+    try:
+        supabase.table("subscription_usage").update({
+            "active_dialogue_slots_used": active_dialogues
+        }).eq("id", usage_row["id"]).execute()
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "active_dialogue_slots_used"):
+            print(f"⚠️ Failed to sync dialogue slot usage for company {company_id}: {exc}")
+
+
+def _increment_company_role_opens_usage(company_id: str) -> None:
+    if not supabase or not company_id:
+        return
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    subscription_id = str((company_sub or {}).get("id") or "")
+    if not subscription_id:
+        return
+    usage_row = _get_latest_usage_row_for_subscription(subscription_id)
+    if not usage_row:
+        return
+    next_value = int((usage_row.get("role_opens_used") or 0) or 0) + 1
+    try:
+        supabase.table("subscription_usage").update({
+            "role_opens_used": next_value
+        }).eq("id", usage_row["id"]).execute()
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "role_opens_used"):
+            print(f"⚠️ Failed to increment role opens usage for company {company_id}: {exc}")
+
+
+def _enforce_company_dialogue_slot_limit(company_id: str, user: dict) -> None:
+    tier = _require_company_tier(
+        user,
+        company_id,
+        {"free", "trial", "starter", "growth", "professional", "enterprise"},
+    )
+    limit = _COMPANY_TIER_DIALOGUE_SLOT_LIMITS.get(tier, _COMPANY_TIER_DIALOGUE_SLOT_LIMITS["free"])
+    active_dialogues = _count_company_active_dialogues(company_id)
+    if active_dialogues >= limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Current plan allows up to {limit} active dialogue slots",
+        )
+
+
+def _enforce_company_role_open_limit(company_id: str, user: dict) -> None:
+    tier = _require_company_tier(
+        user,
+        company_id,
+        {"free", "trial", "starter", "growth", "professional", "enterprise"},
+    )
+    limit = _COMPANY_TIER_ROLE_OPEN_LIMITS.get(tier, _COMPANY_TIER_ROLE_OPEN_LIMITS["free"])
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    subscription_id = str((company_sub or {}).get("id") or "")
+    usage_row = _get_latest_usage_row_for_subscription(subscription_id) if subscription_id else None
+    used = int((usage_row or {}).get("role_opens_used") or 0)
+    if used >= limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Current plan allows up to {limit} role opens in the current billing period",
+        )
+
 def _normalize_job_id(job_id: str):
     return int(job_id) if str(job_id).isdigit() else job_id
 
@@ -230,6 +726,88 @@ def _canonical_job_id(job_id) -> str:
     if not value:
         return ""
     return value
+
+
+def _safe_int(value: Any, fallback: int) -> int:
+    try:
+        parsed = int(value)
+    except Exception:
+        return fallback
+    return parsed if parsed > 0 else fallback
+
+
+def _resolve_role_dialogue_limit(job: dict) -> int:
+    for key in (
+        "dialogue_capacity_limit",
+        "dialogue_slots_limit",
+        "dialogue_limit",
+        "max_dialogues",
+        "max_active_dialogues",
+    ):
+        raw = job.get(key)
+        if raw is not None and str(raw).strip() != "":
+            return _safe_int(raw, _ROLE_DIALOGUE_PREVIEW_LIMIT)
+    return _ROLE_DIALOGUE_PREVIEW_LIMIT
+
+
+def _resolve_reaction_window_hours(job: dict) -> int:
+    for key in ("reaction_window_hours", "dialogue_timeout_hours", "dialogue_response_timeout_hours"):
+        raw = job.get(key)
+        if raw is not None and str(raw).strip() != "":
+            return _safe_int(raw, _DIALOGUE_RESPONSE_TIMEOUT_HOURS)
+    return _DIALOGUE_RESPONSE_TIMEOUT_HOURS
+
+
+def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
+    if not jobs:
+        return jobs
+
+    jobs_by_id: dict[str, list[dict]] = {}
+    normalized_job_ids: list[Any] = []
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+        canonical = _canonical_job_id(job.get("id"))
+        if not canonical:
+            continue
+        jobs_by_id.setdefault(canonical, []).append(job)
+        normalized = _normalize_job_id(canonical)
+        if normalized not in normalized_job_ids:
+            normalized_job_ids.append(normalized)
+
+    open_counts: dict[str, int] = {key: 0 for key in jobs_by_id.keys()}
+    if supabase and normalized_job_ids:
+        try:
+            app_rows_resp = (
+                supabase
+                .table("job_applications")
+                .select("job_id,status")
+                .in_("job_id", normalized_job_ids)
+                .limit(5000)
+                .execute()
+            )
+            for row in (app_rows_resp.data or []):
+                if not isinstance(row, dict):
+                    continue
+                if not _is_active_dialogue_status(row.get("status")):
+                    continue
+                row_key = _canonical_job_id(row.get("job_id"))
+                if row_key in open_counts:
+                    open_counts[row_key] = open_counts.get(row_key, 0) + 1
+        except Exception as exc:
+            print(f"⚠️ Failed to compute per-role dialogue preview metrics: {exc}")
+
+    for key, group in jobs_by_id.items():
+        opened = max(0, int(open_counts.get(key, 0) or 0))
+        for job in group:
+            limit = _resolve_role_dialogue_limit(job)
+            timeout_hours = _resolve_reaction_window_hours(job)
+            job["open_dialogues_count"] = opened
+            job["dialogue_capacity_limit"] = limit
+            job["reaction_window_hours"] = timeout_hours
+            job["reaction_window_days"] = max(1, int((timeout_hours + 23) // 24))
+
+    return jobs
 
 
 def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[list[str], list[str]]:
@@ -363,6 +941,117 @@ def _serialize_company_activity_event(row: dict | None) -> dict:
     }
 
 
+def _humanize_company_activity_event_type(event_type: Any) -> str:
+    normalized = str(event_type or "").strip().lower()
+    if not normalized:
+        return "Activity logged"
+
+    overrides = {
+        "application_status_changed": "Dialogue status changed",
+        "application_withdrawn": "Dialogue withdrawn",
+        "application_message_from_candidate": "Candidate replied",
+        "application_message_from_company": "Company replied",
+        "assessment_invited": "Assessment invitation sent",
+        "assessment_saved": "Assessment saved",
+        "assessment_duplicated": "Assessment duplicated",
+        "assessment_archived": "Assessment archived",
+        "job_published": "Role published",
+        "job_updated": "Role updated",
+        "job_closed": "Role closed",
+        "job_paused": "Role paused",
+        "job_archived": "Role archived",
+        "job_reopened": "Role reopened",
+    }
+    if normalized in overrides:
+        return overrides[normalized]
+    return normalized.replace("_", " ").strip().title() or "Activity logged"
+
+
+def _normalize_company_activity_payload(event_type: str, payload: dict | None = None) -> dict[str, Any]:
+    normalized_event_type = str(event_type or "").strip()
+    value = _safe_dict(payload)
+
+    if normalized_event_type == "assessment_invited":
+        value["action_label"] = str(value.get("action_label") or "Assessment invitation sent").strip()
+        if value.get("assessment_title") is not None:
+            value["assessment_title"] = str(value.get("assessment_title") or "").strip() or None
+        if value.get("candidate_name") is not None:
+            value["candidate_name"] = str(value.get("candidate_name") or "").strip() or None
+        if value.get("candidate_email") is not None:
+            value["candidate_email"] = str(value.get("candidate_email") or "").strip() or None
+        if value.get("job_title") is not None:
+            value["job_title"] = str(value.get("job_title") or "").strip() or None
+        return value
+
+    if normalized_event_type == "assessment_saved":
+        value["action_label"] = str(value.get("action_label") or "Assessment saved").strip()
+        if value.get("assessment_title") is not None:
+            value["assessment_title"] = str(value.get("assessment_title") or "").strip() or None
+        if value.get("job_title") is not None:
+            value["job_title"] = str(value.get("job_title") or "").strip() or None
+        return value
+
+    if normalized_event_type == "assessment_duplicated":
+        value["action_label"] = str(value.get("action_label") or "Assessment duplicated").strip()
+        if value.get("assessment_title") is not None:
+            value["assessment_title"] = str(value.get("assessment_title") or "").strip() or None
+        return value
+
+    if normalized_event_type == "assessment_archived":
+        value["action_label"] = str(value.get("action_label") or "Assessment archived").strip()
+        if value.get("assessment_title") is not None:
+            value["assessment_title"] = str(value.get("assessment_title") or "").strip() or None
+        return value
+
+    if normalized_event_type in {"application_message_from_candidate", "application_message_from_company"}:
+        direction = "candidate" if normalized_event_type.endswith("_candidate") else "company"
+        value["direction"] = str(value.get("direction") or direction).strip().lower() or direction
+        direction_label = str(
+            value.get("direction_label")
+            or ("Candidate replied" if value["direction"] == "candidate" else "Company replied")
+        ).strip()
+        value["direction_label"] = direction_label
+        value["action_label"] = str(value.get("action_label") or direction_label).strip()
+        return value
+
+    if normalized_event_type in {"application_status_changed", "application_withdrawn"}:
+        return _build_dialogue_activity_payload(
+            application_id=str(value.get("application_id") or "").strip(),
+            status=value.get("status"),
+            close_reason=value.get("close_reason"),
+        ) | {
+            key: raw
+            for key, raw in value.items()
+            if key not in {"application_id", "status", "close_reason", "close_reason_label"}
+        }
+
+    if normalized_event_type.startswith("job_"):
+        return _build_role_activity_payload(
+            job_id=str(value.get("job_id") or "").strip(),
+            job_title=str(value.get("job_title") or "").strip(),
+            version_number=value.get("version_number"),
+            previous_status=value.get("previous_status"),
+            next_status=value.get("next_status") or value.get("role_status"),
+        ) | {
+            key: raw
+            for key, raw in value.items()
+            if key not in {
+                "job_id",
+                "job_title",
+                "version_number",
+                "previous_status",
+                "previous_status_label",
+                "next_status",
+                "next_status_label",
+                "role_status",
+                "role_status_label",
+            }
+        }
+
+    value["action_label"] = str(value.get("action_label") or _humanize_company_activity_event_type(normalized_event_type)).strip()
+    return value
+
+
 def _write_company_activity_log(
     company_id: str,
     event_type: str,
@@ -380,7 +1069,7 @@ def _write_company_activity_log(
             "event_type": event_type,
             "subject_type": subject_type or None,
             "subject_id": subject_id or None,
-            "payload": payload if isinstance(payload, dict) else {},
+            "payload": _normalize_company_activity_payload(event_type, payload if isinstance(payload, dict) else {}),
             "actor_user_id": actor_user_id or None,
         }).execute()
     except Exception as exc:
@@ -501,14 +1190,15 @@ def _derive_candidate_headline(snapshot: dict | None) -> str | None:
     return None
 
 
-def _serialize_company_application_row(row: dict) -> dict:
+def _serialize_company_dialogue_row(row: dict) -> dict:
     job = _safe_dict(row.get("jobs"))
     profile = _safe_dict(row.get("profiles"))
     candidate_snapshot = _safe_dict(row.get("candidate_profile_snapshot"))
+    dialogue_runtime = _serialize_dialogue_runtime(row)
     jcfpm_share_level = _normalize_jcfpm_share_level(row.get("jcfpm_share_level"), _safe_dict(row.get("shared_jcfpm_payload")))
     cover_letter = str(row.get("cover_letter") or "").strip()
     cv_snapshot = _safe_dict(row.get("cv_snapshot"))
-    return {
+    out = {
         "id": row.get("id"),
         "job_id": row.get("job_id"),
         "candidate_id": row.get("candidate_id"),
@@ -525,10 +1215,13 @@ def _serialize_company_application_row(row: dict) -> dict:
         "has_jcfpm": jcfpm_share_level != "do_not_share" and bool(row.get("shared_jcfpm_payload")),
         "candidate_headline": _derive_candidate_headline(candidate_snapshot),
     }
+    out.update(dialogue_runtime)
+    return out
 
 
-def _serialize_application_dossier(row: dict) -> dict:
-    base = _serialize_company_application_row(row)
+def _serialize_dialogue_dossier(row: dict) -> dict:
+    base = _serialize_company_dialogue_row(row)
+    dialogue_runtime = _serialize_dialogue_runtime(row)
     base.update({
         "company_id": row.get("company_id"),
         "source": row.get("source"),
@@ -544,6 +1237,7 @@ def _serialize_application_dossier(row: dict) -> dict:
         ),
         "application_payload": _safe_dict(row.get("application_payload")),
     })
+    base.update(dialogue_runtime)
     return base
 
 
@@ -560,8 +1254,8 @@ def _extract_candidate_job_snapshot(row: dict) -> dict:
     }
 
 
-def _serialize_candidate_application_row(row: dict) -> dict:
-    base = _serialize_application_dossier(row)
+def _serialize_candidate_dialogue_row(row: dict) -> dict:
+    base = _serialize_dialogue_dossier(row)
     company = _safe_dict(row.get("companies"))
     job_snapshot = _extract_candidate_job_snapshot(row)
     application_payload = _safe_dict(base.get("application_payload"))
@@ -591,7 +1285,7 @@ def _serialize_candidate_application_row(row: dict) -> dict:
     }
 
 
-def _sanitize_application_message_attachments(raw: Any) -> list[dict]:
+def _sanitize_dialogue_message_attachments(raw: Any) -> list[dict]:
     if not isinstance(raw, list):
         return []
     attachments: list[dict] = []
@@ -615,14 +1309,122 @@ def _sanitize_application_message_attachments(raw: Any) -> list[dict]:
             size = None
         if size is not None:
             attachment["size"] = max(0, min(size, 20 * 1024 * 1024))
+            attachment["size_bytes"] = attachment["size"]
         content_type = str(item.get("content_type") or item.get("contentType") or "").strip()
         if content_type:
             attachment["content_type"] = content_type[:160]
+            attachment["mime_type"] = attachment["content_type"]
+        asset_id = str(item.get("asset_id") or item.get("id") or "").strip()
+        if asset_id:
+            attachment["asset_id"] = asset_id[:128]
+            attachment["id"] = attachment["asset_id"]
+        storage_provider = str(item.get("storage_provider") or item.get("provider") or "").strip()
+        if storage_provider:
+            attachment["storage_provider"] = storage_provider[:64]
+            attachment["provider"] = attachment["storage_provider"]
+        bucket = str(item.get("bucket") or "").strip()
+        if bucket:
+            attachment["bucket"] = bucket[:120]
+        object_key = str(item.get("object_key") or "").strip()
+        if object_key:
+            attachment["object_key"] = object_key[:500]
+        kind = str(item.get("kind") or "").strip()
+        if kind:
+            attachment["kind"] = kind[:64]
+        download_url = str(item.get("download_url") or "").strip()
+        if download_url:
+            attachment["download_url"] = download_url[:2000]
+        transcript_status = str(item.get("transcript_status") or "").strip()
+        if transcript_status:
+            attachment["transcript_status"] = transcript_status[:64]
         attachments.append(attachment)
     return attachments
 
 
-def _serialize_application_message(row: dict) -> dict:
+def _extract_attachment_asset_ids(attachments: list[dict]) -> list[str]:
+    asset_ids: list[str] = []
+    seen: set[str] = set()
+    for item in attachments:
+        if not isinstance(item, dict):
+            continue
+        asset_id = str(item.get("asset_id") or item.get("id") or "").strip()
+        if not asset_id or asset_id in seen:
+            continue
+        seen.add(asset_id)
+        asset_ids.append(asset_id[:128])
+    return asset_ids[:10]
+
+
+def _normalize_message_asset_ids(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        asset_id = str(item or "").strip()
+        if not asset_id or asset_id in seen:
+            continue
+        seen.add(asset_id)
+        out.append(asset_id[:128])
+        if len(out) >= 10:
+            break
+    return out
+
+
+def _hydrate_dialogue_message_attachments(row: dict, request_base_url: str | None = None) -> list[dict]:
+    attachments = _sanitize_dialogue_message_attachments(row.get("attachments"))
+    asset_ids = _normalize_message_asset_ids(row.get("asset_ids"))
+    if not request_base_url or not asset_ids:
+        return attachments
+
+    asset_rows = load_assets_metadata(asset_ids)
+    if not asset_rows:
+        return attachments
+
+    hydrated_by_id: dict[str, dict] = {}
+    for item in asset_rows:
+        asset_id = str(item.get("id") or item.get("asset_id") or "").strip()
+        if not asset_id:
+            continue
+        hydrated_by_id[asset_id] = serialize_asset_metadata(item, request_base_url)
+
+    if not hydrated_by_id:
+        return attachments
+
+    merged: list[dict] = []
+    seen_asset_ids: set[str] = set()
+    for existing in attachments:
+        current = dict(existing)
+        asset_id = str(current.get("asset_id") or current.get("id") or "").strip()
+        if not asset_id:
+            merged.append(current)
+            continue
+        hydrated = hydrated_by_id.get(asset_id)
+        if not hydrated:
+            merged.append(current)
+            continue
+        transcript_status = str(current.get("transcript_status") or "").strip()
+        current.update(hydrated)
+        if transcript_status:
+            current["transcript_status"] = transcript_status[:64]
+        merged.append(current)
+        seen_asset_ids.add(asset_id)
+
+    for asset_id in asset_ids:
+        if asset_id in seen_asset_ids:
+            continue
+        hydrated = hydrated_by_id.get(asset_id)
+        if hydrated:
+            merged.append(dict(hydrated))
+            seen_asset_ids.add(asset_id)
+    return merged
+
+
+def _serialize_dialogue_message(row: dict, request_base_url: str | None = None) -> dict:
+    attachments = _hydrate_dialogue_message_attachments(row, request_base_url=request_base_url)
+    audio_transcript_status = "not_applicable"
+    if any(str(item.get("kind") or "").lower() == "audio" for item in attachments):
+        audio_transcript_status = "ready" if any(str(item.get("transcript_status") or "").lower() == "ready" for item in attachments) else "pending"
     return {
         "id": str(row.get("id") or ""),
         "application_id": str(row.get("application_id") or ""),
@@ -631,11 +1433,56 @@ def _serialize_application_message(row: dict) -> dict:
         "sender_user_id": row.get("sender_user_id"),
         "sender_role": "candidate" if str(row.get("sender_role") or "").lower() == "candidate" else "recruiter",
         "body": str(row.get("body") or ""),
-        "attachments": _sanitize_application_message_attachments(row.get("attachments")),
+        "attachments": attachments,
+        "audio_transcript_status": audio_transcript_status,
         "created_at": row.get("created_at"),
         "read_by_candidate_at": row.get("read_by_candidate_at"),
         "read_by_company_at": row.get("read_by_company_at"),
     }
+
+
+def _serialize_dialogue_record(row: dict | None) -> dict:
+    source = row or {}
+    dialogue_id = str(source.get("dialogue_id") or source.get("id") or "")
+    role_id = source.get("role_id")
+    if role_id is None and source.get("job_id") is not None:
+        role_id = str(source.get("job_id") or "")
+    role_title = source.get("role_title")
+    if role_title is None and source.get("job_title") is not None:
+        role_title = source.get("job_title")
+
+    out = dict(source)
+    out["dialogue_id"] = dialogue_id
+    if role_id is not None:
+        out["role_id"] = role_id
+    if role_title is not None:
+        out["role_title"] = role_title
+    return out
+
+
+# Compatibility aliases during the application -> dialogue transition.
+_serialize_company_application_row = _serialize_company_dialogue_row
+_serialize_application_dossier = _serialize_dialogue_dossier
+_serialize_candidate_application_row = _serialize_candidate_dialogue_row
+_sanitize_application_message_attachments = _sanitize_dialogue_message_attachments
+_hydrate_application_message_attachments = _hydrate_dialogue_message_attachments
+_serialize_application_message = _serialize_dialogue_message
+
+
+def _serialize_dialogue_message(row: dict | None) -> dict:
+    source = row or {}
+    out = dict(source)
+    out["dialogue_id"] = str(source.get("dialogue_id") or source.get("application_id") or "")
+    return out
+
+
+def _serialize_role_record(row: dict | None) -> dict:
+    source = row or {}
+    out = dict(source)
+    out["role_id"] = str(source.get("role_id") or source.get("id") or "")
+    if source.get("job_id") is not None and "published_job_id" not in out:
+        out["published_job_id"] = source.get("job_id")
+    return out
 
 
 def _probe_schema_select(table_name: str, select_clause: str) -> dict:
@@ -670,6 +1517,10 @@ def _draft_to_validation_report(draft: dict) -> dict:
     salary_from = draft.get("salary_from")
     salary_to = draft.get("salary_to")
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=50)
+    handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
+    first_reply_prompt = str(draft.get("first_reply_prompt") or handshake.get("first_reply_prompt") or "").strip()
+    company_truth_hard = str(draft.get("company_truth_hard") or handshake.get("company_truth_hard") or "").strip()
+    company_truth_fail = str(draft.get("company_truth_fail") or handshake.get("company_truth_fail") or "").strip()
 
     if not title:
         blocking.append("Missing title.")
@@ -683,6 +1534,10 @@ def _draft_to_validation_report(draft: dict) -> dict:
         blocking.append("Missing public location.")
     if not contact_email:
         blocking.append("Missing application contact email.")
+    if not company_truth_hard:
+        blocking.append("Missing the company truth: what is actually hard about this role.")
+    if not company_truth_fail:
+        blocking.append("Missing the company truth: who typically struggles in this role.")
 
     if salary_from is None or salary_to is None:
         warnings.append("Salary is not fully transparent.")
@@ -693,12 +1548,18 @@ def _draft_to_validation_report(draft: dict) -> dict:
         warnings.append("Requirements section is still very short.")
     if len(benefits) < 2:
         warnings.append("Benefits are likely too vague or too thin.")
+    if not first_reply_prompt:
+        warnings.append("Add a first-reply prompt so candidates know how to start the handshake.")
     if len(role_summary) < 80:
         suggestions.append("Expand the role summary to make the opportunity clearer.")
     if len(responsibilities) < 180:
         suggestions.append("Add more concrete day-to-day responsibilities.")
     if len(requirements) < 180:
         suggestions.append("Clarify must-have skills and expected experience.")
+    if company_truth_hard and len(company_truth_hard) < 60:
+        suggestions.append("Make the 'what is hard' truth prompt more concrete.")
+    if company_truth_fail and len(company_truth_fail) < 60:
+        suggestions.append("Clarify what type of person usually struggles here.")
 
     transparency_score = max(0, min(100, 100 - len(blocking) * 22 - len(warnings) * 8))
     clarity_score = max(0, min(100, 45 + min(len(role_summary), 400) // 12 + min(len(responsibilities), 600) // 18))
@@ -724,6 +1585,16 @@ def _compose_job_description_from_draft(draft: dict) -> str:
         value = str(draft.get(key) or "").strip()
         if value:
             sections.append(f"### {heading}\n{value}")
+    handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
+    first_reply_prompt = str(draft.get("first_reply_prompt") or handshake.get("first_reply_prompt") or "").strip()
+    company_truth_hard = str(draft.get("company_truth_hard") or handshake.get("company_truth_hard") or "").strip()
+    company_truth_fail = str(draft.get("company_truth_fail") or handshake.get("company_truth_fail") or "").strip()
+    if first_reply_prompt:
+        sections.append(f"### First Reply\n{first_reply_prompt}")
+    if company_truth_hard:
+        sections.append(f"### Company Truth: What Is Actually Hard?\n{company_truth_hard}")
+    if company_truth_fail:
+        sections.append(f"### Company Truth: Who Typically Struggles?\n{company_truth_fail}")
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=20)
     if benefits:
         sections.append("### Benefits\n" + "\n".join([f"- {item}" for item in benefits]))
@@ -1236,7 +2107,7 @@ async def get_company_job_views(
 
 @router.post("/jobs/applications")
 @limiter.limit("60/minute")
-async def create_job_application(
+async def create_dialogue_legacy(
     payload: JobApplicationCreateRequest,
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1259,7 +2130,7 @@ async def create_job_application(
     cv_snapshot = _sanitize_cv_snapshot(payload.cv_snapshot)
     candidate_profile_snapshot = _sanitize_candidate_profile_snapshot(payload.candidate_profile_snapshot)
     shared_jcfpm_payload = _sanitize_jcfpm_payload(requested_share_level, payload.shared_jcfpm_payload)
-    application_payload = _safe_dict(payload.metadata)
+    application_payload = _build_dialogue_timeout_payload(_safe_dict(payload.metadata), current_turn="company")
 
     try:
         existing = (
@@ -1273,15 +2144,18 @@ async def create_job_application(
             .execute()
         )
         if existing.data:
-            row = existing.data[0]
+            row = _expire_dialogue_if_needed(existing.data[0])
             return {
                 "status": "exists",
                 "application_id": row.get("id"),
                 "created_at": row.get("created_at"),
                 "application": _serialize_application_dossier(row),
+                "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
             }
     except Exception as exc:
         print(f"⚠️ Failed to check existing application: {exc}")
+
+    _enforce_candidate_dialogue_limit(user_id)
 
     company_id = None
     try:
@@ -1289,6 +2163,9 @@ async def create_job_application(
         company_id = (job_resp.data or {}).get("company_id") if job_resp else None
     except Exception as exc:
         print(f"⚠️ Failed to resolve company for job {job_id}: {exc}")
+
+    if company_id:
+        _enforce_company_dialogue_slot_limit(str(company_id), user)
 
     insert_payload = {
         "job_id": job_id,
@@ -1314,7 +2191,14 @@ async def create_job_application(
         if res.data:
             app_id = res.data[0].get("id")
             row = res.data[0]
-        return {"status": "created", "application_id": app_id, "application": _serialize_application_dossier(row or insert_payload)}
+        if company_id:
+            _sync_company_dialogue_slots_usage(str(company_id))
+        return {
+            "status": "created",
+            "application_id": app_id,
+            "application": _serialize_application_dossier(row or insert_payload),
+            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+        }
     except Exception as exc:
         if any(_is_missing_column_error(exc, col) for col in [
             "source",
@@ -1338,7 +2222,13 @@ async def create_job_application(
                 }
                 res = supabase.table("job_applications").insert(fallback_payload).execute()
                 app_id = res.data[0].get("id") if res.data else None
-                return {"status": "created", "application_id": app_id}
+                if company_id:
+                    _sync_company_dialogue_slots_usage(str(company_id))
+                return {
+                    "status": "created",
+                    "application_id": app_id,
+                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+                }
             except Exception as fallback_exc:
                 print(f"⚠️ Fallback create application also failed: {fallback_exc}")
         print(f"⚠️ Failed to create application: {exc}")
@@ -1347,7 +2237,7 @@ async def create_job_application(
 
 @router.get("/jobs/applications/me")
 @limiter.limit("60/minute")
-async def list_my_job_applications(
+async def list_my_dialogues_legacy(
     request: Request,
     limit: int = Query(80, ge=1, le=200),
     user: dict = Depends(get_current_user),
@@ -1386,13 +2276,16 @@ async def list_my_job_applications(
             .execute()
         )
 
-    rows = resp.data or []
-    return {"applications": [_serialize_candidate_application_row(row) for row in rows]}
+    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
+    return {
+        "applications": [_serialize_candidate_application_row(row) for row in rows],
+        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+    }
 
 
 @router.get("/jobs/applications/{application_id}")
 @limiter.limit("60/minute")
-async def get_my_job_application_detail(
+async def get_my_dialogue_detail_legacy(
     application_id: str,
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1429,13 +2322,16 @@ async def get_my_job_application_detail(
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
+    row = _expire_dialogue_if_needed(row)
 
-    return {"application": _serialize_candidate_application_row(row)}
+    application = _serialize_candidate_application_row(row)
+    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
+    return {"application": application}
 
 
 @router.post("/jobs/applications/{application_id}/withdraw")
 @limiter.limit("30/minute")
-async def withdraw_my_job_application(
+async def withdraw_my_dialogue_legacy(
     application_id: str,
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1449,22 +2345,39 @@ async def withdraw_my_job_application(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    resp = (
-        supabase
-        .table("job_applications")
-        .select("id,candidate_id,company_id,status")
-        .eq("id", application_id)
-        .eq("candidate_id", user_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status,application_payload")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    row = _expire_dialogue_if_needed(row)
     current_status = str(row.get("status") or "pending")
-    if current_status in {"withdrawn", "rejected", "hired"}:
-        return {"status": current_status}
+    if not _is_active_dialogue_status(current_status):
+        return {
+            "status": current_status,
+            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+        }
 
     try:
         try:
@@ -1486,21 +2399,37 @@ async def withdraw_my_job_application(
     _write_company_activity_log(
         company_id=str(row.get("company_id") or ""),
         event_type="application_withdrawn",
-        payload={
-            "application_id": application_id,
-            "status": "withdrawn",
-        },
+        payload=_build_dialogue_activity_payload(
+            application_id=application_id,
+            status="withdrawn",
+            close_reason="withdrawn",
+        ),
         actor_user_id=user_id,
         subject_type="application",
         subject_id=application_id,
     )
 
-    return {"status": "withdrawn"}
+    if row.get("company_id"):
+        _sync_company_dialogue_slots_usage(str(row.get("company_id")))
+
+    _persist_dialogue_state(
+        application_id,
+        application_payload=_build_closed_dialogue_payload(
+            row.get("application_payload"),
+            close_reason="withdrawn",
+        ),
+        status="withdrawn",
+    )
+
+    return {
+        "status": "withdrawn",
+        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+    }
 
 
 @router.get("/jobs/applications/{application_id}/messages")
 @limiter.limit("60/minute")
-async def list_my_application_messages(
+async def list_my_dialogue_messages_legacy(
     application_id: str,
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1512,18 +2441,32 @@ async def list_my_application_messages(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    app_resp = (
-        supabase
-        .table("job_applications")
-        .select("id,candidate_id")
-        .eq("id", application_id)
-        .eq("candidate_id", user_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status,application_payload")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
     app_row = app_resp.data if app_resp else None
     if not app_row:
         raise HTTPException(status_code=404, detail="Application not found")
+    app_row = _expire_dialogue_if_needed(app_row)
 
     try:
         resp = (
@@ -1550,12 +2493,12 @@ async def list_my_application_messages(
             if str(row.get("id") or "") in unread_ids:
                 row["read_by_candidate_at"] = now_iso()
 
-    return {"messages": [_serialize_application_message(row) for row in rows]}
+    return {"messages": [_serialize_application_message(row, str(request.base_url)) for row in rows]}
 
 
 @router.post("/jobs/applications/{application_id}/messages")
 @limiter.limit("60/minute")
-async def create_my_application_message(
+async def create_my_dialogue_message_legacy(
     application_id: str,
     payload: ApplicationMessageCreateRequest,
     request: Request,
@@ -1570,21 +2513,38 @@ async def create_my_application_message(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    app_resp = (
-        supabase
-        .table("job_applications")
-        .select("id,candidate_id,company_id")
-        .eq("id", application_id)
-        .eq("candidate_id", user_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status,application_payload")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,candidate_id,company_id,status")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
     app_row = app_resp.data if app_resp else None
     if not app_row:
         raise HTTPException(status_code=404, detail="Application not found")
+    app_row = _expire_dialogue_if_needed(app_row)
+    if not _is_active_dialogue_status(app_row.get("status")):
+        raise HTTPException(status_code=409, detail="Dialogue is closed")
 
     body = str(payload.body or "").strip()
     attachments = _sanitize_application_message_attachments(payload.attachments)
+    asset_ids = _extract_attachment_asset_ids(attachments)
     if not body and not attachments:
         raise HTTPException(status_code=400, detail="Message body or attachment required")
 
@@ -1596,18 +2556,28 @@ async def create_my_application_message(
         "sender_role": "candidate",
         "body": body,
         "attachments": attachments,
+        "asset_ids": asset_ids,
         "created_at": now_iso(),
         "read_by_candidate_at": now_iso(),
         "read_by_company_at": None,
     }
     try:
-        resp = supabase.table("application_messages").insert(insert_payload).execute()
+        try:
+            resp = supabase.table("application_messages").insert(insert_payload).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "asset_ids"):
+                fallback_payload = dict(insert_payload)
+                fallback_payload.pop("asset_ids", None)
+                resp = supabase.table("application_messages").insert(fallback_payload).execute()
+            else:
+                raise
     except Exception as exc:
         if _is_missing_table_error(exc, "application_messages"):
             raise HTTPException(status_code=503, detail="Messaging not available")
         raise HTTPException(status_code=500, detail="Failed to send message")
 
     row = (resp.data or [insert_payload])[0]
+    _schedule_dialogue_timeout(app_row, current_turn="company")
     _write_company_activity_log(
         company_id=str(app_row.get("company_id") or ""),
         event_type="application_message_from_candidate",
@@ -1620,12 +2590,12 @@ async def create_my_application_message(
         subject_type="application",
         subject_id=application_id,
     )
-    return {"message": _serialize_application_message(row)}
+    return {"message": _serialize_application_message(row, str(request.base_url))}
 
 
 @router.get("/company/applications")
 @limiter.limit("60/minute")
-async def list_company_applications(
+async def list_company_dialogues_legacy(
     request: Request,
     company_id: str = Query(...),
     job_id: str | None = Query(None),
@@ -1666,7 +2636,7 @@ async def list_company_applications(
         except Exception:
             return {"company_id": company_id, "applications": []}
 
-    rows = resp.data or []
+    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
     out = []
     for row in rows:
         out.append(_serialize_company_application_row(row))
@@ -1676,7 +2646,7 @@ async def list_company_applications(
 
 @router.get("/company/applications/{application_id}")
 @limiter.limit("60/minute")
-async def get_company_application_detail(
+async def get_company_dialogue_detail_legacy(
     application_id: str,
     request: Request,
     user: dict = Depends(verify_subscription),
@@ -1708,13 +2678,16 @@ async def get_company_application_detail(
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
+    row = _expire_dialogue_if_needed(row)
     require_company_access(user, str(row.get("company_id") or ""))
-    return {"application": _serialize_application_dossier(row)}
+    application = _serialize_application_dossier(row)
+    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
+    return {"application": application}
 
 
 @router.get("/company/applications/{application_id}/messages")
 @limiter.limit("60/minute")
-async def list_company_application_messages(
+async def list_company_dialogue_messages_legacy(
     application_id: str,
     request: Request,
     user: dict = Depends(verify_subscription),
@@ -1722,17 +2695,30 @@ async def list_company_application_messages(
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    app_resp = (
-        supabase
-        .table("job_applications")
-        .select("id,company_id")
-        .eq("id", application_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,status,application_payload")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,status")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
     app_row = app_resp.data if app_resp else None
     if not app_row:
         raise HTTPException(status_code=404, detail="Application not found")
+    app_row = _expire_dialogue_if_needed(app_row)
 
     require_company_access(user, str(app_row.get("company_id") or ""))
 
@@ -1761,12 +2747,12 @@ async def list_company_application_messages(
             if str(row.get("id") or "") in unread_ids:
                 row["read_by_company_at"] = now_iso()
 
-    return {"messages": [_serialize_application_message(row) for row in rows]}
+    return {"messages": [_serialize_application_message(row, str(request.base_url)) for row in rows]}
 
 
 @router.post("/company/applications/{application_id}/messages")
 @limiter.limit("60/minute")
-async def create_company_application_message(
+async def create_company_dialogue_message_legacy(
     application_id: str,
     payload: ApplicationMessageCreateRequest,
     request: Request,
@@ -1777,23 +2763,39 @@ async def create_company_application_message(
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
 
-    app_resp = (
-        supabase
-        .table("job_applications")
-        .select("id,company_id,candidate_id")
-        .eq("id", application_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,candidate_id,status,application_payload")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,candidate_id,status")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
     app_row = app_resp.data if app_resp else None
     if not app_row:
         raise HTTPException(status_code=404, detail="Application not found")
+    app_row = _expire_dialogue_if_needed(app_row)
 
     company_id = str(app_row.get("company_id") or "")
     require_company_access(user, company_id)
+    if not _is_active_dialogue_status(app_row.get("status")):
+        raise HTTPException(status_code=409, detail="Dialogue is closed")
 
     body = str(payload.body or "").strip()
     attachments = _sanitize_application_message_attachments(payload.attachments)
+    asset_ids = _extract_attachment_asset_ids(attachments)
     if not body and not attachments:
         raise HTTPException(status_code=400, detail="Message body or attachment required")
 
@@ -1806,18 +2808,28 @@ async def create_company_application_message(
         "sender_role": "recruiter",
         "body": body,
         "attachments": attachments,
+        "asset_ids": asset_ids,
         "created_at": now_iso(),
         "read_by_candidate_at": None,
         "read_by_company_at": now_iso(),
     }
     try:
-        resp = supabase.table("application_messages").insert(insert_payload).execute()
+        try:
+            resp = supabase.table("application_messages").insert(insert_payload).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "asset_ids"):
+                fallback_payload = dict(insert_payload)
+                fallback_payload.pop("asset_ids", None)
+                resp = supabase.table("application_messages").insert(fallback_payload).execute()
+            else:
+                raise
     except Exception as exc:
         if _is_missing_table_error(exc, "application_messages"):
             raise HTTPException(status_code=503, detail="Messaging not available")
         raise HTTPException(status_code=500, detail="Failed to send message")
 
     row = (resp.data or [insert_payload])[0]
+    _schedule_dialogue_timeout(app_row, current_turn="candidate")
     _write_company_activity_log(
         company_id=company_id,
         event_type="application_message_from_company",
@@ -1830,12 +2842,12 @@ async def create_company_application_message(
         subject_type="application",
         subject_id=application_id,
     )
-    return {"message": _serialize_application_message(row)}
+    return {"message": _serialize_application_message(row, str(request.base_url))}
 
 
 @router.patch("/company/applications/{application_id}/status")
 @limiter.limit("60/minute")
-async def update_company_application_status(
+async def update_company_dialogue_status_legacy(
     application_id: str,
     payload: JobApplicationStatusUpdateRequest,
     request: Request,
@@ -1846,19 +2858,34 @@ async def update_company_application_status(
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
 
-    resp = (
-        supabase
-        .table("job_applications")
-        .select("id,company_id")
-        .eq("id", application_id)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,status,application_payload")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load application")
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,company_id,status")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
+    row = _expire_dialogue_if_needed(row)
 
     require_company_access(user, str(row.get("company_id") or ""))
+    if not _is_active_dialogue_status(row.get("status")):
+        return {"status": str(row.get("status") or "closed")}
 
     try:
         try:
@@ -1875,16 +2902,285 @@ async def update_company_application_status(
     _write_company_activity_log(
         company_id=str(row.get("company_id") or ""),
         event_type="application_status_changed",
-        payload={
-            "application_id": application_id,
-            "status": payload.status,
-        },
+        payload=_build_dialogue_activity_payload(
+            application_id=application_id,
+            status=payload.status,
+            close_reason=payload.status if not _is_active_dialogue_status(payload.status) else None,
+        ),
         actor_user_id=user.get("id") or user.get("auth_id"),
         subject_type="application",
         subject_id=application_id,
     )
 
+    if row.get("company_id"):
+        _sync_company_dialogue_slots_usage(str(row.get("company_id")))
+
+    updated_row = dict(row)
+    updated_row["status"] = payload.status
+    if _is_active_dialogue_status(payload.status):
+        _schedule_dialogue_timeout(updated_row, current_turn="candidate")
+    else:
+        _persist_dialogue_state(
+            application_id,
+            application_payload=_build_closed_dialogue_payload(
+                updated_row.get("application_payload"),
+                close_reason=str(payload.status or "closed"),
+            ),
+            status=payload.status,
+        )
+
     return {"status": "success"}
+
+
+# Compatibility aliases during the route-handler transition.
+create_job_application = create_dialogue_legacy
+list_my_job_applications = list_my_dialogues_legacy
+get_my_job_application_detail = get_my_dialogue_detail_legacy
+withdraw_my_job_application = withdraw_my_dialogue_legacy
+list_my_application_messages = list_my_dialogue_messages_legacy
+create_my_application_message = create_my_dialogue_message_legacy
+list_company_applications = list_company_dialogues_legacy
+get_company_application_detail = get_company_dialogue_detail_legacy
+list_company_application_messages = list_company_dialogue_messages_legacy
+create_company_application_message = create_company_dialogue_message_legacy
+update_company_application_status = update_company_dialogue_status_legacy
+
+
+@router.post("/dialogues")
+@limiter.limit("60/minute")
+async def create_dialogue(
+    payload: JobApplicationCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    response = await create_dialogue_legacy(payload=payload, request=request, user=user)
+    dialogue = response.get("application")
+    out = {
+        "status": response.get("status"),
+        "dialogue_id": str(response.get("application_id") or ""),
+    }
+    if response.get("candidate_capacity") is not None:
+        out["candidate_capacity"] = response.get("candidate_capacity")
+    if dialogue is not None:
+        out["dialogue"] = _serialize_dialogue_record(dialogue)
+    return out
+
+
+@router.get("/dialogues/me")
+@limiter.limit("60/minute")
+async def list_my_dialogues(
+    request: Request,
+    limit: int = Query(80, ge=1, le=200),
+    user: dict = Depends(get_current_user),
+):
+    response = await list_my_dialogues_legacy(request=request, limit=limit, user=user)
+    rows = response.get("applications") or []
+    return {
+        "dialogues": [_serialize_dialogue_record(row) for row in rows if isinstance(row, dict)],
+        "candidate_capacity": response.get("candidate_capacity"),
+    }
+
+
+@router.get("/dialogues/{dialogue_id}")
+@limiter.limit("60/minute")
+async def get_my_dialogue_detail(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    response = await get_my_dialogue_detail_legacy(application_id=dialogue_id, request=request, user=user)
+    return {"dialogue": _serialize_dialogue_record(response.get("application"))}
+
+
+@router.post("/dialogues/{dialogue_id}/withdraw")
+@limiter.limit("30/minute")
+async def withdraw_my_dialogue(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    return await withdraw_my_dialogue_legacy(application_id=dialogue_id, request=request, user=user)
+
+
+@router.get("/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def list_my_dialogue_messages(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    response = await list_my_dialogue_messages_legacy(application_id=dialogue_id, request=request, user=user)
+    rows = response.get("messages") or []
+    return {"messages": [_serialize_dialogue_message(row) for row in rows if isinstance(row, dict)]}
+
+
+@router.post("/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def create_my_dialogue_message(
+    dialogue_id: str,
+    payload: ApplicationMessageCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    response = await create_my_dialogue_message_legacy(
+        application_id=dialogue_id,
+        payload=payload,
+        request=request,
+        user=user,
+    )
+    return {"message": _serialize_dialogue_message(response.get("message"))}
+
+
+@router.get("/company/dialogues")
+@limiter.limit("60/minute")
+async def list_company_dialogues(
+    request: Request,
+    company_id: str = Query(...),
+    role_id: str | None = Query(None),
+    job_id: str | None = Query(None),
+    limit: int = Query(500, ge=1, le=2000),
+    user: dict = Depends(verify_subscription),
+):
+    response = await list_company_dialogues_legacy(
+        request=request,
+        company_id=company_id,
+        job_id=role_id or job_id,
+        limit=limit,
+        user=user,
+    )
+    rows = response.get("applications") or []
+    return {
+        "company_id": company_id,
+        "dialogues": [_serialize_dialogue_record(row) for row in rows if isinstance(row, dict)],
+    }
+
+
+@router.get("/company/dialogues/{dialogue_id}")
+@limiter.limit("60/minute")
+async def get_company_dialogue_detail(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await get_company_dialogue_detail_legacy(application_id=dialogue_id, request=request, user=user)
+    return {"dialogue": _serialize_dialogue_record(response.get("application"))}
+
+
+@router.get("/company/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def list_company_dialogue_messages(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await list_company_dialogue_messages_legacy(application_id=dialogue_id, request=request, user=user)
+    rows = response.get("messages") or []
+    return {"messages": [_serialize_dialogue_message(row) for row in rows if isinstance(row, dict)]}
+
+
+@router.post("/company/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def create_company_dialogue_message(
+    dialogue_id: str,
+    payload: ApplicationMessageCreateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await create_company_dialogue_message_legacy(
+        application_id=dialogue_id,
+        payload=payload,
+        request=request,
+        user=user,
+    )
+    return {"message": _serialize_dialogue_message(response.get("message"))}
+
+
+@router.patch("/company/dialogues/{dialogue_id}/status")
+@limiter.limit("60/minute")
+async def update_company_dialogue_status(
+    dialogue_id: str,
+    payload: JobApplicationStatusUpdateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    return await update_company_dialogue_status_legacy(
+        application_id=dialogue_id,
+        payload=payload,
+        request=request,
+        user=user,
+    )
+
+
+@router.post("/company/roles")
+@limiter.limit("60/minute")
+async def create_company_role(
+    payload: JobDraftUpsertRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await create_company_job_draft(payload=payload, request=request, user=user)
+    return {"role": _serialize_role_record(response.get("draft"))}
+
+
+@router.get("/company/roles")
+@limiter.limit("60/minute")
+async def list_company_roles(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await list_company_job_drafts(request=request, user=user)
+    rows = response.get("drafts") or []
+    return {"roles": [_serialize_role_record(row) for row in rows if isinstance(row, dict)]}
+
+
+@router.get("/company/roles/{role_id}")
+@limiter.limit("60/minute")
+async def get_company_role(
+    role_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await get_company_job_draft(draft_id=role_id, request=request, user=user)
+    return {"role": _serialize_role_record(response.get("draft"))}
+
+
+@router.patch("/company/roles/{role_id}")
+@limiter.limit("60/minute")
+async def update_company_role(
+    role_id: str,
+    payload: JobDraftUpsertRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await update_company_job_draft(draft_id=role_id, payload=payload, request=request, user=user)
+    return {"role": _serialize_role_record(response.get("draft"))}
+
+
+@router.post("/company/roles/{role_id}/validate")
+@limiter.limit("60/minute")
+async def validate_company_role(
+    role_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    return await validate_company_job_draft(draft_id=role_id, request=request, user=user)
+
+
+@router.post("/company/roles/{role_id}/publish")
+@limiter.limit("30/minute")
+async def publish_company_role(
+    role_id: str,
+    payload: JobDraftPublishRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    response = await publish_company_job_draft(draft_id=role_id, payload=payload, request=request, user=user)
+    if isinstance(response, dict):
+        response = dict(response)
+        response["role_id"] = str(role_id)
+        if response.get("job_id") is not None and response.get("published_job_id") is None:
+            response["published_job_id"] = response.get("job_id")
+    return response
 
 
 @router.get("/company/schema/rollout-status")
@@ -1981,7 +3277,7 @@ async def create_company_activity_log_event(
         "event_type": event_type,
         "subject_type": str(body.get("subject_type") or "").strip() or None,
         "subject_id": str(body.get("subject_id") or "").strip() or None,
-        "payload": payload if isinstance(payload, dict) else {},
+        "payload": _normalize_company_activity_payload(event_type, payload if isinstance(payload, dict) else {}),
         "actor_user_id": user.get("id") or user.get("auth_id"),
     }
 
@@ -2181,6 +3477,8 @@ async def publish_company_job_draft(
     }
 
     existing_job_id = _normalize_job_id(draft.get("job_id"))
+    if not existing_job_id:
+        _enforce_company_role_open_limit(company_id, user)
     _enforce_company_job_publish_limit(company_id, user, existing_job_id=existing_job_id)
     job_id = existing_job_id
     if job_id:
@@ -2251,20 +3549,24 @@ async def publish_company_job_draft(
     _write_company_activity_log(
         company_id=company_id,
         event_type="job_updated" if existing_job_id else "job_published",
-        payload={
-            "job_id": str(job_id),
-            "job_title": str(job_payload.get("title") or ""),
-            "version_number": next_version,
-        },
+        payload=_build_role_activity_payload(
+            job_id=str(job_id),
+            job_title=str(job_payload.get("title") or ""),
+            version_number=next_version,
+            next_status="active",
+        ),
         actor_user_id=user.get("id") or user.get("auth_id"),
         subject_type="job",
         subject_id=str(job_id),
     )
     _sync_company_active_jobs_usage(company_id)
+    if not existing_job_id:
+        _increment_company_role_opens_usage(company_id)
 
     return {"status": "success", "job_id": job_id, "version_number": next_version, "validation": validation}
 
 
+@router.post("/company/roles/{job_id}/edit-draft")
 @router.post("/company/jobs/{job_id}/edit-draft")
 @limiter.limit("30/minute")
 async def create_edit_draft_from_job(
@@ -2320,6 +3622,7 @@ async def create_edit_draft_from_job(
     return {"draft": draft}
 
 
+@router.get("/company/roles/{job_id}/versions")
 @router.get("/company/jobs/{job_id}/versions")
 @limiter.limit("60/minute")
 async def list_job_versions(
@@ -2342,6 +3645,7 @@ async def list_job_versions(
     return {"versions": resp.data or []}
 
 
+@router.post("/company/roles/{job_id}/duplicate")
 @router.post("/company/jobs/{job_id}/duplicate")
 @limiter.limit("30/minute")
 async def duplicate_job_into_draft(
@@ -2395,6 +3699,7 @@ async def duplicate_job_into_draft(
     return {"draft": draft}
 
 
+@router.patch("/company/roles/{job_id}/lifecycle")
 @router.patch("/company/jobs/{job_id}/lifecycle")
 @limiter.limit("30/minute")
 async def update_company_job_lifecycle(
@@ -2419,12 +3724,12 @@ async def update_company_job_lifecycle(
     _write_company_activity_log(
         company_id=str(job_row.get("company_id") or ""),
         event_type=event_type,
-        payload={
-            "job_id": str(job_row.get("id") or job_id),
-            "job_title": str(job_row.get("title") or ""),
-            "previous_status": str(job_row.get("status") or "active"),
-            "next_status": payload.status,
-        },
+        payload=_build_role_activity_payload(
+            job_id=str(job_row.get("id") or job_id),
+            job_title=str(job_row.get("title") or ""),
+            previous_status=str(job_row.get("status") or "active"),
+            next_status=payload.status,
+        ),
         actor_user_id=user.get("id") or user.get("auth_id"),
         subject_type="job",
         subject_id=str(job_row.get("id") or job_id),
@@ -2482,6 +3787,10 @@ async def get_job_recommendations(
                 "request_id": request_id,
             }
         )
+
+    _attach_job_dialogue_preview_metrics(
+        [item.get("job") for item in enriched_matches if isinstance(item.get("job"), dict)]
+    )
 
     if exposure_rows:
         try:
@@ -2547,6 +3856,7 @@ async def jobs_hybrid_search(
         page=payload.page,
         page_size=payload.page_size,
     )
+    _attach_job_dialogue_preview_metrics(result.get("jobs") or [])
     if dismissed_job_ids:
         jobs = result.get("jobs") or []
         filtered_jobs = _filter_out_dismissed_jobs(jobs, dismissed_job_ids)
@@ -2597,6 +3907,7 @@ async def jobs_hybrid_search_v2(
         jobs = filtered_jobs
     else:
         removed_count = 0
+    _attach_job_dialogue_preview_metrics(jobs)
     exposures = []
     for idx, job in enumerate(jobs):
         job_id = job.get("id")

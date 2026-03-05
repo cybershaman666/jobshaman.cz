@@ -26,6 +26,91 @@ type AssessmentResultAuditRow = {
   invitation_id?: string | null;
 };
 
+const humanizeActivityEventType = (eventType: string): string => {
+  const normalized = String(eventType || '').trim().toLowerCase();
+  if (!normalized) return 'Activity logged';
+  const overrides: Record<string, string> = {
+    application_status_changed: 'Dialogue status changed',
+    application_withdrawn: 'Dialogue withdrawn',
+    application_message_from_candidate: 'Candidate replied',
+    application_message_from_company: 'Company replied',
+    assessment_invited: 'Assessment invitation sent',
+    assessment_saved: 'Assessment saved',
+    assessment_duplicated: 'Assessment duplicated',
+    assessment_archived: 'Assessment archived',
+    job_published: 'Role published',
+    job_updated: 'Role updated',
+    job_closed: 'Role closed',
+    job_paused: 'Role paused',
+    job_archived: 'Role archived',
+    job_reopened: 'Role reopened'
+  };
+  if (overrides[normalized]) return overrides[normalized];
+  return normalized.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) || 'Activity logged';
+};
+
+const normalizeOptimisticActivityPayload = (
+  eventType: string,
+  payload: Record<string, any>
+): Record<string, any> => {
+  const value = { ...(payload || {}) };
+  const normalizedEventType = String(eventType || '').trim();
+
+  if (normalizedEventType === 'assessment_invited') {
+    value.action_label = value.action_label || 'Assessment invitation sent';
+    return value;
+  }
+  if (normalizedEventType === 'assessment_saved') {
+    value.action_label = value.action_label || 'Assessment saved';
+    return value;
+  }
+  if (normalizedEventType === 'assessment_duplicated') {
+    value.action_label = value.action_label || 'Assessment duplicated';
+    return value;
+  }
+  if (normalizedEventType === 'assessment_archived') {
+    value.action_label = value.action_label || 'Assessment archived';
+    return value;
+  }
+  if (normalizedEventType === 'application_message_from_candidate' || normalizedEventType === 'application_message_from_company') {
+    const direction = normalizedEventType.endsWith('_candidate') ? 'candidate' : 'company';
+    value.direction = value.direction || direction;
+    value.direction_label = value.direction_label || (direction === 'candidate' ? 'Candidate replied' : 'Company replied');
+    value.action_label = value.action_label || value.direction_label;
+    return value;
+  }
+  if (normalizedEventType.startsWith('job_')) {
+    const nextStatus = String(value.next_status || value.role_status || '').trim().toLowerCase();
+    const previousStatus = String(value.previous_status || '').trim().toLowerCase();
+    const humanizeStatus = (status: string): string => {
+      switch (status) {
+        case 'active':
+          return 'Active';
+        case 'paused':
+          return 'Paused';
+        case 'closed':
+          return 'Closed';
+        case 'archived':
+          return 'Archived';
+        default:
+          return status ? status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : '';
+      }
+    };
+    if (previousStatus && !value.previous_status_label) {
+      value.previous_status_label = humanizeStatus(previousStatus);
+    }
+    if (nextStatus && !value.next_status_label) {
+      value.next_status_label = humanizeStatus(nextStatus);
+    }
+    if ((nextStatus || previousStatus) && !value.role_status_label) {
+      value.role_status_label = humanizeStatus(nextStatus || previousStatus);
+    }
+  }
+
+  value.action_label = value.action_label || humanizeActivityEventType(normalizedEventType);
+  return value;
+};
+
 export const useCompanyActivityLog = (companyId?: string) => {
   const [companyActivityLog, setCompanyActivityLog] = useState<CompanyActivityLogEntry[]>([]);
   const [activityLogSupported, setActivityLogSupported] = useState(true);
@@ -70,13 +155,14 @@ export const useCompanyActivityLog = (companyId?: string) => {
     subjectId?: string
   ) => {
     const createdAt = new Date().toISOString();
+    const normalizedPayload = normalizeOptimisticActivityPayload(eventType, payload);
     const optimisticEvent: CompanyActivityLogEntry = {
       id: `local-${eventType}-${createdAt}`,
       company_id: companyId,
       event_type: eventType,
       subject_type: subjectType || null,
       subject_id: subjectId || null,
-      payload,
+      payload: normalizedPayload,
       created_at: createdAt
     };
 
@@ -92,7 +178,7 @@ export const useCompanyActivityLog = (companyId?: string) => {
         event_type: eventType,
         subject_type: subjectType || null,
         subject_id: subjectId || null,
-        payload
+        payload: normalizedPayload
       });
 
       if (data) {
@@ -118,7 +204,7 @@ export const useCompanyActivityLog = (companyId?: string) => {
           event_type: eventType,
           subject_type: subjectType || null,
           subject_id: subjectId || null,
-          payload
+          payload: normalizedPayload
         })
         .select('*')
         .single();

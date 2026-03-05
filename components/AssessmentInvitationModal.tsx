@@ -10,6 +10,7 @@ interface Props {
   initialAssessmentId?: string;
   initialCandidateEmail?: string;
   initialCandidateId?: string | null;
+  initialDialogueId?: string | null;
   initialApplicationId?: string | null;
   initialJobId?: string | number | null;
   initialJobTitle?: string;
@@ -24,6 +25,7 @@ const AssessmentInvitationModal: React.FC<Props> = ({
   initialAssessmentId,
   initialCandidateEmail,
   initialCandidateId,
+  initialDialogueId,
   initialApplicationId,
   initialJobId,
   initialJobTitle,
@@ -31,6 +33,7 @@ const AssessmentInvitationModal: React.FC<Props> = ({
   initialMetadata
 }) => {
   const { t } = useTranslation();
+  const resolvedDialogueId = initialDialogueId || initialApplicationId || null;
   const [assessmentOptions, setAssessmentOptions] = useState<Array<{ id: string; title: string; role?: string }>>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [assessmentId, setAssessmentId] = useState(initialAssessmentId || '');
@@ -93,7 +96,7 @@ const AssessmentInvitationModal: React.FC<Props> = ({
           assessment_id: assessmentId,
           candidate_email: candidateEmail,
           candidate_id: initialCandidateId || null,
-          application_id: initialApplicationId || null,
+          application_id: resolvedDialogueId,
           job_id: initialJobId != null ? Number(initialJobId) : null,
           company_id: companyId,
           expires_in_days: expiresInDays,
@@ -133,7 +136,7 @@ const AssessmentInvitationModal: React.FC<Props> = ({
             <>
               <label className="text-sm text-slate-500">{t('assessment_invitation_modal.saved_assessments', { defaultValue: 'Saved assessments' })}</label>
               <select
-                className="input"
+                className="input dark:[color-scheme:dark]"
                 value={assessmentId}
                 onChange={(e) => {
                   const nextId = e.target.value;
@@ -155,19 +158,19 @@ const AssessmentInvitationModal: React.FC<Props> = ({
           )}
 
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.assessment_id')}</label>
-          <input className="input" value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder={t('assessment_invitation_modal.assessment_id_placeholder')} />
+          <input className="input dark:[color-scheme:dark]" value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder={t('assessment_invitation_modal.assessment_id_placeholder')} />
 
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.candidate_email')}</label>
-          <input className="input" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="kandidat@example.com" />
+          <input className="input dark:[color-scheme:dark]" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="kandidat@example.com" />
 
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.job_title_optional')}</label>
-          <input className="input" value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Senior Backend Developer" />
+          <input className="input dark:[color-scheme:dark]" value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Senior Backend Developer" />
 
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.assessment_name_optional')}</label>
-          <input className="input" value={assessmentName} onChange={e => setAssessmentName(e.target.value)} placeholder="Technical Screening" />
+          <input className="input dark:[color-scheme:dark]" value={assessmentName} onChange={e => setAssessmentName(e.target.value)} placeholder="Technical Screening" />
 
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.expires_days')}</label>
-          <input type="number" className="input" value={expiresInDays} onChange={e => setExpiresInDays(parseInt(e.target.value || '30'))} min={1} />
+          <input type="number" className="input dark:[color-scheme:dark]" value={expiresInDays} onChange={e => setExpiresInDays(parseInt(e.target.value || '30'))} min={1} />
 
           {error && <div className="text-sm text-rose-600">{error}</div>}
 

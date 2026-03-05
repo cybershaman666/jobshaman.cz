@@ -19,6 +19,7 @@ interface AssessmentContext {
     candidateEmail?: string;
     candidateId?: string;
     candidateName?: string;
+    dialogueId?: string;
     applicationId?: string;
     assessmentId?: string;
     assessmentName?: string;
@@ -40,6 +41,7 @@ interface CompanyAssessmentsWorkspaceProps {
     onToggleInvitations: () => void;
     onOpenInvitationModal: () => void;
     onCloseInvitationModal: () => void;
+    onBackToDialogue?: () => void;
     onBackToApplication: () => void;
     onUseSavedAssessment: (assessment: Assessment) => void;
     onDuplicateAssessment: (assessmentId: string) => void;
@@ -64,6 +66,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
     onToggleInvitations,
     onOpenInvitationModal,
     onCloseInvitationModal,
+    onBackToDialogue,
     onBackToApplication,
     onUseSavedAssessment,
     onDuplicateAssessment,
@@ -72,6 +75,8 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
     onAssessmentSaved
 }) => {
     const { t } = useTranslation();
+    const linkedDialogueId = assessmentContext?.dialogueId || assessmentContext?.applicationId;
+    const handleBackToDialogue = onBackToDialogue || onBackToApplication;
     return (
         <div className="space-y-4 animate-in fade-in">
             <WorkspaceHeader
@@ -113,7 +118,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                 <MetricCard
                     label={t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}
                     value={<span className="text-base font-semibold">{assessmentContext?.jobTitle || t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}</span>}
-                    hint={assessmentContext?.candidateEmail || t('company.workspace.timeline.empty', { defaultValue: 'Open an application dossier to pin a live review context here.' })}
+                    hint={assessmentContext?.candidateEmail || t('company.workspace.timeline.empty', { defaultValue: 'Open a dialogue review to pin a live context here.' })}
                 />
                 <MetricCard
                     label={t('company.assessments_tab.manage_invites', { defaultValue: 'Invites' })}
@@ -141,12 +146,12 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {assessmentContext.applicationId && (
+                            {linkedDialogueId && (
                                 <button
-                                    onClick={onBackToApplication}
+                                    onClick={handleBackToDialogue}
                                     className="rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                                 >
-                                    {t('company.assessment_library.back_to_application', { defaultValue: 'Back to application' })}
+                                    {t('company.assessment_library.back_to_application', { defaultValue: 'Back to dialogue' })}
                                 </button>
                             )}
                             <button
@@ -249,13 +254,14 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                     <WorkspacePanel className="p-3">
                         <SectionHeader
                             title={t('company.applications.detail.related_assessments', { defaultValue: 'Related assessments' })}
-                            subtitle={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'Open a dossier, move status, or jump directly into the linked review flow.' })}
+                            subtitle={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'Open a dialogue, move status, or jump directly into the linked review flow.' })}
                             className="mb-3"
                         />
                         <AssessmentResultsList
                             companyId={companyId}
                             jobTitleFilter={assessmentContext?.jobTitle}
                             candidateEmailFilter={assessmentContext?.candidateEmail}
+                            dialogueIdFilter={linkedDialogueId}
                             applicationIdFilter={assessmentContext?.applicationId}
                         />
                     </WorkspacePanel>
@@ -268,12 +274,13 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             initialAssessmentId={assessmentContext?.assessmentId}
                             initialCandidateEmail={assessmentContext?.candidateEmail}
                             initialCandidateId={assessmentContext?.candidateId || null}
-                            initialApplicationId={assessmentContext?.applicationId || null}
+                            initialDialogueId={linkedDialogueId || null}
+                            initialApplicationId={linkedDialogueId || null}
                             initialJobId={assessmentContext?.jobId || null}
                             initialJobTitle={assessmentContext?.jobTitle}
                             initialAssessmentName={assessmentContext?.assessmentName}
                             initialMetadata={assessmentContext ? {
-                                application_id: assessmentContext.applicationId || null,
+                                application_id: linkedDialogueId || null,
                                 job_id: assessmentContext.jobId || null,
                                 candidate_name: assessmentContext.candidateName || null
                             } : null}

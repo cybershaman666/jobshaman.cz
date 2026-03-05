@@ -218,6 +218,8 @@ export type CompanyServiceTier = 'free' | 'trial' | 'starter' | 'growth' | 'prof
 
 export interface CompanyUsageStats {
   activeJobsCount: number;
+  activeDialogueSlotsUsed: number;
+  roleOpensUsed: number;
   aiAssessmentsUsed: number;
   adOptimizationsUsed: number;
 }
@@ -293,6 +295,10 @@ export interface Job {
   country_code?: string;
   language_code?: string;
   hiring_stage?: JobHiringStage | null;
+  open_dialogues_count?: number;
+  dialogue_capacity_limit?: number;
+  reaction_window_hours?: number;
+  reaction_window_days?: number;
 }
 
 export interface JobRecommendationBreakdown {
@@ -361,6 +367,10 @@ export interface DatabaseJob {
   lng?: number | null;
   country_code?: string;
   language_code?: string;
+  open_dialogues_count?: number | null;
+  dialogue_capacity_limit?: number | null;
+  reaction_window_hours?: number | null;
+  reaction_window_days?: number | null;
   [key: string]: any;
 }
 
@@ -395,10 +405,27 @@ export interface CompanyApplicationRow {
   id: string;
   job_id: string | number;
   candidate_id: string;
-  status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' | 'withdrawn';
+  status:
+    | 'pending'
+    | 'reviewed'
+    | 'shortlisted'
+    | 'rejected'
+    | 'hired'
+    | 'withdrawn'
+    | 'closed'
+    | 'closed_timeout'
+    | 'closed_rejected'
+    | 'closed_withdrawn'
+    | 'closed_role_filled';
   created_at?: string;
   submitted_at?: string;
   updated_at?: string;
+  dialogue_deadline_at?: string | null;
+  dialogue_current_turn?: 'candidate' | 'company' | null;
+  dialogue_timeout_hours?: number;
+  dialogue_closed_reason?: string | null;
+  dialogue_closed_at?: string | null;
+  dialogue_is_overdue?: boolean;
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
@@ -467,7 +494,7 @@ export interface EmployerVisibleJcfpmFullReport extends Omit<EmployerVisibleJcfp
   };
 }
 
-export interface ApplicationDossier {
+export interface DialogueDossier {
   id: string;
   job_id: string | number;
   company_id?: string;
@@ -476,6 +503,12 @@ export interface ApplicationDossier {
   status: CompanyApplicationRow['status'];
   submitted_at?: string;
   updated_at?: string;
+  dialogue_deadline_at?: string | null;
+  dialogue_current_turn?: 'candidate' | 'company' | null;
+  dialogue_timeout_hours?: number;
+  dialogue_closed_reason?: string | null;
+  dialogue_closed_at?: string | null;
+  dialogue_is_overdue?: boolean;
   reviewed_at?: string;
   reviewed_by?: string;
   cover_letter?: string | null;
@@ -502,7 +535,21 @@ export interface ApplicationDossier {
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
+  assets?: ExternalAsset[];
+  audio_transcript_status?: DialogueTranscriptStatus;
+  ai_summary_status?: DialogueAISummaryStatus;
+  fit_evidence_status?: DialogueFitEvidenceStatus;
+  ai_summary?: {
+    summary: string;
+    updated_at?: string | null;
+  } | null;
+  fit_evidence?: {
+    layers: FiveLayerFitScore;
+    updated_at?: string | null;
+  } | null;
 }
+
+export type ApplicationDossier = DialogueDossier;
 
 export interface CandidateApplicationJobSnapshot {
   title?: string | null;
@@ -513,13 +560,19 @@ export interface CandidateApplicationJobSnapshot {
   contact_email?: string | null;
 }
 
-export interface CandidateApplicationSummary {
+export interface DialogueSummary {
   id: string;
   job_id: string | number;
   company_id?: string;
   status: CompanyApplicationRow['status'];
   submitted_at?: string;
   updated_at?: string;
+  dialogue_deadline_at?: string | null;
+  dialogue_current_turn?: 'candidate' | 'company' | null;
+  dialogue_timeout_hours?: number;
+  dialogue_closed_reason?: string | null;
+  dialogue_closed_at?: string | null;
+  dialogue_is_overdue?: boolean;
   source?: string;
   has_cover_letter?: boolean;
   has_cv?: boolean;
@@ -530,18 +583,60 @@ export interface CandidateApplicationSummary {
   job_snapshot?: CandidateApplicationJobSnapshot | null;
 }
 
-export interface CandidateApplicationDetail extends CandidateApplicationSummary {
+export type CandidateApplicationSummary = DialogueSummary;
+
+export interface DialogueDetail extends DialogueSummary {
   reviewed_at?: string;
   reviewed_by?: string;
   cover_letter?: string | null;
   cv_document_id?: string | null;
-  cv_snapshot?: ApplicationDossier['cv_snapshot'];
-  candidate_profile_snapshot?: ApplicationDossier['candidate_profile_snapshot'];
-  shared_jcfpm_payload?: ApplicationDossier['shared_jcfpm_payload'];
+  cv_snapshot?: DialogueDossier['cv_snapshot'];
+  candidate_profile_snapshot?: DialogueDossier['candidate_profile_snapshot'];
+  shared_jcfpm_payload?: DialogueDossier['shared_jcfpm_payload'];
   application_payload?: Record<string, unknown> | null;
+  assets?: ExternalAsset[];
+  audio_transcript_status?: DialogueTranscriptStatus;
+  ai_summary_status?: DialogueAISummaryStatus;
+  fit_evidence_status?: DialogueFitEvidenceStatus;
+  ai_summary?: {
+    summary: string;
+    updated_at?: string | null;
+  } | null;
+  fit_evidence?: {
+    layers: FiveLayerFitScore;
+    updated_at?: string | null;
+  } | null;
 }
 
-export interface ApplicationMessageAttachment {
+export type CandidateApplicationDetail = DialogueDetail;
+
+export interface CandidateDialogueCapacity {
+  active: number;
+  limit: number;
+  remaining: number;
+}
+
+export type DialogueTranscriptStatus = 'ready' | 'pending' | 'unavailable' | 'not_applicable';
+export type DialogueAISummaryStatus = 'ready' | 'pending' | 'unavailable';
+export type DialogueFitEvidenceStatus = 'ready' | 'pending' | 'unavailable';
+
+export interface FiveLayerFitScore {
+  [layer: string]: unknown;
+}
+
+export interface ExternalAsset {
+  id?: string | null;
+  asset_id?: string | null;
+  provider?: string | null;
+  storage_provider?: string | null;
+  bucket?: string | null;
+  object_key?: string | null;
+  kind?: string | null;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  filename?: string | null;
+  download_url?: string | null;
+  transcript_status?: DialogueTranscriptStatus;
   name: string;
   url: string;
   path?: string | null;
@@ -549,7 +644,42 @@ export interface ApplicationMessageAttachment {
   content_type?: string | null;
 }
 
-export interface ApplicationMessage {
+export interface UploadSession {
+  asset_id: string;
+  kind: string;
+  upload_token: string;
+  upload_url: string;
+  upload_method?: string;
+  upload_headers?: Record<string, string> | null;
+  direct_upload?: boolean;
+  expires_at: string;
+  max_size_bytes: number;
+  provider: string;
+}
+
+export interface DialogueMessageAttachment {
+  name: string;
+  url: string;
+  id?: string | null;
+  asset_id?: string | null;
+  provider?: string | null;
+  storage_provider?: string | null;
+  bucket?: string | null;
+  object_key?: string | null;
+  kind?: string | null;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  filename?: string | null;
+  download_url?: string | null;
+  transcript_status?: DialogueTranscriptStatus;
+  path?: string | null;
+  size?: number | null;
+  content_type?: string | null;
+}
+
+export type ApplicationMessageAttachment = DialogueMessageAttachment;
+
+export interface DialogueMessage {
   id: string;
   application_id: string;
   company_id?: string | null;
@@ -557,11 +687,14 @@ export interface ApplicationMessage {
   sender_user_id?: string | null;
   sender_role: 'candidate' | 'recruiter';
   body: string;
-  attachments: ApplicationMessageAttachment[];
+  attachments: DialogueMessageAttachment[];
+  audio_transcript_status?: DialogueTranscriptStatus;
   created_at: string;
   read_by_candidate_at?: string | null;
   read_by_company_at?: string | null;
 }
+
+export type ApplicationMessage = DialogueMessage;
 
 export type JobDraftStatus = 'draft' | 'ready_for_publish' | 'published_linked' | 'archived';
 
@@ -579,6 +712,9 @@ export interface JobDraft {
   job_id?: string | number | null;
   status: JobDraftStatus;
   title: string;
+  first_reply_prompt?: string;
+  company_truth_hard?: string;
+  company_truth_fail?: string;
   role_summary: string;
   team_intro: string;
   responsibilities: string;
@@ -683,6 +819,7 @@ export interface Education {
 export interface CVDocument {
   id: string;
   userId: string;
+  externalAssetId?: string;
   fileName: string;
   originalName: string;
   fileUrl: string;

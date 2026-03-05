@@ -1,10 +1,33 @@
 
 import React from 'react';
 import { Job, UserProfile } from '../types';
-import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, AlertTriangle } from 'lucide-react';
+import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, AlertTriangle, MessageCircle } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
+
+const extractMarkdownSection = (description: string, headings: string[]): string => {
+  if (!description.trim() || headings.length === 0) return '';
+  const normalizedHeadings = headings.map((heading) => heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(
+    `^#{2,3}\\s*(?:${normalizedHeadings.join('|')})\\s*$\\n([\\s\\S]*?)(?=\\n#{2,3}\\s+|$)`,
+    'im'
+  );
+  const match = description.match(pattern);
+  if (!match?.[1]) return '';
+  return match[1]
+    .replace(/^\s*[-*]\s+/gm, '')
+    .replace(/\n{2,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const clampPreview = (value: string, maxLength: number): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 3).trim()}...`;
+};
 
 interface JobCardProps {
   job: Job;
@@ -14,10 +37,14 @@ interface JobCardProps {
   onToggleSave: () => void;
   variant?: 'light' | 'dark';
   userProfile?: UserProfile;
+  emphasis?: 'standard' | 'hero';
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile }) => {
+const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile, emphasis = 'standard' }) => {
   const { t, i18n } = useTranslation();
+  const localeBase = (i18n.language || 'en').split('-')[0];
+  const isCs = localeBase === 'cs';
+  const isSk = localeBase === 'sk';
 
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
@@ -106,7 +133,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   const getHiringStageLabel = (stage?: Job['hiring_stage'] | null): string | null => {
     switch (stage) {
       case 'collecting_cvs':
-        return t('job.hiring_stage.collecting_cvs', { defaultValue: 'Collecting CVs' });
+        return t('job.hiring_stage.collecting_supporting_context', { defaultValue: 'Collecting supporting context' });
       case 'reviewing_first_10':
         return t('job.hiring_stage.reviewing_first_10', { defaultValue: 'Reviewing first 10 candidates' });
       case 'shortlisting':
@@ -121,6 +148,104 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   };
 
   const hiringStageLabel = getHiringStageLabel(job.hiring_stage);
+
+  const getChallengePreview = (): string | null => {
+    const raw = String(job.description || '').trim();
+    if (!raw) return null;
+    const normalized = raw
+      .replace(/[#>*_`~\[\]\(\)!-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!normalized) return null;
+    const firstSentence = normalized.split(/(?<=[.!?])\s+/)[0]?.trim() || normalized;
+    const preview = firstSentence.length > 140 ? `${firstSentence.slice(0, 137).trim()}...` : firstSentence;
+    return preview || null;
+  };
+
+  const challengePreview = getChallengePreview();
+  const parsedFirstReply = extractMarkdownSection(job.description || '', ['First Reply']);
+  const parsedRoleTruthHard = extractMarkdownSection(job.description || '', ['Company Truth: What Is Actually Hard?']);
+  const parsedRoleTruthFail = extractMarkdownSection(job.description || '', ['Company Truth: Who Typically Struggles?']);
+  const hasStructuredHandshakeSignal = Boolean(parsedFirstReply || parsedRoleTruthHard || parsedRoleTruthFail);
+  const roleTruthPreview = clampPreview(
+    parsedRoleTruthHard || parsedRoleTruthFail || challengePreview || t('job.card.role_truth_body', { defaultValue: 'The team wants to see your first practical step before anything else.' }),
+    emphasis === 'hero' ? 180 : 96
+  );
+  const roleTruthMismatchPreview = clampPreview(parsedRoleTruthFail, emphasis === 'hero' ? 150 : 88);
+  const firstReplyPreview = clampPreview(
+    parsedFirstReply || t('job.card.response_prompt_body', { defaultValue: 'Open the handshake and outline your first step, the trade-off, and how you would verify it.' }),
+    emphasis === 'hero' ? 160 : 110
+  );
+
+  const openDialoguesCount = typeof job.open_dialogues_count === 'number' && Number.isFinite(job.open_dialogues_count)
+    ? Math.max(0, Math.round(job.open_dialogues_count))
+    : null;
+  const dialogueCapacityLimit = typeof job.dialogue_capacity_limit === 'number' && Number.isFinite(job.dialogue_capacity_limit)
+    ? Math.max(1, Math.round(job.dialogue_capacity_limit))
+    : null;
+  const reactionWindowHours = typeof job.reaction_window_hours === 'number' && Number.isFinite(job.reaction_window_hours)
+    ? Math.max(1, Math.round(job.reaction_window_hours))
+    : null;
+  const reactionWindowDays = typeof job.reaction_window_days === 'number' && Number.isFinite(job.reaction_window_days)
+    ? Math.max(1, Math.round(job.reaction_window_days))
+    : null;
+
+  const openDialoguesLabel = openDialoguesCount !== null && dialogueCapacityLimit !== null
+    ? t('job.card.open_dialogues_with_limit', {
+      open: openDialoguesCount,
+      limit: dialogueCapacityLimit,
+      defaultValue: isSk
+        ? '{{open}} / {{limit}} otvorených dialógov'
+        : isCs
+          ? '{{open}} / {{limit}} dialogů otevřeno'
+          : '{{open}} / {{limit}} dialogues open'
+    })
+    : null;
+
+  const responseWindowValue = (() => {
+    const hours = reactionWindowHours;
+    const days = reactionWindowDays;
+    if (days !== null) {
+      if (isSk) {
+        const unit = days === 1 ? 'deň' : (days <= 4 ? 'dni' : 'dní');
+        return `${days} ${unit}`;
+      }
+      if (isCs) {
+        const unit = days === 1 ? 'den' : (days <= 4 ? 'dny' : 'dnů');
+        return `${days} ${unit}`;
+      }
+      return `${days} day${days === 1 ? '' : 's'}`;
+    }
+    if (hours !== null && hours % 24 === 0) {
+      const wholeDays = Math.max(1, Math.round(hours / 24));
+      if (isSk) {
+        const unit = wholeDays === 1 ? 'deň' : (wholeDays <= 4 ? 'dni' : 'dní');
+        return `${wholeDays} ${unit}`;
+      }
+      if (isCs) {
+        const unit = wholeDays === 1 ? 'den' : (wholeDays <= 4 ? 'dny' : 'dnů');
+        return `${wholeDays} ${unit}`;
+      }
+      return `${wholeDays} day${wholeDays === 1 ? '' : 's'}`;
+    }
+    if (hours !== null) {
+      if (isSk) return `${hours} hodín`;
+      if (isCs) return `${hours} hodin`;
+      return `${hours}h`;
+    }
+    return null;
+  })();
+
+  const responseWindowLabel = responseWindowValue
+    ? t('job.card.response_window_badge', {
+      value: responseWindowValue,
+      defaultValue: isSk
+        ? 'Reakčné okno: {{value}}'
+        : isCs
+          ? 'Reakční okno: {{value}}'
+          : 'Response window: {{value}}'
+    })
+    : null;
 
 
 
@@ -191,27 +316,103 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   }
 
   // Base Styles - Professional Light/Dark
-  const containerBase = "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md";
+  const containerBase = emphasis === 'hero'
+    ? "bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_26%),linear-gradient(145deg,rgba(255,255,255,0.97),rgba(239,246,255,0.93))] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_26%),linear-gradient(145deg,rgba(15,23,42,0.92),rgba(12,74,110,0.22))] border-sky-200/80 dark:border-sky-900/40 hover:border-sky-300 dark:hover:border-sky-700"
+    : "bg-white/88 dark:bg-slate-900/82 border-slate-200/80 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700";
 
   // Selected state - Active list item style
-  const selectedStyle = "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:ring-slate-600 ring-1 ring-slate-300 dark:ring-slate-600 z-10";
+  const selectedStyle = "bg-slate-100 dark:bg-slate-800/95 border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800/70 z-10";
 
   return (
     <div
       onClick={onClick}
       className={`
-        h-full p-5 rounded-lg border cursor-pointer transition-all duration-200 relative group overflow-hidden
+        h-full ${emphasis === 'hero' ? 'p-[18px]' : 'p-4'} rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden ${emphasis === 'hero' ? 'shadow-[0_18px_34px_-28px_rgba(14,165,233,0.24)]' : 'shadow-[0_12px_26px_-28px_rgba(15,23,42,0.2)]'}
         ${isSelected ? selectedStyle : containerBase}
       `}
     >
-      {/* Job Title and Company */}
-      <div className="mb-4">
-        <h3 className={`font-bold text-lg leading-tight break-words ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
-        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors break-words">{job.company}</p>
+      <div className="mb-2 flex items-center gap-2">
+        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${
+          emphasis === 'hero'
+            ? 'border border-orange-200/80 dark:border-orange-900/40 bg-orange-50/90 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300'
+            : 'border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/90 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300'
+        }`}>
+          <Sparkles size={11} />
+          {t('job.card.challenge_label', { defaultValue: 'Real challenge' })}
+        </div>
+        {emphasis === 'hero' && (
+          <div className="rounded-full border border-sky-200/80 dark:border-sky-900/40 bg-white/80 dark:bg-slate-950/30 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+            {t('job.card.priority_label', { defaultValue: 'Priority' })}
+          </div>
+        )}
       </div>
 
+      {/* Job Title and Company */}
+      <div className="mb-3">
+        <h3 className={`font-bold text-base leading-snug break-words ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
+        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors break-words">{job.company}</p>
+        {challengePreview && (
+          <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
+            {challengePreview}
+          </p>
+        )}
+        {emphasis === 'hero' && (
+          <div className="mt-2 rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+              {t('job.card.role_truth_label', { defaultValue: 'Role truth' })}
+            </div>
+            <div className="mt-1 text-[12px] leading-relaxed text-amber-950 dark:text-amber-100">
+              {roleTruthPreview}
+            </div>
+            {roleTruthMismatchPreview && parsedRoleTruthFail && parsedRoleTruthFail !== parsedRoleTruthHard && (
+              <div className="mt-1.5 rounded-lg border border-amber-200/70 dark:border-amber-900/30 bg-white/70 dark:bg-slate-950/20 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-950 dark:text-amber-100">
+                <span className="font-semibold">
+                  {t('job.card.role_truth_mismatch', { defaultValue: 'Mismatch:' })}
+                </span>{' '}
+                {roleTruthMismatchPreview}
+              </div>
+            )}
+          </div>
+        )}
+        {emphasis !== 'hero' && hasStructuredHandshakeSignal && (
+          <div className="mt-2 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-950/28 px-2.5 py-2 space-y-1.5">
+            <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {t('job.card.role_truth_label', { defaultValue: 'Role truth' })}:
+              </span>{' '}
+              {roleTruthPreview}
+            </div>
+            {parsedFirstReply && (
+              <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {t('job.card.response_prompt', { defaultValue: 'First reply:' })}
+                </span>{' '}
+                {firstReplyPreview}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {(openDialoguesLabel || responseWindowLabel) && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {openDialoguesLabel && (
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/70 bg-emerald-50/80 dark:bg-emerald-950/25 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
+              <MessageCircle size={11} />
+              <span>{openDialoguesLabel}</span>
+            </div>
+          )}
+          {responseWindowLabel && (
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 dark:border-blue-800/70 bg-blue-50/80 dark:bg-blue-950/25 px-2 py-1 text-[11px] font-semibold text-blue-800 dark:text-blue-200">
+              <Clock size={11} />
+              <span>{responseWindowLabel}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bottom Badges Row */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-start gap-3 mb-3">
         {/* Left Side Badges */}
         <div className="flex items-center gap-2 flex-wrap">
           {hiringStageLabel && (
@@ -251,28 +452,28 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           )}
           {/* JHI Circular Progress */}
           <div className="flex items-center gap-2" title={`Job Health Index: ${jhiScore}/100`}>
-            <div className="relative w-9 h-9 flex items-center justify-center">
+            <div className="relative w-8 h-8 flex items-center justify-center">
               {/* Background Circle */}
               <svg className="w-full h-full transform -rotate-90">
                 <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
+                  cx="16"
+                  cy="16"
+                  r="12"
                   className="stroke-slate-200 dark:stroke-slate-700 fill-none"
                   strokeWidth="3"
                 />
                 {/* Progress Circle */}
                 <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
+                  cx="16"
+                  cy="16"
+                  r="12"
                   className={`fill-none transition-all duration-1000 ease-out
                     ${jhiScore >= 70 ? 'stroke-emerald-500' :
                       jhiScore >= 50 ? 'stroke-amber-500' : 'stroke-rose-500'}
                   `}
                   strokeWidth="3"
-                  strokeDasharray={2 * Math.PI * 14}
-                  strokeDashoffset={2 * Math.PI * 14 * (1 - jhiScore / 100)}
+                  strokeDasharray={2 * Math.PI * 12}
+                  strokeDashoffset={2 * Math.PI * 12 * (1 - jhiScore / 100)}
                   strokeLinecap="round"
                 />
               </svg>
@@ -299,7 +500,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       </div>
 
       {/* Job Metadata */}
-      <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm mb-4 font-medium text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap gap-y-1.5 gap-x-3 text-[13px] mb-3 font-medium text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-1.5 min-w-0">
           <MapPin size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.location}</span>
         </div>
@@ -336,8 +537,17 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         </div>
       </div>
 
+      {emphasis === 'hero' && (
+        <div className="mb-3 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/82 dark:bg-slate-950/28 px-3 py-2 text-[11px] text-slate-600 dark:text-slate-300 shadow-[0_10px_20px_-24px_rgba(15,23,42,0.3)]">
+          <span className="font-semibold text-slate-900 dark:text-white">
+            {t('job.card.response_prompt', { defaultValue: 'First reply:' })}
+          </span>{' '}
+          {firstReplyPreview}
+        </div>
+      )}
+
       {job.constraint_mode === 'near' && localizedCompromises.length > 0 && (
-        <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-300">
           <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
           <span className="leading-relaxed">
             <strong>{t('app.constraint_compromise.label')}</strong> {localizedCompromises.join(' · ')}

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Briefcase, Clock3, ExternalLink, Eye, Loader2, Mail, Search, Trash2 } from 'lucide-react';
 
-import { CandidateApplicationDetail, CandidateApplicationSummary, Job, UserProfile } from '../types';
+import { CandidateDialogueCapacity, DialogueDetail, DialogueSummary, Job, UserProfile } from '../types';
 import {
-  fetchCandidateApplicationDetail,
-  fetchCandidateApplicationMessages,
-  fetchCandidateApplications,
-  sendCandidateApplicationMessage,
-  withdrawCandidateApplication
+  fetchMyDialogueDetail,
+  fetchMyDialogueCapacity,
+  fetchMyDialogueMessages,
+  fetchMyDialogues,
+  sendMyDialogueMessage,
+  withdrawMyDialogue
 } from '../services/jobApplicationService';
 import ApplicationMessageCenter from './ApplicationMessageCenter';
 import MyInvitations from './MyInvitations';
@@ -26,10 +27,19 @@ interface ProfileJobManagerProps {
   onSearchChange: (term: string) => void;
 }
 
-type CandidateApplicationStatus = CandidateApplicationSummary['status'];
+type CandidateDialogueStatus = DialogueSummary['status'];
 
-const ACTIVE_STATUSES: CandidateApplicationStatus[] = ['pending', 'reviewed', 'shortlisted'];
-const LOCKED_WITHDRAW_STATUSES: CandidateApplicationStatus[] = ['rejected', 'hired', 'withdrawn'];
+const ACTIVE_STATUSES: CandidateDialogueStatus[] = ['pending', 'reviewed', 'shortlisted'];
+const LOCKED_WITHDRAW_STATUSES: CandidateDialogueStatus[] = [
+  'rejected',
+  'hired',
+  'withdrawn',
+  'closed',
+  'closed_timeout',
+  'closed_rejected',
+  'closed_withdrawn',
+  'closed_role_filled'
+];
 
 const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   userProfile,
@@ -43,35 +53,40 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   onSearchChange
 }) => {
   const { t, i18n } = useTranslation();
-  const [applications, setApplications] = useState<CandidateApplicationSummary[]>([]);
-  const [loadingApplications, setLoadingApplications] = useState(false);
-  const [applicationsError, setApplicationsError] = useState<string | null>(null);
+  const [dialogues, setDialogues] = useState<DialogueSummary[]>([]);
+  const [loadingDialogues, setLoadingDialogues] = useState(false);
+  const [dialoguesError, setDialoguesError] = useState<string | null>(null);
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
-  const [activeDetail, setActiveDetail] = useState<CandidateApplicationDetail | null>(null);
+  const [activeDetail, setActiveDetail] = useState<DialogueDetail | null>(null);
+  const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [applicationSearch, setApplicationSearch] = useState('');
+  const [dialogueSearch, setDialogueSearch] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadApplications = async () => {
+    const loadDialogues = async () => {
       if (!userProfile.id) {
         if (!cancelled) {
-          setApplications([]);
-          setApplicationsError(null);
+          setDialogues([]);
+          setDialoguesError(null);
         }
         return;
       }
 
-      setLoadingApplications(true);
-      setApplicationsError(null);
+      setLoadingDialogues(true);
+      setDialoguesError(null);
 
       try {
-        const rows = await fetchCandidateApplications(80);
+        const [rows, capacity] = await Promise.all([
+          fetchMyDialogues(80),
+          fetchMyDialogueCapacity()
+        ]);
         if (!cancelled) {
-          setApplications(rows);
+          setDialogues(rows);
+          setDialogueCapacity(capacity);
           if (rows.length > 0 && !activeDetailId) {
             setActiveDetailId(rows[0].id);
           }
@@ -79,21 +94,22 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       } catch (error) {
         console.error('Failed to load candidate applications:', error);
         if (!cancelled) {
-          setApplications([]);
-          setApplicationsError(
+          setDialogues([]);
+          setDialogueCapacity(null);
+          setDialoguesError(
             t('profile.job_hub.load_failed', {
-              defaultValue: 'Nepodařilo se načíst přehled odpovědí.'
+              defaultValue: 'Nepodařilo se načíst přehled handshake dialogů.'
             })
           );
         }
       } finally {
         if (!cancelled) {
-          setLoadingApplications(false);
+          setLoadingDialogues(false);
         }
       }
     };
 
-    loadApplications();
+    loadDialogues();
 
     return () => {
       cancelled = true;
@@ -101,16 +117,16 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   }, [t, userProfile.id]);
 
   useEffect(() => {
-    if (applications.length === 0) {
+    if (dialogues.length === 0) {
       if (activeDetailId) {
         setActiveDetailId(null);
       }
       return;
     }
-    if (!activeDetailId || !applications.some((item) => item.id === activeDetailId)) {
-      setActiveDetailId(applications[0].id);
+    if (!activeDetailId || !dialogues.some((item) => item.id === activeDetailId)) {
+      setActiveDetailId(dialogues[0].id);
     }
-  }, [activeDetailId, applications]);
+  }, [activeDetailId, dialogues]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,13 +142,13 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       setDetailError(null);
 
       try {
-        const detail = await fetchCandidateApplicationDetail(activeDetailId);
+        const detail = await fetchMyDialogueDetail(activeDetailId);
         if (!detail) {
           throw new Error('Application detail unavailable');
         }
         if (!cancelled) {
           setActiveDetail(detail);
-          setApplications((current) =>
+          setDialogues((current) =>
             current.map((item) => (item.id === detail.id ? { ...item, ...detail } : item))
           );
         }
@@ -142,7 +158,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
           setActiveDetail(null);
           setDetailError(
             t('profile.job_hub.detail_failed', {
-              defaultValue: 'Nepodařilo se načíst detail odeslané přihlášky.'
+              defaultValue: 'Nepodařilo se načíst detail otevřeného handshaku.'
             })
           );
         }
@@ -160,16 +176,16 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     };
   }, [activeDetailId, t]);
 
-  const filteredApplications = (() => {
-    const query = applicationSearch.trim().toLowerCase();
-    if (!query) return applications;
-    return applications.filter((application) => {
+  const filteredDialogues = (() => {
+    const query = dialogueSearch.trim().toLowerCase();
+    if (!query) return dialogues;
+    return dialogues.filter((dialogue) => {
       const haystack = [
-        application.job_snapshot?.title,
-        application.job_snapshot?.company,
-        application.company_name,
-        application.job_snapshot?.location,
-        application.source
+        dialogue.job_snapshot?.title,
+        dialogue.job_snapshot?.company,
+        dialogue.company_name,
+        dialogue.job_snapshot?.location,
+        dialogue.source
       ]
         .filter(Boolean)
         .join(' ')
@@ -178,47 +194,56 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     });
   })();
 
-  const activeCount = applications.filter((item) => ACTIVE_STATUSES.includes(item.status)).length;
+  const activeCount = dialogues.filter((item) => ACTIVE_STATUSES.includes(item.status)).length;
 
-  const handleOpenApplicationDetail = (applicationId: string) => {
-    setActiveDetailId(applicationId);
+  const handleOpenDialogueDetail = (dialogueId: string) => {
+    setActiveDetailId(dialogueId);
   };
 
-  const handleWithdrawApplication = async (application: CandidateApplicationSummary) => {
-    if (!application?.id || LOCKED_WITHDRAW_STATUSES.includes(application.status)) return;
+  const handleWithdrawDialogue = async (dialogue: DialogueSummary) => {
+    if (!dialogue?.id || LOCKED_WITHDRAW_STATUSES.includes(dialogue.status)) return;
 
     const confirmed = window.confirm(
       t('profile.job_hub.withdraw_confirm', {
-        defaultValue: 'Opravdu chcete stáhnout tuto reakci na nabídku?'
+        defaultValue: 'Opravdu chcete tento handshake uzavřít?'
       })
     );
     if (!confirmed) return;
 
-    setWithdrawingId(application.id);
+    setWithdrawingId(dialogue.id);
     try {
-      const result = await withdrawCandidateApplication(application.id);
+      const result = await withdrawMyDialogue(dialogue.id);
       if (!result.ok) {
         throw new Error('Withdraw failed');
       }
 
       const updatedAt = new Date().toISOString();
-      setApplications((current) =>
+      setDialogues((current) =>
         current.map((item) =>
-          item.id === application.id
+          item.id === dialogue.id
             ? { ...item, status: 'withdrawn', updated_at: updatedAt }
             : item
         )
       );
       setActiveDetail((current) =>
-        current && current.id === application.id
+        current && current.id === dialogue.id
           ? { ...current, status: 'withdrawn', updated_at: updatedAt }
+          : current
+      );
+      setDialogueCapacity((current) =>
+        current
+          ? {
+              ...current,
+              active: Math.max(0, current.active - 1),
+              remaining: Math.min(current.limit, current.remaining + 1)
+            }
           : current
       );
     } catch (error) {
       console.error('Failed to withdraw application:', error);
       window.alert(
         t('profile.job_hub.withdraw_failed', {
-          defaultValue: 'Reakci se nepodařilo stáhnout.'
+          defaultValue: 'Handshake se nepodařilo uzavřít.'
         })
       );
     } finally {
@@ -254,66 +279,207 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     });
   };
 
-  const getStatusLabel = (status: CandidateApplicationStatus): string => {
+  const getStatusLabel = (status: CandidateDialogueStatus): string => {
     switch (status) {
       case 'reviewed':
         return t('profile.job_hub.status_reviewed', { defaultValue: 'Prohlédnuto' });
       case 'shortlisted':
         return t('profile.job_hub.status_shortlisted', { defaultValue: 'Ve výběru' });
       case 'rejected':
-        return t('profile.job_hub.status_rejected', { defaultValue: 'Uzavřeno' });
+      case 'closed_rejected':
+        return t('profile.job_hub.status_rejected', { defaultValue: 'Firma nepokračuje' });
       case 'hired':
         return t('profile.job_hub.status_hired', { defaultValue: 'Přijato' });
       case 'withdrawn':
-        return t('profile.job_hub.status_withdrawn', { defaultValue: 'Staženo' });
+      case 'closed_withdrawn':
+        return t('profile.job_hub.status_withdrawn', { defaultValue: 'Uzavřeno z vaší strany' });
+      case 'closed_timeout':
+        return t('profile.job_hub.status_timeout', { defaultValue: 'Uzavřeno pro neaktivitu' });
+      case 'closed_role_filled':
+        return t('profile.job_hub.status_role_filled', { defaultValue: 'Pozice uzavřena' });
+      case 'closed':
+        return t('profile.job_hub.status_closed', { defaultValue: 'Uzavřeno' });
       default:
         return t('profile.job_hub.status_pending', { defaultValue: 'Odesláno' });
     }
   };
 
-  const getStatusClassName = (status: CandidateApplicationStatus): string => {
+  const getStatusClassName = (status: CandidateDialogueStatus): string => {
     switch (status) {
       case 'reviewed':
         return 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300';
       case 'shortlisted':
         return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'rejected':
+      case 'closed_rejected':
         return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300';
       case 'hired':
         return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
       case 'withdrawn':
+      case 'closed_withdrawn':
+      case 'closed':
         return 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+      case 'closed_timeout':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'closed_role_filled':
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
       default:
         return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
     }
   };
 
-  const renderApplicationSignals = (application: CandidateApplicationSummary) => (
-    <div className="mt-3 flex flex-wrap gap-2">
-      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-        {application.has_cover_letter
-          ? t('profile.job_hub.cover_letter_yes', { defaultValue: 'Motivační dopis odeslán' })
-          : t('profile.job_hub.cover_letter_no', { defaultValue: 'Bez motivačního dopisu' })}
-      </span>
-      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-        {application.has_cv
-          ? t('profile.job_hub.cv_yes', { defaultValue: 'CV přiloženo' })
-          : t('profile.job_hub.cv_no', { defaultValue: 'Bez CV' })}
-      </span>
-      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-        {application.has_jcfpm
-          ? t('profile.job_hub.jcfpm_yes', { defaultValue: 'JCFPM sdíleno' })
-          : t('profile.job_hub.jcfpm_no', { defaultValue: 'JCFPM nesdíleno' })}
-      </span>
-    </div>
-  );
+  const getDialogueClosedReasonMeta = (
+    dialogue: Pick<DialogueSummary, 'status' | 'dialogue_closed_reason'>
+  ): { label: string; className: string } | null => {
+    if (!dialogue || ACTIVE_STATUSES.includes(dialogue.status)) {
+      return null;
+    }
 
-  const renderApplicationDetail = () => {
+    const normalizedReason = String(dialogue.dialogue_closed_reason || dialogue.status || '')
+      .trim()
+      .toLowerCase();
+
+    switch (normalizedReason) {
+      case 'timeout':
+      case 'closed_timeout':
+        return {
+          label: t('profile.job_hub.close_reason_timeout', { defaultValue: 'Nikdo neodpověděl včas, takže se dialog automaticky uzavřel.' }),
+          className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+        };
+      case 'rejected':
+      case 'closed_rejected':
+        return {
+          label: t('profile.job_hub.close_reason_rejected', { defaultValue: 'Firma se rozhodla v tomto dialogu nepokračovat.' }),
+          className: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300'
+        };
+      case 'withdrawn':
+      case 'closed_withdrawn':
+        return {
+          label: t('profile.job_hub.close_reason_withdrawn', { defaultValue: 'Handshake jste uzavřeli vy.' }),
+          className: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+        };
+      case 'closed_role_filled':
+        return {
+          label: t('profile.job_hub.close_reason_role_filled', { defaultValue: 'Pozice byla mezitím obsazena.' }),
+          className: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
+        };
+      case 'hired':
+        return {
+          label: t('profile.job_hub.close_reason_hired', { defaultValue: 'Firma vás posunula do stavu přijetí.' }),
+          className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+        };
+      case 'closed':
+      default:
+        return {
+          label: t('profile.job_hub.close_reason_generic', { defaultValue: 'Tento dialog byl uzavřen bez dalšího kroku.' }),
+          className: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+        };
+    }
+  };
+
+  const getDialogueTimingMeta = (
+    dialogue: Pick<
+      DialogueSummary,
+      'status' | 'dialogue_deadline_at' | 'dialogue_current_turn' | 'dialogue_closed_reason' | 'dialogue_is_overdue'
+    >
+  ): { label: string; className: string } | null => {
+    if (!dialogue) return null;
+
+    const closedReason = String(dialogue.dialogue_closed_reason || '').trim().toLowerCase();
+    if (dialogue.status === 'closed_timeout' || closedReason === 'timeout') {
+      return {
+        label: t('profile.job_hub.timeout_closed', { defaultValue: 'Dialog se uzavřel kvůli chybějící odpovědi.' }),
+        className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+      };
+    }
+
+    if (!ACTIVE_STATUSES.includes(dialogue.status)) {
+      return null;
+    }
+
+    const deadlineValue = String(dialogue.dialogue_deadline_at || '').trim();
+    if (!deadlineValue) return null;
+    const deadline = new Date(deadlineValue);
+    if (Number.isNaN(deadline.getTime())) return null;
+
+    const msRemaining = deadline.getTime() - Date.now();
+    const actorLabel =
+      dialogue.dialogue_current_turn === 'candidate'
+        ? t('profile.job_hub.turn_candidate', { defaultValue: 'Na tahu jste vy' })
+        : t('profile.job_hub.turn_company', { defaultValue: 'Čeká se na firmu' });
+
+    if (dialogue.dialogue_is_overdue || msRemaining <= 0) {
+      return {
+        label: `${actorLabel} • ${t('profile.job_hub.deadline_passed', { defaultValue: 'lhůta právě vypršela' })}`,
+        className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+      };
+    }
+
+    const totalHours = msRemaining / (60 * 60 * 1000);
+    const windowLabel =
+      totalHours < 1
+        ? t('profile.job_hub.deadline_under_hour', { defaultValue: 'méně než hodina' })
+        : totalHours < 24
+          ? t('profile.job_hub.deadline_hours', {
+              defaultValue: 'zbývá {{count}} h',
+              count: Math.max(1, Math.ceil(totalHours))
+            })
+          : t('profile.job_hub.deadline_days', {
+              defaultValue: 'zbývá {{count}} d',
+              count: Math.max(1, Math.ceil(totalHours / 24))
+            });
+
+    const className =
+      totalHours <= 12
+        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+        : 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300';
+
+    return {
+      label: `${actorLabel} • ${windowLabel}`,
+      className
+    };
+  };
+
+  const renderDialogueSignals = (dialogue: DialogueSummary) => {
+    const timingMeta = getDialogueTimingMeta(dialogue);
+    const closeReasonMeta = getDialogueClosedReasonMeta(dialogue);
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {timingMeta && (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${timingMeta.className}`}>
+            {timingMeta.label}
+          </span>
+        )}
+        {closeReasonMeta && (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${closeReasonMeta.className}`}>
+            {closeReasonMeta.label}
+          </span>
+        )}
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {dialogue.has_cover_letter
+            ? t('profile.job_hub.cover_letter_yes', { defaultValue: 'Motivační dopis odeslán' })
+            : t('profile.job_hub.cover_letter_no', { defaultValue: 'Bez motivačního dopisu' })}
+        </span>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {dialogue.has_cv
+            ? t('profile.job_hub.supporting_doc_yes', { defaultValue: 'Podklad přiložen' })
+            : t('profile.job_hub.supporting_doc_no', { defaultValue: 'Bez podkladu' })}
+        </span>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {dialogue.has_jcfpm
+            ? t('profile.job_hub.jcfpm_yes', { defaultValue: 'JCFPM sdíleno' })
+            : t('profile.job_hub.jcfpm_no', { defaultValue: 'JCFPM nesdíleno' })}
+        </span>
+      </div>
+    );
+  };
+
+  const renderDialogueDetail = () => {
     if (loadingDetail) {
       return (
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
           <Loader2 className="h-4 w-4 animate-spin" />
-          {t('profile.job_hub.detail_loading', { defaultValue: 'Načítám detail odeslané přihlášky…' })}
+          {t('profile.job_hub.detail_loading', { defaultValue: 'Načítám detail otevřeného handshaku…' })}
         </div>
       );
     }
@@ -332,14 +498,16 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     const comparisonSignals = Array.isArray(sharedPayload?.comparison_signals)
       ? sharedPayload.comparison_signals
       : [];
+    const timingMeta = getDialogueTimingMeta(activeDetail);
+    const closeReasonMeta = getDialogueClosedReasonMeta(activeDetail);
 
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Eye className="h-3.5 w-3.5" />
-              {t('profile.job_hub.detail_badge', { defaultValue: 'Detail odeslané přihlášky' })}
+              {t('profile.job_hub.detail_badge', { defaultValue: 'Detail otevřeného handshaku' })}
             </div>
             <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">
               {activeDetail.job_snapshot?.title || t('profile.job_hub.unknown_position', { defaultValue: 'Neznámá pozice' })}
@@ -385,8 +553,8 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+          <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               {t('profile.job_hub.meta.sent', { defaultValue: 'Odesláno' })}
             </div>
@@ -394,7 +562,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
               {formatTimestamp(activeDetail.submitted_at)}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+          <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               {t('profile.job_hub.meta.updated', { defaultValue: 'Poslední změna' })}
             </div>
@@ -402,7 +570,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
               {formatTimestamp(activeDetail.updated_at)}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+          <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               {t('profile.job_hub.meta.status', { defaultValue: 'Stav' })}
             </div>
@@ -410,12 +578,31 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
               <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClassName(activeDetail.status)}`}>
                 {getStatusLabel(activeDetail.status)}
               </span>
+              {closeReasonMeta && (
+                <div className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                  {closeReasonMeta.label}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              {closeReasonMeta
+                ? t('profile.job_hub.meta.closed_reason', { defaultValue: 'Důvod uzavření' })
+                : t('profile.job_hub.meta.next_step', { defaultValue: 'Další krok' })}
+            </div>
+            <div className="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+              {closeReasonMeta
+                ? closeReasonMeta.label
+                : timingMeta
+                  ? timingMeta.label
+                  : t('profile.job_hub.no_deadline', { defaultValue: 'Bez aktivní lhůty' })}
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="rounded-[1rem] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-700 dark:bg-slate-900/80">
             <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               {t('profile.job_hub.sent_payload', { defaultValue: 'Co bylo odesláno' })}
             </h4>
@@ -429,13 +616,13 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span>{t('profile.job_hub.cv', { defaultValue: 'Životopis' })}</span>
+                <span>{t('profile.job_hub.supporting_doc', { defaultValue: 'Podpůrný dokument' })}</span>
                 <span className="font-semibold text-right">
                   {activeDetail.cv_snapshot?.originalName ||
                     activeDetail.cv_snapshot?.label ||
                     (activeDetail.has_cv
-                      ? t('profile.job_hub.cv_attached', { defaultValue: 'Přiloženo' })
-                      : t('profile.job_hub.cv_missing', { defaultValue: 'Nepřiloženo' }))}
+                      ? t('profile.job_hub.supporting_doc_attached', { defaultValue: 'Přiloženo' })
+                      : t('profile.job_hub.supporting_doc_missing', { defaultValue: 'Nepřiloženo' }))}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4">
@@ -449,9 +636,9 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="rounded-[1rem] border border-slate-200/80 bg-white/90 p-5 dark:border-slate-700 dark:bg-slate-900/80">
             <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-              {t('profile.job_hub.profile_snapshot', { defaultValue: 'Profil odeslaný s přihláškou' })}
+              {t('profile.job_hub.profile_snapshot', { defaultValue: 'Profil sdílený při handshaku' })}
             </h4>
             <div className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-300">
               <div className="flex items-center justify-between gap-4">
@@ -483,7 +670,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
         </div>
 
         {!!activeDetail.cover_letter && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/40">
+          <div className="mt-6 rounded-[1rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/40">
             <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               {t('profile.job_hub.cover_letter_title', { defaultValue: 'Odeslaný motivační dopis' })}
             </h4>
@@ -494,7 +681,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
         )}
 
         {activeDetail.has_jcfpm && (
-          <div className="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/80 p-5 dark:border-cyan-900/40 dark:bg-cyan-950/10">
+          <div className="mt-6 rounded-[1rem] border border-cyan-200 bg-cyan-50/80 p-5 dark:border-cyan-900/40 dark:bg-cyan-950/10">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
@@ -541,18 +728,23 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
 
         <div className="mt-6">
           <ApplicationMessageCenter
-            applicationId={activeDetail.id}
+            dialogueId={activeDetail.id}
             storageOwnerId={userProfile.id || null}
             viewerRole="candidate"
+            dialogueStatus={activeDetail.status}
+            dialogueDeadlineAt={activeDetail.dialogue_deadline_at || null}
+            dialogueCurrentTurn={activeDetail.dialogue_current_turn || null}
+            dialogueClosedReason={activeDetail.dialogue_closed_reason || null}
+            dialogueIsOverdue={Boolean(activeDetail.dialogue_is_overdue)}
             heading={t('profile.job_hub.messages_title', { defaultValue: 'Komunikace s firmou' })}
             subtitle={t('profile.job_hub.messages_desc', {
-              defaultValue: 'Asynchronní interní vlákno pro doplnění podkladů, dokumentů a další komunikaci k této přihlášce.'
+              defaultValue: 'Asynchronní vlákno pro doplnění podkladů, dokumentů a další komunikaci k tomuto handshaku.'
             })}
             emptyText={t('profile.job_hub.messages_empty', {
               defaultValue: 'Zatím tu nejsou žádné zprávy. Pokud firma něco doplní nebo budete chtít poslat dokument, objeví se to zde.'
             })}
-            fetchMessages={fetchCandidateApplicationMessages}
-            sendMessage={sendCandidateApplicationMessage}
+            fetchMessages={fetchMyDialogueMessages}
+            sendMessage={sendMyDialogueMessage}
           />
         </div>
       </div>
@@ -560,50 +752,74 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-100 p-6 shadow-lg dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+    <div className="space-y-4">
+      <div className="rounded-[1.15rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.97)_0%,_rgba(241,245,249,0.98)_100%)] p-5 shadow-[0_18px_38px_-34px_rgba(15,23,42,0.26)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.10),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.97)_0%,_rgba(15,23,42,0.98)_100%)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Briefcase className="h-3.5 w-3.5" />
-              {t('profile.job_hub.badge', { defaultValue: 'Job Inbox' })}
+              {t('profile.job_hub.badge', { defaultValue: 'Handshake hub' })}
             </div>
             <h2 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">
-              {t('profile.job_hub.title', { defaultValue: 'Správa nabídek a odpovědí' })}
+              {t('profile.job_hub.title', { defaultValue: 'Správa rolí a handshake dialogů' })}
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
               {t('profile.job_hub.desc', {
-                defaultValue: 'Na jednom místě vidíte odeslané reakce, co přesně bylo sdíleno, a můžete se vracet k interakci s firmami.'
+                defaultValue: 'Na jednom místě vidíte otevřené handshaky, co přesně bylo sdíleno, a můžete se vracet k asynchronnímu dialogu s firmami.'
               })}
             </p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-300">
+              <Clock3 className="h-3.5 w-3.5" />
+              {dialogueCapacity
+                ? t('profile.job_hub.capacity_inline', {
+                    defaultValue: '{{remaining}} volné sloty z {{limit}}',
+                    remaining: dialogueCapacity.remaining,
+                    limit: dialogueCapacity.limit
+                  })
+                : t('profile.job_hub.capacity_inline_fallback', {
+                    defaultValue: 'Kapacita handshake dialogů se právě načítá'
+                  })}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
+            <div className="rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
               <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {t('profile.job_hub.metrics.applied', { defaultValue: 'Odpovědi' })}
               </div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{applications.length}</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{dialogues.length}</div>
             </div>
-            <div className="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
+            <div className="rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
               <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {t('profile.job_hub.metrics.active', { defaultValue: 'Aktivní' })}
               </div>
               <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{activeCount}</div>
             </div>
-            <div className="col-span-2 rounded-xl border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70 sm:col-span-1">
+            <div className="col-span-2 rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70 sm:col-span-1">
               <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {t('profile.job_hub.metrics.saved', { defaultValue: 'Uloženo' })}
+                {t('profile.job_hub.metrics.capacity', { defaultValue: 'Handshake sloty' })}
               </div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{savedJobs.length}</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+                {dialogueCapacity ? `${dialogueCapacity.active}/${dialogueCapacity.limit}` : activeCount}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                {dialogueCapacity
+                  ? t('profile.job_hub.metrics.capacity_hint', {
+                      defaultValue: '{{count}} volných',
+                      count: dialogueCapacity.remaining
+                    })
+                  : t('profile.job_hub.metrics.saved_hint', {
+                      defaultValue: 'Aktivní dialogy v oběhu'
+                    })}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <div className="xl:col-span-3 space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <div className="xl:col-span-3 space-y-4">
+          <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
             <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
@@ -612,11 +828,11 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {t('profile.job_hub.applications_title', { defaultValue: 'Odeslané odpovědi' })}
+                      {t('profile.job_hub.applications_title', { defaultValue: 'Otevřené handshaky' })}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {t('profile.job_hub.applications_desc', {
-                        defaultValue: 'Sledujte stav, otevřete detail a vraťte se k firmě i k původnímu inzerátu.'
+                        defaultValue: 'Sledujte stav dialogu, otevřete detail a vraťte se k firmě i k původní roli.'
                       })}
                     </p>
                   </div>
@@ -624,7 +840,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
 
                 <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <Clock3 className="h-3.5 w-3.5" />
-                  {filteredApplications.length} {t('profile.job_hub.items', { defaultValue: 'položek' })}
+                      {filteredDialogues.length} {t('profile.job_hub.items', { defaultValue: 'položek' })}
                 </div>
               </div>
             </div>
@@ -632,55 +848,55 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             <div className="p-6">
               <div className="mb-5">
                 <label htmlFor="application-search" className="sr-only">
-                  {t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v odpovědích' })}
+                  {t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v handshacích' })}
                 </label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     id="application-search"
                     type="text"
-                    value={applicationSearch}
-                    onChange={(event) => setApplicationSearch(event.target.value)}
-                    placeholder={t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v odpovědích' })}
+                  value={dialogueSearch}
+                    onChange={(event) => setDialogueSearch(event.target.value)}
+                    placeholder={t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v handshacích' })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:focus:border-cyan-700 dark:focus:ring-cyan-900/40"
                   />
                 </div>
               </div>
 
-              {loadingApplications ? (
+              {loadingDialogues ? (
                 <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('profile.job_hub.loading', { defaultValue: 'Načítám vaše odpovědi…' })}
+                  {t('profile.job_hub.loading', { defaultValue: 'Načítám vaše handshaky…' })}
                 </div>
-              ) : applicationsError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                  {applicationsError}
+              ) : dialoguesError ? (
+                <div className="rounded-[0.95rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                  {dialoguesError}
                 </div>
-              ) : filteredApplications.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-950/40">
+              ) : filteredDialogues.length === 0 ? (
+                <div className="rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-950/40">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm dark:bg-slate-900">
                       <Briefcase className="h-6 w-6 text-slate-400" />
                     </div>
                   <h4 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-                    {applicationSearch
+                    {dialogueSearch
                       ? t('profile.job_hub.empty_search_title', { defaultValue: 'Nic neodpovídá hledání' })
-                      : t('profile.job_hub.empty_title', { defaultValue: 'Zatím tu nejsou žádné odpovědi' })}
+                      : t('profile.job_hub.empty_title', { defaultValue: 'Zatím tu nejsou žádné handshaky' })}
                   </h4>
                   <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    {applicationSearch
+                    {dialogueSearch
                       ? t('profile.job_hub.empty_search_desc', { defaultValue: 'Zkuste jiný název pozice, firmu nebo lokalitu.' })
-                      : t('profile.job_hub.empty_desc', { defaultValue: 'Jakmile odpovíte na nabídku, objeví se zde přehled celé interakce.' })}
+                      : t('profile.job_hub.empty_desc', { defaultValue: 'Jakmile otevřete první handshake, objeví se zde přehled celé interakce.' })}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredApplications.map((application) => {
-                    const isActive = activeDetailId === application.id;
-                    const canWithdraw = !LOCKED_WITHDRAW_STATUSES.includes(application.status);
+                  {filteredDialogues.map((dialogue) => {
+                    const isActive = activeDetailId === dialogue.id;
+                    const canWithdraw = !LOCKED_WITHDRAW_STATUSES.includes(dialogue.status);
                     return (
                       <div
-                        key={application.id}
-                        className={`rounded-2xl border p-5 transition-colors ${
+                        key={dialogue.id}
+                        className={`rounded-[1rem] border p-5 transition-colors ${
                           isActive
                             ? 'border-cyan-300 bg-cyan-50/60 dark:border-cyan-700 dark:bg-cyan-950/10'
                             : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/70'
@@ -690,28 +906,28 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <h4 className="truncate text-lg font-semibold text-slate-900 dark:text-white">
-                                {application.job_snapshot?.title ||
+                                {dialogue.job_snapshot?.title ||
                                   t('profile.job_hub.unknown_position', { defaultValue: 'Neznámá pozice' })}
                               </h4>
-                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClassName(application.status)}`}>
-                                {getStatusLabel(application.status)}
+                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClassName(dialogue.status)}`}>
+                                {getStatusLabel(dialogue.status)}
                               </span>
                             </div>
                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                              {[application.company_name || application.job_snapshot?.company, application.job_snapshot?.location]
+                              {[dialogue.company_name || dialogue.job_snapshot?.company, dialogue.job_snapshot?.location]
                                 .filter(Boolean)
                                 .join(' • ') || t('profile.job_hub.not_available', { defaultValue: 'Neuvedeno' })}
                             </p>
                             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                              {t('profile.job_hub.submitted_label', { defaultValue: 'Odesláno' })}: {formatTimestamp(application.submitted_at)}
+                              {t('profile.job_hub.submitted_label', { defaultValue: 'Odesláno' })}: {formatTimestamp(dialogue.submitted_at)}
                             </p>
-                            {renderApplicationSignals(application)}
+                            {renderDialogueSignals(dialogue)}
                           </div>
 
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() => onJobSelect(String(application.job_id))}
+                              onClick={() => onJobSelect(String(dialogue.job_id))}
                               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
                               <Eye className="h-4 w-4" />
@@ -719,26 +935,26 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleOpenApplicationDetail(application.id)}
+                              onClick={() => handleOpenDialogueDetail(dialogue.id)}
                               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
                               <Eye className="h-4 w-4" />
-                              {t('profile.job_hub.review_sent', { defaultValue: 'Zkontrolovat odeslané' })}
+                              {t('profile.job_hub.review_sent', { defaultValue: 'Otevřít handshake' })}
                             </button>
-                            {application.job_snapshot?.contact_email && (
+                            {dialogue.job_snapshot?.contact_email && (
                               <button
                                 type="button"
-                                onClick={() => openMail(application.job_snapshot?.contact_email, application.job_snapshot?.title || null)}
+                                onClick={() => openMail(dialogue.job_snapshot?.contact_email, dialogue.job_snapshot?.title || null)}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                               >
                                 <Mail className="h-4 w-4" />
                                 {t('profile.job_hub.contact_company', { defaultValue: 'Napsat firmě' })}
                               </button>
                             )}
-                            {application.job_snapshot?.url && (
+                            {dialogue.job_snapshot?.url && (
                               <button
                                 type="button"
-                                onClick={() => openUrl(application.job_snapshot?.url)}
+                                onClick={() => openUrl(dialogue.job_snapshot?.url)}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                               >
                                 <ExternalLink className="h-4 w-4" />
@@ -747,16 +963,16 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                             )}
                             <button
                               type="button"
-                              onClick={() => handleWithdrawApplication(application)}
-                              disabled={!canWithdraw || withdrawingId === application.id}
+                              onClick={() => handleWithdrawDialogue(dialogue)}
+                              disabled={!canWithdraw || withdrawingId === dialogue.id}
                               className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30"
                             >
-                              {withdrawingId === application.id ? (
+                              {withdrawingId === dialogue.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <Trash2 className="h-4 w-4" />
                               )}
-                              {t('profile.job_hub.withdraw', { defaultValue: 'Stáhnout reakci' })}
+                              {t('profile.job_hub.withdraw', { defaultValue: 'Uzavřít handshake' })}
                             </button>
                           </div>
                         </div>
@@ -768,11 +984,11 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             </div>
           </div>
 
-          {renderApplicationDetail()}
+          {renderDialogueDetail()}
         </div>
 
-        <div className="xl:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <div className="xl:col-span-2 space-y-4">
+          <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -790,7 +1006,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
         </div>
       </div>
 
-      <div className="overflow-visible rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-34px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900">
+      <div className="overflow-visible rounded-[1.15rem] border border-slate-200/80 bg-white/94 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.26)] dark:border-slate-700 dark:bg-slate-900/94">
         <SavedJobsPage
           savedJobs={savedJobs}
           savedJobIds={savedJobIds}

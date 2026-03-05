@@ -20,7 +20,33 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const price = getPremiumPriceDisplay(i18n.language || 'cs');
+    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
     if (!show.open) return null;
+
+    const copy = isCsLike ? {
+        title: 'Odemkni premium handshake vrstvu',
+        desc: `Funkce "${show.feature}" je soucast premium vrstvy pro silnejsi podklady, chytrejsi follow-upy a lepsi signal pred prvnim rozhovorem.`,
+        benefits: [
+            'Vice AI pomoci pro supporting context a jeho drafty',
+            'Silnejsi follow-up zpravy a odpovedi bez spamu',
+            'Lepsi cisteni signalu pred shortlistem',
+            'Rozsirene AI upravy textu a promptu',
+            'Hladsi navazujici kroky po prvnim handshaku',
+            'Vyssi viditelnost kvalitniho profilu'
+        ]
+    } : {
+        title: 'Unlock the premium handshake layer',
+        desc: `The feature "${show.feature}" is part of the premium layer for stronger supporting context, smarter follow-ups, and cleaner signal before the first interview.`,
+        benefits: [
+            'More AI help for supporting context and its drafts',
+            'Stronger follow-up messages and replies without spam',
+            'Better signal cleanup before the shortlist',
+            'Expanded AI rewrites for texts and prompts',
+            'Smoother next steps after the first handshake',
+            'Higher visibility for a high-quality profile'
+        ]
+    };
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -35,21 +61,13 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     <Sparkles size={40} />
                 </div>
 
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{t('premium_upgrade_modal.title')}</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{copy.title}</h2>
                 <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    {t('premium_upgrade_modal.desc_prefix')} <span className="font-bold text-cyan-600 dark:text-cyan-400">"{show.feature}"</span> {t('premium_upgrade_modal.desc_suffix')}
+                    {copy.desc}
                 </p>
 
                 <div className="grid grid-cols-1 gap-3 mb-8 text-left">
-                        {[
-                            t('premium_upgrade_modal.benefits.unlimited_ai'),
-                            t('premium_upgrade_modal.benefits.cover_letters'),
-                            t('premium_upgrade_modal.benefits.cv_optimization'),
-                            t('premium_upgrade_modal.benefits.ats_optimization'),
-                            t('premium_upgrade_modal.benefits.ai_cv_dictation'),
-                            t('premium_upgrade_modal.benefits.jhi_personalization'),
-                            t('premium_upgrade_modal.benefits.priority_visibility')
-                        ].map((f, i) => (
+                        {copy.benefits.map((f, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
                             <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{f}</span>

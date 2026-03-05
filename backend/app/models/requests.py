@@ -163,6 +163,17 @@ class ApplicationMessageCreateRequest(BaseModel):
     attachments: Optional[List[dict]] = Field(default=None, max_length=5)
 
 
+class AssetUploadSessionRequest(BaseModel):
+    kind: Literal["attachment", "audio", "candidate_document"] = "attachment"
+    file_name: str = Field(..., min_length=1, max_length=255)
+    content_type: str = Field(..., min_length=1, max_length=160)
+    size_bytes: int = Field(..., ge=1, le=20 * 1024 * 1024)
+
+
+class AssetCompleteUploadRequest(BaseModel):
+    upload_token: str = Field(..., min_length=16, max_length=255)
+
+
 class JobDraftUpsertRequest(BaseModel):
     status: Optional[Literal["draft", "ready_for_publish", "published_linked", "archived"]] = None
     title: Optional[str] = Field(default=None, max_length=200)

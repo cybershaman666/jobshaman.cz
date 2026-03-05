@@ -27,6 +27,53 @@ export interface TodayActionItem {
   action: () => void;
 }
 
+const formatDialogueStatusLabel = (t: TranslateFn, status: unknown): string => {
+  const normalized = String(status || 'pending').trim().toLowerCase();
+  switch (normalized) {
+    case 'reviewed':
+      return t('company.dashboard.status.approved', { defaultValue: 'Reviewed' });
+    case 'shortlisted':
+      return t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' });
+    case 'rejected':
+    case 'closed_rejected':
+      return t('company.dashboard.status.refused', { defaultValue: 'Rejected' });
+    case 'hired':
+      return t('company.dashboard.status.hired', { defaultValue: 'Hired' });
+    case 'withdrawn':
+    case 'closed_withdrawn':
+      return t('company.applications.status.withdrawn', { defaultValue: 'Withdrawn' });
+    case 'closed_timeout':
+    case 'timeout':
+      return t('company.applications.status.timeout', { defaultValue: 'Closed by timeout' });
+    case 'closed_role_filled':
+      return t('company.applications.status.role_filled', { defaultValue: 'Role filled' });
+    case 'closed':
+      return t('company.applications.status.closed', { defaultValue: 'Closed' });
+    default:
+      return t('company.dashboard.status.pending', { defaultValue: 'Pending' });
+  }
+};
+
+const formatRoleStatusLabel = (t: TranslateFn, status: unknown): string => {
+  const normalized = String(status || 'active').trim().toLowerCase();
+  switch (normalized) {
+    case 'active':
+      return t('company.dashboard.role_status.active', { defaultValue: 'Active' });
+    case 'paused':
+      return t('company.dashboard.role_status.paused', { defaultValue: 'Paused' });
+    case 'closed':
+      return t('company.dashboard.role_status.closed', { defaultValue: 'Closed' });
+    case 'archived':
+      return t('company.dashboard.role_status.archived', { defaultValue: 'Archived' });
+    case 'draft':
+      return t('company.dashboard.role_status.draft', { defaultValue: 'Draft' });
+    case 'published_linked':
+      return t('company.dashboard.role_status.published', { defaultValue: 'Published' });
+    default:
+      return normalized.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+};
+
 export interface OverviewHeaderState {
   subscriptionLabel: string;
   isFreeLikeTier: boolean;
@@ -42,7 +89,7 @@ export interface OverviewMetricsState {
 }
 
 export const buildOverviewMetrics = ({
-  applications,
+  applications: dialogues,
   jobStats
 }: {
   applications: CompanyApplicationRow[];
@@ -51,7 +98,7 @@ export const buildOverviewMetrics = ({
   const totalViews = Object.values(jobStats).reduce((acc, curr) => acc + curr.views, 0);
   const totalApplicants = Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0);
   const averageConversion = totalViews > 0 ? (totalApplicants / totalViews) * 100 : 0;
-  const openApplications = applications.filter((app) => ['pending', 'reviewed', 'shortlisted'].includes(String(app.status || 'pending')));
+  const openApplications = dialogues.filter((dialogue) => ['pending', 'reviewed', 'shortlisted'].includes(String(dialogue.status || 'pending')));
 
   return {
     totalViews,
@@ -65,7 +112,7 @@ export const buildOverviewHeaderState = ({
   t,
   subscription,
   effectiveSubscriptionTier,
-  applications,
+  applications: dialogues,
   candidateBenchmarks
 }: {
   t: TranslateFn;
@@ -82,7 +129,7 @@ export const buildOverviewHeaderState = ({
         : subscriptionTier === 'starter' ? t('company.subscription.tiers.starter', { defaultValue: 'Starter' })
           : subscriptionTier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' })
             : t('company.subscription.tiers.free'));
-  const recentApplications = applications.slice(0, 5);
+  const recentApplications = dialogues.slice(0, 5);
   const candidateCoverageLabel = candidateBenchmarks?.assessment?.coverage
     ? `${candidateBenchmarks.assessment.coverage.assessed_candidates}/${candidateBenchmarks.assessment.coverage.total_candidates}`
     : t('company.workspace.cards.candidate_coverage_empty', { defaultValue: 'No completed assessments yet' });
@@ -145,7 +192,7 @@ export const buildRecruiterActionQueue = ({
       id: `stale-${staleJob.id}`,
       title: t('company.workspace.queue.low_conversion_title', { defaultValue: 'Low conversion role' }),
       detail: t('company.workspace.queue.low_conversion_detail', {
-        defaultValue: '{{title}} is getting views but no applications. Tighten the ad or route it into review.',
+        defaultValue: '{{title}} is getting views but no dialogues are opening. Tighten the role truth, clarity, or handshake path.',
         title: staleJob.title
       }),
       action: () => onEditJob(staleJob.id),
@@ -157,9 +204,9 @@ export const buildRecruiterActionQueue = ({
   if (urgentApplication) {
     queue.push({
       id: `application-${urgentApplication.id}`,
-      title: t('company.workspace.queue.application_title', { defaultValue: 'Application waiting for recruiter action' }),
+      title: t('company.workspace.queue.application_title', { defaultValue: 'Dialogue waiting for recruiter action' }),
       detail: t('company.workspace.queue.application_detail', {
-        defaultValue: '{{candidate}} applied for {{job}} and is waiting in the review queue.',
+        defaultValue: '{{candidate}} opened a handshake for {{job}} and is waiting for the next recruiter step.',
         candidate: urgentApplication.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }),
         job: urgentApplication.job_title || t('company.dashboard.table.position')
       }),
@@ -176,7 +223,7 @@ export const buildRecruiterActionQueue = ({
       id: 'assessment-library-empty',
       title: t('company.workspace.queue.assessment_title', { defaultValue: 'Assessment library is empty' }),
       detail: t('company.workspace.queue.assessment_detail', {
-        defaultValue: 'Create or save at least one reusable assessment so recruiters can invite candidates faster.'
+        defaultValue: 'Create or save at least one reusable assessment so recruiters can extend a dialogue without losing momentum.'
       }),
       action: onOpenAssessments,
       accent: 'emerald'
@@ -201,7 +248,7 @@ export const buildRecruiterActionQueue = ({
 export const buildWorkspaceActivity = ({
   t,
   visibleJobs,
-  applications,
+  applications: dialogues,
   assessmentLibrary,
   assessmentInvitations,
   assessmentResultsAudit,
@@ -228,14 +275,14 @@ export const buildWorkspaceActivity = ({
     });
   });
 
-  applications.forEach((app) => {
-    const submittedAt = String(app.submitted_at || app.created_at || '').trim();
+  dialogues.forEach((dialogue) => {
+    const submittedAt = String(dialogue.submitted_at || dialogue.created_at || '').trim();
     if (!submittedAt) return;
     items.push({
-      id: `application-${app.id}`,
+      id: `application-${dialogue.id}`,
       at: submittedAt,
-      title: t('company.workspace.timeline.application_received', { defaultValue: 'Application received' }),
-      detail: `${app.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })} • ${app.job_title || t('company.dashboard.table.position')}`
+      title: t('company.workspace.timeline.application_received', { defaultValue: 'Handshake opened' }),
+      detail: `${dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })} • ${dialogue.job_title || t('company.dashboard.table.position')}`
     });
   });
 
@@ -282,54 +329,157 @@ export const buildWorkspaceActivity = ({
 
     switch (event.event_type) {
       case 'application_status_changed':
+        {
+          const statusLabel = String(
+            payload.close_reason_label || formatDialogueStatusLabel(t, payload.status)
+          ).trim() || formatDialogueStatusLabel(t, payload.status);
         title = t('company.workspace.timeline.application_status_changed', {
-          defaultValue: 'Application moved to {{status}}',
-          status: String(payload.status || 'pending')
+          defaultValue: 'Dialogue moved to {{status}}',
+            status: statusLabel
         });
         detail = `${String(payload.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }))} • ${String(payload.job_title || t('company.dashboard.table.position'))}`;
         break;
+        }
       case 'job_closed':
-        title = t('company.workspace.timeline.job_closed', { defaultValue: 'Role closed' });
-        detail = String(payload.job_title || t('company.dashboard.table.position'));
+        {
+          const nextStatusLabel = String(
+            payload.role_status_label
+            || payload.next_status_label
+            || formatRoleStatusLabel(t, payload.role_status || payload.next_status || 'closed')
+          );
+          const previousStatusLabel = String(
+            payload.previous_status_label
+            || formatRoleStatusLabel(t, payload.previous_status || 'active')
+          );
+        title = t('company.workspace.timeline.job_closed', {
+          defaultValue: 'Role moved to {{status}}',
+            status: nextStatusLabel
+        });
+          detail = `${String(payload.job_title || t('company.dashboard.table.position'))} • ${previousStatusLabel} -> ${nextStatusLabel}`;
         break;
+        }
       case 'job_reopened':
-        title = t('company.workspace.timeline.job_reopened', { defaultValue: 'Role reopened' });
-        detail = String(payload.job_title || t('company.dashboard.table.position'));
+        {
+          const nextStatusLabel = String(
+            payload.role_status_label
+            || payload.next_status_label
+            || formatRoleStatusLabel(t, payload.role_status || payload.next_status || 'active')
+          );
+          const previousStatusLabel = String(
+            payload.previous_status_label
+            || formatRoleStatusLabel(t, payload.previous_status || 'closed')
+          );
+        title = t('company.workspace.timeline.job_reopened', {
+          defaultValue: 'Role moved to {{status}}',
+            status: nextStatusLabel
+        });
+          detail = `${String(payload.job_title || t('company.dashboard.table.position'))} • ${previousStatusLabel} -> ${nextStatusLabel}`;
         break;
+        }
       case 'job_paused':
-        title = t('company.workspace.timeline.job_paused', { defaultValue: 'Role paused' });
-        detail = String(payload.job_title || t('company.dashboard.table.position'));
+        {
+          const nextStatusLabel = String(
+            payload.role_status_label
+            || payload.next_status_label
+            || formatRoleStatusLabel(t, payload.role_status || payload.next_status || 'paused')
+          );
+          const previousStatusLabel = String(
+            payload.previous_status_label
+            || formatRoleStatusLabel(t, payload.previous_status || 'active')
+          );
+        title = t('company.workspace.timeline.job_paused', {
+          defaultValue: 'Role moved to {{status}}',
+            status: nextStatusLabel
+        });
+          detail = `${String(payload.job_title || t('company.dashboard.table.position'))} • ${previousStatusLabel} -> ${nextStatusLabel}`;
         break;
+        }
       case 'job_archived':
-        title = t('company.workspace.timeline.job_archived', { defaultValue: 'Role archived' });
-        detail = String(payload.job_title || t('company.dashboard.table.position'));
+        {
+          const nextStatusLabel = String(
+            payload.role_status_label
+            || payload.next_status_label
+            || formatRoleStatusLabel(t, payload.role_status || payload.next_status || 'archived')
+          );
+          const previousStatusLabel = String(
+            payload.previous_status_label
+            || formatRoleStatusLabel(t, payload.previous_status || 'closed')
+          );
+        title = t('company.workspace.timeline.job_archived', {
+          defaultValue: 'Role moved to {{status}}',
+            status: nextStatusLabel
+        });
+          detail = `${String(payload.job_title || t('company.dashboard.table.position'))} • ${previousStatusLabel} -> ${nextStatusLabel}`;
         break;
+        }
       case 'job_published':
-        title = t('company.workspace.timeline.job_published', { defaultValue: 'Role published' });
+        title = t('company.workspace.timeline.job_published', {
+          defaultValue: 'Role is now {{status}}',
+          status: String(
+            payload.role_status_label
+            || payload.next_status_label
+            || formatRoleStatusLabel(t, payload.role_status || payload.next_status || 'active')
+          )
+        });
         detail = String(payload.job_title || t('company.dashboard.table.position'));
         break;
       case 'job_updated':
         title = t('company.workspace.timeline.job_updated', { defaultValue: 'Role updated' });
-        detail = String(payload.job_title || t('company.dashboard.table.position'));
+        detail = `${String(payload.job_title || t('company.dashboard.table.position'))}${payload.role_status_label ? ` • ${String(payload.role_status_label)}` : ''}`;
         break;
       case 'assessment_invited':
-        title = t('company.workspace.timeline.assessment_invited', { defaultValue: 'Assessment invitation sent' });
+        title = String(
+          payload.action_label
+          || t('company.workspace.timeline.assessment_invited', { defaultValue: 'Assessment invitation sent' })
+        );
         detail = `${String(payload.candidate_name || payload.candidate_email || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }))} • ${String(payload.job_title || t('company.dashboard.table.position'))}`;
         break;
       case 'assessment_saved':
-        title = t('company.workspace.timeline.assessment_saved', { defaultValue: 'Assessment saved' });
+        title = String(
+          payload.action_label
+          || t('company.workspace.timeline.assessment_saved', { defaultValue: 'Assessment saved' })
+        );
         detail = `${String(payload.assessment_title || t('company.assessment_library.title', { defaultValue: 'Assessment' }))} • ${String(payload.job_title || '')}`.replace(/ • $/, '');
         break;
       case 'assessment_duplicated':
-        title = t('company.workspace.timeline.assessment_duplicated', { defaultValue: 'Assessment duplicated' });
+        title = String(
+          payload.action_label
+          || t('company.workspace.timeline.assessment_duplicated', { defaultValue: 'Assessment duplicated' })
+        );
         detail = String(payload.assessment_title || t('company.assessment_library.title', { defaultValue: 'Assessment' }));
         break;
       case 'assessment_archived':
-        title = t('company.workspace.timeline.assessment_archived', { defaultValue: 'Assessment archived' });
+        title = String(
+          payload.action_label
+          || t('company.workspace.timeline.assessment_archived', { defaultValue: 'Assessment archived' })
+        );
         detail = String(payload.assessment_title || t('company.assessment_library.title', { defaultValue: 'Assessment' }));
         break;
+      case 'application_message_from_candidate':
+        title = String(
+          payload.direction_label
+          || payload.action_label
+          || t('company.workspace.timeline.application_message_from_candidate', { defaultValue: 'Candidate replied' })
+        );
+        detail = payload.has_attachments
+          ? t('company.workspace.timeline.application_message_attachment', { defaultValue: 'Dialogue thread updated • Attachment included' })
+          : t('company.workspace.timeline.application_message_plain', { defaultValue: 'Dialogue thread updated' });
+        break;
+      case 'application_message_from_company':
+        title = String(
+          payload.direction_label
+          || payload.action_label
+          || t('company.workspace.timeline.application_message_from_company', { defaultValue: 'Company replied' })
+        );
+        detail = payload.has_attachments
+          ? t('company.workspace.timeline.application_message_attachment', { defaultValue: 'Dialogue thread updated • Attachment included' })
+          : t('company.workspace.timeline.application_message_plain', { defaultValue: 'Dialogue thread updated' });
+        break;
       default:
-        title = t('company.workspace.timeline.activity_logged', { defaultValue: 'Recruiter activity logged' });
+        title = String(
+          payload.action_label
+          || t('company.workspace.timeline.activity_logged', { defaultValue: 'Recruiter activity logged' })
+        );
         detail = String(payload.detail || payload.job_title || t('company.workspace.timeline.empty', { defaultValue: 'Activity logged' }));
         break;
     }
@@ -349,7 +499,7 @@ export const buildWorkspaceActivity = ({
 
 export const buildTodayActionPlan = ({
   t,
-  applications,
+  applications: dialogues,
   assessmentLibraryCount,
   candidateBenchmarks,
   jobs,
@@ -381,8 +531,8 @@ export const buildTodayActionPlan = ({
   onSelectPausedJob: (jobId: string) => void;
 }): TodayActionItem[] => {
   const items: TodayActionItem[] = [];
-  const pendingApplications = applications.filter((app) => String(app.status || 'pending') === 'pending');
-  const shortlistedApplications = applications.filter((app) => String(app.status || 'pending') === 'shortlisted');
+  const pendingApplications = dialogues.filter((dialogue) => String(dialogue.status || 'pending') === 'pending');
+  const shortlistedApplications = dialogues.filter((dialogue) => String(dialogue.status || 'pending') === 'shortlisted');
   const staleJob = visibleJobs.find((job) => {
     const stats = jobStats[job.id] || { views: 0, applicants: 0 };
     return stats.views >= 25 && stats.applicants === 0;
@@ -398,7 +548,7 @@ export const buildTodayActionPlan = ({
     items.push({
       id: 'launch-first-role',
       title: t('company.workspace.today.first_role_title', { defaultValue: 'Launch the first live role' }),
-      detail: t('company.workspace.today.first_role_detail', { defaultValue: 'The dashboard becomes fully operational after the first job is published from the structured editor.' }),
+      detail: t('company.workspace.today.first_role_detail', { defaultValue: 'The dashboard becomes fully operational after the first role is published from the structured editor.' }),
       label: t('company.workspace.today.now', { defaultValue: 'Now' }),
       actionLabel: t('company.workspace.today.open_editor', { defaultValue: 'Open editor' }),
       action: onOpenJobs
@@ -410,11 +560,11 @@ export const buildTodayActionPlan = ({
     items.push({
       id: 'review-pending-applications',
       title: t('company.workspace.today.pending_title', {
-        defaultValue: 'Review {{count}} fresh applications',
+        defaultValue: 'Review {{count}} fresh dialogues',
         count: pendingApplications.length
       }),
       detail: t('company.workspace.today.pending_detail', {
-        defaultValue: 'Start with {{candidate}} for {{job}} and move the queue forward before it stalls.',
+        defaultValue: 'Start with {{candidate}} for {{job}} and move the dialogue forward before it stalls.',
         candidate: nextPending.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }),
         job: nextPending.job_title || t('company.dashboard.table.position')
       }),
@@ -438,7 +588,7 @@ export const buildTodayActionPlan = ({
         : t('company.workspace.today.shortlist_setup_title', { defaultValue: 'Prepare assessment flow for shortlisted candidates' }),
       detail: assessmentLibraryCount > 0
         ? t('company.workspace.today.shortlist_detail', { defaultValue: 'Invite shortlisted candidates into your saved assessment workflow while momentum is high.' })
-        : t('company.workspace.today.shortlist_setup_detail', { defaultValue: 'Create at least one reusable assessment before the next shortlist reaches interview stage.' }),
+        : t('company.workspace.today.shortlist_setup_detail', { defaultValue: 'Create at least one reusable assessment before the next shortlisted dialogue reaches interview stage.' }),
       label: t('company.workspace.today.next', { defaultValue: 'Next' }),
       actionLabel: assessmentLibraryCount > 0
         ? t('company.workspace.today.open_assessments', { defaultValue: 'Open assessments' })
@@ -452,7 +602,7 @@ export const buildTodayActionPlan = ({
       id: 'repair-low-conversion-role',
       title: t('company.workspace.today.conversion_title', { defaultValue: 'Repair a low-conversion role' }),
       detail: t('company.workspace.today.conversion_detail', {
-        defaultValue: '{{title}} is visible but not converting. Tighten the copy, salary clarity, or screening path.',
+        defaultValue: '{{title}} is visible but not opening dialogues. Tighten the role truth, salary clarity, or handshake path.',
         title: staleJob.title
       }),
       label: t('company.workspace.today.this_week', { defaultValue: 'This week' }),
@@ -480,7 +630,7 @@ export const buildTodayActionPlan = ({
       id: 'expand-assessment-coverage',
       title: t('company.workspace.today.coverage_title', { defaultValue: 'Increase assessment coverage' }),
       detail: t('company.workspace.today.coverage_detail', {
-        defaultValue: '{{count}} candidates still have no linked assessment result, which limits recruiter signal quality.',
+        defaultValue: '{{count}} candidates still have no linked assessment result, which limits deeper signal after the first dialogue.',
         count: uncoveredCandidates
       }),
       label: t('company.workspace.today.next', { defaultValue: 'Next' }),

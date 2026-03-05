@@ -329,8 +329,8 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     };
 
     return (
-        <section className="py-16 bg-slate-50 dark:bg-slate-950/50 relative">
-            <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        <section className={showOverview ? "py-16 bg-slate-50 dark:bg-slate-950/50 relative" : "relative"}>
+            <div className={showOverview ? "max-w-7xl mx-auto px-4 lg:px-8" : "w-full"}>
                 <script type="application/ld+json">
                     {JSON.stringify(structuredData)}
                 </script>
@@ -435,73 +435,157 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                 )}
 
                 {/* Blog Posts Grid */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.4 }}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                >
-                    {sortedPosts.map((post) => (
-                        <article
-                            key={post.id}
-                            onClick={() => handleSelectPost(post)}
-                            className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
-                        >
-                            <div className="relative h-48 overflow-hidden">
-                                {post.image ? (
-                                    <img
-                                        src={post.image}
-                                        alt={post.title}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300">
-                                        <BookOpen size={48} />
+                {showOverview ? (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.4 }}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                    >
+                        {sortedPosts.map((post) => (
+                            <article
+                                key={post.id}
+                                onClick={() => handleSelectPost(post)}
+                                className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
+                            >
+                                <div className="relative h-48 overflow-hidden">
+                                    {post.image ? (
+                                        <img
+                                            src={post.image}
+                                            alt={post.title}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300">
+                                            <BookOpen size={48} />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-4 left-4 flex gap-2">
+                                        <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 shadow-sm uppercase tracking-wider">
+                                            {post.category}
+                                        </span>
                                     </div>
-                                )}
-                                <div className="absolute top-4 left-4 flex gap-2">
-                                    <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 shadow-sm uppercase tracking-wider">
-                                        {post.category}
-                                    </span>
-                                </div>
-                                {isAdmin && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}
-                                        className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-slate-900/90 rounded-full text-slate-600 dark:text-slate-300 hover:text-cyan-600 shadow-sm"
-                                    >
-                                        <Edit2 size={14} />
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="p-6 flex flex-col flex-1">
-                                <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mb-3 uppercase font-bold tracking-tight">
-                                    <div className="flex items-center gap-1">
-                                        <Calendar size={12} /> {post.date}
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Clock size={12} /> {post.readTime}
-                                    </div>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}
+                                            className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-slate-900/90 rounded-full text-slate-600 dark:text-slate-300 hover:text-cyan-600 shadow-sm"
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                    )}
                                 </div>
 
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2">
-                                    {t(`blog.posts.post${post.id}.title`, post.title)}
-                                </h3>
+                                <div className="p-6 flex flex-col flex-1">
+                                    <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mb-3 uppercase font-bold tracking-tight">
+                                        <div className="flex items-center gap-1">
+                                            <Calendar size={12} /> {post.date}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Clock size={12} /> {post.readTime}
+                                        </div>
+                                    </div>
 
-                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
-                                    {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
-                                </p>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2">
+                                        {t(`blog.posts.post${post.id}.title`, post.title)}
+                                    </h3>
 
-                                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <button className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-wider">
-                                        {t('blog.read_more', 'Číst více')} <ArrowRight size={16} />
-                                    </button>
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
+                                        {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                    </p>
+
+                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <button className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-wider">
+                                            {t('blog.read_more', 'Číst více')} <ArrowRight size={16} />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </article>
-                    ))}
-                </motion.div>
+                            </article>
+                        ))}
+                    </motion.div>
+                ) : (
+                    <div className="space-y-3">
+                        {sortedPosts[0] && (
+                            <article
+                                onClick={() => handleSelectPost(sortedPosts[0])}
+                                className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/88 dark:bg-slate-900/72 transition-all hover:border-cyan-300 dark:hover:border-cyan-700"
+                            >
+                                <div className="grid grid-cols-1 md:grid-cols-3">
+                                    <div className="md:col-span-1 h-44 md:h-full">
+                                        {sortedPosts[0].image ? (
+                                            <img
+                                                src={sortedPosts[0].image}
+                                                alt={sortedPosts[0].title}
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800">
+                                                <BookOpen size={40} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="md:col-span-2 p-4">
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                            <span className="text-cyan-600 dark:text-cyan-400">{sortedPosts[0].category}</span>
+                                            <span>{sortedPosts[0].date}</span>
+                                            <span className="inline-flex items-center gap-1"><Clock size={11} />{sortedPosts[0].readTime}</span>
+                                        </div>
+                                        <h4 className="mt-2 text-lg font-bold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-400">
+                                            {t(`blog.posts.post${sortedPosts[0].id}.title`, sortedPosts[0].title)}
+                                        </h4>
+                                        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                            {t(`blog.posts.post${sortedPosts[0].id}.excerpt`, sortedPosts[0].excerpt)}
+                                        </p>
+                                        <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                                            {t('blog.read_more', 'Číst více')}
+                                            <ArrowRight size={15} className="text-slate-400 group-hover:text-cyan-500" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {sortedPosts.slice(1, 5).map((post) => (
+                                <article
+                                    key={post.id}
+                                    onClick={() => handleSelectPost(post)}
+                                    className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/86 dark:bg-slate-900/70 transition-all hover:border-cyan-300 dark:hover:border-cyan-700"
+                                >
+                                    <div className="h-36">
+                                        {post.image ? (
+                                            <img
+                                                src={post.image}
+                                                alt={post.title}
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800">
+                                                <BookOpen size={34} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-3.5">
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                                            <span className="text-cyan-600 dark:text-cyan-400">{post.category}</span>
+                                            <span>{post.date}</span>
+                                        </div>
+                                        <h4 className="mt-1.5 line-clamp-2 text-sm font-semibold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-400">
+                                            {t(`blog.posts.post${post.id}.title`, post.title)}
+                                        </h4>
+                                        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                                            {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                        </p>
+                                        <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                            {t('blog.read_more', 'Číst více')}
+                                            <ArrowRight size={13} className="text-slate-400 group-hover:text-cyan-500" />
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* DETAIL MODAL */}
@@ -652,7 +736,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                         required
                                         value={editingPost.title}
                                         onChange={e => setEditingPost({ ...editingPost, title: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
                                         placeholder="Jak najít práci..."
                                     />
                                 </div>
@@ -661,7 +745,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                     <select
                                         value={editingPost.category}
                                         onChange={e => setEditingPost({ ...editingPost, category: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
                                     >
                                         <option value="Tipy & Triky">Tipy & Triky</option>
                                         <option value="Novinky">Novinky</option>
@@ -677,7 +761,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                     <input
                                         value={editingPost.image}
                                         onChange={e => setEditingPost({ ...editingPost, image: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
                                         placeholder="https://images.unsplash.com/..."
                                     />
                                 </div>
@@ -686,7 +770,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                     <input
                                         value={editingPost.readTime}
                                         onChange={e => setEditingPost({ ...editingPost, readTime: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
                                         placeholder="5 min čtení"
                                     />
                                 </div>
@@ -699,7 +783,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                     rows={3}
                                     value={editingPost.excerpt}
                                     onChange={e => setEditingPost({ ...editingPost, excerpt: e.target.value })}
-                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none resize-none dark:[color-scheme:dark]"
                                     placeholder="Stručné shrnutí článku..."
                                 />
                             </div>
@@ -711,7 +795,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                     rows={12}
                                     value={editingPost.content}
                                     onChange={e => setEditingPost({ ...editingPost, content: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none font-mono text-sm"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none font-mono text-sm dark:[color-scheme:dark]"
                                     placeholder="# Nadpis\n\nText článku s **tučným** písmem..."
                                 />
                             </div>

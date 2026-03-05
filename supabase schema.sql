@@ -190,6 +190,7 @@ CREATE TABLE public.csrf_sessions (
 CREATE TABLE public.cv_documents (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
+  external_asset_id uuid,
   file_name text,
   original_name text,
   file_url text,
@@ -200,7 +201,8 @@ CREATE TABLE public.cv_documents (
   uploaded_at timestamp without time zone DEFAULT now(),
   last_used timestamp without time zone,
   CONSTRAINT cv_documents_pkey PRIMARY KEY (id),
-  CONSTRAINT cv_documents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+  CONSTRAINT cv_documents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT cv_documents_external_asset_id_fkey FOREIGN KEY (external_asset_id) REFERENCES public.external_assets(id)
 );
 CREATE TABLE public.enterprise_leads (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -339,6 +341,22 @@ CREATE TABLE public.geocode_cache (
   cached_at timestamp with time zone NOT NULL DEFAULT now(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT geocode_cache_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.external_assets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  storage_provider text NOT NULL DEFAULT 'local',
+  bucket text NOT NULL,
+  object_key text NOT NULL UNIQUE,
+  kind text NOT NULL DEFAULT 'attachment',
+  mime_type text,
+  size_bytes bigint DEFAULT 0,
+  sha256 text,
+  uploaded_by uuid,
+  filename text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT external_assets_pkey PRIMARY KEY (id),
+  CONSTRAINT external_assets_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.job_applications (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -555,11 +573,25 @@ CREATE TABLE public.subscription_usage (
   period_start timestamp with time zone NOT NULL,
   period_end timestamp with time zone NOT NULL,
   active_jobs_count integer DEFAULT 0,
+  active_dialogue_slots_used integer DEFAULT 0,
+  role_opens_used integer DEFAULT 0,
   ai_assessments_used integer DEFAULT 0,
   ad_optimizations_used integer DEFAULT 0,
   last_reset_at timestamp with time zone DEFAULT now(),
   CONSTRAINT subscription_usage_pkey PRIMARY KEY (id)
 );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'subscription_usage'
+  ) THEN
+    ALTER TABLE public.subscription_usage
+      ADD COLUMN IF NOT EXISTS active_dialogue_slots_used integer DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS role_opens_used integer DEFAULT 0;
+  END IF;
+END $$;
 CREATE TABLE public.subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -629,3 +661,16 @@ CREATE TABLE public.jcfpm_results (
   version text DEFAULT 'jcfpm-v1'::text,
   CONSTRAINT jcfpm_results_pkey PRIMARY KEY (id)
 );
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'application_messages'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.application_messages ADD COLUMN IF NOT EXISTS asset_ids jsonb DEFAULT ''[]''::jsonb';
+  END IF;
+END
+$$;

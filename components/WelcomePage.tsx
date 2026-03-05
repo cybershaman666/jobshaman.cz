@@ -1,11 +1,10 @@
-import React from 'react';
-import { ArrowRight, CheckCircle2, Compass, MapPin, Scale, Users, Brain, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ArrowRight, Brain, CheckCircle2, MessageSquare, Shield, Sparkles, TimerReset } from 'lucide-react';
 import BlogSection from './BlogSection';
-import OfferImpactSnapshot from './OfferImpactSnapshot';
-import CrossBorderPromo from './CrossBorderPromo';
 
 interface WelcomePageProps {
+  compact?: boolean;
   onTryFree?: () => void;
   onBrowseOffers?: () => void;
   totalJobsCount?: number;
@@ -15,6 +14,7 @@ interface WelcomePageProps {
 }
 
 const WelcomePage: React.FC<WelcomePageProps> = ({
+  compact = false,
   onTryFree,
   onBrowseOffers,
   totalJobsCount = 0,
@@ -22,7 +22,232 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   selectedBlogPostSlug,
   handleBlogPostSelect
 }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
+  const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const isCsLike = locale === 'cs' || locale === 'sk';
+
+  const copy = isCsLike ? {
+    badge: 'Reaguj na výzvu a ukaž svůj přístup',
+    headline: 'Reaguj na výzvu a ukaž svůj přístup.',
+    subheadline: 'Zapoj se do smysluplného dialogu místo střelby naslepo. Firma nejdřív popíše reálnou situaci v týmu a ty ukážeš, jak přemýšlíš.',
+    primaryCta: 'Přihlásit se k výzvě',
+    secondaryCta: 'Projít nabídky',
+    activeRoles: 'Aktivní nabídky',
+    freshSignals: 'Nové reakce dnes',
+    previewLabel: 'Ukázka prvního kontaktu',
+    previewTitle: 'Ne formulář. Ne video. Krátký úvodní dialog.',
+    previewLead: 'Nejdřív dostaneš normální popis role a konkrétní výzvu týmu. Pak odpovíš jednoduše a věcně.',
+    companyTruthTitle: 'Firma musí říct pravdu',
+    candidateTitle: 'Ty pošleš první reakci',
+    compareTitle: 'Starý svět vs JobShaman',
+    oldWorld: 'Starý svět',
+    newWorld: 'JobShaman',
+    compareRows: [
+      ['CV bez kontextu', 'Digitální první kontakt a konkrétní situace'],
+      ['Hromadné odpovědi', 'Omezený počet aktivních slotů'],
+      ['Sebeprezentace před kamerou', 'Textová odpověď, audio jen volitelné'],
+      ['Čekání bez výsledku', 'Jasný stav a důvod uzavření']
+    ],
+    principlesTitle: 'Principy, které neporušujeme',
+    principles: [
+      {
+        title: 'AI pomáhá třídit, nerozhoduje',
+        body: 'AI pomůže odstranit šum, ale o člověku rozhoduje člověk.'
+      },
+      {
+        title: 'Každý krok musí mít lidský smysl',
+        body: 'Nejde o hezká slova, ale o to, jak přemýšlíš nad reálnou situací.'
+      },
+      {
+        title: 'Bez sociálního tlaku',
+        body: 'Žádné veřejné počty uchazečů a žádné povinné video.'
+      },
+      {
+        title: 'Omezená kapacita chrání kvalitu',
+        body: 'Kandidát i firma mají limit aktivních dialogů, aby měl každý prostor na odpověď.'
+      }
+    ],
+    flowTitle: 'Jak funguje první kontakt',
+    flow: [
+      '1. Firma zveřejní roli, konkrétní výzvu a odpoví na dvě klíčové otázky.',
+      '2. Kandidát hned vidí, co je na roli těžké a co znamená úspěch.',
+      '3. Kandidát pošle první reakci textem (audio je volitelné).',
+      '4. Obě strany vidí jasný stav: Otevřeno, V review, Ve výběru, Uzavřeno s důvodem.'
+    ],
+    promiseTitle: 'Tohle není jen další portál s inzeráty.',
+    promiseBody: 'První dojem nevzniká pod tlakem, ale v krátkém a smysluplném dialogu mezi tebou a firmou.',
+    promiseCta: 'Otevřít první kontakt',
+    blogTitle: 'Blog a praktické tipy',
+    searchCueTitle: 'Hledání začíná hned pod tímto panelem',
+    searchCueBody: 'Vyhledávání, filtry a nabídky jsou hned pod tímto panelem. Tady rychle pochopíš princip a můžeš jít rovnou na věc.',
+    privacyTitle: 'Soukromý a klidný první krok',
+    privacyBody: 'Žádné veřejné počty uchazečů, žádné povinné video, žádné soutěžení.',
+    trustTitle: 'Důvěra a bezpečí',
+    trustItems: [
+      'Ověřená firma jde v dialogu první',
+      'Jasné stavy místo čekání bez odpovědi',
+      'AI filtruje šum, ale nerozhoduje za lidi'
+    ],
+    candidateTrackTitle: 'Pro uchazece',
+    candidateTrackItems: [
+      'Místo bezhlavého posílání CV reaguješ na konkrétní situaci.',
+      'Profil, CV a další materiály zůstávají podpora, ne hlavní filtr.',
+      'Každý dialog má jasný stav a kapacitní limit.'
+    ],
+    employerTrackTitle: 'Pro firmy',
+    employerTrackItems: [
+      'Roli nejdřív popíšeš jako reálný kontext, ne jen inzerát.',
+      'Dostaneš méně, ale kvalitnější reakce.',
+      'Platíš za aktivní kapacitu a otevřené role, ne za šum.'
+    ],
+    instantSteps: [
+      'Firma nejdřív ukáže pravdu o roli.',
+      'Ty reaguješ na krátkou konkrétní situaci.',
+      'Obě strany vidí jasný stav a důvod uzavření.'
+    ],
+    previewCompanyTab: '1 Firma',
+    previewCandidateTab: '2 Kandidát',
+    previewCompanyTitle: 'Firma jde první',
+    previewCompanyLines: [
+      'Co je na téhle roli skutečně těžké?',
+      'Jaký typ člověka tady typicky selže?'
+    ],
+    previewCandidateTitle: 'Ty odpovíš bez zbytečného tlaku',
+    previewCandidateLines: [
+      'Jak bys řešil tuhle situaci v prvním týdnu?',
+      'Text je hlavní. Krátké audio je jen volitelné.'
+    ],
+    previewFooter: 'Tohle je digitální první kontakt: krátký, soukromý a bez zbytečného tlaku.',
+    compactLearnTitle: 'Pochopíš to za minutu',
+    compactChallengeBadge: 'Reálná výzva týmu',
+    compactChallengeTitle: 'Chaotická komunikace mezi recepcí a housekeepingem',
+    compactChallengeMeta: 'ČistáPráce s.r.o. • Praha • Před 2 hodinami • 6 kandidátů',
+    compactChallengeBody: 'Náš tým recepce a housekeeping si často předává nepřesné informace. Hledáme člověka, který nastaví jasná pravidla předávání směn, sníží chybovost a udrží plynulý provoz.',
+    compactRoleTruthLabel: 'Největší riziko role',
+    compactRoleTruth: 'Největší riziko role: nezvládnutá koordinace směn a další zmatky v provozu.',
+    compactResponseLabel: 'První odpověď',
+    compactResponseHint: 'Napiš první krok, jak ověříš výsledek a co bys řekl týmu.',
+    companyTruthQuestions: [
+      'Co je na téhle roli skutečně těžké?',
+      'Jaký typ člověka tady typicky selže?'
+    ],
+    candidateResponsePoints: [
+      'Jak bys to řešil v prvním týdnu?',
+      'Text je hlavní. Audio je volitelné.',
+      'Žádná veřejná soutěž, jen jasný stav dialogu.'
+    ]
+  } : {
+    badge: 'A calmer way to change jobs',
+    headline: 'Replace anonymous CV drops with a short digital first contact.',
+    subheadline: 'JobShaman moves first contact into a short async dialogue. The company shows the truth about the role first, and you respond to a concrete situation without video, public pressure, or performance theatre.',
+    primaryCta: 'Start a handshake',
+    secondaryCta: 'Browse roles',
+    activeRoles: 'Active roles',
+    freshSignals: 'New handshakes today',
+    previewLabel: 'Handshake preview',
+    previewTitle: 'Not a form. Not a video. A short contextual dialogue.',
+    previewLead: 'The company shows what is actually hard about the role. You respond by showing how you think.',
+    companyTruthTitle: 'The company has to go first',
+    candidateTitle: 'The candidate responds without performing',
+    compareTitle: 'Old world vs JobShaman',
+    oldWorld: 'Old world',
+    newWorld: 'JobShaman',
+    compareRows: [
+      ['CVs and keyword screening', 'Digital first contact and real situations'],
+      ['Public funnels and social pressure', 'Limited capacity and private dialogue'],
+      ['Video and self-presentation', 'Text-first reply, audio optional'],
+      ['Ghosting and "seen"', 'Explicit states and closure with a reason']
+    ],
+    principlesTitle: 'Principles we do not break',
+    principles: [
+      {
+        title: 'AI filters noise, it does not decide',
+        body: 'AI summarizes and highlights signal. A human still makes the decision.'
+      },
+      {
+        title: 'Every step must matter to a human',
+        body: 'We do not reward ego performance. We look for thinking and reciprocity.'
+      },
+      {
+        title: 'No stress theatre for introverts',
+        body: 'No likes, no public applicant counts, no mandatory video.'
+      },
+      {
+        title: 'Capacity limits protect quality',
+        body: 'Both sides work with limited active dialogues so each thread gets real attention.'
+      }
+    ],
+    flowTitle: 'How the handshake works',
+    flow: [
+      '1. The company creates a role as a Role Canvas and answers two uncomfortable but important truth prompts.',
+      '2. You see the team context, realistic scenarios, and six-month success definition before you start.',
+      '3. A short thread opens and you respond in text or with short optional audio.',
+      '4. Both sides always see a real state: Open, In Review, Shortlisted, or Closed with a reason.'
+    ],
+    promiseTitle: 'This is not a job board.',
+    promiseBody: 'It is an async work matchmaking environment where the first impression is built in a structured conversation instead of a stressful funnel.',
+    promiseCta: 'Open your first handshake',
+    blogTitle: 'Principles and product notes',
+    searchCueTitle: 'Search starts right below this panel',
+    searchCueBody: 'Search, quick filters, and live roles are the next layer. This intro should add context, not compete with discovery.',
+    privacyTitle: 'A private, lower-pressure first step',
+    privacyBody: 'No public applicant counts, no mandatory video, no performative competition.',
+    trustTitle: 'Trust & safety',
+    trustItems: [
+      'A verified company goes first in the dialogue',
+      'Explicit states instead of ghosting or "seen"',
+      'AI filters noise, but humans still decide'
+    ],
+    candidateTrackTitle: 'For candidates',
+    candidateTrackItems: [
+      'Respond to a real situation instead of dropping a CV into a funnel.',
+      'Profile, CV, and supporting materials stay secondary, not the main gate.',
+      'Each thread has a clear state and capacity limit.'
+    ],
+    employerTrackTitle: 'For employers',
+    employerTrackItems: [
+      'Define the role as real context, not just a posting.',
+      'Get fewer but higher-quality open dialogues.',
+      'Pay for active capacity and opened roles, not noise.'
+    ],
+    instantSteps: [
+      'The company shows the truth about the role first.',
+      'You respond to one short real situation.',
+      'Both sides always see a clear state and closure reason.'
+    ],
+    previewCompanyTab: '1 Company',
+    previewCandidateTab: '2 Candidate',
+    previewCompanyTitle: 'The company goes first',
+    previewCompanyLines: [
+      'What is actually hard about this role?',
+      'What kind of person usually fails here?'
+    ],
+    previewCandidateTitle: 'You respond without performing',
+    previewCandidateLines: [
+      'How would you handle this in your first week?',
+      'Text is primary. Short audio is optional.'
+    ],
+    previewFooter: 'This is the handshake: a short, private, lower-pressure first contact.',
+    compactLearnTitle: 'You should get it in a minute',
+    compactChallengeBadge: 'Real team challenge',
+    compactChallengeTitle: 'Chaotic communication between reception and housekeeping',
+    compactChallengeMeta: 'Private thread, explicit status, no public funnel.',
+    compactChallengeBody: 'The team keeps handing over incomplete information and operations slow down. The company wants to see your first step, the trade-off, and how you would verify the direction.',
+    compactRoleTruthLabel: 'Role truth',
+    compactRoleTruth: 'Main risk: poor shift coordination keeps creating avoidable operational confusion.',
+    compactResponseLabel: 'First reply',
+    compactResponseHint: 'Briefly describe your first step, the trade-off, and how you would verify the direction.',
+    companyTruthQuestions: [
+      'What is actually hard about this role?',
+      'What kind of person usually fails here?'
+    ],
+    candidateResponsePoints: [
+      'How would you handle X or Y?',
+      'Text first. Audio optional. No camera.',
+      'One thread. Clear status. No public competition.'
+    ]
+  };
+  const [previewStep, setPreviewStep] = useState<'company' | 'candidate'>('company');
 
   const handlePrimary = () => {
     if (onTryFree) {
@@ -32,316 +257,385 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     onBrowseOffers?.();
   };
 
+  if (compact) {
+    const previewTitle = previewStep === 'company' ? copy.previewCompanyTitle : copy.previewCandidateTitle;
+    const previewLines = previewStep === 'company' ? copy.previewCompanyLines : copy.previewCandidateLines;
+    const compactPrinciples = [
+      isCsLike
+        ? ['Skutečná výzva', 'Konkrétní výzva týmu místo obecné inzerce.']
+        : ['A real problem', 'The team opens with a concrete challenge instead of a generic posting.'],
+      isCsLike
+        ? ['Limitovaný počet', 'Omezený počet slotů pro kandidáty i reakce firmy.']
+        : ['Limited capacity', 'Both sides work with a fixed number of active threads.'],
+      isCsLike
+        ? ['Úvodní dialog', 'Odpovědi vedou k lidskému dialogu, ne k algoritmu.']
+        : ['Opening dialogue', 'The first reply shows how you think, not how you perform.'],
+      isCsLike
+        ? ['Člověk dává šanci', 'Rozhodující slovo má člověk, ne počet kliknutí.']
+        : ['Human stays in control', 'AI summarizes signal, but people still decide.'],
+      isCsLike
+        ? ['Průběžný feedback', 'Vždy vidíš stav a dostaneš zpětnou vazbu.']
+        : ['Ongoing feedback', 'Every thread has a state, a deadline, and a closure reason.']
+    ];
+    const compactPromptLabel = isCsLike ? 'Jak bys k tomu přistoupil?' : 'How would you approach it?';
+    const compactReactionCta = isCsLike ? 'Reagovat' : 'Open handshake';
+    const compactSupportText = isCsLike
+      ? 'Reakcí zahájíš dialog s tímto týmem. Podklady zůstávají volitelné. Zbývají ti 2 aktivní sloty z 5.'
+      : 'Your reply opens a private dialogue with this team. Supporting documents stay optional and you still have 2 of 5 active slots left.';
+    const compactIntroLine = isCsLike
+      ? 'Zapojíš se do smysluplného dialogu místo střelby naslepo.'
+      : 'Join a meaningful dialogue instead of firing blind applications.';
+
+    return (
+      <div className="h-full overflow-y-auto custom-scrollbar rounded-[1.2rem] border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.97)_0%,_rgba(241,245,249,0.98)_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.10),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.97)_0%,_rgba(15,23,42,0.98)_100%)] p-4 shadow-[0_18px_40px_-42px_rgba(15,23,42,0.28)]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/70 dark:border-sky-700/60 bg-white/80 dark:bg-slate-950/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
+              <Sparkles size={12} />
+              {copy.badge}
+            </div>
+            <h2 className="mt-3 text-[2rem] lg:text-[2.4rem] font-black tracking-tight leading-[1.02] text-slate-900 dark:text-white">
+              {isCsLike ? 'Reaguj na výzvu a ukaž svůj přístup.' : 'Respond to the problem and show your approach.'}
+            </h2>
+            <p className="mt-2 text-base text-slate-700 dark:text-slate-300 leading-relaxed">
+              {compactIntroLine}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+          <div className="xl:col-span-7 space-y-2.5">
+            {compactPrinciples.map(([title, body], index) => (
+              <div
+                key={title}
+                className="flex items-start gap-3 rounded-[1rem] border border-slate-200/85 dark:border-slate-800 bg-white/86 dark:bg-slate-950/46 px-3.5 py-3 shadow-[0_10px_20px_-30px_rgba(15,23,42,0.28)]"
+              >
+                <div className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-sm">
+                  {index + 1}
+                </div>
+                <div>
+                  <div className="text-base font-bold text-slate-900 dark:text-white">{title}</div>
+                  <div className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{body}</div>
+                </div>
+              </div>
+            ))}
+
+            <div className="rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(239,246,255,0.9))] dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    {copy.previewLabel}
+                  </div>
+                  <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                    {isCsLike ? 'Kratší, soukromý a lidský první krok.' : 'A shorter, private, human first step.'}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    {copy.previewFooter}
+                  </p>
+                </div>
+                <button
+                  onClick={handlePrimary}
+                  className="hidden sm:inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(249,115,22,0.65)] hover:bg-orange-400 transition-colors"
+                >
+                  {compactReactionCta}
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="xl:col-span-5">
+            <div className="rounded-[1.05rem] border border-slate-200/85 dark:border-slate-800 bg-white/88 dark:bg-slate-950/48 p-4 shadow-[0_14px_24px_-28px_rgba(15,23,42,0.26)]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-orange-200/80 dark:border-orange-900/40 bg-orange-50/90 dark:bg-orange-950/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-orange-700 dark:text-orange-300">
+                  <Sparkles size={11} />
+                  {copy.compactChallengeBadge}
+                </div>
+                <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewStep('company')}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      previewStep === 'company'
+                        ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {copy.previewCompanyTab}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewStep('candidate')}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      previewStep === 'candidate'
+                        ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {copy.previewCandidateTab}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(251,146,60,0.12),_transparent_26%),linear-gradient(145deg,rgba(255,255,255,0.97),rgba(239,246,255,0.91))] dark:bg-[radial-gradient(circle_at_top_right,_rgba(251,146,60,0.10),_transparent_26%),linear-gradient(145deg,rgba(15,23,42,0.92),rgba(12,74,110,0.22))] p-4 shadow-[0_14px_22px_-22px_rgba(14,165,233,0.16)]">
+                <div className="text-xl font-bold leading-snug text-slate-900 dark:text-white">{copy.compactChallengeTitle}</div>
+                <div className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {copy.compactChallengeMeta}
+                </div>
+                <p className="mt-3 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
+                  {copy.compactChallengeBody}
+                </p>
+                <div className="mt-3 rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+                    {copy.compactRoleTruthLabel}
+                  </div>
+                  <div className="mt-1 text-sm text-amber-950 dark:text-amber-100 leading-relaxed">
+                    {copy.compactRoleTruth}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/40 p-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{copy.compactResponseLabel}</div>
+                <div className="mt-1 text-base font-bold text-slate-900 dark:text-white">{previewTitle}</div>
+                <div className="mt-2.5 space-y-2">
+                  {previewLines.map((line, index) => (
+                    <div
+                      key={line}
+                      className={`max-w-[92%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                        previewStep === 'company'
+                          ? index === 0
+                            ? 'bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100'
+                            : 'bg-amber-100/80 text-amber-950 dark:bg-amber-900/30 dark:text-amber-100'
+                          : index === 0
+                            ? 'ml-auto bg-sky-50 text-sky-950 dark:bg-sky-950/30 dark:text-sky-100'
+                            : 'ml-auto bg-sky-100/80 text-sky-950 dark:bg-sky-900/30 dark:text-sky-100'
+                      }`}
+                    >
+                      {line}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">{compactPromptLabel}</div>
+                <div className="mt-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/35 px-3 py-3 text-sm text-slate-500 dark:text-slate-400">
+                  {copy.compactResponseHint}
+                </div>
+                <button
+                  onClick={handlePrimary}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(249,115,22,0.65)] hover:bg-orange-400 transition-colors"
+                >
+                  {compactReactionCta}
+                </button>
+                <div className="mt-2 rounded-[0.9rem] border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-950/25 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {compactSupportText}
+                </div>
+              </div>
+
+              <div className="mt-2.5 grid grid-cols-1 gap-2">
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-2.5">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-900 dark:text-white">
+                    <Shield size={14} />
+                    {copy.trustTitle}
+                  </div>
+                  <div className="mt-1.5 grid grid-cols-1 gap-1 text-[11px] text-slate-600 dark:text-slate-300">
+                    {copy.trustItems.slice(0, 2).map((item) => (
+                      <div key={item} className="flex items-start gap-1.5">
+                        <CheckCircle2 size={12} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-white/72 dark:bg-slate-950/35 p-3.5">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{copy.blogTitle}</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{copy.promiseBody}</p>
+            </div>
+            <button
+              onClick={handlePrimary}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-3.5 py-2 text-sm font-semibold"
+            >
+              {copy.promiseCta}
+              <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="mt-3">
+            <BlogSection
+              selectedBlogPostSlug={selectedBlogPostSlug}
+              setSelectedBlogPostSlug={handleBlogPostSelect}
+              showOverview={false}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen app-grid-bg app-grid-bg--soft text-slate-900 dark:text-slate-100">
-      <section className="relative max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-10 lg:pt-16 lg:pb-14 overflow-hidden">
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          <div className="lg:col-span-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              {t('landing.hero.headline')}
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.14),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#ecfccb_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.10),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.14),_transparent_34%),linear-gradient(180deg,_#020617_0%,_#082f49_100%)] text-slate-900 dark:text-slate-100">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-8 lg:pt-16 lg:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 dark:border-emerald-700/60 bg-white/80 dark:bg-slate-950/60 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300">
+              <Sparkles size={14} />
+              {copy.badge}
+            </div>
+
+            <h1 className="mt-5 max-w-4xl text-4xl md:text-6xl font-black tracking-tight leading-[1.04]">
+              {copy.headline}
             </h1>
 
-            <p className="text-lg text-slate-600 dark:text-slate-300 mt-5 max-w-xl">
-              {t('landing.hero.subheadline')}
+            <p className="mt-5 max-w-2xl text-lg text-slate-700 dark:text-slate-300 leading-relaxed">
+              {copy.subheadline}
             </p>
-            <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:items-center">
+
+            <div className="mt-7 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handlePrimary}
-                className="px-7 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold shadow-lg shadow-cyan-600/20 inline-flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-white px-7 py-3.5 text-sm font-bold text-white dark:text-slate-950 shadow-xl shadow-slate-900/10"
               >
-                {t('landing.hero.cta_primary')}
+                {copy.primaryCta}
                 <ArrowRight size={18} />
               </button>
-
               <button
                 onClick={() => onBrowseOffers?.()}
-                className="px-7 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white hover:bg-white/60 dark:hover:bg-slate-900"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300/80 dark:border-slate-700 px-7 py-3.5 text-sm font-semibold bg-white/70 dark:bg-slate-950/40"
               >
-                {t('landing.hero.cta_browse')}
+                {copy.secondaryCta}
               </button>
             </div>
 
-            {(totalJobsCount > 0 || todayNewJobsCount > 0) && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full border border-slate-300/80 dark:border-slate-700/80 bg-white/85 dark:bg-slate-900/80 px-3 py-1 text-slate-700 dark:text-slate-200">
-                  {t('landing.hero.active_jobs_count', {
-                    count: totalJobsCount,
-                    defaultValue: 'Aktivní inzeráty: {{count}}',
-                  })}
-                </span>
-                <span className="rounded-full border border-cyan-300/70 dark:border-cyan-700/70 bg-cyan-50/80 dark:bg-cyan-950/40 px-3 py-1 text-cyan-700 dark:text-cyan-300">
-                  {t('landing.hero.jhi_reviewed_today_count', {
-                    count: todayNewJobsCount,
-                    defaultValue: 'Dnes prověřeno na JHI: {{count}}',
-                  })}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-6">
-            <div className="rounded-2xl border border-slate-700 bg-[#1e293b] p-6 shadow-xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-1">
-                {t('landing.hero.snapshot_intro')}
-              </p>
-              <p className="text-sm text-slate-200 mb-4 font-semibold">
-                {t('landing.hero.snapshot_label')}
-              </p>
-              <p className="text-xs text-slate-400 mb-4">
-                {t('landing.hero.snapshot_example')}
-              </p>
-
-              <OfferImpactSnapshot
-                className="bg-slate-900/40 rounded-xl border border-slate-700"
-                rows={[
-                  {
-                    label: t('landing.hero.snapshot_rows.gross_label'),
-                    value: t('landing.hero.snapshot_rows.gross_value')
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.tax_label'),
-                    value: t('landing.hero.snapshot_rows.tax_value'),
-                    tone: 'negative'
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.net_base_label'),
-                    value: t('landing.hero.snapshot_rows.net_base_value')
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.benefits_label'),
-                    value: t('landing.hero.snapshot_rows.benefits_value'),
-                    tone: 'positive'
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.commute_label'),
-                    value: t('landing.hero.snapshot_rows.commute_value'),
-                    tone: 'negative'
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.final_label'),
-                    value: t('landing.hero.snapshot_rows.final_value'),
-                    tone: 'emphasis'
-                  },
-                  {
-                    label: t('landing.hero.snapshot_rows.jhi_label'),
-                    value: t('landing.hero.snapshot_rows.jhi_value')
-                  }
-                ]}
-              />
-
-              <div className="mt-4 rounded-lg border border-rose-900/40 bg-rose-950/20 px-4 py-3">
-                <p className="text-xs font-semibold text-rose-300">
-                  {t('landing.hero.snapshot_commute_time.title')}
-                </p>
-                <p className="text-sm text-rose-200 mt-1">
-                  {t('landing.hero.snapshot_commute_time.value')}
-                </p>
-                <p className="text-sm text-rose-200 mt-1 font-medium">
-                  {t('landing.hero.snapshot_commute_time.note')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 lg:p-8">
-          <h2 className="text-2xl font-bold mb-2">{t('landing.difference.title')}</h2>
-          <p className="text-slate-600 dark:text-slate-300 mb-6">{t('landing.difference.lead')}</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3">
-                {t('landing.difference.standard_title')}
-              </h3>
-              <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-                <li>• {t('landing.difference.standard_items.role')}</li>
-                <li>• {t('landing.difference.standard_items.company')}</li>
-                <li>• {t('landing.difference.standard_items.gross')}</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/60 dark:bg-cyan-950/20 p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-cyan-700 dark:text-cyan-300 mb-3">
-                {t('landing.difference.jobshaman_title')}
-              </h3>
-              <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-                <li>• {t('landing.difference.jobshaman_items.net')}</li>
-                <li>• {t('landing.difference.jobshaman_items.commute')}</li>
-                <li>• {t('landing.difference.jobshaman_items.contract')}</li>
-                <li>• {t('landing.difference.jobshaman_items.jhi')}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 lg:p-8">
-          <h2 className="text-2xl font-bold mb-6">{t('landing.how.title')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 mb-2 text-cyan-700 dark:text-cyan-300 font-semibold text-sm">
-                <Users size={16} />
-                {t('landing.how.step1_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.how.step1_desc')}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 mb-2 text-cyan-700 dark:text-cyan-300 font-semibold text-sm">
-                <Scale size={16} />
-                {t('landing.how.step2_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.how.step2_desc')}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 mb-2 text-cyan-700 dark:text-cyan-300 font-semibold text-sm">
-                <CheckCircle2 size={16} />
-                {t('landing.how.step3_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.how.step3_desc')}</p>
-            </div>
-          </div>
-
-          <p className="mt-5 text-sm text-slate-700 dark:text-slate-200 font-medium">
-            {t('landing.how.no_cv_note')}
-          </p>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">
-        <CrossBorderPromo />
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 lg:p-8">
-          <h2 className="text-2xl font-bold mb-6">{t('landing.audience.title')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <Compass size={16} className="text-cyan-600" />
-                {t('landing.audience.person1_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.audience.person1_desc')}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <MapPin size={16} className="text-cyan-600" />
-                {t('landing.audience.person2_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.audience.person2_desc')}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <Scale size={16} className="text-cyan-600" />
-                {t('landing.audience.person3_title')}
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('landing.audience.person3_desc')}</p>
-            </div>
-          </div>
-          <p className="mt-5 text-sm text-slate-700 dark:text-slate-200 font-medium">
-            {t('landing.audience.crossborder_note')}
-          </p>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 lg:p-8">
-          <h2 className="text-2xl font-bold mb-2">{t('landing.unique.title')}</h2>
-          <p className="text-slate-600 dark:text-slate-300 mb-5">{t('landing.unique.lead')}</p>
-          <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-            <li>• {t('landing.unique.items.crossborder')}</li>
-            <li>• {t('landing.unique.items.tax')}</li>
-            <li>• {t('landing.unique.items.net')}</li>
-            <li>• {t('landing.unique.items.transparency')}</li>
-          </ul>
-          <p className="mt-5 text-sm font-medium text-slate-700 dark:text-slate-200">{t('landing.unique.decision_platform')}</p>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12">
-        <div className="rounded-3xl border-2 border-cyan-500/20 bg-gradient-to-br from-white to-cyan-50/30 dark:from-slate-900 dark:to-cyan-950/10 p-8 lg:p-12 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10 dark:opacity-20 pointer-events-none">
-            <Brain size={160} className="text-cyan-600" />
-          </div>
-
-          <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider mb-6">
-              <Zap size={14} />
-              {t('landing.hero.beta_badge', 'JCFPM Analysis')}
-            </div>
-
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              {t('landing.jcfpm_promo.title')}
-            </h2>
-
-            <p className="text-lg text-slate-600 dark:text-slate-300 mb-6 font-medium">
-              {t('landing.jcfpm_promo.subtitle')}
-            </p>
-
-            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-              {t('landing.jcfpm_promo.what_is_it')}
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-              <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100 mb-2">
-                  <CheckCircle2 size={18} className="text-emerald-500" />
-                  {t('app.demo_alert', 'Standardní výsledky')}
+            <div className="mt-5 flex flex-wrap gap-2 text-sm">
+              {totalJobsCount > 0 && (
+                <div className="rounded-full border border-slate-300/80 dark:border-slate-700 bg-white/85 dark:bg-slate-950/60 px-3 py-1.5 font-medium">
+                  {copy.activeRoles}: {totalJobsCount}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {t('landing.jcfpm_promo.free_results')}
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-cyan-600/5 dark:bg-cyan-900/10 border border-cyan-500/30 relative">
-                <div className="absolute -top-2 -right-2 px-2 py-0.5 rounded-md bg-cyan-600 text-[10px] font-bold text-white uppercase">
-                  {t('landing.jcfpm_promo.premium_badge')}
-                </div>
-                <div className="flex items-center gap-2 font-bold text-cyan-700 dark:text-cyan-300 mb-2">
-                  <ShieldCheck size={18} />
-                  {t('admin_dashboard.tabs.overview', 'Premium report')}
-                </div>
-                <p className="text-sm text-cyan-600/80 dark:text-cyan-400/80">
-                  {t('landing.jcfpm_promo.premium_results')}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => {
-                  const lng = (i18n.language || 'cs').split('-')[0];
-                  const target = `/${lng}/profile/jcfpm`;
-                  window.history.pushState({}, '', target);
-                  // Trigger a custom event that App.tsx can listen to if needed, 
-                  // or just rely on the fact that we'll likely need to trigger a re-render.
-                  // In this app, App.tsx doesn't seem to have a global listener for popstate yet for internal navigation,
-                  // but we can try to find if there's a better way.
-                  // For now, let's use the current behavior but with the correct URL.
-                  window.location.href = target;
-                }}
-                className="px-8 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
-              >
-                {t('landing.jcfpm_promo.cta_try_it')}
-                <ArrowRight size={20} />
-              </button>
-
-              {onTryFree && (
-                <button
-                  onClick={onTryFree}
-                  className="px-8 py-4 rounded-2xl border-2 border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  {t('landing.jcfpm_promo.cta_register')}
-                </button>
               )}
+              {todayNewJobsCount > 0 && (
+                <div className="rounded-full border border-sky-300/80 dark:border-sky-700 bg-sky-50/80 dark:bg-sky-950/30 px-3 py-1.5 font-medium text-sky-700 dark:text-sky-300">
+                  {copy.freshSignals}: {todayNewJobsCount}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/70 p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
+              <div className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                {copy.previewLabel}
+              </div>
+              <h2 className="mt-3 text-2xl font-bold">{copy.previewTitle}</h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{copy.previewLead}</p>
+
+              <div className="mt-5 grid gap-4">
+                <div className="rounded-2xl border border-amber-200/80 dark:border-amber-900/70 bg-amber-50/80 dark:bg-amber-950/20 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                    <Shield size={16} />
+                    {copy.companyTruthTitle}
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                    {copy.companyTruthQuestions.map((question) => (
+                      <li key={question}>“{question}”</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-sky-200/80 dark:border-sky-900/70 bg-sky-50/80 dark:bg-sky-950/20 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-sky-800 dark:text-sky-300">
+                    <MessageSquare size={16} />
+                    {copy.candidateTitle}
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                    {copy.candidateResponsePoints.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-8">
+        <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/60 p-6 lg:p-8 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.4)]">
+          <div className="flex items-center gap-3 mb-5">
+            <Brain className="text-emerald-600 dark:text-emerald-300" size={20} />
+            <h2 className="text-2xl font-bold">{copy.compareTitle}</h2>
+          </div>
+
+          <div className="grid grid-cols-[1fr,1fr] gap-3 text-sm">
+            <div className="rounded-2xl bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 px-4 py-3 font-bold text-rose-700 dark:text-rose-300">
+              {copy.oldWorld}
+            </div>
+            <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/60 px-4 py-3 font-bold text-emerald-700 dark:text-emerald-300">
+              {copy.newWorld}
+            </div>
+            {copy.compareRows.map(([legacy, next]) => (
+              <React.Fragment key={`${legacy}-${next}`}>
+                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-200">
+                  {legacy}
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 text-slate-900 dark:text-white font-medium">
+                  {next}
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {copy.principles.map((item) => (
+            <div key={item.title} className="rounded-[1.6rem] border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-950/55 p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                <CheckCircle2 className="text-emerald-600 dark:text-emerald-300" size={16} />
+                {item.title}
+              </div>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-8">
+        <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-slate-950 text-white p-6 lg:p-8 shadow-[0_28px_80px_-40px_rgba(2,132,199,0.45)]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200">
+                <TimerReset size={14} />
+                {copy.flowTitle}
+              </div>
+              <div className="mt-4 space-y-3 text-sm text-slate-200">
+                {copy.flow.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
+              <h3 className="text-2xl font-bold">{copy.promiseTitle}</h3>
+              <p className="mt-3 text-sm text-slate-300 leading-relaxed">{copy.promiseBody}</p>
+              <button
+                onClick={handlePrimary}
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-6 py-3 text-sm font-bold text-slate-950"
+              >
+                {copy.promiseCta}
+                <ArrowRight size={18} />
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-16">
-        <h3 className="text-lg font-semibold mb-4">{t('landing.blog.title')}</h3>
+        <h3 className="text-lg font-semibold mb-4">{copy.blogTitle}</h3>
         <BlogSection
           selectedBlogPostSlug={selectedBlogPostSlug}
           setSelectedBlogPostSlug={handleBlogPostSelect}

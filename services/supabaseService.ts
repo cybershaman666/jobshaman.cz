@@ -5,6 +5,7 @@ import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '.
 import { BACKEND_URL } from '../constants';
 export { supabase };
 import { ApplicationMessageAttachment, UserProfile, CompanyProfile, CVDocument } from '../types';
+import { uploadExternalAsset, uploadExternalCandidateDocument } from './externalAssetService';
 
 const SUPABASE_NETWORK_COOLDOWN_MS = 60_000;
 let supabaseNetworkCooldownUntil = 0;
@@ -13,7 +14,6 @@ let lastProfileMissingWarnAt = 0;
 const ANALYTICS_NETWORK_COOLDOWN_MS = 120_000;
 let analyticsNetworkCooldownUntil = 0;
 let lastAnalyticsNetworkLogAt = 0;
-const APPLICATION_MESSAGE_BUCKET = 'application-message-files';
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
@@ -731,7 +731,9 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             tier: data.subscription_tier || 'starter',
             expiresAt: undefined, // Not stored in companies table
             usage: data.usage_stats ? {
-                activeJobsCount: data.usage_stats.activeJobsCount || 0,
+                activeJobsCount: data.usage_stats.activeJobsCount || data.usage_stats.roleOpensUsed || 0,
+                activeDialogueSlotsUsed: data.usage_stats.activeDialogueSlotsUsed || 0,
+                roleOpensUsed: data.usage_stats.roleOpensUsed || 0,
                 aiAssessmentsUsed: data.usage_stats.aiAssessmentsUsed || 0,
                 adOptimizationsUsed: data.usage_stats.adOptimizationsUsed || 0
             } : undefined
@@ -815,11 +817,15 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
             expiresAt: rawSubscription.current_period_end,
             status: rawSubscription.status,
             usage: rawUsage ? {
-                activeJobsCount: rawUsage.active_jobs_count || 0,
+                activeJobsCount: rawUsage.active_jobs_count || rawUsage.role_opens_used || 0,
+                activeDialogueSlotsUsed: rawUsage.active_dialogue_slots_used || 0,
+                roleOpensUsed: rawUsage.role_opens_used || 0,
                 aiAssessmentsUsed: rawUsage.ai_assessments_used || 0,
                 adOptimizationsUsed: rawUsage.ad_optimizations_used || 0
             } : {
                 activeJobsCount: 0,
+                activeDialogueSlotsUsed: 0,
+                roleOpensUsed: 0,
                 aiAssessmentsUsed: 0,
                 adOptimizationsUsed: 0
             }
@@ -1342,6 +1348,8 @@ export const initializeCompanySubscription = async (companyId: string): Promise<
                 period_start: new Date().toISOString(),
                 period_end: null, // No period end
                 active_jobs_count: 0,
+                active_dialogue_slots_used: 0,
+                role_opens_used: 0,
                 ai_assessments_used: 0,
                 ad_optimizations_used: 0,
                 last_reset_at: new Date().toISOString()
@@ -1393,6 +1401,8 @@ export const getUsageSummary = async (companyId: string) => {
             .from('subscription_usage')
             .select(`
                 active_jobs_count,
+                active_dialogue_slots_used,
+                role_opens_used,
                 ai_assessments_used,
                 ad_optimizations_used,
                 period_start,
@@ -1414,6 +1424,8 @@ export const getUsageSummary = async (companyId: string) => {
             // Return default empty usage instead of null
             return {
                 active_jobs_count: 0,
+                active_dialogue_slots_used: 0,
+                role_opens_used: 0,
                 ai_assessments_used: 0,
                 ad_optimizations_used: 0,
                 period_start: new Date().toISOString(),
@@ -1578,17 +1590,12 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
 };
 
 export const uploadCVFile = async (_userId: string, file: File): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-
-    const sanitizedName = sanitizeFileName(file.name);
-    const fileName = `${_userId}/${Date.now()}-${sanitizedName}`;
-    const { data, error } = await supabase.storage
-        .from('cvs')
-        .upload(fileName, file);
-
-    if (error) throw error;
-
-    return data.path;
+    const validation = validateFileUpload(file);
+    if (!validation.isValid) {
+        throw new Error(validation.error || 'Invalid file');
+    }
+    const asset = await uploadExternalCandidateDocument(file);
+    return asset.url;
 };
 
 export const uploadProfilePhoto = async (userId: string, file: File): Promise<string> => {
@@ -2001,6 +2008,7 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
     return docs.map((doc: any) => ({
         id: doc.id,
         userId: doc.user_id,
+        externalAssetId: doc.external_asset_id || undefined,
         fileName: doc.file_name,
         originalName: doc.original_name,
         fileUrl: doc.file_url,
@@ -2030,35 +2038,15 @@ export const uploadCVDocument = async (
             throw new Error(validation.error);
         }
 
-        // SECURITY: Generate safe filename
-        const fileExt = validation.extension!;
-        const safeFileName = generateSafeFileName(userId, file.name, fileExt);
-
-        // SECURITY: Upload with metadata validation
-        const { data: _uploadData, error: uploadError } = await supabase.storage
-            .from('cvs')
-            .upload(safeFileName, file, {
-                contentType: file.type,
-                cacheControl: '3600',
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error('File upload error:', uploadError);
-            throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        // SECURITY: Get public URL safely
-        const { data: urlData } = supabase.storage
-            .from('cvs')
-            .getPublicUrl(safeFileName);
+        const asset = await uploadExternalCandidateDocument(file);
 
         // SECURITY: Insert with additional security checks
         const insertPayload: any = {
             user_id: userId,
-            file_name: safeFileName,
+            file_name: asset.object_key || asset.path || `${userId}/${Date.now()}-${sanitizeFileName(file.name)}`,
             original_name: sanitizeFileName(file.name),
-            file_url: urlData.publicUrl,
+            file_url: asset.url,
+            external_asset_id: asset.asset_id || null,
             file_size: file.size,
             content_type: file.type,
             is_active: false,
@@ -2086,14 +2074,13 @@ export const uploadCVDocument = async (
         }
 
         if (error) {
-            // SECURITY: Cleanup failed upload
-            await supabase.storage.from('cvs').remove([safeFileName]);
             throw new Error(`Database error: ${error.message}`);
         }
 
         return {
             id: data.id,
             userId: data.user_id,
+            externalAssetId: data.external_asset_id || undefined,
             fileName: data.file_name,
             originalName: data.original_name,
             fileUrl: data.file_url,
@@ -2113,48 +2100,10 @@ export const uploadCVDocument = async (
 }
 
 export const uploadApplicationMessageAttachment = async (
-    ownerId: string,
+    _ownerId: string | null | undefined,
     file: File
 ): Promise<ApplicationMessageAttachment> => {
-    if (!supabase) throw new Error('Supabase not configured');
-
-    const validation = validateFileUpload(file);
-    if (!validation.isValid) {
-        throw new Error(validation.error || 'Invalid file');
-    }
-
-    const safeFileName = `application-messages/${generateSafeFileName(ownerId || 'anon', file.name, validation.extension!)}`;
-    const { error: uploadError } = await supabase.storage
-        .from(APPLICATION_MESSAGE_BUCKET)
-        .upload(safeFileName, file, {
-            contentType: file.type,
-            cacheControl: '3600',
-            upsert: false
-        });
-
-    if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-
-    let url = '';
-    try {
-        const signed = await supabase.storage.from(APPLICATION_MESSAGE_BUCKET).createSignedUrl(safeFileName, 60 * 60 * 24 * 180);
-        url = signed.data?.signedUrl || '';
-    } catch {
-        url = '';
-    }
-    if (!url) {
-        const { data } = supabase.storage.from(APPLICATION_MESSAGE_BUCKET).getPublicUrl(safeFileName);
-        url = data.publicUrl;
-    }
-
-    return {
-        name: sanitizeFileName(file.name),
-        url,
-        path: safeFileName,
-        size: file.size,
-        content_type: file.type || null
-    };
+    return uploadExternalAsset(file);
 };
 
 // SECURITY: File validation function
@@ -2195,14 +2144,6 @@ function validateFileUpload(file: File): { isValid: boolean; extension?: string;
     }
 
     return { isValid: true, extension: fileExt };
-}
-
-// SECURITY: Generate safe filename
-function generateSafeFileName(userId: string, _originalName: string, extension: string): string {
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 15);
-    const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
-    return `${sanitizedUserId}/${timestamp}_${randomId}.${extension}`;
 }
 
 // SECURITY: Sanitize filename
