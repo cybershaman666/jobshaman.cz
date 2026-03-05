@@ -52,7 +52,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
   const copy = useMemo(() => (isCsLike ? {
     badge: 'Handshake hiring pro firmy',
-    title: 'Nehledáte další ATS. Potřebujete lepší první kontakt.',
+    title: 'Lepší první kontakt pro moderní hiring.',
     subtitle: 'JobShaman nahrazuje mrtvé CV a nekonečný funnel omezeným oboustranným dialogem. Firma nejdřív ukáže pravdu o roli a pak dostane odpověď, která ukáže způsob přemýšlení kandidáta.',
     primaryCta: 'Otevřít firemní workspace',
     secondaryCta: 'Vyzkoušet demo',
@@ -81,19 +81,19 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     systemTitle: 'Core system platformy',
     systemCards: [
       {
-        title: 'Role Engine',
+        title: 'Modul rolí',
         body: 'Pozice není jen text. Je to strukturovaný objekt s kontextem týmu, hodnotami, realistickými situacemi a definicí úspěchu.'
       },
       {
-        title: 'Dialogue Engine',
-        body: 'Místo seznamu aplikací pracujete s vlákny. Každé vlákno má jasný tah, shrnutí a status.'
+        title: 'Modul dialogu',
+        body: 'Místo seznamu aplikací pracujete s vlákny. Každé vlákno má jasný tah, shrnutí a stav.'
       },
       {
-        title: 'Slot-based capacity',
-        body: 'Každá role má limit otevřených dialogů. To drží kvalitu a chrání recruiter time.'
+        title: 'Kapacitní sloty',
+        body: 'Každá role má limit otevřených dialogů. To drží kvalitu a chrání čas recruiterů.'
       },
       {
-        title: 'Transparent closure',
+        title: 'Transparentní uzavření',
         body: 'Každý uzavřený dialog má důvod. Platforma nemá prostor pro "seen" a pasivní ignoraci.'
       }
     ],
@@ -151,7 +151,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     finalSecondary: 'Přihlásit se do firmy'
   } : {
     badge: 'Handshake hiring for companies',
-    title: 'You do not need another ATS. You need a better first contact.',
+    title: 'Build modern hiring on a better first contact.',
     subtitle: 'JobShaman replaces dead CV funnels with limited two-way dialogue. The company shows the truth about the role first, then gets a response that reveals how the candidate actually thinks.',
     primaryCta: 'Open company workspace',
     secondaryCta: 'Try demo',

@@ -343,7 +343,7 @@ const DemoCompanyHandshakePage: React.FC<DemoCompanyHandshakePageProps> = ({
   onRegister,
   onBackToCompanyLanding,
 }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const isCsLike = locale === 'cs' || locale === 'sk';
   const [candidateProfile, setCandidateProfile] = useState<DemoCandidateProfile>(() => createDemoCandidateProfile(isCsLike));
@@ -629,163 +629,79 @@ const DemoCompanyHandshakePage: React.FC<DemoCompanyHandshakePageProps> = ({
   }, [candidateAttachments]);
 
   const copy = useMemo(
-    () =>
-      isCsLike
-        ? {
-            badge: 'Demo workflow pro firmu',
-            title: 'Vyzkoušejte firemní handshake stejně jako v ostré aplikaci.',
-            subtitle:
-              'Uvidíte celý průchod: Role Canvas, příchod kandidáta, první odpověď firmy, navazující reakce kandidáta a jasný stav bez ghostingu.',
-            stepRole: '1 Role Canvas',
-            stepCandidate: '2 Kandidát přichází',
-            stepCompany: '3 První odpověď firmy',
-            stepDone: '4 Dokončeno',
-            roleLabel: 'Demo inzerát',
-            roleTitle: 'Směnový koordinátor provozu (recepce + housekeeping)',
-            roleCompany: 'Hotel Aurora Prague',
-            roleLocation: 'Praha 1 · onsite',
-            roleSalary: '38 000 - 48 000 Kč / měsíc',
-            roleSummary:
-              'Hledáme člověka, který stabilizuje předávání směn mezi recepcí a housekeepingem a zavede jasný provozní rytmus.',
-            roleTruthTitle: 'Role truth',
-            roleTruthItems: [
-              'Nejtěžší je handoff mezi ranní a odpolední směnou.',
-              'Bez důsledné práce s checklisty se kvalita rychle rozpadne.',
-              'Po 6 týdnech potřebujeme měřitelně nižší počet eskalací hostů.',
-            ],
-            roleContinue: 'Pokračovat na reakce kandidáta',
-            incomingBadge: 'Příchozí kandidát',
-            incomingTitle: 'Kandidát reagoval na výzvu a otevřel soukromé vlákno.',
-            candidateSignalOne:
-              'Nejdřív bych auditoval handoff mezi směnami, vytáhl opakující se chyby a sjednotil checklist pro recepci i housekeeping.',
-            candidateSignalTwo:
-              'V prvním týdnu bych vedl krátké 15min standupy před každou směnou a zavedl sdílený logbook s jasnou odpovědností.',
-            candidatePacket: 'Sdílené podklady kandidáta',
-            candidatePacketHint: 'Kliknutím na přílohu otevřete plné znění v nové kartě.',
-            candidateNameLabel: 'Kandidát',
-            candidateExperienceLabel: 'Relevantní zkušenosti',
-            candidateCvPreviewTitle: 'Náhled CV',
-            candidateJcfpmPreviewTitle: 'Náhled JCFPM',
-            candidateTraitsLabel: 'JCFPM signály',
-            candidateRiskLabel: 'Rizikové místo',
-            candidateCvOpen: 'Otevřít celý CV dokument',
-            candidateJcfpmOpen: 'Otevřít celý JCFPM report',
-            yearUnit: 'let praxe',
-            incomingContinue: 'Otevřít thread firmy',
-            companyReplyBadge: 'Firemní režim',
-            companyReplyTitle: 'První odpověď firmy a navázání kandidáta',
-            statusLabel: 'Stav',
-            statusCompanyTurn: 'Čeká na vaši první odpověď firmou.',
-            statusCandidateTurn: 'První odpověď odeslána. Teď je na tahu kandidát.',
-            statusReady: 'Kandidát navázal. Vlákno je připravené na další krok.',
-            progressTitle: 'Průchod dialogem',
-            progressOne: 'Kandidát otevře thread',
-            progressTwo: 'Firma odešle první odpověď',
-            progressThree: 'Kandidát naváže a odemkne pokračování',
-            progressDone: 'Hotovo',
-            progressPending: 'Čeká',
-            threadLabel: 'ID vlákna',
-            threadHint: 'Stejný komponent threadu jako v production flow.',
-            threadLoading: 'Přichází první zpráva kandidáta…',
-            prefilledNotice: 'Odpověď firmy je předvyplněná. Stačí kliknout na Odeslat.',
-            waitingCandidateNotice: 'Systém čeká na reakci kandidáta…',
-            candidateReturnedNotice: 'Kandidát odpověděl. Můžete pokračovat na další krok.',
-            threadHeading: 'Dialogové vlákno',
-            threadSubtitle: 'Reálný asynchronní thread používaný i ve firemním dashboardu.',
-            threadEmpty: 'Zatím bez zpráv.',
-            composerPlaceholder:
-              'Napište první odpověď firmy… (v ostrém flow lze přiložit dokument, obrázek nebo návrh smlouvy)',
-            sendButton: 'Odeslat',
-            prefilledCompanyReply:
-              'Děkujeme za konkrétní postup. Přesně handoff mezi směnami je náš hlavní problém. Chceme pokračovat v dialogu.',
-            candidateFollowup:
-              'Děkuji. Připravil jsem krátký pilotní plán na 14 dní. Pokud dává smysl, pošlu ho jako další podklad.',
-            nextStepButton: 'Dokončit demo',
-            completedTitle: 'Demo firemního workflow je hotové.',
-            completedBody:
-              'Firma i kandidát reagovali, thread má jasný stav a další krok je odemčený bez nejistoty.',
-            completedPrimary: 'Založit firemní účet',
-            completedSecondary: 'Zpět na landing pro firmy',
-            completedRestart: 'Spustit demo znovu',
-          }
-        : {
-            badge: 'Company workflow demo',
-            title: 'Try the company-side handshake flow with real UI components.',
-            subtitle:
-              'You get the full path: Role Canvas, candidate arrival, first company reply, candidate follow-up, and a clear no-ghosting status.',
-            stepRole: '1 Role Canvas',
-            stepCandidate: '2 Candidate arrives',
-            stepCompany: '3 First company reply',
-            stepDone: '4 Completed',
-            roleLabel: 'Demo listing',
-            roleTitle: 'Shift Operations Coordinator (front desk + housekeeping)',
-            roleCompany: 'Hotel Aurora Prague',
-            roleLocation: 'Prague 1 · onsite',
-            roleSalary: 'EUR 1,550 - 1,950 / month',
-            roleSummary:
-              'We are hiring someone to stabilize shift handoffs between front desk and housekeeping and set a clear operating rhythm.',
-            roleTruthTitle: 'Role truth',
-            roleTruthItems: [
-              'The hard part is handoff quality between morning and afternoon shifts.',
-              'Without strict checklist ownership, quality drops quickly.',
-              'Within six weeks we need measurable reduction in guest escalations.',
-            ],
-            roleContinue: 'Continue to candidate signal',
-            incomingBadge: 'Incoming candidate',
-            incomingTitle: 'A candidate replied and opened a private thread.',
-            candidateSignalOne:
-              'I would audit shift handoffs first, extract recurring failure points, and align one checklist for front desk and housekeeping.',
-            candidateSignalTwo:
-              'In week one I would run 15-minute pre-shift standups and launch a shared logbook with clear ownership.',
-            candidatePacket: 'Shared candidate materials',
-            candidatePacketHint: 'Click any attachment to open the full version in a new tab.',
-            candidateNameLabel: 'Candidate',
-            candidateExperienceLabel: 'Relevant experience',
-            candidateCvPreviewTitle: 'CV preview',
-            candidateJcfpmPreviewTitle: 'JCFPM preview',
-            candidateTraitsLabel: 'JCFPM signals',
-            candidateRiskLabel: 'Risk area',
-            candidateCvOpen: 'Open full CV document',
-            candidateJcfpmOpen: 'Open full JCFPM report',
-            yearUnit: 'years experience',
-            incomingContinue: 'Open company thread',
-            companyReplyBadge: 'Company mode',
-            companyReplyTitle: 'First company reply and candidate follow-up',
-            statusLabel: 'Status',
-            statusCompanyTurn: 'Waiting for your first company reply.',
-            statusCandidateTurn: 'First reply sent. Candidate turn is active.',
-            statusReady: 'Candidate replied. Thread is ready for the next step.',
-            progressTitle: 'Dialogue progress',
-            progressOne: 'Candidate opens the thread',
-            progressTwo: 'Company sends first reply',
-            progressThree: 'Candidate follows up and unlocks continuation',
-            progressDone: 'Done',
-            progressPending: 'Pending',
-            threadLabel: 'Thread ID',
-            threadHint: 'Same thread component as in production flow.',
-            threadLoading: 'First candidate message is coming in…',
-            prefilledNotice: 'The company reply is prefilled. Just click Send.',
-            waitingCandidateNotice: 'Waiting for candidate follow-up…',
-            candidateReturnedNotice: 'Candidate replied. You can move to the next step.',
-            threadHeading: 'Dialogue thread',
-            threadSubtitle: 'Real async thread component used in the company dashboard.',
-            threadEmpty: 'No messages yet.',
-            composerPlaceholder:
-              'Write the first company reply… (in production you can attach a document, image, or contract draft)',
-            sendButton: 'Send',
-            prefilledCompanyReply:
-              'Thanks for the structured approach. Shift handoff is exactly our core issue. We want to continue.',
-            candidateFollowup:
-              'Thank you. I prepared a short 14-day pilot plan. If useful, I can share it as the next supporting document.',
-            nextStepButton: 'Complete demo',
-            completedTitle: 'Company-side demo workflow completed.',
-            completedBody:
-              'Both sides replied, the thread has a clear state, and the next step unlocked without uncertainty.',
-            completedPrimary: 'Create company account',
-            completedSecondary: 'Back to company landing',
-            completedRestart: 'Run demo again',
-          },
-    [isCsLike],
+    () => ({
+      badge: t('demo_company_handshake.badge'),
+      duration: t('demo_company_handshake.duration'),
+      title: t('demo_company_handshake.title'),
+      subtitle: t('demo_company_handshake.subtitle'),
+      stepRole: t('demo_company_handshake.step_role'),
+      stepCandidate: t('demo_company_handshake.step_candidate'),
+      stepCompany: t('demo_company_handshake.step_company'),
+      stepDone: t('demo_company_handshake.step_done'),
+      roleLabel: t('demo_company_handshake.role_label'),
+      roleTitle: t('demo_company_handshake.role_title'),
+      roleCompany: t('demo_company_handshake.role_company'),
+      roleLocation: t('demo_company_handshake.role_location'),
+      roleSalary: t('demo_company_handshake.role_salary'),
+      roleSummary: t('demo_company_handshake.role_summary'),
+      roleTruthTitle: t('demo_company_handshake.role_truth_title'),
+      roleTruthItems: [
+        t('demo_company_handshake.role_truth_item_1'),
+        t('demo_company_handshake.role_truth_item_2'),
+        t('demo_company_handshake.role_truth_item_3'),
+      ],
+      roleContinue: t('demo_company_handshake.role_continue'),
+      incomingBadge: t('demo_company_handshake.incoming_badge'),
+      incomingTitle: t('demo_company_handshake.incoming_title'),
+      candidateSignalOne: t('demo_company_handshake.candidate_signal_one'),
+      candidateSignalTwo: t('demo_company_handshake.candidate_signal_two'),
+      candidatePacket: t('demo_company_handshake.candidate_packet'),
+      candidatePacketHint: t('demo_company_handshake.candidate_packet_hint'),
+      candidateNameLabel: t('demo_company_handshake.candidate_name_label'),
+      candidateExperienceLabel: t('demo_company_handshake.candidate_experience_label'),
+      candidateCvPreviewTitle: t('demo_company_handshake.candidate_cv_preview_title'),
+      candidateJcfpmPreviewTitle: t('demo_company_handshake.candidate_jcfpm_preview_title'),
+      candidateTraitsLabel: t('demo_company_handshake.candidate_traits_label'),
+      candidateRiskLabel: t('demo_company_handshake.candidate_risk_label'),
+      candidateCvOpen: t('demo_company_handshake.candidate_cv_open'),
+      candidateJcfpmOpen: t('demo_company_handshake.candidate_jcfpm_open'),
+      yearUnit: t('demo_company_handshake.year_unit'),
+      incomingContinue: t('demo_company_handshake.incoming_continue'),
+      companyReplyBadge: t('demo_company_handshake.company_reply_badge'),
+      companyReplyTitle: t('demo_company_handshake.company_reply_title'),
+      statusLabel: t('demo_company_handshake.status_label'),
+      statusCompanyTurn: t('demo_company_handshake.status_company_turn'),
+      statusCandidateTurn: t('demo_company_handshake.status_candidate_turn'),
+      statusReady: t('demo_company_handshake.status_ready'),
+      responseWindowCandidate: t('demo_company_handshake.response_window_candidate'),
+      responseWindowCompany: t('demo_company_handshake.response_window_company'),
+      progressTitle: t('demo_company_handshake.progress_title'),
+      progressOne: t('demo_company_handshake.progress_one'),
+      progressTwo: t('demo_company_handshake.progress_two'),
+      progressThree: t('demo_company_handshake.progress_three'),
+      progressDone: t('demo_company_handshake.progress_done'),
+      progressPending: t('demo_company_handshake.progress_pending'),
+      threadLabel: t('demo_company_handshake.thread_label'),
+      threadHint: t('demo_company_handshake.thread_hint'),
+      threadLoading: t('demo_company_handshake.thread_loading'),
+      prefilledNotice: t('demo_company_handshake.prefilled_notice'),
+      waitingCandidateNotice: t('demo_company_handshake.waiting_candidate_notice'),
+      candidateReturnedNotice: t('demo_company_handshake.candidate_returned_notice'),
+      threadHeading: t('demo_company_handshake.thread_heading'),
+      threadSubtitle: t('demo_company_handshake.thread_subtitle'),
+      threadEmpty: t('demo_company_handshake.thread_empty'),
+      composerPlaceholder: t('demo_company_handshake.composer_placeholder'),
+      sendButton: t('demo_company_handshake.send_button'),
+      prefilledCompanyReply: t('demo_company_handshake.prefilled_company_reply'),
+      candidateFollowup: t('demo_company_handshake.candidate_followup'),
+      nextStepButton: t('demo_company_handshake.next_step_button'),
+      completedTitle: t('demo_company_handshake.completed_title'),
+      completedBody: t('demo_company_handshake.completed_body'),
+      completedPrimary: t('demo_company_handshake.completed_primary'),
+      completedSecondary: t('demo_company_handshake.completed_secondary'),
+      completedRestart: t('demo_company_handshake.completed_restart'),
+    }),
+    [t],
   );
 
   const [step, setStep] = useState<DemoCompanyStep>('role_canvas');
@@ -987,7 +903,7 @@ const DemoCompanyHandshakePage: React.FC<DemoCompanyHandshakePageProps> = ({
           </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/70 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
             <Clock3 size={12} />
-            2-3 min
+            {copy.duration}
           </div>
         </div>
 
@@ -1192,7 +1108,7 @@ const DemoCompanyHandshakePage: React.FC<DemoCompanyHandshakePageProps> = ({
                   {statusText}
                 </div>
                 <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                  {threadCurrentTurn === 'candidate' ? '24 h' : '48 h'}
+                  {threadCurrentTurn === 'candidate' ? copy.responseWindowCandidate : copy.responseWindowCompany}
                 </div>
               </div>
 

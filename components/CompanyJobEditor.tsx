@@ -64,6 +64,36 @@ const DEFAULT_VALIDATION: JobValidationReport = {
   clarityScore: 0
 };
 
+type LocalValidationMessages = {
+  role_title_required: string;
+  role_summary_required: string;
+  role_truth_hard_required: string;
+  role_truth_fail_required: string;
+  salary_visible_required: string;
+  location_required: string;
+  application_destination_required: string;
+  requirements_thin: string;
+  benefits_required: string;
+  first_reply_prompt_required: string;
+  role_summary_expand: string;
+  vague_benefits_replace: string;
+};
+
+const DEFAULT_LOCAL_VALIDATION_MESSAGES: LocalValidationMessages = {
+  role_title_required: 'Add a role title.',
+  role_summary_required: 'Add a role summary.',
+  role_truth_hard_required: 'Add what is genuinely hard about this role.',
+  role_truth_fail_required: 'Add what type of person usually fails here.',
+  salary_visible_required: 'Add a visible salary range to improve transparency.',
+  location_required: 'Add a public location or workplace address.',
+  application_destination_required: 'Add an application destination or clear instructions.',
+  requirements_thin: 'Requirements are still thin. Add at least two concrete must-haves.',
+  benefits_required: 'List at least one concrete benefit.',
+  first_reply_prompt_required: 'Add a first reply prompt so candidates know how to begin the handshake.',
+  role_summary_expand: 'Expand the role summary so candidates understand what success looks like.',
+  vague_benefits_replace: 'Replace vague benefits with specifics candidates can evaluate.',
+};
+
 const ensureArray = <T,>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
 
 const normalizeValidationReport = (value: Partial<JobValidationReport> | null | undefined): JobValidationReport => ({
@@ -264,7 +294,10 @@ const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Pa
   hiring_stage: DEFAULT_HIRING_STAGE
 });
 
-const createLocalValidationReport = (draft: JobDraft): JobValidationReport => {
+const createLocalValidationReport = (
+  draft: JobDraft,
+  messages: LocalValidationMessages = DEFAULT_LOCAL_VALIDATION_MESSAGES
+): JobValidationReport => {
   const blockingIssues: string[] = [];
   const warnings: string[] = [];
   const suggestions: string[] = [];
@@ -278,19 +311,19 @@ const createLocalValidationReport = (draft: JobDraft): JobValidationReport => {
   const contactEmail = (draft.contact_email || '').trim();
   const handshake = extractHandshakeFields(draft);
 
-  if (!title) blockingIssues.push('Add a role title.');
-  if (!roleSummary) blockingIssues.push('Add a role summary.');
-  if (!handshake.company_truth_hard) blockingIssues.push('Add what is genuinely hard about this role.');
-  if (!handshake.company_truth_fail) blockingIssues.push('Add what type of person usually fails here.');
-  if (!hasSalary) warnings.push('Add a visible salary range to improve transparency.');
-  if (!location) warnings.push('Add a public location or workplace address.');
-  if (!contactEmail && !draft.application_instructions.trim()) blockingIssues.push('Add an application destination or clear instructions.');
-  if (requirements.length < 2) warnings.push('Requirements are still thin. Add at least two concrete must-haves.');
-  if (benefits.length === 0) warnings.push('List at least one concrete benefit.');
-  if (!handshake.first_reply_prompt) warnings.push('Add a first reply prompt so candidates know how to begin the handshake.');
-  if (roleSummary.length < 120) suggestions.push('Expand the role summary so candidates understand what success looks like.');
+  if (!title) blockingIssues.push(messages.role_title_required);
+  if (!roleSummary) blockingIssues.push(messages.role_summary_required);
+  if (!handshake.company_truth_hard) blockingIssues.push(messages.role_truth_hard_required);
+  if (!handshake.company_truth_fail) blockingIssues.push(messages.role_truth_fail_required);
+  if (!hasSalary) warnings.push(messages.salary_visible_required);
+  if (!location) warnings.push(messages.location_required);
+  if (!contactEmail && !draft.application_instructions.trim()) blockingIssues.push(messages.application_destination_required);
+  if (requirements.length < 2) warnings.push(messages.requirements_thin);
+  if (benefits.length === 0) warnings.push(messages.benefits_required);
+  if (!handshake.first_reply_prompt) warnings.push(messages.first_reply_prompt_required);
+  if (roleSummary.length < 120) suggestions.push(messages.role_summary_expand);
   if (benefits.some((item) => /competitive|great culture|dynamic/i.test(item))) {
-    suggestions.push('Replace vague benefits with specifics candidates can evaluate.');
+    suggestions.push(messages.vague_benefits_replace);
   }
 
   const transparencyBase = 100 - (blockingIssues.length * 18) - (warnings.length * 8);
@@ -430,6 +463,20 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   const activeSection = (draft?.editor_state?.selected_section as JobDraftTextSection | undefined) || 'role_summary';
   const localDraftStorageKey = useMemo(() => getLocalDraftStorageKey(companyProfile.id), [companyProfile.id]);
   const localVersionStorageKey = useMemo(() => getLocalVersionStorageKey(companyProfile.id), [companyProfile.id]);
+  const validationMessages = useMemo<LocalValidationMessages>(() => ({
+    role_title_required: t('company.job_editor.validation_role_title_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_title_required }),
+    role_summary_required: t('company.job_editor.validation_role_summary_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_summary_required }),
+    role_truth_hard_required: t('company.job_editor.validation_role_truth_hard_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_truth_hard_required }),
+    role_truth_fail_required: t('company.job_editor.validation_role_truth_fail_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_truth_fail_required }),
+    salary_visible_required: t('company.job_editor.validation_salary_visible_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.salary_visible_required }),
+    location_required: t('company.job_editor.validation_location_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.location_required }),
+    application_destination_required: t('company.job_editor.validation_application_destination_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.application_destination_required }),
+    requirements_thin: t('company.job_editor.validation_requirements_thin', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.requirements_thin }),
+    benefits_required: t('company.job_editor.validation_benefits_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.benefits_required }),
+    first_reply_prompt_required: t('company.job_editor.validation_first_reply_prompt_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.first_reply_prompt_required }),
+    role_summary_expand: t('company.job_editor.validation_role_summary_expand', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_summary_expand }),
+    vague_benefits_replace: t('company.job_editor.validation_vague_benefits_replace', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.vague_benefits_replace }),
+  }), [t]);
 
   const loadLocalDrafts = (): JobDraft[] => {
     const rows = normalizeDraftRows(readLocalJson<JobDraft[]>(localDraftStorageKey, []));
@@ -672,7 +719,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
       if (usesLocalFallback) {
         const saved = {
           ...draft,
-          quality_report: draft.quality_report || createLocalValidationReport(draft),
+          quality_report: draft.quality_report || createLocalValidationReport(draft, validationMessages),
           updated_at: new Date().toISOString()
         };
         updateDraft(saved);
@@ -687,7 +734,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         setUsesLocalFallback(true);
         const saved = {
           ...draft,
-          quality_report: draft.quality_report || createLocalValidationReport(draft),
+          quality_report: draft.quality_report || createLocalValidationReport(draft, validationMessages),
           updated_at: new Date().toISOString()
         };
         updateDraft(saved);
@@ -708,7 +755,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     setValidating(true);
     try {
       if (usesLocalFallback) {
-        const report = createLocalValidationReport(draft);
+        const report = createLocalValidationReport(draft, validationMessages);
         const saved: JobDraft = {
           ...draft,
           quality_report: report,
@@ -730,7 +777,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setUsesLocalFallback(true);
-        const report = createLocalValidationReport(draft);
+        const report = createLocalValidationReport(draft, validationMessages);
         const saved: JobDraft = {
           ...draft,
           quality_report: report,
@@ -799,7 +846,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     try {
       let nextDraft = draft;
       if (usesLocalFallback) {
-        const report = createLocalValidationReport(nextDraft);
+        const report = createLocalValidationReport(nextDraft, validationMessages);
         nextDraft = {
           ...nextDraft,
           quality_report: report,
@@ -1594,11 +1641,15 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/20 p-3">
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Transparency</div>
+                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.transparency', { defaultValue: 'Transparency' })}
+                  </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{validation.transparencyScore}</div>
                 </div>
                 <div className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/20 p-3">
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Clarity</div>
+                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.clarity', { defaultValue: 'Clarity' })}
+                  </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{validation.clarityScore}</div>
                 </div>
               </div>
@@ -1610,7 +1661,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     {t('company.job_editor.blocking', { defaultValue: 'Blocking issues' })}
                   </div>
                   {validation.blockingIssues.length === 0 ? (
-                    <div className="text-sm text-emerald-700 dark:text-emerald-300">No blocking issues.</div>
+                    <div className="text-sm text-emerald-700 dark:text-emerald-300">
+                      {t('company.job_editor.no_blocking_issues', { defaultValue: 'No blocking issues.' })}
+                    </div>
                   ) : (
                     <div className="space-y-1 text-sm text-rose-700 dark:text-rose-300">
                       {validation.blockingIssues.map((item) => (
@@ -1625,7 +1678,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     {t('company.job_editor.warnings', { defaultValue: 'Warnings' })}
                   </div>
                   {validation.warnings.length === 0 ? (
-                    <div className="text-sm text-slate-500 dark:text-slate-400">No warnings.</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      {t('company.job_editor.no_warnings', { defaultValue: 'No warnings.' })}
+                    </div>
                   ) : (
                     <div className="space-y-1 text-sm text-amber-700 dark:text-amber-300">
                       {validation.warnings.map((item) => (
@@ -1640,7 +1695,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     {t('company.job_editor.suggestions', { defaultValue: 'Suggestions' })}
                   </div>
                   {validation.suggestions.length === 0 ? (
-                    <div className="text-sm text-slate-500 dark:text-slate-400">No suggestions yet.</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      {t('company.job_editor.no_suggestions', { defaultValue: 'No suggestions yet.' })}
+                    </div>
                   ) : (
                     <div className="space-y-1 text-sm text-slate-700 dark:text-slate-200">
                       {validation.suggestions.map((item) => (

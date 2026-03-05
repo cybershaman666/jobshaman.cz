@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 // Simple page components for legal pages - no routing, just static pages
-const LegalPage = ({ title, children, icon: Icon, backLink = "/" }: { 
+const LegalPage = ({ title, children, icon: Icon, backLink = "/", backLabel = "Back to app" }: {
   title: string; 
   children: React.ReactNode; 
   icon?: React.ComponentType<any>;
-  backLink?: string; 
+  backLink?: string;
+  backLabel?: string;
 }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -48,7 +49,7 @@ const LegalPage = ({ title, children, icon: Icon, backLink = "/" }: {
           className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
         >
           <ArrowUpRight className="w-5 h-5" />
-          Zpět do aplikace
+          {backLabel}
         </a>
       </div>
     </div>

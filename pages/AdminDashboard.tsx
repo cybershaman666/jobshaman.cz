@@ -837,7 +837,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.traffic_trend')}</h3>
                 </div>
                 {loading ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
+                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
+                    {t('admin_dashboard.common.loading', { defaultValue: 'Loading...' })}
+                  </div>
                 ) : (
                   <div className="w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -866,7 +868,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.ai_token_trend')}</h3>
                 </div>
                 {loading ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
+                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">
+                    {t('admin_dashboard.common.loading', { defaultValue: 'Loading...' })}
+                  </div>
                 ) : (
                   <div className="w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -882,8 +886,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 )}
                 {!loading && (
                   <p className="mt-3 text-xs text-slate-500">
-                    Schema pass rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.schema_pass_rate)}</span>
-                    {' '}• Fallback rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.fallback_rate)}</span>
+                    {t('admin_dashboard.ai_quality.schema_pass_rate', { defaultValue: 'Schema pass rate' })}:{' '}
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.schema_pass_rate)}</span>
+                    {' '}• {t('admin_dashboard.ai_quality.fallback_rate', { defaultValue: 'Fallback rate' })}:{' '}
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.fallback_rate)}</span>
                   </p>
                 )}
               </article>
@@ -957,7 +963,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_countries')}</div>
                 <div className="space-y-1 text-xs">
-                  {topCountries.length === 0 && <p className="text-slate-500">No data</p>}
+                  {topCountries.length === 0 && <p className="text-slate-500">{t('admin_dashboard.common.no_data', { defaultValue: 'No data.' })}</p>}
                   {topCountries.map((row: any) => (
                     <div key={row.label} className="flex items-center justify-between">
                       <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
@@ -970,7 +976,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_devices')}</div>
                 <div className="space-y-1 text-xs">
-                  {topDevices.length === 0 && <p className="text-slate-500">No data</p>}
+                  {topDevices.length === 0 && <p className="text-slate-500">{t('admin_dashboard.common.no_data', { defaultValue: 'No data.' })}</p>}
                   {topDevices.map((row: any) => (
                     <div key={row.label} className="flex items-center justify-between">
                       <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
@@ -983,7 +989,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_models_cost')}</div>
                 <div className="space-y-1 text-xs max-h-40 overflow-auto pr-1">
-                  {modelUsage.length === 0 && <p className="text-slate-500">No data</p>}
+                  {modelUsage.length === 0 && <p className="text-slate-500">{t('admin_dashboard.common.no_data', { defaultValue: 'No data.' })}</p>}
                   {modelUsage.map((row: any) => (
                     <div key={row.model} className="flex items-center justify-between py-0.5">
                       <span className="truncate mr-2 text-slate-600 dark:text-slate-400">{row.model}</span>
@@ -1000,7 +1006,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <h3 className="font-semibold">{t('admin_dashboard.sections.notifications')}</h3>
               </div>
               {notifications.length === 0 ? (
-                <p className="text-sm text-slate-500">No upcoming trial expirations in selected window.</p>
+                <p className="text-sm text-slate-500">
+                  {t('admin_dashboard.notifications.empty_window', { defaultValue: 'No upcoming trial expirations in selected window.' })}
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                   {notifications.slice(0, 9).map((n: any) => (

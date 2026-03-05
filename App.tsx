@@ -128,8 +128,6 @@ const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 
 export default function App() {
     const { t, i18n } = useTranslation();
-    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-    const isCsLike = locale === 'cs' || locale === 'sk';
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined') {
@@ -2450,26 +2448,18 @@ export default function App() {
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-700 dark:text-slate-200">
-                                                        {isCsLike ? 'Digitální první kontakt' : t('home.discovery.badge', { defaultValue: 'Digital first contact' })}
+                                                        {t('home.discovery.badge')}
                                                     </div>
                                                     <div className="mt-0.5 text-[15px] font-bold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.title', {
-                                                            defaultValue: isCsLike
-                                                                ? 'Reaguj na skutečnou týmovou výzvu, ne na hlučný nábor.'
-                                                                : 'React to a real team problem, not a noisy funnel.'
-                                                        })}
+                                                        {t('home.discovery.title')}
                                                     </div>
                                                     <div className="mt-0.5 text-[12px] text-slate-700 dark:text-slate-200 leading-snug">
-                                                        {t('home.discovery.meta', {
-                                                            defaultValue: isCsLike
-                                                                ? 'Role ukáže pravdu jako první. Tvoje reakce otevře soukromý dialog bez zbytečného tlaku.'
-                                                                : 'The role shows truth first. Your reply opens a private, low-pressure thread.'
-                                                        })}
+                                                        {t('home.discovery.meta')}
                                                     </div>
                                                 </div>
                                                 <div className="rounded-lg border border-white/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/30 px-2.5 py-1 text-right shrink-0 max-w-[230px]">
                                                     <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
-                                                        {t('home.discovery.slots_label', { defaultValue: isCsLike ? 'Aktivní dialogy' : 'Active dialogues' })}
+                                                        {t('home.discovery.slots_label')}
                                                     </div>
                                                     <div className="text-[16px] font-bold text-slate-900 dark:text-white">
                                                         {dialogueMetricsLoading && (!discoverySlotsUsedLabel || !discoverySlotsLimitLabel)
@@ -2480,7 +2470,7 @@ export default function App() {
                                                         <div className="mt-1.5 border-t border-amber-200/80 dark:border-amber-900/40 pt-1.5 text-left">
                                                             <div className="flex flex-wrap items-center gap-1">
                                                                 <span className="inline-flex items-center rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-amber-100/90 dark:bg-amber-950/45 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-100">
-                                                                    {isCsLike ? 'Premium 10 dialogů' : 'Premium 10 dialogues'}
+                                                                    {t('home.discovery.premium_capacity_badge', { defaultValue: 'Premium 10 dialogues' })}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -2491,13 +2481,13 @@ export default function App() {
                                                 <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
                                                     <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
                                                     <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.step_short_reply', { defaultValue: isCsLike ? 'Krátká reakce' : 'Short reply' })}
+                                                        {t('home.discovery.step_short_reply')}
                                                     </div>
                                                 </div>
                                                 <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
                                                     <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryClearStateCount.toLocaleString(i18n.language)}</div>
                                                     <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.step_clear_state', { defaultValue: isCsLike ? 'Jasný stav' : 'Clear state' })}
+                                                        {t('home.discovery.step_clear_state')}
                                                     </div>
                                                 </div>
                                             </div>

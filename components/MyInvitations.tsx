@@ -17,9 +17,7 @@ interface Invitation {
 }
 
 const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false }) => {
-  const { t, i18n } = useTranslation();
-  const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-  const isCsLike = locale === 'cs' || locale === 'sk';
+  const { t } = useTranslation();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,11 +135,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {forCompany
               ? t('my_invitations.company_hint', { defaultValue: 'Keep a clean overview of active assessment invitations.' })
-              : t('my_invitations.candidate_hint', {
-                defaultValue: isCsLike
-                  ? 'Navážete na pozvané testy bez opuštění vašeho dialogového toku.'
-                  : 'Resume invited assessments without leaving your dialogue flow.'
-              })}
+              : t('my_invitations.candidate_hint', { defaultValue: 'Resume invited assessments without leaving your dialogue flow.' })}
           </p>
         </div>
         <button onClick={load} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{t('my_invitations.refresh')}</button>

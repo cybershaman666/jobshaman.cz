@@ -281,7 +281,9 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
             {dossier.shared_jcfpm_payload ? (
                 <div className="rounded-[22px] border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-cyan-950/20 p-4 space-y-3 shadow-[0_18px_36px_-30px_rgba(6,182,212,0.35)]">
                     <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">Profile fit signal</div>
+                        <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">
+                            {t('company.applications.detail.profile_fit_signal', { defaultValue: 'Profile fit signal' })}
+                        </div>
                         <div className="text-[11px] text-cyan-700 dark:text-cyan-300">
                             {t('company.applications.labels.summary', { defaultValue: 'Shared' })}
                         </div>
