@@ -9,6 +9,7 @@ import random
 from bs4 import BeautifulSoup
 import json
 import time
+import base64
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
@@ -82,8 +83,40 @@ def load_environment():
 load_environment()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-# Use SERVICE_KEY as primary, fallback to KEY (matching app/core/config.py)
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+
+
+def _resolve_supabase_service_key() -> tuple[Optional[str], Optional[str]]:
+    candidates = (
+        ("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_SERVICE_ROLE_KEY")),
+        ("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_SERVICE_KEY")),
+        ("SUPABASE_KEY", os.getenv("SUPABASE_KEY")),
+    )
+    for name, value in candidates:
+        if value:
+            return value, name
+    return None, None
+
+
+def _infer_supabase_key_role(key: Optional[str]) -> str:
+    if not key:
+        return "missing"
+    if key.startswith("sb_publishable_"):
+        return "publishable"
+    if key.startswith("sb_secret_"):
+        return "secret"
+    parts = key.split(".")
+    if len(parts) != 3:
+        return "unknown"
+    try:
+        payload = parts[1] + "=" * (-len(parts[1]) % 4)
+        decoded = json.loads(base64.urlsafe_b64decode(payload))
+        return str(decoded.get("role") or "unknown")
+    except Exception:
+        return "unknown"
+
+
+SUPABASE_SERVICE_KEY, SUPABASE_SERVICE_KEY_SOURCE = _resolve_supabase_service_key()
+SUPABASE_SERVICE_KEY_ROLE = _infer_supabase_key_role(SUPABASE_SERVICE_KEY)
 SCRAPER_HTTP_PROXY = os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("SCRAPER_PROXY")
 SCRAPER_HTTPS_PROXY = os.getenv("SCRAPER_HTTPS_PROXY") or os.getenv("SCRAPER_PROXY")
 
@@ -94,11 +127,15 @@ else:
     print(f"   SUPABASE_URL: ❌ CHYBÍ")
 
 if SUPABASE_SERVICE_KEY:
-    # Identify which key was used for debugging
-    key_source = "SERVICE_KEY" if os.getenv("SUPABASE_SERVICE_KEY") else "SUPABASE_KEY"
-    print(f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO ({key_source})")
+    print(
+        f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO "
+        f"({SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE})"
+    )
 else:
-    print(f"   SUPABASE_SERVICE_KEY: ❌ CHYBÍ (nenalezen SERVICE_KEY ani SUPABASE_KEY)")
+    print(
+        "   SUPABASE_SERVICE_KEY: ❌ CHYBÍ "
+        "(nenalezen SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SERVICE_KEY ani SUPABASE_KEY)"
+    )
 
 if SCRAPER_HTTP_PROXY or SCRAPER_HTTPS_PROXY:
     print("   SCRAPER_PROXY: ✅ NAČTENO")
@@ -125,6 +162,14 @@ def get_supabase_client() -> Optional[Client]:
         print(
             "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_SERVICE_KEY chybí. "
             "Scrapování bude fungovat, ale data se neuloží."
+        )
+        return None
+    if SUPABASE_SERVICE_KEY_ROLE in {"anon", "authenticated", "publishable"}:
+        print(
+            "❌ SUPABASE klíč pro scraper nemá dostatečná práva "
+            f"(zdroj={SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE}). "
+            "Na Northflanku nastav `SUPABASE_SERVICE_ROLE_KEY` nebo `SUPABASE_SERVICE_KEY` "
+            "na service-role/secret klíč, jinak insert do `jobs` zablokuje RLS."
         )
         return None
     try:
@@ -878,6 +923,14 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
                     supabase = refreshed
                 time.sleep(0.6)
                 continue
+            error_text = str(e)
+            if "row-level security" in error_text.lower() or "42501" in error_text:
+                print(
+                    "    ❌ Insert do `jobs` zablokovala RLS politika. "
+                    f"Aktivní key source={SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE}. "
+                    "Zkontroluj, že Northflank posílá `SUPABASE_SERVICE_ROLE_KEY` "
+                    "nebo `SUPABASE_SERVICE_KEY`, ne public/anon key."
+                )
             print(f"    ❌ Došlo k neočekávané chybě při ukládání: {e}")
             return False
     return False

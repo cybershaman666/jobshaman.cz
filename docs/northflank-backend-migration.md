@@ -54,7 +54,9 @@ python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:
 Required:
 
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY` (or `SUPABASE_KEY`, service key preferred)
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred)
+- `SUPABASE_SERVICE_KEY` (legacy alias)
+- `SUPABASE_KEY` (legacy fallback only if it contains the service-role/secret key, not anon/public)
 - `SECRET_KEY` (or `JWT_SECRET`)
 
 Common app/runtime:

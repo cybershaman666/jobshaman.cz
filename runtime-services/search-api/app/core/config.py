@@ -26,7 +26,11 @@ def _resolve_secret_key() -> str:
 
 # Required runtime configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_KEY"))
+SUPABASE_KEY = (
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    or os.getenv("SUPABASE_SERVICE_KEY")
+    or os.getenv("SUPABASE_KEY")
+)
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://jobshaman.cz")
 
 SECRET_KEY = _resolve_secret_key()

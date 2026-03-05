@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
+import base64
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
@@ -53,9 +54,40 @@ def load_environment():
 load_environment()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-# Use SERVICE_KEY instead of ANON_KEY to bypass RLS policies
-# Fallback to SUPABASE_KEY if SERVICE_KEY is missing (matching config.py)
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+
+
+def _resolve_supabase_service_key():
+    candidates = (
+        ("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_SERVICE_ROLE_KEY")),
+        ("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_SERVICE_KEY")),
+        ("SUPABASE_KEY", os.getenv("SUPABASE_KEY")),
+    )
+    for name, value in candidates:
+        if value:
+            return value, name
+    return None, None
+
+
+def _infer_supabase_key_role(key):
+    if not key:
+        return "missing"
+    if key.startswith("sb_publishable_"):
+        return "publishable"
+    if key.startswith("sb_secret_"):
+        return "secret"
+    parts = key.split(".")
+    if len(parts) != 3:
+        return "unknown"
+    try:
+        payload = parts[1] + "=" * (-len(parts[1]) % 4)
+        decoded = json.loads(base64.urlsafe_b64decode(payload))
+        return str(decoded.get("role") or "unknown")
+    except Exception:
+        return "unknown"
+
+
+SUPABASE_SERVICE_KEY, SUPABASE_SERVICE_KEY_SOURCE = _resolve_supabase_service_key()
+SUPABASE_SERVICE_KEY_ROLE = _infer_supabase_key_role(SUPABASE_SERVICE_KEY)
 
 # Debug output
 if SUPABASE_URL:
@@ -64,10 +96,15 @@ else:
     print(f"   SUPABASE_URL: ❌ CHYBÍ")
 
 if SUPABASE_SERVICE_KEY:
-    key_source = "SERVICE_KEY" if os.getenv("SUPABASE_SERVICE_KEY") else "SUPABASE_KEY"
-    print(f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO ({key_source})")
+    print(
+        f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO "
+        f"({SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE})"
+    )
 else:
-    print(f"   SUPABASE_SERVICE_KEY: ❌ CHYBÍ")
+    print(
+        "   SUPABASE_SERVICE_KEY: ❌ CHYBÍ "
+        "(nenalezen SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SERVICE_KEY ani SUPABASE_KEY)"
+    )
 
 def _get_page_cap(default: int = 10):
     raw = os.getenv("SCRAPER_MAX_PAGES", str(default)).strip()
@@ -82,6 +119,14 @@ def get_supabase_client():
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print(
             "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_SERVICE_KEY chybí. Scrapování bude fungovat, ale data se neuloží."
+        )
+        return None
+    if SUPABASE_SERVICE_KEY_ROLE in {"anon", "authenticated", "publishable"}:
+        print(
+            "❌ SUPABASE klíč pro scraper nemá dostatečná práva "
+            f"(zdroj={SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE}). "
+            "Na Northflanku nastav `SUPABASE_SERVICE_ROLE_KEY` nebo `SUPABASE_SERVICE_KEY` "
+            "na service-role/secret klíč, jinak insert do `jobs` zablokuje RLS."
         )
         return None
     try:
@@ -751,6 +796,14 @@ def save_job_to_supabase(job_data):
                 _refresh_supabase_client()
                 time.sleep(0.6)
                 continue
+            error_text = str(e)
+            if "row-level security" in error_text.lower() or "42501" in error_text:
+                print(
+                    "    ❌ Insert do `jobs` zablokovala RLS politika. "
+                    f"Aktivní key source={SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE}. "
+                    "Zkontroluj, že Northflank posílá `SUPABASE_SERVICE_ROLE_KEY` "
+                    "nebo `SUPABASE_SERVICE_KEY`, ne public/anon key."
+                )
             print(f"    ❌ Došlo k neočekávané chybě při ukládání: {e}")
             return False
     return False

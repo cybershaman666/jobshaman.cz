@@ -42,8 +42,12 @@ APP_PUBLIC_URL = _env_str("APP_PUBLIC_URL", "https://jobshaman.cz")
 
 # Supabase
 SUPABASE_URL = _env_str("SUPABASE_URL")
-# Use SERVICE_KEY if available, fallback to public KEY
-SUPABASE_KEY = _env_str("SUPABASE_SERVICE_KEY") or _env_str("SUPABASE_KEY")
+# Use service-role/secret key if available, fallback to legacy names.
+SUPABASE_KEY = (
+    _env_str("SUPABASE_SERVICE_ROLE_KEY")
+    or _env_str("SUPABASE_SERVICE_KEY")
+    or _env_str("SUPABASE_KEY")
+)
 
 # Stripe
 STRIPE_SECRET_KEY = _env_str("STRIPE_SECRET_KEY")
