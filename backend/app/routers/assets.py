@@ -13,12 +13,13 @@ from ..services.asset_service import (
     resolve_download_token,
     stage_upload_bytes,
 )
+from ..utils.request_urls import get_request_base_url
 
 router = APIRouter(prefix="/assets")
 
 
 def _request_base_url(request: Request) -> str:
-    return str(request.base_url).rstrip("/")
+    return get_request_base_url(request).rstrip("/")
 
 
 @router.post("/upload-session")

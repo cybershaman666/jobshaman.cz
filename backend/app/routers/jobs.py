@@ -18,6 +18,7 @@ from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
 from ..utils.helpers import now_iso
+from ..utils.request_urls import get_request_base_url
 
 router = APIRouter()
 _SEARCH_EXPOSURES_AVAILABLE: bool = True
@@ -2508,7 +2509,8 @@ async def list_my_dialogue_messages_legacy(
             if str(row.get("id") or "") in unread_ids:
                 row["read_by_candidate_at"] = now_iso()
 
-    return {"messages": [_serialize_application_message(row, str(request.base_url)) for row in rows]}
+    request_base_url = get_request_base_url(request)
+    return {"messages": [_serialize_application_message(row, request_base_url) for row in rows]}
 
 
 @router.post("/jobs/applications/{application_id}/messages")
@@ -2605,7 +2607,7 @@ async def create_my_dialogue_message_legacy(
         subject_type="application",
         subject_id=application_id,
     )
-    return {"message": _serialize_application_message(row, str(request.base_url))}
+    return {"message": _serialize_application_message(row, get_request_base_url(request))}
 
 
 @router.get("/company/applications")
@@ -2762,7 +2764,8 @@ async def list_company_dialogue_messages_legacy(
             if str(row.get("id") or "") in unread_ids:
                 row["read_by_company_at"] = now_iso()
 
-    return {"messages": [_serialize_application_message(row, str(request.base_url)) for row in rows]}
+    request_base_url = get_request_base_url(request)
+    return {"messages": [_serialize_application_message(row, request_base_url) for row in rows]}
 
 
 @router.post("/company/applications/{application_id}/messages")
@@ -2857,7 +2860,7 @@ async def create_company_dialogue_message_legacy(
         subject_type="application",
         subject_id=application_id,
     )
-    return {"message": _serialize_application_message(row, str(request.base_url))}
+    return {"message": _serialize_application_message(row, get_request_base_url(request))}
 
 
 @router.patch("/company/applications/{application_id}/status")
