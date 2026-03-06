@@ -10,6 +10,11 @@ const parseErrorDetail = async (response: Response, fallback: string): Promise<s
   return fallback;
 };
 
+const isExpectedPremiumError = (error: unknown): boolean => {
+  const message = String((error as any)?.message || error || '').toLowerCase();
+  return message.includes('premium subscription required');
+};
+
 const callAiExecute = async (action: string, params: Record<string, any> = {}): Promise<any> => {
   const response = await authenticatedFetch(`${BACKEND_URL}/ai/execute`, {
     method: 'POST',
@@ -176,7 +181,9 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
     const payload = await callAiExecute('parse_profile_from_cv', { text });
     return (payload?.profile || {}) as Partial<UserProfile>;
   } catch (e) {
-    console.error('Parse Profile failed', e);
+    if (!isExpectedPremiumError(e)) {
+      console.error('Parse Profile failed', e);
+    }
     return {};
   }
 };

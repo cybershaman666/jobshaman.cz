@@ -14,6 +14,7 @@ let lastProfileMissingWarnAt = 0;
 const ANALYTICS_NETWORK_COOLDOWN_MS = 120_000;
 let analyticsNetworkCooldownUntil = 0;
 let lastAnalyticsNetworkLogAt = 0;
+const schemaMissingColumnsCache = new Map<string, Set<string>>();
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
@@ -1897,6 +1898,23 @@ const extractMissingColumnFromSchemaCacheError = (error: any): string | null => 
     return match?.[1] || null;
 };
 
+const stripCachedMissingColumns = (table: string, payload: Record<string, any>): Record<string, any> => {
+    const cached = schemaMissingColumnsCache.get(table);
+    if (!cached || cached.size === 0) return payload;
+    const next = { ...payload };
+    for (const column of cached) {
+        delete next[column];
+    }
+    return next;
+};
+
+const rememberMissingColumn = (table: string, column: string): void => {
+    if (!table || !column) return;
+    const cached = schemaMissingColumnsCache.get(table) || new Set<string>();
+    cached.add(column);
+    schemaMissingColumnsCache.set(table, cached);
+};
+
 export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
 
@@ -1966,7 +1984,7 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
                 .update({ is_active: false })
                 .eq('user_id', userId);
 
-            const insertPayload: any = {
+            const baseInsertPayload: any = {
                 user_id: userId,
                 file_name: filePath,
                 original_name: originalName,
@@ -1978,6 +1996,7 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
                 uploaded_at: new Date().toISOString(),
                 last_used: new Date().toISOString()
             };
+            const insertPayload: any = stripCachedMissingColumns('cv_documents', baseInsertPayload);
 
             let { error: insertError } = await supabase
                 .from('cv_documents')
@@ -1988,6 +2007,7 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
             for (let i = 0; insertError && i < 6; i++) {
                 const missingColumn = extractMissingColumnFromSchemaCacheError(insertError);
                 if (!missingColumn || !(missingColumn in insertPayload)) break;
+                rememberMissingColumn('cv_documents', missingColumn);
                 delete insertPayload[missingColumn];
                 const retry = await supabase
                     .from('cv_documents')
@@ -2041,7 +2061,7 @@ export const uploadCVDocument = async (
         const asset = await uploadExternalCandidateDocument(file);
 
         // SECURITY: Insert with additional security checks
-        const insertPayload: any = {
+        const baseInsertPayload: any = {
             user_id: userId,
             file_name: asset.object_key || asset.path || `${userId}/${Date.now()}-${sanitizeFileName(file.name)}`,
             original_name: sanitizeFileName(file.name),
@@ -2053,6 +2073,7 @@ export const uploadCVDocument = async (
             label: meta.label || null,
             locale: meta.locale || null
         };
+        const insertPayload: any = stripCachedMissingColumns('cv_documents', baseInsertPayload);
 
         let { data, error } = await supabase
             .from('cv_documents')
@@ -2063,6 +2084,7 @@ export const uploadCVDocument = async (
         for (let i = 0; error && i < 6; i++) {
             const missingColumn = extractMissingColumnFromSchemaCacheError(error);
             if (!missingColumn || !(missingColumn in insertPayload)) break;
+            rememberMissingColumn('cv_documents', missingColumn);
             delete insertPayload[missingColumn];
             const retry = await supabase
                 .from('cv_documents')
@@ -2288,10 +2310,11 @@ export const updateCVDocumentParsedData = async (
             }
         };
 
-        const updatePayload: any = {
+        const baseUpdatePayload: any = {
             parsed_data: toJsonSafe(parsedData || {}),
             parsed_at: new Date().toISOString()
         };
+        const updatePayload: any = stripCachedMissingColumns('cv_documents', baseUpdatePayload);
 
         let { error } = await supabase
             .from('cv_documents')
@@ -2303,6 +2326,7 @@ export const updateCVDocumentParsedData = async (
         for (let i = 0; error && i < 4; i++) {
             const missingColumn = extractMissingColumnFromSchemaCacheError(error);
             if (!missingColumn || !(missingColumn in updatePayload)) break;
+            rememberMissingColumn('cv_documents', missingColumn);
             delete updatePayload[missingColumn];
             const retry = await supabase
                 .from('cv_documents')

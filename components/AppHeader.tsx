@@ -57,6 +57,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     const subscriptionSubjectId = (viewState === ViewState.COMPANY_DASHBOARD && userProfile.role === 'recruiter' && companyProfile?.id)
         ? companyProfile.id
         : userProfile.id;
+    const activeNavClass = 'bg-white/18 text-white ring-1 ring-white/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_24px_-16px_rgba(0,0,0,0.7)]';
+    const inactiveNavClass = 'text-slate-300 hover:text-white hover:bg-white/8';
 
     const languages = [
         { code: 'cs', name: 'CZ', flagCode: 'cz' },
@@ -152,7 +154,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200/20 dark:border-slate-800/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.96)_0%,rgba(30,41,59,0.94)_100%)] text-white backdrop-blur-md shadow-[0_16px_42px_-30px_rgba(15,23,42,0.65)]">
+        <header className="sticky top-0 z-50 w-full border-b border-slate-200/15 dark:border-slate-700/60 bg-[radial-gradient(circle_at_82%_18%,rgba(72,108,168,0.18),transparent_34%),linear-gradient(135deg,rgba(16,18,22,0.985)_0%,rgba(21,24,30,0.975)_52%,rgba(28,32,39,0.965)_100%)] text-white backdrop-blur-md shadow-[0_18px_46px_-30px_rgba(8,12,20,0.78)]">
             <div className="flex h-[4.35rem] items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1920px] mx-auto gap-2 sm:gap-4">
                 {/* Logo */}
                 <div
@@ -198,7 +200,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.LIST); 
                                     setSelectedJobId(null); 
                                 }}
-                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
+                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? activeNavClass : inactiveNavClass}`}
                             >
                                 {t('nav.offers')}
                             </button>
@@ -211,7 +213,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         handleAuthAction('login');
                                     }
                                 }}
-                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
+                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? activeNavClass : inactiveNavClass}`}
                                 title={t('nav.profile')}
                             >
                                 <User className="w-4 h-4" />
@@ -228,7 +230,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 if (leaveDemoHandshakeRoute(businessTarget)) return;
                                 void handleBusinessClick();
                             }}
-                            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
+                            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? activeNavClass : inactiveNavClass}`}
                         >
                             <Briefcase size={14} />
                             <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>

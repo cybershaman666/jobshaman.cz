@@ -1,5 +1,6 @@
 from backend.app.matching_engine.feature_store import extract_candidate_features, extract_job_features
 from backend.app.matching_engine.scoring import score_job
+from backend.app.matching_engine import serve
 
 
 def test_score_job_includes_inferred_and_leadership_skills():
@@ -265,6 +266,79 @@ def test_matching_prefers_relevant_manager_ai_dev_hotel_roles_over_unrelated_tra
     assert max(score for score, _ in bad_scores) <= 20
     assert min(score for score, _ in good_scores) > max(score for score, _ in bad_scores)
     assert all(breakdown.get("hard_cap", 100) <= 15 for _, breakdown in bad_scores)
+
+
+def test_batch_refresh_recommendations_reuses_prefetched_jobs(monkeypatch):
+    class _Query:
+        def __init__(self, table_name):
+            self.table_name = table_name
+
+        def select(self, _columns):
+            return self
+
+        def limit(self, _value):
+            return self
+
+        def execute(self):
+            if self.table_name == "candidate_profiles":
+                return type(
+                    "Resp",
+                    (),
+                    {
+                        "data": [
+                            {"id": "user-1", "job_title": "Developer", "skills": ["python"]},
+                            {"id": "user-2", "job_title": "Analyst", "skills": ["sql"]},
+                        ]
+                    },
+                )()
+            return type("Resp", (), {"data": []})()
+
+    class _SupabaseStub:
+        def table(self, name):
+            return _Query(name)
+
+    fetch_calls = []
+    recommend_calls = []
+    shared_jobs = [{"id": 1, "title": "Backend Developer", "description": "Python", "location": "Brno"}]
+    shared_embeddings = {"1": [0.1, 0.2]}
+
+    monkeypatch.setattr(serve, "supabase", _SupabaseStub())
+    monkeypatch.setattr(
+        serve,
+        "fetch_recent_jobs",
+        lambda limit, days: fetch_calls.append((limit, days)) or shared_jobs,
+    )
+    monkeypatch.setattr(
+        serve,
+        "ensure_job_embeddings",
+        lambda jobs, persist=False: shared_embeddings,
+    )
+    monkeypatch.setattr(
+        serve,
+        "recommend_jobs_for_user",
+        lambda user_id, limit=50, allow_cache=True, candidate=None, jobs=None, job_embeddings=None: recommend_calls.append(
+            {
+                "user_id": user_id,
+                "candidate": candidate,
+                "jobs": jobs,
+                "job_embeddings": job_embeddings,
+                "allow_cache": allow_cache,
+                "limit": limit,
+            }
+        ) or [{"job": {"id": 1}}],
+    )
+
+    generated = serve.batch_refresh_recommendations()
+
+    assert generated == 2
+    assert len(fetch_calls) == 1
+    assert len(recommend_calls) == 2
+    assert recommend_calls[0]["jobs"] is shared_jobs
+    assert recommend_calls[1]["jobs"] is shared_jobs
+    assert recommend_calls[0]["job_embeddings"] is shared_embeddings
+    assert recommend_calls[1]["job_embeddings"] is shared_embeddings
+    assert recommend_calls[0]["candidate"]["id"] == "user-1"
+    assert recommend_calls[1]["candidate"]["id"] == "user-2"
 
 
 def test_regulated_professions_without_background_stay_near_floor():

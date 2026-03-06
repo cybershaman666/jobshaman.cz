@@ -416,6 +416,7 @@ export const authenticatedFetch = async (
         const requestTimeoutMs = resolveRequestTimeoutMs(url);
         const callerSignal = options.signal;
         let abortedByCaller = !!callerSignal?.aborted;
+        let csrfTokenWasAttached = false;
 
         if (resolvedAuthToken) {
             headers.set('Authorization', `Bearer ${resolvedAuthToken}`);
@@ -433,6 +434,7 @@ export const authenticatedFetch = async (
 
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
+                csrfTokenWasAttached = true;
             } else {
                 if (shouldEmitThrottledLog(lastMissingCsrfLogAt)) {
                     console.warn(`⚠️ No valid CSRF token found for ${method} request`);
@@ -485,6 +487,11 @@ export const authenticatedFetch = async (
                 throw error;
             }
         } finally {
+            // Backend CSRF tokens are single-use. Clear any attached token after the request
+            // so the next state-changing call fetches a fresh token instead of first hitting 403.
+            if (csrfTokenWasAttached && requiresCsrf) {
+                clearCsrfToken();
+            }
             if (cleanupCallerAbortListener) {
                 cleanupCallerAbortListener();
             }

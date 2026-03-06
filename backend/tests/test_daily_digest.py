@@ -239,9 +239,6 @@ def test_persist_digest_last_sent_updates_profiles_and_candidate_fallback(monkey
             self.filters[column] = value
             return self
 
-        def select(self, _columns):
-            return self
-
         def execute(self):
             updates.append(
                 {
@@ -354,6 +351,49 @@ def test_run_daily_job_digest_backfills_profile_last_sent_from_fallback(monkeypa
             "filters": {"id": "user-1"},
         }
     ]
+
+
+def test_persist_digest_last_sent_supports_update_builders_without_select(monkeypatch):
+    updates = []
+
+    class _Query:
+        def __init__(self, table_name):
+            self.table_name = table_name
+            self.payload = None
+            self.filters = {}
+
+        def update(self, payload):
+            self.payload = payload
+            return self
+
+        def eq(self, column, value):
+            self.filters[column] = value
+            return self
+
+        def execute(self):
+            updates.append(
+                {
+                    "table": self.table_name,
+                    "payload": self.payload,
+                    "filters": dict(self.filters),
+                }
+            )
+            return type("Resp", (), {"data": None})()
+
+    class _SupabaseStub:
+        def table(self, name):
+            return _Query(name)
+
+    monkeypatch.setattr(daily_digest_module, "supabase", _SupabaseStub())
+
+    assert daily_digest_module._update_profile_digest_last_sent("user-1", "2026-03-06T10:00:00+00:00") is True
+    assert daily_digest_module._persist_candidate_digest_last_sent(
+        "user-1",
+        {"preferences": {"existing": True}},
+        "2026-03-06T10:00:00+00:00",
+    ) is True
+    assert updates[0]["table"] == "profiles"
+    assert updates[1]["table"] == "candidate_profiles"
 
 
 def test_pick_personalized_digest_jobs_filters_incompatible_language():

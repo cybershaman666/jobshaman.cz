@@ -1005,7 +1005,14 @@ def _get_candidate_profile(user_id: str):
         return None
 
 
-def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = True) -> List[Dict]:
+def recommend_jobs_for_user(
+    user_id: str,
+    limit: int = 50,
+    allow_cache: bool = True,
+    candidate: Optional[Dict] = None,
+    jobs: Optional[List[Dict]] = None,
+    job_embeddings: Optional[Dict[str, List[float]]] = None,
+) -> List[Dict]:
     flag = get_release_flag("matching_engine_v2", subject_id=user_id, default=True)
     if not flag.get("effective_enabled", True):
         return []
@@ -1050,19 +1057,19 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
             )
             return cached
 
-    candidate = _get_candidate_profile(user_id)
+    candidate = candidate or _get_candidate_profile(user_id)
     if not candidate:
         return []
 
     candidate_features = extract_candidate_features(candidate)
     candidate_embedding = ensure_candidate_embedding(user_id, candidate_features.get("text") or "")
 
-    jobs = fetch_recent_jobs(limit=recommendations_pool_limit, days=recommendations_days)
+    jobs = jobs if jobs is not None else fetch_recent_jobs(limit=recommendations_pool_limit, days=recommendations_days)
     if not jobs:
         return []
 
     # Keep request path fast: compute embeddings in-memory, persist in batch jobs only.
-    job_embeddings = ensure_job_embeddings(jobs, persist=False)
+    job_embeddings = job_embeddings if job_embeddings is not None else ensure_job_embeddings(jobs, persist=False)
 
     ranked = []
     shortlist = []
@@ -1183,19 +1190,39 @@ def batch_refresh_candidate_embeddings() -> int:
 def batch_refresh_recommendations() -> int:
     if not supabase:
         return 0
+    model_cfg = get_active_model_config("matching", "recommendations")
+    cfg = model_cfg.get("config_json") or {}
+    recommendations_days = max(14, min(180, int(cfg.get("recommendation_job_window_days") or 90)))
+    recommendations_pool_limit = max(500, min(5000, int(cfg.get("recommendation_job_pool_limit") or 1500)))
     try:
-        resp = supabase.table("candidate_profiles").select("id").limit(1500).execute()
+        resp = (
+            supabase.table("candidate_profiles")
+            .select("id,job_title,cv_text,cv_ai_text,story,skills,inferred_skills,strengths,leadership,values,motivations,work_preferences,work_history,education,address,lat,lng")
+            .limit(1500)
+            .execute()
+        )
     except Exception as exc:
         print(f"⚠️ [Matching] batch recommendation fetch failed: {exc}")
         return 0
 
     profiles = resp.data or []
+    jobs = fetch_recent_jobs(limit=recommendations_pool_limit, days=recommendations_days)
+    if not jobs:
+        return 0
+    job_embeddings = ensure_job_embeddings(jobs, persist=False)
     generated = 0
     for row in profiles:
         user_id = row.get("id")
         if not user_id:
             continue
-        recs = recommend_jobs_for_user(user_id, limit=80, allow_cache=False)
+        recs = recommend_jobs_for_user(
+            user_id,
+            limit=80,
+            allow_cache=False,
+            candidate=row,
+            jobs=jobs,
+            job_embeddings=job_embeddings,
+        )
         if recs:
             generated += 1
     return generated

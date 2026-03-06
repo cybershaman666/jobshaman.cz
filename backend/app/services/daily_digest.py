@@ -184,10 +184,9 @@ def _update_profile_digest_last_sent(user_id: str, sent_at_iso: str) -> bool:
             supabase.table("profiles")
             .update({"daily_digest_last_sent_at": sent_at_iso})
             .eq("id", uid)
-            .select("id")
             .execute()
         )
-        if _response_rows(resp):
+        if getattr(resp, "data", None) is None or _response_rows(resp):
             return True
         print(
             f"⚠️ Failed to update daily_digest_last_sent_at for {uid}: "
@@ -214,10 +213,9 @@ def _persist_candidate_digest_last_sent(user_id: str, candidate_profile, sent_at
             supabase.table("candidate_profiles")
             .update({"preferences": preferences})
             .eq("id", uid)
-            .select("id")
             .execute()
         )
-        if _response_rows(resp):
+        if getattr(resp, "data", None) is None or _response_rows(resp):
             return True
         print(
             f"⚠️ Failed to persist digest fallback marker for {uid}: "
