@@ -31,9 +31,9 @@ def _parse_vector(raw) -> List[float]:
     return []
 
 
-def ensure_candidate_embedding(candidate_id: str, text: str) -> List[float]:
+def ensure_candidate_embedding(candidate_id: str, text: str, persist: bool = True) -> List[float]:
     vector = embed_text(text)
-    if not supabase:
+    if not supabase or not persist:
         return vector
 
     payload = {

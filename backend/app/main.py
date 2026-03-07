@@ -189,6 +189,7 @@ from .core.security import cleanup_csrf_sessions
 
 scheduler: BackgroundScheduler | None = None
 _scheduler_enabled = os.getenv("ENABLE_BACKGROUND_SCHEDULER", "false").strip().lower() in {"1", "true", "yes", "on"}
+_matching_batch_enabled = os.getenv("ENABLE_MATCHING_BATCH_JOBS", "false").strip().lower() in {"1", "true", "yes", "on"}
 _daily_digest_enabled = os.getenv("ENABLE_DAILY_DIGESTS", "false").strip().lower() in {"1", "true", "yes", "on"}
 _public_benchmarks_enabled = os.getenv("ENABLE_PUBLIC_BENCHMARK_REFRESH", "false").strip().lower() in {"1", "true", "yes", "on"}
 
@@ -201,8 +202,9 @@ def _start_scheduler() -> None:
     try:
         scheduler = BackgroundScheduler(timezone="Europe/Prague")
         scheduler.add_job(cleanup_csrf_sessions, 'interval', hours=6)
-        scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
-        scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
+        if _matching_batch_enabled:
+            scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
+            scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
         scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
         if _daily_digest_enabled:
             scheduler.add_job(run_daily_job_digest, 'interval', minutes=15, id="daily_digest", max_instances=1, coalesce=True)
@@ -218,6 +220,8 @@ def _start_scheduler() -> None:
             )
         scheduler.start()
         print("✅ Background scheduler started.")
+        if not _matching_batch_enabled:
+            print("ℹ️ Matching batch scheduler disabled (ENABLE_MATCHING_BATCH_JOBS=false).")
     except Exception as exc:
         scheduler = None
         print(f"⚠️ Background scheduler failed to start: {exc}")

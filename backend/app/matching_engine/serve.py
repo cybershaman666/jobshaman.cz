@@ -1062,7 +1062,8 @@ def recommend_jobs_for_user(
         return []
 
     candidate_features = extract_candidate_features(candidate)
-    candidate_embedding = ensure_candidate_embedding(user_id, candidate_features.get("text") or "")
+    # Keep live recommendation requests read-heavy; persistence belongs to offline batch refresh.
+    candidate_embedding = ensure_candidate_embedding(user_id, candidate_features.get("text") or "", persist=False)
 
     jobs = jobs if jobs is not None else fetch_recent_jobs(limit=recommendations_pool_limit, days=recommendations_days)
     if not jobs:
@@ -1182,7 +1183,7 @@ def batch_refresh_candidate_embeddings() -> int:
     updated = 0
     for profile in profiles:
         features = extract_candidate_features(profile)
-        ensure_candidate_embedding(profile.get("id"), features.get("text") or "")
+        ensure_candidate_embedding(profile.get("id"), features.get("text") or "", persist=True)
         updated += 1
     return updated
 

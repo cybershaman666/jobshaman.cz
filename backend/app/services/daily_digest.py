@@ -950,6 +950,7 @@ def run_daily_job_digest() -> None:
                 "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text,tax_profile,preferences)"
             )
             .eq("role", "candidate")
+            .or_("daily_digest_enabled.eq.true,daily_digest_push_enabled.eq.true")
             .execute()
         )
     except Exception as exc:
