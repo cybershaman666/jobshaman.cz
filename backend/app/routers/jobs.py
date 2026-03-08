@@ -619,9 +619,11 @@ def _count_candidate_active_dialogues(candidate_id: str) -> int:
         return 0
 
 
-def _resolve_candidate_dialogue_limit(candidate_id: str) -> int:
+def _resolve_candidate_dialogue_limit(candidate_id: str, user: dict | None = None) -> int:
     if not candidate_id:
         return _CANDIDATE_TIER_DIALOGUE_LIMITS["free"]
+    if user and _user_has_direct_premium(user):
+        return _CANDIDATE_TIER_DIALOGUE_LIMITS["premium"]
     candidate_sub = _fetch_latest_subscription_by("user_id", candidate_id)
     if candidate_sub and _is_active_subscription(candidate_sub):
         candidate_tier = str(candidate_sub.get("tier") or "").strip().lower()
@@ -630,9 +632,9 @@ def _resolve_candidate_dialogue_limit(candidate_id: str) -> int:
     return _CANDIDATE_TIER_DIALOGUE_LIMITS["free"]
 
 
-def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
+def _serialize_candidate_dialogue_capacity(candidate_id: str, user: dict | None = None) -> dict[str, int]:
     used = _count_candidate_active_dialogues(candidate_id)
-    limit = _resolve_candidate_dialogue_limit(candidate_id)
+    limit = _resolve_candidate_dialogue_limit(candidate_id, user=user)
     return {
         "active": used,
         "limit": limit,
@@ -640,13 +642,13 @@ def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
     }
 
 
-def _serialize_candidate_dialogue_capacity_from_rows(candidate_id: str, rows: list[dict] | None) -> dict[str, int]:
+def _serialize_candidate_dialogue_capacity_from_rows(candidate_id: str, rows: list[dict] | None, user: dict | None = None) -> dict[str, int]:
     normalized_rows = rows or []
     used = 0
     for row in normalized_rows:
         if _is_active_dialogue_status((row or {}).get("status")):
             used += 1
-    limit = _resolve_candidate_dialogue_limit(candidate_id)
+    limit = _resolve_candidate_dialogue_limit(candidate_id, user=user)
     return {
         "active": used,
         "limit": limit,
@@ -654,9 +656,9 @@ def _serialize_candidate_dialogue_capacity_from_rows(candidate_id: str, rows: li
     }
 
 
-def _enforce_candidate_dialogue_limit(candidate_id: str) -> None:
+def _enforce_candidate_dialogue_limit(candidate_id: str, user: dict | None = None) -> None:
     current_active = _count_candidate_active_dialogues(candidate_id)
-    limit = _resolve_candidate_dialogue_limit(candidate_id)
+    limit = _resolve_candidate_dialogue_limit(candidate_id, user=user)
     if current_active >= limit:
         raise HTTPException(
             status_code=403,
@@ -2569,12 +2571,12 @@ async def create_dialogue_legacy(
                 "application_id": row.get("id"),
                 "created_at": row.get("created_at"),
                 "application": _serialize_application_dossier(row),
-                "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+                "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
             }
     except Exception as exc:
         print(f"⚠️ Failed to check existing application: {exc}")
 
-    _enforce_candidate_dialogue_limit(user_id)
+    _enforce_candidate_dialogue_limit(user_id, user=user)
 
     company_id = None
     try:
@@ -2631,7 +2633,7 @@ async def create_dialogue_legacy(
             "status": "created",
             "application_id": app_id,
             "application": _serialize_application_dossier(row or insert_payload),
-            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
         }
     except Exception as exc:
         if any(_is_missing_column_error(exc, col) for col in [
@@ -2676,7 +2678,7 @@ async def create_dialogue_legacy(
                 return {
                     "status": "created",
                     "application_id": app_id,
-                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
                 }
             except Exception as fallback_exc:
                 print(f"⚠️ Fallback create application also failed: {fallback_exc}")
@@ -2702,49 +2704,89 @@ async def list_my_dialogues_legacy(
     if cached is not None:
         return cached
 
-    select_clause = (
-        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
-        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
-        "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-        "jobs(title,company,location,url,source,contact_email),"
-        "companies(name,website)"
-    )
-    fallback_select_clause = (
-        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
-        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
-        "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-        "jobs(title,company,location,url,source),"
-        "companies(name,website)"
-    )
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select(select_clause)
-            .eq("candidate_id", user_id)
-            .order("submitted_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-    except Exception as exc:
-        candidate_select_clause = fallback_select_clause if _is_missing_column_error(exc, "contact_email") else select_clause
-        if not (_is_missing_column_error(exc, "submitted_at") or _is_missing_column_error(exc, "contact_email")):
-            raise HTTPException(status_code=500, detail="Failed to load candidate applications")
-        order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "submitted_at"
-        resp = (
-            supabase
-            .table("job_applications")
-            .select(candidate_select_clause)
-            .eq("candidate_id", user_id)
-            .order(order_column, desc=True)
-            .limit(limit)
-            .execute()
-        )
+    # Candidate dialogue hub should degrade to an empty state instead of 500
+    # when older environments are missing optional columns.
+    select_attempts: list[tuple[str, str]] = [
+        (
+            "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
+            "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
+            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
+            "jobs(title,company,location,url,source,contact_email),"
+            "companies(name,website)",
+            "submitted_at",
+        ),
+        (
+            "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
+            "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
+            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
+            "jobs(title,company,location,url,source),"
+            "companies(name,website)",
+            "submitted_at",
+        ),
+        (
+            "id,job_id,company_id,status,created_at,applied_at,updated_at,"
+            "source,cover_letter,cv_document_id,cv_snapshot,"
+            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
+            "jobs(title,company,location,url,source),"
+            "companies(name,website)",
+            "applied_at",
+        ),
+        (
+            "id,job_id,company_id,status,created_at,applied_at,updated_at,"
+            "source,cover_letter,cv_document_id,cv_snapshot,"
+            "application_payload,"
+            "jobs(title,company,location,url,source),"
+            "companies(name,website)",
+            "applied_at",
+        ),
+        (
+            "id,job_id,company_id,status,created_at,applied_at,updated_at,source,"
+            "application_payload,"
+            "jobs(title,company,location,url,source),"
+            "companies(name,website)",
+            "applied_at",
+        ),
+        (
+            "id,job_id,company_id,status,created_at,updated_at,source,"
+            "application_payload,"
+            "jobs(title,company,location,url,source),"
+            "companies(name,website)",
+            "created_at",
+        ),
+    ]
+
+    resp = None
+    last_error: Exception | None = None
+    for select_clause, order_column in select_attempts:
+        try:
+            resp = (
+                supabase
+                .table("job_applications")
+                .select(select_clause)
+                .eq("candidate_id", user_id)
+                .order(order_column, desc=True)
+                .limit(limit)
+                .execute()
+            )
+            last_error = None
+            break
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if resp is None:
+        print(f"⚠️ Failed to load candidate dialogues for {user_id}: {last_error}")
+        payload = {
+            "applications": [],
+            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
+        }
+        _set_cached_my_dialogues(user_id, limit, payload)
+        return payload
 
     rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
     payload = {
         "applications": [_serialize_candidate_application_row(row) for row in rows],
-        "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows),
+        "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows, user=user),
     }
     _set_cached_my_dialogues(user_id, limit, payload)
     return payload
@@ -2843,7 +2885,7 @@ async def withdraw_my_dialogue_legacy(
     if not _is_active_dialogue_status(current_status):
         return {
             "status": current_status,
-            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
         }
 
     try:
@@ -2891,7 +2933,7 @@ async def withdraw_my_dialogue_legacy(
 
     return {
         "status": "withdrawn",
-        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
     }
 
 
@@ -3446,8 +3488,19 @@ async def list_my_dialogues(
 ):
     response = await list_my_dialogues_legacy(request=request, limit=limit, user=user)
     rows = response.get("applications") or []
+    dialogues: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        dialogue = dict(row)
+        dialogue["dialogue_id"] = str(dialogue.get("dialogue_id") or dialogue.get("id") or "")
+        if dialogue.get("role_id") is None and dialogue.get("job_id") is not None:
+            dialogue["role_id"] = str(dialogue.get("job_id") or "")
+        if dialogue.get("role_title") is None and dialogue.get("job_title") is not None:
+            dialogue["role_title"] = dialogue.get("job_title")
+        dialogues.append(dialogue)
     return {
-        "dialogues": [_serialize_dialogue_record(row) for row in rows if isinstance(row, dict)],
+        "dialogues": dialogues,
         "candidate_capacity": response.get("candidate_capacity"),
     }
 

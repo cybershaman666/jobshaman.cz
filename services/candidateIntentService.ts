@@ -47,6 +47,19 @@ const pushIfPresent = (items: string[], value: unknown) => {
   if (text) items.push(text);
 };
 
+const uniqueStrings = (items: Array<string | null | undefined>): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items) {
+    const value = String(item || '').trim();
+    if (!value) continue;
+    if (seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+};
+
 const collectCandidateTextChunks = (profile: UserProfile): string[] => {
   const chunks: string[] = [];
   pushIfPresent(chunks, profile.preferences?.desired_role);
@@ -323,7 +336,12 @@ export const annotateJobsForCandidate = (
         ...job,
         priorityScore,
         matchBucket,
-        matchReasons: uniqueDomains(jobDomains).slice(0, 2).map((domain) => getCandidateIntentDomainLabel(domain, locale)).filter(Boolean).concat(reasons).slice(0, 3),
+        matchReasons: uniqueStrings(
+          uniqueDomains(jobDomains)
+            .slice(0, 2)
+            .map((domain) => getCandidateIntentDomainLabel(domain, locale))
+            .concat(reasons)
+        ).slice(0, 3),
         matchedDomains: jobDomains,
         inferredDomain: primaryJobDomain,
         inferredSeniority,
@@ -349,4 +367,3 @@ export const getCandidateIntentSignals = (profile: UserProfile, locale?: string)
   if (intent.seniority) signals.push(intent.seniority);
   return signals.filter(Boolean);
 };
-

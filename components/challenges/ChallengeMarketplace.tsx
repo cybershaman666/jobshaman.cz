@@ -219,6 +219,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
   const isCsLike = language === 'cs' || language === 'sk';
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
+  const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
   const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
 
@@ -299,6 +300,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsTitle: 'Dialogové sloty',
       slotsBody: 'Každá odpověď otevírá omezený počet aktivních dialogů. Díky tomu se z výběru nestane nekonečný funnel bez reakce.',
       slotsEmpty: 'Po přihlášení uvidíš, kolik aktivních dialogů ti ještě zbývá.',
+      slotsLoading: 'Kapacita dialogových slotů se načítá.',
+      slotsUnavailable: 'Kapacitu dialogových slotů teď nebylo možné načíst.',
       slotsValue: '{{active}} / {{limit}} obsazeno',
       slotsRemaining: '{{remaining}} volných',
       slotsRemainingLabel: 'Volná kapacita',
@@ -390,6 +393,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsTitle: 'Dialógové sloty',
       slotsBody: 'Každá odpoveď otvára obmedzený počet aktívnych dialógov. Vďaka tomu sa z výberu nestane nekonečný funnel bez reakcie.',
       slotsEmpty: 'Po prihlásení uvidíš, koľko aktívnych dialógov ti ešte zostáva.',
+      slotsLoading: 'Kapacita dialógových slotov sa načítava.',
+      slotsUnavailable: 'Kapacitu dialógových slotov sa teraz nepodarilo načítať.',
       slotsValue: '{{active}} / {{limit}} obsadené',
       slotsRemaining: '{{remaining}} voľných',
       slotsRemainingLabel: 'Voľná kapacita',
@@ -481,6 +486,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsTitle: 'Dialog-Slots',
       slotsBody: 'Jede Antwort öffnet nur eine begrenzte Zahl aktiver Dialoge. So wird die Auswahl nicht zu einem endlosen Funnel ohne Rückmeldung.',
       slotsEmpty: 'Nach dem Anmelden siehst du, wie viele aktive Dialoge dir noch bleiben.',
+      slotsLoading: 'Die Slot-Kapazität wird geladen.',
+      slotsUnavailable: 'Die Slot-Kapazität konnte gerade nicht geladen werden.',
       slotsValue: '{{active}} / {{limit}} belegt',
       slotsRemaining: '{{remaining}} frei',
       slotsRemainingLabel: 'Freie Kapazität',
@@ -573,6 +580,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsTitle: 'Sloty rozmów',
       slotsBody: 'Każda odpowiedź otwiera ograniczoną liczbę aktywnych rozmów. Dzięki temu proces nie zamienia się w nieskończony lejek bez reakcji.',
       slotsEmpty: 'Po zalogowaniu zobaczysz, ile aktywnych rozmów jeszcze ci zostało.',
+      slotsLoading: 'Ładowanie pojemności slotów rozmów.',
+      slotsUnavailable: 'Nie udało się teraz wczytać pojemności slotów rozmów.',
       slotsValue: '{{active}} / {{limit}} zajęte',
       slotsRemaining: '{{remaining}} wolnych',
       slotsRemainingLabel: 'Wolna pojemność',
@@ -667,6 +676,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         slotsTitle: 'Dialogue slots',
         slotsBody: 'Each reply opens a limited number of active dialogues, so the process does not turn into an endless funnel with no response.',
         slotsEmpty: 'After signing in, you will see how many active dialogues you still have left.',
+        slotsLoading: 'Dialogue slot capacity is loading.',
+        slotsUnavailable: 'Dialogue slot capacity could not be loaded right now.',
         slotsValue: '{{active}} / {{limit}} in use',
         slotsRemaining: '{{remaining}} left',
         slotsRemainingLabel: 'Open capacity',
@@ -693,11 +704,19 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const loadDialogueCapacity = async () => {
       if (!userProfile.isLoggedIn || !userProfile.id) {
         setDialogueCapacity(null);
+        setIsDialogueCapacityLoading(false);
         return;
       }
-      const capacity = await fetchMyDialogueCapacity();
-      if (!cancelled) {
-        setDialogueCapacity(capacity);
+      setIsDialogueCapacityLoading(true);
+      try {
+        const capacity = await fetchMyDialogueCapacity();
+        if (!cancelled) {
+          setDialogueCapacity(capacity);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsDialogueCapacityLoading(false);
+        }
       }
     };
 
@@ -711,6 +730,19 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     () => buildCandidateSearchPresets(userProfile, locale),
     [locale, userProfile]
   );
+  const resolvedDialogueCapacity = useMemo(() => {
+    if (dialogueCapacity && dialogueCapacity.limit > 0) {
+      return dialogueCapacity;
+    }
+    if (userProfile.isLoggedIn && hasPremiumAccess) {
+      return {
+        active: dialogueCapacity?.active || 0,
+        limit: 10,
+        remaining: Math.max(0, 10 - (dialogueCapacity?.active || 0)),
+      };
+    }
+    return dialogueCapacity;
+  }, [dialogueCapacity, hasPremiumAccess, userProfile.isLoggedIn]);
   const candidateIntent = useMemo(
     () => resolveCandidateIntentProfile(userProfile),
     [userProfile]
@@ -1285,24 +1317,28 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                     <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.slotsTitle}</div>
                   </div>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.slotsBody}</p>
-                  {dialogueCapacity ? (
+                  {resolvedDialogueCapacity ? (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                       <MetricTile
                         label={copy.slotsTitle}
                         value={copy.slotsValue
-                          .replace('{{active}}', String(dialogueCapacity.active))
-                          .replace('{{limit}}', String(dialogueCapacity.limit))}
+                          .replace('{{active}}', String(resolvedDialogueCapacity.active))
+                          .replace('{{limit}}', String(resolvedDialogueCapacity.limit))}
                         tone="accent"
                       />
                       <MetricTile
                         label={copy.slotsRemainingLabel}
-                        value={copy.slotsRemaining.replace('{{remaining}}', String(dialogueCapacity.remaining))}
+                        value={copy.slotsRemaining.replace('{{remaining}}', String(resolvedDialogueCapacity.remaining))}
                         className="bg-[var(--surface)]"
                       />
                     </div>
                   ) : (
                     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-                      {copy.slotsEmpty}
+                      {!userProfile.isLoggedIn || !userProfile.id
+                        ? copy.slotsEmpty
+                        : isDialogueCapacityLoading
+                          ? copy.slotsLoading
+                          : copy.slotsUnavailable}
                     </div>
                   )}
                 </div>
