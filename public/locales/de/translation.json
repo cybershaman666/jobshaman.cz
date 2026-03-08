@@ -114,14 +114,14 @@
     "language_all": "Alle Sprachen",
     "sort_by": "Sortieren nach",
     "sort_options": {
-      "recommended": "AI empfohlen",
+      "recommended": "Prioritätsüberblick",
       "newest": "Neueste",
       "distance": "Entfernung",
       "jhi_desc": "JHI absteigend",
       "salary_desc": "Höchstes Gehalt"
     },
     "sort_explain": {
-      "recommended": "AI empfohlen sortiert nach Gesamt‑Relevanz. Der angezeigte %‑Wert ist der AI‑Match pro Stelle und steigt wegen Frische- und Diversitätsausgleich nicht immer streng linear."
+      "recommended": "Dieser Modus nutzt einen Prioritätsüberblick auf Basis der aktuellen Filter und des Rollenkontexts."
     },
     "language_options": {
       "cs": "Tschechisch",
@@ -1156,7 +1156,7 @@
       "code": "Code",
       "ai_noise_btn": "Noise entfernen (KI)",
       "analyzing": "Analysiere...",
-      "settings_title": "Details & Vorteile",
+      "settings_title": "Einstellungen",
       "salary_min": "Min. Gehalt",
       "salary_max": "Max. Gehalt",
       "working_hours": "Arbeitszeit",
@@ -1837,8 +1837,8 @@
           "excerpt": "Wie Sie Career Pathfinder und KI-Analyse effektiv nutzen, um in Ihrem Karriereweg voranzukommen."
         },
         "post6": {
-          "title": "Wie der AI-Match funktioniert und warum die Reihenfolge bei AI empfohlen abweichen kann",
-          "excerpt": "Wir erklären den Unterschied zwischen dem AI-Match auf der Karte und dem gesamten AI-Empfehlungsranking, damit der Feed nachvollziehbar ist."
+          "title": "Wie Sie die Priorität von Stellen lesen und warum sich die Reihenfolge ändern kann",
+          "excerpt": "Wir erklären, wie der Überblick Stellen hervorhebt und warum sich die Reihenfolge je nach Filtern und Rollenkontext ändern kann."
         }
       }
     },
@@ -3533,8 +3533,8 @@
     "read_more": "Mehr lesen",
     "posts": {
       "post6": {
-        "title": "Wie der AI-Match funktioniert und warum die Reihenfolge bei AI empfohlen abweichen kann",
-        "excerpt": "Wir erklären den Unterschied zwischen dem AI-Match auf der Karte und dem gesamten AI-Empfehlungsranking, damit der Feed nachvollziehbar ist."
+        "title": "Wie Sie die Priorität von Stellen lesen und warum sich die Reihenfolge ändern kann",
+        "excerpt": "Wir erklären, wie der Überblick Stellen hervorhebt und warum sich die Reihenfolge je nach Filtern und Rollenkontext ändern kann."
       }
     },
     "stats": {
@@ -3664,7 +3664,7 @@
     "results": "Audit-Ausgabe"
   },
   "ai_advisory": {
-    "default": "AI recommendation only. Die finale Entscheidung trifft ein Mensch."
+    "default": "Dies ist nur eine Orientierung. Die finale Entscheidung trifft ein Mensch."
   },
   "footer": {
     "privacy": "Datenschutz",

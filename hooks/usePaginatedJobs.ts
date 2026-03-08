@@ -6,6 +6,7 @@ import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingS
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState, updateInteractionStateCache } from '../services/jobInteractionService';
+import { resolveCandidateIntentProfile } from '../services/candidateIntentService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -146,6 +147,7 @@ const normalizeContractTypeFilter = (value: string): string => {
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
+    const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
     const activeFetchControllerRef = useRef<AbortController | null>(null);
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
@@ -494,6 +496,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
             const hasCountryFilter = !globalSearch && normalizedCountryCodes.length > 0;
+            const hasManualOrInferredIntent = Boolean(candidateIntent.primaryDomain || candidateIntent.targetRole);
             const hasAnyFilters =
                 !!searchTerm ||
                 !!filterCity ||
@@ -506,6 +509,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 sortBy !== 'newest' ||
                 filterLanguageCodes.length > 0 ||
                 abroadOnly;
+            const shouldUseExpandedPersonalizedPool =
+                page === 0 &&
+                hasManualOrInferredIntent &&
+                !hasAnyFilters &&
+                sortBy === 'newest';
+            const requestedPageSize = shouldUseExpandedPersonalizedPool
+                ? Math.max(initialPageSize, 120)
+                : initialPageSize;
 
             const canUseSimplePagination =
                 !dedicatedSearchRuntime &&
@@ -516,7 +527,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;
                 const basicResult = await fetchJobsPaginated(
                     page,
-                    initialPageSize,
+                    requestedPageSize,
                     undefined,
                     undefined,
                     50,
@@ -543,7 +554,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             const result = await fetchJobsWithFilters({
                 page,
-                pageSize: initialPageSize,
+                pageSize: requestedPageSize,
                 searchTerm,
                 sortMode: (sortBy === 'distance' || sortBy === 'salary_desc' || sortBy === 'recommended' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'recommended',
                 filterCity,
@@ -611,7 +622,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole
     ]);
 
 

@@ -114,14 +114,14 @@
     "language_all": "All languages",
     "sort_by": "Sort by",
     "sort_options": {
-      "recommended": "AI recommended",
+      "recommended": "Priority overview",
       "newest": "Newest",
       "distance": "Distance",
       "jhi_desc": "JHI highest",
       "salary_desc": "Highest salary"
     },
     "sort_explain": {
-      "recommended": "AI recommended ranks jobs by overall relevance. The shown % is the AI match for each job and may not increase strictly linearly due to freshness and diversity balancing."
+      "recommended": "This mode uses a priority overview based on the current filters and role context."
     },
     "language_options": {
       "cs": "Czech",
@@ -1468,7 +1468,7 @@
       "code": "Code",
       "ai_noise_btn": "Remove Noise (AI)",
       "analyzing": "Analyzing...",
-      "settings_title": "Details & Benefits",
+      "settings_title": "Settings",
       "salary_min": "Min Salary",
       "salary_max": "Max Salary",
       "working_hours": "Working Hours",
@@ -2050,8 +2050,8 @@
         "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
       },
       "post6": {
-        "title": "How AI match works and why AI recommended order can differ",
-        "excerpt": "We explain the difference between card-level AI match and overall AI recommended ranking so the feed is easier to understand."
+        "title": "How to read job priority and why the order can change",
+        "excerpt": "We explain how the overview highlights jobs and why the order can shift based on filters and role context."
       }
     },
     "category_label": "Category",
@@ -3680,7 +3680,7 @@
     "results": "Audit output"
   },
   "ai_advisory": {
-    "default": "AI recommendation only. Final decision remains with a human."
+    "default": "This is guidance only. Final decision remains with a human."
   },
   "application": {
     "messages": {

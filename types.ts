@@ -16,6 +16,24 @@ export type EmploymentType = 'employee' | 'contractor';
 export type MaritalStatus = 'single' | 'married';
 export type GermanTaxClass = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
 export type SearchLanguageCode = 'cs' | 'sk' | 'en' | 'de' | 'pl';
+export type CandidateDomainKey =
+  | 'product_management'
+  | 'hospitality'
+  | 'customer_support'
+  | 'operations'
+  | 'sales'
+  | 'marketing'
+  | 'finance'
+  | 'it'
+  | 'engineering'
+  | 'healthcare'
+  | 'education'
+  | 'logistics'
+  | 'manufacturing'
+  | 'retail';
+export type CandidateSeniority = 'entry' | 'junior' | 'medior' | 'senior' | 'lead';
+export type CandidateInferenceSource = 'manual' | 'profile' | 'cv' | 'history' | 'skills' | 'mixed' | 'none';
+export type CandidateMatchBucket = 'best_fit' | 'adjacent' | 'broader';
 
 export interface TaxProfile {
   countryCode: SupportedCountryCode;
@@ -70,6 +88,30 @@ export interface CandidateSearchProfile {
   preferredBenefitKeys: string[];
   defaultEnableCommuteFilter: boolean;
   defaultMaxDistanceKm: number;
+  primaryDomain?: CandidateDomainKey | null;
+  secondaryDomains?: CandidateDomainKey[];
+  targetRole?: string;
+  seniority?: CandidateSeniority | null;
+  includeAdjacentDomains?: boolean;
+  inferredPrimaryDomain?: CandidateDomainKey | null;
+  inferredTargetRole?: string;
+  inferenceSource?: CandidateInferenceSource;
+  inferenceConfidence?: number | null;
+}
+
+export interface CandidateIntentProfile {
+  primaryDomain: CandidateDomainKey | null;
+  secondaryDomains: CandidateDomainKey[];
+  targetRole: string;
+  seniority: CandidateSeniority | null;
+  includeAdjacentDomains: boolean;
+  inferredPrimaryDomain: CandidateDomainKey | null;
+  inferredTargetRole: string;
+  inferenceSource: CandidateInferenceSource;
+  inferenceConfidence: number;
+  usedManualDomain: boolean;
+  usedManualRole: boolean;
+  usedManualSeniority: boolean;
 }
 
 export interface JobSearchFilters {
@@ -86,6 +128,9 @@ export interface JobSearchFilters {
   globalSearch?: boolean;
   abroadOnly?: boolean;
   remoteOnly?: boolean;
+  intentPrimaryDomain?: CandidateDomainKey | null;
+  intentTargetRole?: string;
+  intentSeniority?: CandidateSeniority | null;
 }
 
 export interface NoiseMetrics {
@@ -333,6 +378,12 @@ export interface Job {
   dialogue_capacity_limit?: number;
   reaction_window_hours?: number;
   reaction_window_days?: number;
+  priorityScore?: number;
+  matchBucket?: CandidateMatchBucket;
+  matchReasons?: string[];
+  matchedDomains?: CandidateDomainKey[];
+  inferredDomain?: CandidateDomainKey | null;
+  inferredSeniority?: CandidateSeniority | null;
 }
 
 export interface JobRecommendationBreakdown {

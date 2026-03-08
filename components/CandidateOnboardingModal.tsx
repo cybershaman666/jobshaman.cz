@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserProfile } from '../types';
+import { CandidateDomainKey, CandidateSeniority, UserProfile } from '../types';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
+import { getCandidateIntentDomainOptions, resolveCandidateIntentProfile } from '../services/candidateIntentService';
+import { createDefaultCandidateSearchProfile } from '../services/profileDefaults';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
 import { CheckCircle, FileText, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 
@@ -63,6 +65,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const [desiredEmploymentType, setDesiredEmploymentType] = useState<EmploymentChoice>(
         profile.preferences?.desired_employment_type || 'full_time'
     );
+    const [primaryDomain, setPrimaryDomain] = useState<CandidateDomainKey | ''>('');
+    const [targetRole, setTargetRole] = useState('');
+    const [seniority, setSeniority] = useState<CandidateSeniority | ''>('');
+    const [includeAdjacentDomains, setIncludeAdjacentDomains] = useState(true);
     const [profileVisibility, setProfileVisibility] = useState<VisibilityChoice>(
         profile.preferences?.profile_visibility || 'recruiter'
     );
@@ -71,6 +77,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
 
     const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
     const isPremium = String(profile.subscription?.tier || 'free').toLowerCase() === 'premium';
+    const domainOptions = useMemo(() => getCandidateIntentDomainOptions(i18n.language), [i18n.language]);
     const supportStepCopy = isCsLike ? {
         title: 'Doplňte podpůrný kontext',
         desc: 'CV nebo AI draft tu fungují jen jako volitelný podpůrný podklad. Přidejte dokument, pokud chcete mít po ruce další kontext pro firmy.',
@@ -91,6 +98,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
 
     useEffect(() => {
         if (!isOpen) return;
+        const resolvedIntent = resolveCandidateIntentProfile(profile);
         const stepFromKey: Record<'location' | 'preferences' | 'cv' | 'done', Step> = {
             location: 1,
             preferences: 2,
@@ -110,6 +118,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         setDesiredSalaryMin(profile.preferences?.desired_salary_min != null ? String(profile.preferences.desired_salary_min) : '');
         setDesiredSalaryMax(profile.preferences?.desired_salary_max != null ? String(profile.preferences.desired_salary_max) : '');
         setDesiredEmploymentType((profile.preferences?.desired_employment_type || 'full_time') as EmploymentChoice);
+        setPrimaryDomain((profile.preferences?.searchProfile?.primaryDomain || resolvedIntent.primaryDomain || '') as CandidateDomainKey | '');
+        setTargetRole(profile.preferences?.searchProfile?.targetRole || resolvedIntent.targetRole || profile.preferences?.desired_role || profile.jobTitle || '');
+        setSeniority((profile.preferences?.searchProfile?.seniority || resolvedIntent.seniority || '') as CandidateSeniority | '');
+        setIncludeAdjacentDomains(profile.preferences?.searchProfile?.includeAdjacentDomains ?? true);
         setProfileVisibility((profile.preferences?.profile_visibility || 'recruiter') as VisibilityChoice);
         setSkillsInput((profile.skills || []).join(', '));
     }, [isOpen, initialStep, profile.address, profile.coordinates, profile.cvUrl, profile.cvText, profile.preferences, profile.jobTitle, profile.skills]);
@@ -131,10 +143,11 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         [skillsInput]
     );
     const hasPreferencePack = useMemo(() => {
-        const roleReady = (desiredRole || '').trim().length > 0;
+        const roleReady = (targetRole || desiredRole || '').trim().length > 0;
+        const domainReady = String(primaryDomain || '').trim().length > 0;
         const salaryReady = (desiredSalaryMin || '').trim().length > 0 || (desiredSalaryMax || '').trim().length > 0;
-        return roleReady && salaryReady;
-    }, [desiredRole, desiredSalaryMin, desiredSalaryMax]);
+        return roleReady && domainReady && salaryReady;
+    }, [desiredRole, desiredSalaryMin, desiredSalaryMax, primaryDomain, targetRole]);
 
     if (!isOpen) return null;
 
@@ -283,17 +296,26 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
 
         setIsSavingPreferences(true);
         try {
+            const nextSearchProfile = {
+                ...createDefaultCandidateSearchProfile(),
+                ...(baseProfile.preferences?.searchProfile || {}),
+                primaryDomain: primaryDomain || null,
+                targetRole: targetRole || desiredRole || '',
+                seniority: seniority || null,
+                includeAdjacentDomains,
+            };
             await Promise.resolve(onUpdateProfile({
                 ...baseProfile,
-                jobTitle: desiredRole || baseProfile.jobTitle,
+                jobTitle: targetRole || desiredRole || baseProfile.jobTitle,
                 skills: parsedSkills,
                 preferences: {
                     ...baseProfile.preferences,
-                    desired_role: desiredRole || '',
+                    desired_role: targetRole || desiredRole || '',
                     desired_salary_min: salaryMin,
                     desired_salary_max: salaryMax,
                     desired_employment_type: desiredEmploymentType,
                     profile_visibility: profileVisibility,
+                    searchProfile: nextSearchProfile,
                 }
             }, true));
             if (onRefreshProfile) {
@@ -399,17 +421,50 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     {t('onboarding.step_preferences.title', { defaultValue: 'Co hledáte teď' })}
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                    {t('onboarding.step_preferences.desc', { defaultValue: 'Nastavte roli, mzdové očekávání a top dovednosti pro přesnější matching.' })}
+                    {t('onboarding.step_preferences.desc', { defaultValue: 'Nastavte obor, cílovou roli, senioritu a základní očekávání. Díky tomu bude feed už od začátku skutečně váš.' })}
                 </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_domain', { defaultValue: 'Hlavní obor' })}
+                    <select
+                        value={primaryDomain}
+                        onChange={(e) => setPrimaryDomain((e.target.value || '') as CandidateDomainKey | '')}
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
+                    >
+                        <option value="">{t('onboarding.pref_domain_placeholder', { defaultValue: 'Vyberte obor' })}</option>
+                        {domainOptions.map((option) => (
+                            <option key={option.key} value={option.key}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_seniority', { defaultValue: 'Seniorita' })}
+                    <select
+                        value={seniority}
+                        onChange={(e) => setSeniority((e.target.value || '') as CandidateSeniority | '')}
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
+                    >
+                        <option value="">{t('onboarding.pref_seniority_placeholder', { defaultValue: 'Nevybráno' })}</option>
+                        <option value="entry">{t('onboarding.pref_seniority_entry', { defaultValue: 'Entry / trainee' })}</option>
+                        <option value="junior">{t('onboarding.pref_seniority_junior', { defaultValue: 'Junior' })}</option>
+                        <option value="medior">{t('onboarding.pref_seniority_medior', { defaultValue: 'Medior' })}</option>
+                        <option value="senior">{t('onboarding.pref_seniority_senior', { defaultValue: 'Senior' })}</option>
+                        <option value="lead">{t('onboarding.pref_seniority_lead', { defaultValue: 'Lead / Head' })}</option>
+                    </select>
+                </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-2">
-                    {t('onboarding.pref_role', { defaultValue: 'Preferovaná role' })}
+                    {t('onboarding.pref_role', { defaultValue: 'Cílová role' })}
                     <input
-                        value={desiredRole}
-                        onChange={(e) => setDesiredRole(e.target.value)}
-                        placeholder={t('onboarding.pref_role_placeholder', { defaultValue: 'Např. Product Manager / Backend Engineer' })}
+                        value={targetRole}
+                        onChange={(e) => {
+                            setTargetRole(e.target.value);
+                            setDesiredRole(e.target.value);
+                        }}
+                        placeholder={t('onboarding.pref_role_placeholder', { defaultValue: 'Např. Product Manager, Recepční, Finanční účetní' })}
                         className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     />
                 </label>
@@ -458,6 +513,15 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: 'Only recruiters' })}</option>
                         <option value="public">{t('onboarding.visibility_public', { defaultValue: 'Public' })}</option>
                     </select>
+                </label>
+                <label className="sm:col-span-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-muted)]">
+                    <input
+                        type="checkbox"
+                        checked={includeAdjacentDomains}
+                        onChange={(e) => setIncludeAdjacentDomains(e.target.checked)}
+                        className="size-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[rgba(var(--accent-rgb),0.25)]"
+                    />
+                    <span>{t('onboarding.pref_adjacent', { defaultValue: 'Zobrazovat i příbuzné role, když sedí zbytek mé situace' })}</span>
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-2">
                     {t('onboarding.pref_skills', { defaultValue: 'Top skills (min. 3)' })}

@@ -16,6 +16,7 @@ import { CandidateDialogueCapacity, Job, JobSearchFilters, SearchLanguageCode, U
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { isRemoteJob } from '../../services/commuteService';
+import { annotateJobsForCandidate, getCandidateIntentDomainLabel, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
@@ -66,6 +67,7 @@ interface ChallengeMarketplaceProps {
   handleJobSelect: (jobId: string | null) => void;
   handleToggleSave: (jobId: string) => void;
   onOpenPremium: (featureLabel: string) => void;
+  onOpenProfile: () => void;
 }
 
 const ROLE_TYPES = [
@@ -76,7 +78,7 @@ const ROLE_TYPES = [
 
 const BENEFIT_FILTERS = [
   { key: 'home_office', labels: { cs: 'Home office', en: 'Home office' } },
-  { key: 'dog_friendly', labels: { cs: 'Dog-friendly', en: 'Dog-friendly' } },
+  { key: 'dog_friendly', labels: { cs: 'Dog-friendly office', en: 'Dog-friendly office' } },
   { key: 'child_friendly', labels: { cs: 'Pro rodiče', en: 'Child-friendly' } },
   { key: 'flex_time', labels: { cs: 'Flexibilita', en: 'Flex time' } },
   { key: 'childcare_support', labels: { cs: 'Podpora péče o děti', en: 'Childcare support' } },
@@ -134,9 +136,6 @@ const getRiskPreview = (job: Job): string => {
 const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
-
-const hasBenefit = (job: Job, benefitKey: string): boolean =>
-  Array.isArray(job.benefits) && job.benefits.some((benefit) => String(benefit).toLowerCase() === benefitKey);
 
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
@@ -212,7 +211,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   setFilterLanguageCodes,
   handleJobSelect,
   handleToggleSave,
-  onOpenPremium
+  onOpenPremium,
+  onOpenProfile
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
@@ -247,14 +247,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       mySetupBody: 'Přehled začíná rolemi, které odpovídají vašemu nastavení a aktuálním filtrům.',
       matchesNow: 'Sedí právě teď',
       setupEmpty: 'Přidejte filtry nebo preference a přehled se začne skládat podle vaší reality.',
-      setupSection: 'Podle mého nastavení',
-      setupSectionBody: 'Nejrelevantnější role podle aktivních filtrů a uložených preferencí.',
-      remoteSection: 'Práce na dálku',
-      remoteSectionBody: 'Role, kde je práce na dálku součástí samotného způsobu práce.',
+      setupSection: 'Nejrelevantnější pro vás',
+      setupSectionBody: 'Role, které nejlépe sedí vašemu oboru, cílové roli a reálným podmínkám.',
+      remoteSection: 'Příbuzné role',
+      remoteSectionBody: 'Blízké směry a sousední role, které stále dávají smysl pro váš profil.',
       dogSection: 'Kanceláře vstřícné ke psům',
       dogSectionBody: 'Týmy, kde kancelářský režim není v konfliktu s péčí o psa.',
-      moreSection: 'Další zajímavé nabídky',
-      moreSectionBody: 'Další výběr, když chceš rozšířit záběr bez návratu do nekonečného seznamu.',
+      moreSection: 'Širší možnosti ve vašem směru',
+      moreSectionBody: 'Širší tržní záběr po aplikaci vašich filtrů a životní situace.',
+      intentPromptTitle: 'Potvrďte svůj obor a cílovou roli',
+      intentPromptBody: 'Máme předvyplněný odhad z profilu nebo životopisu. Stačí ho potvrdit nebo upravit a feed bude mnohem přesnější.',
+      intentPromptCta: 'Upravit profil',
       remote: 'Práce na dálku',
       commute: 'Dojíždění',
       commuteHint: 'Bez adresy zůstává výpočet dojezdu vypnutý, ale práce na dálku se pořád zobrazí správně.',
@@ -335,14 +338,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       mySetupBody: 'Prehľad začína rolami, ktoré zodpovedajú vášmu nastaveniu a aktuálnym filtrom.',
       matchesNow: 'Sedí práve teraz',
       setupEmpty: 'Pridajte filtre alebo preferencie a prehľad sa začne skladať podľa vašej reality.',
-      setupSection: 'Podľa môjho nastavenia',
-      setupSectionBody: 'Najrelevantnejšie roly podľa aktívnych filtrov a uložených preferencií.',
-      remoteSection: 'Práca na diaľku',
-      remoteSectionBody: 'Roly, kde je práca na diaľku súčasťou samotného spôsobu práce.',
+      setupSection: 'Najrelevantnejšie pre vás',
+      setupSectionBody: 'Roly, ktoré najlepšie sedia vášmu odboru, cieľovej roli a reálnym podmienkam.',
+      remoteSection: 'Príbuzné roly',
+      remoteSectionBody: 'Blízke smery a susedné roly, ktoré stále dávajú zmysel pre váš profil.',
       dogSection: 'Kancelárie priateľské ku psom',
       dogSectionBody: 'Tímy, kde kancelársky režim nie je v konflikte so starostlivosťou o psa.',
-      moreSection: 'Ďalšie zaujímavé ponuky',
-      moreSectionBody: 'Ďalší výber, keď chceš rozšíriť záber bez návratu do nekonečného zoznamu.',
+      moreSection: 'Širšie možnosti vo vašom smere',
+      moreSectionBody: 'Širší trhový záber po aplikovaní vašich filtrov a životnej situácie.',
+      intentPromptTitle: 'Potvrďte svoj odbor a cieľovú rolu',
+      intentPromptBody: 'Máme predvyplnený odhad z profilu alebo životopisu. Stačí ho potvrdiť alebo upraviť a feed bude presnejší.',
+      intentPromptCta: 'Upraviť profil',
       remote: 'Práca na diaľku',
       commute: 'Dochádzanie',
       commuteHint: 'Bez adresy zostáva výpočet dochádzania vypnutý, ale práca na diaľku sa stále zobrazí správne.',
@@ -423,14 +429,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       mySetupBody: 'Die Übersicht beginnt mit Rollen, die zu deinen Einstellungen und aktuellen Filtern passen.',
       matchesNow: 'Passt gerade',
       setupEmpty: 'Füge Filter oder Präferenzen hinzu, dann richtet sich die Übersicht nach deiner Realität aus.',
-      setupSection: 'Passende Aufgaben für mich',
-      setupSectionBody: 'Die relevantesten Rollen auf Basis aktiver Filter und gespeicherter Präferenzen.',
-      remoteSection: 'Remote-Möglichkeiten',
-      remoteSectionBody: 'Rollen, bei denen Remote-Arbeit Teil des tatsächlichen Arbeitsmodells ist.',
+      setupSection: 'Am relevantesten für Sie',
+      setupSectionBody: 'Rollen, die am besten zu Ihrem Bereich, Ihrer Zielrolle und Ihrer Realität passen.',
+      remoteSection: 'Verwandte Rollen',
+      remoteSectionBody: 'Nahe Richtungen und benachbarte Rollen, die weiterhin zu Ihrem Profil passen.',
       dogSection: 'Hundefreundliche Büros',
       dogSectionBody: 'Teams, bei denen Büroarbeit nicht im Konflikt mit Hundebetreuung steht.',
-      moreSection: 'Weitere interessante Rollen',
-      moreSectionBody: 'Mehr Auswahl, wenn du den Blick erweitern willst, ohne in einen endlosen Feed zurückzugehen.',
+      moreSection: 'Breiterer Markt in Ihrer Richtung',
+      moreSectionBody: 'Breiterer Marktüberblick nach Anwendung Ihrer Filter und Alltagsbedingungen.',
+      intentPromptTitle: 'Bereich und Zielrolle bestätigen',
+      intentPromptBody: 'Wir haben aus Profil oder Lebenslauf eine erste Richtung abgeleitet. Bestätigen oder korrigieren Sie sie für einen besseren Feed.',
+      intentPromptCta: 'Profil öffnen',
       remote: 'Remote',
       commute: 'Pendeln',
       commuteHint: 'Ohne Adresse bleibt die Pendelberechnung aus, Remote-Rollen werden aber weiterhin korrekt angezeigt.',
@@ -512,14 +521,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       mySetupBody: 'Przegląd zaczyna się od ról, które pasują do twoich ustawień i bieżących filtrów.',
       matchesNow: 'Pasuje teraz',
       setupEmpty: 'Dodaj filtry lub preferencje, a przegląd zacznie układać się pod twoją rzeczywistość.',
-      setupSection: 'Oferty dla mojej sytuacji',
-      setupSectionBody: 'Najbardziej trafne role według aktywnych filtrów i zapisanych preferencji.',
-      remoteSection: 'Praca zdalna',
-      remoteSectionBody: 'Role, w których praca zdalna jest częścią realnego modelu pracy.',
+      setupSection: 'Najbardziej trafne dla ciebie',
+      setupSectionBody: 'Role najlepiej dopasowane do twojej branży, docelowej roli i realnej sytuacji.',
+      remoteSection: 'Role pokrewne',
+      remoteSectionBody: 'Pokrewne kierunki i sąsiednie role, które nadal mają sens dla twojego profilu.',
       dogSection: 'Biura przyjazne psom',
       dogSectionBody: 'Zespoły, w których tryb biurowy nie koliduje z opieką nad psem.',
-      moreSection: 'Więcej ciekawych ofert',
-      moreSectionBody: 'Dalszy wybór, gdy chcesz poszerzyć zakres bez wracania do nieskończonej listy.',
+      moreSection: 'Szerszy rynek w twoim kierunku',
+      moreSectionBody: 'Szerszy przegląd rynku po zastosowaniu filtrów i twojej sytuacji życiowej.',
+      intentPromptTitle: 'Potwierdź branżę i docelową rolę',
+      intentPromptBody: 'Mamy wstępną sugestię z profilu lub CV. Wystarczy ją potwierdzić albo poprawić, żeby feed był trafniejszy.',
+      intentPromptCta: 'Edytuj profil',
       remote: 'Zdalnie',
       commute: 'Dojazd',
       commuteHint: 'Bez adresu wyliczenie dojazdu pozostaje wyłączone, ale role zdalne nadal pokazują się poprawnie.',
@@ -603,14 +615,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         mySetupBody: 'The feed starts with roles that match your setup and current filters.',
         matchesNow: 'Matching now',
         setupEmpty: 'Add filters or preferences and the feed will start shaping around your reality.',
-        setupSection: 'Matching your setup',
-        setupSectionBody: 'The strongest roles based on active filters and saved preferences.',
-        remoteSection: 'Remote opportunities',
-        remoteSectionBody: 'Roles where remote reality is part of the actual work model.',
+        setupSection: 'Most relevant for you',
+        setupSectionBody: 'Roles that best match your domain, target role, and real-life constraints.',
+        remoteSection: 'Adjacent roles',
+        remoteSectionBody: 'Close role families and neighboring domains that still make sense for your profile.',
         dogSection: 'Dog-friendly offices',
         dogSectionBody: 'Office-based roles that still work with dog care in real life.',
-        moreSection: 'More high-signal challenges',
-        moreSectionBody: 'A broader shortlist when you want more options without going back to one long feed.',
+        moreSection: 'Broader market in your direction',
+        moreSectionBody: 'A wider market view after applying your filters and life context.',
+        intentPromptTitle: 'Confirm your domain and target role',
+        intentPromptBody: 'We have a first suggestion from your profile or CV. Confirm or adjust it and the feed will get much sharper.',
+        intentPromptCta: 'Open profile',
         remote: 'Remote',
         commute: 'Commute',
         commuteHint: 'Without an address commute heuristics stay off, but remote roles still render correctly.',
@@ -696,6 +711,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     () => buildCandidateSearchPresets(userProfile, locale),
     [locale, userProfile]
   );
+  const candidateIntent = useMemo(
+    () => resolveCandidateIntentProfile(userProfile),
+    [userProfile]
+  );
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -741,6 +760,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     return useImportedFallback ? importedMatches : nativeMatches;
   }, [jobs, lane, remoteOnly, hasNativeChallenges]);
 
+  const prioritizedJobsInLane = useMemo(
+    () => annotateJobsForCandidate(jobsInLane, userProfile, i18n.language),
+    [i18n.language, jobsInLane, userProfile]
+  );
+
   const hasCommuteProfile = Boolean(userProfile.address || userProfile.coordinates?.lat);
 
   const currentFilters: JobSearchFilters = {
@@ -756,7 +780,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     enableCommuteFilter,
     globalSearch,
     abroadOnly,
-    remoteOnly
+    remoteOnly,
+    intentPrimaryDomain: candidateIntent.primaryDomain,
+    intentTargetRole: candidateIntent.targetRole || undefined,
+    intentSeniority: candidateIntent.seniority
   };
 
   const setupSignals = useMemo(() => {
@@ -764,6 +791,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const searchProfile = userProfile.preferences.searchProfile;
     const activeLanguageCodes = filterLanguageCodes.length > 0 ? filterLanguageCodes : searchProfile?.remoteLanguageCodes || [];
     const preferredBenefits = Array.from(new Set(searchProfile?.preferredBenefitKeys || []));
+    const intentSignals = getCandidateIntentSignals(userProfile, i18n.language);
+
+    intentSignals.forEach((signal) => {
+      if (signal) signals.push(signal);
+    });
 
     if (filterContractType.includes('ico') || searchProfile?.wantsContractorRoles) {
       signals.push(isCsLike ? 'IČO / kontrakt' : 'Contract / freelance');
@@ -820,7 +852,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       signals.push(`"${searchTerm}"`);
     }
 
-    return signals.slice(0, 8);
+    return Array.from(new Set(signals)).slice(0, 8);
   }, [
     abroadOnly,
     copy.allMarkets,
@@ -840,36 +872,42 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     userProfile.jhiPreferences?.hardConstraints.excludeShift,
     userProfile.preferences.commuteTolerance,
     userProfile.preferences.desired_salary_min,
-    userProfile.preferences.searchProfile
+    userProfile.preferences.searchProfile,
+    userProfile,
+    i18n.language
   ]);
 
+  const hasManualIntent = candidateIntent.usedManualDomain || candidateIntent.usedManualRole || candidateIntent.usedManualSeniority;
+  const inferredIntentAvailable = Boolean(candidateIntent.inferredPrimaryDomain || candidateIntent.inferredTargetRole);
+
   const feedSections = useMemo(() => {
-    const used = new Set<string>();
     const sections: Array<{ key: string; title: string; body: string; jobs: Job[] }> = [];
+    const bestFitJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'best_fit');
+    const adjacentJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent');
+    const broaderJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'broader');
 
-    const takeSection = (key: string, title: string, body: string, predicate: (job: Job) => boolean, count: number) => {
-      const sectionJobs = jobsInLane.filter((job) => !used.has(job.id) && predicate(job)).slice(0, count);
-      if (sectionJobs.length === 0) return;
-      sectionJobs.forEach((job) => used.add(job.id));
-      sections.push({ key, title, body, jobs: sectionJobs });
-    };
-
-    takeSection('setup', copy.setupSection, copy.setupSectionBody, () => true, 3);
-    takeSection('remote', copy.remoteSection, copy.remoteSectionBody, (job) => isRemoteListing(job), 3);
-    takeSection('dog', copy.dogSection, copy.dogSectionBody, (job) => hasBenefit(job, 'dog_friendly'), 2);
-    takeSection('more', copy.moreSection, copy.moreSectionBody, () => true, jobsInLane.length);
+    if (bestFitJobs.length > 0) {
+      sections.push({ key: 'setup', title: copy.setupSection, body: copy.setupSectionBody, jobs: bestFitJobs });
+    }
+    if (adjacentJobs.length > 0) {
+      sections.push({ key: 'adjacent', title: copy.remoteSection, body: copy.remoteSectionBody, jobs: adjacentJobs });
+    }
+    if (broaderJobs.length > 0) {
+      sections.push({ key: 'broader', title: copy.moreSection, body: copy.moreSectionBody, jobs: broaderJobs });
+    }
+    if (sections.length === 0 && prioritizedJobsInLane.length > 0) {
+      sections.push({ key: 'fallback', title: copy.setupSection, body: copy.setupSectionBody, jobs: prioritizedJobsInLane });
+    }
 
     return sections;
   }, [
-    copy.dogSection,
-    copy.dogSectionBody,
     copy.moreSection,
     copy.moreSectionBody,
     copy.remoteSection,
     copy.remoteSectionBody,
     copy.setupSection,
     copy.setupSectionBody,
-    jobsInLane
+    prioritizedJobsInLane
   ]);
 
   const toggleRemoteOnly = (enabled: boolean) => {
@@ -889,7 +927,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <>
             <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
               <Sparkles size={12} />
-              {jobsInLane.length} {copy.results}
+              {prioritizedJobsInLane.length} {copy.results}
             </div>
             <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
               <ShieldCheck size={12} />
@@ -962,6 +1000,22 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.mySetup}</div>
               </div>
               <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.mySetupBody}</p>
+              {!hasManualIntent && inferredIntentAvailable ? (
+                <div className="rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-4 py-3">
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.intentPromptTitle}</div>
+                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{copy.intentPromptBody}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {candidateIntent.inferredPrimaryDomain ? (
+                      <FilterChip active>{getCandidateIntentDomainLabel(candidateIntent.inferredPrimaryDomain, i18n.language)}</FilterChip>
+                    ) : null}
+                    {candidateIntent.inferredTargetRole ? <FilterChip active>{candidateIntent.inferredTargetRole}</FilterChip> : null}
+                    {candidateIntent.seniority ? <FilterChip active>{candidateIntent.seniority}</FilterChip> : null}
+                  </div>
+                  <button type="button" className="mt-3 app-button-secondary" onClick={onOpenProfile}>
+                    {copy.intentPromptCta}
+                  </button>
+                </div>
+              ) : null}
               {setupSignals.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {setupSignals.map((signal) => (
@@ -974,10 +1028,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.setupEmpty}</p>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
-                <MetricTile label={copy.matchesNow} value={jobsInLane.length} tone="accent" />
+                <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
                 <MetricTile
                   label={copy.remoteSection}
-                  value={jobsInLane.filter((job) => isRemoteListing(job)).length}
+                  value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
                 />
               </div>
               <SavedFiltersMenu onLoadFilter={applyFilterSnapshot} currentFilters={currentFilters} hasActiveFilters={hasActiveFilters} />
@@ -1177,75 +1231,81 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             </div>
           </SurfaceCard>
 
-          <SurfaceCard className="overflow-hidden border-amber-200/70 bg-[linear-gradient(135deg,rgba(255,248,230,0.98),rgba(255,255,255,0.98))] shadow-[0_28px_70px_-50px_rgba(217,119,6,0.55)] dark:bg-[linear-gradient(135deg,rgba(255,248,230,0.98),rgba(255,255,255,0.98))]">
-            <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-6">
-              <div className="space-y-3">
-                <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
-                  <Sparkles size={12} />
-                  {copy.premiumTitle}
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">
-                    {isCsLike
-                      ? 'Více prostoru pro odpovědi, chytřejší vedení a přesnější doporučení'
-                      : 'More room for replies, sharper guidance, and stronger decision support'}
-                  </h3>
-                  <p className="max-w-3xl text-sm leading-7 text-slate-700">{copy.premiumBody}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(copy.premiumBullets as string[]).map((item: string) => (
-                    <span
-                      key={item}
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-white/92 px-3 py-1.5 text-sm font-medium text-slate-700"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                {!hasPremiumAccess ? (
-                  <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
-                    <button
-                      type="button"
-                      className="app-button-primary justify-center"
-                      onClick={() => onOpenPremium(copy.premiumTitle)}
-                    >
-                      <Sparkles size={16} />
-                      {copy.premiumCta}
-                    </button>
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                      {isCsLike ? 'Více slotů • AI průvodce • JHI • JCFPM' : 'More slots • AI guide • JHI • JCFPM'}
+          <SurfaceCard className="overflow-hidden border-[rgba(var(--accent-rgb),0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(249,250,251,0.96))] shadow-[0_30px_70px_-52px_rgba(15,23,42,0.35)] dark:bg-[linear-gradient(145deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]">
+            <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.2fr)_360px] lg:p-5">
+              <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)]">
+                <div className="space-y-4">
+                  <div className="app-eyebrow w-fit">
+                    <Sparkles size={12} />
+                    {copy.premiumTitle}
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                      {isCsLike
+                        ? 'Víc prostoru pro odpovědi, jasnější vedení a silnější rozhodovací vrstvu'
+                        : 'More room for replies, clearer guidance, and a stronger decision layer'}
+                    </h3>
+                    <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.premiumBody}</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(copy.premiumBullets as string[]).map((item: string) => (
+                      <div
+                        key={item}
+                        className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2.5 text-sm font-medium text-[var(--text-strong)]"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+                    {!hasPremiumAccess ? (
+                      <button
+                        type="button"
+                        className="app-button-primary justify-center"
+                        onClick={() => onOpenPremium(copy.premiumTitle)}
+                      >
+                        <Sparkles size={16} />
+                        {copy.premiumCta}
+                      </button>
+                    ) : (
+                      <div className="rounded-[var(--radius-lg)] border border-emerald-200/70 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        {isCsLike ? 'Premium je aktivní' : 'Premium is active'}
+                      </div>
+                    )}
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {isCsLike ? 'Sloty • AI průvodce • JHI • JCFPM' : 'Slots • AI guide • JHI • JCFPM'}
                     </p>
                   </div>
-                ) : null}
-              </div>
-              <div className="space-y-3 rounded-[var(--radius-xl)] border border-white/80 bg-white/88 p-4 shadow-[0_16px_38px_-28px_rgba(15,23,42,0.35)]">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-[var(--accent)]" />
-                  <div className="text-sm font-semibold text-slate-900">{copy.slotsTitle}</div>
                 </div>
-                <p className="text-sm leading-6 text-slate-700">{copy.slotsBody}</p>
-                {dialogueCapacity ? (
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                    <MetricTile
-                      label={copy.slotsTitle}
-                      value={copy.slotsValue
-                        .replace('{{active}}', String(dialogueCapacity.active))
-                        .replace('{{limit}}', String(dialogueCapacity.limit))}
-                      tone="accent"
-                    />
-                    <MetricTile
-                      label={copy.slotsRemainingLabel}
-                      value={copy.slotsRemaining.replace('{{remaining}}', String(dialogueCapacity.remaining))}
-                    />
+              </div>
+              <div className="rounded-[var(--radius-xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.96))] p-5 shadow-[var(--shadow-soft)] dark:bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.14),rgba(17,24,39,0.94))]">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-[var(--accent)]" />
+                    <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.slotsTitle}</div>
                   </div>
-                ) : (
-                  <p className="text-sm leading-6 text-slate-700">{copy.slotsEmpty}</p>
-                )}
-                {hasPremiumAccess ? (
-                  <div className="rounded-[var(--radius-lg)] border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700">
-                    {isCsLike ? 'Premium je aktivní' : 'Premium is active'}
-                  </div>
-                ) : null}
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.slotsBody}</p>
+                  {dialogueCapacity ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                      <MetricTile
+                        label={copy.slotsTitle}
+                        value={copy.slotsValue
+                          .replace('{{active}}', String(dialogueCapacity.active))
+                          .replace('{{limit}}', String(dialogueCapacity.limit))}
+                        tone="accent"
+                      />
+                      <MetricTile
+                        label={copy.slotsRemainingLabel}
+                        value={copy.slotsRemaining.replace('{{remaining}}', String(dialogueCapacity.remaining))}
+                        className="bg-[var(--surface)]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
+                      {copy.slotsEmpty}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </SurfaceCard>
@@ -1253,7 +1313,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           {mobileViewMode === 'swipe' ? (
             <div className="xl:hidden">
               <MobileSwipeJobBrowser
-                jobs={jobsInLane}
+                jobs={prioritizedJobsInLane}
                 swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
                 savedJobIds={savedJobIds}
                 onToggleSave={handleToggleSave}
@@ -1282,11 +1342,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 </h2>
                 <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.laneBody}</p>
               </div>
-              <MetricTile label={copy.results} value={`${jobsInLane.length}`} className="min-w-[140px]" />
+              <MetricTile label={copy.results} value={`${prioritizedJobsInLane.length}`} className="min-w-[140px]" />
             </div>
           </SurfaceCard>
 
-          {jobsInLane.length === 0 ? (
+          {prioritizedJobsInLane.length === 0 ? (
             <EmptyState title={copy.emptyTitle} body={copy.emptyBody} />
           ) : (
             <div className="space-y-4">
@@ -1359,6 +1419,16 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                                 <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{getRiskPreview(job)}</p>
                               </div>
                             </div>
+
+                            {job.matchReasons && job.matchReasons.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {job.matchReasons.map((reason) => (
+                                  <MetaBadge key={`${job.id}-${reason}`} tone="accent">
+                                    {reason}
+                                  </MetaBadge>
+                                ))}
+                              </div>
+                            ) : null}
 
                             <div className="flex flex-wrap gap-2">
                               <MetaBadge>{job.location || (isCsLike ? 'Lokalita TBD' : 'Location TBD')}</MetaBadge>

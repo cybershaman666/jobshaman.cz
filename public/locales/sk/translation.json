@@ -114,14 +114,14 @@
     "language_all": "Všetky jazyky",
     "sort_by": "Zoradiť podľa",
     "sort_options": {
-      "recommended": "AI odporúčané",
+      "recommended": "Prioritný prehľad",
       "newest": "Najnovšie",
       "distance": "Vzdialenosť",
       "jhi_desc": "JHI od najvyššieho",
       "salary_desc": "Plat od najvyššieho"
     },
     "sort_explain": {
-      "recommended": "AI odporúčané zoradí ponuky podľa celkovej relevancie. Zobrazené % je AI zhoda pre konkrétnu ponuku a nemusí rásť úplne lineárne kvôli čerstvosti a diverzite výsledkov."
+      "recommended": "Tento režim používa prioritný prehľad podľa aktuálnych filtrov a kontextu roly."
     },
     "language_options": {
       "cs": "Čeština",
@@ -1182,7 +1182,7 @@
       "publish_success": "Inzerát bol odoslaný na kontrolu a bude čoskoro publikovaný!",
       "publish_error": "Chyba pri publikovaní pracovného inzerátu.",
       "post_limit_exceeded": "Viac ako 5 pracovných inzerátov",
-      "settings_title": "Details & Benefits"
+      "settings_title": "Nastavenie"
     },
     "assessments_tab": {
       "desc": "Vytvárajte a spravujte AI posudky pre kandidátov.",
@@ -3592,7 +3592,7 @@
     "results": "Výstup auditu"
   },
   "ai_advisory": {
-    "default": "AI recommendation only. Finálne rozhodnutie je na človeku."
+    "default": "Ide o orientačný výstup. Finálne rozhodnutie je na človeku."
   },
   "application": {
     "messages": {

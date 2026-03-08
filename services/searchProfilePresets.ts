@@ -1,5 +1,6 @@
 import { CandidateSearchProfile, JobSearchFilters, SearchLanguageCode, UserProfile } from '../types';
 import { createDefaultCandidateSearchProfile } from './profileDefaults';
+import { getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from './candidateIntentService';
 
 export interface CandidateSearchPreset {
   id: string;
@@ -32,8 +33,12 @@ export const resolveCandidateSearchProfile = (profile?: UserProfile | null): Can
     preferredBenefitKeys: Array.from(
       new Set((source?.preferredBenefitKeys || defaults.preferredBenefitKeys || []).map((value) => String(value || '').trim()).filter(Boolean))
     ),
+    secondaryDomains: Array.from(new Set((source?.secondaryDomains || defaults.secondaryDomains || []).map((value) => String(value || '').trim()).filter(Boolean))).slice(0, 2) as CandidateSearchProfile['secondaryDomains'],
     defaultEnableCommuteFilter: Boolean(source?.defaultEnableCommuteFilter ?? defaults.defaultEnableCommuteFilter),
     defaultMaxDistanceKm: Math.max(5, Number(source?.defaultMaxDistanceKm ?? defaults.defaultMaxDistanceKm) || defaults.defaultMaxDistanceKm),
+    targetRole: String(source?.targetRole || defaults.targetRole || '').trim(),
+    inferredTargetRole: String(source?.inferredTargetRole || defaults.inferredTargetRole || '').trim(),
+    includeAdjacentDomains: Boolean(source?.includeAdjacentDomains ?? defaults.includeAdjacentDomains ?? true),
   };
 };
 
@@ -44,6 +49,7 @@ export const buildCandidateSearchPresets = (
   locale: string
 ): CandidateSearchPreset[] => {
   const searchProfile = resolveCandidateSearchProfile(profile);
+  const intent = resolveCandidateIntentProfile(profile);
   const isCsLike = isCsLikeLocale(locale);
   const presets: CandidateSearchPreset[] = [];
   const combinedBenefits = Array.from(
@@ -76,9 +82,41 @@ export const buildCandidateSearchPresets = (
       id: 'default',
       name: isCsLike ? 'Moje výchozí hledání' : 'My default search',
       description: isCsLike
-        ? 'Spojí IČO, commute realitu, životní benefity, remote a přeshraniční hledání podle profilu.'
-        : 'Combines contractor, commute reality, life-context benefits, remote, and cross-border preferences from your profile.',
+        ? 'Spojí váš obor, cílovou roli, IČO, commute realitu, benefity a remote hledání do jednoho výchozího přehledu.'
+        : 'Combines your domain, target role, contractor setup, commute reality, benefits, and remote preferences into one default overview.',
       filters: combinedFilters,
+    });
+  }
+
+  if (intent.primaryDomain || intent.targetRole) {
+    const domainLabel = getCandidateIntentDomainLabel(intent.primaryDomain, locale);
+    presets.push({
+      id: 'role-focus',
+      name: isCsLike ? 'Můj obor a role' : 'My domain and role',
+      description: isCsLike
+        ? `Upřednostní ${[domainLabel, intent.targetRole].filter(Boolean).join(' • ')} před širším feedem.`
+        : `Prioritizes ${[domainLabel, intent.targetRole].filter(Boolean).join(' • ')} over the broader feed.`,
+      filters: {
+        intentPrimaryDomain: intent.primaryDomain,
+        intentTargetRole: intent.targetRole || undefined,
+        intentSeniority: intent.seniority,
+      },
+    });
+  }
+
+  if (intent.includeAdjacentDomains && intent.primaryDomain) {
+    const domainLabel = getCandidateIntentDomainLabel(intent.primaryDomain, locale);
+    presets.push({
+      id: 'adjacent-domains',
+      name: isCsLike ? 'Příbuzné možnosti' : 'Adjacent options',
+      description: isCsLike
+        ? `Rozšíří ${domainLabel} i o příbuzné role, které dávají smysl jako další krok.`
+        : `Broadens ${domainLabel} with adjacent roles that still make sense as your next move.`,
+      filters: {
+        intentPrimaryDomain: intent.primaryDomain,
+        intentTargetRole: intent.targetRole || undefined,
+        intentSeniority: intent.seniority,
+      },
     });
   }
 

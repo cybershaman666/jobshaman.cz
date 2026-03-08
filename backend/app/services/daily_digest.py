@@ -7,7 +7,11 @@ import unicodedata
 
 from ..core.config import API_BASE_URL
 from ..core.database import supabase
-from ..matching_engine import recommend_jobs_for_user
+from ..services.candidate_intent import (
+    get_domain_keywords,
+    get_related_domains,
+    resolve_candidate_intent_profile,
+)
 from ..services.email import send_daily_digest_email
 from ..services.push_notifications import send_push, is_push_configured
 from ..services.unsubscribe import make_unsubscribe_token
@@ -676,7 +680,7 @@ def _fetch_newest_local_jobs(
         if cutoff:
             query = query.gte("scraped_at", cutoff)
         if country_code:
-            query = query.eq("country_code", str(country_code).upper())
+            query = query.eq("country_code", str(country_code).lower())
         if c_lat is None or c_lng is None:
             city = _extract_city_from_address(address)
             if city:
@@ -766,7 +770,7 @@ def _fetch_role_focused_jobs(
         if cutoff:
             query = query.gte("scraped_at", cutoff)
         if country_code:
-            query = query.eq("country_code", str(country_code).upper())
+            query = query.eq("country_code", str(country_code).lower())
         if c_lat is None or c_lng is None:
             city = _extract_city_from_address(address)
             if city:
@@ -826,6 +830,109 @@ def _fetch_role_focused_jobs(
     if not picks and lookback_hours:
         return _fetch_role_focused_jobs(
             role_title=role_title,
+            c_lat=c_lat,
+            c_lng=c_lng,
+            address=address,
+            country_code=country_code,
+            allowed_language_codes=allowed_language_codes,
+            lookback_hours=None,
+            limit=limit,
+        )
+    return picks
+
+
+def _fetch_domain_focused_jobs(
+    domain_key: Optional[str],
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+    address: Optional[str],
+    country_code: Optional[str],
+    allowed_language_codes: Optional[set[str]] = None,
+    lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
+    limit: int = _DIGEST_MAX_JOBS,
+) -> List[Dict]:
+    if not supabase:
+        return []
+
+    keywords = _role_keywords(" ".join(get_domain_keywords(domain_key)))
+    if not keywords:
+        return []
+
+    cutoff = None
+    if lookback_hours:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
+
+    try:
+        query = (
+            supabase.table("jobs")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
+            .eq("legality_status", "legal")
+            .order("scraped_at", desc=True)
+            .limit(300)
+        )
+        if cutoff:
+            query = query.gte("scraped_at", cutoff)
+        if country_code:
+            query = query.eq("country_code", str(country_code).lower())
+        if c_lat is None or c_lng is None:
+            city = _extract_city_from_address(address)
+            if city:
+                query = query.ilike("location", f"%{city}%")
+
+        or_clauses: List[str] = []
+        for kw in keywords:
+            or_clauses.append(f"title.ilike.%{kw}%")
+            or_clauses.append(f"description.ilike.%{kw}%")
+        if or_clauses:
+            query = query.or_(",".join(or_clauses))
+
+        resp = query.execute()
+    except Exception as exc:
+        print(f"⚠️ Domain-focused digest query failed: {exc}")
+        return []
+
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
+    picks: List[Dict] = []
+    for raw in rows:
+        job = _as_job_dict(raw)
+        if not job:
+            continue
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        if not _job_in_country(job, country_code):
+            continue
+        if not _job_language_allowed(job, allowed_language_codes):
+            continue
+        remote = _is_remote_job(job)
+        if not remote and c_lat is not None and c_lng is not None:
+            j_lat = job.get("lat")
+            j_lng = job.get("lng")
+            if j_lat is None or j_lng is None:
+                continue
+            try:
+                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+            except Exception:
+                continue
+            if distance > _DIGEST_RADIUS_KM:
+                continue
+
+        picks.append(
+            {
+                "id": job_id,
+                "title": job.get("title") or "",
+                "company": job.get("company") or "",
+                "location": job.get("location") or "",
+                "country_code": job.get("country_code") or "",
+                "match_score": None,
+                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+            }
+        )
+        if len(picks) >= limit:
+            break
+    if not picks and lookback_hours:
+        return _fetch_domain_focused_jobs(
+            domain_key=domain_key,
             c_lat=c_lat,
             c_lng=c_lng,
             address=address,
@@ -1008,12 +1115,15 @@ def run_daily_job_digest() -> None:
             )
             locale = _resolve_locale(str(row.get("preferred_locale") or "") or None, digest_country_code)
             allowed_languages = _allowed_language_codes(locale, digest_country_code)
-            has_matching_signal = _candidate_has_matching_signal(candidate_profile)
-            profile_obj = _profile_obj(candidate_profile)
-            role_title = str(profile_obj.get("job_title") or "").strip() if isinstance(profile_obj, dict) else ""
+            intent = resolve_candidate_intent_profile(candidate_profile)
+            role_title = str(intent.get("target_role") or "").strip()
+            primary_domain = str(intent.get("primary_domain") or "").strip() or None
+            secondary_domains = [str(item).strip() for item in (intent.get("secondary_domains") or []) if str(item).strip()]
+            include_adjacent_domains = bool(intent.get("include_adjacent_domains", True))
     
             digest_jobs: List[Dict] = []
             role_jobs: List[Dict] = []
+            domain_jobs: List[Dict] = []
             if role_title:
                 role_jobs = _fetch_role_focused_jobs(
                     role_title=role_title,
@@ -1024,27 +1134,32 @@ def run_daily_job_digest() -> None:
                     allowed_language_codes=allowed_languages,
                     limit=_DIGEST_MAX_JOBS,
                 )
-                digest_jobs = role_jobs
-            if has_matching_signal:
-                # Fetch broader set, then prioritize local+relevant entries for digest.
-                try:
-                    recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
-                    digest_jobs = _pick_personalized_digest_jobs(
-                        recs=recs,
+            if primary_domain:
+                domain_jobs = _fetch_domain_focused_jobs(
+                    domain_key=primary_domain,
+                    c_lat=c_lat,
+                    c_lng=c_lng,
+                    address=c_address,
+                    country_code=digest_country_code,
+                    allowed_language_codes=allowed_languages,
+                    limit=_DIGEST_MAX_JOBS,
+                )
+            digest_jobs = _merge_digest_jobs(role_jobs, domain_jobs, _DIGEST_MAX_JOBS)
+            if not digest_jobs and include_adjacent_domains:
+                related_domains = list(dict.fromkeys(secondary_domains + get_related_domains(primary_domain)))
+                for related_domain in related_domains[:2]:
+                    adjacent_jobs = _fetch_domain_focused_jobs(
+                        domain_key=related_domain,
                         c_lat=c_lat,
                         c_lng=c_lng,
+                        address=c_address,
                         country_code=digest_country_code,
                         allowed_language_codes=allowed_languages,
-                        candidate_profile=candidate_profile,
-                        limit=_DIGEST_MAX_JOBS,
+                        limit=max(3, _DIGEST_MAX_JOBS // 2),
                     )
-                except Exception as ai_exc:
-                    print(f"⚠️ [Digest] AI recommendation failed for user {user_id}: {ai_exc} - dropping to fallback")
-                    recs = []
-                    digest_jobs = []
-
-                if role_jobs:
-                    digest_jobs = _merge_digest_jobs(role_jobs, digest_jobs, _DIGEST_MAX_JOBS)
+                    digest_jobs = _merge_digest_jobs(digest_jobs, adjacent_jobs, _DIGEST_MAX_JOBS)
+                    if len(digest_jobs) >= _DIGEST_MAX_JOBS:
+                        break
     
             # Fallback for users with incomplete profiles (or empty personalized result):
             # deliver newest local jobs without AI match percentages.

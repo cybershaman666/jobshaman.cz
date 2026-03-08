@@ -33,6 +33,15 @@ export const createDefaultCandidateSearchProfile = (): CandidateSearchProfile =>
   preferredBenefitKeys: [],
   defaultEnableCommuteFilter: false,
   defaultMaxDistanceKm: 30,
+  primaryDomain: null,
+  secondaryDomains: [],
+  targetRole: '',
+  seniority: null,
+  includeAdjacentDomains: true,
+  inferredPrimaryDomain: null,
+  inferredTargetRole: '',
+  inferenceSource: 'none',
+  inferenceConfidence: null,
 });
 
 export const createDefaultTaxProfileByCountry = (

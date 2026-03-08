@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { CandidateSearchProfile, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
+import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
 import {
   User,
   Upload,
@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Bookmark,
   Sparkles,
+  Mail,
   Bell,
   Calculator,
   SlidersHorizontal
@@ -40,6 +41,7 @@ import { getCurrentSubscription, getPushPermission, isPushSupported, registerPus
 
 import TransportModeSelector from './TransportModeSelector';
 import { createDefaultCandidateSearchProfile, createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
+import { enrichSearchProfileWithInference, getCandidateIntentDomainLabel, getCandidateIntentDomainOptions, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 import { simulateHappinessAudit } from '../services/assessmentThreeService';
 import { fetchJobsByIds } from '../services/jobService';
@@ -239,7 +241,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const searchProfileCopy = isCsLikeProfile
     ? {
         title: 'Výchozí nastavení hledání',
-        intro: 'Nastav si hledání tak, aby odpovídalo realitě tvého života: forma práce, dojezd, rodinná situace, psi i benefity, které skutečně potřebuješ.',
+        intro: 'Nastavte hledání tak, aby odpovídalo realitě vašeho života: forma práce, dojezd, rodinná situace, psi i benefity, které skutečně potřebujete.',
         nearBorder: 'Chci snadno hledat i přeshraničně',
         contractor: 'Primárně hledám práci na IČO / živnost',
         dogFriendly: 'Chci preferovat dog-friendly kanceláře',
@@ -256,8 +258,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         impactTitle: 'Kde se to projeví',
         impactMarketplace: 'Marketplace presetů',
         impactSaved: 'Uložená hledání',
-        impactFeed: 'Doporučené feedy',
-        helper: 'Tyto preference se propsají do presetů v marketplace, uložených hledání a doporučených shortlistů.',
+        impactFeed: 'Můj feed nabídek',
+        helper: 'Tyto preference se propsají do presetů v marketplace, uložených hledání a hlavního přehledu nabídek.',
       }
     : {
         title: 'Search setup',
@@ -278,8 +280,41 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         impactTitle: 'Where this applies',
         impactMarketplace: 'Marketplace presets',
         impactSaved: 'Saved searches',
-        impactFeed: 'Recommended feeds',
+        impactFeed: 'My feed',
         helper: 'These preferences feed marketplace presets, saved searches, and your main overview.',
+      };
+  const intentProfileCopy = isCsLikeProfile
+    ? {
+        title: 'Můj obor a role',
+        intro: 'Tahle část určuje, co má být v přehledu opravdu vaše. Nejdřív obor a cílová role, až potom životní filtry.',
+        primaryDomain: 'Hlavní obor',
+        secondaryDomains: 'Příbuzné obory',
+        targetRole: 'Cílová role',
+        targetRolePlaceholder: 'Např. Product Manager, Recepční, Finanční účetní',
+        seniority: 'Seniorita',
+        includeAdjacent: 'Zobrazovat i příbuzné role',
+        inferredTitle: 'Odhad podle CV a historie',
+        inferredBody: 'Systém našel pravděpodobný obor a cílovou roli. Můžete je jedním klikem použít do svého feedu.',
+        useSuggestion: 'Použít návrh',
+        manualWins: 'Ruční nastavení má vždy přednost před automatickým odhadem.',
+        none: 'Bez omezení',
+        activeIntent: 'Aktivní směr',
+      }
+    : {
+        title: 'My domain and role',
+        intro: 'This section decides what should actually feel like your feed: first domain and target role, then life-context filters.',
+        primaryDomain: 'Primary domain',
+        secondaryDomains: 'Adjacent domains',
+        targetRole: 'Target role',
+        targetRolePlaceholder: 'For example Product Manager, Receptionist, Financial Accountant',
+        seniority: 'Seniority',
+        includeAdjacent: 'Show adjacent roles too',
+        inferredTitle: 'Detected from CV and history',
+        inferredBody: 'The system detected a likely domain and target role. You can use them for your feed with one click.',
+        useSuggestion: 'Use suggestion',
+        manualWins: 'Manual setup always overrides the automatic estimate.',
+        none: 'No limit',
+        activeIntent: 'Active direction',
       };
   const remoteLanguageOptions: Array<{ code: SearchLanguageCode; label: string }> = [
     { code: 'cs', label: isCsLikeProfile ? 'Čeština' : 'Czech' },
@@ -302,6 +337,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     { key: 'multisport', label: isCsLikeProfile ? 'Sport / wellness' : 'Sport / wellness' },
     { key: 'car_personal', label: isCsLikeProfile ? 'Služební auto' : 'Company car' },
   ];
+  const intentDomainOptions = getCandidateIntentDomainOptions(i18n.language || 'cs');
+  const seniorityOptions: Array<{ key: CandidateSeniority; label: string }> = [
+    { key: 'entry', label: isCsLikeProfile ? 'Entry / trainee' : 'Entry / trainee' },
+    { key: 'junior', label: isCsLikeProfile ? 'Junior' : 'Junior' },
+    { key: 'medior', label: isCsLikeProfile ? 'Medior' : 'Mid-level' },
+    { key: 'senior', label: isCsLikeProfile ? 'Senior' : 'Senior' },
+    { key: 'lead', label: isCsLikeProfile ? 'Lead / manažer' : 'Lead / manager' },
+  ];
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
@@ -311,6 +354,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
   const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
   const [showAIGuide, setShowAIGuide] = useState(false);
+  const [showIntentNudge, setShowIntentNudge] = useState(false);
   const [editableCvAiText, setEditableCvAiText] = useState(profile.cvAiText || '');
   const [isSavingCvAiText, setIsSavingCvAiText] = useState(false);
   const [effectiveTier, setEffectiveTier] = useState<string | null>(profile.subscription?.tier || null);
@@ -444,6 +488,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const intentSetupRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     let isMounted = true;
 
@@ -494,7 +539,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   }, [profile.preferences]);
 
 
-  const buildFormDataFromProfile = (sourceProfile: UserProfile) => ({
+  const buildFormDataFromProfile = (sourceProfile: UserProfile) => {
+    const resolvedSearchProfile = enrichSearchProfileWithInference(sourceProfile);
+    return {
     personal: {
       name: sourceProfile.name || '',
       jobTitle: sourceProfile.jobTitle || '',
@@ -514,11 +561,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     },
     searchProfile: {
       ...createDefaultCandidateSearchProfile(),
-      ...(sourceProfile.preferences?.searchProfile || {}),
+      ...resolvedSearchProfile,
       remoteLanguageCodes: (
-        sourceProfile.preferences?.searchProfile?.remoteLanguageCodes &&
-        sourceProfile.preferences.searchProfile.remoteLanguageCodes.length > 0
-          ? sourceProfile.preferences.searchProfile.remoteLanguageCodes
+        resolvedSearchProfile.remoteLanguageCodes &&
+        resolvedSearchProfile.remoteLanguageCodes.length > 0
+          ? resolvedSearchProfile.remoteLanguageCodes
           : createDefaultCandidateSearchProfile().remoteLanguageCodes
       ) as SearchLanguageCode[],
     },
@@ -527,7 +574,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     skills: sourceProfile.skills || [],
     taxProfile: sourceProfile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
     jhiPreferences: sourceProfile.jhiPreferences || createDefaultJHIPreferences()
-  });
+    };
+  };
 
 
   // Form state for different sections
@@ -578,7 +626,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
     },
     { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
-    { key: 'settings', icon: Bell, label: t('profile.settings_title', { defaultValue: 'Email a nastavení' }) },
+    { key: 'settings', icon: Bell, label: t('profile.settings_title', { defaultValue: 'Nastavení' }) },
     {
       key: 'saved',
       icon: Bookmark,
@@ -632,6 +680,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileTotalSections = [formData.experience.length, formData.education.length, formData.skills.length].reduce((sum, value) => sum + value, 0);
   const profileDocumentsReady = [Boolean(profile.cvUrl), Boolean(editableCvAiText.trim())].filter(Boolean).length;
   const searchSetupSignalCount = [
+    formData.searchProfile.primaryDomain,
+    formData.searchProfile.targetRole,
+    formData.searchProfile.seniority,
     formData.searchProfile.nearBorder,
     formData.searchProfile.wantsContractorRoles,
     formData.searchProfile.wantsDogFriendlyOffice,
@@ -647,6 +698,42 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     searchProfileCopy.impactSaved,
     searchProfileCopy.impactFeed
   ];
+  const resolvedIntentProfile = resolveCandidateIntentProfile({
+    ...profile,
+    jobTitle: formData.personal.jobTitle,
+    workHistory: formData.experience,
+    education: formData.education,
+    skills: formData.skills,
+    preferences: {
+      ...profile.preferences,
+      searchProfile: formData.searchProfile,
+    },
+  });
+  const inferredIntentAvailable = Boolean(resolvedIntentProfile.inferredPrimaryDomain || resolvedIntentProfile.inferredTargetRole);
+  const hasManualIntent = Boolean(formData.searchProfile.primaryDomain || formData.searchProfile.targetRole || formData.searchProfile.seniority);
+  const focusIntentSetup = () => {
+    setActiveTab('settings');
+    window.setTimeout(() => {
+      intentSetupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  };
+  const applyInferredIntentSuggestion = () => {
+    handleSearchProfileChange('primaryDomain', resolvedIntentProfile.inferredPrimaryDomain);
+    handleSearchProfileChange('secondaryDomains', resolvedIntentProfile.secondaryDomains.slice(0, 2));
+    if (resolvedIntentProfile.inferredTargetRole) {
+      handleSearchProfileChange('targetRole', resolvedIntentProfile.inferredTargetRole);
+    }
+    if (resolvedIntentProfile.seniority) {
+      handleSearchProfileChange('seniority', resolvedIntentProfile.seniority);
+    }
+    setShowIntentNudge(false);
+  };
+
+  useEffect(() => {
+    if (hasManualIntent) {
+      setShowIntentNudge(false);
+    }
+  }, [hasManualIntent]);
 
   const renderAiGuidePanel = isCvTab ? (
     <div className="h-full overflow-hidden rounded-[1.05rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.98))] shadow-[var(--shadow-card)] dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.32),rgba(10,18,32,0.96))]">
@@ -793,27 +880,469 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     </div>
   ) : null;
 
-  const renderTransportPanel = isSettingsTab ? (
-    <div className={profileSurfaceClass}>
-      <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center gap-3">
-          <div className={profileAccentIconShellClass}>
-            <MapPin className={profileAccentIconClass} />
+  const renderIntentSetupPanel = isSettingsTab ? (
+    <div
+      ref={intentSetupRef}
+      className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--accent)] shadow-sm">
+            <Briefcase className="h-5 w-5" />
           </div>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
+          <div className="min-w-0">
+            <div className="app-eyebrow w-fit">{intentProfileCopy.title}</div>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-muted)]">{intentProfileCopy.intro}</p>
+          </div>
+        </div>
+        <div className="rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2.5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+            {intentProfileCopy.activeIntent}
+          </div>
+          <div className="mt-2 flex max-w-[320px] flex-wrap gap-2">
+            {[formData.searchProfile.primaryDomain ? getCandidateIntentDomainLabel(formData.searchProfile.primaryDomain, i18n.language) : '', formData.searchProfile.targetRole, formData.searchProfile.seniority].filter(Boolean).map((item) => (
+              <span key={String(item)} className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]">
+                {item}
+              </span>
+            ))}
+            {!formData.searchProfile.primaryDomain && !formData.searchProfile.targetRole && !formData.searchProfile.seniority ? (
+              <span className="text-sm text-[var(--text-muted)]">{intentProfileCopy.none}</span>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <div className="p-6">
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-          {t('profile.transport_desc')}
-        </p>
-        <TransportModeSelector
-          selectedMode={profile.transportMode || 'public'}
-          onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
-          compact={true}
-        />
+      {(inferredIntentAvailable && !hasManualIntent) || showIntentNudge ? (
+        <div className="mt-4 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.14)] bg-[var(--surface-muted)] p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                {showIntentNudge ? (isCsLikeProfile ? 'Doporučené doplnění po nahrání CV' : 'Suggested update after CV upload') : intentProfileCopy.inferredTitle}
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                {showIntentNudge
+                  ? (isCsLikeProfile
+                    ? 'Z životopisu jsme doplnili pravděpodobný obor a cílovou roli. Potvrďte je jedním klikem, aby feed začal fungovat jako váš feed.'
+                    : 'We inferred a likely domain and target role from your CV. Confirm them in one click so the feed starts behaving like your feed.')
+                  : intentProfileCopy.inferredBody}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {resolvedIntentProfile.inferredPrimaryDomain ? (
+                  <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]">
+                    {getCandidateIntentDomainLabel(resolvedIntentProfile.inferredPrimaryDomain, i18n.language)}
+                  </span>
+                ) : null}
+                {resolvedIntentProfile.inferredTargetRole ? (
+                  <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text)]">
+                    {resolvedIntentProfile.inferredTargetRole}
+                  </span>
+                ) : null}
+                {resolvedIntentProfile.seniority ? (
+                  <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text)]">
+                    {resolvedIntentProfile.seniority}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={applyInferredIntentSuggestion}
+              className="app-button-primary shrink-0 justify-center"
+            >
+              {intentProfileCopy.useSuggestion}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="space-y-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.primaryDomain}</label>
+            <select
+              value={formData.searchProfile.primaryDomain || ''}
+              onChange={(event) => handleSearchProfileChange('primaryDomain', (event.target.value || null) as CandidateDomainKey | null)}
+              className={profileInputClass}
+            >
+              <option value="">{intentProfileCopy.none}</option>
+              {intentDomainOptions.map((option) => (
+                <option key={option.key} value={option.key}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.targetRole}</label>
+            <input
+              type="text"
+              value={formData.searchProfile.targetRole || ''}
+              onChange={(event) => handleSearchProfileChange('targetRole', event.target.value)}
+              className={profileInputClass}
+              placeholder={intentProfileCopy.targetRolePlaceholder}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.seniority}</label>
+            <div className="flex flex-wrap gap-2">
+              {seniorityOptions.map((option) => {
+                const active = formData.searchProfile.seniority === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => handleSearchProfileChange('seniority', active ? null : option.key)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.secondaryDomains}</label>
+            <div className="flex flex-wrap gap-2">
+              {intentDomainOptions
+                .filter((option) => option.key !== formData.searchProfile.primaryDomain)
+                .map((option) => {
+                  const active = (formData.searchProfile.secondaryDomains || []).includes(option.key);
+                  const disabled = !active && (formData.searchProfile.secondaryDomains || []).length >= 2;
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        const current = formData.searchProfile.secondaryDomains || [];
+                        const next = active
+                          ? current.filter((item) => item !== option.key)
+                          : [...current, option.key];
+                        handleSearchProfileChange('secondaryDomains', next);
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        active
+                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                          : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text)]">
+            <input
+              type="checkbox"
+              checked={formData.searchProfile.includeAdjacentDomains ?? true}
+              onChange={(event) => handleSearchProfileChange('includeAdjacentDomains', event.target.checked)}
+              className="mt-1 accent-[var(--accent)]"
+            />
+            <span>{intentProfileCopy.includeAdjacent}</span>
+          </label>
+
+          <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
+            {intentProfileCopy.manualWins}
+          </div>
+        </div>
       </div>
+    </div>
+  ) : null;
+
+  const renderPremiumSearchSetupPanel = isSettingsTab ? (
+    <div className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--accent)] shadow-sm">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="app-eyebrow w-fit">{searchProfileCopy.title}</div>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+              {isPremium
+                ? searchProfileCopy.intro
+                : (isCsLikeProfile
+                  ? 'Premium odemyká životní situaci, dopravu, benefity a jemnější výchozí nastavení feedu.'
+                  : 'Premium unlocks life-context setup, transport preferences, benefits and finer feed defaults.')}
+            </p>
+          </div>
+        </div>
+        {isPremium ? (
+          <div className="rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+              {searchProfileCopy.activeSignals}
+            </div>
+            <div className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+              {searchSetupSignalCount}
+            </div>
+          </div>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+            Premium
+          </span>
+        )}
+      </div>
+
+      {isPremium ? (
+        <>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {[
+              { field: 'nearBorder' as const, label: searchProfileCopy.nearBorder, active: formData.searchProfile.nearBorder },
+              { field: 'wantsContractorRoles' as const, label: searchProfileCopy.contractor, active: formData.searchProfile.wantsContractorRoles },
+              { field: 'wantsRemoteRoles' as const, label: searchProfileCopy.remote, active: formData.searchProfile.wantsRemoteRoles }
+            ].map((item) => (
+              <label
+                key={item.field}
+                className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
+                  item.active
+                    ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                    : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={item.active}
+                  onChange={(e) => handleSearchProfileChange(item.field, e.target.checked)}
+                  className="mt-1 accent-[var(--accent)]"
+                />
+                <span>{item.label}</span>
+              </label>
+            ))}
+            <label
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
+                formData.searchProfile.wantsDogFriendlyOffice
+                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={formData.searchProfile.wantsDogFriendlyOffice}
+                onChange={(e) => syncDogFriendlySetup(e.target.checked)}
+                className="mt-1 accent-[var(--accent)]"
+              />
+              <span>{searchProfileCopy.dogFriendly}</span>
+            </label>
+            <label
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
+                formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')
+                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')}
+                onChange={(e) => syncChildFriendlySetup(e.target.checked)}
+                className="mt-1 accent-[var(--accent)]"
+              />
+              <span>{searchProfileCopy.childFriendly}</span>
+            </label>
+            <label
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
+                formData.jhiPreferences.hardConstraints.excludeShift
+                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={formData.jhiPreferences.hardConstraints.excludeShift}
+                onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
+                className="mt-1 accent-[var(--accent)]"
+              />
+              <span>{searchProfileCopy.avoidShift}</span>
+            </label>
+          </div>
+
+          <div className="mt-4 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-xl space-y-2">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                  {searchProfileCopy.commuteTitle}
+                </div>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.commuteIntro}</p>
+              </div>
+              <div className="grid min-w-[220px] gap-2 sm:grid-cols-2">
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                    {isCsLikeProfile ? 'Výchozí dojezd' : 'Default commute'}
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-[var(--text-strong)]">
+                    {formData.searchProfile.defaultEnableCommuteFilter ? `${formData.searchProfile.defaultMaxDistanceKm} km` : (isCsLikeProfile ? 'Vypnuto' : 'Off')}
+                  </div>
+                </div>
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                    {isCsLikeProfile ? 'Forma dopravy' : 'Transport mode'}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--text-strong)]">
+                    {t(`profile.transport_mode.${profile.transportMode || 'public'}`)}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
+              <label className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
+                formData.searchProfile.defaultEnableCommuteFilter
+                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={formData.searchProfile.defaultEnableCommuteFilter}
+                  onChange={(e) => handleSearchProfileChange('defaultEnableCommuteFilter', e.target.checked)}
+                  className="mt-1 accent-[var(--accent)]"
+                />
+                <span>{searchProfileCopy.commuteToggle}</span>
+              </label>
+              <div className="rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="text-sm font-medium text-[var(--text-strong)]">
+                    {searchProfileCopy.commuteRadius}
+                  </label>
+                  <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">
+                    {formData.searchProfile.defaultMaxDistanceKm} km
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={5}
+                  max={120}
+                  step={5}
+                  value={formData.searchProfile.defaultMaxDistanceKm}
+                  onChange={(e) => handleSearchProfileChange('defaultMaxDistanceKm', Number(e.target.value))}
+                  className="w-full accent-[var(--accent)]"
+                />
+              </div>
+              <div className="rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-3">
+                <TransportModeSelector
+                  selectedMode={profile.transportMode || 'public'}
+                  onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
+                  compact
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.languages}</label>
+            <div className="flex flex-wrap gap-2">
+              {remoteLanguageOptions.map((option) => {
+                const active = formData.searchProfile.remoteLanguageCodes.includes(option.code);
+                return (
+                  <button
+                    key={option.code}
+                    type="button"
+                    onClick={() => {
+                      const next = active
+                        ? formData.searchProfile.remoteLanguageCodes.filter((code) => code !== option.code)
+                        : [...formData.searchProfile.remoteLanguageCodes, option.code];
+                      handleSearchProfileChange('remoteLanguageCodes', next as SearchLanguageCode[]);
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.benefitPriorities}</label>
+            <div className="flex flex-wrap gap-2">
+              {searchBenefitOptions.map((option) => {
+                const active = formData.searchProfile.preferredBenefitKeys.includes(option.key);
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => toggleBenefitPriority(option.key)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+              {searchProfileCopy.impactTitle}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {searchSetupAreas.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{searchProfileCopy.helper}</p>
+          </div>
+        </>
+      ) : (
+        <div className="mt-4 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-muted)] p-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  searchProfileCopy.nearBorder,
+                  searchProfileCopy.contractor,
+                  searchProfileCopy.remote,
+                  searchProfileCopy.dogFriendly,
+                  searchProfileCopy.childFriendly,
+                  searchProfileCopy.commuteTitle,
+                ].map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                {isCsLikeProfile
+                  ? 'Ve free verzi zůstává zdarma váš obor a cílová role. Premium přidává životní situaci, preferovanou dopravu, benefity a detailnější rozhodovací vrstvu.'
+                  : 'The free plan keeps your domain and target role. Premium adds life-context setup, transport preferences, benefits and a deeper decision layer.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (profile.id) {
+                  redirectToCheckout('premium', profile.id);
+                }
+              }}
+              className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
+            >
+              {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   ) : null;
 
@@ -851,9 +1380,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           drift_score: Math.round((happinessAuditInput.role_shift * 0.6) + (timeRing * 0.2)),
           recommendations: [
             'Lokální fallback režim: ověřte čísla po obnovení backendu.',
-            'AI recommendation only. Final decision is yours.',
+            'Jde o orientační výstup. Finální rozhodnutí zůstává na vás.',
           ],
-          advisory_disclaimer: 'AI recommendation only.',
+          advisory_disclaimer: 'Jde o orientační výstup.',
         });
       } finally {
         setIsSimulatingAudit(false);
@@ -996,6 +1525,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
       // Merge parsed data into profile
       const updatedProfile = mergeProfileWithParsedCv(profile, cvUrl, parsedData);
+      const updatedSearchProfile = enrichSearchProfileWithInference(updatedProfile);
 
       // Update local form data to sync UI immediately
       setFormData(prev => ({
@@ -1013,7 +1543,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       }));
 
       // Save the updated profile with parsed data
-      onChange(updatedProfile, true);
+      onChange({
+        ...updatedProfile,
+        preferences: {
+          ...updatedProfile.preferences,
+          searchProfile: updatedSearchProfile,
+        }
+      }, true);
+      if (!profile.preferences?.searchProfile?.primaryDomain && !profile.preferences?.searchProfile?.targetRole && (updatedSearchProfile.inferredPrimaryDomain || updatedSearchProfile.inferredTargetRole)) {
+        setShowIntentNudge(true);
+        focusIntentSetup();
+      }
       alert(t('profile.cv_upload_success'));
 
       // Trigger profile refresh after a short delay to allow UI to sync
@@ -1041,6 +1581,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     };
     setFormData(newFormData);
     const nextPersonal = { ...formData.personal, [field]: value };
+    const inferredSearchProfile = enrichSearchProfileWithInference({
+      ...profile,
+      jobTitle: nextPersonal.jobTitle,
+      address: nextPersonal.address,
+      phone: nextPersonal.phone,
+      preferences: {
+        ...profile.preferences,
+        searchProfile: formData.searchProfile,
+        linkedIn: nextPersonal.linkedIn,
+        portfolio: nextPersonal.portfolio,
+        github: nextPersonal.github,
+      },
+      workHistory: formData.experience,
+      education: formData.education,
+      skills: formData.skills,
+    });
     onChange({
       ...profile,
       name: nextPersonal.name,
@@ -1051,6 +1607,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       preferredCountryCode: nextPersonal.preferredCountryCode,
       preferences: {
         ...profile.preferences,
+        searchProfile: inferredSearchProfile,
         linkedIn: nextPersonal.linkedIn,
         portfolio: nextPersonal.portfolio,
         github: nextPersonal.github,
@@ -1081,16 +1638,37 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       nextSearchProfile.preferredBenefitKeys = Array.from(new Set(((value as string[]) || []).map((item) => String(item || '').trim()).filter(Boolean)));
     }
 
+    if (field === 'secondaryDomains') {
+      nextSearchProfile.secondaryDomains = Array.from(new Set(((value as CandidateDomainKey[]) || []).filter(Boolean))).slice(0, 2);
+    }
+
     if (field === 'defaultMaxDistanceKm') {
       nextSearchProfile.defaultMaxDistanceKm = Math.max(5, Number(value) || 5);
     }
 
-    setFormData(prev => ({ ...prev, searchProfile: nextSearchProfile }));
-    onChange({
+    if (field === 'targetRole') {
+      nextSearchProfile.targetRole = String(value || '').trim();
+    }
+
+    const nextProfileDraft: UserProfile = {
       ...profile,
+      jobTitle: formData.personal.jobTitle,
+      workHistory: formData.experience,
+      education: formData.education,
+      skills: formData.skills,
       preferences: {
         ...profile.preferences,
         searchProfile: nextSearchProfile
+      }
+    };
+    const enrichedSearchProfile = enrichSearchProfileWithInference(nextProfileDraft);
+
+    setFormData(prev => ({ ...prev, searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile } }));
+    onChange({
+      ...nextProfileDraft,
+      preferences: {
+        ...nextProfileDraft.preferences,
+        searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile }
       }
     });
   };
@@ -1690,16 +2268,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.email')}</label>
-                    <input
-                      type="email"
-                      value={formData.personal.email}
-                      onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
-                      className={profileInputClass}
-                    />
-                  </div>
-
-                  <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.phone')}</label>
                     <input
                       type="tel"
@@ -1798,204 +2366,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[1.2rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,255,255,0.96))] p-5 shadow-[var(--shadow-soft)]">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-xl bg-white/85 p-2 text-[var(--accent)] shadow-sm">
-                        <Sparkles className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="app-eyebrow w-fit">{searchProfileCopy.title}</div>
-                        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.intro}</p>
-                      </div>
-                    </div>
-                    <div className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/75 px-4 py-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                        {searchProfileCopy.activeSignals}
-                      </div>
-                      <div className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                        {searchSetupSignalCount}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {[
-                      { field: 'nearBorder' as const, label: searchProfileCopy.nearBorder, active: formData.searchProfile.nearBorder },
-                      { field: 'wantsContractorRoles' as const, label: searchProfileCopy.contractor, active: formData.searchProfile.wantsContractorRoles },
-                      { field: 'wantsRemoteRoles' as const, label: searchProfileCopy.remote, active: formData.searchProfile.wantsRemoteRoles }
-                    ].map((item) => (
-                      <label
-                        key={item.field}
-                        className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
-                          item.active
-                            ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                            : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={item.active}
-                          onChange={(e) => handleSearchProfileChange(item.field, e.target.checked)}
-                          className="mt-1 accent-[var(--accent)]"
-                        />
-                        <span>{item.label}</span>
-                      </label>
-                    ))}
-                    <label
-                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
-                        formData.searchProfile.wantsDogFriendlyOffice
-                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.searchProfile.wantsDogFriendlyOffice}
-                        onChange={(e) => syncDogFriendlySetup(e.target.checked)}
-                        className="mt-1 accent-[var(--accent)]"
-                      />
-                      <span>{searchProfileCopy.dogFriendly}</span>
-                    </label>
-                    <label
-                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
-                        formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')
-                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')}
-                        onChange={(e) => syncChildFriendlySetup(e.target.checked)}
-                        className="mt-1 accent-[var(--accent)]"
-                      />
-                      <span>{searchProfileCopy.childFriendly}</span>
-                    </label>
-                    <label
-                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
-                        formData.jhiPreferences.hardConstraints.excludeShift
-                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.jhiPreferences.hardConstraints.excludeShift}
-                        onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
-                        className="mt-1 accent-[var(--accent)]"
-                      />
-                      <span>{searchProfileCopy.avoidShift}</span>
-                    </label>
-                  </div>
-
-                  <div className="mt-5 rounded-[1rem] border border-[var(--border-subtle)] bg-white/80 p-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                      {searchProfileCopy.commuteTitle}
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.commuteIntro}</p>
-                    <div className="mt-4 flex flex-wrap items-start gap-4">
-                      <label className="flex min-w-[260px] items-start gap-3 rounded-[1rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text)]">
-                        <input
-                          type="checkbox"
-                          checked={formData.searchProfile.defaultEnableCommuteFilter}
-                          onChange={(e) => handleSearchProfileChange('defaultEnableCommuteFilter', e.target.checked)}
-                          className="mt-1 accent-[var(--accent)]"
-                        />
-                        <span>{searchProfileCopy.commuteToggle}</span>
-                      </label>
-                      <div className="min-w-[220px] flex-1">
-                        <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">
-                          {searchProfileCopy.commuteRadius}: {formData.searchProfile.defaultMaxDistanceKm} km
-                        </label>
-                        <input
-                          type="range"
-                          min={5}
-                          max={120}
-                          step={5}
-                          value={formData.searchProfile.defaultMaxDistanceKm}
-                          onChange={(e) => handleSearchProfileChange('defaultMaxDistanceKm', Number(e.target.value))}
-                          className="w-full accent-[var(--accent)]"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <TransportModeSelector
-                        selectedMode={profile.transportMode || 'public'}
-                        onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
-                        compact
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.languages}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {remoteLanguageOptions.map((option) => {
-                        const active = formData.searchProfile.remoteLanguageCodes.includes(option.code);
-                        return (
-                          <button
-                            key={option.code}
-                            type="button"
-                            onClick={() => {
-                              const next = active
-                                ? formData.searchProfile.remoteLanguageCodes.filter((code) => code !== option.code)
-                                : [...formData.searchProfile.remoteLanguageCodes, option.code];
-                              handleSearchProfileChange('remoteLanguageCodes', next as SearchLanguageCode[]);
-                            }}
-                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                              active
-                                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                                : 'border-[var(--border-subtle)] bg-white text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.benefitPriorities}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {searchBenefitOptions.map((option) => {
-                        const active = formData.searchProfile.preferredBenefitKeys.includes(option.key);
-                        return (
-                          <button
-                            key={option.key}
-                            type="button"
-                            onClick={() => toggleBenefitPriority(option.key)}
-                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                              active
-                                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                                : 'border-[var(--border-subtle)] bg-white text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-[1rem] border border-[var(--border-subtle)] bg-white/80 p-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                      {searchProfileCopy.impactTitle}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {searchSetupAreas.map((item) => (
-                        <span
-                          key={item}
-                          className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{searchProfileCopy.helper}</p>
-                  </div>
-                </div>
               </div>
             </div>
               </>
@@ -2419,113 +2789,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isSettingsTab && (
               <>
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className={profileAccentIconShellClass}>
-                    <Bell className={profileAccentIconClass} />
-                  </div>
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                    {t('profile.notifications', { defaultValue: 'Notifikace' })}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-6">
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(formData.notifications.dailyDigestEnabled)}
-                      onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
-                    />
-                    {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
-                      onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
-                    />
-                    {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
-                    </label>
-                    <input
-                      type="time"
-                      value={formData.notifications.dailyDigestTime}
-                      onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
-                      className={profileInputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.notifications.dailyDigestTimezone}
-                      onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
-                      className={profileInputClass}
-                      placeholder="Europe/Prague"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    {profileCountryCopy.label}
-                  </label>
-                  <select
-                    value={formData.personal.preferredCountryCode}
-                    onChange={(e) => handlePersonalInfoChange('preferredCountryCode', e.target.value)}
-                    className={profileInputClass}
-                  >
-                    <option value="CZ">{profileCountryCopy.countries.CZ}</option>
-                    <option value="SK">{profileCountryCopy.countries.SK}</option>
-                    <option value="PL">{profileCountryCopy.countries.PL}</option>
-                    <option value="DE">{profileCountryCopy.countries.DE}</option>
-                    <option value="AT">{profileCountryCopy.countries.AT}</option>
-                  </select>
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    {profileCountryCopy.help}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="text-xs text-slate-500">
-                    {pushSupported
-                      ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
-                      : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
-                  </div>
-                  {pushSupported && (
-                    <>
-                      <button
-                        onClick={handleEnablePush}
-                        disabled={pushBusy}
-                        className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
-                      >
-                        {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
-                      </button>
-                      <button
-                        onClick={handleDisablePush}
-                        disabled={pushBusy}
-                        className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
-                      >
-                        {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {renderTransportPanel}
+            {renderPremiumSearchSetupPanel}
+            {renderIntentSetupPanel}
 
             <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -2536,142 +2801,187 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.tax.title')}</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {formData.taxProfile.countryCode} • {formData.taxProfile.taxYear} • {t(`profile.tax.${formData.taxProfile.employmentType}`)} • {t('profile.tax.children')}: {formData.taxProfile.childrenCount}
+                      {isPremium
+                        ? `${formData.taxProfile.countryCode} • ${formData.taxProfile.taxYear} • ${t(`profile.tax.${formData.taxProfile.employmentType}`)} • ${t('profile.tax.children')}: ${formData.taxProfile.childrenCount}`
+                        : t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
-                  <select
-                    value={formData.taxProfile.countryCode}
-                    onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
-                    className={profileCompactInputClass}
-                  >
-                    <option value="CZ">CZ</option>
-                    <option value="SK">SK</option>
-                    <option value="PL">PL</option>
-                    <option value="DE">DE</option>
-                    <option value="AT">AT</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.year')}</label>
-                  <input
-                    type="number"
-                    value={formData.taxProfile.taxYear}
-                    onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
-                    className={profileCompactInputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.employment_type')}</label>
-                  <select
-                    value={formData.taxProfile.employmentType}
-                    onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
-                    className={profileCompactInputClass}
-                  >
-                    <option value="employee">{t('profile.tax.employee')}</option>
-                    <option value="contractor">{t('profile.tax.contractor')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.marital_status')}</label>
-                  <select
-                    value={formData.taxProfile.maritalStatus}
-                    onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
-                    className={profileCompactInputClass}
-                  >
-                    <option value="single">{t('profile.tax.single')}</option>
-                    <option value="married">{t('profile.tax.married')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.children')}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={formData.taxProfile.childrenCount}
-                    onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
-                    className={profileCompactInputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.spouse_income')}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={formData.taxProfile.spouseAnnualIncome || 0}
-                    onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
-                    className={profileCompactInputClass}
-                  />
-                </div>
-                {formData.taxProfile.countryCode === 'DE' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.tax.de_tax_class', { defaultValue: 'Daňová třída (DE)' })}
-                      </label>
-                      <select
-                        value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
-                        onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
-                        className={profileCompactInputClass}
-                      >
-                        <option value="I">I</option>
-                        <option value="II">II</option>
-                        <option value="III">III</option>
-                        <option value="IV">IV</option>
-                        <option value="V">V</option>
-                        <option value="VI">VI</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.tax.de_church_tax', { defaultValue: 'Církevní daň (DE)' })}
-                      </label>
-                      <select
-                        value={formData.taxProfile.deChurchTaxRate ?? 0}
-                        onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
-                        className={profileCompactInputClass}
-                      >
-                        <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
-                        <option value={0.08}>8 %</option>
-                        <option value={0.09}>9 %</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.tax.de_kvz', { defaultValue: 'KVZ (DE) – Zusatzbeitragssatz %' })}
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={5}
-                        step={0.1}
-                        value={formData.taxProfile.deKvzRate ?? 2.9}
-                        onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
-                        className={profileCompactInputClass}
-                      />
-                    </div>
-                  </>
-                )}
-                {formData.taxProfile.countryCode === 'AT' && (
+              {isPremium ? (
+                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('profile.tax.at_13_14', { defaultValue: '13./14. plat (AT)' })}
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
                     <select
-                      value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
-                      onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
+                      value={formData.taxProfile.countryCode}
+                      onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
                       className={profileCompactInputClass}
                     >
-                      <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
-                      <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
+                      <option value="CZ">CZ</option>
+                      <option value="SK">SK</option>
+                      <option value="PL">PL</option>
+                      <option value="DE">DE</option>
+                      <option value="AT">AT</option>
                     </select>
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.year')}</label>
+                    <input
+                      type="number"
+                      value={formData.taxProfile.taxYear}
+                      onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
+                      className={profileCompactInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.employment_type')}</label>
+                    <select
+                      value={formData.taxProfile.employmentType}
+                      onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
+                      className={profileCompactInputClass}
+                    >
+                      <option value="employee">{t('profile.tax.employee')}</option>
+                      <option value="contractor">{t('profile.tax.contractor')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.marital_status')}</label>
+                    <select
+                      value={formData.taxProfile.maritalStatus}
+                      onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
+                      className={profileCompactInputClass}
+                    >
+                      <option value="single">{t('profile.tax.single')}</option>
+                      <option value="married">{t('profile.tax.married')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.children')}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.taxProfile.childrenCount}
+                      onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
+                      className={profileCompactInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.spouse_income')}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.taxProfile.spouseAnnualIncome || 0}
+                      onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
+                      className={profileCompactInputClass}
+                    />
+                  </div>
+                  {formData.taxProfile.countryCode === 'DE' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          {t('profile.tax.de_tax_class', { defaultValue: 'Daňová třída (DE)' })}
+                        </label>
+                        <select
+                          value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
+                          onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
+                          className={profileCompactInputClass}
+                        >
+                          <option value="I">I</option>
+                          <option value="II">II</option>
+                          <option value="III">III</option>
+                          <option value="IV">IV</option>
+                          <option value="V">V</option>
+                          <option value="VI">VI</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          {t('profile.tax.de_church_tax', { defaultValue: 'Církevní daň (DE)' })}
+                        </label>
+                        <select
+                          value={formData.taxProfile.deChurchTaxRate ?? 0}
+                          onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
+                          className={profileCompactInputClass}
+                        >
+                          <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
+                          <option value={0.08}>8 %</option>
+                          <option value={0.09}>9 %</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          {t('profile.tax.de_kvz', { defaultValue: 'KVZ (DE) – Zusatzbeitragssatz %' })}
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          step={0.1}
+                          value={formData.taxProfile.deKvzRate ?? 2.9}
+                          onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
+                          className={profileCompactInputClass}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {formData.taxProfile.countryCode === 'AT' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.tax.at_13_14', { defaultValue: '13./14. plat (AT)' })}
+                      </label>
+                      <select
+                        value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
+                        onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
+                        className={profileCompactInputClass}
+                      >
+                        <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
+                        <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6">
+                  <div className={`${profileAccentPanelClass} rounded-[1rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-muted)] p-5`}>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-3">
+                        <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+                          Premium
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {t('alerts.premium_only_feature')}
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                            {t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            t('profile.tax.country', { defaultValue: 'Země a daňový rok' }),
+                            t('profile.tax.employment_type', { defaultValue: 'Typ spolupráce' }),
+                            t('profile.tax.children', { defaultValue: 'Děti a rodinná situace' }),
+                          ].map((item) => (
+                            <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (profile.id) {
+                            redirectToCheckout('premium', profile.id);
+                          }
+                        }}
+                        className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
+                      >
+                        {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={profileSurfaceClass}>
@@ -3148,7 +3458,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       ))}
                     </ul>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision is yours.' })}
+                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: 'This is guidance only. Final decision remains yours.' })}
                     </div>
                   </div>
                 </div>
@@ -3290,6 +3600,139 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               )}
             </div>
+
+            {isSettingsTab && (
+              <div className={profileSurfaceClass}>
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className={profileAccentIconShellClass}>
+                      <Mail className={profileAccentIconClass} />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      {t('profile.account_title', { defaultValue: 'Účet a e-mail' })}
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.email')}</label>
+                    <input
+                      type="email"
+                      value={formData.personal.email}
+                      onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
+                      className={profileInputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {profileCountryCopy.label}
+                    </label>
+                    <select
+                      value={formData.personal.preferredCountryCode}
+                      onChange={(e) => handlePersonalInfoChange('preferredCountryCode', e.target.value)}
+                      className={profileInputClass}
+                    >
+                      <option value="CZ">{profileCountryCopy.countries.CZ}</option>
+                      <option value="SK">{profileCountryCopy.countries.SK}</option>
+                      <option value="PL">{profileCountryCopy.countries.PL}</option>
+                      <option value="DE">{profileCountryCopy.countries.DE}</option>
+                      <option value="AT">{profileCountryCopy.countries.AT}</option>
+                    </select>
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      {profileCountryCopy.help}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isSettingsTab && (
+              <div className={profileSurfaceClass}>
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className={profileAccentIconShellClass}>
+                      <Bell className={profileAccentIconClass} />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      {t('profile.notifications', { defaultValue: 'Notifikace' })}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData.notifications.dailyDigestEnabled)}
+                        onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
+                      />
+                      {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
+                        onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
+                      />
+                      {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
+                      </label>
+                      <input
+                        type="time"
+                        value={formData.notifications.dailyDigestTime}
+                        onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
+                        className={profileInputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.notifications.dailyDigestTimezone}
+                        onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
+                        className={profileInputClass}
+                        placeholder="Europe/Prague"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="text-xs text-slate-500">
+                      {pushSupported
+                        ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
+                        : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
+                    </div>
+                    {pushSupported && (
+                      <>
+                        <button
+                          onClick={handleEnablePush}
+                          disabled={pushBusy}
+                          className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                        >
+                          {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
+                        </button>
+                        <button
+                          onClick={handleDisablePush}
+                          disabled={pushBusy}
+                          className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                        >
+                          {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isSettingsTab && profile.isLoggedIn && (
               <div className={profileSurfaceClass}>

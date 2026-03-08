@@ -188,6 +188,16 @@ body {
     background: var(--accent-hover);
   }
 
+  .dark .app-button-primary {
+    background: linear-gradient(180deg, #f7c45f 0%, #e8a12c 100%);
+    color: #172033;
+    box-shadow: 0 20px 36px -24px rgba(247, 196, 95, 0.4);
+  }
+
+  .dark .app-button-primary:hover {
+    background: linear-gradient(180deg, #f8ce74 0%, #efab3a 100%);
+  }
+
   .app-button-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-sm font-semibold transition;
     background: var(--surface-muted);

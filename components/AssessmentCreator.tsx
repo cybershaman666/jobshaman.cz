@@ -1038,7 +1038,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                     <div className={`mt-2 text-[11px] ${
                                         demoUsesCockpit ? 'text-cyan-100/75' : 'text-slate-500 dark:text-slate-400'
                                     }`}>
-                                        {t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision remains with recruiter.' })}
+                                        {t('ai_advisory.default', { defaultValue: 'This is guidance only. Final decision remains with the recruiter.' })}
                                     </div>
                                 </div>
                             )}

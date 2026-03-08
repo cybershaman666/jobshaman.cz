@@ -114,14 +114,14 @@
     "language_all": "Wszystkie języki",
     "sort_by": "Sortuj według",
     "sort_options": {
-      "recommended": "AI polecane",
+      "recommended": "Przegląd priorytetów",
       "newest": "Najnowsze",
       "distance": "Odległość",
       "jhi_desc": "JHI malejąco",
       "salary_desc": "Najwyższa pensja"
     },
     "sort_explain": {
-      "recommended": "AI polecane sortuje oferty według łącznej trafności. Pokazany % to dopasowanie AI dla danej oferty i nie musi rosnąć idealnie liniowo ze względu na świeżość i różnorodność wyników."
+      "recommended": "Ten tryb używa przeglądu priorytetów na podstawie bieżących filtrów i kontekstu roli."
     },
     "language_options": {
       "cs": "Czeski",
@@ -1114,7 +1114,7 @@
       "code": "Kod",
       "ai_noise_btn": "Usuń szum (AI)",
       "analyzing": "Analizowanie...",
-      "settings_title": "Szczegóły i benefity",
+      "settings_title": "Ustawienia",
       "salary_min": "Min. wynagrodzenie",
       "salary_max": "Maks. wynagrodzenie",
       "working_hours": "Godziny pracy",
@@ -1816,8 +1816,8 @@
           "excerpt": "Jak skutecznie korzystać z Career Pathfinder i analizy AI, aby ruszyć do przodu na swojej ścieżce zawodowej."
         },
         "post6": {
-          "title": "Jak działa dopasowanie AI i dlaczego kolejność w AI polecane może się różnić",
-          "excerpt": "Wyjaśniamy różnicę między dopasowaniem AI na karcie oferty a ogólnym rankingiem AI, aby feed był bardziej zrozumiały."
+          "title": "Jak czytać priorytet ofert i dlaczego kolejność może się zmieniać",
+          "excerpt": "Wyjaśniamy, jak przegląd wyróżnia oferty i dlaczego kolejność może się zmieniać zależnie od filtrów i kontekstu roli."
         }
       }
     },
@@ -3496,8 +3496,8 @@
     "read_more": "Czytaj więcej",
     "posts": {
       "post6": {
-        "title": "Jak działa dopasowanie AI i dlaczego kolejność w AI polecane może się różnić",
-        "excerpt": "Wyjaśniamy różnicę między dopasowaniem AI na karcie oferty a ogólnym rankingiem AI, aby feed był bardziej zrozumiały."
+        "title": "Jak czytać priorytet ofert i dlaczego kolejność może się zmieniać",
+        "excerpt": "Wyjaśniamy, jak przegląd wyróżnia oferty i dlaczego kolejność może się zmieniać zależnie od filtrów i kontekstu roli."
       }
     },
     "stats": {
@@ -3616,7 +3616,7 @@
     "results": "Wynik audytu"
   },
   "ai_advisory": {
-    "default": "AI recommendation only. Ostateczna decyzja należy do człowieka."
+    "default": "To jedynie wskazówka. Ostateczna decyzja należy do człowieka."
   },
   "application": {
     "messages": {

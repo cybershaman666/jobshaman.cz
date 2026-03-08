@@ -114,14 +114,14 @@
     "language_all": "Všechny jazyky",
     "sort_by": "Řazení",
     "sort_options": {
-      "recommended": "AI doporučené",
+      "recommended": "Prioritní přehled",
       "newest": "Nejnovější",
       "distance": "Vzdálenost",
       "jhi_desc": "JHI od nejvyššího",
       "salary_desc": "Plat od nejvyššího"
     },
     "sort_explain": {
-      "recommended": "AI doporučené řadí nabídky podle celkové relevance. Zobrazené % je AI shoda pro danou nabídku a nemusí růst úplně lineárně kvůli čerstvosti a diverzitě výsledků."
+      "recommended": "Tento režim používá prioritní přehled podle aktuálních filtrů a kontextu role."
     },
     "language_options": {
       "cs": "Čeština",
@@ -1530,7 +1530,7 @@
       "code": "Kód",
       "ai_noise_btn": "Odstranit Šum (AI)",
       "analyzing": "Analyzuji...",
-      "settings_title": "Detaily a Benefity",
+      "settings_title": "Nastavení",
       "salary_min": "Minimální mzda",
       "salary_max": "Maximální mzda",
       "working_hours_placeholder": "např. 40h/týden",
@@ -2104,8 +2104,8 @@
         "excerpt": "Jak efektivně využít Career Pathfinder a AI analýzu k posunu ve vaší profesní dráze."
       },
       "post6": {
-        "title": "Jak funguje AI shoda a proč může být pořadí v AI doporučeném feedu jiné",
-        "excerpt": "Vysvětlujeme rozdíl mezi AI shodou na kartě a celkovým AI doporučeným řazením, aby feed dával jasný smysl."
+        "title": "Jak číst prioritu nabídek a proč se pořadí může měnit",
+        "excerpt": "Vysvětlujeme, podle čeho se nabídky v přehledu zvýrazňují a proč se pořadí může měnit podle filtrů a kontextu role."
       }
     },
     "category_label": "Category label",
@@ -3760,7 +3760,7 @@
     "results": "Výstup auditu"
   },
   "ai_advisory": {
-    "default": "AI recommendation only. Finální rozhodnutí je na člověku."
+    "default": "Jde o orientační výstup. Finální rozhodnutí je na člověku."
   },
   "application": {
     "messages": {
