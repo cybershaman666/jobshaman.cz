@@ -331,6 +331,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       workModel: 'Způsob práce',
       emptyTitle: 'Teď nic dobře nesedí',
       emptyBody: 'Rozšiř záběr, vypni část filtrů nebo zkus jiné nastavení. Přehled má vracet použitelný výběr, ne prázdno.',
+      loadingTitle: 'Načítáme nabídky podle zadaných filtrů',
+      loadingBody: 'Chvíli to může trvat. Připravujeme nový přehled podle vašeho hledání a aktuálního nastavení.',
       noNative: 'Vlastních výzev je zatím málo, proto se doplňují importovanými nabídkami.',
       openPreview: 'Zobrazit ukázku',
       selected: 'Vybráno',
@@ -429,6 +431,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       workModel: 'Spôsob práce',
       emptyTitle: 'Teraz nič dobre nesedí',
       emptyBody: 'Rozšír záber, vypni časť filtrov alebo skús iné nastavenie. Prehľad má vracať použiteľný výber, nie prázdno.',
+      loadingTitle: 'Načítavame ponuky podľa zadaných filtrov',
+      loadingBody: 'Chvíľu to môže trvať. Pripravujeme nový prehľad podľa vášho hľadania a aktuálneho nastavenia.',
       noNative: 'Vlastných výziev je zatiaľ málo, preto sa dopĺňajú importovanými ponukami.',
       openPreview: 'Zobraziť ukážku',
       selected: 'Vybrané',
@@ -527,6 +531,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       workModel: 'Arbeitsweise',
       emptyTitle: 'Im Moment passt nichts richtig',
       emptyBody: 'Erweitere den Fokus, schalte Filter ab oder probiere andere Einstellungen. Die Übersicht soll brauchbare Auswahl liefern, nicht Leere.',
+      loadingTitle: 'Passende Rollen werden geladen',
+      loadingBody: 'Das kann einen Moment dauern. Die Übersicht wird gerade nach Ihren Filtern und Ihrer Suche aktualisiert.',
       noNative: 'Es gibt noch wenige eigene Aufgaben, deshalb wird mit importierten Rollen ergänzt.',
       openPreview: 'Vorschau öffnen',
       selected: 'Ausgewählt',
@@ -626,6 +632,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       workModel: 'Sposób pracy',
       emptyTitle: 'Na razie nic dobrze nie pasuje',
       emptyBody: 'Poszerz zakres, wyłącz część filtrów albo spróbuj innych ustawień. Ta lista ma dawać użyteczny wybór, nie pustkę.',
+      loadingTitle: 'Ładowanie ofert według filtrów',
+      loadingBody: 'To może chwilę potrwać. Przygotowujemy nowy widok zgodny z twoim wyszukiwaniem i bieżącymi ustawieniami.',
       noNative: 'Własnych wyzwań jest jeszcze mało, dlatego lista uzupełnia się importowanymi ofertami.',
       openPreview: 'Pokaż podgląd',
       selected: 'Wybrane',
@@ -727,6 +735,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         workModel: 'Work model',
         emptyTitle: 'Nothing matches the current reality yet',
         emptyBody: 'Broaden the scope, disable some filters, or switch presets. The marketplace should return a realistic shortlist, not noise.',
+        loadingTitle: 'Loading roles for your current filters',
+        loadingBody: 'This can take a moment. We are refreshing the feed around your search and active setup.',
         noNative: 'There are no native challenges yet, so the marketplace currently uses imported fallback roles.',
         openPreview: 'Open challenge preview',
         selected: 'Selected',
@@ -1551,7 +1561,33 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             </div>
           </SurfaceCard>
 
-          {prioritizedJobsInLane.length === 0 ? (
+          {loading && prioritizedJobsInLane.length === 0 ? (
+            <SurfaceCard className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{copy.loadingTitle}</div>
+                <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.loadingBody}</p>
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`feed-loading-${index}`}
+                    className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-5"
+                  >
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-4 w-32 rounded-full bg-[var(--border-subtle)]" />
+                      <div className="h-8 w-4/5 rounded-[var(--radius-md)] bg-[var(--border-subtle)]" />
+                      <div className="h-20 rounded-[var(--radius-lg)] bg-[var(--surface)]" />
+                      <div className="flex flex-wrap gap-2">
+                        <div className="h-8 w-28 rounded-full bg-[var(--surface)]" />
+                        <div className="h-8 w-24 rounded-full bg-[var(--surface)]" />
+                        <div className="h-8 w-32 rounded-full bg-[var(--surface)]" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SurfaceCard>
+          ) : prioritizedJobsInLane.length === 0 ? (
             <EmptyState title={copy.emptyTitle} body={copy.emptyBody} />
           ) : (
             <div className="space-y-4">
