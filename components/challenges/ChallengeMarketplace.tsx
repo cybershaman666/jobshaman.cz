@@ -1324,10 +1324,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                             isSelected && 'border-[rgba(var(--accent-rgb),0.26)] bg-[var(--accent-soft)]'
                           )}
                         >
-                          <div className="space-y-4">
+                            <div className="space-y-4">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <div className="text-sm font-semibold text-[var(--text-strong)]">{job.title}</div>
+                                <div className="text-base font-semibold tracking-[-0.02em] text-[var(--text-strong)] md:text-lg">
+                                  {job.title}
+                                </div>
                                 <div className="mt-1 text-sm text-[var(--text-muted)]">{job.company}</div>
                               </div>
                               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1345,7 +1347,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                                   {copy.challengeLabel}
                                 </div>
-                                <h4 className="mt-2 max-w-4xl text-2xl font-semibold leading-tight tracking-[-0.045em] text-[var(--text-strong)] md:text-[2rem]">
+                                <h4 className="mt-2 max-w-4xl text-xl font-semibold leading-snug tracking-[-0.04em] text-[var(--text-strong)] md:text-[1.7rem]">
                                   {getChallengePreview(job)}
                                 </h4>
                               </div>
