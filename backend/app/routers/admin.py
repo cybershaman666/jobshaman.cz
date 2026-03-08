@@ -27,6 +27,9 @@ router = APIRouter()
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{8,36}$")
 _audit_table_missing_logged = False
 _admin_cache_store: Dict[str, tuple[float, Any]] = {}
+_ADMIN_STATS_TTL_SECONDS = 120
+_ADMIN_AI_QUALITY_TTL_SECONDS = 180
+_ADMIN_NOTIFICATIONS_TTL_SECONDS = 60
 
 
 def _admin_cache_get(key: str) -> Optional[Any]:
@@ -75,6 +78,53 @@ def _clean_admin_text(value: Optional[str], max_len: int = 5000) -> Optional[str
     if not clean:
         return None
     return clean[:max_len]
+
+
+def _safe_count(table: str, *, since: Optional[str] = None, filters: Optional[List[tuple[str, Any]]] = None) -> int:
+    if not supabase:
+        return 0
+    try:
+        query = supabase.table(table).select("id", count="exact")
+        if since:
+            query = query.gte("created_at", since)
+        for field, value in (filters or []):
+            query = query.eq(field, value)
+        resp = query.execute()
+        return resp.count or 0
+    except Exception as exc:
+        print(f"⚠️ Admin safe count failed for {table}: {exc}")
+        return 0
+
+
+def _safe_table_rows(
+    table: str,
+    *,
+    select: str = "*",
+    order_by: Optional[str] = None,
+    desc: bool = False,
+    limit: Optional[int] = None,
+    filters: Optional[List[tuple[str, str, Any]]] = None,
+) -> List[dict]:
+    if not supabase:
+        return []
+    try:
+        query = supabase.table(table).select(select)
+        for op, field, value in (filters or []):
+            if op == "eq":
+                query = query.eq(field, value)
+            elif op == "gte":
+                query = query.gte(field, value)
+            elif op == "in":
+                query = query.in_(field, value)
+        if order_by:
+            query = query.order(order_by, desc=desc)
+        if limit:
+            query = query.limit(limit)
+        resp = query.execute()
+        return resp.data or []
+    except Exception as exc:
+        print(f"⚠️ Admin safe table fetch failed for {table}: {exc}")
+        return []
 
 
 def _build_lead_payload(raw: dict, *, admin: Optional[dict] = None, include_owner: bool = False) -> dict:
@@ -1563,21 +1613,29 @@ async def admin_stats(
     last_30 = (now - timedelta(days=30)).isoformat()
 
     # Users
-    users_total = supabase.table("profiles").select("id", count="exact").execute().count or 0
-    users_7 = supabase.table("profiles").select("id", count="exact").gte("created_at", last_7).execute().count or 0
-    users_30 = supabase.table("profiles").select("id", count="exact").gte("created_at", last_30).execute().count or 0
+    users_total = _safe_count("profiles")
+    users_7 = _safe_count("profiles", since=last_7)
+    users_30 = _safe_count("profiles", since=last_30)
 
     # Companies
-    companies_total = supabase.table("companies").select("id", count="exact").execute().count or 0
-    companies_7 = supabase.table("companies").select("id", count="exact").gte("created_at", last_7).execute().count or 0
-    companies_30 = supabase.table("companies").select("id", count="exact").gte("created_at", last_30).execute().count or 0
+    companies_total = _safe_count("companies")
+    companies_7 = _safe_count("companies", since=last_7)
+    companies_30 = _safe_count("companies", since=last_30)
 
     # Paid conversion (company)
-    paid_company = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("company_id", "null").execute().count or 0
+    try:
+        paid_company = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("company_id", "null").execute().count or 0
+    except Exception as exc:
+        print(f"⚠️ Admin paid company conversion failed: {exc}")
+        paid_company = 0
     company_conversion = (paid_company / companies_total * 100) if companies_total else 0
 
     # Paid conversion (user)
-    paid_user = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("user_id", "null").execute().count or 0
+    try:
+        paid_user = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("user_id", "null").execute().count or 0
+    except Exception as exc:
+        print(f"⚠️ Admin paid user conversion failed: {exc}")
+        paid_user = 0
     user_conversion = (paid_user / users_total * 100) if users_total else 0
 
     traffic = None
@@ -1676,15 +1734,14 @@ async def admin_ai_quality(
 
     start_iso = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
-    logs_resp = (
-        supabase.table("ai_generation_logs")
-        .select("user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out, estimated_cost")
-        .gte("created_at", start_iso)
-        .order("created_at", desc=True)
-        .limit(5000)
-        .execute()
+    logs = _safe_table_rows(
+        "ai_generation_logs",
+        select="user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out, estimated_cost",
+        order_by="created_at",
+        desc=True,
+        limit=5000,
+        filters=[("gte", "created_at", start_iso)],
     )
-    logs = logs_resp.data or []
     total = len(logs)
     valid_count = sum(1 for row in logs if row.get("output_valid"))
     fallback_count = sum(1 for row in logs if row.get("fallback_used"))
@@ -1778,29 +1835,27 @@ async def admin_ai_quality(
         )
     ][:12]
 
-    diffs_resp = (
-        supabase.table("ai_generation_diffs")
-        .select("change_ratio, feature")
-        .gte("created_at", start_iso)
-        .order("created_at", desc=True)
-        .limit(4000)
-        .execute()
+    diffs = _safe_table_rows(
+        "ai_generation_diffs",
+        select="change_ratio, feature",
+        order_by="created_at",
+        desc=True,
+        limit=4000,
+        filters=[("gte", "created_at", start_iso)],
     )
-    diffs = diffs_resp.data or []
     diff_volatility = round(
         (sum(_safe_float(row.get("change_ratio")) for row in diffs) / len(diffs)) * 100,
         2,
     ) if diffs else 0.0
 
-    rec_resp = (
-        supabase.table("recommendation_cache")
-        .select("user_id, score, model_version, scoring_version, breakdown_json, computed_at")
-        .gte("computed_at", start_iso)
-        .order("computed_at", desc=True)
-        .limit(6000)
-        .execute()
+    rec_rows = _safe_table_rows(
+        "recommendation_cache",
+        select="user_id, score, model_version, scoring_version, breakdown_json, computed_at",
+        order_by="computed_at",
+        desc=True,
+        limit=6000,
+        filters=[("gte", "computed_at", start_iso)],
     )
-    rec_rows = rec_resp.data or []
     avg_recommendation_score = round(
         sum(_safe_float(row.get("score")) for row in rec_rows) / max(1, len(rec_rows)), 2
     ) if rec_rows else 0.0
@@ -1829,15 +1884,15 @@ async def admin_ai_quality(
         else:
             score_distribution["gte_80"] += 1
 
-    interactions_resp = (
-        supabase.table("job_interactions")
-        .select("user_id, event_type, created_at")
-        .gte("created_at", start_iso)
-        .in_("event_type", ["impression", "open_detail", "apply_click"])
-        .limit(6000)
-        .execute()
+    interactions = _safe_table_rows(
+        "job_interactions",
+        select="user_id, event_type, created_at",
+        limit=6000,
+        filters=[
+            ("gte", "created_at", start_iso),
+            ("in", "event_type", ["impression", "open_detail", "apply_click"]),
+        ],
     )
-    interactions = interactions_resp.data or []
     apply_users = {row.get("user_id") for row in interactions if row.get("event_type") == "apply_click" and row.get("user_id")}
     active_users = {row.get("user_id") for row in interactions if row.get("event_type") in ["impression", "open_detail"] and row.get("user_id")}
     ai_users = {row.get("user_id") for row in logs if row.get("user_id")}
@@ -1969,24 +2024,20 @@ async def admin_ai_quality(
         eval_rows = []
     latest_eval_overall = next((row for row in eval_rows if not row.get("scoring_version")), None)
 
-    model_registry = (
-        supabase.table("model_registry")
-        .select("subsystem, feature, version, model_name, is_primary, is_fallback, is_active, created_at")
-        .eq("is_active", True)
-        .order("created_at", desc=True)
-        .limit(50)
-        .execute()
-        .data
-        or []
+    model_registry = _safe_table_rows(
+        "model_registry",
+        select="subsystem, feature, version, model_name, is_primary, is_fallback, is_active, created_at",
+        order_by="created_at",
+        desc=True,
+        limit=50,
+        filters=[("eq", "is_active", True)],
     )
-    release_flags = (
-        supabase.table("release_flags")
-        .select("flag_key, subsystem, is_enabled, rollout_percent, variant, updated_at")
-        .order("updated_at", desc=True)
-        .limit(100)
-        .execute()
-        .data
-        or []
+    release_flags = _safe_table_rows(
+        "release_flags",
+        select="flag_key, subsystem, is_enabled, rollout_percent, variant, updated_at",
+        order_by="updated_at",
+        desc=True,
+        limit=100,
     )
 
     return _admin_cache_set(cache_key, {
@@ -2057,12 +2108,37 @@ async def admin_notifications(
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(days=days_ahead)
 
-    resp = supabase.table("subscriptions").select(
-        "id, company_id, user_id, tier, status, current_period_end, companies!fk_company(name, industry), profiles(email, full_name)"
-    ).eq("status", "trialing").execute()
+    trialing_rows = _safe_table_rows(
+        "subscriptions",
+        select="id, company_id, user_id, tier, status, current_period_end",
+        filters=[("eq", "status", "trialing")],
+    )
+
+    company_ids = [row.get("company_id") for row in trialing_rows if row.get("company_id")]
+    user_ids = [row.get("user_id") for row in trialing_rows if row.get("user_id")]
+
+    companies_by_id: Dict[str, dict] = {}
+    if company_ids:
+        company_rows = _safe_table_rows(
+            "companies",
+            select="id, name, industry",
+            limit=len(company_ids),
+            filters=[("in", "id", company_ids)],
+        )
+        companies_by_id = {str(row.get("id")): row for row in company_rows if row.get("id")}
+
+    profiles_by_id: Dict[str, dict] = {}
+    if user_ids:
+        profile_rows = _safe_table_rows(
+            "profiles",
+            select="id, email, full_name",
+            limit=len(user_ids),
+            filters=[("in", "id", user_ids)],
+        )
+        profiles_by_id = {str(row.get("id")): row for row in profile_rows if row.get("id")}
 
     items = []
-    for sub in resp.data or []:
+    for sub in trialing_rows:
         end_raw = sub.get("current_period_end")
         end_dt = _parse_iso_datetime(end_raw)
         if not end_dt:
@@ -2077,14 +2153,16 @@ async def admin_notifications(
         else:
             continue
 
+        company = companies_by_id.get(str(sub.get("company_id") or ""), {})
+        profile = profiles_by_id.get(str(sub.get("user_id") or ""), {})
         items.append({
             "subscription_id": sub.get("id"),
             "company_id": sub.get("company_id"),
             "user_id": sub.get("user_id"),
-            "company_name": (sub.get("companies") or {}).get("name"),
-            "company_industry": (sub.get("companies") or {}).get("industry"),
-            "user_email": (sub.get("profiles") or {}).get("email"),
-            "user_name": (sub.get("profiles") or {}).get("full_name"),
+            "company_name": company.get("name"),
+            "company_industry": company.get("industry"),
+            "user_email": profile.get("email"),
+            "user_name": profile.get("full_name"),
             "tier": sub.get("tier"),
             "status": sub.get("status"),
             "current_period_end": end_raw,
