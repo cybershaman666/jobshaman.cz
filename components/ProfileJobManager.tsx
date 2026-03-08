@@ -313,7 +313,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   const getStatusClassName = (status: CandidateDialogueStatus): string => {
     switch (status) {
       case 'reviewed':
-        return 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300';
+        return 'bg-[var(--accent-soft)] text-[var(--accent)]';
       case 'shortlisted':
         return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'rejected':
@@ -438,7 +438,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     const className =
       totalHours <= 12
         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-        : 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300';
+        : 'bg-[var(--accent-soft)] text-[var(--accent)]';
 
     return {
       label: `${actorLabel} • ${windowLabel}`,
@@ -484,7 +484,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             {closeReasonMeta.label}
           </span>
         )}
-        <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+        <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
           {getResponseSlaHint(dialogue)}
         </span>
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -537,7 +537,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
               <Eye className="h-3.5 w-3.5" />
               {t('profile.job_hub.detail_badge', { defaultValue: 'Detail otevřeného handshaku' })}
             </div>
@@ -713,10 +713,10 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
         )}
 
         {activeDetail.has_jcfpm && (
-          <div className="mt-6 rounded-[1rem] border border-cyan-200 bg-cyan-50/80 p-5 dark:border-cyan-900/40 dark:bg-cyan-950/10">
+          <div className="mt-6 rounded-[1rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-5">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
+                <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
                   {t('profile.job_hub.jcfpm_shared_signal', { defaultValue: 'Sdílený JCFPM hiring signal' })}
                 </h4>
                 <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
@@ -726,7 +726,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                     })}
                 </p>
               </div>
-              <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-cyan-700 dark:bg-cyan-950/30 dark:text-cyan-300">
+              <span className="inline-flex rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white px-3 py-1 text-xs font-semibold text-[var(--accent)] dark:bg-slate-900/70">
                 {t('profile.job_hub.jcfpm_summary_only', { defaultValue: 'Pouze summary' })}
               </span>
             </div>
@@ -737,7 +737,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   const score = Number(signal?.score || 0);
                   const clamped = Math.max(0, Math.min(100, score));
                   return (
-                    <div key={String(signal?.key || signal?.label)} className="rounded-xl border border-cyan-100 bg-white/90 p-4 dark:border-cyan-900/30 dark:bg-slate-900/70">
+                    <div key={String(signal?.key || signal?.label)} className="rounded-xl border border-[rgba(var(--accent-rgb),0.14)] bg-white/90 p-4 dark:bg-slate-900/70">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           {signal?.label || signal?.key}
@@ -746,7 +746,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                       </div>
                       <div className="mt-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
                         <div
-                          className="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-sky-500"
+                          className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-400"
                           style={{ width: `${clamped}%` }}
                         />
                       </div>
@@ -786,10 +786,10 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.15rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.97)_0%,_rgba(241,245,249,0.98)_100%)] p-5 shadow-[0_18px_38px_-34px_rgba(15,23,42,0.26)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.10),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.97)_0%,_rgba(15,23,42,0.98)_100%)]">
+      <div className="rounded-[1.15rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.10),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.97)_0%,_rgba(241,245,249,0.98)_100%)] p-5 shadow-[0_18px_38px_-34px_rgba(15,23,42,0.26)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.08),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.97)_0%,_rgba(15,23,42,0.98)_100%)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)] dark:bg-slate-900/70">
               <Briefcase className="h-3.5 w-3.5" />
               {t('profile.job_hub.badge', { defaultValue: 'Dialogové centrum' })}
             </div>
@@ -801,7 +801,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                 defaultValue: 'Na jednom místě vidíte otevřené dialogy, co přesně bylo sdíleno, a můžete se vracet k asynchronní komunikaci s firmami.'
               })}
             </p>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-300">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/80 px-3 py-1.5 text-xs font-medium text-[var(--accent)] dark:bg-slate-900/70">
               <Clock3 className="h-3.5 w-3.5" />
               {dialogueCapacity
                 ? t('profile.job_hub.capacity_inline', {
@@ -856,8 +856,8 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-cyan-100 p-2 dark:bg-cyan-900/30">
-                    <Mail className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                  <div className="rounded-lg bg-[var(--accent-soft)] p-2">
+                    <Mail className="h-5 w-5 text-[var(--accent)]" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -891,7 +891,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   value={dialogueSearch}
                     onChange={(event) => setDialogueSearch(event.target.value)}
                     placeholder={t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v dialozích' })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:focus:border-cyan-700 dark:focus:ring-cyan-900/40"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-[rgba(var(--accent-rgb),0.45)] focus:ring-2 focus:ring-[rgba(var(--accent-rgb),0.16)] dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:focus:border-[rgba(var(--accent-rgb),0.45)] dark:focus:ring-[rgba(var(--accent-rgb),0.16)]"
                   />
                 </div>
               </div>
@@ -931,7 +931,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                         key={dialogue.id}
                         className={`rounded-[1rem] border p-5 transition-colors ${
                           isActive
-                            ? 'border-cyan-300 bg-cyan-50/60 dark:border-cyan-700 dark:bg-cyan-950/10'
+                            ? 'border-[rgba(var(--accent-rgb),0.28)] bg-[var(--accent-soft)]'
                             : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/70'
                         }`}
                       >

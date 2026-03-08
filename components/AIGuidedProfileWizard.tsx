@@ -299,7 +299,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-500" />
+            <Sparkles className="w-5 h-5 text-amber-500" />
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.ai_guide.title')}</h3>
           </div>
           <button onClick={handleClose} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
@@ -315,7 +315,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
               </div>
               <h4 className="text-xl font-semibold text-slate-900 dark:text-white">{currentStep.title}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{currentStep.hint}</p>
-              <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
                 {t('profile.ai_guide.helper')}
               </p>
             </div>
@@ -333,7 +333,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
               value={stepTexts[stepIndex]}
               onChange={(e) => updateStepText(e.target.value)}
               rows={6}
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full rounded-lg border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               placeholder={t('profile.ai_guide.input_placeholder')}
             />
 
@@ -363,7 +363,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 {stepIndex < steps.length - 1 ? (
                   <button
                     onClick={() => setStepIndex((prev) => Math.min(prev + 1, steps.length - 1))}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white"
+                    className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-500"
                   >
                     {t('profile.ai_guide.next')}
                   </button>
@@ -371,7 +371,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500"
                   >
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                     {t('profile.ai_guide.generate')}
@@ -391,7 +391,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
         ) : (
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
             {whySummary.length > 0 && (
-              <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-3">
+              <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
                 <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                   {t('profile.ai_guide.why_title')}
                 </div>
@@ -563,7 +563,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
               <button
                 onClick={handleApply}
                 disabled={isApplying}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white disabled:opacity-60"
+                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-60"
               >
                 {isApplying ? t('profile.ai_guide.saving') : t('profile.ai_guide.save_to_profile')}
               </button>

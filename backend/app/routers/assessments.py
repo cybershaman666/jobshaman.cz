@@ -23,11 +23,28 @@ from ..models.requests import (
 from ..services.email import send_email
 
 router = APIRouter()
+_INVITATIONS_CACHE_TTL_SECONDS = 30
+_INVITATIONS_CACHE: dict[str, tuple[datetime, list[dict[str, Any]]]] = {}
 
 
 def _is_missing_column_error(exc: Exception, column_name: str) -> bool:
     msg = str(exc).lower()
     return column_name.lower() in msg and ("does not exist" in msg or "column" in msg)
+
+
+def _get_cached_invitations(cache_key: str) -> list[dict[str, Any]] | None:
+    cached = _INVITATIONS_CACHE.get(cache_key)
+    if not cached:
+        return None
+    cached_at, rows = cached
+    if datetime.now(timezone.utc) - cached_at > timedelta(seconds=_INVITATIONS_CACHE_TTL_SECONDS):
+        _INVITATIONS_CACHE.pop(cache_key, None)
+        return None
+    return rows
+
+
+def _set_cached_invitations(cache_key: str, rows: list[dict[str, Any]]) -> None:
+    _INVITATIONS_CACHE[cache_key] = (datetime.now(timezone.utc), rows)
 
 
 def _safe_assessment_job_id(value: Any) -> int | None:
@@ -803,11 +820,39 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
 @router.get('/invitations')
 async def list_invitations(user: dict = Depends(get_current_user)):
     is_company = bool(user.get('company_name'))
+    invitation_columns = 'id,assessment_id,status,created_at,expires_at,metadata,candidate_email,company_id'
 
     if is_company:
         company_id = require_company_access(user, user.get('company_id'))
-        resp = supabase.table('assessment_invitations').select('*').eq('company_id', company_id).order('created_at', desc=True).execute()
+        cache_key = f"company:{company_id}"
+        cached = _get_cached_invitations(cache_key)
+        if cached is not None:
+            return {'invitations': cached}
+        resp = (
+            supabase
+            .table('assessment_invitations')
+            .select(invitation_columns)
+            .eq('company_id', company_id)
+            .order('created_at', desc=True)
+            .limit(200)
+            .execute()
+        )
     else:
-        resp = supabase.table('assessment_invitations').select('*').eq('candidate_email', user.get('email')).order('created_at', desc=True).execute()
+        candidate_email = str(user.get('email') or '').strip().lower()
+        cache_key = f"candidate:{candidate_email}"
+        cached = _get_cached_invitations(cache_key)
+        if cached is not None:
+            return {'invitations': cached}
+        resp = (
+            supabase
+            .table('assessment_invitations')
+            .select(invitation_columns)
+            .eq('candidate_email', user.get('email'))
+            .order('created_at', desc=True)
+            .limit(200)
+            .execute()
+        )
 
-    return {'invitations': resp.data or []}
+    rows = resp.data or []
+    _set_cached_invitations(cache_key, rows)
+    return {'invitations': rows}

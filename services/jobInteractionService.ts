@@ -112,6 +112,13 @@ const writeInteractionStateCache = (payload: { savedJobIds: string[]; dismissedJ
     }
 };
 
+export const updateInteractionStateCache = (payload: { savedJobIds: string[]; dismissedJobIds: string[] }): void => {
+    writeInteractionStateCache({
+        savedJobIds: Array.from(new Set((payload.savedJobIds || []).map((id) => String(id)))),
+        dismissedJobIds: Array.from(new Set((payload.dismissedJobIds || []).map((id) => String(id)))),
+    });
+};
+
 const readInteractionSyncQueue = (): { payload: JobInteractionStateSyncPayload; attempts: number } | null => {
     try {
         const raw = localStorage.getItem(INTERACTION_STATE_SYNC_QUEUE_KEY);

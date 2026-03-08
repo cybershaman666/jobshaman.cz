@@ -658,7 +658,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         premiumTitle: hasPremiumAccess ? 'Premium is active' : 'What premium unlocks',
         premiumBody: hasPremiumAccess
           ? 'Your stronger decision layer is active, including deeper support and more room for active replies.'
-          : 'Premium adds more room for replies, a smarter life-context guide, and sharper recommendations around your own reality.',
+          : 'Premium adds more room for replies, a smarter life-context guide, and sharper prioritization around your own reality.',
         premiumCta: hasPremiumAccess ? 'Manage premium' : 'See premium',
         premiumBullets: [
           'More dialogue slots for active replies',
@@ -1188,7 +1188,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">
                     {isCsLike
                       ? 'Více prostoru pro odpovědi, chytřejší vedení a přesnější doporučení'
-                      : 'More room for replies, sharper guidance, and stronger recommendations'}
+                      : 'More room for replies, sharper guidance, and stronger decision support'}
                   </h3>
                   <p className="max-w-3xl text-sm leading-7 text-slate-700">{copy.premiumBody}</p>
                 </div>

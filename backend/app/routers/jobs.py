@@ -29,6 +29,8 @@ _SEARCH_EXPOSURES_WARNING_EMITTED: bool = False
 _SEARCH_FEEDBACK_AVAILABLE: bool = True
 _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
 _INTERACTIONS_CSRF_WARNING_LAST_EMITTED: datetime | None = None
+_INTERACTION_STATE_CACHE_TTL_SECONDS = 20
+_INTERACTION_STATE_CACHE: dict[tuple[str, int], tuple[datetime, tuple[list[str], list[str]]]] = {}
 
 # recommendation_feedback_events historically expects a narrower signal taxonomy
 # than raw UI interaction events. Keep search_feedback_events raw, but normalize
@@ -66,6 +68,35 @@ def _try_get_optional_user_id(request: Request) -> str | None:
         return user.get("id") or user.get("auth_id")
     except Exception:
         return None
+
+
+def _interaction_state_cache_key(user_id: str, limit: int) -> tuple[str, int]:
+    return (str(user_id or ""), max(1, min(20000, int(limit or 10000))))
+
+
+def _get_cached_user_interaction_state(user_id: str, limit: int) -> tuple[list[str], list[str]] | None:
+    key = _interaction_state_cache_key(user_id, limit)
+    cached = _INTERACTION_STATE_CACHE.get(key)
+    if not cached:
+        return None
+    cached_at, payload = cached
+    if datetime.now(timezone.utc) - cached_at > timedelta(seconds=_INTERACTION_STATE_CACHE_TTL_SECONDS):
+        _INTERACTION_STATE_CACHE.pop(key, None)
+        return None
+    return payload
+
+
+def _set_cached_user_interaction_state(user_id: str, limit: int, payload: tuple[list[str], list[str]]) -> None:
+    _INTERACTION_STATE_CACHE[_interaction_state_cache_key(user_id, limit)] = (datetime.now(timezone.utc), payload)
+
+
+def _invalidate_user_interaction_state_cache(user_id: str | None) -> None:
+    normalized = str(user_id or "").strip()
+    if not normalized:
+        return
+    stale_keys = [key for key in _INTERACTION_STATE_CACHE.keys() if key[0] == normalized]
+    for key in stale_keys:
+        _INTERACTION_STATE_CACHE.pop(key, None)
 
 
 def _parse_iso_datetime(value: str) -> datetime | None:
@@ -791,6 +822,9 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
 def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[list[str], list[str]]:
     if not supabase or not user_id:
         return [], []
+    cached = _get_cached_user_interaction_state(user_id, limit)
+    if cached is not None:
+        return cached
     try:
         resp = (
             supabase.table("job_interactions")
@@ -834,7 +868,9 @@ def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[lis
 
     saved_job_ids.sort()
     dismissed_job_ids.sort()
-    return saved_job_ids, dismissed_job_ids
+    payload = (saved_job_ids, dismissed_job_ids)
+    _set_cached_user_interaction_state(user_id, limit, payload)
+    return payload
 
 
 def _filter_out_dismissed_jobs(jobs: list[dict], dismissed_job_ids: set[str]) -> list[dict]:
@@ -1082,6 +1118,93 @@ def _write_analytics_event(
         if _is_missing_table_error(exc, "analytics_events"):
             return
         print(f"⚠️ Failed to write analytics event {event_type}: {exc}")
+
+
+def _write_interaction_feedback_rows(
+    feedback_rows: list[dict[str, Any]],
+    normalized_signal_type: str,
+    raw_event_type: str,
+) -> None:
+    if not feedback_rows or not supabase:
+        return
+
+    recommendation_rows = [
+        row for row in feedback_rows
+        if str(row.get("signal_type") or "").strip().lower() in _RECOMMENDATION_ALLOWED_SIGNALS
+    ]
+
+    try:
+        if recommendation_rows:
+            supabase.table("recommendation_feedback_events").insert(recommendation_rows).execute()
+    except Exception as feedback_exc:
+        print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
+
+    search_feedback_rows = []
+    for row in feedback_rows:
+        signal_type = row.get("signal_type")
+        if signal_type == normalized_signal_type:
+            signal_type = raw_event_type
+        search_feedback_rows.append(
+            {
+                "request_id": row.get("request_id"),
+                "user_id": row.get("user_id"),
+                "job_id": row.get("job_id"),
+                "signal_type": signal_type,
+                "signal_value": row.get("signal_value"),
+                "metadata": row.get("metadata") or {},
+            }
+        )
+
+    global _SEARCH_FEEDBACK_AVAILABLE, _SEARCH_FEEDBACK_WARNING_EMITTED
+    if search_feedback_rows and _SEARCH_FEEDBACK_AVAILABLE:
+        try:
+            supabase.table("search_feedback_events").insert(search_feedback_rows).execute()
+        except Exception as search_exc:
+            if _is_missing_table_error(search_exc, "search_feedback_events"):
+                _SEARCH_FEEDBACK_AVAILABLE = False
+                if not _SEARCH_FEEDBACK_WARNING_EMITTED:
+                    print("⚠️ search_feedback_events table missing. Disabling search feedback writes.")
+                    _SEARCH_FEEDBACK_WARNING_EMITTED = True
+            else:
+                print(f"⚠️ Failed to write search feedback events: {search_exc}")
+
+
+def _write_recommendation_exposures(exposure_rows: list[dict[str, Any]]) -> None:
+    if not exposure_rows or not supabase:
+        return
+    try:
+        supabase.table("recommendation_exposures").upsert(
+            exposure_rows, on_conflict="request_id,user_id,job_id"
+        ).execute()
+    except Exception as exp_exc:
+        print(f"⚠️ Failed to write recommendation exposures: {exp_exc}")
+
+
+def _write_search_exposures(request_id: str, exposures: list[dict[str, Any]]) -> None:
+    global _SEARCH_EXPOSURES_AVAILABLE, _SEARCH_EXPOSURES_WARNING_EMITTED
+    if not exposures or not supabase or not _SEARCH_EXPOSURES_AVAILABLE:
+        return
+
+    exposure_write_started = datetime.now(timezone.utc)
+    try:
+        supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
+        exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
+        print(
+            f"📊 [Hybrid Search V2] exposures_upsert_ok request_id={request_id} "
+            f"rows={len(exposures)} write_ms={exposure_write_ms}"
+        )
+    except Exception as exc:
+        exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
+        if _is_missing_table_error(exc, "search_exposures"):
+            _SEARCH_EXPOSURES_AVAILABLE = False
+            if not _SEARCH_EXPOSURES_WARNING_EMITTED:
+                print("⚠️ search_exposures table missing. Disabling search exposure writes.")
+                _SEARCH_EXPOSURES_WARNING_EMITTED = True
+        else:
+            print(
+                f"⚠️ Failed to write search exposures (request_id={request_id}, "
+                f"rows={len(exposures)}, write_ms={exposure_write_ms}): {exc}"
+            )
 
 
 def _strip_html_tags(value: Any) -> str:
@@ -2077,7 +2200,12 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
 
 @router.post("/jobs/interactions")
 @limiter.limit("120/minute")
-async def log_job_interaction(payload: JobInteractionRequest, request: Request, user: dict = Depends(get_current_user)):
+async def log_job_interaction(
+    payload: JobInteractionRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
+):
     if not verify_csrf_token_header(request, user):
         # Telemetry endpoint: do not block UX on CSRF token race/cooldown.
         global _INTERACTIONS_CSRF_WARNING_LAST_EMITTED
@@ -2122,6 +2250,9 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
         return {"status": "degraded", "reason": "no_data_inserted"}
 
     try:
+        if payload.event_type in _INTERACTION_STATE_EVENTS:
+            _invalidate_user_interaction_state_cache(user_id)
+
         normalized_signal_type = _RECOMMENDATION_SIGNAL_MAP.get(payload.event_type, payload.event_type)
 
         feedback_rows = [
@@ -2164,44 +2295,12 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
                     "metadata": metadata,
                 }
             )
-        recommendation_rows = [
-            row for row in feedback_rows
-            if str(row.get("signal_type") or "").strip().lower() in _RECOMMENDATION_ALLOWED_SIGNALS
-        ]
-
-        try:
-            if recommendation_rows:
-                supabase.table("recommendation_feedback_events").insert(recommendation_rows).execute()
-        except Exception as feedback_exc:
-            print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
-
-        search_feedback_rows = []
-        for row in feedback_rows:
-            raw_signal_type = row.get("signal_type")
-            if raw_signal_type == normalized_signal_type:
-                raw_signal_type = payload.event_type
-            search_feedback_rows.append(
-                {
-                    "request_id": row.get("request_id"),
-                    "user_id": row.get("user_id"),
-                    "job_id": row.get("job_id"),
-                    "signal_type": raw_signal_type,
-                    "signal_value": row.get("signal_value"),
-                    "metadata": row.get("metadata") or {},
-                }
-            )
-        global _SEARCH_FEEDBACK_AVAILABLE, _SEARCH_FEEDBACK_WARNING_EMITTED
-        if search_feedback_rows and _SEARCH_FEEDBACK_AVAILABLE:
-            try:
-                supabase.table("search_feedback_events").insert(search_feedback_rows).execute()
-            except Exception as search_exc:
-                if _is_missing_table_error(search_exc, "search_feedback_events"):
-                    _SEARCH_FEEDBACK_AVAILABLE = False
-                    if not _SEARCH_FEEDBACK_WARNING_EMITTED:
-                        print("⚠️ search_feedback_events table missing. Disabling search feedback writes.")
-                        _SEARCH_FEEDBACK_WARNING_EMITTED = True
-                else:
-                    print(f"⚠️ Failed to write search feedback events: {search_exc}")
+        background_tasks.add_task(
+            _write_interaction_feedback_rows,
+            feedback_rows,
+            normalized_signal_type,
+            payload.event_type,
+        )
         return {"status": "success"}
     except Exception as exc:
         print(f"⚠️ Partial telemetry failure after interaction insert: {exc}")
@@ -2312,6 +2411,7 @@ async def sync_job_interaction_state(
             batch_size = 500
             for i in range(0, len(insert_rows), batch_size):
                 supabase.table("job_interactions").insert(insert_rows[i : i + batch_size]).execute()
+            _invalidate_user_interaction_state_cache(user_id)
         except Exception as exc:
             print(f"⚠️ Failed to sync interaction state: {exc}")
             raise HTTPException(status_code=500, detail="Failed to sync interaction state")
@@ -4048,6 +4148,7 @@ async def update_company_job_lifecycle(
 @limiter.limit("30/minute")
 async def get_job_recommendations(
     request: Request,
+    background_tasks: BackgroundTasks,
     limit: int = Query(50, ge=1, le=200),
     user: dict = Depends(get_current_user),
 ):
@@ -4099,12 +4200,7 @@ async def get_job_recommendations(
     )
 
     if exposure_rows:
-        try:
-            supabase.table("recommendation_exposures").upsert(
-                exposure_rows, on_conflict="request_id,user_id,job_id"
-            ).execute()
-        except Exception as exp_exc:
-            print(f"⚠️ Failed to write recommendation exposures: {exp_exc}")
+        background_tasks.add_task(_write_recommendation_exposures, exposure_rows)
 
     return {"jobs": enriched_matches, "request_id": request_id}
 
@@ -4177,6 +4273,7 @@ async def jobs_hybrid_search(
 async def jobs_hybrid_search_v2(
     payload: HybridJobSearchV2Request,
     request: Request,
+    background_tasks: BackgroundTasks,
 ):
     user_id = _try_get_optional_user_id(request)
     dismissed_job_ids: set[str] = set()
@@ -4245,28 +4342,8 @@ async def jobs_hybrid_search_v2(
                 },
             }
         )
-    global _SEARCH_EXPOSURES_AVAILABLE, _SEARCH_EXPOSURES_WARNING_EMITTED
-    if exposures and _SEARCH_EXPOSURES_AVAILABLE:
-        exposure_write_started = datetime.now(timezone.utc)
-        try:
-            supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
-            exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
-            print(
-                f"📊 [Hybrid Search V2] exposures_upsert_ok request_id={request_id} "
-                f"rows={len(exposures)} write_ms={exposure_write_ms}"
-            )
-        except Exception as exc:
-            exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
-            if _is_missing_table_error(exc, "search_exposures"):
-                _SEARCH_EXPOSURES_AVAILABLE = False
-                if not _SEARCH_EXPOSURES_WARNING_EMITTED:
-                    print("⚠️ search_exposures table missing. Disabling search exposure writes.")
-                    _SEARCH_EXPOSURES_WARNING_EMITTED = True
-            else:
-                print(
-                    f"⚠️ Failed to write search exposures (request_id={request_id}, "
-                    f"rows={len(exposures)}, write_ms={exposure_write_ms}): {exc}"
-                )
+    if exposures:
+        background_tasks.add_task(_write_search_exposures, request_id, exposures)
 
     meta = result.get("meta") or {}
     response = {

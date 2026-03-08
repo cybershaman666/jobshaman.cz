@@ -161,7 +161,42 @@ export const updateFilterSetUsage = async (id: string): Promise<void> => {
         });
 
         if (error) {
-            console.warn('Failed to update filter usage:', error);
+            const missingRpc =
+                String((error as any)?.code || '').toUpperCase() === 'PGRST202' ||
+                String((error as any)?.message || '').toLowerCase().includes('increment_filter_usage');
+            if (!missingRpc) {
+                console.warn('Failed to update filter usage:', error);
+                return;
+            }
+
+            const userId = await getCurrentAuthUserId();
+            if (!userId) return;
+
+            const { data: current, error: loadError } = await supabase
+                .from('saved_filter_sets')
+                .select('usage_count')
+                .eq('id', id)
+                .eq('user_id', userId)
+                .single();
+
+            if (loadError) {
+                console.warn('Failed to load filter usage fallback:', loadError);
+                return;
+            }
+
+            const nextUsageCount = Number((current as any)?.usage_count || 0) + 1;
+            const { error: updateError } = await supabase
+                .from('saved_filter_sets')
+                .update({
+                    usage_count: nextUsageCount,
+                    last_used_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .eq('user_id', userId);
+
+            if (updateError) {
+                console.warn('Failed to update filter usage fallback:', updateError);
+            }
         }
     } catch (error) {
         console.warn('Error updating filter usage:', error);

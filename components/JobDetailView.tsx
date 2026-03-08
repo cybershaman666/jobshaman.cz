@@ -169,9 +169,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             title: 'Financial and commute reality',
             desc: 'This section shows the net impact of salary, commute, and related costs for this role.'
         };
-    const aiMatchScore = userProfile.isLoggedIn && typeof (selectedJob as any)?.aiMatchScore === 'number'
-        ? Math.round((selectedJob as any).aiMatchScore)
-        : null;
+    const aiMatchScore = null;
     const highValueKeywords = [
         'remote',
         'home office',

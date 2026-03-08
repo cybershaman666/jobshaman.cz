@@ -85,9 +85,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         : undefined;
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
     const jhiScore = currentJob?.jhi?.score;
-    const aiMatchScore = typeof (currentJob as any)?.aiMatchScore === 'number'
-        ? Math.round((currentJob as any).aiMatchScore)
-        : null;
+    const aiMatchScore = null;
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
 

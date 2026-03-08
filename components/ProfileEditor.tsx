@@ -137,7 +137,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium odemkne AI průvodce i chytřejší úpravy CV.',
       jcfpmSummary: '108 otázek • 12 dimenzí • základní výstup pro všechny • plný rozbor v Premium',
       jcfpmBasicTitle: 'Základní výsledek je připravený',
-      jcfpmBasicDesc: 'Test už teď upravuje vaše interní doporučení JHI. Premium odemkne podrobný rozbor, vysvětlení změn a sdílení výsledků s firmou.',
+      jcfpmBasicDesc: 'Test už teď zpřesňuje vaši interní interpretaci JHI. Premium odemkne podrobný rozbor, vysvětlení změn a sdílení výsledků s firmou.',
       jcfpmUnlock: 'Odemknout plný rozbor',
     },
     en: {
@@ -147,7 +147,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium unlocks the AI guide and smarter CV improvements.',
       jcfpmSummary: '108 questions • 12 dimensions • basic results for everyone • full analysis in Premium',
       jcfpmBasicTitle: 'Your basic result is ready',
-      jcfpmBasicDesc: 'The test already improves your internal JHI recommendations. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
+      jcfpmBasicDesc: 'The test already sharpens your internal JHI interpretation. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
       jcfpmUnlock: 'Unlock full analysis',
     },
     de: {
@@ -157,7 +157,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium schaltet den KI-Assistenten und intelligentere Lebenslauf-Verbesserungen frei.',
       jcfpmSummary: '108 Fragen • 12 Dimensionen • Basis-Ergebnis für alle • volle Analyse in Premium',
       jcfpmBasicTitle: 'Ihr Basis-Ergebnis ist bereit',
-      jcfpmBasicDesc: 'Der Test verbessert bereits Ihre internen JHI-Empfehlungen. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
+      jcfpmBasicDesc: 'Der Test schärft bereits Ihre interne JHI-Interpretation. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
       jcfpmUnlock: 'Volle Analyse freischalten',
     },
     at: {
@@ -167,7 +167,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium schaltet den KI-Assistenten und intelligentere Lebenslauf-Verbesserungen frei.',
       jcfpmSummary: '108 Fragen • 12 Dimensionen • Basis-Ergebnis für alle • volle Analyse in Premium',
       jcfpmBasicTitle: 'Ihr Basis-Ergebnis ist bereit',
-      jcfpmBasicDesc: 'Der Test verbessert bereits Ihre internen JHI-Empfehlungen. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
+      jcfpmBasicDesc: 'Der Test schärft bereits Ihre interne JHI-Interpretation. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
       jcfpmUnlock: 'Volle Analyse freischalten',
     },
     pl: {
@@ -177,7 +177,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium odblokowuje przewodnik AI i inteligentniejsze ulepszenia CV.',
       jcfpmSummary: '108 pytań • 12 wymiarów • podstawowy wynik dla wszystkich • pełna analiza w Premium',
       jcfpmBasicTitle: 'Podstawowy wynik jest gotowy',
-      jcfpmBasicDesc: 'Test już teraz poprawia Twoje wewnętrzne rekomendacje JHI. Premium odblokowuje pełny rozkład, wyjaśnia zmiany i pozwala udostępnić wynik pracodawcom.',
+      jcfpmBasicDesc: 'Test już teraz doprecyzowuje Twoją wewnętrzną interpretację JHI. Premium odblokowuje pełny rozkład, wyjaśnia zmiany i pozwala udostępnić wynik pracodawcom.',
       jcfpmUnlock: 'Odblokuj pełną analizę',
     },
     sk: {
@@ -187,7 +187,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       aiGuideUpgrade: 'Premium odomkne AI sprievodcu aj inteligentnejšie úpravy CV.',
       jcfpmSummary: '108 otázok • 12 dimenzií • základný výsledok pre všetkých • plná analýza v Premium',
       jcfpmBasicTitle: 'Základný výsledok je pripravený',
-      jcfpmBasicDesc: 'Test už teraz zlepšuje vaše interné odporúčania JHI. Premium odomkne plný rozbor, vysvetlenie zmien a zdieľanie výsledkov so zamestnávateľom.',
+      jcfpmBasicDesc: 'Test už teraz spresňuje vašu internú interpretáciu JHI. Premium odomkne plný rozbor, vysvetlenie zmien a zdieľanie výsledkov so zamestnávateľom.',
       jcfpmUnlock: 'Odomknúť plný rozbor',
     }
   }[localeBase] || {
@@ -197,43 +197,43 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     aiGuideUpgrade: 'Premium unlocks the AI guide and smarter CV improvements.',
     jcfpmSummary: '108 questions • 12 dimensions • basic results for everyone • full analysis in Premium',
     jcfpmBasicTitle: 'Your basic result is ready',
-    jcfpmBasicDesc: 'The test already improves your internal JHI recommendations. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
+    jcfpmBasicDesc: 'The test already sharpens your internal JHI interpretation. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
     jcfpmUnlock: 'Unlock full analysis',
   };
   const profileCountryCopy = {
     cs: {
       label: 'Preferovaná země pro nabídky',
-      help: 'Používá se pro doporučování práce a cílení denního digestu, pokud adresa chybí nebo je jen přibližná.',
+      help: 'Používá se pro výchozí záběr trhu a cílení denního digestu, pokud adresa chybí nebo je jen přibližná.',
       countries: { CZ: 'Česko', SK: 'Slovensko', PL: 'Polsko', DE: 'Německo', AT: 'Rakousko' },
     },
     en: {
       label: 'Preferred country for jobs',
-      help: 'Used for job recommendations and daily digest targeting when your address is missing or approximate.',
+      help: 'Used for default market scope and daily digest targeting when your address is missing or approximate.',
       countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
     },
     de: {
       label: 'Bevorzugtes Land für Jobs',
-      help: 'Wird für Job-Empfehlungen und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
+      help: 'Wird für den Standard-Marktfokus und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
       countries: { CZ: 'Tschechien', SK: 'Slowakei', PL: 'Polen', DE: 'Deutschland', AT: 'Österreich' },
     },
     at: {
       label: 'Bevorzugtes Land für Jobs',
-      help: 'Wird für Job-Empfehlungen und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
+      help: 'Wird für den Standard-Marktfokus und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
       countries: { CZ: 'Tschechien', SK: 'Slowakei', PL: 'Polen', DE: 'Deutschland', AT: 'Österreich' },
     },
     pl: {
       label: 'Preferowany kraj ofert',
-      help: 'Używane do rekomendacji ofert i kierowania dziennego digestu, gdy adres jest brakujący lub tylko przybliżony.',
+      help: 'Używane do domyślnego zakresu rynku i kierowania dziennego digestu, gdy adres jest brakujący lub tylko przybliżony.',
       countries: { CZ: 'Czechy', SK: 'Słowacja', PL: 'Polska', DE: 'Niemcy', AT: 'Austria' },
     },
     sk: {
       label: 'Preferovaná krajina pre ponuky',
-      help: 'Používa sa na odporúčanie práce a cielenie denného digestu, keď adresa chýba alebo je len približná.',
+      help: 'Používa sa na predvolený záber trhu a cielenie denného digestu, keď adresa chýba alebo je len približná.',
       countries: { CZ: 'Česko', SK: 'Slovensko', PL: 'Poľsko', DE: 'Nemecko', AT: 'Rakúsko' },
     },
   }[localeBase] || {
     label: 'Preferred country for jobs',
-    help: 'Used for job recommendations and daily digest targeting when your address is missing or approximate.',
+    help: 'Used for default market scope and daily digest targeting when your address is missing or approximate.',
     countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
   };
   const searchProfileCopy = isCsLikeProfile
@@ -279,7 +279,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         impactMarketplace: 'Marketplace presets',
         impactSaved: 'Saved searches',
         impactFeed: 'Recommended feeds',
-        helper: 'These preferences feed marketplace presets, saved searches, and recommended feeds.',
+        helper: 'These preferences feed marketplace presets, saved searches, and your main overview.',
       };
   const remoteLanguageOptions: Array<{ code: SearchLanguageCode; label: string }> = [
     { code: 'cs', label: isCsLikeProfile ? 'Čeština' : 'Czech' },
@@ -797,8 +797,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     <div className={profileSurfaceClass}>
       <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-            <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+          <div className={profileAccentIconShellClass}>
+            <MapPin className={profileAccentIconClass} />
           </div>
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
         </div>
@@ -2099,8 +2099,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <Briefcase className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <div className={profileAccentIconShellClass}>
+                      <Briefcase className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.experience')}</h2>
                   </div>
@@ -2120,7 +2120,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <p>{t('profile.no_experience')}</p>
                     <button
                       onClick={handleAddExperience}
-                      className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+                      className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
                     >
                       {t('profile.add_first_experience')}
                     </button>
@@ -2136,7 +2136,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           {activeExperienceId !== experience.id && (
                             <button
                               onClick={() => setActiveExperienceId(experience.id)}
-                              className="px-2.5 py-1.5 text-xs rounded-md border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                              className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
                             >
                               {t('app.edit', { defaultValue: 'Upravit' })}
                             </button>
@@ -2218,8 +2218,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <div className={profileAccentIconShellClass}>
+                      <GraduationCap className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.education')}</h2>
                   </div>
@@ -2239,7 +2239,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <p>{t('profile.no_education')}</p>
                     <button
                       onClick={handleAddEducation}
-                      className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+                      className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
                     >
                       {t('profile.add_first_education')}
                     </button>
@@ -2255,7 +2255,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           {activeEducationId !== edu.id && (
                             <button
                               onClick={() => setActiveEducationId(edu.id)}
-                              className="px-2.5 py-1.5 text-xs rounded-md border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                              className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
                             >
                               {t('app.edit', { defaultValue: 'Upravit' })}
                             </button>
@@ -2337,11 +2337,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <Award className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <div className={profileAccentIconShellClass}>
+                      <Award className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.skills')}</h2>
-                    <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm px-2 py-1 rounded-full">
+                    <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-1 text-sm text-[var(--accent)]">
                       {t('profile.skills_count', { count: formData.skills.length })}
                     </span>
                   </div>
@@ -2362,7 +2362,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <p className="text-sm mt-2 mb-4">{t('profile.skills_key_desc')}</p>
                     <button
                       onClick={handleAddSkill}
-                      className="text-cyan-600 hover:text-cyan-700 font-medium"
+                      className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
                     >
                       {t('profile.add_first_skill')}
                     </button>
@@ -2372,11 +2372,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <div className="flex flex-wrap gap-2 mb-4">
                       {formData.skills.map((skill, index) => (
                         <div key={index} className="group relative">
-                          <span className="inline-flex items-center px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 text-sm rounded-full border border-cyan-200 dark:border-cyan-700">
+                          <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-sm text-[var(--accent)]">
                             {skill}
                             <button
                               onClick={() => handleRemoveSkill(skill)}
-                              className="ml-2 text-cyan-600 hover:text-red-500 transition-colors"
+                              className="ml-2 text-[var(--accent)] transition-colors hover:text-red-500"
                               title={t('app.delete')}
                             >
                               <X size={14} />
@@ -2386,9 +2386,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       ))}
                     </div>
 
-                    <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
-                      <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">{t('profile.skills_importance_title')}</h4>
-                      <ul className="text-sm text-cyan-700 dark:text-cyan-300 space-y-1">
+                    <div className={profileAccentPanelClass}>
+                      <h4 className="mb-2 font-medium text-[var(--text-strong)]">{t('profile.skills_importance_title')}</h4>
+                      <ul className="space-y-1 text-sm text-[var(--text-muted)]">
                         <li>• {t('profile.skills_importance_1')}</li>
                         <li>• {t('profile.skills_importance_2')}</li>
                         <li>• {t('profile.skills_importance_3')}</li>
@@ -2422,8 +2422,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                    <Bell className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  <div className={profileAccentIconShellClass}>
+                    <Bell className={profileAccentIconClass} />
                   </div>
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                     {t('profile.notifications', { defaultValue: 'Notifikace' })}
@@ -2530,8 +2530,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                    <Calculator className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  <div className={profileAccentIconShellClass}>
+                    <Calculator className={profileAccentIconClass} />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.tax.title')}</h2>
@@ -2677,8 +2677,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                    <SlidersHorizontal className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  <div className={profileAccentIconShellClass}>
+                    <SlidersHorizontal className={profileAccentIconClass} />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.jhi.title')}</h2>
@@ -2697,7 +2697,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   {t('profile.jhi.explainer')}
                 </p>
                 {!isPremium && (
-                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <div className={`${profileAccentPanelClass} flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {t('alerts.premium_only_feature')}
@@ -2712,7 +2712,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           redirectToCheckout('premium', profile.id);
                         }
                       }}
-                      className="w-full sm:w-auto px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30"
+                      className={`${profilePrimaryButtonClass} w-full px-3 py-2 text-sm sm:w-auto`}
                     >
                       {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
                     </button>
@@ -2723,7 +2723,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <button
                       type="button"
                       onClick={() => applyJhiPreset('balanced')}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 disabled:cursor-not-allowed"
+                      className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed"
                     >
                       {t('profile.jhi.presets.balanced')}
                     </button>
@@ -2858,7 +2858,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <button
                         onClick={() => setEnableLive3D((prev) => !prev)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
-                        ? 'bg-cyan-600 text-white border-cyan-500'
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                         : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                         }`}
                       >
@@ -2877,8 +2877,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   )}
                   <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/60 dark:bg-cyan-950/20 p-4">
-                        <div className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300 mb-2">
+                      <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
+                        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
                           {isCsLikeProfile ? 'Úkol 1 · Únik zdrojů' : 'Quest 1 · The Resource Leak'}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
@@ -3051,7 +3051,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2">
+                      <div className="mb-2 text-xs uppercase tracking-wider text-[var(--accent)]">
                         {isCsLikeProfile ? 'Orbit životní udržitelnosti' : 'Life-Sustainability Orbit'}
                       </div>
                       {enableLive3D ? (
@@ -3295,8 +3295,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <Lock className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <div className={profileAccentIconShellClass}>
+                      <Lock className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                       {t('profile.security_title', { defaultValue: 'Změna hesla' })}

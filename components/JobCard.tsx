@@ -48,9 +48,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
-  const aiMatchScore = userProfile?.isLoggedIn && typeof (job as any)?.aiMatchScore === 'number'
-    ? Math.round((job as any).aiMatchScore)
-    : null;
+  const aiMatchScore = null;
 
   const formatJobTypeLabel = (raw: string) => {
     if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';

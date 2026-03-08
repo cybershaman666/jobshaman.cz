@@ -30,7 +30,7 @@ import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
-import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
+import { clearCsrfToken } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
@@ -541,6 +541,7 @@ export default function App() {
         filterLanguageCodes,
         filterMinSalary,
         savedJobIds,
+        setSavedJobIds,
         setSearchTerm,
         setFilterCity,
         setFilterBenefits,
@@ -708,6 +709,17 @@ export default function App() {
             try {
                 const fetched = await fetchJobsByIds(missingIds.slice(0, 120));
                 if (cancelled) return;
+                const fetchedIds = new Set<string>();
+                for (const job of fetched) {
+                    fetchedIds.add(job.id);
+                    if (job.id.startsWith('db-')) {
+                        fetchedIds.add(job.id.substring(3));
+                    }
+                }
+                const notFoundIds = missingIds.slice(0, 120).filter((id) => !fetchedIds.has(id));
+                if (notFoundIds.length > 0) {
+                    setSavedJobIds((current) => current.filter((id) => !notFoundIds.includes(id)));
+                }
                 setSavedJobsCache((prev) => {
                     const next = { ...prev };
                     for (const missingId of missingIds.slice(0, 120)) {
@@ -716,6 +728,9 @@ export default function App() {
                     for (const job of fetched) {
                         next[job.id] = job;
                     }
+                    notFoundIds.forEach((id) => {
+                        delete next[id];
+                    });
                     return next;
                 });
             } catch (error) {
@@ -728,7 +743,7 @@ export default function App() {
         return () => {
             cancelled = true;
         };
-    }, [savedJobIds, jobsForDisplay, savedJobsCache]);
+    }, [savedJobIds, jobsForDisplay, savedJobsCache, setSavedJobIds]);
 
     const resolvedSavedJobs = useMemo(() => {
         const jobsById = new Map(jobsForDisplay.map((job) => [job.id, job]));
@@ -742,12 +757,6 @@ export default function App() {
             const cached = savedJobsCache[id];
             if (cached) {
                 out.push(cached);
-            }
-        }
-        if (out.length === 0) {
-            const cachedOnly = Object.values(savedJobsCache || {}).filter(Boolean);
-            if (cachedOnly.length > 0) {
-                return cachedOnly;
             }
         }
         return out;
@@ -827,29 +836,6 @@ export default function App() {
             }
         })();
     }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
-
-    useEffect(() => {
-        if (isAdminRoute) return;
-        if (!userProfile.isLoggedIn || !userProfile.id) {
-            return;
-        }
-        const key = `jobshaman_recs_warmup_at:${userProfile.id}`;
-        const last = Number(localStorage.getItem(key) || 0);
-        const now = Date.now();
-        if (last && now - last < 6 * 60 * 60 * 1000) return;
-
-        const warmupTimer = setTimeout(async () => {
-            try {
-                await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations/warmup?limit=80`, {
-                    method: 'POST'
-                });
-                localStorage.setItem(key, String(Date.now()));
-            } catch {
-                // Best-effort pre-warm; ignore failures.
-            }
-        }, 10_000);
-        return () => clearTimeout(warmupTimer);
-    }, [userProfile.isLoggedIn, userProfile.id, isAdminRoute]);
 
     const loadRealJobs = useCallback(async () => {
         try {

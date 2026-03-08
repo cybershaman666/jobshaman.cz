@@ -78,25 +78,68 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           ? 'Artykuły'
           : 'Articles';
 
+  const scrollToElement = (elementId: string, options?: ScrollIntoViewOptions) => {
+    window.setTimeout(() => {
+      document.getElementById(elementId)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        ...options,
+      });
+    }, 80);
+  };
+
+  const openHomeOverview = () => {
+    if (leaveDemoHandshakeRoute()) return;
+    if (isAdminRoute()) {
+      window.location.assign(`${getLocalePrefix()}/`);
+      return;
+    }
+    onIntentionalListClick?.();
+    setIsBlogOpen?.(false);
+    setSelectedBlogPostSlug?.(null);
+    setShowCompanyLanding(false);
+    setIsOnboardingCompany(false);
+    setSelectedJobId(null);
+    setDiscoveryLane?.('challenges');
+    setViewState(ViewState.LIST);
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 0);
+  };
+
+  const openDiscoveryLane = (lane: 'challenges' | 'imports', focusSearch = false) => {
+    if (leaveDemoHandshakeRoute()) return;
+    if (isAdminRoute()) {
+      window.location.assign(`${getLocalePrefix()}/`);
+      return;
+    }
+    onIntentionalListClick?.();
+    setIsBlogOpen?.(false);
+    setSelectedBlogPostSlug?.(null);
+    setShowCompanyLanding(false);
+    setIsOnboardingCompany(false);
+    setSelectedJobId(null);
+    setViewState(ViewState.LIST);
+    setDiscoveryLane?.(lane);
+    if (focusSearch) {
+      onOpenDiscoverySearch?.();
+      return;
+    }
+    scrollToElement('challenge-discovery');
+  };
+
   const navItems = [
     {
-      key: 'marketplace',
-      label: isCsLike ? 'Výzvy' : 'Challenges',
-      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges',
-      onClick: () => {
-        navigateToShellHome();
-        setDiscoveryLane?.('challenges');
-      }
+      key: 'overview',
+      label: isCsLike ? 'Úvod' : 'Overview',
+      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges',
+      onClick: openHomeOverview
     },
     {
       key: 'search',
-      label: isCsLike ? 'Hledání' : 'Search',
+      label: isCsLike ? 'Hledání a filtry' : 'Search and filters',
       active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges',
-      onClick: () => {
-        navigateToShellHome();
-        setDiscoveryLane?.('challenges');
-        onOpenDiscoverySearch?.();
-      }
+      onClick: () => openDiscoveryLane('challenges', true)
     },
     {
       key: 'saved',
@@ -114,12 +157,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     },
     {
       key: 'imports',
-      label: isCsLike ? 'Importy' : 'Imports',
+      label: isCsLike ? 'Importované nabídky' : 'Imported listings',
       active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'imports',
-      onClick: () => {
-        navigateToShellHome();
-        setDiscoveryLane?.('imports');
-      }
+      onClick: () => openDiscoveryLane('imports')
     }
   ];
 

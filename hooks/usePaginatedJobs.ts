@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, SearchLanguageCode, UserProfile } from '../types';
-import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
+import { fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
-import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState } from '../services/jobInteractionService';
+import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState, updateInteractionStateCache } from '../services/jobInteractionService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -198,19 +198,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
     const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
-    const [sortBy, setSortBy] = useState<string>('newest'); // recommended | newest | distance | jhi_desc | salary_desc
-    const hasAutoSortAppliedRef = useRef(false);
-    const aiMatchScoresByJobIdRef = useRef<Map<string, number>>(new Map());
-    const aiMatchScoresFetchedAtRef = useRef(0);
-    const aiMatchScoresRequestRef = useRef<Promise<void> | null>(null);
-    const aiMatchScoresRetryAfterRef = useRef(0);
-    const aiMatchScoresLastErrorLogAtRef = useRef(0);
-    const recommendationsRetryAfterRef = useRef(0);
-    const recommendationsLastErrorLogAtRef = useRef(0);
-    const recommendationsDeferUntilRef = useRef(Date.now() + 20_000);
-    const AI_MATCH_CACHE_TTL_MS = 5 * 60 * 1000;
-    const AI_MATCH_ERROR_RETRY_MS = 90 * 1000;
-    const RECOMMENDATIONS_ERROR_RETRY_MS = 90 * 1000;
+    const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
 
     const savedJobStorageKey = `${SAVED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
     const dismissedJobStorageKey = `${DISMISSED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
@@ -306,6 +294,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             console.error('Error saving dismissed jobs to localStorage:', error);
         }
     }, [dismissedJobIds, dismissedJobStorageKey]);
+
+    useEffect(() => {
+        updateInteractionStateCache({
+            savedJobIds,
+            dismissedJobIds,
+        });
+    }, [savedJobIds, dismissedJobIds]);
 
     useEffect(() => {
         if (!enabled) return;
@@ -422,86 +417,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, []);
 
     useEffect(() => {
-        aiMatchScoresByJobIdRef.current = new Map();
-        aiMatchScoresFetchedAtRef.current = 0;
-        aiMatchScoresRequestRef.current = null;
-        aiMatchScoresRetryAfterRef.current = 0;
-        aiMatchScoresLastErrorLogAtRef.current = 0;
-        recommendationsRetryAfterRef.current = 0;
-        recommendationsLastErrorLogAtRef.current = 0;
-    }, [userProfile.id]);
-
-    const refreshAiMatchScoresCache = useCallback(async () => {
-        if (!enabled) return;
-        if (!userProfile.isLoggedIn) return;
-        const now = Date.now();
-        if (now < aiMatchScoresRetryAfterRef.current) return;
-        const isFresh = (now - aiMatchScoresFetchedAtRef.current) < AI_MATCH_CACHE_TTL_MS;
-        if (isFresh && aiMatchScoresByJobIdRef.current.size > 0) return;
-
-        if (!aiMatchScoresRequestRef.current) {
-            aiMatchScoresRequestRef.current = (async () => {
-                try {
-                    const recs = await fetchRecommendedJobs(200);
-                    const nextMap = new Map<string, number>();
-                    for (const rec of recs) {
-                        const score = (rec as any)?.aiMatchScore;
-                        if (typeof score === 'number') {
-                            nextMap.set(rec.id, score);
-                        }
-                    }
-                    aiMatchScoresByJobIdRef.current = nextMap;
-                    aiMatchScoresFetchedAtRef.current = Date.now();
-                    aiMatchScoresRetryAfterRef.current = 0;
-                } catch (error) {
-                    // Avoid hammering recommendations endpoint when repeated timeouts/errors happen.
-                    aiMatchScoresRetryAfterRef.current = Date.now() + AI_MATCH_ERROR_RETRY_MS;
-                    if (Date.now() - aiMatchScoresLastErrorLogAtRef.current > 15_000) {
-                        console.warn('Failed to refresh AI match score cache:', error);
-                        aiMatchScoresLastErrorLogAtRef.current = Date.now();
-                    }
-                } finally {
-                    aiMatchScoresRequestRef.current = null;
-                }
-            })();
+        if (sortBy === 'recommended') {
+            setSortBy('newest');
         }
-
-        await aiMatchScoresRequestRef.current;
-    }, [userProfile.isLoggedIn, enabled]);
-
-    const hydrateJobsWithAiMatchScores = useCallback((requestId: number) => {
-        if (!enabled) return;
-        if (!userProfile.isLoggedIn) return;
-
-        void refreshAiMatchScoresCache().then(() => {
-            if (requestId !== latestRequestIdRef.current) return;
-            const scoreMap = aiMatchScoresByJobIdRef.current;
-            if (!scoreMap.size) return;
-
-            setJobs(prev => prev.map(job => {
-                const score = scoreMap.get(job.id);
-                if (typeof score !== 'number') return job;
-                const existing = (job as any)?.aiMatchScore;
-                if (typeof existing === 'number' && Math.round(existing) === Math.round(score)) {
-                    return job;
-                }
-                return { ...(job as any), aiMatchScore: score } as Job;
-            }));
-        });
-    }, [refreshAiMatchScoresCache, userProfile.isLoggedIn, enabled]);
-
-    // Auto-switch to recommended sorting when we have a parsed CV or skills signal.
-    useEffect(() => {
-        if (hasAutoSortAppliedRef.current) return;
-        const hasCvSignal =
-            !!userProfile.cvText ||
-            !!userProfile.cvAiText ||
-            !!(userProfile.skills && userProfile.skills.length > 0);
-        if (userProfile.isLoggedIn && hasCvSignal && sortBy === 'newest') {
-            setSortBy('recommended');
-            hasAutoSortAppliedRef.current = true;
-        }
-    }, [userProfile.isLoggedIn, userProfile.cvText, userProfile.cvAiText, userProfile.skills, sortBy]);
+    }, [sortBy]);
 
 
     // UI state
@@ -535,7 +454,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             activeFetchControllerRef.current.abort();
         }
         const fetchController = new AbortController();
-        const requestId = ++latestRequestIdRef.current;
+        ++latestRequestIdRef.current;
+        const requestId = latestRequestIdRef.current;
         const isStaleRequest = () => requestId !== latestRequestIdRef.current || fetchController.signal.aborted;
         activeFetchControllerRef.current = fetchController;
 
@@ -587,70 +507,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 filterLanguageCodes.length > 0 ||
                 abroadOnly;
 
-            const canUseRecommendations =
-                userProfile.isLoggedIn &&
-                sortBy === 'recommended' &&
-                !searchTerm &&
-                !filterCity &&
-                filterContractType.length === 0 &&
-                filterBenefits.length === 0 &&
-                !filterMinSalary &&
-                filterDate === 'all' &&
-                filterExperience.length === 0 &&
-                !enableCommuteFilter &&
-                filterLanguageCodes.length === 0 &&
-                !abroadOnly;
-
-            const hasStrictFilterSet =
-                !!filterCity ||
-                filterContractType.length > 0 ||
-                filterBenefits.length > 0 ||
-                !!filterMinSalary ||
-                filterDate !== 'all' ||
-                filterExperience.length > 0 ||
-                enableCommuteFilter ||
-                filterLanguageCodes.length > 0 ||
-                abroadOnly;
-
             const canUseSimplePagination =
                 !dedicatedSearchRuntime &&
                 !hasAnyFilters &&
                 (!hasCountryFilter || normalizedCountryCodes.length === 1);
-
-            if (canUseRecommendations && !hasStrictFilterSet) {
-                const now = Date.now();
-                const recommendationsAllowed =
-                    now >= recommendationsRetryAfterRef.current &&
-                    now >= recommendationsDeferUntilRef.current;
-                if (recommendationsAllowed) {
-                    try {
-                        const recs = await fetchRecommendedJobs(initialPageSize);
-                        if (isStaleRequest()) return;
-                        const visibleRecs = applyDomesticCountrySafeguard(filterDismissedJobs(recs));
-                        setJobs(visibleRecs);
-                        const nextMap = new Map<string, number>();
-                        for (const rec of recs) {
-                            const score = (rec as any)?.aiMatchScore;
-                            if (typeof score === 'number') nextMap.set(rec.id, score);
-                        }
-                        if (nextMap.size > 0) {
-                            aiMatchScoresByJobIdRef.current = nextMap;
-                            aiMatchScoresFetchedAtRef.current = Date.now();
-                        }
-                        recommendationsRetryAfterRef.current = 0;
-                        setHasMore(false);
-                        setTotalCount(visibleRecs.length);
-                        return;
-                    } catch (error) {
-                        // Graceful degradation: avoid hard failure and continue with standard filtered query below.
-                        recommendationsRetryAfterRef.current = Date.now() + RECOMMENDATIONS_ERROR_RETRY_MS;
-                        if (Date.now() - recommendationsLastErrorLogAtRef.current > 15_000) {
-                            console.warn('Failed to fetch recommended jobs, falling back to filtered feed:', error);
-                            recommendationsLastErrorLogAtRef.current = Date.now();
-                        }
-                    }
-                }
-            }
 
             if (canUseSimplePagination) {
                 const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;
@@ -671,7 +531,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 } else {
                     setJobs(visibleJobs);
                 }
-                hydrateJobsWithAiMatchScores(requestId);
 
                 setHasMore(basicResult.hasMore);
                 setTotalCount(Math.max(0, Number(basicResult.totalCount || 0) - (basicResult.jobs.length - visibleJobs.length)));
@@ -686,7 +545,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 page,
                 pageSize: initialPageSize,
                 searchTerm,
-                sortMode: (sortBy === 'distance' || sortBy === 'salary_desc' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'recommended',
+                sortMode: (sortBy === 'distance' || sortBy === 'salary_desc' || sortBy === 'recommended' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'recommended',
                 filterCity,
                 filterContractTypes: filterContractType,
                 filterBenefits,
@@ -712,7 +571,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             } else {
                 setJobs(visibleJobs);
             }
-            hydrateJobsWithAiMatchScores(requestId);
 
             setHasMore(result.hasMore);
             setTotalCount(Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length)));
@@ -753,7 +611,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs, normalizedDefaultDomesticCountries
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries
     ]);
 
 

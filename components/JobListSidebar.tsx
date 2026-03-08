@@ -9,7 +9,6 @@ import {
     ChevronDown,
     ChevronUp,
     Filter,
-    Info,
     MapPin,
     RefreshCw,
     Search,
@@ -129,7 +128,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     onTrackImpression
 }) => {
     const { t, i18n } = useTranslation();
-    const [showSortExplain, setShowSortExplain] = useState(false);
     const [isCompactMobileRail, setIsCompactMobileRail] = useState(false);
     const [isMobileRailOpen, setIsMobileRailOpen] = useState(false);
 
@@ -186,10 +184,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     }, [filteredJobs, impressionSessionKey, jobListRef, onTrackImpression, showJobFeed]);
 
     useEffect(() => {
-        if (sortBy !== 'recommended') {
-            setShowSortExplain(false);
+        if (sortBy === 'recommended') {
+            setSortBy('newest');
         }
-    }, [sortBy]);
+    }, [sortBy, setSortBy]);
 
     useEffect(() => {
         if (!isFilterRailMode) return;
@@ -298,7 +296,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
         filterExperience.forEach((level) => toggleExperienceFilter(level));
         filterBenefits.forEach((benefit) => toggleBenefitFilter(benefit));
         setFilterLanguage('');
-        setSortBy('recommended');
+        setSortBy('newest');
         setGlobalSearch(false);
         setAbroadOnly(false);
     };
@@ -561,28 +559,11 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     aria-label={t('filters.sort_by')}
                                                     className={inputClass}
                                                 >
-                                                    <option value="recommended">{t('filters.sort_options.recommended')}</option>
                                                     <option value="newest">{t('filters.sort_options.newest')}</option>
                                                     <option value="distance">{t('filters.sort_options.distance')}</option>
                                                     <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
                                                     <option value="salary_desc">{t('filters.sort_options.salary_desc')}</option>
                                                 </select>
-                                                {sortBy === 'recommended' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowSortExplain((prev) => !prev)}
-                                                        className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white/85 text-slate-500 hover:border-cyan-300 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-950/75 dark:text-slate-400 dark:hover:border-cyan-700 dark:hover:text-cyan-400"
-                                                        aria-label={t('filters.sort_explain.recommended')}
-                                                        aria-expanded={showSortExplain}
-                                                    >
-                                                        <Info size={13} />
-                                                    </button>
-                                                )}
-                                                {sortBy === 'recommended' && showSortExplain && (
-                                                    <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-2 text-[11px] leading-snug text-slate-600 shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                                        {t('filters.sort_explain.recommended')}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     </section>

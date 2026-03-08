@@ -1356,6 +1356,7 @@ export const fetchJobsWithFilters = async (
         abortSignal,
         includeJhi = true
     } = options;
+    const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
 
     const HYBRID_SEARCH_TIMEOUT_MS = 4500;
     const createTimeoutError = (label: string) => {
@@ -1409,10 +1410,9 @@ export const fetchJobsWithFilters = async (
         !!(excludeCountryCodes && excludeCountryCodes.length > 0) ||
         !!(filterMinSalary && filterMinSalary > 0) ||
         filterDatePosted !== 'all' ||
-        sortMode !== 'default';
+        effectiveSortMode !== 'default';
     const hasSemanticIntent =
-        compactSearchLength >= 2 ||
-        sortMode === 'recommended';
+        compactSearchLength >= 2;
     const shouldUseHybridSearch = !!BACKEND_URL && (
         hasSemanticIntent ||
         // Dedicated search runtime can handle heavy filter combinations well.
@@ -1441,7 +1441,7 @@ export const fetchJobsWithFilters = async (
         normalizedExcludedCountryCodes.length > 0 ||
         (filterMinSalary || 0) > 0 ||
         datePostedCutoffMs !== null ||
-        sortMode !== 'default';
+        effectiveSortMode !== 'default';
 
     const throwIfAborted = (): void => {
         if (abortSignal?.aborted) {
@@ -1782,7 +1782,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
-        const strictJobs = sortJobsForMode(applyStrictClientFilters(baseJobs), sortMode);
+        const strictJobs = sortJobsForMode(applyStrictClientFilters(baseJobs), effectiveSortMode);
         const start = page * safeRpcPageSize;
         const end = start + safeRpcPageSize;
         const pagedJobs = strictJobs.slice(start, end);
@@ -1863,7 +1863,7 @@ export const fetchJobsWithFilters = async (
                 return containsWholeToken(searchable, normalizedFallbackTerm);
             });
         }
-        fallbackJobs = sortJobsForMode(applyStrictClientFilters(fallbackJobs), sortMode);
+        fallbackJobs = sortJobsForMode(applyStrictClientFilters(fallbackJobs), effectiveSortMode);
 
         const totalCountForResponse = fallbackJobs.length;
         return finalizeResults({
@@ -1896,14 +1896,6 @@ export const fetchJobsWithFilters = async (
             filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
             exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
             filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
-        };
-
-        const toAiMatchPercent = (value: unknown): number | null => {
-            if (typeof value !== 'number' || !Number.isFinite(value)) {
-                return null;
-            }
-            const normalized = value >= 0 && value <= 1 ? value * 100 : value;
-            return Math.max(0, Math.min(100, normalized));
         };
 
         const mapHybridRowsToJobs = (rows: any[], hybridPayload: any) => {
@@ -1951,15 +1943,7 @@ export const fetchJobsWithFilters = async (
                 (job as any).behavior_prior_score = row.behavior_prior_score;
                 (job as any).searchScore = row.hybrid_score;
                 (job as any).rankPosition = row.rank_position;
-                const displayScoreSource = sortMode === 'recommended'
-                    ? (row.hybrid_score ?? row.profile_fit_score ?? row.search_score)
-                    : (row.profile_fit_score ?? row.hybrid_score ?? row.search_score);
-                (job as any).aiMatchScore = toAiMatchPercent(displayScoreSource);
                 (job as any).requestId = hybridPayload.request_id;
-                (job as any).aiRecommendationRequestId = hybridPayload.request_id;
-                (job as any).aiRecommendationPosition = row.rank_position;
-                (job as any).aiMatchScoringVersion = hybridPayload?.meta?.sort_mode || sortMode;
-                (job as any).aiMatchModelVersion = 'search-v2';
                 return job;
             });
         };
@@ -2000,10 +1984,6 @@ export const fetchJobsWithFilters = async (
                     reaction_window_days: row.reaction_window_days
                 }, includeJhi);
                 (job as any).distance_km = row.distance_km;
-                const displayScoreSource = sortMode === 'recommended'
-                    ? (row.hybrid_score ?? row.profile_fit_score ?? row.search_score)
-                    : (row.profile_fit_score ?? row.hybrid_score ?? row.search_score);
-                (job as any).aiMatchScore = toAiMatchPercent(displayScoreSource);
                 return job;
             });
         };
@@ -2021,7 +2001,7 @@ export const fetchJobsWithFilters = async (
                     signal: abortSignal,
                     body: JSON.stringify({
                         ...requestPayloadBase,
-                        sort_mode: sortMode,
+                        sort_mode: effectiveSortMode,
                         debug: false
                     })
                 });
@@ -2070,7 +2050,7 @@ export const fetchJobsWithFilters = async (
                 if (backendMetaFallback) {
                     recordRuntimeSignal('search_backend_meta_fallback', {
                         fallback: backendMetaFallback,
-                        sort_mode: hybridPayload?.meta?.sort_mode || sortMode
+                        sort_mode: hybridPayload?.meta?.sort_mode || effectiveSortMode
                     }, {
                         dedupeKey: backendMetaFallback,
                         throttleMs: 60_000
@@ -2133,7 +2113,7 @@ export const fetchJobsWithFilters = async (
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
             searchTerm: safeSearchTerm || 'none',
-            sortMode
+            effectiveSortMode
         });
 
         // Hybrid semantic search (backend) for text queries.
@@ -2459,32 +2439,8 @@ export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
 };
 
 export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> => {
-    const clampedLimit = Math.max(10, Math.min(80, Math.floor(limit || 50)));
-    try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${clampedLimit}`, {
-            method: 'GET'
-        });
-        if (!response.ok) {
-            return [];
-        }
-        const data = await response.json();
-        const items = Array.isArray(data.jobs) ? data.jobs : [];
-        const requestId = data.request_id || undefined;
-        return items.map((item: any) => {
-            const job = transformJob(item.job || item);
-            (job as any).aiMatchScore = item.score;
-            (job as any).aiMatchReasons = item.reasons || [];
-            (job as any).aiMatchBreakdown = item.breakdown || undefined;
-            (job as any).aiMatchModelVersion = item.model_version || undefined;
-            (job as any).aiMatchScoringVersion = item.scoring_version || undefined;
-            (job as any).aiMatchActionProbability = item.action_probability ?? item.breakdown?.action_probability;
-            (job as any).aiRecommendationPosition = item.position || undefined;
-            (job as any).aiRecommendationRequestId = item.request_id || requestId;
-            return job;
-        });
-    } catch {
-        return [];
-    }
+    void limit;
+    return [];
 };
 
 

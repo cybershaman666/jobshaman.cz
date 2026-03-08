@@ -58,7 +58,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     } : {
         kicker: 'Premium',
         title: 'A stronger layer for real job decisions',
-        body: `“${featureName}” is part of the premium layer. It adds more room for active dialogues, sharper recommendations, and better decision support.`,
+        body: `“${featureName}” is part of the premium layer. It adds more room for active dialogues, sharper prioritization, and better decision support.`,
         primary: 'Unlock premium',
         later: 'Maybe later',
         note: 'Premium improves the chance that a relevant role becomes a real conversation instead of just another saved card.',
@@ -81,7 +81,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
             {
                 icon: Brain,
                 title: 'Detailed JCFPM report',
-                body: 'See the full personality breakdown and how it changes the system’s recommendations.'
+                body: 'See the full personality breakdown and how it changes the system’s interpretation of your profile.'
             }
         ]
     };
