@@ -24,8 +24,8 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
   const copyMap = {
     cs: {
       badge: 'Odpovědi vedou k lidskému dialogu, ne k algoritmu.',
-      title: 'Řeš skutečné pracovní výzvy.',
-      body: 'Firmy nejdřív ukazují problém. Ty ukážeš, jak bys ho řešil(a).',
+      title: 'Reaguj na výzvu a ukaž svůj přístup.',
+      body: 'Zapojíš se do smysluplného dialogu místo střelby naslepo.',
       primaryCta: 'Začít odpověď',
       secondaryCta: 'Přejít do hledání',
       promisePills: ['Firma otevře problém', 'Ty pošleš první přístup', 'Pak se otevře soukromý dialog'],
@@ -93,8 +93,8 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     },
     sk: {
       badge: 'Odpovede vedú k ľudskému dialógu, nie k algoritmu.',
-      title: 'Rieš skutočné pracovné výzvy.',
-      body: 'Firmy najprv ukazujú problém. Ty ukážeš, ako by si ho riešil(a).',
+      title: 'Reaguj na výzvu a ukáž svoj prístup.',
+      body: 'Zapojíš sa do zmysluplného dialógu namiesto streľby naslepo.',
       primaryCta: 'Začať odpoveď',
       secondaryCta: 'Prejsť do hľadania',
       promisePills: ['Firma otvorí problém', 'Ty pošleš prvý prístup', 'Potom sa otvorí súkromný dialóg'],

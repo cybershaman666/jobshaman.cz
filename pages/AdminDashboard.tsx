@@ -50,6 +50,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { cn } from '../components/ui/primitives';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -140,9 +141,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const formatNumber = (value?: number) => new Intl.NumberFormat(i18n.language).format(value || 0);
   const formatPercent = (value?: number) => `${num(value).toFixed(2)}%`;
   const formatUsd = (value?: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(num(value));
-  const panelClass = 'rounded-[1.08rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_20px_40px_-34px_rgba(15,23,42,0.26)] backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/80';
-  const panelSoftClass = 'rounded-[0.95rem] border border-slate-200/80 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/50';
-  const inputClass = 'w-full rounded-[0.82rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900/30';
+  const panelClass = 'app-surface rounded-[1.08rem] border p-4 shadow-[var(--shadow-soft)]';
+  const panelSoftClass = 'company-surface-soft rounded-[0.95rem] border p-3';
+  const inputClass = 'company-control w-full rounded-[0.82rem] px-3 py-2 text-sm outline-none';
 
   const handleAuthError = (message: string) => {
     const lower = String(message || '').toLowerCase();
@@ -158,14 +159,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     setError(null);
     setForbidden(false);
     try {
-      const [statsData, aiData, notifData] = await Promise.all([
+      const [statsResult, aiResult, notifResult] = await Promise.allSettled([
         getAdminStats(),
         getAdminAiQuality(30),
         getAdminNotifications(7),
       ]);
-      setStats(statsData || null);
-      setAiQuality(aiData || null);
-      setNotifications(notifData?.items || []);
+
+      const nextStats = statsResult.status === 'fulfilled' ? (statsResult.value || null) : null;
+      const nextAiQuality = aiResult.status === 'fulfilled' ? (aiResult.value || null) : null;
+      const nextNotifications = notifResult.status === 'fulfilled' ? (notifResult.value?.items || []) : [];
+
+      setStats(nextStats);
+      setAiQuality(nextAiQuality);
+      setNotifications(nextNotifications);
+
+      const failures = [statsResult, aiResult, notifResult].filter((result) => result.status === 'rejected') as PromiseRejectedResult[];
+      if (failures.length === 3) {
+        throw new Error(failures[0]?.reason?.message || 'Failed to load dashboard overview');
+      }
+      if (failures.length > 0) {
+        setError(t('admin_dashboard.partial_data', { defaultValue: 'Část admin dat se nepodařilo načíst. Zbytek přehledu je dostupný.' }));
+      }
     } catch (err: any) {
       handleAuthError(err?.message || 'Failed to load dashboard overview');
     } finally {
@@ -747,28 +761,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   return (
     <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-100/80 dark:bg-slate-950">
       <div className="mx-auto max-w-[1680px] space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-[1.35rem] border border-cyan-200/80 bg-gradient-to-br from-slate-950 via-cyan-900 to-sky-800 p-5 shadow-[0_28px_54px_-38px_rgba(8,47,73,0.7)] dark:border-cyan-700/40">
+        <section className="app-page-header overflow-hidden rounded-[1.35rem] border p-5 shadow-[var(--shadow-card)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
+              <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                 <Layers size={14} />
                 {t('admin_dashboard.cockpit')}
               </div>
-              <h1 className="text-2xl font-black text-white sm:text-3xl">{t('admin_dashboard.title')}</h1>
-              <p className="mt-1 text-sm text-cyan-50/90">
+              <h1 className="text-2xl font-black text-[var(--text-strong)] sm:text-3xl">{t('admin_dashboard.title')}</h1>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
                 {t('admin_dashboard.description')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={loadOverview}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+                className="app-button-secondary !rounded-xl !px-4 !py-2 text-sm"
               >
                 <RefreshCcw size={15} /> {t('admin_dashboard.refresh')}
               </button>
               <button
                 onClick={exportInvestorPack}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition-colors hover:bg-cyan-50"
+                className="app-button-primary !rounded-xl !px-4 !py-2 text-sm"
               >
                 <Download size={15} /> {t('admin_dashboard.export_pack')}
               </button>
@@ -780,7 +794,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     // noop
                   }
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+                className="app-button-secondary !rounded-xl !px-4 !py-2 text-sm"
               >
                 <Activity size={15} /> {t('admin_dashboard.backend_ping')}
               </button>
@@ -800,9 +814,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2 text-sm font-semibold transition-colors ${active
-                    ? 'bg-white text-slate-900'
-                    : 'border border-white/30 bg-white/10 text-cyan-50 hover:bg-white/20'}`}
+                  className={cn(
+                    'inline-flex items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2 text-sm font-semibold transition-colors',
+                    active
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[rgba(var(--accent-rgb),0.18)]'
+                      : 'border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.18)] hover:text-[var(--text-strong)]'
+                  )}
                 >
                   <Icon size={14} /> {tab.label}
                 </button>
@@ -821,7 +838,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   <article key={kpi.label} className={panelClass}>
                     <div className="flex items-center justify-between">
                       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{kpi.label}</div>
-                      <Icon size={16} className="text-cyan-600" />
+                      <Icon size={16} className="text-[var(--accent)]" />
                     </div>
                     <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{kpi.value}</div>
                     <p className="mt-1 text-xs text-slate-500">{kpi.hint}</p>
@@ -833,7 +850,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <article className={`${panelClass} h-[400px] flex flex-col`}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Globe size={16} className="text-cyan-600" />
+                  <Globe size={16} className="text-[var(--accent)]" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.traffic_trend')}</h3>
                 </div>
                 {loading ? (
@@ -846,15 +863,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       <AreaChart data={trafficSeries}>
                         <defs>
                           <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#0891b2" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#0891b2" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#d97706" stopOpacity={0.26} />
+                            <stop offset="95%" stopColor="#d97706" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                         <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                         <Tooltip />
-                        <Area type="monotone" dataKey="pageviews" stroke="#0891b2" fillOpacity={1} fill="url(#colorPv)" />
+                        <Area type="monotone" dataKey="pageviews" stroke="#d97706" fillOpacity={1} fill="url(#colorPv)" />
                         <Area type="monotone" dataKey="visitors" stroke="#10b981" fillOpacity={0} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -864,7 +881,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
               <article className={`${panelClass} h-[400px] flex flex-col`}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Brain size={16} className="text-cyan-600" />
+                  <Brain size={16} className="text-[var(--accent)]" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.ai_token_trend')}</h3>
                 </div>
                 {loading ? (
@@ -898,7 +915,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <article className={`${panelClass} xl:col-span-2`}>
                 <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 size={16} className="text-cyan-600" />
+                  <BarChart3 size={16} className="text-[var(--accent)]" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.recommendation_performance')}</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[250px]">
@@ -909,7 +926,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <XAxis type="number" hide />
                         <YAxis dataKey="model_version" type="category" width={80} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                         <Tooltip />
-                        <Bar dataKey="ctr_apply" fill="#0891b2" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="ctr_apply" fill="#d97706" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -929,7 +946,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
               <article className={`${panelClass} flex flex-col min-h-[300px]`}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Users size={16} className="text-cyan-600" />
+                  <Users size={16} className="text-[var(--accent)]" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.score_distribution')}</h3>
                 </div>
                 <div className="flex-1 flex flex-col justify-center">
@@ -939,7 +956,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         data={[
                           { name: '< 40', value: scoreDistribution.lt_40 || 0, color: '#f43f5e' },
                           { name: '40-60', value: scoreDistribution['40_60'] || 0, color: '#fbbf24' },
-                          { name: '60-80', value: scoreDistribution['60_80'] || 0, color: '#0ea5e9' },
+                          { name: '60-80', value: scoreDistribution['60_80'] || 0, color: '#d97706' },
                           { name: '≥ 80', value: scoreDistribution.gte_80 || 0, color: '#10b981' },
                         ]}
                         innerRadius={60}
@@ -948,7 +965,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         dataKey="value"
                       >
                         {[0, 1, 2, 3].map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={['#f43f5e', '#fbbf24', '#0ea5e9', '#10b981'][index]} />
+                          <Cell key={`cell-${index}`} fill={['#f43f5e', '#fbbf24', '#d97706', '#10b981'][index]} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -1002,7 +1019,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
             <section className={panelClass}>
               <div className="flex items-center gap-2 mb-3">
-                <Bell size={16} className="text-cyan-600" />
+                <Bell size={16} className="text-[var(--accent)]" />
                 <h3 className="font-semibold">{t('admin_dashboard.sections.notifications')}</h3>
               </div>
               {notifications.length === 0 ? (
@@ -1015,7 +1032,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <div key={n.subscription_id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 text-xs bg-slate-50 dark:bg-slate-800/50">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold truncate">{n.company_name || n.user_email || n.subscription_id}</span>
-                        <span className={`rounded-full px-2 py-0.5 font-semibold ${n.severity === 'expired' ? 'bg-rose-100 text-rose-700' : n.severity === 'today' ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700'}`}>{n.severity}</span>
+                        <span className={`rounded-full px-2 py-0.5 font-semibold ${n.severity === 'expired' ? 'bg-rose-100 text-rose-700' : n.severity === 'today' ? 'bg-amber-100 text-amber-700' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>{n.severity}</span>
                       </div>
                       <p className="mt-1 text-slate-600 dark:text-slate-300">{formatDate(n.current_period_end)}</p>
                     </div>
@@ -1039,17 +1056,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   value={subFilters.q}
                   onChange={(e) => setSubFilters((prev) => ({ ...prev, q: e.target.value, offset: 0 }))}
                   placeholder={t('admin_dashboard.operations.search_placeholder')}
-                  className="md:col-span-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                  className={`md:col-span-2 ${inputClass}`}
                 />
-                <select value={subFilters.tier} onChange={(e) => setSubFilters((prev) => ({ ...prev, tier: e.target.value, offset: 0 }))} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+                <select value={subFilters.tier} onChange={(e) => setSubFilters((prev) => ({ ...prev, tier: e.target.value, offset: 0 }))} className={inputClass}>
                   <option value="">{t('admin_dashboard.operations.all_tiers')}</option>
                   {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <select value={subFilters.status} onChange={(e) => setSubFilters((prev) => ({ ...prev, status: e.target.value, offset: 0 }))} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+                <select value={subFilters.status} onChange={(e) => setSubFilters((prev) => ({ ...prev, status: e.target.value, offset: 0 }))} className={inputClass}>
                   <option value="">{t('admin_dashboard.operations.all_statuses')}</option>
                   {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <button onClick={loadSubscriptions} className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">{t('admin_dashboard.refresh')}</button>
+                <button onClick={loadSubscriptions} className="app-button-primary !rounded-lg !px-3 !py-2 text-sm">{t('admin_dashboard.refresh')}</button>
               </div>
 
               <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
@@ -1063,14 +1080,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       <select
                         value={edits[sub.id]?.tier || sub.tier || 'free'}
                         onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], tier: e.target.value } }))}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                        className={inputClass}
                       >
                         {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
                       </select>
                       <select
                         value={edits[sub.id]?.status || sub.status || 'inactive'}
                         onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], status: e.target.value } }))}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                        className={inputClass}
                       >
                         {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
                       </select>
@@ -1078,7 +1095,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         value={edits[sub.id]?.set_trial_days || ''}
                         onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], set_trial_days: e.target.value } }))}
                         placeholder={t('admin_dashboard.operations.trial_days')}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                        className={inputClass}
                       />
                       <button
                         onClick={() => handleSaveSubscription(sub)}
@@ -1097,7 +1114,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <select
                   value={searchKind}
                   onChange={(e) => setSearchKind(e.target.value as 'company' | 'user')}
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                  className={inputClass}
                 >
                   <option value="company">{t('admin_dashboard.entity.company')}</option>
                   <option value="user">{t('admin_dashboard.entity.user')}</option>
@@ -1107,9 +1124,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t('admin_dashboard.search.placeholder')}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                    className={inputClass}
                   />
-                  <button onClick={handleSearch} className="rounded-lg bg-cyan-600 px-3 text-white"><Search size={14} /></button>
+                  <button onClick={handleSearch} className="app-button-primary !rounded-lg !px-3 !py-2"><Search size={14} /></button>
                 </div>
               </div>
               <div className="mt-3 space-y-2 max-h-80 overflow-auto pr-1">
@@ -1171,7 +1188,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   </select>
                   <button
                     onClick={loadCrmWorkspace}
-                    className="inline-flex items-center justify-center gap-2 rounded-[0.82rem] bg-cyan-600 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+                    className="app-button-primary !rounded-[0.82rem] !px-3 !py-2 text-sm"
                   >
                     <RefreshCcw size={14} />
                     {t('admin_dashboard.refresh')}
@@ -1198,8 +1215,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         type="button"
                         onClick={() => setSelectedCrmKey(record.key)}
                         className={`w-full rounded-[0.95rem] border p-3 text-left transition-colors ${selected
-                          ? 'border-cyan-400 bg-cyan-50/80 dark:border-cyan-700 dark:bg-cyan-900/20'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/45 hover:border-cyan-300'}`}
+                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(255,248,233,0.96)]'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/45 hover:border-[rgba(var(--accent-rgb),0.2)]'}`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -1254,7 +1271,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               : t('admin_dashboard.entity.user')}
                           </span>
                           {selectedCrmRecord.subscriptionId && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2.5 py-1 font-semibold text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 font-semibold text-[var(--accent)]">
                               sub #{selectedCrmRecord.subscriptionId.slice(0, 8)}
                             </span>
                           )}
@@ -1262,7 +1279,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                       <button
                         onClick={loadCrmWorkspace}
-                        className="inline-flex items-center gap-2 rounded-[0.85rem] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-cyan-300 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                        className="app-button-secondary !rounded-[0.85rem] !px-3 !py-2 text-sm hover:!text-[var(--accent)]"
                       >
                         <RefreshCcw size={14} />
                         {t('admin_dashboard.refresh')}
@@ -1388,7 +1405,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           type="button"
                           onClick={() => setCrmTimelineFilter('all')}
                           className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${crmTimelineFilter === 'all'
-                            ? 'bg-cyan-600 text-white'
+                            ? 'bg-[var(--accent)] text-white'
                             : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}
                         >
                           {t('admin_dashboard.crm.timeline_all', { defaultValue: 'Vše' })}
@@ -1399,7 +1416,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             type="button"
                             onClick={() => setCrmTimelineFilter(category)}
                             className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${crmTimelineFilter === category
-                              ? 'bg-cyan-600 text-white'
+                              ? 'bg-[var(--accent)] text-white'
                               : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}
                           >
                             {category}
@@ -1443,7 +1460,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
                     <div className={panelSoftClass}>
                       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        <Clock3 size={15} className="text-cyan-600 dark:text-cyan-300" />
+                        <Clock3 size={15} className="text-[var(--accent)]" />
                         {t('admin_dashboard.crm.subscription', { defaultValue: 'Předplatné' })}
                       </div>
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
@@ -1493,7 +1510,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     {selectedCrmRecord.entityKind === 'user' && (
                       <div className={panelSoftClass}>
                         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          <Mail size={15} className="text-cyan-600 dark:text-cyan-300" />
+                          <Mail size={15} className="text-[var(--accent)]" />
                           {t('admin_dashboard.crm.digest', { defaultValue: 'Digest notifikace uživatele' })}
                         </div>
                         {!crmDigest ? (
@@ -1536,7 +1553,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               <button
                                 onClick={handleCrmDigestSave}
                                 disabled={crmDigestSaving}
-                                className="inline-flex items-center gap-2 rounded-[0.85rem] bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-60"
+                                className="app-button-primary !rounded-[0.85rem] !px-4 !py-2 text-sm disabled:opacity-60"
                               >
                                 {crmDigestSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
                               </button>
@@ -1591,7 +1608,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   value={jobRolesQuery}
                   onChange={(e) => setJobRolesQuery(e.target.value)}
                   placeholder={t('admin_dashboard.jcfpm.search_placeholder')}
-                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                  className={inputClass}
                 />
               </div>
               <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
@@ -1601,19 +1618,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       <input
                         value={jobRoleEdits[role.id]?.title || ''}
                         onChange={(e) => setJobRoleEdits((prev) => ({ ...prev, [role.id]: { ...prev[role.id], title: e.target.value } }))}
-                        className="md:col-span-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                        className={`md:col-span-2 ${inputClass}`}
                       />
                       {['d1', 'd2', 'd3', 'd4', 'd5', 'd6'].map((key) => (
                         <input
                           key={key}
                           value={jobRoleEdits[role.id]?.[key] ?? ''}
                           onChange={(e) => setJobRoleEdits((prev) => ({ ...prev, [role.id]: { ...prev[role.id], [key]: e.target.value } }))}
-                          className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                          className={inputClass}
                         />
                       ))}
                     </div>
                     <div className="mt-2 flex gap-2">
-                      <button onClick={() => handleUpdateRole(role.id)} className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white">{t('admin_dashboard.jcfpm.update')}</button>
+                      <button onClick={() => handleUpdateRole(role.id)} className="app-button-primary !rounded-lg !px-3 !py-1.5 text-xs">{t('admin_dashboard.jcfpm.update')}</button>
                       <button onClick={() => handleDeleteRole(role.id)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white">{t('admin_dashboard.jcfpm.delete')}</button>
                     </div>
                   </div>

@@ -29,7 +29,7 @@
   --shadow-card: 0 28px 60px -38px rgba(15, 23, 42, 0.24);
   --shadow-overlay: 0 35px 90px -48px rgba(15, 23, 42, 0.28);
   --app-header-offset: 6.5rem;
-  --app-sticky-stack-offset: calc(var(--app-header-offset) + 4rem);
+  --app-sticky-stack-offset: calc(var(--app-header-offset) + 7.35rem);
   --radius-sm: 0.85rem;
   --radius-md: 1.1rem;
   --radius-lg: 1.35rem;

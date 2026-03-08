@@ -2030,6 +2030,7 @@ export default function App() {
                                         savedJobIds={savedJobIds}
                                         userProfile={userProfile}
                                         lane={discoveryLane}
+                                        setLane={setDiscoveryLane}
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
                                         performSearch={performSearch}

@@ -44,6 +44,7 @@ DEFAULT_WWR_RSS_URLS = [
     "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
     "https://weworkremotely.com/categories/all-other-remote-jobs.rss",
 ]
+DEFAULT_GERMAN_TECH_JOBS_RSS_URL = "https://germantechjobs.de/rss"
 HTTP_TIMEOUT_SECONDS = 30
 
 
@@ -181,6 +182,10 @@ def _resolve_wwr_rss_urls() -> List[str]:
     return [item for item in parts if item]
 
 
+def _resolve_german_tech_jobs_rss_url() -> str:
+    return norm_text(os.getenv("GERMAN_TECH_JOBS_RSS_URL") or DEFAULT_GERMAN_TECH_JOBS_RSS_URL)
+
+
 def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
     if not supabase_client:
@@ -313,6 +318,75 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
     return total_saved
 
 
+def scrape_german_tech_jobs(supabase_client: Any = None) -> int:
+    supabase_client = supabase_client or get_supabase_client()
+    if not supabase_client:
+        return 0
+
+    rss_url = _resolve_german_tech_jobs_rss_url()
+    if not rss_url:
+        return 0
+
+    print(f"🌍 RSS source: GermanTechJobs ({rss_url})")
+    seen_urls: set[str] = set()
+    total_saved = 0
+
+    try:
+        payload = _request_text(rss_url, headers={"Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8"})
+    except Exception as exc:
+        print(f"❌ GermanTechJobs RSS fetch failed for {rss_url}: {exc}")
+        return 0
+
+    soup = BeautifulSoup(payload, "xml")
+    items = soup.find_all("item")
+    if len(items) == 0:
+        print(f"ℹ️ GermanTechJobs RSS {rss_url}: no items.")
+        return 0
+
+    for item in items:
+        title = norm_text(item.title.get_text()) if item.title else ""
+        description = item.description.get_text() if item.description else ""
+        link = item.link.get_text(strip=True) if item.link else ""
+        categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+
+        if not title or not link:
+            continue
+
+        company = ""
+        location = "Germany"
+        if " at " in title:
+            role_part, company_part = title.split(" at ", 1)
+            title = norm_text(role_part)
+            company = norm_text(company_part)
+
+        location_signals = [category for category in categories if any(token in category.lower() for token in ["remote", "berlin", "munich", "münchen", "hamburg", "germany", "deutschland", "cologne", "köln", "frankfurt"])]
+        if location_signals:
+            location = ", ".join(location_signals[:2])
+        elif "remote" in description.lower():
+            location = "Remote / Germany"
+
+        saved = _save_api_job(
+            supabase_client,
+            seen_urls,
+            title=title,
+            company=company,
+            location=location,
+            description=description,
+            url=link,
+            tags=categories,
+            contract_type=None,
+            salary_text=description,
+            country_code="de",
+            salary_currency="EUR",
+            work_model=_infer_work_model(location, description, categories),
+        )
+        if saved:
+            total_saved += 1
+
+    print(f"   ✅ GermanTechJobs RSS {rss_url}: saved {total_saved} jobs")
+    return total_saved
+
+
 def run_external_api_sources(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
     if not supabase_client:
@@ -328,5 +402,9 @@ def run_external_api_sources(supabase_client: Any = None) -> int:
         total_saved += scrape_weworkremotely_jobs(supabase_client)
     except Exception as exc:
         print(f"❌ WWR import failed: {exc}")
+    try:
+        total_saved += scrape_german_tech_jobs(supabase_client)
+    except Exception as exc:
+        print(f"❌ GermanTechJobs import failed: {exc}")
     print(f"✅ API sources finished. Saved {total_saved} jobs.")
     return total_saved

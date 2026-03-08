@@ -328,6 +328,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         company: scrapedJob.company || 'Neznámá společnost',
         location: locationString,
         type: jobType,
+        work_model: scrapedJob.work_model,
         salaryRange,
         description: fullDesc,
         hiring_stage: hiringStage,

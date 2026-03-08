@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { CandidateDialogueCapacity, Job, JobSearchFilters, SearchLanguageCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
+import { isRemoteJob } from '../../services/commuteService';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
 
@@ -25,6 +26,7 @@ interface ChallengeMarketplaceProps {
   savedJobIds: string[];
   userProfile: UserProfile;
   lane: 'challenges' | 'imports';
+  setLane: (lane: 'challenges' | 'imports') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   performSearch: (term: string) => void;
@@ -122,8 +124,7 @@ const getRiskPreview = (job: Job): string => {
 };
 
 const isRemoteListing = (job: Job): boolean => {
-  const source = `${job.work_model || ''} ${job.type || ''} ${job.location || ''}`.toLowerCase();
-  return source.includes('remote');
+  return isRemoteJob(job);
 };
 
 const hasBenefit = (job: Job, benefitKey: string): boolean =>
@@ -165,6 +166,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   savedJobIds,
   userProfile,
   lane,
+  setLane,
   searchTerm,
   setSearchTerm,
   performSearch,
@@ -642,20 +644,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   };
 
   const jobsInLane = useMemo(() => {
-    const useImportedFallback = lane === 'challenges' && !hasNativeChallenges;
-    const base = jobs.filter((job) => {
-      if (lane === 'imports') return job.listingKind === 'imported';
-      if (useImportedFallback) return job.listingKind === 'imported';
-      return job.listingKind !== 'imported';
-    });
-    return base.filter((job) => {
-      if (!remoteOnly) return true;
-      const workModel = String(job.work_model || job.type || '').toLowerCase();
-      return workModel.includes('remote');
-    });
+    const nativeJobs = jobs.filter((job) => job.listingKind !== 'imported');
+    const importedJobs = jobs.filter((job) => job.listingKind === 'imported');
+    const byWorkMode = (items: Job[]) => items.filter((job) => (!remoteOnly ? true : isRemoteListing(job)));
+    const nativeMatches = byWorkMode(nativeJobs);
+    const importedMatches = byWorkMode(importedJobs);
+    const useImportedFallback = lane === 'challenges' && (nativeMatches.length === 0 || !hasNativeChallenges);
+    if (lane === 'imports') return importedMatches;
+    return useImportedFallback ? importedMatches : nativeMatches;
   }, [jobs, lane, remoteOnly, hasNativeChallenges]);
 
-  const challengeLaneUsesImportedFallback = lane === 'challenges' && !hasNativeChallenges;
+  const challengeLaneUsesImportedFallback = lane === 'challenges' && jobsInLane.length > 0 && jobsInLane.every((job) => job.listingKind === 'imported');
   const hasCommuteProfile = Boolean(userProfile.address || userProfile.coordinates?.lat);
   const topJob = jobsInLane[0] || null;
   const averageJhi =
@@ -849,8 +848,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <FilterChip active={lane === 'challenges'}>{copy.laneChallenges}</FilterChip>
-          <FilterChip active={lane === 'imports'}>{copy.laneImports}</FilterChip>
+          <FilterChip active={lane === 'challenges'} onClick={() => setLane('challenges')}>
+            {copy.laneChallenges}
+          </FilterChip>
+          <FilterChip active={lane === 'imports'} onClick={() => setLane('imports')}>
+            {copy.laneImports}
+          </FilterChip>
           <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(!remoteOnly)}>
             {copy.remoteOnly}
           </FilterChip>
@@ -886,7 +889,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 <MetricTile label={copy.workModel} value={topJob ? getWorkModel(topJob, isCsLike) : '—'} />
               </div>
               {challengeLaneUsesImportedFallback ? (
-                <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">
                   {copy.noNative}
                 </div>
               ) : null}
@@ -1158,12 +1161,20 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       const experienceLabel = getExperienceLabel(job, isCsLike);
                       const sourceBadge = job.listingKind === 'imported' ? copy.sourceImported : copy.sourceNative;
                       return (
-                        <button
+                        <article
                           key={job.id}
-                          type="button"
                           onClick={() => handleJobSelect(job.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleJobSelect(job.id);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
                           className={cn(
                             'app-surface w-full rounded-[var(--radius-xl)] border p-5 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-[1px] hover:shadow-[var(--shadow-card)]',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
                             isSelected && 'border-[rgba(var(--accent-rgb),0.26)] bg-[var(--accent-soft)]'
                           )}
                         >
@@ -1235,7 +1246,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                               </button>
                             </div>
                           </div>
-                        </button>
+                        </article>
                       );
                     })}
                   </div>

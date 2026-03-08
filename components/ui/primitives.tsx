@@ -13,7 +13,7 @@ export const SurfaceCard: React.FC<{
     className={cn(
       'app-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-card)]',
       tone === 'muted' && 'bg-[var(--surface-muted)]',
-      tone === 'accent' && 'bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] dark:bg-[linear-gradient(180deg,rgba(46,33,9,0.88),rgba(30,22,8,0.94))] dark:border-[rgba(var(--accent-rgb),0.18)]',
+      tone === 'accent' && 'bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] border-amber-200/70 dark:bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] dark:border-amber-200/70',
       className
     )}
   >
@@ -84,7 +84,7 @@ export const MetricTile: React.FC<{
     className={cn(
       'rounded-[var(--radius-lg)] border px-4 py-4',
       tone === 'default' && 'bg-[var(--surface-muted)] border-[var(--border-subtle)]',
-      tone === 'accent' && 'bg-[var(--accent-soft)] border-[rgba(var(--accent-rgb),0.16)] dark:bg-[rgba(var(--accent-rgb),0.12)] dark:border-[rgba(var(--accent-rgb),0.2)]',
+      tone === 'accent' && 'bg-[rgba(255,248,233,0.96)] border-amber-200/80 dark:bg-[rgba(255,248,233,0.96)] dark:border-amber-200/80',
       tone === 'success' && 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-950/20',
       tone === 'warning' && 'border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-950/20',
       className
