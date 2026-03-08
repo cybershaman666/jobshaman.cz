@@ -286,6 +286,10 @@ class AdminFounderBoardCardUpdateRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
+class AdminFounderBoardCommentCreateRequest(BaseModel):
+    body: str = Field(..., min_length=1, max_length=4000)
+
+
 class AdminJobRoleCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     d1: float = Field(..., ge=1, le=7)

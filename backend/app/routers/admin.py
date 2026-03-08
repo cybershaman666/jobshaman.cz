@@ -14,6 +14,7 @@ from ..models.requests import (
     AdminCrmLeadCreateRequest,
     AdminCrmLeadUpdateRequest,
     AdminFounderBoardCardCreateRequest,
+    AdminFounderBoardCommentCreateRequest,
     AdminFounderBoardCardUpdateRequest,
     AdminSubscriptionUpdateRequest,
     AdminUserDigestUpdateRequest,
@@ -168,6 +169,16 @@ def _build_founder_card_payload(raw: dict, *, admin: Optional[dict] = None, incl
     if include_author and admin:
         payload["author_admin_user_id"] = admin.get("user_id")
         payload["author_admin_email"] = admin.get("email")
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+def _build_founder_comment_payload(raw: dict, *, admin: Optional[dict] = None) -> dict:
+    payload = {
+        "body": _clean_admin_text(raw.get("body"), 4000),
+        "author_admin_user_id": admin.get("user_id") if admin else None,
+        "author_admin_email": admin.get("email") if admin else None,
+        "updated_at": now_iso(),
+    }
     return {k: v for k, v in payload.items() if v is not None}
 
 def require_admin_user(user: dict) -> dict:
@@ -1361,6 +1372,46 @@ async def admin_founder_board(
             query = query.eq("status", status)
         resp = query.order("updated_at", desc=True).limit(limit).execute()
         items = resp.data or []
+        comments_by_card: Dict[str, List[dict]] = {}
+        card_ids = [str(item.get("id")) for item in items if item.get("id")]
+        if card_ids:
+            comment_rows = _safe_table_rows(
+                "admin_founder_board_comments",
+                select="id, card_id, body, author_admin_user_id, author_admin_email, created_at, updated_at",
+                order_by="created_at",
+                desc=False,
+                limit=max(200, len(card_ids) * 12),
+                filters=[("in", "card_id", card_ids)],
+            )
+            comment_author_ids = [
+                str(row.get("author_admin_user_id"))
+                for row in comment_rows
+                if row.get("author_admin_user_id")
+            ]
+            comment_authors_by_id: Dict[str, dict] = {}
+            if comment_author_ids:
+                comment_author_rows = _safe_table_rows(
+                    "profiles",
+                    select="id, full_name, email",
+                    limit=max(50, len(comment_author_ids)),
+                    filters=[("in", "id", list(set(comment_author_ids)))],
+                )
+                comment_authors_by_id = {
+                    str(row.get("id")): row
+                    for row in comment_author_rows
+                    if row.get("id")
+                }
+            for row in comment_rows:
+                card_id = str(row.get("card_id") or "")
+                if not card_id:
+                    continue
+                author = comment_authors_by_id.get(str(row.get("author_admin_user_id") or ""), {})
+                row["author_name"] = author.get("full_name") or author.get("email") or row.get("author_admin_email")
+                comments_by_card.setdefault(card_id, []).append(row)
+        for item in items:
+            card_id = str(item.get("id") or "")
+            item["comments"] = comments_by_card.get(card_id, [])
+            item["comments_count"] = len(item["comments"])
         return _admin_cache_set(cache_key, {"items": items, "count": len(items)}, 30)
     except Exception as exc:
         print(f"⚠️ Founder board load failed: {exc}")
@@ -1424,6 +1475,35 @@ async def admin_founder_board_update(
         print(f"⚠️ Founder board update failed: {exc}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Failed to update founder board card")
+
+
+@router.post("/admin/founder-board/{card_id}/comments")
+async def admin_founder_board_comment_create(
+    card_id: str,
+    payload: AdminFounderBoardCommentCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        insert_payload = _build_founder_comment_payload(payload.model_dump(), admin=admin)
+        if not insert_payload.get("body"):
+            raise HTTPException(status_code=400, detail="body is required")
+        insert_payload["card_id"] = card_id
+        resp = supabase.table("admin_founder_board_comments").insert(insert_payload).execute()
+        _admin_cache_store.clear()
+        return {"item": (resp.data or [None])[0], "card_id": card_id}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"⚠️ Founder board comment create failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to create founder board comment")
 
 
 @router.get("/admin/jcfpm/job-roles")

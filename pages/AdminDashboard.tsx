@@ -24,6 +24,7 @@ import { BACKEND_URL } from '../constants';
 import {
   adminSearch,
   createAdminCrmLead,
+  createAdminFounderBoardComment,
   createAdminFounderBoardCard,
   createAdminJobRole,
   deleteAdminJobRole,
@@ -184,6 +185,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [founderBoardQuery, setFounderBoardQuery] = useState('');
   const [founderBoardStatus, setFounderBoardStatus] = useState<'all' | (typeof FOUNDER_CARD_STATUSES)[number]>('all');
   const [founderBoardSaving, setFounderBoardSaving] = useState(false);
+  const [founderCommentSavingId, setFounderCommentSavingId] = useState<string | null>(null);
+  const [founderCommentDrafts, setFounderCommentDrafts] = useState<Record<string, string>>({});
   const [founderCardCreate, setFounderCardCreate] = useState({
     title: '',
     body: '',
@@ -925,6 +928,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       handleAuthError(err?.message || 'Failed to update founder card');
     } finally {
       setFounderBoardSaving(false);
+    }
+  };
+
+  const handleCreateFounderComment = async (cardId: string) => {
+    const draft = String(founderCommentDrafts[cardId] || '').trim();
+    if (!draft || founderBoardUnsupported || founderCommentSavingId === cardId) return;
+    setFounderCommentSavingId(cardId);
+    try {
+      await createAdminFounderBoardComment(cardId, { body: draft });
+      setFounderCommentDrafts((prev) => ({ ...prev, [cardId]: '' }));
+      await loadFounderBoard();
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to add founder board comment');
+    } finally {
+      setFounderCommentSavingId(null);
     }
   };
 
@@ -2087,6 +2105,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
                               <span>{card.assignee_name || card.assignee_email || t('admin_dashboard.workspace.unassigned', { defaultValue: 'Nepřiřazeno' })}</span>
                               <span>{card.author_admin_email || 'admin'} · {formatDate(card.updated_at || card.created_at)}</span>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              {(card.comments || []).length > 0 ? (
+                                <div className="space-y-2">
+                                  {(card.comments || []).map((comment: any) => (
+                                    <div key={comment.id} className="rounded-[0.9rem] border border-slate-200/80 bg-slate-50/90 px-3 py-2 dark:border-slate-700 dark:bg-slate-950/60">
+                                      <div className="text-sm leading-6 text-slate-700 dark:text-slate-200">{comment.body}</div>
+                                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                        {comment.author_name || comment.author_admin_email || 'admin'} · {formatDate(comment.created_at || comment.updated_at)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              <div className="space-y-2">
+                                <textarea
+                                  value={founderCommentDrafts[card.id] || ''}
+                                  onChange={(e) => setFounderCommentDrafts((prev) => ({ ...prev, [card.id]: e.target.value }))}
+                                  placeholder={t('admin_dashboard.workspace.comment_placeholder', { defaultValue: 'Přidat komentář, reakci nebo doplnění…' })}
+                                  className={`${inputClass} min-h-[84px] resize-y`}
+                                />
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleCreateFounderComment(card.id)}
+                                    disabled={!String(founderCommentDrafts[card.id] || '').trim() || founderCommentSavingId === card.id || founderBoardUnsupported}
+                                    className="app-button-secondary !rounded-[0.82rem] !px-3 !py-2 text-xs disabled:opacity-60"
+                                  >
+                                    {founderCommentSavingId === card.id
+                                      ? t('app.saving')
+                                      : t('admin_dashboard.workspace.add_comment', { defaultValue: 'Přidat komentář' })}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button

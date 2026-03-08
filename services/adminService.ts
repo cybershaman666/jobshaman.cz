@@ -53,6 +53,10 @@ export interface AdminFounderBoardCardPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface AdminFounderBoardCommentPayload {
+  body: string;
+}
+
 export async function getAdminSubscriptions(filters: AdminSubscriptionFilters = {}) {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
@@ -252,6 +256,25 @@ export async function updateAdminFounderBoardCard(cardId: string, payload: Parti
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Failed to update founder board card');
+  }
+
+  return response.json();
+}
+
+export async function createAdminFounderBoardComment(cardId: string, payload: AdminFounderBoardCommentPayload) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/founder-board/${cardId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (response.status === 404) {
+    throw new Error('Founder board comments are not deployed on the current backend yet');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to create founder board comment');
   }
 
   return response.json();
