@@ -31,6 +31,8 @@ _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
 _INTERACTIONS_CSRF_WARNING_LAST_EMITTED: datetime | None = None
 _INTERACTION_STATE_CACHE_TTL_SECONDS = 20
 _INTERACTION_STATE_CACHE: dict[tuple[str, int], tuple[datetime, tuple[list[str], list[str]]]] = {}
+_MY_DIALOGUES_CACHE_TTL_SECONDS = 20
+_MY_DIALOGUES_CACHE: dict[tuple[str, int], tuple[datetime, dict[str, Any]]] = {}
 
 # recommendation_feedback_events historically expects a narrower signal taxonomy
 # than raw UI interaction events. Keep search_feedback_events raw, but normalize
@@ -97,6 +99,34 @@ def _invalidate_user_interaction_state_cache(user_id: str | None) -> None:
     stale_keys = [key for key in _INTERACTION_STATE_CACHE.keys() if key[0] == normalized]
     for key in stale_keys:
         _INTERACTION_STATE_CACHE.pop(key, None)
+
+
+def _my_dialogues_cache_key(user_id: str, limit: int) -> tuple[str, int]:
+    return (str(user_id or ""), max(1, min(200, int(limit or 80))))
+
+
+def _get_cached_my_dialogues(user_id: str, limit: int) -> dict[str, Any] | None:
+    cached = _MY_DIALOGUES_CACHE.get(_my_dialogues_cache_key(user_id, limit))
+    if not cached:
+        return None
+    cached_at, payload = cached
+    if datetime.now(timezone.utc) - cached_at > timedelta(seconds=_MY_DIALOGUES_CACHE_TTL_SECONDS):
+        _MY_DIALOGUES_CACHE.pop(_my_dialogues_cache_key(user_id, limit), None)
+        return None
+    return payload
+
+
+def _set_cached_my_dialogues(user_id: str, limit: int, payload: dict[str, Any]) -> None:
+    _MY_DIALOGUES_CACHE[_my_dialogues_cache_key(user_id, limit)] = (datetime.now(timezone.utc), payload)
+
+
+def _invalidate_my_dialogues_cache(user_id: str | None) -> None:
+    normalized = str(user_id or "").strip()
+    if not normalized:
+        return
+    stale_keys = [key for key in _MY_DIALOGUES_CACHE.keys() if key[0] == normalized]
+    for key in stale_keys:
+        _MY_DIALOGUES_CACHE.pop(key, None)
 
 
 def _parse_iso_datetime(value: str) -> datetime | None:
@@ -602,6 +632,20 @@ def _resolve_candidate_dialogue_limit(candidate_id: str) -> int:
 
 def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
     used = _count_candidate_active_dialogues(candidate_id)
+    limit = _resolve_candidate_dialogue_limit(candidate_id)
+    return {
+        "active": used,
+        "limit": limit,
+        "remaining": max(0, limit - used),
+    }
+
+
+def _serialize_candidate_dialogue_capacity_from_rows(candidate_id: str, rows: list[dict] | None) -> dict[str, int]:
+    normalized_rows = rows or []
+    used = 0
+    for row in normalized_rows:
+        if _is_active_dialogue_status((row or {}).get("status")):
+            used += 1
     limit = _resolve_candidate_dialogue_limit(candidate_id)
     return {
         "active": used,
@@ -2582,6 +2626,7 @@ async def create_dialogue_legacy(
             )
         if company_id:
             _sync_company_dialogue_slots_usage(str(company_id))
+        _invalidate_my_dialogues_cache(user_id)
         return {
             "status": "created",
             "application_id": app_id,
@@ -2653,8 +2698,24 @@ async def list_my_dialogues_legacy(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    select_clause = "*,jobs(id,title,company,location,url,source,contact_email),companies(id,name,website)"
-    fallback_select_clause = "*,jobs(id,title,company,location,url,source),companies(id,name,website)"
+    cached = _get_cached_my_dialogues(user_id, limit)
+    if cached is not None:
+        return cached
+
+    select_clause = (
+        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
+        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
+        "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
+        "jobs(title,company,location,url,source,contact_email),"
+        "companies(name,website)"
+    )
+    fallback_select_clause = (
+        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
+        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
+        "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
+        "jobs(title,company,location,url,source),"
+        "companies(name,website)"
+    )
     try:
         resp = (
             supabase
@@ -2681,10 +2742,12 @@ async def list_my_dialogues_legacy(
         )
 
     rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
-    return {
+    payload = {
         "applications": [_serialize_candidate_application_row(row) for row in rows],
-        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id),
+        "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows),
     }
+    _set_cached_my_dialogues(user_id, limit, payload)
+    return payload
 
 
 @router.get("/jobs/applications/{application_id}")
@@ -2824,6 +2887,7 @@ async def withdraw_my_dialogue_legacy(
         ),
         status="withdrawn",
     )
+    _invalidate_my_dialogues_cache(user_id)
 
     return {
         "status": "withdrawn",
@@ -2995,6 +3059,7 @@ async def create_my_dialogue_message_legacy(
         subject_type="application",
         subject_id=application_id,
     )
+    _invalidate_my_dialogues_cache(user_id)
     return {"message": _serialize_application_message(row, get_request_base_url(request))}
 
 

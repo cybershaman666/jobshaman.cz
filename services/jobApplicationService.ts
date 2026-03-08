@@ -266,16 +266,34 @@ export const fetchCompanyDialogueDetail = async (
 export const fetchMyDialogues = async (
     limit: number = 80
 ): Promise<DialogueSummary[]> => {
+    const result = await fetchMyDialoguesWithCapacity(limit);
+    return result.dialogues;
+};
+
+export const fetchMyDialoguesWithCapacity = async (
+    limit: number = 80
+): Promise<{ dialogues: DialogueSummary[]; candidateCapacity: CandidateDialogueCapacity | null }> => {
     try {
         const response = await authenticatedFetch(
             `${BACKEND_URL}/dialogues/me?limit=${Math.max(1, Math.min(200, Math.floor(limit || 80)))}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
-        if (!response.ok) return [];
+        if (!response.ok) {
+            return {
+                dialogues: [],
+                candidateCapacity: null,
+            };
+        }
         const payload = await response.json();
-        return extractDialogueLikeList(payload).map(mapDialogueSummary);
+        return {
+            dialogues: extractDialogueLikeList(payload).map(mapDialogueSummary),
+            candidateCapacity: extractCandidateDialogueCapacity(payload) ?? null,
+        };
     } catch {
-        return [];
+        return {
+            dialogues: [],
+            candidateCapacity: null,
+        };
     }
 };
 

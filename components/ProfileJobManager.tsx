@@ -5,9 +5,8 @@ import { Briefcase, Clock3, ExternalLink, Eye, Loader2, Mail, Search, Trash2 } f
 import { CandidateDialogueCapacity, DialogueDetail, DialogueSummary, Job, UserProfile } from '../types';
 import {
   fetchMyDialogueDetail,
-  fetchMyDialogueCapacity,
+  fetchMyDialoguesWithCapacity,
   fetchMyDialogueMessages,
-  fetchMyDialogues,
   sendMyDialogueMessage,
   withdrawMyDialogue
 } from '../services/jobApplicationService';
@@ -80,10 +79,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       setDialoguesError(null);
 
       try {
-        const [rows, capacity] = await Promise.all([
-          fetchMyDialogues(80),
-          fetchMyDialogueCapacity()
-        ]);
+        const { dialogues: rows, candidateCapacity: capacity } = await fetchMyDialoguesWithCapacity(80);
         if (!cancelled) {
           setDialogues(rows);
           setDialogueCapacity(capacity);

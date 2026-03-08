@@ -14,6 +14,7 @@ const SUBSCRIPTION_FETCH_TIMEOUT_MS = 20_000;
 const INTERACTION_FETCH_TIMEOUT_MS = 15_000;
 const RECOMMENDATIONS_FETCH_TIMEOUT_MS = 20_000;
 const INVITATIONS_FETCH_TIMEOUT_MS = 20_000;
+const DIALOGUES_FETCH_TIMEOUT_MS = 15_000;
 const AI_FETCH_TIMEOUT_MS = 120_000;
 const ADMIN_FETCH_TIMEOUT_MS = 90_000;
 
@@ -51,6 +52,8 @@ const resolveRequestTimeoutMs = (url: string): number => {
     }
     if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
     if (path === '/jobs/interactions/state') return 12_000;
+    if (path === '/dialogues/me') return DIALOGUES_FETCH_TIMEOUT_MS;
+    if (path.startsWith('/dialogues/')) return DIALOGUES_FETCH_TIMEOUT_MS;
     if (path === '/jobs/recommendations') return RECOMMENDATIONS_FETCH_TIMEOUT_MS;
     if (/^\/jobs\/[^/]+\/application-draft$/.test(path)) return AI_FETCH_TIMEOUT_MS;
     if (path === '/assessments/invitations') return INVITATIONS_FETCH_TIMEOUT_MS;
