@@ -3,12 +3,26 @@ import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './t
 import { createDefaultCandidateSearchProfile } from './services/profileDefaults';
 
 // Backend API Configuration
+const getRuntimeBackendHint = (): string => {
+  if (typeof document !== 'undefined') {
+    const metaValue = document.querySelector('meta[name="backend-url"]')?.getAttribute('content')?.trim() || '';
+    if (metaValue && metaValue !== '%VITE_BACKEND_URL%') return metaValue;
+  }
+  if (typeof window !== 'undefined') {
+    const runtimeValue = (window as Window & { __BACKEND_URL__?: string }).__BACKEND_URL__?.trim() || '';
+    if (runtimeValue) return runtimeValue;
+  }
+  return '';
+};
+
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
   if (!value) {
+    const runtimeHint = getRuntimeBackendHint();
+    if (runtimeHint) return runtimeHint.replace(/\/$/, '');
     const legacyFallback =
       (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-      (import.meta.env.DEV ? 'http://localhost:8000' : '');
+      (import.meta.env.DEV ? 'http://localhost:8000' : 'https://api.jobshaman.cz');
     if (legacyFallback) return legacyFallback.replace(/\/$/, '');
     if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
     return 'http://localhost:8000';
@@ -18,9 +32,10 @@ const normalizeBackendHost = (raw?: string): string => {
     return parsed.toString().replace(/\/$/, '');
   } catch {
     // If env contains malformed value, fall back safely.
+    const runtimeHint = getRuntimeBackendHint();
+    if (runtimeHint) return runtimeHint.replace(/\/$/, '');
     if (import.meta.env.DEV) return 'http://localhost:8000';
-    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
-    return 'http://localhost:8000';
+    return 'https://api.jobshaman.cz';
   }
 };
 

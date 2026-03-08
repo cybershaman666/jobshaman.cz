@@ -9,6 +9,7 @@ import {
   Download,
   Globe,
   Layers,
+  Lightbulb,
   Mail,
   Phone,
   Plus,
@@ -23,11 +24,13 @@ import { BACKEND_URL } from '../constants';
 import {
   adminSearch,
   createAdminCrmLead,
+  createAdminFounderBoardCard,
   createAdminJobRole,
   deleteAdminJobRole,
   getAdminAiQuality,
   getAdminCrmEntityDetail,
   getAdminCrmLeads,
+  getAdminFounderBoard,
   getAdminJobRoles,
   getAdminNotifications,
   getAdminSubscriptionAudit,
@@ -35,6 +38,7 @@ import {
   getAdminSubscriptions,
   getAdminUserDigest,
   updateAdminCrmLead,
+  updateAdminFounderBoardCard,
   updateAdminJobRole,
   updateAdminSubscription,
   updateAdminUserDigest,
@@ -61,7 +65,7 @@ interface AdminDashboardProps {
   userProfile: UserProfile;
 }
 
-type ViewMode = 'overview' | 'operations' | 'crm' | 'jcfpm';
+type ViewMode = 'overview' | 'operations' | 'crm' | 'workspace' | 'jcfpm';
 type CrmEntityKind = 'company' | 'user' | 'lead';
 
 type CrmRecord = {
@@ -80,6 +84,10 @@ const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];
 const CRM_LEAD_STATUSES = ['new', 'contacted', 'qualified', 'meeting', 'proposal', 'won', 'lost'] as const;
 const CRM_LEAD_PRIORITIES = ['low', 'medium', 'high'] as const;
 const CRM_LEAD_SOURCES = ['manual', 'outbound', 'inbound', 'referral', 'event'] as const;
+const FOUNDER_CARD_TYPES = ['idea', 'opinion', 'task', 'note'] as const;
+const FOUNDER_CARD_STATUSES = ['inbox', 'active', 'done', 'archived'] as const;
+const FOUNDER_CARD_PRIORITIES = ['low', 'medium', 'high'] as const;
+const FOUNDER_BOARD_COLUMN_KEYS = ['inbox', 'active', 'done'] as const;
 
 const num = (value: any) => Number(value) || 0;
 
@@ -169,6 +177,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     notes: '',
     next_follow_up_at: '',
     last_contacted_at: '',
+  });
+  const [founderBoardLoading, setFounderBoardLoading] = useState(false);
+  const [founderCards, setFounderCards] = useState<any[]>([]);
+  const [founderBoardQuery, setFounderBoardQuery] = useState('');
+  const [founderBoardStatus, setFounderBoardStatus] = useState<'all' | (typeof FOUNDER_CARD_STATUSES)[number]>('all');
+  const [founderBoardSaving, setFounderBoardSaving] = useState(false);
+  const [founderCardCreate, setFounderCardCreate] = useState({
+    title: '',
+    body: '',
+    card_type: 'idea',
+    status: 'inbox',
+    priority: 'medium',
+    assignee_name: '',
+    assignee_email: '',
   });
 
   const formatDate = (value?: string) => {
@@ -270,6 +292,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       setJobRoleEdits(next);
     } catch (err: any) {
       handleAuthError(err?.message || 'Failed to load JCFPM roles');
+    }
+  };
+
+  const loadFounderBoard = async () => {
+    setFounderBoardLoading(true);
+    try {
+      const data = await getAdminFounderBoard({
+        q: founderBoardQuery || undefined,
+        status: founderBoardStatus === 'all' ? undefined : founderBoardStatus,
+        limit: 160,
+      });
+      setFounderCards(data.items || []);
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to load founder board');
+      setFounderCards([]);
+    } finally {
+      setFounderBoardLoading(false);
     }
   };
 
@@ -401,6 +440,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (!userProfile?.isLoggedIn || view !== 'crm') return;
     loadCrmWorkspace();
   }, [userProfile?.isLoggedIn, view, crmKind]);
+
+  useEffect(() => {
+    if (!userProfile?.isLoggedIn || view !== 'workspace') return;
+    loadFounderBoard();
+  }, [userProfile?.isLoggedIn, view, founderBoardStatus]);
 
   const selectedCrmRecord = useMemo(
     () => crmRecords.find((row) => row.key === selectedCrmKey) || null,
@@ -621,6 +665,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     return entries.filter((item: any) => item?.category === crmTimelineFilter);
   }, [crmEntityDetail, crmTimelineFilter]);
 
+  const founderBoardColumns = useMemo(() => {
+    const grouped: Record<(typeof FOUNDER_BOARD_COLUMN_KEYS)[number], any[]> = {
+      inbox: [] as any[],
+      active: [] as any[],
+      done: [] as any[],
+    };
+    founderCards.forEach((card) => {
+      const status: (typeof FOUNDER_BOARD_COLUMN_KEYS)[number] = card?.status === 'active' || card?.status === 'done' ? card.status : 'inbox';
+      grouped[status].push(card);
+    });
+    return grouped;
+  }, [founderCards]);
+
   const exportInvestorPack = () => {
     const payload = {
       exported_at: new Date().toISOString(),
@@ -827,6 +884,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const handleCreateFounderCard = async () => {
+    if (!founderCardCreate.title.trim() || founderBoardSaving) return;
+    setFounderBoardSaving(true);
+    try {
+      await createAdminFounderBoardCard({
+        ...founderCardCreate,
+        title: founderCardCreate.title.trim(),
+        card_type: founderCardCreate.card_type as (typeof FOUNDER_CARD_TYPES)[number],
+        status: founderCardCreate.status as (typeof FOUNDER_CARD_STATUSES)[number],
+        priority: founderCardCreate.priority as (typeof FOUNDER_CARD_PRIORITIES)[number],
+      });
+      setFounderCardCreate({
+        title: '',
+        body: '',
+        card_type: 'idea',
+        status: 'inbox',
+        priority: 'medium',
+        assignee_name: '',
+        assignee_email: '',
+      });
+      await loadFounderBoard();
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to create founder card');
+    } finally {
+      setFounderBoardSaving(false);
+    }
+  };
+
+  const handleFounderCardQuickUpdate = async (cardId: string, payload: Record<string, unknown>) => {
+    if (founderBoardSaving) return;
+    setFounderBoardSaving(true);
+    try {
+      await updateAdminFounderBoardCard(cardId, payload);
+      await loadFounderBoard();
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to update founder card');
+    } finally {
+      setFounderBoardSaving(false);
+    }
+  };
+
   const handleCreateRole = async () => {
     try {
       await createAdminJobRole({
@@ -955,11 +1053,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-5">
             {([
               { id: 'overview', label: t('admin_dashboard.tabs.overview'), icon: BarChart3 },
               { id: 'operations', label: t('admin_dashboard.tabs.operations'), icon: Settings },
               { id: 'crm', label: t('admin_dashboard.tabs.crm', { defaultValue: 'CRM' }), icon: Users },
+              { id: 'workspace', label: t('admin_dashboard.tabs.workspace', { defaultValue: 'Board' }), icon: Lightbulb },
               { id: 'jcfpm', label: t('admin_dashboard.tabs.jcfpm'), icon: Sparkles },
             ] as const).map((tab) => {
               const Icon = tab.icon;
@@ -1860,6 +1959,149 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     )}
                   </div>
                 )}
+              </article>
+            </section>
+          </>
+        )}
+
+        {view === 'workspace' && (
+          <>
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              <article className={`xl:col-span-4 ${panelClass}`}>
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <Plus size={15} className="text-[var(--accent)]" />
+                  {t('admin_dashboard.workspace.create', { defaultValue: 'Nová karta pro tým' })}
+                </div>
+                <div className="space-y-2">
+                  <input
+                    value={founderCardCreate.title}
+                    onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder={t('admin_dashboard.workspace.title', { defaultValue: 'Nadpis myšlenky nebo úkolu' })}
+                    className={inputClass}
+                  />
+                  <textarea
+                    value={founderCardCreate.body}
+                    onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, body: e.target.value }))}
+                    placeholder={t('admin_dashboard.workspace.body', { defaultValue: 'Kontext, názor, další krok nebo otevřená otázka' })}
+                    className={`${inputClass} min-h-[140px] resize-y`}
+                  />
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <select value={founderCardCreate.card_type} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, card_type: e.target.value }))} className={inputClass}>
+                      {FOUNDER_CARD_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                    <select value={founderCardCreate.priority} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, priority: e.target.value }))} className={inputClass}>
+                      {FOUNDER_CARD_PRIORITIES.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+                    </select>
+                    <input value={founderCardCreate.assignee_name} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, assignee_name: e.target.value }))} placeholder={t('admin_dashboard.workspace.assignee_name', { defaultValue: 'Komu to patří' })} className={inputClass} />
+                    <input value={founderCardCreate.assignee_email} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, assignee_email: e.target.value }))} placeholder="mail@..." className={inputClass} />
+                  </div>
+                  <button onClick={handleCreateFounderCard} disabled={founderBoardSaving || !founderCardCreate.title.trim()} className="app-button-primary !rounded-[0.9rem] !px-4 !py-2 text-sm disabled:opacity-60">
+                    <Plus size={14} />
+                    {founderBoardSaving ? t('app.saving') : t('admin_dashboard.workspace.create_cta', { defaultValue: 'Přidat kartu' })}
+                  </button>
+                </div>
+              </article>
+
+              <article className={`xl:col-span-8 ${panelClass}`}>
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                  <div className="relative flex-1">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      value={founderBoardQuery}
+                      onChange={(e) => setFounderBoardQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          loadFounderBoard();
+                        }
+                      }}
+                      placeholder={t('admin_dashboard.workspace.search', { defaultValue: 'Hledat v myšlenkách, úkolech a poznámkách…' })}
+                      className={`${inputClass} pl-9`}
+                    />
+                  </div>
+                  <select value={founderBoardStatus} onChange={(e) => setFounderBoardStatus(e.target.value as any)} className={inputClass}>
+                    <option value="all">{t('admin_dashboard.workspace.all_statuses', { defaultValue: 'Všechny stavy' })}</option>
+                    {FOUNDER_CARD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                  <button onClick={loadFounderBoard} className="app-button-secondary !rounded-[0.82rem] !px-3 !py-2 text-sm">
+                    <RefreshCcw size={14} />
+                    {t('admin_dashboard.refresh')}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                  {([
+                    ['inbox', t('admin_dashboard.workspace.column_inbox', { defaultValue: 'Inbox' })],
+                    ['active', t('admin_dashboard.workspace.column_active', { defaultValue: 'Rozpracované' })],
+                    ['done', t('admin_dashboard.workspace.column_done', { defaultValue: 'Hotovo' })],
+                  ] as const).map(([statusKey, label]) => (
+                    <div key={statusKey} className="rounded-[1rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</div>
+                        <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
+                          {founderBoardColumns[statusKey].length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {founderBoardLoading && founderCards.length === 0 && (
+                          <div className="rounded-xl border border-slate-200/80 bg-white/80 p-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/70">
+                            {t('app.loading')}
+                          </div>
+                        )}
+                        {!founderBoardLoading && founderBoardColumns[statusKey].length === 0 && (
+                          <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
+                            {t('admin_dashboard.workspace.empty', { defaultValue: 'Zatím nic.' })}
+                          </div>
+                        )}
+                        {founderBoardColumns[statusKey].map((card) => (
+                          <div key={card.id} className="rounded-[1rem] border border-slate-200/80 bg-white/90 p-3 shadow-[var(--shadow-soft)] dark:border-slate-700 dark:bg-slate-900/80">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{card.title}</div>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">{card.card_type}</span>
+                                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-700 dark:text-slate-200">{card.priority}</span>
+                                </div>
+                              </div>
+                              <select
+                                value={card.status || 'inbox'}
+                                onChange={(e) => void handleFounderCardQuickUpdate(card.id, { status: e.target.value })}
+                                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                              >
+                                {FOUNDER_CARD_STATUSES.filter((status) => status !== 'archived').map((status) => (
+                                  <option key={status} value={status}>{status}</option>
+                                ))}
+                              </select>
+                            </div>
+                            {card.body ? (
+                              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{card.body}</p>
+                            ) : null}
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>{card.assignee_name || card.assignee_email || t('admin_dashboard.workspace.unassigned', { defaultValue: 'Nepřiřazeno' })}</span>
+                              <span>{card.author_admin_email || 'admin'} · {formatDate(card.updated_at || card.created_at)}</span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void handleFounderCardQuickUpdate(card.id, { priority: card.priority === 'high' ? 'medium' : 'high' })}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:border-[rgba(var(--accent-rgb),0.2)] hover:text-[var(--accent)] dark:border-slate-700 dark:text-slate-200"
+                              >
+                                {t('admin_dashboard.workspace.raise_priority', { defaultValue: 'Priorita' })}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleFounderCardQuickUpdate(card.id, { card_type: card.card_type === 'task' ? 'idea' : 'task' })}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:border-[rgba(var(--accent-rgb),0.2)] hover:text-[var(--accent)] dark:border-slate-700 dark:text-slate-200"
+                              >
+                                {t('admin_dashboard.workspace.toggle_task', { defaultValue: 'Přepnout typ' })}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </article>
             </section>
           </>

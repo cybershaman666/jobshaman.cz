@@ -42,6 +42,17 @@ export interface AdminCrmLeadPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface AdminFounderBoardCardPayload {
+  title: string;
+  body?: string;
+  card_type?: 'idea' | 'opinion' | 'task' | 'note';
+  status?: 'inbox' | 'active' | 'done' | 'archived';
+  priority?: 'low' | 'medium' | 'high';
+  assignee_name?: string;
+  assignee_email?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export async function getAdminSubscriptions(filters: AdminSubscriptionFilters = {}) {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
@@ -135,6 +146,10 @@ export async function getAdminCrmLeads(params: { q?: string; status?: string; li
     headers: { 'Content-Type': 'application/json' }
   });
 
+  if (response.status === 404) {
+    return { items: [], count: 0, unsupported: true };
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Failed to load CRM leads');
@@ -149,6 +164,10 @@ export async function createAdminCrmLead(payload: AdminCrmLeadPayload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
+
+  if (response.status === 404) {
+    throw new Error('CRM leads support is not deployed on the current backend yet');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -165,9 +184,74 @@ export async function updateAdminCrmLead(leadId: string, payload: Partial<AdminC
     body: JSON.stringify(payload)
   });
 
+  if (response.status === 404) {
+    throw new Error('CRM leads support is not deployed on the current backend yet');
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Failed to update CRM lead');
+  }
+
+  return response.json();
+}
+
+export async function getAdminFounderBoard(params: { q?: string; status?: string; limit?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.status) search.set('status', params.status);
+  if (params.limit) search.set('limit', String(params.limit));
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/founder-board?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (response.status === 404) {
+    return { items: [], count: 0, unsupported: true };
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load founder board');
+  }
+
+  return response.json();
+}
+
+export async function createAdminFounderBoardCard(payload: AdminFounderBoardCardPayload) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/founder-board`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (response.status === 404) {
+    throw new Error('Founder board support is not deployed on the current backend yet');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to create founder board card');
+  }
+
+  return response.json();
+}
+
+export async function updateAdminFounderBoardCard(cardId: string, payload: Partial<AdminFounderBoardCardPayload>) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/founder-board/${cardId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (response.status === 404) {
+    throw new Error('Founder board support is not deployed on the current backend yet');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to update founder board card');
   }
 
   return response.json();
@@ -201,7 +285,7 @@ export async function getAdminAiQuality(days: number = 30) {
   return response.json();
 }
 
-export async function adminSearch(query: string, kind: 'company' | 'user') {
+export async function adminSearch(query: string, kind: 'company' | 'user' | 'lead') {
   const params = new URLSearchParams({ query, kind });
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/search?${params.toString()}`, {
     method: 'GET',

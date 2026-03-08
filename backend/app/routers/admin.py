@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from datetime import datetime, timezone, timedelta
+import time
 import json
 from collections import defaultdict
 from typing import Optional, List, Dict, Any
@@ -12,6 +13,8 @@ from ..matching_engine.evaluation import run_offline_recommendation_evaluation
 from ..models.requests import (
     AdminCrmLeadCreateRequest,
     AdminCrmLeadUpdateRequest,
+    AdminFounderBoardCardCreateRequest,
+    AdminFounderBoardCardUpdateRequest,
     AdminSubscriptionUpdateRequest,
     AdminUserDigestUpdateRequest,
     AdminJobRoleCreateRequest,
@@ -23,6 +26,23 @@ router = APIRouter()
 
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{8,36}$")
 _audit_table_missing_logged = False
+_admin_cache_store: Dict[str, tuple[float, Any]] = {}
+
+
+def _admin_cache_get(key: str) -> Optional[Any]:
+    row = _admin_cache_store.get(key)
+    if not row:
+        return None
+    expires_at, value = row
+    if expires_at <= time.time():
+        _admin_cache_store.pop(key, None)
+        return None
+    return value
+
+
+def _admin_cache_set(key: str, value: Any, ttl_seconds: int) -> Any:
+    _admin_cache_store[key] = (time.time() + max(1, ttl_seconds), value)
+    return value
 
 def _parse_iso_datetime(value: str) -> Optional[datetime]:
     if not value:
@@ -80,6 +100,24 @@ def _build_lead_payload(raw: dict, *, admin: Optional[dict] = None, include_owne
     if include_owner and admin:
         payload["owner_admin_user_id"] = admin.get("user_id")
         payload["owner_admin_email"] = admin.get("email")
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+def _build_founder_card_payload(raw: dict, *, admin: Optional[dict] = None, include_author: bool = False) -> dict:
+    payload = {
+        "title": _clean_admin_text(raw.get("title"), 220),
+        "body": _clean_admin_text(raw.get("body"), 12000),
+        "card_type": _clean_admin_text(raw.get("card_type"), 32),
+        "status": _clean_admin_text(raw.get("status"), 32),
+        "priority": _clean_admin_text(raw.get("priority"), 32),
+        "assignee_name": _clean_admin_text(raw.get("assignee_name"), 160),
+        "assignee_email": _clean_admin_text(raw.get("assignee_email"), 320),
+        "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
+        "updated_at": now_iso(),
+    }
+    if include_author and admin:
+        payload["author_admin_user_id"] = admin.get("user_id")
+        payload["author_admin_email"] = admin.get("email")
     return {k: v for k, v in payload.items() if v is not None}
 
 def require_admin_user(user: dict) -> dict:
@@ -1242,6 +1280,96 @@ async def admin_crm_lead_update(
         raise HTTPException(status_code=500, detail="Failed to update CRM lead")
 
 
+@router.get("/admin/founder-board")
+async def admin_founder_board(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(120, ge=1, le=400),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    cache_key = f"admin_founder_board:v1:{_safe_query(q or '')}:{status or 'all'}:{limit}"
+    cached = _admin_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        query = supabase.table("admin_founder_board_cards").select("*", count="exact")
+        safe_q = _safe_query(q or "")
+        if safe_q:
+            query = query.or_(f"title.ilike.%{safe_q}%,body.ilike.%{safe_q}%,assignee_name.ilike.%{safe_q}%,author_admin_email.ilike.%{safe_q}%")
+        if status:
+            query = query.eq("status", status)
+        resp = query.order("updated_at", desc=True).limit(limit).execute()
+        return _admin_cache_set(cache_key, {"items": resp.data or [], "count": resp.count or 0}, 30)
+    except Exception as exc:
+        print(f"⚠️ Founder board load failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to load founder board")
+
+
+@router.post("/admin/founder-board")
+async def admin_founder_board_create(
+    payload: AdminFounderBoardCardCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        insert_payload = _build_founder_card_payload(payload.model_dump(), admin=admin, include_author=True)
+        if not insert_payload.get("title"):
+            raise HTTPException(status_code=400, detail="title is required")
+        resp = supabase.table("admin_founder_board_cards").insert(insert_payload).execute()
+        _admin_cache_store.clear()
+        return {"item": (resp.data or [None])[0]}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"⚠️ Founder board create failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to create founder board card")
+
+
+@router.patch("/admin/founder-board/{card_id}")
+async def admin_founder_board_update(
+    card_id: str,
+    payload: AdminFounderBoardCardUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        update_payload = _build_founder_card_payload(payload.model_dump(exclude_unset=True), admin=admin, include_author=False)
+        if list(update_payload.keys()) == ["updated_at"]:
+            return {"status": "noop", "card_id": card_id}
+        resp = (
+            supabase.table("admin_founder_board_cards")
+            .update(update_payload)
+            .eq("id", card_id)
+            .execute()
+        )
+        _admin_cache_store.clear()
+        return {"item": (resp.data or [None])[0], "card_id": card_id}
+    except Exception as exc:
+        print(f"⚠️ Founder board update failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to update founder board card")
+
+
 @router.get("/admin/jcfpm/job-roles")
 async def list_job_role_profiles(
     request: Request,
@@ -1419,6 +1547,11 @@ async def admin_stats(
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
+    cache_key = "admin_stats:v2"
+    cached = _admin_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     now = datetime.now(timezone.utc)
     last_7 = (now - timedelta(days=7)).isoformat()
     last_30 = (now - timedelta(days=30)).isoformat()
@@ -1458,8 +1591,11 @@ async def admin_stats(
     try:
         events_resp = (
             supabase.table("analytics_events")
-            .select("metadata, event_type, created_at")
+            .select("metadata, event_type")
+            .eq("event_type", "page_view")
             .gte("created_at", last_30)
+            .order("created_at", desc=True)
+            .limit(5000)
             .execute()
         )
         events = events_resp.data or []
@@ -1468,8 +1604,6 @@ async def admin_stats(
         os_counts = {}
         browser_counts = {}
         for row in events:
-            if row.get("event_type") != "page_view":
-                continue
             metadata = row.get("metadata") or {}
             if isinstance(metadata, str):
                 try:
@@ -1503,7 +1637,7 @@ async def admin_stats(
     except Exception as e:
         print(f"⚠️ Admin geo stats failed: {e}")
 
-    return {
+    return _admin_cache_set(cache_key, {
         "users": {"total": users_total, "new_7d": users_7, "new_30d": users_30},
         "companies": {"total": companies_total, "new_7d": companies_7, "new_30d": companies_30},
         "conversion": {
@@ -1516,7 +1650,7 @@ async def admin_stats(
             **(traffic or {}),
             **({"geo": geo_breakdown} if geo_breakdown else {}),
         } if traffic or geo_breakdown else None,
-    }
+    }, _ADMIN_STATS_TTL_SECONDS)
 
 
 @router.get("/admin/ai-quality")
@@ -1529,6 +1663,11 @@ async def admin_ai_quality(
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
+    cache_key = f"admin_ai_quality:v2:{days}"
+    cached = _admin_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     start_iso = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     logs_resp = (
@@ -1536,7 +1675,7 @@ async def admin_ai_quality(
         .select("user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out, estimated_cost")
         .gte("created_at", start_iso)
         .order("created_at", desc=True)
-        .limit(8000)
+        .limit(5000)
         .execute()
     )
     logs = logs_resp.data or []
@@ -1638,7 +1777,7 @@ async def admin_ai_quality(
         .select("change_ratio, feature")
         .gte("created_at", start_iso)
         .order("created_at", desc=True)
-        .limit(8000)
+        .limit(4000)
         .execute()
     )
     diffs = diffs_resp.data or []
@@ -1652,7 +1791,7 @@ async def admin_ai_quality(
         .select("user_id, score, model_version, scoring_version, breakdown_json, computed_at")
         .gte("computed_at", start_iso)
         .order("computed_at", desc=True)
-        .limit(10000)
+        .limit(6000)
         .execute()
     )
     rec_rows = rec_resp.data or []
@@ -1689,7 +1828,7 @@ async def admin_ai_quality(
         .select("user_id, event_type, created_at")
         .gte("created_at", start_iso)
         .in_("event_type", ["impression", "open_detail", "apply_click"])
-        .limit(10000)
+        .limit(6000)
         .execute()
     )
     interactions = interactions_resp.data or []
@@ -1707,7 +1846,7 @@ async def admin_ai_quality(
             .select("request_id, user_id, job_id, model_version, scoring_version, predicted_action_probability, ranking_strategy, is_new_job, is_long_tail_company, shown_at")
             .gte("shown_at", start_iso)
             .order("shown_at", desc=True)
-            .limit(30000)
+            .limit(12000)
             .execute()
         )
         exposure_rows = exposures_resp.data or []
@@ -1720,7 +1859,7 @@ async def admin_ai_quality(
             .select("request_id, user_id, job_id, signal_type, created_at")
             .gte("created_at", start_iso)
             .eq("signal_type", "apply_click")
-            .limit(30000)
+            .limit(12000)
             .execute()
         )
         feedback_rows = feedback_resp.data or []
@@ -1844,7 +1983,7 @@ async def admin_ai_quality(
         or []
     )
 
-    return {
+    return _admin_cache_set(cache_key, {
         "window_days": days,
         "summary": {
             "total_generations": total,
@@ -1881,7 +2020,7 @@ async def admin_ai_quality(
         "selection_strategy_counts": dict(strategy_counts),
         "active_models": model_registry,
         "release_flags": release_flags,
-    }
+    }, _ADMIN_AI_QUALITY_TTL_SECONDS)
 
 
 @router.post("/admin/ai-quality/evaluate")
@@ -1903,6 +2042,11 @@ async def admin_notifications(
     require_admin_user(user)
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
+
+    cache_key = f"admin_notifications:v1:{days_ahead}"
+    cached = _admin_cache_get(cache_key)
+    if cached is not None:
+        return cached
 
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(days=days_ahead)
@@ -1942,7 +2086,7 @@ async def admin_notifications(
         })
 
     items.sort(key=lambda x: x.get("current_period_end") or "")
-    return {"items": items, "count": len(items)}
+    return _admin_cache_set(cache_key, {"items": items, "count": len(items)}, _ADMIN_NOTIFICATIONS_TTL_SECONDS)
 
 @router.get("/admin/subscriptions/{subscription_id}/audit")
 async def admin_subscription_audit(

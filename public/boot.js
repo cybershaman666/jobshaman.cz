@@ -87,7 +87,7 @@ window.onerror = function (message) {
   try {
     var meta = document.querySelector('meta[name="backend-url"]');
     var metaValue = meta && meta.getAttribute('content');
-    var backend = (metaValue && metaValue !== '%VITE_BACKEND_URL%') ? metaValue : (window.__BACKEND_URL__ || 'https://jobshaman-cz.onrender.com');
+    var backend = (metaValue && metaValue !== '%VITE_BACKEND_URL%') ? metaValue : (window.__BACKEND_URL__ || 'https://api.jobshaman.cz');
     window.__BACKEND_URL__ = backend;
     var url = backend.replace(/\/+$/, '') + '/healthz';
     fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });

@@ -15,6 +15,7 @@ const INTERACTION_FETCH_TIMEOUT_MS = 15_000;
 const RECOMMENDATIONS_FETCH_TIMEOUT_MS = 20_000;
 const INVITATIONS_FETCH_TIMEOUT_MS = 20_000;
 const AI_FETCH_TIMEOUT_MS = 120_000;
+const ADMIN_FETCH_TIMEOUT_MS = 90_000;
 
 let csrfTokenCooldownUntil = 0;
 const csrfFetchInFlight = new Map<string, Promise<string | null>>();
@@ -45,6 +46,9 @@ const getRequestPath = (url: string): string => {
 const resolveRequestTimeoutMs = (url: string): number => {
     const path = getRequestPath(url);
     if (path === '/csrf-token') return CSRF_FETCH_TIMEOUT_MS;
+    if (path.startsWith('/admin/stats') || path.startsWith('/admin/ai-quality') || path.startsWith('/admin/notifications')) {
+        return ADMIN_FETCH_TIMEOUT_MS;
+    }
     if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
     if (path === '/jobs/interactions/state') return 12_000;
     if (path === '/jobs/recommendations') return RECOMMENDATIONS_FETCH_TIMEOUT_MS;

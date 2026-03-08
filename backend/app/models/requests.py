@@ -264,6 +264,28 @@ class AdminCrmLeadUpdateRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
+class AdminFounderBoardCardCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=220)
+    body: Optional[str] = Field(None, max_length=12000)
+    card_type: Optional[Literal["idea", "opinion", "task", "note"]] = "idea"
+    status: Optional[Literal["inbox", "active", "done", "archived"]] = "inbox"
+    priority: Optional[Literal["low", "medium", "high"]] = "medium"
+    assignee_name: Optional[str] = Field(None, max_length=160)
+    assignee_email: Optional[str] = Field(None, max_length=320)
+    metadata: Optional[dict] = None
+
+
+class AdminFounderBoardCardUpdateRequest(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=220)
+    body: Optional[str] = Field(None, max_length=12000)
+    card_type: Optional[Literal["idea", "opinion", "task", "note"]] = None
+    status: Optional[Literal["inbox", "active", "done", "archived"]] = None
+    priority: Optional[Literal["low", "medium", "high"]] = None
+    assignee_name: Optional[str] = Field(None, max_length=160)
+    assignee_email: Optional[str] = Field(None, max_length=320)
+    metadata: Optional[dict] = None
+
+
 class AdminJobRoleCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     d1: float = Field(..., ge=1, le=7)
