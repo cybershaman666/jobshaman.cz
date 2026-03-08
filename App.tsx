@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
-import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile } from './types';
+import { Job, ViewState, UserProfile, CompanyProfile } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
 import { initialBlogPosts } from './src/data/blogPosts';
@@ -16,32 +16,31 @@ import EnterpriseSignup from './components/EnterpriseSignup';
 import ApplicationModal from './components/ApplicationModal';
 import ProfileEditor from './components/ProfileEditor';
 import CookieBanner from './components/CookieBanner';
-import WelcomePage from './components/WelcomePage';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
-import JobListSidebar from './components/JobListSidebar';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import CandidateActivationRail from './components/CandidateActivationRail';
-import { analyzeJobDescription } from './services/geminiService';
-import { calculateCommuteReality } from './services/commuteService';
-import { fetchJobById, fetchJobsByIds, getJobCount, getTodayAnalyzedCount } from './services/jobService';
+import ChallengeHomeSections from './components/challenges/ChallengeHomeSections';
+import ChallengeMarketplace from './components/challenges/ChallengeMarketplace';
+import ChallengeFocusView from './components/challenges/ChallengeFocusView';
+import PublicCompanyProfilePage from './components/challenges/PublicCompanyProfilePage';
+import BlogSection from './components/BlogSection';
+import { fetchJobById, fetchJobsByIds } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
-import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
-import { createJobApplication, fetchCompanyDialogues, fetchMyDialogueCapacity, fetchMyDialogues } from './services/jobApplicationService';
+import { createJobApplication } from './services/jobApplicationService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
 import { mapJcfpmToJhiPreferencesWithExplanation } from './services/jcfpmService';
 import { createDefaultJHIPreferences } from './services/profileDefaults';
-import { getCompanyDialogueCapacity } from './services/billingService';
 import {
     deriveActivationState,
     getNextActivationStep,
@@ -49,22 +48,8 @@ import {
     markFirstQualityAction,
     withActivationState
 } from './services/candidateActivationService';
-import {
-    clamp,
-    applyTimeCostImpact,
-    calculateBenefitsBonus,
-    calculateNetBenefitBonus,
-    calculateOverallScore
-} from './utils/jhi';
 import { calculateJHI } from './utils/jhiCalculator';
-import { formatJobDescription } from './utils/formatters';
-import {
-    Car,
-    Bus,
-    Bike,
-    Footprints,
-    AlertCircle
-} from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 type PendingApplyFollowup = {
     jobId: number;
@@ -83,23 +68,6 @@ const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 
-const ACTIVE_DIALOGUE_STATUSES = new Set([
-    'pending',
-    'reviewed',
-    'shortlisted'
-]);
-
-const CLOSED_DIALOGUE_STATUSES = new Set([
-    'rejected',
-    'hired',
-    'withdrawn',
-    'closed',
-    'closed_timeout',
-    'closed_rejected',
-    'closed_withdrawn',
-    'closed_role_filled'
-]);
-
 const normalizeSavedJobId = (jobId: string): string => {
     const raw = String(jobId || '').trim();
     if (!raw) return '';
@@ -116,8 +84,6 @@ const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const SavedJobsPage = lazy(() => import('./components/SavedJobsPage'));
-const JobDetailView = lazy(() => import('./components/JobDetailView'));
-const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrowser'));
 const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
 const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage'));
 const DemoHandshakePage = lazy(() => import('./pages/DemoHandshakePage'));
@@ -132,7 +98,7 @@ export default function App() {
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem('theme');
-            if (stored === 'dark' || (!stored && window.matchMedia?.('(prefers-color-scheme: dark)').matches)) {
+            if (stored === 'dark') {
                 document.documentElement.classList.add('dark');
                 return 'dark';
             }
@@ -170,11 +136,24 @@ export default function App() {
         if (parts[0] === 'blog') return parts[1] || null;
         return null;
     });
-    const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
-    const [analyzing, setAnalyzing] = useState(false);
+    const [isBlogOpen, setIsBlogOpen] = useState<boolean>(() => {
+        const path = window.location.pathname;
+        const parts = path.split('/').filter(Boolean);
+        const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+        return parts[0] === 'blog';
+    });
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(() => {
+        const path = window.location.pathname;
+        const parts = path.split('/').filter(Boolean);
+        const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+        if (parts[0] === 'companies') return parts[1] || null;
+        return null;
+    });
+    const [discoveryLane, setDiscoveryLane] = useState<'challenges' | 'imports'>('challenges');
+    const [challengeRemoteOnly, setChallengeRemoteOnly] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
-    const [welcomeActiveJobsCount, setWelcomeActiveJobsCount] = useState<number | null>(null);
-    const [welcomeTodayReviewedCount, setWelcomeTodayReviewedCount] = useState<number | null>(null);
 
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
@@ -194,10 +173,6 @@ export default function App() {
         return false;
     };
 
-    // Track if we've already auto-enabled commute filter to avoid re-enabling after user disables it
-    const hasAutoEnabledCommuteFilter = useRef(false);
-    const deferredAutoEnableRef = useRef(false);
-
     // Track if user intentionally clicked on LIST (to prevent NavRestore from auto-restoring dashboard)
     const userIntentionallyClickedListRef = useRef(false);
 
@@ -212,17 +187,6 @@ export default function App() {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
-    const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
-    const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
-    const [isMobileSwipeView, setIsMobileSwipeView] = useState(false);
-    const [isMobileScreen, setIsMobileScreen] = useState(false);
-    const [mobileViewOverride, setMobileViewOverride] = useState<'swipe' | 'list' | null>(null);
-    const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
-    const [candidateDialogueCapacity, setCandidateDialogueCapacity] = useState<{ active: number; limit: number; remaining: number } | null>(null);
-    const [candidateDialogueCounts, setCandidateDialogueCounts] = useState({ active: 0, closed: 0 });
-    const [companyDialogueCounts, setCompanyDialogueCounts] = useState({ active: 0, closed: 0 });
-    const [dialogueMetricsLoading, setDialogueMetricsLoading] = useState(false);
-
     const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
     const onboardingDismissedRef = useRef(false);
     const activationNudgeShownRef = useRef(false);
@@ -261,8 +225,8 @@ export default function App() {
             normalizedPath === '/profile/jcfpm' ||
             normalizedPath === '/profil/jcfpm';
     }, [viewState, normalizedPath]);
-    const usePageScrollLayout = !isImmersiveAssessmentRoute && viewState === ViewState.PROFILE;
-    const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST;
+    const usePageScrollLayout = !isImmersiveAssessmentRoute && (viewState === ViewState.PROFILE || viewState === ViewState.LIST || !!selectedCompanyId);
+    const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST && !selectedJobId && !selectedCompanyId;
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
@@ -560,10 +524,8 @@ export default function App() {
         loading: isLoadingJobs,
         loadingMore,
         hasMore,
-        totalCount,
         searchTerm,
         isSearching,
-        impressionSessionKey,
         loadInitialJobs,
         loadMoreJobs,
         performSearch,
@@ -573,30 +535,27 @@ export default function App() {
         filterBenefits,
         filterContractType,
         filterDate,
-        filterMinSalary,
         filterExperience,
-        filterLanguage,
+        filterLanguageCodes,
+        filterMinSalary,
         savedJobIds,
-        showFilters,
-        expandedSections,
         setSearchTerm,
         setFilterCity,
+        setFilterBenefits,
+        setFilterContractType,
+        setFilterDate,
+        setFilterExperience,
+        setFilterLanguageCodes,
         setFilterMaxDistance,
         setEnableCommuteFilter,
-        setFilterDate,
         setFilterMinSalary,
-        setFilterLanguage,
-        setShowFilters,
-        setExpandedSections,
         toggleBenefitFilter,
         toggleContractTypeFilter,
-        toggleExperienceFilter,
         globalSearch,
         abroadOnly,
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
-        setSortBy,
         applyInteractionState
     } = usePaginatedJobs({ userProfile: effectiveUserProfile });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
@@ -605,31 +564,6 @@ export default function App() {
             setSavedJobsSearchTerm('');
         }
     }, [viewState]);
-
-    // Prevent layout flash on first render by waiting for client mount
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
-
-    // Detect mobile screen size and auto-enable mobile swipe view
-    useEffect(() => {
-        const handleResize = () => {
-            const isMobile = window.innerWidth < 1024; // lg breakpoint
-            setIsMobileScreen(isMobile);
-            if (!isMobile) {
-                setIsMobileSwipeView(false);
-                return;
-            }
-            if (mobileViewOverride) {
-                setIsMobileSwipeView(mobileViewOverride === 'swipe');
-            } else {
-                setIsMobileSwipeView(userProfile.isLoggedIn);
-            }
-        };
-
-        handleResize(); // Check on mount
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [userProfile.isLoggedIn, mobileViewOverride]);
 
     const jhiCacheRef = useRef<Map<string, { key: string; jhi: any }>>(new Map());
     const jhiPrefsKey = useMemo(
@@ -707,113 +641,6 @@ export default function App() {
         }
         return personalized;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const resetMetrics = () => {
-            if (cancelled) return;
-            setCandidateDialogueCapacity(null);
-            setCandidateDialogueCounts({ active: 0, closed: 0 });
-            setCompanyDialogueCounts({ active: 0, closed: 0 });
-        };
-
-        const loadDialogueMetrics = async () => {
-            if (!userProfile.isLoggedIn) {
-                resetMetrics();
-                return;
-            }
-
-            setDialogueMetricsLoading(true);
-            try {
-                if (userProfile.role === 'recruiter') {
-                    if (!companyProfile?.id) {
-                        resetMetrics();
-                        return;
-                    }
-
-                    const rows = await fetchCompanyDialogues(companyProfile.id, undefined, 500);
-                    if (cancelled) return;
-                    const active = rows.reduce(
-                        (sum, row) => sum + (ACTIVE_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
-                        0
-                    );
-                    const closed = rows.reduce(
-                        (sum, row) => sum + (CLOSED_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
-                        0
-                    );
-                    setCompanyDialogueCounts({ active, closed });
-                    setCandidateDialogueCapacity(null);
-                    setCandidateDialogueCounts({ active: 0, closed: 0 });
-                    return;
-                }
-
-                const [capacity, rows] = await Promise.all([
-                    fetchMyDialogueCapacity(),
-                    fetchMyDialogues(120)
-                ]);
-                if (cancelled) return;
-
-                const active = rows.reduce(
-                    (sum, row) => sum + (ACTIVE_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
-                    0
-                );
-                const closed = rows.reduce(
-                    (sum, row) => sum + (CLOSED_DIALOGUE_STATUSES.has(String(row?.status || '')) ? 1 : 0),
-                    0
-                );
-                setCandidateDialogueCapacity(capacity);
-                setCandidateDialogueCounts({ active, closed });
-                setCompanyDialogueCounts({ active: 0, closed: 0 });
-            } catch (error) {
-                console.warn('Failed to load dialogue metrics for discovery card:', error);
-                resetMetrics();
-            } finally {
-                if (!cancelled) setDialogueMetricsLoading(false);
-            }
-        };
-
-        void loadDialogueMetrics();
-        return () => {
-            cancelled = true;
-        };
-    }, [userProfile.isLoggedIn, userProfile.id, userProfile.role, companyProfile?.id]);
-
-    const todayNewJobsCount = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return jobsForDisplay.filter((job) => {
-            const posted = new Date(job.postedAt);
-            if (Number.isNaN(posted.getTime())) return false;
-            posted.setHours(0, 0, 0, 0);
-            return posted.getTime() === today.getTime();
-        }).length;
-    }, [jobsForDisplay]);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadWelcomeStats = async () => {
-            try {
-                const [activeJobs, todayReviewed] = await Promise.all([
-                    getJobCount(),
-                    getTodayAnalyzedCount()
-                ]);
-                if (cancelled) return;
-                setWelcomeActiveJobsCount(Number.isFinite(activeJobs) ? activeJobs : 0);
-                setWelcomeTodayReviewedCount(Number.isFinite(todayReviewed) ? todayReviewed : 0);
-            } catch (error) {
-                if (!cancelled) {
-                    console.warn('Failed to load welcome stats:', error);
-                }
-            }
-        };
-
-        loadWelcomeStats();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     const savedJobsCacheKey = useMemo(
         () => `${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`,
@@ -1032,6 +859,8 @@ export default function App() {
     // Infinite scroll detection
     const jobListRef = useRef<HTMLDivElement>(null);
     const detailScrollRef = useRef<HTMLDivElement>(null);
+    const discoveryScrollYRef = useRef<number | null>(null);
+    const shouldRestoreDiscoveryScrollRef = useRef(false);
     const searchSessionIdRef = useRef(`list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
     useEffect(() => {
@@ -1155,23 +984,25 @@ export default function App() {
                 }
             } else if (parts[0] === 'blog') {
                 const slug = parts[1];
-                if (slug) {
-                    setViewState(ViewState.LIST);
-                    setShowCompanyLanding(false);
-                    setSelectedBlogPostSlug(slug);
-                    setSelectedJobId(null);
-                }
+                setViewState(ViewState.LIST);
+                setShowCompanyLanding(false);
+                setIsBlogOpen(true);
+                setSelectedBlogPostSlug(slug || null);
+                setSelectedJobId(null);
             } else if (parts[0] === 'ulozene') {
+                setIsBlogOpen(false);
                 setViewState(ViewState.SAVED);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'assessment-centrum') {
+                setIsBlogOpen(false);
                 setViewState(ViewState.ASSESSMENT);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'profil' || parts[0] === 'profile') {
+                setIsBlogOpen(false);
                 if (parts[1] === 'jcfpm') {
                     setViewState(ViewState.JCFPM);
                 } else {
@@ -1181,24 +1012,30 @@ export default function App() {
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'jcfpm') {
+                setIsBlogOpen(false);
                 setViewState(ViewState.JCFPM);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'pro-firmy') {
+                setIsBlogOpen(false);
                 setShowCompanyLanding(true);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'company-dashboard' || parts[0] === 'dashboard') {
+                setIsBlogOpen(false);
                 setViewState(ViewState.COMPANY_DASHBOARD);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'digest') {
+                setIsBlogOpen(false);
                 setViewState(ViewState.LIST);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
+            } else {
+                setIsBlogOpen(false);
             }
 
             return () => subscription.unsubscribe();
@@ -1235,6 +1072,29 @@ export default function App() {
         }
     }, [selectedJobId, userProfile.isLoggedIn, userProfile.role, viewState, companyProfile?.industry]);
 
+    useEffect(() => {
+        if (selectedJobId !== null) return;
+        if (viewState !== ViewState.LIST || selectedCompanyId) return;
+        if (!shouldRestoreDiscoveryScrollRef.current) return;
+
+        const targetY = discoveryScrollYRef.current;
+        shouldRestoreDiscoveryScrollRef.current = false;
+        if (targetY == null) return;
+
+        const restoreScroll = () => {
+            window.scrollTo({ top: targetY, behavior: 'auto' });
+        };
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                restoreScroll();
+            });
+        });
+
+        const timeoutId = window.setTimeout(restoreScroll, 90);
+        return () => window.clearTimeout(timeoutId);
+    }, [selectedJobId, selectedCompanyId, viewState]);
+
     // Keep URL in sync with current view state (locale-prefixed routes)
     useEffect(() => {
         try {
@@ -1260,8 +1120,12 @@ export default function App() {
 
             if (selectedJobId) {
                 targetPath = `/${lng}/jobs/${selectedJobId}`;
-            } else if (selectedBlogPostSlug) {
+            } else if (selectedCompanyId) {
+                targetPath = `/${lng}/companies/${selectedCompanyId}`;
+            } else if (isBlogOpen && selectedBlogPostSlug) {
                 targetPath = `/${lng}/blog/${selectedBlogPostSlug}`;
+            } else if (isBlogOpen) {
+                targetPath = `/${lng}/blog`;
             } else if (showCompanyLanding) {
                 targetPath = `/${lng}/pro-firmy`;
             } else if (viewState === ViewState.SAVED) {
@@ -1282,7 +1146,7 @@ export default function App() {
         } catch (err) {
             console.warn('Failed to sync URL with view state', err);
         }
-    }, [selectedJobId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language]);
+    }, [selectedJobId, selectedCompanyId, selectedBlogPostSlug, isBlogOpen, showCompanyLanding, viewState, i18n.language]);
 
     const lastTrackedPathRef = useRef<string | null>(null);
     useEffect(() => {
@@ -1298,12 +1162,12 @@ export default function App() {
                 jobId: selectedJobId,
                 blogSlug: selectedBlogPostSlug,
                 locale: i18n.language,
-                companyId: companyProfile?.id || null
+                companyId: selectedCompanyId || companyProfile?.id || null
             });
         } catch (err) {
             console.warn('Page view tracking failed:', err);
         }
-    }, [selectedJobId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language, companyProfile?.id]);
+    }, [selectedJobId, selectedCompanyId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language, companyProfile?.id]);
 
     // REMOVE OLD HISTORY API PATCHING - replaced with selectedJobId effect above
     // Fetch job by ID for direct links (e.g., /jobs/18918)
@@ -1330,51 +1194,16 @@ export default function App() {
 
     const reloadLockRef = useRef(false);
 
-    // Auto-enable commute filter for existing users with address/coordinates (only once)
+    // Remote-only search and commute radius are mutually exclusive in practice.
     useEffect(() => {
-        console.log('🔍 Commute filter check:', {
-            hasAddress: !!userProfile.address,
-            hasCoordinates: !!userProfile.coordinates,
-            coordinates: userProfile.coordinates,
-            enableCommuteFilter,
-            address: userProfile.address,
-            alreadyAutoEnabled: hasAutoEnabledCommuteFilter.current
-        });
-
-        // Only auto-enable once, and only if user hasn't manually disabled it
-        if (effectiveUserProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
-            // If we don't yet have jobs loaded, defer enabling commute filter to avoid hiding everything
-            if (filteredJobs && filteredJobs.length === 0) {
-                console.log('🏠 Deferring auto-enable of commute filter until jobs load');
-                deferredAutoEnableRef.current = true;
-                return;
-            }
-
-            console.log('🏠 User has address and coordinates, auto-enabling commute filter for the first time');
-            setEnableCommuteFilter(true);
-            setFilterMaxDistance(50);
-            hasAutoEnabledCommuteFilter.current = true;
-            deferredAutoEnableRef.current = false;
-        }
-    }, [effectiveUserProfile.coordinates, isCompanyProfile]);
-
-    // If we queued auto-enable because jobs weren't loaded yet, enable when jobs arrive
-    useEffect(() => {
-        if (deferredAutoEnableRef.current && filteredJobs && filteredJobs.length > 0 && !hasAutoEnabledCommuteFilter.current) {
-            console.log('🏠 Jobs loaded — applying deferred auto-enable of commute filter');
-            setEnableCommuteFilter(true);
-            setFilterMaxDistance(50);
-            hasAutoEnabledCommuteFilter.current = true;
-            deferredAutoEnableRef.current = false;
-        }
-    }, [filteredJobs?.length, isCompanyProfile]);
+        if (!challengeRemoteOnly || !enableCommuteFilter) return;
+        setEnableCommuteFilter(false);
+    }, [challengeRemoteOnly, enableCommuteFilter, setEnableCommuteFilter]);
 
     // Company profiles: if no coordinates, disable commute filter to avoid empty results
     useEffect(() => {
         if (isCompanyProfile && viewState === ViewState.LIST && !companyCoordinates && enableCommuteFilter) {
             setEnableCommuteFilter(false);
-            deferredAutoEnableRef.current = false;
-            hasAutoEnabledCommuteFilter.current = false;
         }
     }, [isCompanyProfile, viewState, companyCoordinates?.lat, companyCoordinates?.lon, enableCommuteFilter]);
 
@@ -1400,8 +1229,6 @@ export default function App() {
     const BACKEND_RETRY_INITIAL_DELAY_MS = 4500; // avoid brief "flash" polling on transient hiccups
 
     // UI state for showing the waiting hint
-    const [backendPolling, setBackendPolling] = useState(false);
-
     // Keep a ref to filteredJobs so async retry closure can access latest value
     const filteredJobsRef = useRef(filteredJobs);
     useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
@@ -1427,7 +1254,6 @@ export default function App() {
         // With dedicated always-on search backend, polling Render wake-ups only creates noisy duplicate reloads.
         if (hasDedicatedSearchBackend) {
             backendWakeRetryRef.current = false;
-            setBackendPolling(false);
             if (backendRetryTimerRef.current) {
                 clearTimeout(backendRetryTimerRef.current);
                 backendRetryTimerRef.current = null;
@@ -1459,14 +1285,12 @@ export default function App() {
             if (filteredJobsRef.current.length > 0) {
                 console.log('Backend wake retry: jobs appeared, stopping polling');
                 backendWakeRetryRef.current = false;
-                setBackendPolling(false);
                 return;
             }
 
             if (backendRetryCountRef.current >= BACKEND_RETRY_MAX) {
                 console.log('Backend wake retry: reached max attempts, stopping');
                 backendWakeRetryRef.current = false;
-                setBackendPolling(false);
                 return;
             }
 
@@ -1481,14 +1305,12 @@ export default function App() {
             }
             console.log('Backend wake retry: starting polling to wait for backend wake-up');
             backendWakeRetryRef.current = true;
-            setBackendPolling(true);
             backendRetryCountRef.current = 0;
             void runPoll();
         }, BACKEND_RETRY_INITIAL_DELAY_MS);
 
         return () => {
             backendWakeRetryRef.current = false;
-            setBackendPolling(false);
             if (backendRetryStartTimerRef.current) {
                 clearTimeout(backendRetryStartTimerRef.current);
                 backendRetryStartTimerRef.current = null;
@@ -1531,34 +1353,9 @@ export default function App() {
         }
     }, [theme]);
 
-    // Handle Logic when a Job is Selected
     useEffect(() => {
-        setAiAnalysis(null);
-        setCommuteAnalysis(null);
         setIsApplyModalOpen(false);
-
-        // Always attempt commute calc if we have a job
-        if (selectedJob) {
-            // Commute Logic
-            if (userProfile.address || userProfile.coordinates) {
-                const commuteProfile = userProfile.address
-                    ? userProfile
-                    : {
-                        ...userProfile,
-                        address: t('financial.current_location_label') as string
-                    };
-                const analysis = calculateCommuteReality(selectedJob, commuteProfile);
-                setCommuteAnalysis(analysis);
-            } else {
-                setCommuteAnalysis(null);
-            }
-
-
-
-            // Salary Estimation Logic - Disabled for pagination compatibility
-            // TODO: Implement in paginated version
-        }
-    }, [selectedJobId, userProfile]);
+    }, [selectedJobId]);
 
     // Wake backend early to reduce cold start latency (fire-and-forget, no CORS noise).
     useEffect(() => {
@@ -1636,14 +1433,6 @@ export default function App() {
             userProfileRef.current = updatedProfile;
             setUserProfile(updatedProfile);
 
-            // Auto-enable commute filter if address is added and filter wasn't on (only once)
-            if ((updatedProfile.address || updatedProfile.coordinates) && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
-                console.log('🏠 Profile updated locally with address, auto-enabling commute filter');
-                setEnableCommuteFilter(true);
-                setFilterMaxDistance(50);
-                hasAutoEnabledCommuteFilter.current = true;
-            }
-
             // ONLY persist if explicitly requested (e.g., CV/Photo upload)
             if (persist && updatedProfile.id) {
                 console.log("💾 Persisting profile changes immediately...");
@@ -1689,36 +1478,6 @@ export default function App() {
             return false;
         }
     };
-
-    const handleUseCurrentLocation = useCallback(() => {
-        if (!navigator.geolocation) {
-            alert(t('alerts.geolocation_not_supported'));
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const coords = {
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
-                };
-                setUserProfile({
-                    ...userProfile,
-                    coordinates: coords,
-                    address: userProfile.address || (t('financial.current_location_label') as string)
-                });
-                setEnableCommuteFilter(true);
-                setFilterMaxDistance(50);
-                hasAutoEnabledCommuteFilter.current = true;
-                deferredAutoEnableRef.current = false;
-            },
-            (error) => {
-                console.warn('Geolocation failed:', error);
-                alert(t('alerts.geolocation_fetch_failed'));
-            },
-            { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
-        );
-    }, [userProfile, setUserProfile, setEnableCommuteFilter, setFilterMaxDistance, t]);
 
     const handleCompanyOnboardingComplete = (company: CompanyProfile) => {
         setCompanyProfile(company);
@@ -1786,12 +1545,6 @@ export default function App() {
             return;
         }
         applyInteractionState(jobId, 'save');
-    };
-
-    const handleOpenJobDetailsFromSwipe = (jobId: string) => {
-        handleJobSelect(jobId);
-        setOpenedFromSwipe(true);
-        setIsMobileSwipeView(false);
     };
 
     const handleApplyToJob = (job: Job) => {
@@ -1885,6 +1638,10 @@ export default function App() {
 
     const handleJobSelect = (jobId: string | null) => {
         if (jobId) {
+            if (!selectedJobId && viewState === ViewState.LIST && !selectedCompanyId) {
+                discoveryScrollYRef.current = window.scrollY;
+                shouldRestoreDiscoveryScrollRef.current = false;
+            }
             const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
             trackJobInteraction({
                 jobId,
@@ -1901,139 +1658,53 @@ export default function App() {
             });
         }
         setSelectedJobId(jobId);
+        setSelectedCompanyId(null);
         setSelectedBlogPostSlug(null); // Clear blog post when job selected
 
         if (!jobId) {
-            setDirectlyFetchedJob(null);
-            if (openedFromSwipe && viewState === ViewState.LIST) {
-                setIsMobileSwipeView(true);
-                setOpenedFromSwipe(false);
+            if (selectedJobId && discoveryScrollYRef.current != null) {
+                shouldRestoreDiscoveryScrollRef.current = true;
             }
+            setDirectlyFetchedJob(null);
+            return;
         }
 
-        // Scroll ONLY the right column using setTimeout to ensure DOM is ready
-        setTimeout(() => {
-            if (detailScrollRef.current) {
-                // Force immediate scroll to top with no animation
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                if (usePageScrollLayout || !detailScrollRef.current) {
+                    window.scrollTo({ top: 0, behavior: 'auto' });
+                    return;
+                }
                 detailScrollRef.current.scrollTop = 0;
-                console.log('✅ Right column scrolled to top');
-            }
-        }, 0); // Use 0 timeout to run after current execution stack
-    };
-
-    const handleBlogPostSelect = (slug: string | null) => {
-        setSelectedBlogPostSlug(slug);
-        setSelectedJobId(null); // Clear job when blog selected
-
-        // Scroll to top
-        setTimeout(() => {
-            if (detailScrollRef.current) {
-                detailScrollRef.current.scrollTop = 0;
-            }
-        }, 0);
+            });
+        });
     };
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
 
-    const handleAnalyzeJob = async () => {
-        if (!selectedJob) return;
-
-        if (!userProfile.isLoggedIn || !userProfile.id) {
-            setShowPremiumUpgrade({ open: true, feature: t('alerts.ai_job_analysis_feature') as string });
-            return;
+    const handleCompanyPageSelect = (companyId: string | null) => {
+        setSelectedCompanyId(companyId);
+        setSelectedJobId(null);
+        setSelectedBlogPostSlug(null);
+        if (companyId) {
+            setViewState(ViewState.LIST);
         }
-
-        // Feature gating via backend (authoritative).
-        const billing = await verifyServerSideBilling({
-            userId: userProfile.id,
-            feature: 'AI_JOB_ANALYSIS',
-            endpoint: '/jobs/analyze'
-        });
-        if (!billing.hasAccess) {
-            const reason = (billing.reason || '').toLowerCase();
-            const isEntitlementDeny = reason.includes('feature') || reason.includes('tier') || reason.includes('inactive subscription');
-            if (isEntitlementDeny) {
-                setShowPremiumUpgrade({ open: true, feature: t('alerts.ai_job_analysis_feature') as string });
-            } else if (billing.reason) {
-                alert(billing.reason);
-            } else {
-                alert(t('alerts.subscription_verification_failed'));
-            }
-            return;
-        }
-
-        setAnalyzing(true);
-        try {
-            // Pass job ID and any existing cached analysis to the service
-            const result = await analyzeJobDescription(
-                selectedJob.description,
-                String(selectedJob.id),
-                selectedJob.aiAnalysis
-            );
-            setAiAnalysis(result);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setAnalyzing(false);
-        }
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }, 0);
     };
 
-    const handleSaveOptimizedCvToProfile = async (optimizedCvText: string): Promise<boolean> => {
-        const normalized = (optimizedCvText || '').trim();
-        if (!normalized || !userProfile.id) {
-            return false;
-        }
-
-        const updatedProfile: UserProfile = {
-            ...userProfile,
-            cvAiText: normalized
-        };
-
-        await handleProfileUpdate(updatedProfile, true);
-        return true;
+    const handleInsightsOpen = () => {
+        setViewState(ViewState.LIST);
+        setSelectedCompanyId(null);
+        setSelectedJobId(null);
+        setIsBlogOpen(true);
+        setSelectedBlogPostSlug(null);
+        setShowCompanyLanding(false);
+        window.setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        }, 0);
     };
-
-    const toggleSection = (section: string) => {
-        setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
-    };
-
-    const getTransportIcon = (mode: string) => {
-        switch (mode) {
-            case 'car': return Car;
-            case 'bike': return Bike;
-            case 'walk': return Footprints;
-            default: return Bus;
-        }
-    };
-
-    const companyDialogueCapacity = companyProfile ? getCompanyDialogueCapacity(companyProfile) : null;
-    const isCandidateDiscovery = userProfile.role !== 'recruiter';
-    const isPremiumCandidate = Boolean(
-        isCandidateDiscovery &&
-        userProfile.isLoggedIn &&
-        (userProfile.subscription?.tier || '').toLowerCase() === 'premium'
-    );
-    const discoveryCandidateDefaultLimit = isCandidateDiscovery ? (isPremiumCandidate ? 10 : 3) : null;
-    const discoverySlotsUsed = userProfile.role === 'recruiter'
-        ? (companyDialogueCapacity?.used ?? null)
-        : (candidateDialogueCapacity?.active ?? (isCandidateDiscovery ? 0 : null));
-    const discoverySlotsLimit = userProfile.role === 'recruiter'
-        ? (companyDialogueCapacity?.limit ?? null)
-        : (candidateDialogueCapacity?.limit ?? discoveryCandidateDefaultLimit);
-    const discoverySlotsLimitLabel = discoverySlotsLimit == null
-        ? null
-        : (discoverySlotsLimit >= 999999 ? '∞' : discoverySlotsLimit.toLocaleString(i18n.language));
-    const discoverySlotsUsedLabel = discoverySlotsUsed == null
-        ? null
-        : discoverySlotsUsed.toLocaleString(i18n.language);
-    const showDiscoveryCapacityHint = isCandidateDiscovery && !isPremiumCandidate;
-
-    const discoveryShortReplyCount = userProfile.role === 'recruiter'
-        ? companyDialogueCounts.active
-        : candidateDialogueCounts.active;
-    const discoveryClearStateCount = userProfile.role === 'recruiter'
-        ? companyDialogueCounts.closed
-        : candidateDialogueCounts.closed;
 
     const renderContent = () => {
         // Handle static pages based on pathname
@@ -2282,346 +1953,117 @@ export default function App() {
             );
         }
 
-
-
-        const dynamicJHI = selectedJob ? { ...selectedJob.jhi } : null;
-        if (dynamicJHI && commuteAnalysis) {
-            // Time cost (commute / remote impact)
-            dynamicJHI.timeCost = applyTimeCostImpact(
-                dynamicJHI.timeCost,
-                commuteAnalysis.jhiImpact
+        if (isBlogOpen) {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <BlogSection
+                        selectedBlogPostSlug={selectedBlogPostSlug}
+                        setSelectedBlogPostSlug={(slug) => {
+                            setIsBlogOpen(true);
+                            setSelectedBlogPostSlug(slug);
+                        }}
+                    />
+                </div>
             );
-
-            // Financial reality (commute cost, salary adjustments)
-            dynamicJHI.financial = clamp(
-                dynamicJHI.financial +
-                commuteAnalysis.financialReality.scoreAdjustment
-            );
-
-            // Benefits → values
-            const benefitsValue =
-                commuteAnalysis.financialReality.benefitsValue;
-
-            const benefitsBonus = calculateBenefitsBonus(benefitsValue);
-            dynamicJHI.values = clamp(dynamicJHI.values + benefitsBonus);
-
-            // Net benefit → growth
-            const netBenefitValue =
-                benefitsValue -
-                commuteAnalysis.financialReality.commuteCost;
-
-            const netBonus = calculateNetBenefitBonus(netBenefitValue);
-            dynamicJHI.growth = clamp(dynamicJHI.growth + netBonus);
-
-            // Final score
-            const recomputedScore = calculateOverallScore(dynamicJHI);
-            dynamicJHI.score = recomputedScore;
-            dynamicJHI.personalizedScore = recomputedScore;
         }
 
-        // Determine what to show in the Financial Card
-        const showCommuteDetails =
-            !!(userProfile.address || userProfile.coordinates) &&
-            !!commuteAnalysis;
-
-        const showLoginPrompt = !userProfile.isLoggedIn && !userProfile.coordinates;
-        const showAddressPrompt =
-            userProfile.isLoggedIn && !userProfile.address && !userProfile.coordinates;
+        const nativeChallenges = jobsForDisplay.filter((job) => job.listingKind !== 'imported');
+        const importedJobs = jobsForDisplay.filter((job) => job.listingKind === 'imported');
+        const hasNativeChallenges = nativeChallenges.length > 0;
+        const featuredChallenges = (hasNativeChallenges ? nativeChallenges : importedJobs).slice(0, 6);
+        const featuredImportedJobs = importedJobs.slice(0, 6);
 
         return (
             <>
-                {/* Vercel Analytics */}
                 {vercelAnalyticsEnabled && <Analytics />}
 
-                <div className="col-span-1 lg:col-span-12 h-full min-h-0">
-                    <div className="h-full min-h-0 rounded-[1.25rem] border border-slate-200/80 dark:border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.92)_0%,_rgba(248,250,252,0.96)_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.08),_transparent_32%),linear-gradient(180deg,_rgba(2,6,23,0.92)_0%,_rgba(15,23,42,0.96)_100%)] shadow-[0_24px_70px_-52px_rgba(15,23,42,0.34)] p-2 lg:p-3">
-                        {/* MOBILE SWIPE VIEW - Only show for logged-in users on mobile */}
-                        {isMobileSwipeView && userProfile.isLoggedIn ? (
-                            <div className="h-full overflow-hidden">
-                                <MobileSwipeJobBrowser
-                                    jobs={jobsForDisplay}
-                                    swipeStateStorageKey={userProfile.id || 'anonymous'}
-                                    savedJobIds={savedJobIds}
-                                    onToggleSave={handleToggleSave}
-                                    onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
-                                    onOpenDetails={handleOpenJobDetailsFromSwipe}
-                                    onSwitchToList={() => {
-                                        setMobileViewOverride('list');
-                                        setIsMobileSwipeView(false);
-                                    }}
-                                    isLoadingMore={loadingMore}
-                                    isLoading={isLoadingJobs}
-                                    hasMore={hasMore}
-                                    onLoadMore={loadMoreJobs}
-                                    theme={theme}
-                                />
-                            </div>
+                <div className="col-span-1 lg:col-span-12">
+                    <div className="space-y-6">
+                        {selectedCompanyId ? (
+                            <PublicCompanyProfilePage
+                                companyId={selectedCompanyId}
+                                onBack={() => handleCompanyPageSelect(null)}
+                                onOpenChallenge={handleJobSelect}
+                            />
+                        ) : selectedJob ? (
+                            <ChallengeFocusView
+                                job={selectedJob}
+                                userProfile={userProfile}
+                                onBack={() => handleJobSelect(null)}
+                                onRequireAuth={() => handleAuthAction(userProfile.isLoggedIn ? 'login' : 'register')}
+                                onOpenProfile={() => {
+                                    setSelectedJobId(null);
+                                    setSelectedCompanyId(null);
+                                    setSelectedBlogPostSlug(null);
+                                    setShowCompanyLanding(false);
+                                    setViewState(ViewState.PROFILE);
+                                }}
+                                onOpenSupportingContext={() => {
+                                    if (!userProfile.isLoggedIn) {
+                                        handleAuthAction('login');
+                                        return;
+                                    }
+                                    setIsApplyModalOpen(true);
+                                }}
+                                onOpenCompanyPage={handleCompanyPageSelect}
+                                onOpenImportedListing={() => handleApplyToJob(selectedJob)}
+                            />
                         ) : (
-                            <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3">
-                                <div className="lg:col-span-5 xl:col-span-5 min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-3">
-                                    <div className="lg:col-span-2 min-h-0 flex flex-col gap-2 lg:gap-3 h-full">
-                                        <JobListSidebar
-                                            fullWidth
-                                            showSearchPanel
-                                            showJobFeed={false}
-                                            selectedJobId={selectedJobId}
-                                            searchTerm={searchTerm}
-                                            setSearchTerm={setSearchTerm}
-                                            performSearch={performSearch}
-                                            showFilters={showFilters}
-                                            setShowFilters={setShowFilters}
-                                            expandedSections={expandedSections}
-                                            toggleSection={toggleSection}
-                                            filterCity={filterCity}
-                                            setFilterCity={setFilterCity}
-                                            enableCommuteFilter={enableCommuteFilter}
-                                            setEnableCommuteFilter={setEnableCommuteFilter}
-                                            filterMaxDistance={filterMaxDistance}
-                                            setFilterMaxDistance={setFilterMaxDistance}
-                                            filterContractType={filterContractType}
-                                            toggleContractTypeFilter={toggleContractTypeFilter}
-                                            filterDate={filterDate}
-                                            setFilterDate={setFilterDate}
-                                            filterMinSalary={filterMinSalary}
-                                            setFilterMinSalary={setFilterMinSalary}
-                                            filterExperience={filterExperience}
-                                            toggleExperienceFilter={toggleExperienceFilter}
-                                            filterBenefits={filterBenefits}
-                                            toggleBenefitFilter={toggleBenefitFilter}
-                                            filterLanguage={filterLanguage}
-                                            setFilterLanguage={setFilterLanguage}
-                                            sortBy={sortBy}
-                                            setSortBy={setSortBy}
-                                            isLoadingJobs={isLoadingJobs}
-                                            isSearching={isSearching}
-                                            filteredJobs={jobsForDisplay}
-                                            impressionSessionKey={impressionSessionKey}
-                                            savedJobIds={savedJobIds}
-                                            handleToggleSave={handleToggleSave}
-                                            handleJobSelect={handleJobSelect}
-                                            theme={theme}
-                                            userProfile={userProfile}
-                                            jobListRef={jobListRef}
-                                            loadingMore={loadingMore}
-                                            hasMore={hasMore}
-                                            totalCount={totalCount}
-                                            loadRealJobs={loadRealJobs}
-                                            backendPolling={backendPolling}
-                                            globalSearch={globalSearch}
-                                            setGlobalSearch={setGlobalSearch}
-                                            abroadOnly={abroadOnly}
-                                            setAbroadOnly={setAbroadOnly}
-                                            onUseCurrentLocation={handleUseCurrentLocation}
-                                            onTrackImpression={(job, position) => {
-                                                trackJobInteraction({
-                                                    jobId: job.id,
-                                                    eventType: 'impression',
-                                                    sessionId: searchSessionIdRef.current,
-                                                    requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
-                                                    scoringVersion: (job as any)?.aiMatchScoringVersion,
-                                                    modelVersion: (job as any)?.aiMatchModelVersion,
-                                                    metadata: {
-                                                        source: 'desktop_list',
-                                                        position
-                                                    }
-                                                });
-                                            }}
-                                        />
-
-                                        {isMobileScreen && userProfile.isLoggedIn && (
-                                            <div className="lg:hidden px-1">
-                                                <button
-                                                    onClick={() => {
-                                                        setMobileViewOverride('swipe');
-                                                        setIsMobileSwipeView(true);
-                                                    }}
-                                                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-sm hover:bg-white dark:hover:bg-slate-900 transition-colors"
-                                                >
-                                                    {t('job.swipe_view')}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="lg:col-span-3 min-h-0 flex flex-col gap-2 lg:gap-3">
-                                        <div className="hidden lg:block rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(140deg,rgba(255,255,255,0.92),rgba(239,246,255,0.86))] dark:bg-[linear-gradient(140deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] px-3 py-2 shadow-[0_12px_24px_-30px_rgba(15,23,42,0.24)]">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-700 dark:text-slate-200">
-                                                        {t('home.discovery.badge')}
-                                                    </div>
-                                                    <div className="mt-0.5 text-[15px] font-bold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.title')}
-                                                    </div>
-                                                    <div className="mt-0.5 text-[12px] text-slate-700 dark:text-slate-200 leading-snug">
-                                                        {t('home.discovery.meta')}
-                                                    </div>
-                                                </div>
-                                                <div className="rounded-lg border border-white/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/30 px-2.5 py-1 text-right shrink-0 max-w-[230px]">
-                                                    <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
-                                                        {t('home.discovery.slots_label')}
-                                                    </div>
-                                                    <div className="text-[16px] font-bold text-slate-900 dark:text-white">
-                                                        {dialogueMetricsLoading && (!discoverySlotsUsedLabel || !discoverySlotsLimitLabel)
-                                                            ? '…'
-                                                            : `${discoverySlotsUsedLabel ?? '—'} / ${discoverySlotsLimitLabel ?? '—'}`}
-                                                    </div>
-                                                    {showDiscoveryCapacityHint && (
-                                                        <div className="mt-1.5 border-t border-amber-200/80 dark:border-amber-900/40 pt-1.5 text-left">
-                                                            <div className="flex flex-wrap items-center gap-1">
-                                                                <span className="inline-flex items-center rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-amber-100/90 dark:bg-amber-950/45 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-100">
-                                                                    {t('home.discovery.premium_capacity_badge', { defaultValue: 'Premium 10 dialogues' })}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="mt-1.5 grid grid-cols-2 gap-1">
-                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
-                                                    <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
-                                                    <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.step_short_reply')}
-                                                    </div>
-                                                </div>
-                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
-                                                    <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryClearStateCount.toLocaleString(i18n.language)}</div>
-                                                    <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.step_clear_state')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex-1 min-h-0">
-                                            <JobListSidebar
-                                                fullWidth
-                                                showSearchPanel={false}
-                                                showJobFeed
-                                                selectedJobId={selectedJobId}
-                                                searchTerm={searchTerm}
-                                                setSearchTerm={setSearchTerm}
-                                                performSearch={performSearch}
-                                                showFilters={showFilters}
-                                                setShowFilters={setShowFilters}
-                                                expandedSections={expandedSections}
-                                                toggleSection={toggleSection}
-                                                filterCity={filterCity}
-                                                setFilterCity={setFilterCity}
-                                                enableCommuteFilter={enableCommuteFilter}
-                                                setEnableCommuteFilter={setEnableCommuteFilter}
-                                                filterMaxDistance={filterMaxDistance}
-                                                setFilterMaxDistance={setFilterMaxDistance}
-                                                filterContractType={filterContractType}
-                                                toggleContractTypeFilter={toggleContractTypeFilter}
-                                                filterDate={filterDate}
-                                                setFilterDate={setFilterDate}
-                                                filterMinSalary={filterMinSalary}
-                                                setFilterMinSalary={setFilterMinSalary}
-                                                filterExperience={filterExperience}
-                                                toggleExperienceFilter={toggleExperienceFilter}
-                                                filterBenefits={filterBenefits}
-                                                toggleBenefitFilter={toggleBenefitFilter}
-                                                filterLanguage={filterLanguage}
-                                                setFilterLanguage={setFilterLanguage}
-                                                sortBy={sortBy}
-                                                setSortBy={setSortBy}
-                                                isLoadingJobs={isLoadingJobs}
-                                                isSearching={isSearching}
-                                                filteredJobs={jobsForDisplay}
-                                                impressionSessionKey={impressionSessionKey}
-                                                savedJobIds={savedJobIds}
-                                                handleToggleSave={handleToggleSave}
-                                                handleJobSelect={handleJobSelect}
-                                                theme={theme}
-                                                userProfile={userProfile}
-                                                jobListRef={jobListRef}
-                                                loadingMore={loadingMore}
-                                                hasMore={hasMore}
-                                                totalCount={totalCount}
-                                                loadRealJobs={loadRealJobs}
-                                                backendPolling={backendPolling}
-                                                globalSearch={globalSearch}
-                                                setGlobalSearch={setGlobalSearch}
-                                                abroadOnly={abroadOnly}
-                                                setAbroadOnly={setAbroadOnly}
-                                                onUseCurrentLocation={handleUseCurrentLocation}
-                                                onTrackImpression={(job, position) => {
-                                                    trackJobInteraction({
-                                                        jobId: job.id,
-                                                        eventType: 'impression',
-                                                        sessionId: searchSessionIdRef.current,
-                                                        requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
-                                                        scoringVersion: (job as any)?.aiMatchScoringVersion,
-                                                        modelVersion: (job as any)?.aiMatchModelVersion,
-                                                        metadata: {
-                                                            source: 'desktop_list',
-                                                            position
-                                                        }
-                                                    });
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {selectedJobId ? (
-                                    <JobDetailView
-                                        mounted={mounted}
+                            <>
+                                <ChallengeHomeSections
+                                    hasNativeChallenges={hasNativeChallenges}
+                                    featuredChallenges={featuredChallenges}
+                                    importedJobs={featuredImportedJobs}
+                                    onOpenChallenge={handleJobSelect}
+                                    onSearchFocus={() => {
+                                        window.setTimeout(() => {
+                                            document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }, 0);
+                                    }}
+                                    onOpenAuth={() => handleAuthAction('register')}
+                                />
+                                <div id="challenge-discovery">
+                                    <ChallengeMarketplace
+                                        hasNativeChallenges={hasNativeChallenges}
+                                        jobs={jobsForDisplay}
                                         selectedJobId={selectedJobId}
-                                        selectedJob={selectedJob || null}
-                                        dynamicJHI={dynamicJHI}
                                         savedJobIds={savedJobIds}
-                                        handleToggleSave={handleToggleSave}
-                                        setSelectedJobId={handleJobSelect}
-                                        setIsApplyModalOpen={setIsApplyModalOpen}
-                                        detailScrollRef={detailScrollRef}
                                         userProfile={userProfile}
-                                        commuteAnalysis={commuteAnalysis}
-                                        showCommuteDetails={showCommuteDetails}
-                                        showLoginPrompt={showLoginPrompt}
-                                        showAddressPrompt={showAddressPrompt}
-                                        handleAuthAction={handleAuthAction}
-                                        setViewState={setViewState}
-                                        showFinancialMethodology={showFinancialMethodology}
-                                        setShowFinancialMethodology={setShowFinancialMethodology}
-                                        getTransportIcon={getTransportIcon}
-                                        formatJobDescription={formatJobDescription}
-                                        theme={theme}
-                                        aiAnalysis={aiAnalysis}
-                                        analyzing={analyzing}
-                                        handleAnalyzeJob={handleAnalyzeJob}
-                                        selectedBlogPostSlug={selectedBlogPostSlug}
-                                        handleBlogPostSelect={handleBlogPostSelect}
-                                        totalJobsCount={welcomeActiveJobsCount ?? totalCount}
-                                        todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
-                                        onApplyToJob={handleApplyToJob}
-                                        onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
-                                        onSaveOptimizedCv={handleSaveOptimizedCvToProfile}
+                                        lane={discoveryLane}
+                                        searchTerm={searchTerm}
+                                        setSearchTerm={setSearchTerm}
+                                        performSearch={performSearch}
+                                        filterCity={filterCity}
+                                        setFilterCity={setFilterCity}
+                                        filterMinSalary={filterMinSalary}
+                                        setFilterMinSalary={setFilterMinSalary}
+                                        filterBenefits={filterBenefits}
+                                        setFilterBenefits={setFilterBenefits}
+                                        toggleBenefitFilter={toggleBenefitFilter}
+                                        remoteOnly={challengeRemoteOnly}
+                                        setRemoteOnly={setChallengeRemoteOnly}
+                                        globalSearch={globalSearch}
+                                        setGlobalSearch={setGlobalSearch}
+                                        abroadOnly={abroadOnly}
+                                        setAbroadOnly={setAbroadOnly}
+                                        enableCommuteFilter={enableCommuteFilter}
+                                        setEnableCommuteFilter={setEnableCommuteFilter}
+                                        filterMaxDistance={filterMaxDistance}
+                                        setFilterMaxDistance={setFilterMaxDistance}
+                                        filterContractType={filterContractType}
+                                        setFilterContractType={setFilterContractType}
+                                        toggleContractTypeFilter={toggleContractTypeFilter}
+                                        filterDate={filterDate}
+                                        setFilterDate={setFilterDate}
+                                        filterExperience={filterExperience}
+                                        setFilterExperience={setFilterExperience}
+                                        filterLanguageCodes={filterLanguageCodes}
+                                        setFilterLanguageCodes={setFilterLanguageCodes}
+                                        handleJobSelect={handleJobSelect}
+                                        handleToggleSave={handleToggleSave}
                                     />
-                                ) : (
-                                    <section className="hidden lg:flex lg:col-span-7 xl:col-span-7 min-h-0 h-full flex-col">
-                                        <div className="min-h-0 h-full">
-                                            <WelcomePage
-                                                compact
-                                                onTryFree={() => handleAuthAction('register')}
-                                                onBrowseOffers={() => {
-                                                    setViewState(ViewState.LIST);
-                                                    setSelectedJobId(null);
-                                                }}
-                                                onOpenDemo={() => {
-                                                    const lng = getLocalePrefix();
-                                                    window.location.assign(`/${lng}/demo-handshake`);
-                                                }}
-                                                totalJobsCount={welcomeActiveJobsCount ?? totalCount}
-                                                todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
-                                                selectedBlogPostSlug={selectedBlogPostSlug}
-                                                handleBlogPostSelect={handleBlogPostSelect}
-                                            />
-                                        </div>
-                                    </section>
-                                )}
-                            </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -2630,12 +2072,15 @@ export default function App() {
     };
 
     return (
-        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-grid-bg app-grid-bg--soft text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+        <div className={`flex min-h-screen flex-col ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-shell-bg text-[var(--text)] dark:text-[var(--text)]'} font-sans transition-colors duration-300`}>
             {!isImmersiveAssessmentRoute && (
                 <AppHeader
                     viewState={viewState}
                     setViewState={setViewState}
                     setSelectedJobId={handleJobSelect}
+                    isBlogOpen={isBlogOpen}
+                    setIsBlogOpen={setIsBlogOpen}
+                    setSelectedBlogPostSlug={setSelectedBlogPostSlug}
                     showCompanyLanding={showCompanyLanding}
                     setShowCompanyLanding={setShowCompanyLanding}
                     userProfile={userProfile}
@@ -2646,12 +2091,28 @@ export default function App() {
                     theme={theme}
                     setIsOnboardingCompany={setIsOnboardingCompany}
                     onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
+                    discoveryLane={discoveryLane}
+                    setDiscoveryLane={setDiscoveryLane}
+                    onOpenInsights={handleInsightsOpen}
+                    onOpenDiscoverySearch={() => {
+                        userIntentionallyClickedListRef.current = true;
+                        setIsBlogOpen(false);
+                        setShowCompanyLanding(false);
+                        setIsOnboardingCompany(false);
+                        setSelectedCompanyId(null);
+                        setSelectedBlogPostSlug(null);
+                        setViewState(ViewState.LIST);
+                        setSelectedJobId(null);
+                        window.setTimeout(() => {
+                            document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 0);
+                    }}
                 />
             )}
 
             {!isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation && (
-                <div className="max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8">
-                    <div className="mt-4 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
+                    <div className="mb-2 mt-4 flex flex-col gap-4 rounded-[1.4rem] border border-amber-200 bg-amber-50/90 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/20 dark:bg-amber-500/10">
                         <div className="flex items-start gap-3">
                             <AlertCircle className="text-amber-600 dark:text-amber-300 mt-0.5" size={20} />
                             <div>
@@ -2681,14 +2142,14 @@ export default function App() {
             <main className={
                 isImmersiveAssessmentRoute
                     ? "flex-1 min-h-0 w-full overflow-hidden"
-                    : `flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-5 lg:px-6 pt-2 ${isHomeListView ? 'pb-px' : 'pb-3'} ${usePageScrollLayout ? '' : 'overflow-hidden'}`
+                    : `flex-1 min-h-0 mx-auto w-full max-w-[1680px] px-4 pb-6 pt-3 sm:px-5 lg:px-6 ${isHomeListView ? 'pb-2' : 'pb-6'} ${usePageScrollLayout ? '' : 'overflow-hidden'}`
             }>
                 <div className={
                     isImmersiveAssessmentRoute
                         ? "h-full"
                         : usePageScrollLayout
-                            ? "grid grid-cols-1 lg:grid-cols-12 gap-4"
-                            : "grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100dvh-106px)]"
+                            ? "grid grid-cols-1 gap-5 lg:grid-cols-12"
+                            : "grid h-[calc(100dvh-118px)] grid-cols-1 gap-5 lg:grid-cols-12"
                 }>
                     <Suspense
                         fallback={
@@ -2726,7 +2187,6 @@ export default function App() {
                     setSelectedJobId(null);
                     setSelectedBlogPostSlug(null);
                     setShowCompanyLanding(false);
-                    setIsMobileSwipeView(false);
                     try {
                         const lng = getLocalePrefix();
                         window.history.replaceState({}, '', `/${lng}/profil${window.location.search || ''}${window.location.hash || ''}`);

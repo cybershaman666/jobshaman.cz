@@ -192,8 +192,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     if (!companyProfile) {
         return (
             <div className="min-h-[500px] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4 text-slate-400">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                <div className="flex flex-col items-center gap-4 text-[var(--text-muted)]">
+                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--accent)]"></div>
                     <p>{t('common.loading') || 'Načítám...'}</p>
                 </div>
             </div>

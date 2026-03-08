@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Agent Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Local Ollama Recruiter</p>
+          <h1>Hledání práce, scoring a draft odpovědí v jednom panelu.</h1>
+          <p class="lede">
+            Lokálně běžící agent nad JobShamanem, We Work Remotely a tvým modelem v Ollamě.
+            Bez přepínání mezi CLI a JSON výstupy.
+          </p>
+        </div>
+        <div class="hero-status card">
+          <div class="stat-row">
+            <span>API</span>
+            <strong id="health-status">checking</strong>
+          </div>
+          <div class="stat-row">
+            <span>Režim</span>
+            <strong id="mode-status">dry-run</strong>
+          </div>
+          <div class="stat-row">
+            <span>Ollama</span>
+            <strong id="ollama-status">checking</strong>
+          </div>
+          <div class="stat-row">
+            <span>Vybraná role</span>
+            <strong id="selected-job-status">none</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel controls">
+          <div class="panel-head">
+            <h2>Řízení agenta</h2>
+            <p>Nejdřív stáhni nabídky, pak nech spočítat doporučení.</p>
+          </div>
+
+          <div class="control-grid">
+            <label>
+              <span>Limit</span>
+              <input id="limit-input" type="number" min="1" max="100" value="30" />
+            </label>
+            <label class="checkbox">
+              <input id="llm-toggle" type="checkbox" checked />
+              <span>Použít Ollamu pro scoring a draft</span>
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="fetch-btn" class="primary">Fetch jobs</button>
+            <button id="recommend-btn" class="secondary">Spočítat match</button>
+          </div>
+
+          <div id="source-report" class="source-report">
+            <div class="source-row">
+              <span>JobShaman</span>
+              <strong id="jobshaman-report">-</strong>
+            </div>
+            <div class="source-row">
+              <span>We Work Remotely</span>
+              <strong id="wwr-report">-</strong>
+            </div>
+          </div>
+
+          <div id="activity-log" class="activity-log" aria-live="polite"></div>
+        </section>
+
+        <section class="panel profile-panel">
+          <div class="panel-head">
+            <h2>CV a preference</h2>
+            <p>Uprav své resume a YAML preference přímo v dashboardu.</p>
+          </div>
+
+          <div class="profile-stack">
+            <div class="editor-box">
+              <div class="draft-head">
+                <h3>Resume</h3>
+                <span class="editor-hint">Markdown</span>
+              </div>
+              <textarea id="resume-input" class="editor-textarea" placeholder="Sem vlož své CV."></textarea>
+            </div>
+
+            <div class="editor-box">
+              <div class="draft-head">
+                <h3>Preferences</h3>
+                <span class="editor-hint">YAML</span>
+              </div>
+              <textarea id="preferences-input" class="editor-textarea" placeholder="Sem vlož preferences.yaml"></textarea>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="load-profile-btn" class="ghost">Načíst profil</button>
+            <button id="suggest-profile-btn" class="ghost">Navrhnout preference z CV</button>
+            <button id="save-profile-btn" class="secondary">Uložit profil</button>
+          </div>
+        </section>
+
+        <section class="panel list-panel">
+          <div class="panel-head inline">
+            <div>
+              <h2>Doporučené pozice</h2>
+              <p id="results-meta">Zatím bez výsledků.</p>
+            </div>
+            <div class="pill" id="result-count">0</div>
+          </div>
+          <div id="jobs-list" class="jobs-list empty">
+            <p>Není co zobrazit. Spusť fetch nebo recommend.</p>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <h2>Draft a akce</h2>
+            <p>Vyber pozici zleva a vygeneruj odpověď.</p>
+          </div>
+
+          <div id="job-detail" class="job-detail empty">
+            <p>Ještě není vybraná žádná pozice.</p>
+          </div>
+
+          <div class="button-row detail-actions">
+            <button id="draft-btn" class="secondary" disabled>Vygenerovat draft</button>
+            <button id="apply-btn" class="primary" disabled>Apply / dry-run</button>
+          </div>
+
+          <div class="draft-box">
+            <div class="draft-head">
+              <h3>Odpověď</h3>
+              <button id="copy-btn" class="ghost" disabled>Kopírovat</button>
+            </div>
+            <textarea id="draft-output" readonly placeholder="Zde se objeví draft odpovědi."></textarea>
+          </div>
+
+          <div class="apply-box">
+            <h3>Výsledek podání</h3>
+            <pre id="apply-output">Žádná akce zatím neproběhla.</pre>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="job-card-template">
+      <article class="job-card">
+        <div class="job-topline">
+          <span class="source-badge"></span>
+          <span class="score-badge"></span>
+        </div>
+        <h3 class="job-title"></h3>
+        <p class="job-company"></p>
+        <p class="job-meta"></p>
+        <div class="reason-list"></div>
+      </article>
+    </template>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+  </html>

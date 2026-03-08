@@ -16,10 +16,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   actions
 }) => {
   return (
-    <div className="rounded-[1.05rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_34%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-4 shadow-[0_16px_30px_-34px_rgba(15,23,42,0.24)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.18),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]">
+    <div className="rounded-[1.05rem] border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,_rgba(var(--accent-rgb),0.12),_transparent_34%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-4 shadow-[0_16px_30px_-34px_rgba(15,23,42,0.24)] dark:border-[var(--border)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(var(--accent-rgb),0.18),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]">
       <div className="flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700 backdrop-blur dark:border-cyan-900/30 dark:bg-slate-950/40 dark:text-cyan-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)] backdrop-blur dark:border-[rgba(var(--accent-rgb),0.24)] dark:bg-[rgba(var(--accent-rgb),0.16)]">
             {badgeIcon}
             {badgeLabel}
           </div>

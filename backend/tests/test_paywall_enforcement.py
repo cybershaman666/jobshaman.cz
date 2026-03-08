@@ -188,25 +188,6 @@ def test_match_candidates_requires_growth_or_higher(monkeypatch):
         assert "Current plan does not include this feature" in str(exc.detail)
 
 
-def test_ai_execute_blocks_cover_letter_without_premium(monkeypatch):
-    monkeypatch.setattr(ai_router, "_user_has_allowed_subscription", lambda user, allowed_tiers: False)
-
-    payload = AIExecuteRequest(
-        action="generate_cover_letter",
-        params={"jobTitle": "Designer", "company": "Acme"},
-    )
-    user = {"id": "user_1", "auth_id": "user_1", "authorized_ids": []}
-
-    try:
-        asyncio.run(
-            ai_router.ai_execute(payload=payload, request=_make_request("/ai/execute"), user=user)
-        )
-        assert False, "Expected HTTPException"
-    except HTTPException as exc:
-        assert exc.status_code == 403
-        assert "Premium subscription required" in str(exc.detail)
-
-
 def test_ai_execute_blocks_cv_optimization_without_premium(monkeypatch):
     monkeypatch.setattr(ai_router, "_user_has_allowed_subscription", lambda user, allowed_tiers: False)
 

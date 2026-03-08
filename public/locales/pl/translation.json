@@ -1079,6 +1079,10 @@
       "team_members": "Dostęp zespołu",
       "active": "Aktywni",
       "inactive": "Nieaktywni",
+      "role_opens": "Otwarte role",
+      "dialogue_slots": "Sloty dialogów",
+      "used_this_period": "wykorzystane w tym okresie",
+      "occupied_now": "zajęte teraz",
       "tiers": {
         "business": "Professional",
         "basic": "Podstawowy",
@@ -1192,7 +1196,7 @@
         "open_dossier": "Otworz profil",
         "open_jobs": "Otworz role",
         "open_assessment_library": "Otworz screeningi",
-        "use_assessment": "Uzyj w workflow",
+        "use_assessment": "Użyj w procesie",
         "preview_assessment": "Podglad",
         "open_candidates": "Otworz kandydatow"
       },
@@ -1218,7 +1222,7 @@
         "assessment_title": "Nie masz jeszcze gotowego etapu screeningu",
         "assessment_detail": "Utwórz lub zapisz przynajmniej jeden wielokrotnego użytku etap screeningu, aby szybciej zapraszać kandydatów.",
         "clear_title": "Brak pilnych blokad",
-        "clear_detail": "Glowny workflow hiringowy jest teraz czysty. Uzyj ponizszego workspace do operacyjnego monitoringu."
+        "clear_detail": "Główna rekrutacja działa teraz bez pilnych blokad. Niżej znajdziesz operacyjny przegląd kolejnych kroków."
       },
       "cards": {
         "recent_applications": "Najnowsze odpowiedzi kandydatow",
@@ -1379,7 +1383,7 @@
     },
     "job_editor": {
       "title": "Ustrukturyzowany edytor oferty",
-      "subtitle": "Drafty, walidacja, podglad i publikacja w jednym workflow.",
+      "subtitle": "Wersje robocze, walidacja, podgląd i publikacja w jednym miejscu.",
       "compat_mode": "Tryb zgodnosci: lokalne drafty + bezposredni fallback publikacji",
       "new_draft": "Nowy draft",
       "resume_draft": "Wznow draft",

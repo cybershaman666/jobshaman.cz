@@ -18,7 +18,7 @@ const OverviewTodayActionItem: React.FC<OverviewTodayActionItemProps> = ({ item 
         <span className="company-pill-surface inline-flex items-center rounded-full bg-white/90 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
           {item.label}
         </span>
-        <button onClick={item.action} className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-600 dark:text-cyan-300 dark:hover:text-cyan-200">
+        <button onClick={item.action} className="company-action-link text-[11px] font-semibold">
           {item.actionLabel}
         </button>
       </div>

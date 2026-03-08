@@ -1073,7 +1073,7 @@
         "open_dossier": "Otevřít profil",
         "open_jobs": "Otevřít role",
         "open_assessment_library": "Otevřít knihovnu",
-        "use_assessment": "Použít ve workflow",
+        "use_assessment": "Použít v procesu",
         "preview_assessment": "Náhled",
         "open_candidates": "Otevřít kandidáty"
       },
@@ -1104,7 +1104,7 @@
         "assessment_title": "Zatím nemáte připravený žádný test",
         "assessment_detail": "Uložte alespoň jeden znovupoužitelný test, aby bylo možné zvát kandidáty rychleji.",
         "clear_title": "Bez akutních blokátorů",
-        "clear_detail": "Hlavní hiring workflow je teď čisté. Pro aktivní monitoring využijte karty níže."
+        "clear_detail": "Hlavní nábor teď běží bez blokátorů. Pro další kroky využijte přehled níže."
       },
       "cards": {
         "recent_applications": "Nejnovější reakce kandidátů",
@@ -1268,7 +1268,7 @@
     },
     "job_editor": {
       "title": "Strukturovaný editor rolí",
-      "subtitle": "Drafty, validace, náhled a publikace v jednom workflow.",
+      "subtitle": "Drafty, validace, náhled a publikace na jednom místě.",
       "compat_mode": "Kompatibilní režim: lokální drafty + přímý publish fallback",
       "new_draft": "Nový draft",
       "resume_draft": "Pokračovat v draftu",
@@ -1488,6 +1488,10 @@
       "team_members": "Přístup v týmu",
       "active": "Aktivní",
       "inactive": "Neaktivní",
+      "role_opens": "Otevřené role",
+      "dialogue_slots": "Dialogové sloty",
+      "used_this_period": "využito v tomto období",
+      "occupied_now": "obsazeno právě teď",
       "plan_suffix": "Plán",
       "tiers": {
         "business": "Professional",

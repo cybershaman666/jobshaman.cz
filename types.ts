@@ -15,6 +15,7 @@ export type SupportedCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT';
 export type EmploymentType = 'employee' | 'contractor';
 export type MaritalStatus = 'single' | 'married';
 export type GermanTaxClass = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
+export type SearchLanguageCode = 'cs' | 'sk' | 'en' | 'de' | 'pl';
 
 export interface TaxProfile {
   countryCode: SupportedCountryCode;
@@ -57,6 +58,34 @@ export interface JHIPreferences {
   pillarWeights: JHIPillarWeights;
   hardConstraints: JHIHardConstraints;
   workStyle: JHIWorkStyle;
+}
+
+export interface CandidateSearchProfile {
+  nearBorder: boolean;
+  dogCount: number;
+  wantsContractorRoles: boolean;
+  wantsDogFriendlyOffice: boolean;
+  wantsRemoteRoles: boolean;
+  remoteLanguageCodes: SearchLanguageCode[];
+  preferredBenefitKeys: string[];
+  defaultEnableCommuteFilter: boolean;
+  defaultMaxDistanceKm: number;
+}
+
+export interface JobSearchFilters {
+  searchTerm?: string;
+  filterCity?: string;
+  filterContractTypes?: string[];
+  filterBenefits?: string[];
+  filterMinSalary?: number;
+  filterDatePosted?: string;
+  filterExperienceLevels?: string[];
+  filterMaxDistance?: number;
+  enableCommuteFilter?: boolean;
+  filterLanguageCodes?: SearchLanguageCode[];
+  globalSearch?: boolean;
+  abroadOnly?: boolean;
+  remoteOnly?: boolean;
 }
 
 export interface NoiseMetrics {
@@ -272,6 +301,11 @@ export interface Job {
   benefits: string[];
   contextualRelevance?: ContextualRelevanceScore;
   required_skills: string[];
+  challenge?: string;
+  risk?: string;
+  firstStepPrompt?: string;
+  listingKind?: 'challenge' | 'imported';
+  companyPageSummary?: string;
   aiMatchScore?: number;
   aiMatchReasons?: string[];
   aiMatchBreakdown?: JobRecommendationBreakdown;
@@ -349,10 +383,15 @@ export interface AIGuidedProfileResponseV2 {
 // Database representation of a job row (used when reading directly from Supabase)
 export interface DatabaseJob {
   id: number;
+  company_id?: string | null;
   title?: string;
   company?: string;
   location?: string;
   description?: string;
+  role_summary?: string | null;
+  first_reply_prompt?: string | null;
+  company_truth_hard?: string | null;
+  company_truth_fail?: string | null;
   benefits?: string[] | string | null;
   contract_type?: string;
   salary_from?: number | string | null;
@@ -800,6 +839,19 @@ export interface ShamanAdvice {
   learningTimeHours: number;
 }
 
+export type ApplicationDraftTone = 'concise' | 'assertive' | 'warm';
+
+export interface ApplicationDraftSuggestion {
+  draftText: string;
+  fitScore?: number | null;
+  fitReasons: string[];
+  fitWarnings: string[];
+  language: string;
+  tone: ApplicationDraftTone;
+  usedFallback?: boolean;
+  modelMeta?: Record<string, unknown> | null;
+}
+
 export interface WorkExperience {
   id: string;
   role: string;
@@ -880,6 +932,7 @@ export interface UserProfile {
     financialGoals: number; // 1-100
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
+    searchProfile?: CandidateSearchProfile;
     desired_role?: string;
     desired_salary_min?: number | null;
     desired_salary_max?: number | null;

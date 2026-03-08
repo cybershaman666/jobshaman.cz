@@ -9,6 +9,7 @@ from ..core.runtime_config import get_active_model_config
 from ..core.limiter import limiter
 from ..core.security import verify_subscription
 from ..core.database import supabase
+from ..services.subscription_access import fetch_latest_subscription_by, is_active_subscription, user_has_allowed_subscription
 from ..models.requests import AIGuidedProfileRequest, AIGuidedProfileRequestV2, AIExecuteRequest
 from ..models.responses import AIGuidedProfileResponse, AIGuidedProfileResponseV2
 
@@ -24,41 +25,14 @@ def _parse_iso_datetime(value: str) -> datetime | None:
         return None
 
 
-def _is_active_subscription(sub: dict) -> bool:
-    if not sub:
-        return False
-    status = (sub.get("status") or "").lower()
-    if status not in ["active", "trialing"]:
-        return False
-
-    expires_at = _parse_iso_datetime(sub.get("current_period_end"))
-    if expires_at:
-        return datetime.now(timezone.utc) <= expires_at
-    return True
-
-
 def _subscription_allows_ai_profile(sub: dict) -> bool:
     tier = (sub.get("tier") or "").lower()
     allowed_tiers = {"premium"}
-    return _is_active_subscription(sub) and tier in allowed_tiers
+    return is_active_subscription(sub) and tier in allowed_tiers
 
 
 def _fetch_latest_subscription_by(column: str, value: str) -> dict | None:
-    if not supabase or not value:
-        return None
-    try:
-        resp = (
-            supabase
-            .table("subscriptions")
-            .select("*")
-            .eq(column, value)
-            .order("updated_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        return resp.data[0] if resp.data else None
-    except Exception:
-        return None
+    return fetch_latest_subscription_by(column, value)
 
 
 def _sync_company_ad_optimization_usage(company_id: str) -> None:
@@ -138,24 +112,7 @@ def _require_ai_profile_access(user: dict) -> str:
 
 
 def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
-    user_tier = (user.get("subscription_tier") or "").lower()
-    if user.get("is_subscription_active") and user_tier in allowed_tiers:
-        return True
-
-    user_id = user.get("id") or user.get("auth_id")
-    if user_id:
-        user_sub = _fetch_latest_subscription_by("user_id", user_id)
-        if user_sub and _is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() in allowed_tiers:
-            return True
-
-    for company_id in (user.get("authorized_ids") or []):
-        if company_id == user_id:
-            continue
-        company_sub = _fetch_latest_subscription_by("company_id", company_id)
-        if company_sub and _is_active_subscription(company_sub) and (company_sub.get("tier") or "").lower() in allowed_tiers:
-            return True
-
-    return False
+    return user_has_allowed_subscription(user, allowed_tiers)
 
 
 def _model_cfg(feature: str, default_openai: str = "gpt-4.1-mini", default_openai_fallback: str = "gpt-4.1-nano"):
@@ -312,22 +269,6 @@ Return STRICT JSON:
 """.strip()
         parsed, meta = _ai_json(prompt, "job_ad_optimize")
         return {"result": parsed, "meta": meta}
-
-    if action == "generate_cover_letter":
-        job_title = str(p.get("jobTitle") or "")
-        company = str(p.get("company") or "")
-        description = str(p.get("description") or "")
-        experience = str(p.get("userExperience") or "")
-        candidate_cv = str(p.get("candidateCvText") or "")
-        prompt = f"""
-Napiš krátký profesionální motivační dopis v češtině pro pozici "{job_title}" ve firmě "{company}".
-Kontext inzerátu: {description[:4000]}
-Vstup kandidáta: {experience[:3000]}
-CV kandidáta: {candidate_cv[:4000]}
-Max 220 slov, bez klišé.
-""".strip()
-        text, meta = _ai_text(prompt, "cover_letter")
-        return {"text": text, "meta": meta}
 
     if action == "parse_profile_from_cv":
         cv_text = str(p.get("text") or p.get("cvText") or "")
@@ -514,7 +455,7 @@ async def ai_execute(
 
     try:
         # Candidate-only AI tools: premium users only (no company plans).
-        if action in {"generate_cover_letter", "parse_profile_from_cv", "analyze_user_cv", "optimize_cv_for_ats", "get_shaman_advice", "estimate_salary"}:
+        if action in {"parse_profile_from_cv", "analyze_user_cv", "optimize_cv_for_ats", "get_shaman_advice", "estimate_salary"}:
             allowed = {"premium"}
             if not _user_has_allowed_subscription(user, allowed):
                 raise HTTPException(status_code=403, detail="Premium subscription required")

@@ -18,11 +18,11 @@ const OverviewAssessmentLibraryItem: React.FC<OverviewAssessmentLibraryItemProps
       <div className="text-sm font-semibold text-slate-900 dark:text-white">{assessment.title}</div>
       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{assessment.role}</div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button onClick={onOpenAssessments} className="px-3 py-1.5 rounded-full border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:bg-slate-800/70 dark:text-cyan-300 dark:hover:bg-cyan-950/20">
-          {t('company.workspace.actions.use_assessment', { defaultValue: 'Use in workflow' })}
+        <button onClick={onOpenAssessments} className="app-button-secondary rounded-full px-3 py-1.5 text-xs !text-[var(--accent)]">
+          {t('company.workspace.actions.use_assessment', { defaultValue: 'Použít v procesu' })}
         </button>
-        <button onClick={onOpenAssessments} className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/70 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-          {t('company.workspace.actions.preview_assessment', { defaultValue: 'Preview' })}
+        <button onClick={onOpenAssessments} className="app-button-secondary rounded-full px-3 py-1.5 text-xs">
+          {t('company.workspace.actions.preview_assessment', { defaultValue: 'Náhled' })}
         </button>
       </div>
     </div>

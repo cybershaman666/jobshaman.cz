@@ -270,249 +270,218 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   };
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.15),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(34,197,94,0.12),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#ecfeff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(34,197,94,0.10),_transparent_36%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] rounded-xl border border-slate-200 dark:border-slate-800">
-      <div className="absolute top-6 right-6 z-20">
-        <button
-          onClick={() => handleLogin('topbar')}
-          className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-300 bg-white/80 dark:bg-slate-950/75 backdrop-blur px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm"
-        >
-          <LogIn size={16} />
-          {copy.login}
-        </button>
-      </div>
+    <div className="app-shell-bg h-full w-full overflow-y-auto rounded-[var(--radius-xl)] border border-[var(--border)]">
+      <div className="mx-auto flex max-w-6xl flex-1 flex-col gap-6 p-6 lg:p-10">
+        <div className="flex justify-end">
+          <button onClick={() => handleLogin('topbar')} className="app-button-secondary rounded-full px-4 py-2">
+            <LogIn size={16} />
+            {copy.login}
+          </button>
+        </div>
 
-      <div className="relative z-10 flex-1 p-6 lg:p-12">
-        <div className="max-w-6xl mx-auto">
-          <section className="pt-8 pb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              <div className="lg:col-span-7">
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/70 dark:border-sky-800/60 bg-white/80 dark:bg-slate-950/60 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700 dark:text-sky-300">
-                  <Sparkles size={14} />
-                  {copy.badge}
+        <section className="app-page-header rounded-[var(--radius-2xl)] border p-6 lg:p-8">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div>
+              <div className="app-eyebrow">
+                <Sparkles size={14} />
+                {copy.badge}
+              </div>
+              <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.05em] text-[var(--text-strong)] md:text-[3.7rem] md:leading-[1.02]">
+                {copy.title}
+              </h1>
+              <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--text-muted)]">
+                {copy.subtitle}
+              </p>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button onClick={() => handleRegister('hero')} className="app-button-primary rounded-[var(--radius-md)] px-6 py-3.5">
+                  <Building size={18} />
+                  {copy.primaryCta}
+                </button>
+                <button onClick={() => handleDemo('hero')} className="app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5">
+                  {copy.secondaryCta}
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {copy.valuePills.map((pill) => (
+                  <div key={pill} className="app-filter-chip cursor-default">
+                    {pill}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="company-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-card)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                {copy.rolePreviewLabel}
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
+                {copy.rolePreviewTitle}
+              </h2>
+              <div className="mt-5 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] p-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--accent)]">
+                  <Shield size={16} />
+                  {copy.roleTruth}
                 </div>
-                <h1 className="mt-5 text-4xl md:text-6xl font-black tracking-tight leading-[1.04] text-slate-900 dark:text-white">
-                  {copy.title}
-                </h1>
-                <p className="mt-5 max-w-3xl text-lg text-slate-700 dark:text-slate-300 leading-relaxed">
-                  {copy.subtitle}
-                </p>
-
-                <div className="mt-7 flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={() => handleRegister('hero')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-white px-7 py-3.5 text-sm font-bold text-white dark:text-slate-950 shadow-xl"
-                  >
-                    <Building size={18} />
-                    {copy.primaryCta}
-                  </button>
-                  <button
-                    onClick={() => handleDemo('hero')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300/80 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-7 py-3.5 text-sm font-semibold text-slate-900 dark:text-white"
-                  >
-                    {copy.secondaryCta}
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {copy.valuePills.map((pill) => (
-                    <div key={pill} className="rounded-full border border-slate-300/80 dark:border-slate-700 bg-white/80 dark:bg-slate-950/55 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                      {pill}
+                <div className="mt-4 space-y-3">
+                  {copy.rolePreviewItems.map((item) => (
+                    <div key={item} className="company-surface rounded-[var(--radius-md)] border px-4 py-3 text-sm leading-6 text-[var(--text)] shadow-[var(--shadow-soft)]">
+                      {item}
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="lg:col-span-5">
-                <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/75 p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
-                  <div className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    {copy.rolePreviewLabel}
-                  </div>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{copy.rolePreviewTitle}</h2>
-                  <div className="mt-5 rounded-[1.5rem] border border-amber-200/80 dark:border-amber-900/70 bg-amber-50/80 dark:bg-amber-950/20 p-5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
-                      <Shield size={16} />
-                      {copy.roleTruth}
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {copy.rolePreviewItems.map((item) => (
-                        <div key={item} className="rounded-xl bg-white/80 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 border border-white/70 dark:border-slate-800">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-soft)] lg:p-8">
+          <div className="mb-5 flex items-center gap-3">
+            <Target className="text-[var(--accent)]" size={20} />
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.comparisonTitle}</h2>
+          </div>
+          <div className="grid grid-cols-[1fr,1fr] gap-3 text-sm">
+            <div className="rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 font-semibold text-rose-700">
+              {copy.comparisonOld}
+            </div>
+            <div className="rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3 font-semibold text-emerald-700">
+              {copy.comparisonNew}
+            </div>
+            {copy.comparisonRows.map(([legacy, next]) => (
+              <React.Fragment key={`${legacy}-${next}`}>
+                <div className="company-surface-soft rounded-[var(--radius-md)] border px-4 py-3 text-[var(--text-muted)]">
+                  {legacy}
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="pb-8">
-            <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/65 p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-5">
-                <Target className="text-sky-600 dark:text-sky-300" size={20} />
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{copy.comparisonTitle}</h2>
-              </div>
-              <div className="grid grid-cols-[1fr,1fr] gap-3 text-sm">
-                <div className="rounded-2xl bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 px-4 py-3 font-bold text-rose-700 dark:text-rose-300">
-                  {copy.comparisonOld}
+                <div className="company-surface rounded-[var(--radius-md)] border px-4 py-3 font-medium text-[var(--text-strong)]">
+                  {next}
                 </div>
-                <div className="rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/60 px-4 py-3 font-bold text-emerald-700 dark:text-emerald-300">
-                  {copy.comparisonNew}
+              </React.Fragment>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {copy.systemCards.map((card, index) => {
+            const Icon = [Layers3, MessageSquare, Clock3, CheckCircle][index] || Layers3;
+            return (
+              <div key={card.title} className="company-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-soft)]">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)]">
+                  <Icon size={20} />
                 </div>
-                {copy.comparisonRows.map(([legacy, next]) => (
-                  <React.Fragment key={`${legacy}-${next}`}>
-                    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-200">
-                      {legacy}
-                    </div>
-                    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 text-slate-900 dark:text-white font-medium">
-                      {next}
-                    </div>
-                  </React.Fragment>
-                ))}
+                <h3 className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{card.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{card.body}</p>
               </div>
-            </div>
-          </section>
+            );
+          })}
+        </section>
 
-          <section className="pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {copy.systemCards.map((card, index) => {
-                const Icon = [Layers3, MessageSquare, Clock3, CheckCircle][index] || Layers3;
-                return (
-                  <div key={card.title} className="rounded-[1.6rem] border border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-950/55 p-5">
-                    <div className="w-11 h-11 rounded-2xl bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 flex items-center justify-center mb-4">
-                      <Icon size={20} />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{card.title}</h3>
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{card.body}</p>
+        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-card)] lg:p-8">
+          <div className="mb-3 flex items-center gap-3">
+            <Crown className="text-[var(--accent)]" size={20} />
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.pricingTitle}</h2>
+          </div>
+          <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.pricingLead}</p>
+
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {copy.pricingPlans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-soft)] ${
+                  plan.highlighted
+                    ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[var(--accent-soft)]'
+                    : 'company-surface-subtle'
+                }`}
+              >
+                {plan.highlighted && (
+                  <div className="app-eyebrow !px-2.5 !py-1 !text-[10px]">
+                    <Sparkles size={12} />
+                    {copy.recommended}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="pb-8">
-            <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-slate-950 text-white p-6 lg:p-8 shadow-[0_28px_80px_-40px_rgba(2,132,199,0.42)]">
-              <div className="flex items-center gap-3 mb-3">
-                <Crown className="text-amber-300" size={20} />
-                <h2 className="text-2xl font-bold">{copy.pricingTitle}</h2>
-              </div>
-              <p className="text-sm text-slate-300 max-w-3xl">{copy.pricingLead}</p>
-
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                {copy.pricingPlans.map((plan) => (
-                  <div
-                    key={plan.name}
-                    className={`rounded-[1.6rem] border p-5 ${
-                      plan.highlighted
-                        ? 'border-sky-400/50 bg-sky-500/10'
-                        : 'border-white/10 bg-white/5'
-                    }`}
-                  >
-                    {plan.highlighted && (
-                      <div className="inline-flex items-center gap-1 rounded-full bg-sky-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-950">
-                        <Sparkles size={12} />
-                        {copy.recommended}
-                      </div>
-                    )}
-                    <div className="mt-3 text-lg font-bold">{plan.name}</div>
-                    <div className="mt-2 text-2xl font-black text-white">{plan.price}</div>
-                    <p className="mt-2 text-xs text-slate-300">{plan.note}</p>
-                    <div className="mt-4 space-y-2">
-                      {plan.features.map((feature) => (
-                        <div key={feature} className="flex items-start gap-2 text-sm text-slate-200">
-                          <CheckCircle size={16} className="text-emerald-300 mt-0.5 shrink-0" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
+                )}
+                <div className="mt-3 text-lg font-semibold text-[var(--text-strong)]">{plan.name}</div>
+                <div className="mt-2 text-2xl font-black text-[var(--text-strong)]">{plan.price}</div>
+                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{plan.note}</p>
+                <div className="mt-4 space-y-2">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-start gap-2 text-sm text-[var(--text)]">
+                      <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                      <span>{feature}</span>
                     </div>
-                    <button
-                      onClick={() => (plan.name === 'Enterprise' ? handleDemo('pricing') : handleRegister('pricing'))}
-                      className={`mt-5 w-full rounded-2xl px-4 py-3 text-sm font-bold ${
-                        plan.highlighted
-                          ? 'bg-sky-400 text-slate-950'
-                          : 'bg-white text-slate-950'
-                      }`}
-                    >
-                      {plan.name === 'Enterprise' ? copy.secondaryCta : copy.primaryCta}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="pb-8">
-            <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/65 p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-5">
-                <MessageSquare className="text-sky-600 dark:text-sky-300" size={20} />
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{copy.faqTitle}</h2>
-              </div>
-              <div className="space-y-3">
-                {copy.faqItems.map((item, index) => {
-                  const isOpen = openFaqIndex === index;
-                  return (
-                    <div key={item.q} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50">
-                      <button
-                        onClick={() => {
-                          const nextIndex = isOpen ? null : index;
-                          setOpenFaqIndex(nextIndex);
-                          if (!isOpen) {
-                            trackEvent('company_landing_faq_expand', { faq_index: index });
-                          }
-                        }}
-                        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
-                      >
-                        <span className="text-sm font-semibold text-slate-900 dark:text-white">{item.q}</span>
-                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                      {isOpen && (
-                        <div className="px-5 pb-5 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                          {item.a}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className="pb-4">
-            <div className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/65 p-6 lg:p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-sky-100 dark:bg-sky-950/40 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700 dark:text-sky-300">
-                    <Shield size={14} />
-                    {copy.asyncFirst}
-                  </div>
-                  <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                    {copy.finalTitle}
-                  </h2>
-                  <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-                    {copy.finalBody}
-                  </p>
+                  ))}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 lg:justify-end">
+                <button
+                  onClick={() => (plan.name === 'Enterprise' ? handleDemo('pricing') : handleRegister('pricing'))}
+                  className={plan.highlighted ? 'app-button-primary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3' : 'app-button-secondary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3'}
+                >
+                  {plan.name === 'Enterprise' ? copy.secondaryCta : copy.primaryCta}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-soft)] lg:p-8">
+          <div className="mb-5 flex items-center gap-3">
+            <MessageSquare className="text-[var(--accent)]" size={20} />
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.faqTitle}</h2>
+          </div>
+          <div className="space-y-3">
+            {copy.faqItems.map((item, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div key={item.q} className="company-surface-soft rounded-[var(--radius-lg)] border">
                   <button
-                    onClick={() => handleRegister('final_cta')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 dark:bg-white px-7 py-3.5 text-sm font-bold text-white dark:text-slate-950"
+                    onClick={() => {
+                      const nextIndex = isOpen ? null : index;
+                      setOpenFaqIndex(nextIndex);
+                      if (!isOpen) {
+                        trackEvent('company_landing_faq_expand', { faq_index: index });
+                      }
+                    }}
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
                   >
-                    {copy.finalPrimary}
-                    <ArrowRight size={18} />
+                    <span className="text-sm font-semibold text-[var(--text-strong)]">{item.q}</span>
+                    <ChevronDown className={`h-4 w-4 text-[var(--text-faint)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  <button
-                    onClick={() => handleLogin('final_cta')}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300/80 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-7 py-3.5 text-sm font-semibold text-slate-900 dark:text-white"
-                  >
-                    <LogIn size={18} />
-                    {copy.finalSecondary}
-                  </button>
+                  {isOpen && (
+                    <div className="px-5 pb-5 text-sm leading-7 text-[var(--text-muted)]">
+                      {item.a}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="app-page-header rounded-[var(--radius-xl)] border p-6 lg:p-8">
+          <div className="grid items-center gap-6 lg:grid-cols-2">
+            <div>
+              <div className="app-eyebrow">
+                <Shield size={14} />
+                {copy.asyncFirst}
               </div>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-[var(--text-strong)]">
+                {copy.finalTitle}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
+                {copy.finalBody}
+              </p>
             </div>
-          </section>
-        </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
+              <button onClick={() => handleRegister('final_cta')} className="app-button-primary rounded-[var(--radius-md)] px-6 py-3.5">
+                {copy.finalPrimary}
+                <ArrowRight size={18} />
+              </button>
+              <button onClick={() => handleLogin('final_cta')} className="app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5">
+                <LogIn size={18} />
+                {copy.finalSecondary}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

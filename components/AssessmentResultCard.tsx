@@ -68,7 +68,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                 <div className="flex items-center gap-3">
                     <button
                         onClick={(e) => { e.stopPropagation(); onPreview(); }}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-300 transition-colors"
+                        className="app-button-secondary rounded-full px-3 py-2 text-xs text-slate-500 dark:text-slate-300 hover:!text-[var(--accent)]"
                         title={t('assessment.results.preview_title')}
                     >
                         <Eye size={20} />
@@ -136,23 +136,23 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                 const finalProfile = journey.final_profile || {};
                                 const qualitySummary = journey.journey_trace?.response_quality?.summary || null;
                                 return (
-                                    <div className="md:col-span-2 rounded-[22px] border border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-slate-900/55 p-4 shadow-[0_16px_32px_-28px_rgba(6,182,212,0.35)]">
-                                        <h4 className="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest mb-2">{t('assessment.results.journey_highlights')}</h4>
+                                    <div className="md:col-span-2 rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 shadow-[var(--shadow-soft)] dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                                        <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--accent)]">{t('assessment.results.journey_highlights')}</h4>
                                         <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-200">
                                             <div>
-                                                <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_decision_pattern')}</div>
+                                                <div className="font-semibold text-[var(--accent)] dark:text-amber-200">{t('assessment.results.journey_decision_pattern')}</div>
                                                 <div>Structure {journey.decision_pattern?.structured_vs_improv ?? '-'} / Stakeholder {journey.decision_pattern?.stakeholder_orientation ?? '-'}</div>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_energy_balance')}</div>
+                                                <div className="font-semibold text-[var(--accent)] dark:text-amber-200">{t('assessment.results.journey_energy_balance')}</div>
                                                 <div>{journey.energy_balance?.monthly_energy_hours_left ?? '-'} hours of energy / month</div>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_transferable_strengths')}</div>
+                                                <div className="font-semibold text-[var(--accent)] dark:text-amber-200">{t('assessment.results.journey_transferable_strengths')}</div>
                                                 <div>{(finalProfile.transferable_strengths || []).slice(0, 2).join(' • ') || '—'}</div>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_risk_zones')}</div>
+                                                <div className="font-semibold text-[var(--accent)] dark:text-amber-200">{t('assessment.results.journey_risk_zones')}</div>
                                                 <div>{(finalProfile.risk_zones || []).slice(0, 2).join(' • ') || '—'}</div>
                                             </div>
                                         </div>

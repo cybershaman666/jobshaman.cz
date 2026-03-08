@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save, Zap } from 'lucide-react';
+import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save, Zap, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseService';
 import { fetchJobsWithFilters } from '../services/jobService';
 import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
 import Markdown from 'markdown-to-jsx';
+import { cn, MetricTile, PageHeader, SurfaceCard } from './ui/primitives';
 
 interface BlogSectionProps {
     selectedBlogPostSlug?: string | null;
@@ -86,6 +86,8 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     showOverview = true
 }) => {
     const { t, i18n } = useTranslation();
+    const locale = (i18n.language || 'cs').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
     const siteOrigin = useMemo(() => {
@@ -244,6 +246,29 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         return () => { isMounted = false; };
     }, [i18n.language]);
     const [copied, setCopied] = useState(false);
+    const copy = {
+        categoryLabel: t('blog.category_label', isCsLike ? 'Články a praktické poznámky' : 'Articles and practical notes'),
+        title: t('blog.title', isCsLike ? 'Články, které pomáhají rozhodnout se líp.' : 'Articles that help you make better career decisions.'),
+        subtitle: t('blog.subtitle', isCsLike ? 'Trendy, konkrétní signály z trhu práce a srozumitelný kontext k tomu, co v aplikaci vidíš u nabídek.' : 'Market signals, practical context, and clearer explanations for the data you see across the app.'),
+        backToList: isCsLike ? 'Zpět na přehled článků' : 'Back to articles',
+        latestArticles: isCsLike ? 'Nejnovější články' : 'Latest articles',
+        moreArticles: isCsLike ? 'Další články' : 'More articles',
+        compactTitle: isCsLike ? 'Vybrané články' : 'Selected articles',
+        compactBody: isCsLike ? 'Krátké poznámky a tipy k práci, hledání a rozhodování.' : 'Short notes and practical tips about work, search, and decision-making.',
+        readMore: t('blog.read_more', isCsLike ? 'Číst více' : 'Read more'),
+        closeArticle: isCsLike ? 'Zavřít článek' : 'Close article',
+        summaryLabel: isCsLike ? 'Stručné shrnutí' : 'Short summary',
+        faqLabel: isCsLike ? 'Klíčové body a časté otázky' : 'Key takeaways and frequent questions',
+        adminMode: isCsLike ? 'Admin režim' : 'Admin mode',
+        addArticle: isCsLike ? 'Přidat článek' : 'Add article',
+        copied: isCsLike ? 'Zkopírováno!' : 'Copied!',
+        exportDb: isCsLike ? 'Exportovat data' : 'Export data',
+        saveSession: isCsLike ? 'Uložit do relace' : 'Save to session',
+        cancel: isCsLike ? 'Zrušit' : 'Cancel',
+        sessionNote: isCsLike ? 'Změny se uloží jen do aktuální relace. Pro trvalou změnu je potřeba export.' : 'Changes stay only in the current session. Export them if you want to keep them.',
+        newArticle: isCsLike ? 'Nový článek' : 'New article',
+        editArticle: isCsLike ? 'Upravit článek' : 'Edit article'
+    };
 
     // Stats (can be derived or kept separate)
     const stats = [
@@ -329,282 +354,282 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     };
 
     return (
-        <section className={showOverview ? "py-16 bg-slate-50 dark:bg-slate-950/50 relative" : "relative"}>
-            <div className={showOverview ? "max-w-7xl mx-auto px-4 lg:px-8" : "w-full"}>
-                <script type="application/ld+json">
-                    {JSON.stringify(structuredData)}
-                </script>
+        <section className={cn('relative', showOverview ? 'space-y-6 px-1 pb-8' : 'space-y-4')}>
+            <script type="application/ld+json">
+                {JSON.stringify(structuredData)}
+            </script>
 
-                {/* Admin Toggle (Only in Dev) */}
-                {import.meta.env.DEV && (
-                    <div className="absolute top-4 right-4 opacity-10 hover:opacity-100 transition-opacity">
-                        <button
-                            onClick={() => setIsAdmin(!isAdmin)}
-                            className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500"
-                        >
-                            <Edit2 size={16} />
-                        </button>
-                    </div>
-                )}
-
-                {/* Admin Toolbar */}
-                {isAdmin && (
-                    <div className="mb-8 p-4 bg-cyan-100 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800 rounded-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-cyan-800 dark:text-cyan-300">Admin Mode</span>
-                            <button
-                                onClick={() => setEditingPost({
-                                    id: 0,
-                                    slug: '',
-                                    title: '',
-                                    excerpt: '',
-                                    content: '',
-                                    date: new Date().toLocaleDateString('cs-CZ'),
-                                    readTime: '5 min čtení',
-                                    category: 'Novinky',
-                                    image: '',
-                                    author: '',
-                                    keywords: [],
-                                    shamanSummary: '',
-                                    qa: []
-                                })}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white rounded-lg text-sm font-bold hover:bg-cyan-500 transition-colors"
-                            >
-                                <Plus size={16} /> Přidat článek
-                            </button>
-                        </div>
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-sm font-bold hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors"
-                        >
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
-                            {copied ? 'Zkopírováno!' : 'Exportovat DB'}
-                        </button>
-                    </div>
-                )}
-
-                {showOverview && (
-                    <>
-                        {/* Header */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6"
-                        >
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <BookOpen className="text-cyan-600 dark:text-cyan-400" size={24} />
-                                    <span className="text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-                                        {t('blog.category_label', 'Shamanic Insights')}
-                                    </span>
-                                </div>
-                                <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
-                                    {t('blog.title', 'Novinky ze světa práce')}
-                                </h2>
-                                <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 max-w-2xl">
-                                    {t('blog.subtitle', 'Sledujeme trendy, analyzujeme trh a pomáháme vám dělat informovaná kariérní rozhodnutí.')}
-                                </p>
-                            </div>
-                            <button className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold hover:gap-3 transition-all">
-                                {t('blog.view_all', 'Všechny články')} <ArrowRight size={20} />
-                            </button>
-                        </motion.div>
-
-                        {/* Stats Grid */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.2 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
-                        >
-                            {stats.map((stat, idx) => (
-                                <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 group hover:border-cyan-300 dark:hover:border-cyan-700 transition-all">
-                                    <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:scale-110 transition-transform`}>
-                                        <stat.icon size={26} className={stat.color} />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
-                                        <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </motion.div>
-                    </>
-                )}
-
-                {/* Blog Posts Grid */}
-                {showOverview ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.4 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            {import.meta.env.DEV && (
+                <div className="absolute right-2 top-2 z-10 opacity-20 transition-opacity hover:opacity-100">
+                    <button
+                        onClick={() => setIsAdmin(!isAdmin)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-faint)] shadow-[var(--shadow-soft)]"
                     >
-                        {sortedPosts.map((post) => (
-                            <article
-                                key={post.id}
-                                onClick={() => handleSelectPost(post)}
-                                className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
-                            >
-                                <div className="relative h-48 overflow-hidden">
-                                    {post.image ? (
-                                        <img
-                                            src={post.image}
-                                            alt={post.title}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300">
-                                            <BookOpen size={48} />
-                                        </div>
-                                    )}
-                                    <div className="absolute top-4 left-4 flex gap-2">
-                                        <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 shadow-sm uppercase tracking-wider">
-                                            {post.category}
-                                        </span>
-                                    </div>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}
-                                            className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-slate-900/90 rounded-full text-slate-600 dark:text-slate-300 hover:text-cyan-600 shadow-sm"
-                                        >
-                                            <Edit2 size={14} />
-                                        </button>
-                                    )}
-                                </div>
+                        <Edit2 size={15} />
+                    </button>
+                </div>
+            )}
 
-                                <div className="p-6 flex flex-col flex-1">
-                                    <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mb-3 uppercase font-bold tracking-tight">
-                                        <div className="flex items-center gap-1">
-                                            <Calendar size={12} /> {post.date}
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Clock size={12} /> {post.readTime}
-                                        </div>
-                                    </div>
+            {isAdmin && (
+                <SurfaceCard className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" tone="accent">
+                    <div className="flex items-center gap-3">
+                        <span className="app-eyebrow">{copy.adminMode}</span>
+                        <button
+                            onClick={() => setEditingPost({
+                                id: 0,
+                                slug: '',
+                                title: '',
+                                excerpt: '',
+                                content: '',
+                                date: new Date().toLocaleDateString('cs-CZ'),
+                                readTime: '5 min čtení',
+                                category: 'Novinky',
+                                image: '',
+                                author: '',
+                                keywords: [],
+                                shamanSummary: '',
+                                qa: []
+                            })}
+                            className="app-button-primary !px-3.5 !py-2.5"
+                        >
+                            <Plus size={16} />
+                            {copy.addArticle}
+                        </button>
+                    </div>
+                    <button onClick={handleExport} className="app-button-secondary !px-3.5 !py-2.5">
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                        {copied ? copy.copied : copy.exportDb}
+                    </button>
+                </SurfaceCard>
+            )}
 
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2">
-                                        {t(`blog.posts.post${post.id}.title`, post.title)}
-                                    </h3>
+            {showOverview ? (
+                <>
+                    <PageHeader
+                        eyebrow={copy.categoryLabel}
+                        title={copy.title}
+                        body={copy.subtitle}
+                    />
 
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
-                                        {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
-                                    </p>
-
-                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                                        <button className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-wider">
-                                            {t('blog.read_more', 'Číst více')} <ArrowRight size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </article>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        {stats.map((stat, idx) => (
+                            <MetricTile
+                                key={idx}
+                                label={stat.label}
+                                value={stat.value}
+                                tone={idx === 0 ? 'default' : idx === 1 ? 'success' : 'accent'}
+                                className="shadow-[var(--shadow-soft)]"
+                            />
                         ))}
-                    </motion.div>
-                ) : (
-                    <div className="space-y-3">
-                        {sortedPosts[0] && (
-                            <article
+                    </div>
+
+                    {sortedPosts[0] ? (
+                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_360px]">
+                            <button
+                                type="button"
                                 onClick={() => handleSelectPost(sortedPosts[0])}
-                                className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/88 dark:bg-slate-900/72 transition-all hover:border-cyan-300 dark:hover:border-cyan-700"
+                                className="group overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-elevated)] text-left shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-[rgba(var(--accent-rgb),0.24)]"
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-3">
-                                    <div className="md:col-span-1 h-44 md:h-full">
+                                <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(280px,0.78fr)]">
+                                    <div className="flex flex-col justify-between p-6">
+                                        <div className="space-y-4">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="app-eyebrow">{sortedPosts[0].category}</span>
+                                                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-faint)]">
+                                                    <Calendar size={13} />
+                                                    {sortedPosts[0].date}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-faint)]">
+                                                    <Clock size={13} />
+                                                    {sortedPosts[0].readTime}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <h2 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--text-strong)] transition group-hover:text-[var(--accent)]">
+                                                    {t(`blog.posts.post${sortedPosts[0].id}.title`, sortedPosts[0].title)}
+                                                </h2>
+                                                <p className="max-w-2xl text-base leading-7 text-[var(--text-muted)]">
+                                                    {t(`blog.posts.post${sortedPosts[0].id}.excerpt`, sortedPosts[0].excerpt)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
+                                            {copy.readMore}
+                                            <ArrowRight size={16} className="text-[var(--accent)] transition group-hover:translate-x-0.5" />
+                                        </div>
+                                    </div>
+                                    <div className="min-h-[260px] overflow-hidden border-l border-[var(--border-subtle)] bg-[var(--surface-muted)]">
                                         {sortedPosts[0].image ? (
                                             <img
                                                 src={sortedPosts[0].image}
                                                 alt={sortedPosts[0].title}
-                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                                             />
                                         ) : (
-                                            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800">
-                                                <BookOpen size={40} />
+                                            <div className="flex h-full items-center justify-center text-[var(--text-faint)]">
+                                                <BookOpen size={56} />
                                             </div>
                                         )}
-                                    </div>
-                                    <div className="md:col-span-2 p-4">
-                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                            <span className="text-cyan-600 dark:text-cyan-400">{sortedPosts[0].category}</span>
-                                            <span>{sortedPosts[0].date}</span>
-                                            <span className="inline-flex items-center gap-1"><Clock size={11} />{sortedPosts[0].readTime}</span>
-                                        </div>
-                                        <h4 className="mt-2 text-lg font-bold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-400">
-                                            {t(`blog.posts.post${sortedPosts[0].id}.title`, sortedPosts[0].title)}
-                                        </h4>
-                                        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                            {t(`blog.posts.post${sortedPosts[0].id}.excerpt`, sortedPosts[0].excerpt)}
-                                        </p>
-                                        <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
-                                            {t('blog.read_more', 'Číst více')}
-                                            <ArrowRight size={15} className="text-slate-400 group-hover:text-cyan-500" />
-                                        </div>
                                     </div>
                                 </div>
-                            </article>
-                        )}
+                            </button>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {sortedPosts.slice(1, 5).map((post) => (
-                                <article
-                                    key={post.id}
-                                    onClick={() => handleSelectPost(post)}
-                                    className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/86 dark:bg-slate-900/70 transition-all hover:border-cyan-300 dark:hover:border-cyan-700"
-                                >
-                                    <div className="h-36">
-                                        {post.image ? (
-                                            <img
-                                                src={post.image}
-                                                alt={post.title}
-                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800">
-                                                <BookOpen size={34} />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-3.5">
-                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                                            <span className="text-cyan-600 dark:text-cyan-400">{post.category}</span>
+                            <SurfaceCard className="space-y-3" tone="muted">
+                                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.latestArticles}</div>
+                                {sortedPosts.slice(1, 5).map((post) => (
+                                    <button
+                                        key={post.id}
+                                        type="button"
+                                        onClick={() => handleSelectPost(post)}
+                                        className="w-full rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 text-left transition hover:border-[rgba(var(--accent-rgb),0.22)]"
+                                    >
+                                        <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                                            <span className="text-[var(--accent)]">{post.category}</span>
                                             <span>{post.date}</span>
                                         </div>
-                                        <h4 className="mt-1.5 line-clamp-2 text-sm font-semibold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-400">
+                                        <div className="mt-2 text-base font-semibold leading-6 text-[var(--text-strong)]">
                                             {t(`blog.posts.post${post.id}.title`, post.title)}
-                                        </h4>
-                                        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                                            {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
-                                        </p>
-                                        <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                            {t('blog.read_more', 'Číst více')}
-                                            <ArrowRight size={13} className="text-slate-400 group-hover:text-cyan-500" />
                                         </div>
-                                    </div>
+                                        <div className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">
+                                            {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                        </div>
+                                    </button>
+                                ))}
+                            </SurfaceCard>
+                        </div>
+                    ) : null}
+
+                    <div className="space-y-3">
+                        <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.moreArticles}</div>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {sortedPosts.slice(sortedPosts[0] ? 1 : 0).map((post) => (
+                                <article
+                                    key={post.id}
+                                    className="group overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:border-[rgba(var(--accent-rgb),0.24)]"
+                                >
+                                    <button type="button" onClick={() => handleSelectPost(post)} className="block w-full text-left">
+                                        <div className="h-48 overflow-hidden bg-[var(--surface-muted)]">
+                                            {post.image ? (
+                                                <img
+                                                    src={post.image}
+                                                    alt={post.title}
+                                                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-[var(--text-faint)]">
+                                                    <BookOpen size={44} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-3 p-5">
+                                            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                                                <span className="text-[var(--accent)]">{post.category}</span>
+                                                <span>{post.date}</span>
+                                                <span className="inline-flex items-center gap-1"><Clock size={12} />{post.readTime}</span>
+                                            </div>
+                                            <h3 className="line-clamp-2 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)] transition group-hover:text-[var(--accent)]">
+                                                {t(`blog.posts.post${post.id}.title`, post.title)}
+                                            </h3>
+                                            <p className="line-clamp-3 text-sm leading-6 text-[var(--text-muted)]">
+                                                {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                            </p>
+                                            <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
+                                                {copy.readMore}
+                                                <ArrowRight size={15} className="text-[var(--accent)]" />
+                                            </div>
+                                        </div>
+                                    </button>
                                 </article>
                             ))}
                         </div>
                     </div>
-                )}
-            </div>
+                </>
+            ) : (
+                <div className="space-y-3">
+                    <SurfaceCard className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div className="text-base font-semibold text-[var(--text-strong)]">{copy.compactTitle}</div>
+                            <div className="text-sm leading-6 text-[var(--text-muted)]">{copy.compactBody}</div>
+                        </div>
+                    </SurfaceCard>
+                    {sortedPosts[0] ? (
+                        <button
+                            type="button"
+                            onClick={() => handleSelectPost(sortedPosts[0])}
+                            className="group w-full overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-elevated)] text-left shadow-[var(--shadow-soft)] transition hover:border-[rgba(var(--accent-rgb),0.24)]"
+                        >
+                            <div className="grid gap-0 md:grid-cols-[220px_minmax(0,1fr)]">
+                                <div className="h-44 overflow-hidden bg-[var(--surface-muted)]">
+                                    {sortedPosts[0].image ? (
+                                        <img src={sortedPosts[0].image} alt={sortedPosts[0].title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-[var(--text-faint)]"><BookOpen size={38} /></div>
+                                    )}
+                                </div>
+                                <div className="space-y-3 p-4">
+                                    <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                                        <span className="text-[var(--accent)]">{sortedPosts[0].category}</span>
+                                        <span>{sortedPosts[0].date}</span>
+                                        <span className="inline-flex items-center gap-1"><Clock size={12} />{sortedPosts[0].readTime}</span>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-[var(--text-strong)] transition group-hover:text-[var(--accent)]">
+                                        {t(`blog.posts.post${sortedPosts[0].id}.title`, sortedPosts[0].title)}
+                                    </h3>
+                                    <p className="line-clamp-3 text-sm leading-6 text-[var(--text-muted)]">
+                                        {t(`blog.posts.post${sortedPosts[0].id}.excerpt`, sortedPosts[0].excerpt)}
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    ) : null}
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                        {sortedPosts.slice(1, 5).map((post) => (
+                            <button
+                                key={post.id}
+                                type="button"
+                                onClick={() => handleSelectPost(post)}
+                                className="group overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-left shadow-[var(--shadow-soft)] transition hover:border-[rgba(var(--accent-rgb),0.24)]"
+                            >
+                                <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                                    <span className="text-[var(--accent)]">{post.category}</span>
+                                    <span>{post.date}</span>
+                                </div>
+                                <div className="mt-2 line-clamp-2 text-sm font-semibold text-[var(--text-strong)] transition group-hover:text-[var(--accent)]">
+                                    {t(`blog.posts.post${post.id}.title`, post.title)}
+                                </div>
+                                <div className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-muted)]">
+                                    {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* DETAIL MODAL */}
             {selectedPost && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                        {/* Modal Header */}
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
-                            <div className="flex items-center gap-4">
-                                <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-950 text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
-                                    {selectedPost.category}
-                                </span>
-                                <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                                    <span className="flex items-center gap-1"><Calendar size={14} /> {selectedPost.date}</span>
-                                    <span className="flex items-center gap-1"><Clock size={14} /> {selectedPost.readTime}</span>
-                                </div>
+                <div className="fixed inset-0 z-[100] bg-[rgba(15,23,42,0.58)] p-4 backdrop-blur-md">
+                    <div className="mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-[1.8rem] border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-overlay)]">
+                        <div className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] px-5 py-4 sm:px-6">
+                            <div className="flex min-w-0 flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectPost(null)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1.5 text-sm font-medium text-[var(--text)] transition hover:border-[rgba(var(--accent-rgb),0.22)]"
+                                >
+                                    <ArrowLeft size={14} />
+                                    {copy.backToList}
+                                </button>
+                                <span className="app-eyebrow">{selectedPost.category}</span>
+                                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-faint)]"><Calendar size={13} />{selectedPost.date}</span>
+                                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-faint)]"><Clock size={13} />{selectedPost.readTime}</span>
                             </div>
-                            <button onClick={() => handleSelectPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                <X size={24} className="text-slate-500" />
+                            <button
+                                onClick={() => handleSelectPost(null)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-muted)] transition hover:text-[var(--text-strong)]"
+                            >
+                                <X size={18} />
                             </button>
                         </div>
 
@@ -635,80 +660,76 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                             })}
                         </script>
 
-                        {/* Modal Content */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-6 sm:px-6 md:px-10 md:py-10">
                             {selectedPost.image && (
-                                <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-64 md:h-96 object-cover rounded-xl mb-10 shadow-lg" />
+                                <img src={selectedPost.image} alt={selectedPost.title} className="mb-8 h-64 w-full rounded-[1.6rem] object-cover shadow-[var(--shadow-card)] md:h-96" />
                             )}
-                            <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-8 leading-tight">
-                                {selectedPost.title}
-                            </h1>
-
-                            {/* AEO: Shaman's Summary (TL;DR) */}
-                            <div className="mb-10 p-6 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded-r-xl">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Zap className="text-cyan-600 dark:text-cyan-400" size={20} />
-                                    <h3 className="text-sm font-bold uppercase tracking-widest text-cyan-700 dark:text-cyan-300">
-                                        Shaman's Summary (TL;DR)
-                                    </h3>
+                            <div className="mx-auto max-w-3xl space-y-8">
+                                <div className="space-y-4">
+                                    <h1 className="text-3xl font-semibold tracking-[-0.045em] text-[var(--text-strong)] md:text-5xl md:leading-[1.02]">
+                                        {selectedPost.title}
+                                    </h1>
+                                    <p className="text-lg leading-8 text-[var(--text-muted)]">
+                                        {selectedPost.excerpt}
+                                    </p>
                                 </div>
-                                <p className="text-slate-700 dark:text-slate-200 font-medium italic">
-                                    "{selectedPost.shamanSummary}"
-                                </p>
-                            </div>
 
-                            <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg mb-12">
-                                <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
-                            </div>
-
-                            {/* AEO: Key Takeaways (FAQ) */}
-                            {selectedPost.qa && selectedPost.qa.length > 0 && (
-                                <div className="mt-12 bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-8 border border-slate-200 dark:border-slate-800">
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                                        <Plus className="text-cyan-600" size={24} /> Key Takeaways & FAQ
-                                    </h3>
-                                    <div className="space-y-6">
-                                        {selectedPost.qa.map((item, idx) => (
-                                            <div key={idx} className="space-y-2">
-                                                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-                                                    {item.question}
-                                                </h4>
-                                                <p className="text-slate-600 dark:text-slate-400 pl-4 border-l border-slate-200 dark:border-slate-800 text-sm">
-                                                    {item.answer}
-                                                </p>
-                                            </div>
-                                        ))}
+                                <SurfaceCard tone="accent" className="border-l-4 border-l-[var(--accent)]">
+                                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                                        <Zap size={16} />
+                                        {copy.summaryLabel}
                                     </div>
+                                    <p className="mt-3 text-base leading-7 text-[var(--text)]">
+                                        {selectedPost.shamanSummary}
+                                    </p>
+                                </SurfaceCard>
 
-                                    {/* FAQPage Structured Data */}
-                                    <script type="application/ld+json">
-                                        {JSON.stringify({
-                                            "@context": "https://schema.org",
-                                            "@type": "FAQPage",
-                                            "inLanguage": (i18n.language || 'cs').split('-')[0],
-                                            "url": `${siteOrigin}/blog/${selectedPost.slug}`,
-                                            "mainEntity": selectedPost.qa.map(q => ({
-                                                "@type": "Question",
-                                                "name": q.question,
-                                                "acceptedAnswer": {
-                                                    "@type": "Answer",
-                                                    "text": q.answer
-                                                }
-                                            }))
-                                        })}
-                                    </script>
+                                <div className="prose max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-p:leading-8 prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] prose-a:text-[var(--accent)] dark:prose-invert">
+                                    <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
                                 </div>
-                            )}
+
+                                {selectedPost.qa && selectedPost.qa.length > 0 && (
+                                    <SurfaceCard tone="muted">
+                                        <h3 className="flex items-center gap-2 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                                            <Plus size={20} className="text-[var(--accent)]" />
+                                            {copy.faqLabel}
+                                        </h3>
+                                        <div className="mt-6 space-y-5">
+                                            {selectedPost.qa.map((item, idx) => (
+                                                <div key={idx} className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
+                                                    <h4 className="text-base font-semibold text-[var(--text-strong)]">{item.question}</h4>
+                                                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{item.answer}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <script type="application/ld+json">
+                                            {JSON.stringify({
+                                                "@context": "https://schema.org",
+                                                "@type": "FAQPage",
+                                                "inLanguage": (i18n.language || 'cs').split('-')[0],
+                                                "url": `${siteOrigin}/blog/${selectedPost.slug}`,
+                                                "mainEntity": selectedPost.qa.map(q => ({
+                                                    "@type": "Question",
+                                                    "name": q.question,
+                                                    "acceptedAnswer": {
+                                                        "@type": "Answer",
+                                                        "text": q.answer
+                                                    }
+                                                }))
+                                            })}
+                                        </script>
+                                    </SurfaceCard>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
+                        <div className="flex justify-end border-t border-[var(--border-subtle)] bg-[var(--surface-muted)] px-5 py-4 sm:px-6">
                             <button
                                 onClick={() => handleSelectPost(null)}
-                                className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95"
+                                className="app-button-secondary !px-4 !py-2.5"
                             >
-                                Zavřít článek
+                                {copy.closeArticle}
                             </button>
                         </div>
                     </div>
@@ -717,35 +738,35 @@ const BlogSection: React.FC<BlogSectionProps> = ({
 
             {/* EDITOR MODAL */}
             {editingPost && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                {editingPost.id === 0 ? 'Nový článek' : 'Upravit článek'}
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[rgba(15,23,42,0.58)] p-4 backdrop-blur-md">
+                    <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[1.8rem] border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-overlay)]">
+                        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-5">
+                            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                                {editingPost.id === 0 ? copy.newArticle : copy.editArticle}
                             </h2>
-                            <button onClick={() => setEditingPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                <X size={24} className="text-slate-500" />
+                            <button onClick={() => setEditingPost(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-muted)] transition hover:text-[var(--text-strong)]">
+                                <X size={18} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSavePost} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Titulek</label>
+                                    <label className="text-sm font-semibold text-[var(--text-strong)]">Titulek</label>
                                     <input
                                         required
                                         value={editingPost.title}
                                         onChange={e => setEditingPost({ ...editingPost, title: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
+                                        className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                         placeholder="Jak najít práci..."
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Kategorie</label>
+                                    <label className="text-sm font-semibold text-[var(--text-strong)]">Kategorie</label>
                                     <select
                                         value={editingPost.category}
                                         onChange={e => setEditingPost({ ...editingPost, category: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
+                                        className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                     >
                                         <option value="Tipy & Triky">Tipy & Triky</option>
                                         <option value="Novinky">Novinky</option>
@@ -757,65 +778,65 @@ const BlogSection: React.FC<BlogSectionProps> = ({
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">URL Obrázku (Unsplash apod.)</label>
+                                    <label className="text-sm font-semibold text-[var(--text-strong)]">URL obrázku</label>
                                     <input
                                         value={editingPost.image}
                                         onChange={e => setEditingPost({ ...editingPost, image: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
+                                        className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                         placeholder="https://images.unsplash.com/..."
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Čas čtení</label>
+                                    <label className="text-sm font-semibold text-[var(--text-strong)]">Čas čtení</label>
                                     <input
                                         value={editingPost.readTime}
                                         onChange={e => setEditingPost({ ...editingPost, readTime: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none dark:[color-scheme:dark]"
+                                        className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                         placeholder="5 min čtení"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Perex (krátký popis na kartě)</label>
+                                <label className="text-sm font-semibold text-[var(--text-strong)]">Perex</label>
                                 <textarea
                                     required
                                     rows={3}
                                     value={editingPost.excerpt}
                                     onChange={e => setEditingPost({ ...editingPost, excerpt: e.target.value })}
-                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none resize-none dark:[color-scheme:dark]"
+                                    className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                     placeholder="Stručné shrnutí článku..."
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Obsah (Markdown)</label>
+                                <label className="text-sm font-semibold text-[var(--text-strong)]">Obsah (Markdown)</label>
                                 <textarea
                                     required
                                     rows={12}
                                     value={editingPost.content}
                                     onChange={e => setEditingPost({ ...editingPost, content: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none font-mono text-sm dark:[color-scheme:dark]"
+                                    className="w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4 font-mono text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]"
                                     placeholder="# Nadpis\n\nText článku s **tučným** písmem..."
                                 />
                             </div>
                         </form>
 
-                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
-                            <p className="text-xs text-slate-500 italic">Změny se uloží pouze do aktuální relace. Nezapomeňte exportovat!</p>
+                        <div className="flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--surface-muted)] px-6 py-5">
+                            <p className="text-xs italic text-[var(--text-faint)]">{copy.sessionNote}</p>
                             <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setEditingPost(null)}
-                                    className="px-6 py-2.5 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                                    className="app-button-secondary !px-4 !py-2.5"
                                 >
-                                    Zrušit
+                                    {copy.cancel}
                                 </button>
                                 <button
                                     onClick={handleSavePost}
-                                    className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl font-bold hover:bg-cyan-500 transition-all shadow-lg shadow-cyan-600/20 flex items-center gap-2"
+                                    className="app-button-primary !px-4 !py-2.5"
                                 >
-                                    <Save size={18} /> Uložit do relace
+                                    <Save size={18} /> {copy.saveSession}
                                 </button>
                             </div>
                         </div>

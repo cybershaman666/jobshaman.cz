@@ -310,7 +310,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                 <div className="space-y-4">
                                     {workspaceActivity.map((item) => (
                                         <div key={item.id} className="flex gap-3">
-                                            <div className="pt-1"><span className="block h-2.5 w-2.5 rounded-full bg-cyan-500" /></div>
+                                            <div className="pt-1"><span className="block h-2.5 w-2.5 rounded-full bg-[var(--accent)]" /></div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.title}</div>
                                                 <div className="text-sm text-slate-600 dark:text-slate-300">{item.detail}</div>
@@ -336,7 +336,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                             title={t('company.workspace.control_center_title', { defaultValue: 'Hiring overview' })}
                             subtitle={t('company.workspace.control_center_desc', { defaultValue: 'A quick summary of live roles, reusable screening, and the current state of your dialogue capacity.' })}
                             action={(
-                                <button onClick={onOpenJobs} className="company-pill-surface px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <button onClick={onOpenJobs} className="app-button-secondary rounded-full px-3 py-1.5 text-xs">
                                     {t('company.workspace.actions.open_jobs', { defaultValue: 'Open roles' })}
                                 </button>
                             )}
@@ -347,7 +347,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                             {t('company.workspace.cards.live_roles', { defaultValue: 'Live roles' })}
                                         </div>
-                                        <button onClick={onOpenJobs} className="text-xs font-semibold text-cyan-700 hover:text-cyan-600 dark:text-cyan-300 dark:hover:text-cyan-200">
+                                        <button onClick={onOpenJobs} className="text-xs font-semibold text-[var(--accent)] hover:opacity-80">
                                             {t('company.workspace.actions.open_jobs', { defaultValue: 'Open roles' })}
                                         </button>
                                     </div>
@@ -376,7 +376,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                             {t('company.workspace.cards.assessment_library', { defaultValue: 'Assessment library' })}
                                         </div>
-                                        <button onClick={onOpenAssessments} className="text-xs font-semibold text-cyan-700 hover:text-cyan-600 dark:text-cyan-300 dark:hover:text-cyan-200">
+                                        <button onClick={onOpenAssessments} className="text-xs font-semibold text-[var(--accent)] hover:opacity-80">
                                             {t('company.workspace.actions.open_assessment_library', { defaultValue: 'Open assessment hub' })}
                                         </button>
                                     </div>
@@ -406,7 +406,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                             {t('company.workspace.cards.candidate_intelligence', { defaultValue: 'Candidate intelligence' })}
                                         </div>
-                                        <button onClick={onOpenCandidates} className="text-xs font-semibold text-cyan-700 hover:text-cyan-600 dark:text-cyan-300 dark:hover:text-cyan-200">
+                                        <button onClick={onOpenCandidates} className="text-xs font-semibold text-[var(--accent)] hover:opacity-80">
                                             {t('company.workspace.actions.open_candidates', { defaultValue: 'Open talent view' })}
                                         </button>
                                     </div>

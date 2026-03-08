@@ -1127,6 +1127,10 @@
       "team_members": "Pristup v time",
       "active": "Aktívni",
       "inactive": "Neaktívni",
+      "role_opens": "Otvorené role",
+      "dialogue_slots": "Dialógové sloty",
+      "used_this_period": "využité v tomto období",
+      "occupied_now": "obsadené práve teraz",
       "tiers": {
         "business": "Professional",
         "basic": "Základný",
@@ -1240,7 +1244,7 @@
         "open_dossier": "Otvorit profil",
         "open_jobs": "Otvorit role",
         "open_assessment_library": "Otvorit screeningy",
-        "use_assessment": "Pouzit vo workflow",
+        "use_assessment": "Použiť v procese",
         "preview_assessment": "Nahlad",
         "open_candidates": "Otvorit kandidatov"
       },
@@ -1266,7 +1270,7 @@
         "assessment_title": "Zatial nemate pripraveny ziadny screening",
         "assessment_detail": "Vytvorte alebo ulozte aspon jeden znovupouzitelny screening, aby tim vedel pozvat kandidatov rychlejsie.",
         "clear_title": "Ziadne urgentne blokery",
-        "clear_detail": "Zakladny hiring workflow je teraz cisty. Dolny workspace sluzi na operativny prehlad."
+        "clear_detail": "Hlavny nábor teraz beží bez blokátorov. Nižšie nájdeš operatívny prehľad ďalších krokov."
       },
       "cards": {
         "recent_applications": "Najnovsie reakcie kandidatov",
@@ -1427,7 +1431,7 @@
     },
     "job_editor": {
       "title": "Strukturovany editor pozicie",
-      "subtitle": "Drafty, validacia, nahlad a publikovanie v jednom workflow.",
+      "subtitle": "Drafty, validácia, náhľad a publikovanie na jednom mieste.",
       "compat_mode": "Kompatibilny rezim: lokalne drafty + priamy publish fallback",
       "new_draft": "Novy draft",
       "resume_draft": "Pokracovat v drafte",

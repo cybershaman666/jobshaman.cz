@@ -95,7 +95,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                         />
                         <button
                             onClick={onToggleInvitations}
-                            className="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800"
+                            className="app-button-secondary rounded-full px-4 py-2.5 text-sm"
                         >
                             {showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.manage_invites')}
                         </button>
@@ -128,10 +128,10 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
             </div>
 
             {assessmentContext && (
-                    <div className="rounded-[22px] border border-cyan-200/80 bg-cyan-50/75 p-4 shadow-[0_18px_36px_-30px_rgba(6,182,212,0.35)] dark:border-cyan-900/30 dark:bg-cyan-950/20">
+                    <div className="rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 shadow-[var(--shadow-soft)]">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                         <div>
-                            <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">{t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}</div>
+                            <div className="text-xs uppercase tracking-widest text-[var(--accent)]">{t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}</div>
                             <div className="mt-1 text-sm text-slate-800 dark:text-slate-100 font-semibold">
                                 {assessmentContext.jobTitle || t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
                             </div>
@@ -139,7 +139,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                 {assessmentContext.candidateName && <span>{assessmentContext.candidateName}</span>}
                                 {assessmentContext.candidateEmail && <span>{assessmentContext.candidateEmail}</span>}
                                 {assessmentContext.assessmentId && (
-                                    <span className="px-2 py-0.5 rounded bg-white/70 dark:bg-slate-900/40 border border-cyan-100 dark:border-cyan-900/30">
+                                    <span className="rounded border border-[rgba(var(--accent-rgb),0.16)] bg-white/70 px-2 py-0.5">
                                         {t('company.assessment_library.assessment_id', { defaultValue: 'Assessment ID' })}: {assessmentContext.assessmentId.slice(0, 8)}
                                     </span>
                                 )}
@@ -149,14 +149,14 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             {linkedDialogueId && (
                                 <button
                                     onClick={handleBackToDialogue}
-                                    className="rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    className="app-button-secondary rounded-full px-3 py-1.5 text-sm"
                                 >
                                     {t('company.assessment_library.back_to_application', { defaultValue: 'Back to dialogue' })}
                                 </button>
                             )}
                             <button
                                 onClick={onOpenInvitationModal}
-                                className="rounded-full border border-cyan-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-cyan-700 transition-colors hover:bg-cyan-50 dark:border-cyan-900/30 dark:bg-slate-900 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                                className="app-button-secondary rounded-full px-3 py-1.5 text-sm !text-[var(--accent)]"
                             >
                                 {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this context' })}
                             </button>
@@ -201,7 +201,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                                             {t('company.assessment_library.assessment_id', { defaultValue: 'Assessment ID' })}: {item.id.slice(0, 8)}
                                                         </span>
                                                         {isActiveAssessment && (
-                                                            <span className="px-2 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                                            <span className="rounded border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent)]">
                                                                 {t('company.assessment_library.selected', { defaultValue: 'Selected' })}
                                                             </span>
                                                         )}
@@ -210,20 +210,20 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                                 <div className="flex flex-wrap gap-2">
                                                     <button
                                                         onClick={() => onUseSavedAssessment(item)}
-                                                        className="px-3 py-1.5 rounded-md border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                                                        className="app-button-secondary rounded-md px-3 py-1.5 text-xs !text-[var(--accent)]"
                                                     >
                                                         {t('company.assessment_library.use', { defaultValue: 'Use' })}
                                                     </button>
                                                     <button
                                                         onClick={() => openAssessmentPreviewPage(item)}
-                                                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                        className="app-button-secondary rounded-full px-3 py-1.5 text-xs"
                                                     >
-                                                        {t('company.workspace.actions.preview_assessment', { defaultValue: 'Preview' })}
+                                                        {t('company.workspace.actions.preview_assessment', { defaultValue: 'Náhled' })}
                                                     </button>
                                                     <button
                                                         onClick={() => onDuplicateAssessment(item.id)}
                                                         disabled={busy}
-                                                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                                                        className="app-button-secondary rounded-full px-3 py-1.5 text-xs disabled:opacity-50"
                                                     >
                                                         {t('company.job_editor.duplicate', { defaultValue: 'Duplicate' })}
                                                     </button>

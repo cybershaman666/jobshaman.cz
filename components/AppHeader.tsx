@@ -1,475 +1,623 @@
 import React, { useState } from 'react';
 import {
-    Briefcase,
-    Sun,
-    Moon,
-    UserCircle,
-    Menu,
-    X,
-    User,
-    LogOut,
-    MoreHorizontal,
-    ChevronDown
+  Briefcase,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Moon,
+  Search,
+  Sparkles,
+  Sun,
+  UserCircle,
+  X
 } from 'lucide-react';
-import { ViewState, UserProfile, CompanyProfile } from '../types';
-import { getRecruiterCompany } from '../services/supabaseService';
-import SubscriptionStatusBadge from './SubscriptionStatusBadge';
-
 import { useTranslation } from 'react-i18next';
+import { CompanyProfile, UserProfile, ViewState } from '../types';
+import { getRecruiterCompany } from '../services/supabaseService';
+import { cn } from './ui/primitives';
 
 interface AppHeaderProps {
-    viewState: ViewState;
-    setViewState: (view: ViewState) => void;
-    setSelectedJobId: (id: string | null) => void;
-    showCompanyLanding: boolean;
-    setShowCompanyLanding: (show: boolean) => void;
-    userProfile: UserProfile;
-    companyProfile: CompanyProfile | null;
-    setCompanyProfile: (profile: CompanyProfile | null) => void;
-    handleAuthAction: (mode?: 'login' | 'register') => void;
-    toggleTheme: () => void;
-    theme: 'light' | 'dark';
-    setIsOnboardingCompany: (show: boolean) => void;
-    onIntentionalListClick?: () => void;
+  viewState: ViewState;
+  setViewState: (view: ViewState) => void;
+  setSelectedJobId: (id: string | null) => void;
+  isBlogOpen?: boolean;
+  setIsBlogOpen?: (open: boolean) => void;
+  setSelectedBlogPostSlug?: (slug: string | null) => void;
+  showCompanyLanding: boolean;
+  setShowCompanyLanding: (show: boolean) => void;
+  userProfile: UserProfile;
+  companyProfile: CompanyProfile | null;
+  setCompanyProfile: (profile: CompanyProfile | null) => void;
+  handleAuthAction: (mode?: 'login' | 'register') => void;
+  toggleTheme: () => void;
+  theme: 'light' | 'dark';
+  setIsOnboardingCompany: (show: boolean) => void;
+  onIntentionalListClick?: () => void;
+  discoveryLane?: 'challenges' | 'imports';
+  setDiscoveryLane?: (lane: 'challenges' | 'imports') => void;
+  onOpenInsights?: () => void;
+  onOpenDiscoverySearch?: () => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
-    viewState,
-    setViewState,
-    setSelectedJobId,
-    showCompanyLanding,
-    setShowCompanyLanding,
-    userProfile,
-    companyProfile,
-    setCompanyProfile,
-    handleAuthAction,
-    toggleTheme,
-    theme,
-    setIsOnboardingCompany,
-    onIntentionalListClick
+  viewState,
+  setViewState,
+  setSelectedJobId,
+  isBlogOpen = false,
+  setIsBlogOpen,
+  setSelectedBlogPostSlug,
+  showCompanyLanding,
+  setShowCompanyLanding,
+  userProfile,
+  companyProfile,
+  setCompanyProfile,
+  handleAuthAction,
+  toggleTheme,
+  theme,
+  setIsOnboardingCompany,
+  onIntentionalListClick,
+  discoveryLane = 'challenges',
+  setDiscoveryLane,
+  onOpenInsights,
+  onOpenDiscoverySearch
 }) => {
-    const { t, i18n } = useTranslation();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [legalMenuOpen, setLegalMenuOpen] = useState(false);
-    const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
-    const [avatarFailed, setAvatarFailed] = useState(false);
-    const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
-    const subscriptionSubjectId = (viewState === ViewState.COMPANY_DASHBOARD && userProfile.role === 'recruiter' && companyProfile?.id)
-        ? companyProfile.id
-        : userProfile.id;
-    const activeNavClass = 'bg-white/18 text-white ring-1 ring-white/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_24px_-16px_rgba(0,0,0,0.7)]';
-    const inactiveNavClass = 'text-slate-300 hover:text-white hover:bg-white/8';
+  const { t, i18n } = useTranslation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [legalMenuOpen, setLegalMenuOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const isCsLike = locale === 'cs' || locale === 'sk';
+  const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
+  const insightsLabel =
+    locale === 'cs' || locale === 'sk'
+      ? 'Články'
+      : locale === 'de' || locale === 'at'
+        ? 'Artikel'
+        : locale === 'pl'
+          ? 'Artykuły'
+          : 'Articles';
 
-    const languages = [
-        { code: 'cs', name: 'CZ', flagCode: 'cz' },
-        { code: 'en', name: 'EN', flagCode: 'gb' },
-        { code: 'pl', name: 'PL', flagCode: 'pl' },
-        { code: 'de', name: 'DE', flagCode: 'de' },
-        { code: 'at', name: 'AT', flagCode: 'at' },
-        { code: 'sk', name: 'SK', flagCode: 'sk' }
-    ];
+  const navItems = [
+    {
+      key: 'marketplace',
+      label: isCsLike ? 'Výzvy' : 'Challenges',
+      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges',
+      onClick: () => {
+        navigateToShellHome();
+        setDiscoveryLane?.('challenges');
+      }
+    },
+    {
+      key: 'search',
+      label: isCsLike ? 'Hledání' : 'Search',
+      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges',
+      onClick: () => {
+        navigateToShellHome();
+        setDiscoveryLane?.('challenges');
+        onOpenDiscoverySearch?.();
+      }
+    },
+    {
+      key: 'saved',
+      label: isCsLike ? 'Uložené' : 'Saved',
+      active: viewState === ViewState.SAVED,
+      onClick: () => {
+        if (leaveDemoHandshakeRoute('ulozene')) return;
+        setShowCompanyLanding(false);
+        setIsOnboardingCompany(false);
+        setIsBlogOpen?.(false);
+        setViewState(ViewState.SAVED);
+        setSelectedJobId(null);
+        setSelectedBlogPostSlug?.(null);
+      }
+    },
+    {
+      key: 'imports',
+      label: isCsLike ? 'Importy' : 'Imports',
+      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'imports',
+      onClick: () => {
+        navigateToShellHome();
+        setDiscoveryLane?.('imports');
+      }
+    }
+  ];
 
-    const getLocalePrefix = () => {
-        const supported: string[] = (i18n.options.supportedLngs || []) as string[];
-        const parts = window.location.pathname.split('/').filter(Boolean);
-        if (parts.length > 0 && supported.includes(parts[0])) {
-            return `/${parts[0]}`;
+  const languages = [
+    { code: 'cs', name: 'CZ', flagCode: 'cz' },
+    { code: 'en', name: 'EN', flagCode: 'gb' },
+    { code: 'pl', name: 'PL', flagCode: 'pl' },
+    { code: 'de', name: 'DE', flagCode: 'de' },
+    { code: 'at', name: 'AT', flagCode: 'at' },
+    { code: 'sk', name: 'SK', flagCode: 'sk' }
+  ];
+
+  const getLocalePrefix = () => {
+    const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length > 0 && supported.includes(parts[0])) {
+      return `/${parts[0]}`;
+    }
+    const fallback = (i18n.language || 'cs').split('-')[0];
+    return `/${fallback}`;
+  };
+
+  const isDemoHandshakeRoute = () => {
+    const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+    return parts[0] === 'demo-handshake' || parts[0] === 'demo-company-handshake';
+  };
+
+  const leaveDemoHandshakeRoute = (targetPath?: string): boolean => {
+    if (!isDemoHandshakeRoute()) return false;
+    const localePrefix = getLocalePrefix();
+    const normalizedTarget = targetPath
+      ? `${localePrefix}/${targetPath.replace(/^\/+/, '')}`.replace(/\/+$/, '')
+      : `${localePrefix}/`;
+    window.location.assign(normalizedTarget);
+    return true;
+  };
+
+  const navigateToShellHome = () => {
+    if (leaveDemoHandshakeRoute()) return;
+    onIntentionalListClick?.();
+    setDiscoveryLane?.('challenges');
+    setIsBlogOpen?.(false);
+    setViewState(ViewState.LIST);
+    setSelectedJobId(null);
+    setSelectedBlogPostSlug?.(null);
+    setShowCompanyLanding(false);
+    setIsOnboardingCompany(false);
+  };
+
+  const changeLanguage = (lng: string) => {
+    try {
+      const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+      const newPath = `/${lng}/${parts.join('/')}`.replace(/\/\/$/, '/');
+      window.history.replaceState({}, '', newPath + window.location.search + window.location.hash);
+    } catch (error) {
+      console.warn('Failed to update locale in path', error);
+    }
+
+    i18n.changeLanguage(lng);
+  };
+
+  const handleBusinessClick = async () => {
+    if (showCompanyLanding) {
+      setShowCompanyLanding(false);
+      setIsBlogOpen?.(false);
+      setSelectedBlogPostSlug?.(null);
+      setViewState(ViewState.LIST);
+      return;
+    }
+
+    if (!userProfile.isLoggedIn || userProfile.role !== 'recruiter') {
+      setShowCompanyLanding(true);
+      return;
+    }
+
+    if (companyProfile) {
+      setIsBlogOpen?.(false);
+      setSelectedBlogPostSlug?.(null);
+      setViewState(ViewState.COMPANY_DASHBOARD);
+      return;
+    }
+
+    if (userProfile.id) {
+      try {
+        const resolvedCompany = await getRecruiterCompany(userProfile.id);
+        if (resolvedCompany) {
+          setCompanyProfile(resolvedCompany);
+          setIsOnboardingCompany(false);
+          setIsBlogOpen?.(false);
+          setSelectedBlogPostSlug?.(null);
+          setViewState(ViewState.COMPANY_DASHBOARD);
+          return;
         }
-        const fallback = (i18n.language || 'cs').split('-')[0];
-        return `/${fallback}`;
-    };
+      } catch (error) {
+        console.warn('Failed to resolve recruiter company before onboarding:', error);
+      }
+    }
 
-    const isDemoHandshakeRoute = () => {
-        const supported: string[] = (i18n.options.supportedLngs || []) as string[];
-        const parts = window.location.pathname.split('/').filter(Boolean);
-        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
-        return parts[0] === 'demo-handshake' || parts[0] === 'demo-company-handshake';
-    };
+    setIsOnboardingCompany(true);
+  };
 
-    const leaveDemoHandshakeRoute = (targetPath?: string): boolean => {
-        if (!isDemoHandshakeRoute()) return false;
-        const localePrefix = getLocalePrefix();
-        const normalizedTarget = targetPath
-            ? `${localePrefix}/${targetPath.replace(/^\/+/, '')}`.replace(/\/+$/, '')
-            : `${localePrefix}/`;
-        window.location.assign(normalizedTarget);
-        return true;
-    };
+  const activePill = 'bg-[var(--accent-soft)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.18)]';
+  const inactivePill = 'text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-white/70 border-transparent';
+  const searchPlaceholder = isCsLike
+    ? 'Hledat nabídky, firmy nebo důležité signály'
+    : 'Search roles, companies, or key signals';
+  const searchLabel = isCsLike ? 'Hledání a filtry' : 'Search and filters';
 
-    const changeLanguage = (lng: string) => {
-        try {
-            // Update URL to include language prefix without reloading
-            const supported: string[] = (i18n.options.supportedLngs || []) as string[];
-            const parts = window.location.pathname.split('/').filter(Boolean);
-            // If first segment is a supported locale, drop it
-            if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
-            // Prepend the chosen locale
-            const newPath = `/${lng}/${parts.join('/')}`.replace(/\/\/$/, '/');
-            // Use history API to avoid reload
-            window.history.replaceState({}, '', newPath + window.location.search + window.location.hash);
-        } catch (err) {
-            console.warn('Failed to update locale in path', err);
-        }
+  return (
+    <header className="sticky top-0 z-50 w-full px-3 pt-2.5 sm:px-5 lg:px-6">
+      <div className="app-topnav mx-auto max-w-[1680px] rounded-[1.5rem] border px-3 py-2.5 sm:px-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={navigateToShellHome}
+            className="flex min-w-0 items-center gap-2.5 rounded-[1.1rem] px-2 py-1 text-left transition hover:bg-white/60 dark:hover:bg-white/5"
+          >
+            <img src="/logo-alt.png" alt="JobShaman" className="h-10 w-auto object-contain sm:h-11" />
+            <div className="hidden min-w-0 sm:block">
+              <div className="text-lg font-semibold tracking-[-0.045em] text-[var(--text-strong)] sm:text-[1.35rem]">
+                <span>Job</span>
+                <span className="text-[var(--accent)]">Shaman</span>
+              </div>
+            </div>
+          </button>
 
-        i18n.changeLanguage(lng);
-    };
-
-    const handleBusinessClick = async () => {
-        if (showCompanyLanding) {
-            setShowCompanyLanding(false);
-            setViewState(ViewState.LIST);
-            return;
-        }
-
-        if (!userProfile.isLoggedIn) {
-            setShowCompanyLanding(true);
-            return;
-        }
-
-        if (userProfile.role !== 'recruiter') {
-            setShowCompanyLanding(true);
-            return;
-        }
-
-        if (companyProfile) {
-            setViewState(ViewState.COMPANY_DASHBOARD);
-            return;
-        }
-
-        if (userProfile.id) {
-            try {
-                const resolvedCompany = await getRecruiterCompany(userProfile.id);
-                if (resolvedCompany) {
-                    setCompanyProfile(resolvedCompany);
-                    setIsOnboardingCompany(false);
-                    setViewState(ViewState.COMPANY_DASHBOARD);
-                    return;
-                }
-            } catch (error) {
-                console.warn('Failed to resolve recruiter company before onboarding:', error);
-            }
-        }
-
-        setIsOnboardingCompany(true);
-    };
-
-    return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200/15 dark:border-slate-700/60 bg-[radial-gradient(circle_at_82%_18%,rgba(72,108,168,0.18),transparent_34%),linear-gradient(135deg,rgba(16,18,22,0.985)_0%,rgba(21,24,30,0.975)_52%,rgba(28,32,39,0.965)_100%)] text-white backdrop-blur-md shadow-[0_18px_46px_-30px_rgba(8,12,20,0.78)]">
-            <div className="flex h-[4.35rem] items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1920px] mx-auto gap-2 sm:gap-4">
-                {/* Logo */}
-                <div
-                    className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
-                    onClick={() => {
-                        if (leaveDemoHandshakeRoute()) return;
-                        setViewState(ViewState.LIST);
-                        setSelectedJobId(null);
-                        setShowCompanyLanding(false);
-                        setIsOnboardingCompany(false);
-                    }}
-                >
-                    <div className="rounded-lg transition-colors bg-transparent">
-                        <img
-                            src="/logo-alt.png"
-                            alt="JobShaman"
-                            className="h-11 sm:h-12 w-auto bg-transparent object-contain"
-                        />
-                    </div>
-                    <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block">
-                        <span className="text-white">Job</span>
-                        <span className="text-amber-500">Shaman</span>
-                    </span>
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setLanguageMenuOpen((prev) => !prev);
+                  setLegalMenuOpen(false);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-white/60 px-3 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <img
+                  src={`https://flagcdn.com/w20/${languages.find((lang) => lang.code === i18n.language)?.flagCode || 'cz'}.png`}
+                  alt=""
+                  className="h-3 w-4 rounded-sm"
+                  loading="lazy"
+                />
+                {(languages.find((lang) => lang.code === i18n.language)?.name || i18n.language || '').toUpperCase()}
+                <ChevronDown size={14} className="text-[var(--text-faint)]" />
+              </button>
+              {languageMenuOpen ? (
+                <div className="absolute right-0 mt-2 w-36 rounded-[1.1rem] border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-overlay)]">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => {
+                        changeLanguage(lang.code);
+                        setLanguageMenuOpen(false);
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
+                        i18n.language === lang.code
+                          ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                          : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
+                      )}
+                    >
+                      <img
+                        src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
+                        alt=""
+                        className="h-3 w-4 rounded-sm"
+                        loading="lazy"
+                      />
+                      {lang.name}
+                    </button>
+                  ))}
                 </div>
-
-                {/* Mobile Menu Button */}
-                <button
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="sm:hidden flex items-center justify-center p-2 text-slate-300 hover:text-white transition-colors"
-                    title={t('header.menu')}
-                >
-                    {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
-
-                {/* Desktop Navigation */}
-                <nav className="hidden sm:flex items-center gap-1.5">
-                    {!showCompanyLanding && (
-                        <>
-                            <button
-                                onClick={() => { 
-                                    if (leaveDemoHandshakeRoute()) return;
-                                    onIntentionalListClick?.();
-                                    setViewState(ViewState.LIST); 
-                                    setSelectedJobId(null); 
-                                }}
-                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? activeNavClass : inactiveNavClass}`}
-                            >
-                                {t('nav.offers')}
-                            </button>
-                            <button
-                                onClick={() => { 
-                                    if (userProfile.isLoggedIn) {
-                                        if (leaveDemoHandshakeRoute('profil')) return;
-                                        setViewState(ViewState.PROFILE);
-                                    } else {
-                                        handleAuthAction('login');
-                                    }
-                                }}
-                                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? activeNavClass : inactiveNavClass}`}
-                                title={t('nav.profile')}
-                            >
-                                <User className="w-4 h-4" />
-                                <span className="hidden xl:inline">{t('nav.profile')}</span>
-                            </button>
-                        </>
-                    )}
-                    {canShowBusinessMenu && (
-                        <button
-                            onClick={() => {
-                                const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
-                                    ? 'company-dashboard'
-                                    : 'pro-firmy';
-                                if (leaveDemoHandshakeRoute(businessTarget)) return;
-                                void handleBusinessClick();
-                            }}
-                            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? activeNavClass : inactiveNavClass}`}
-                        >
-                            <Briefcase size={14} />
-                            <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>
-                            <span className="md:hidden">{showCompanyLanding ? '←' : '👤'}</span>
-                        </button>
-                    )}
-                </nav>
-
-                {/* Right Actions */}
-                {!showCompanyLanding && (
-                    <div className="flex items-center gap-3">
-                        {/* Language Switcher */}
-                        <div className="hidden lg:flex items-center gap-2">
-                            <div className="relative">
-                                <button
-                                    onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/8 text-slate-200 hover:text-white transition-colors text-xs font-bold ring-1 ring-white/10"
-                                    aria-label={t('header.language')}
-                                    title={t('header.language')}
-                                >
-                                    <img
-                                        src={`https://flagcdn.com/w20/${languages.find(l => l.code === i18n.language)?.flagCode || 'cz'}.png`}
-                                        alt=""
-                                        className="w-4 h-3 rounded-sm opacity-85"
-                                        loading="lazy"
-                                    />
-                                    <span>{(languages.find(l => l.code === i18n.language)?.name || i18n.language || '').toUpperCase()}</span>
-                                    <ChevronDown size={14} />
-                                </button>
-                                {languageMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-32 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
-                                        {languages.map((lang) => (
-                                            <button
-                                                key={lang.code}
-                                                onClick={() => {
-                                                    changeLanguage(lang.code);
-                                                    setLanguageMenuOpen(false);
-                                                }}
-                                                className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${i18n.language === lang.code
-                                                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-50/60 dark:bg-cyan-900/20'
-                                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                                    }`}
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    <img
-                                                        src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
-                                                        alt=""
-                                                        className="w-4 h-3 rounded-sm opacity-85"
-                                                        loading="lazy"
-                                                    />
-                                                    <span>{lang.name}</span>
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Mobile Language Switcher (Compact) */}
-                        <select
-                            value={i18n.language}
-                            onChange={(e) => changeLanguage(e.target.value)}
-                            className="lg:hidden text-xs bg-transparent border-none focus:ring-0 text-slate-500 font-bold dark:[color-scheme:dark]"
-                        >
-                            {languages.map((lang) => (
-                                <option key={lang.code} value={lang.code}>{lang.name}</option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 text-slate-300 hover:text-white transition-colors"
-                            title={t('header.toggle_theme')}
-                        >
-                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
-                        <div className="relative">
-                            <button
-                                onClick={() => setLegalMenuOpen(!legalMenuOpen)}
-                                className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-                                aria-label={t('header.more')}
-                                title={t('header.more')}
-                            >
-                                <MoreHorizontal size={20} />
-                            </button>
-                            {legalMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
-                                    <a
-                                        href="/podminky-uziti"
-                                        target="_blank"
-                                        className="block px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                        onClick={() => setLegalMenuOpen(false)}
-                                    >
-                                        {t('footer.terms')}
-                                    </a>
-                                    <a
-                                        href="/ochrana-osobnich-udaju"
-                                        target="_blank"
-                                        className="block px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                        onClick={() => setLegalMenuOpen(false)}
-                                    >
-                                        {t('footer.privacy')}
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-                        {userProfile.isLoggedIn ? (
-                            <div className="flex items-center gap-3 pl-2">
-                                <div
-                                    className="w-9 h-9 rounded-full p-[1px] bg-white/25 ring-1 ring-white/25 shadow-[0_2px_10px_-6px_rgba(15,23,42,0.8)]"
-                                    title={t('nav.profile')}
-                                >
-                                    <div className="h-full w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-200">
-                                        {userProfile.photo && !avatarFailed ? (
-                                            <img
-                                                src={userProfile.photo}
-                                                alt={userProfile.name}
-                                                className="w-full h-full rounded-full object-cover object-center"
-                                                onError={() => setAvatarFailed(true)}
-                                            />
-                                        ) : (
-                                            <span>{userProfile.name?.charAt(0) || 'U'}</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="text-right hidden md:block">
-                                    <div className="text-sm font-bold text-white leading-none mb-1">{userProfile.name}</div>
-                                    <div className="flex items-center gap-2">
-                                        <SubscriptionStatusBadge userId={subscriptionSubjectId} />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => handleAuthAction()}
-                                    className="flex items-center gap-2 text-sm font-bold text-rose-600 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                                    title={t('header.logout')}
-                                >
-                                    <LogOut size={16} />
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => handleAuthAction('login')}
-                                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-cyan-500/15 dark:text-cyan-200 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-cyan-500/25 transition-colors dark:ring-1 dark:ring-cyan-500/40"
-                            >
-                                <UserCircle size={18} />
-                                {t('auth.login')}
-                            </button>
-                        )}
-                    </div>
-                )}
+              ) : null}
             </div>
 
-            {/* Mobile Navigation Drawer */}
-            {mobileMenuOpen && (
-                <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                    <div className="px-3 py-4 space-y-2">
-                        {!showCompanyLanding && (
-                            <>
-                                <button
-                                    onClick={() => { 
-                                        if (leaveDemoHandshakeRoute()) {
-                                            setMobileMenuOpen(false);
-                                            return;
-                                        }
-                                        onIntentionalListClick?.();
-                                        setViewState(ViewState.LIST); 
-                                        setSelectedJobId(null);
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.LIST ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                >
-                                    {t('nav.offers')}
-                                </button>
-                                <button
-                                    onClick={() => { 
-                                        if (userProfile.isLoggedIn) {
-                                            if (leaveDemoHandshakeRoute('profil')) {
-                                                setMobileMenuOpen(false);
-                                                return;
-                                            }
-                                            setViewState(ViewState.PROFILE);
-                                        } else {
-                                            handleAuthAction('login');
-                                        }
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                >
-                                    <User className="w-4 h-4" />
-                                    {t('nav.profile')}
-                                </button>
-                            </>
-                        )}
-                        {canShowBusinessMenu && (
-                            <button
-                                onClick={() => {
-                                    const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
-                                        ? 'company-dashboard'
-                                        : 'pro-firmy';
-                                    if (leaveDemoHandshakeRoute(businessTarget)) {
-                                        setMobileMenuOpen(false);
-                                        return;
-                                    }
-                                    void handleBusinessClick();
-                                    setMobileMenuOpen(false);
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                <Briefcase size={14} />
-                                {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
-                            </button>
-                        )}
-                        <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-                            <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">{t('header.more')}</div>
-                            <a
-                                href="/podminky-uziti"
-                                target="_blank"
-                                className="block px-3 py-2 rounded-md text-sm font-bold text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                {t('footer.terms')}
-                            </a>
-                            <a
-                                href="/ochrana-osobnich-udaju"
-                                target="_blank"
-                                className="block px-3 py-2 rounded-md text-sm font-bold text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                {t('footer.privacy')}
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+              title={t('header.toggle_theme')}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            {canShowBusinessMenu ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
+                    ? 'company-dashboard'
+                    : 'pro-firmy';
+                  if (leaveDemoHandshakeRoute(businessTarget)) return;
+                  void handleBusinessClick();
+                }}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition whitespace-nowrap',
+                  showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? activePill : inactivePill
+                )}
+              >
+                <Briefcase size={15} />
+                <span className="hidden xl:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>
+              </button>
+            ) : null}
+
+            {userProfile.isLoggedIn ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (leaveDemoHandshakeRoute('profile')) return;
+                    setShowCompanyLanding(false);
+                    setIsOnboardingCompany(false);
+                    setIsBlogOpen?.(false);
+                    setViewState(ViewState.PROFILE);
+                    setSelectedJobId(null);
+                    setSelectedBlogPostSlug?.(null);
+                  }}
+                  className="flex items-center gap-3 rounded-[1.1rem] border border-[var(--border-subtle)] bg-white/70 px-3 py-2 text-left transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">
+                    {userProfile.photo && !avatarFailed ? (
+                      <img
+                        src={userProfile.photo}
+                        alt={userProfile.name}
+                        className="h-full w-full object-cover"
+                        onError={() => setAvatarFailed(true)}
+                      />
+                    ) : (
+                      <span>{userProfile.name?.charAt(0) || 'U'}</span>
+                    )}
+                  </div>
+                  <div className="hidden min-w-0 2xl:block">
+                    <div className="truncate text-sm font-semibold text-[var(--text-strong)]">{userProfile.name}</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAuthAction()}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+                  title={t('header.logout')}
+                >
+                  <LogOut size={16} />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAuthAction('login')}
+                  className="app-button-secondary !px-3.5 !py-2.5"
+                >
+                  <UserCircle size={16} />
+                  {t('auth.login_button')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAuthAction('register')}
+                  className="app-button-primary !px-3.5 !py-2.5"
+                >
+                  <Sparkles size={16} />
+                  {t('auth.register_button')}
+                </button>
+              </div>
             )}
-        </header>
-    );
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={onOpenDiscoverySearch}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)]"
+            >
+              <Search size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)]"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2.5 hidden items-center gap-3 border-t border-[var(--border-subtle)] pt-2.5 lg:flex">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3">
+              <div className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)] xl:block">
+                {searchLabel}
+              </div>
+              <button
+                type="button"
+                onClick={onOpenDiscoverySearch}
+                className="app-command-field min-w-0 flex-1 justify-between"
+              >
+                <span className="inline-flex min-w-0 items-center gap-3">
+                  <Search size={16} className="text-[var(--text-faint)]" />
+                  <span className="min-w-0 truncate text-left text-[var(--text-muted)]">
+                    {searchPlaceholder}
+                  </span>
+                </span>
+                <span className="rounded-md border border-[var(--border-subtle)] bg-white/70 px-2 py-1 font-mono text-[11px] text-[var(--text-faint)] dark:bg-white/5">
+                  /
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-1">
+            {navItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={item.onClick}
+                className={cn(
+                  'rounded-full border px-3 py-2 text-sm font-semibold transition whitespace-nowrap',
+                  item.active ? activePill : inactivePill
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                navigateToShellHome();
+                onOpenInsights?.();
+              }}
+              className={cn(
+                'rounded-full border px-3 py-2 text-sm font-semibold transition whitespace-nowrap',
+                isBlogOpen ? activePill : inactivePill
+              )}
+            >
+              {insightsLabel}
+            </button>
+          </nav>
+        </div>
+
+        {mobileMenuOpen ? (
+          <div className="mt-2.5 border-t border-[var(--border-subtle)] pt-2.5 lg:hidden">
+            <div className="grid gap-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    item.onClick();
+                    setMobileMenuOpen(false);
+                  }}
+                  className={cn(
+                    'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
+                    item.active ? activePill : 'bg-white/55 text-[var(--text)] border-[var(--border-subtle)]'
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  navigateToShellHome();
+                  onOpenInsights?.();
+                  setMobileMenuOpen(false);
+                }}
+                className={cn(
+                  'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
+                  isBlogOpen ? activePill : 'bg-white/55 text-[var(--text)] border-[var(--border-subtle)]'
+                )}
+              >
+                {insightsLabel}
+              </button>
+              {canShowBusinessMenu ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleBusinessClick();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                >
+                  {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
+                </button>
+              ) : null}
+            </div>
+
+            <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLegalMenuOpen((prev) => !prev);
+                    setLanguageMenuOpen(false);
+                  }}
+                  className="w-full rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                >
+                  {t('header.more')}
+                </button>
+                {legalMenuOpen ? (
+                  <div className="mt-2 rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 p-2 dark:bg-white/5">
+                    <a
+                      href="/podminky-uziti"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded-xl px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {t('footer.terms')}
+                    </a>
+                    <a
+                      href="/ochrana-osobnich-udaju"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded-xl px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {t('footer.privacy')}
+                    </a>
+                  </div>
+                ) : null}
+              </div>
+              <select
+                value={i18n.language}
+                onChange={(event) => changeLanguage(event.target.value)}
+                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-sm text-[var(--text)] dark:bg-white/5"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+              >
+                {theme === 'dark' ? (isCsLike ? 'Světlý režim' : 'Light mode') : (isCsLike ? 'Tmavý režim' : 'Dark mode')}
+              </button>
+              {userProfile.isLoggedIn ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCompanyLanding(false);
+                      setIsOnboardingCompany(false);
+                      setViewState(ViewState.PROFILE);
+                      setSelectedJobId(null);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                  >
+                    {t('nav.profile')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleAuthAction();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm font-semibold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200"
+                  >
+                    {t('header.logout')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAuthAction('login');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="app-button-secondary justify-start"
+                  >
+                    {t('auth.login_button')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAuthAction('register');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="app-button-primary justify-start"
+                  >
+                    {t('auth.register_button')}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </header>
+  );
 };
 
 export default AppHeader;

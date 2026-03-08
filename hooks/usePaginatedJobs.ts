@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Job } from '../types';
-import { UserProfile } from '../types';
+import { Job, SearchLanguageCode, UserProfile } from '../types';
 import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
@@ -136,7 +135,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterDate, setFilterDate] = useState<string>('all'); // all, 24h, 3d, 7d, 14d
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
-    const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
+    const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // recommended | newest | distance | jhi_desc | salary_desc
@@ -498,7 +497,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterExperience.length > 0 ||
                 enableCommuteFilter ||
                 sortBy !== 'newest' ||
-                !!filterLanguage ||
+                filterLanguageCodes.length > 0 ||
                 abroadOnly;
 
             const canUseRecommendations =
@@ -512,7 +511,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterDate === 'all' &&
                 filterExperience.length === 0 &&
                 !enableCommuteFilter &&
-                !filterLanguage &&
+                filterLanguageCodes.length === 0 &&
                 !abroadOnly;
 
             const hasStrictFilterSet =
@@ -523,7 +522,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterDate !== 'all' ||
                 filterExperience.length > 0 ||
                 enableCommuteFilter ||
-                !!filterLanguage ||
+                filterLanguageCodes.length > 0 ||
                 abroadOnly;
 
             const canUseSimplePagination =
@@ -612,7 +611,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 userLng: lon,
                 countryCodes: effectiveCountryCodes,
                 excludeCountryCodes,
-                filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined,
+                filterLanguageCodes: filterLanguageCodes.length > 0 ? filterLanguageCodes : undefined,
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
                 includeJhi: false,
@@ -667,7 +666,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs
     ]);
 
 
@@ -699,7 +698,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCodes, globalSearch, filterLanguage, abroadOnly
+        filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Re-apply sorting when sort option changes
@@ -837,7 +836,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterMinSalary(0);
         setFilterExperience([]);
         setFilterMaxDistance(50);
-        setFilterLanguage('');
+        setFilterLanguageCodes([]);
         setAbroadOnly(false);
         // Reset page
         setCurrentPage(0);
@@ -862,7 +861,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         filterDate,
         filterMinSalary,
         filterExperience,
-        filterLanguage,
+        filterLanguageCodes,
         savedJobIds,
         dismissedJobIds,
         showFilters,
@@ -884,7 +883,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterDate,
         setFilterMinSalary,
         setFilterExperience,
-        setFilterLanguage,
+        setFilterLanguageCodes,
         setSavedJobIds: setSavedJobIdsWithDedupe,
         setDismissedJobIds: setDismissedJobIdsWithDedupe,
         setShowFilters,

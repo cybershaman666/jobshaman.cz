@@ -14,7 +14,7 @@ import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch } from '..
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 import { clearSupabaseAuthStorage } from '../services/supabaseClient';
-import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
+import { createDefaultCandidateSearchProfile, createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
@@ -28,7 +28,8 @@ const DEFAULT_USER_PROFILE: UserProfile = {
         workLifeBalance: 50,
         financialGoals: 50,
         commuteTolerance: 45,
-        priorities: []
+        priorities: [],
+        searchProfile: createDefaultCandidateSearchProfile()
     },
     taxProfile: createDefaultTaxProfileByCountry('CZ'),
     jhiPreferences: createDefaultJHIPreferences()

@@ -88,7 +88,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
         }
         return {
             label: `${actorLabel} • ${deadline.toLocaleString(locale === 'cs' ? 'cs-CZ' : 'en-US')}`,
-            className: 'border-sky-200 bg-sky-50/80 text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300'
+            className: 'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)]'
         };
     };
 
@@ -218,7 +218,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                             href={dossier.cv_snapshot.fileUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-block mt-2 text-xs text-cyan-600 dark:text-cyan-400 hover:underline"
+                            className="company-action-link mt-2 inline-block text-xs hover:underline"
                         >
                             {t('company.candidates.open_cv', { defaultValue: 'Open CV' })}
                         </a>
@@ -264,7 +264,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                     <div className="flex flex-wrap gap-2">
                         <button
                             onClick={handleCreateAssessment}
-                            className="px-3 py-2 rounded-full border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                            className="app-button-secondary rounded-full px-3 py-2 text-xs !text-[var(--accent)]"
                         >
                             {t('company.dashboard.actions.create_assessment', { defaultValue: 'Create assessment' })}
                         </button>
@@ -279,12 +279,12 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
             </div>
 
             {dossier.shared_jcfpm_payload ? (
-                <div className="rounded-[22px] border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-cyan-950/20 p-4 space-y-3 shadow-[0_18px_36px_-30px_rgba(6,182,212,0.35)]">
+                <div className="rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 space-y-3 shadow-[var(--shadow-soft)]">
                     <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">
+                        <div className="text-xs uppercase tracking-widest text-[var(--accent)]">
                             {t('company.applications.detail.profile_fit_signal', { defaultValue: 'Profile fit signal' })}
                         </div>
-                        <div className="text-[11px] text-cyan-700 dark:text-cyan-300">
+                        <div className="text-[11px] text-[var(--accent)]">
                             {t('company.applications.labels.summary', { defaultValue: 'Shared' })}
                         </div>
                     </div>
@@ -298,7 +298,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">{t('company.applications.detail.skills', { defaultValue: 'Strengths' })}</div>
                             <div className="flex flex-wrap gap-2">
                                 {dossier.shared_jcfpm_payload.strengths.map((item) => (
-                                    <span key={item} className="px-2.5 py-1 text-xs rounded-full bg-white/80 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border border-cyan-100 dark:border-cyan-900/40">
+                                    <span key={item} className="px-2.5 py-1 text-xs rounded-full border border-[rgba(var(--accent-rgb),0.12)] bg-white/80 text-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
                                         {item}
                                     </span>
                                 ))}
@@ -322,14 +322,14 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {dossier.shared_jcfpm_payload.comparison_signals.map((item) => (
-                                    <div key={`${item.key}-${item.score}`} className="rounded-xl border border-cyan-100 dark:border-cyan-900/30 bg-white/75 dark:bg-slate-900/40 px-3 py-2">
+                                    <div key={`${item.key}-${item.score}`} className="rounded-xl border border-[rgba(var(--accent-rgb),0.12)] bg-white/75 px-3 py-2 dark:bg-slate-900/40">
                                         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                                             {item.label}
                                         </div>
                                         <div className="mt-1 flex items-center justify-between gap-2">
                                             <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                                                 <div
-                                                    className="h-full rounded-full bg-cyan-500"
+                                                    className="h-full rounded-full bg-[var(--accent)]"
                                                     style={{ width: `${Math.max(6, Math.min(100, item.score || 0))}%` }}
                                                 />
                                             </div>

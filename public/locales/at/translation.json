@@ -1121,6 +1121,10 @@
       "team_members": "Teamzugang",
       "active": "Aktiv",
       "inactive": "Inaktiv",
+      "role_opens": "Offene Rollen",
+      "dialogue_slots": "Dialog-Slots",
+      "used_this_period": "in diesem Zeitraum genutzt",
+      "occupied_now": "derzeit belegt",
       "tiers": {
         "business": "Professional",
         "basic": "Basis",
@@ -1234,7 +1238,7 @@
         "open_dossier": "Profil oeffnen",
         "open_jobs": "Rollen oeffnen",
         "open_assessment_library": "Screenings oeffnen",
-        "use_assessment": "Im Workflow nutzen",
+        "use_assessment": "Im Prozess nutzen",
         "preview_assessment": "Vorschau",
         "open_candidates": "Kandidaten oeffnen"
       },
@@ -1260,7 +1264,7 @@
         "assessment_title": "Es ist noch kein Screening vorbereitet",
         "assessment_detail": "Erstellen oder speichern Sie mindestens einen wiederverwendbaren Screening-Schritt, damit Kandidaten schneller eingeladen werden koennen.",
         "clear_title": "Keine dringenden Blocker",
-        "clear_detail": "Der zentrale Hiring-Workflow ist derzeit frei. Nutzen Sie den Workspace unten fuer das aktive Monitoring."
+        "clear_detail": "Das Recruiting läuft gerade ohne akute Blocker. Nutzen Sie die Übersicht unten für die nächsten Schritte."
       },
       "cards": {
         "recent_applications": "Neueste Rueckmeldungen von Kandidaten",

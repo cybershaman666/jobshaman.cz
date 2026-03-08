@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApplicationJcfpmShareLevel, Job, UserProfile, CVDocument } from '../types';
+import { ApplicationJcfpmShareLevel, Job, UserProfile, CVDocument, ApplicationDraftSuggestion } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown, MessageSquare, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
-import { supabase, trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
-import { openDialogue } from '../services/jobApplicationService';
+import { trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
+import { openDialogue, generateApplicationDraft } from '../services/jobApplicationService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { buildEmployerVisibleJcfpmPayload } from '../services/jcfpmService';
 
@@ -87,63 +86,145 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
     premiumLocked: 'Premium: employer sharing',
   };
-  const handshakeUiCopy = isCsLike ? {
-    title: 'Otevri digitalni prvni kontakt',
-    subtitle: 'Misto klasickeho CV funnelu odpovis na kratke situace, ktere ukazou jak premyslis. Video neni potreba.',
-    truthTitle: 'Co firma slibuje predem',
-    truthPoints: [
-      `Role: ${job.title}`,
-      `Firma: ${job.company}`,
-      `Kontext: ${job.location || 'lokace bude upresnena v dialogu'}`,
-      'Uzavreni dialogu ma vzdy jasny stav a duvod.'
-    ],
-    promptsTitle: 'Tvoje uvazovani v praxi',
-    promptOne: `Kdybys mel(a) v prvnich 30 dnech posunout roli "${job.title}", na co by ses soustredil(a) jako prvni?`,
-    promptTwo: 'Narazis na nejasnost nebo konflikt priorit. Jak si urcis dalsi krok a co bys komunikoval(a)?',
-    promptHint: 'Odpovedi jsou soukrome, text-first a maji ukazat zpusob premysleni. Kratce a konkretne.',
-    supportingTitle: 'Doplnujici kontext (volitelne)',
-    supportingDesc: 'CV, kontaktni detaily a cover letter zustavaji k dispozici, ale uz nejsou jadrem prvniho kontaktu.',
-    send: 'Otevrit handshake',
-    sending: 'Oteviram handshake',
-    successTitle: 'Handshake byl otevren',
-    successDesc: `Firma ${job.company} dostala tvuj uvodní signal a muze navazat dalsim krokem bez zbytecneho tlaku.`,
-    missingAnswers: 'Nejdřív prosím odpověz na oba mikro-scenáře.'
-  } : {
-    title: 'Open a digital first contact',
-    subtitle: 'Instead of a classic CV funnel, respond to two short situations that reveal how you think. No video required.',
-    truthTitle: 'What the company commits to upfront',
-    truthPoints: [
-      `Role: ${job.title}`,
-      `Company: ${job.company}`,
-      `Context: ${job.location || 'location will be clarified in the dialogue'}`,
-      'Every closed dialogue must end with a clear status and reason.'
-    ],
-    promptsTitle: 'How you think in practice',
-    promptOne: `If you had to move the "${job.title}" role forward in your first 30 days, what would you focus on first?`,
-    promptTwo: 'You hit ambiguity or a priority conflict. How do you decide the next move and what do you communicate?',
-    promptHint: 'Responses stay private, text-first, and should show how you think. Keep them concise and concrete.',
-    supportingTitle: 'Supporting context (optional)',
-    supportingDesc: 'CV, contact details, and a cover letter remain available, but they are no longer the core of first contact.',
-    send: 'Open handshake',
-    sending: 'Opening handshake',
-    successTitle: 'Handshake opened',
-    successDesc: `${job.company} received your initial signal and can continue from a calmer, structured first step.`,
-    missingAnswers: 'Please answer both micro-scenarios first.'
-  };
+  const handshakeUiCopy = ({
+    cs: {
+      title: 'Začni první kontakt',
+      subtitle: 'Místo slepého posílání životopisu odpovíš na dvě krátké situace, ze kterých je poznat, jak přemýšlíš.',
+      truthTitle: 'Co firma říká předem',
+      truthPoints: [
+        `Role: ${job.title}`,
+        `Firma: ${job.company}`,
+        `Kontext: ${job.location || 'místo se upřesní v další komunikaci'}`,
+        'Uzavření komunikace má mít vždy jasný výsledek a důvod.'
+      ],
+      promptsTitle: 'Jak bys postupoval(a)',
+      promptOne: `Kdybys měl(a) během prvních 30 dnů posunout roli "${job.title}", čím bys začal(a)?`,
+      promptTwo: 'Narazíš na nejasnost nebo střet priorit. Jak si určíš další krok a co bys řekl(a) ostatním?',
+      promptHint: 'Odpovědi jsou soukromé a mají ukázat způsob uvažování. Stačí krátce a konkrétně.',
+      supportingTitle: 'Další podklady (volitelné)',
+      supportingDesc: 'Životopis, kontaktní údaje a motivační dopis můžeš doplnit, ale nejsou hlavním prvním krokem.',
+      send: 'Odeslat první kontakt',
+      sending: 'Odesílám první kontakt',
+      successTitle: 'První kontakt byl odeslán',
+      successDesc: `Firma ${job.company} dostala tvůj úvodní signál a může navázat dalším krokem bez zbytečného tlaku.`,
+      missingAnswers: 'Nejdřív prosím odpověz na obě krátké situace.',
+      optionalContext: 'Volitelný kontext',
+      optionalPlaceholder: 'Můžeš doplnit krátkou poznámku nebo důležitý kontext.',
+      scenarioOnePlaceholder: 'Krátce popiš první krok, co bys zvažoval(a) a jak bys to vysvětlil(a).',
+      scenarioTwoPlaceholder: 'Zaměř se na způsob rozhodování, ne na dokonalou sebeprezentaci.'
+    },
+    sk: {
+      title: 'Začni prvý kontakt',
+      subtitle: 'Namiesto slepého posielania životopisu odpovieš na dve krátke situácie, z ktorých je vidieť, ako premýšľaš.',
+      truthTitle: 'Čo firma hovorí vopred',
+      truthPoints: [
+        `Rola: ${job.title}`,
+        `Firma: ${job.company}`,
+        `Kontext: ${job.location || 'miesto sa upresní v ďalšej komunikácii'}`,
+        'Ukončenie komunikácie má mať vždy jasný výsledok a dôvod.'
+      ],
+      promptsTitle: 'Ako by si postupoval(a)',
+      promptOne: `Keby si mal(a) počas prvých 30 dní posunúť rolu "${job.title}", čím by si začal(a)?`,
+      promptTwo: 'Narazíš na nejasnosť alebo konflikt priorít. Ako určíš ďalší krok a čo povieš ostatným?',
+      promptHint: 'Odpovede sú súkromné a majú ukázať spôsob uvažovania. Stačí stručne a konkrétne.',
+      supportingTitle: 'Ďalšie podklady (voliteľné)',
+      supportingDesc: 'Životopis, kontaktné údaje a motivačný list môžeš doplniť, ale nie sú hlavným prvým krokom.',
+      send: 'Odoslať prvý kontakt',
+      sending: 'Odosielam prvý kontakt',
+      successTitle: 'Prvý kontakt bol odoslaný',
+      successDesc: `Firma ${job.company} dostala tvoj úvodný signál a môže nadviazať ďalším krokom bez zbytočného tlaku.`,
+      missingAnswers: 'Najprv prosím odpovedz na obe krátke situácie.',
+      optionalContext: 'Voliteľný kontext',
+      optionalPlaceholder: 'Môžeš doplniť krátku poznámku alebo dôležitý kontext.',
+      scenarioOnePlaceholder: 'Stručne popíš prvý krok, čo by si zvažoval(a) a ako by si to vysvetlil(a).',
+      scenarioTwoPlaceholder: 'Zameraj sa na spôsob rozhodovania, nie na dokonalú sebaprezentáciu.'
+    },
+    de: {
+      title: 'Starte den ersten Kontakt',
+      subtitle: 'Statt blind einen Lebenslauf zu schicken, antwortest du auf zwei kurze Situationen, die zeigen, wie du denkst.',
+      truthTitle: 'Was das Unternehmen vorab sagt',
+      truthPoints: [
+        `Rolle: ${job.title}`,
+        `Firma: ${job.company}`,
+        `Kontext: ${job.location || 'der Ort wird im weiteren Gespräch geklärt'}`,
+        'Ein abgeschlossener Austausch soll immer einen klaren Stand und Grund haben.'
+      ],
+      promptsTitle: 'Wie du vorgehen würdest',
+      promptOne: `Wenn du die Rolle "${job.title}" in den ersten 30 Tagen voranbringen müsstest, womit würdest du beginnen?`,
+      promptTwo: 'Du stößt auf Unklarheit oder einen Zielkonflikt. Wie entscheidest du über den nächsten Schritt und was kommunizierst du?',
+      promptHint: 'Die Antworten bleiben privat und sollen zeigen, wie du denkst. Kurz und konkret reicht.',
+      supportingTitle: 'Weitere Unterlagen (optional)',
+      supportingDesc: 'Lebenslauf, Kontaktdaten und Anschreiben kannst du ergänzen, sie sind aber nicht der Kern des ersten Kontakts.',
+      send: 'Ersten Kontakt senden',
+      sending: 'Ersten Kontakt senden',
+      successTitle: 'Der erste Kontakt wurde gesendet',
+      successDesc: `${job.company} hat dein erstes Signal erhalten und kann den nächsten Schritt strukturiert aufnehmen.`,
+      missingAnswers: 'Bitte beantworte zuerst beide kurzen Situationen.',
+      optionalContext: 'Optionaler Kontext',
+      optionalPlaceholder: 'Du kannst noch eine kurze Notiz oder wichtigen Kontext ergänzen.',
+      scenarioOnePlaceholder: 'Beschreibe kurz deinen ersten Schritt, was du abwägen würdest und wie du es erklären würdest.',
+      scenarioTwoPlaceholder: 'Fokussiere dich auf deinen Entscheidungsweg, nicht auf perfekte Selbstdarstellung.'
+    },
+    at: {} as any,
+    pl: {
+      title: 'Rozpocznij pierwszy kontakt',
+      subtitle: 'Zamiast ślepo wysyłać CV, odpowiadasz na dwie krótkie sytuacje, które pokazują, jak myślisz.',
+      truthTitle: 'Co firma mówi na start',
+      truthPoints: [
+        `Rola: ${job.title}`,
+        `Firma: ${job.company}`,
+        `Kontekst: ${job.location || 'miejsce zostanie doprecyzowane w dalszej rozmowie'}`,
+        'Zakończenie rozmowy powinno zawsze mieć jasny wynik i powód.'
+      ],
+      promptsTitle: 'Jak byś do tego podszedł / podeszła',
+      promptOne: `Gdybyś miał(a) w pierwszych 30 dniach ruszyć rolę "${job.title}" do przodu, od czego byś zaczął / zaczęła?`,
+      promptTwo: 'Pojawia się niejasność albo konflikt priorytetów. Jak wyznaczysz kolejny krok i co zakomunikujesz innym?',
+      promptHint: 'Odpowiedzi są prywatne i mają pokazać sposób myślenia. Wystarczy krótko i konkretnie.',
+      supportingTitle: 'Dodatkowe materiały (opcjonalnie)',
+      supportingDesc: 'CV, dane kontaktowe i list motywacyjny możesz dodać, ale nie są sednem pierwszego kontaktu.',
+      send: 'Wyślij pierwszy kontakt',
+      sending: 'Wysyłanie pierwszego kontaktu',
+      successTitle: 'Pierwszy kontakt został wysłany',
+      successDesc: `${job.company} otrzymała twój pierwszy sygnał i może przejść do kolejnego kroku bez niepotrzebnej presji.`,
+      missingAnswers: 'Najpierw odpowiedz na obie krótkie sytuacje.',
+      optionalContext: 'Dodatkowy kontekst',
+      optionalPlaceholder: 'Możesz dopisać krótką notatkę albo ważny kontekst.',
+      scenarioOnePlaceholder: 'Krótko opisz pierwszy krok, co byś rozważał(a) i jak byś to wyjaśnił(a).',
+      scenarioTwoPlaceholder: 'Skup się na sposobie podejmowania decyzji, a nie na idealnej autoprezentacji.'
+    },
+    en: {
+      title: 'Start the first contact',
+      subtitle: 'Instead of blindly sending a CV, answer two short situations that show how you think.',
+      truthTitle: 'What the company says upfront',
+      truthPoints: [
+        `Role: ${job.title}`,
+        `Company: ${job.company}`,
+        `Context: ${job.location || 'location will be clarified in the next step'}`,
+        'The conversation should always end with a clear outcome and reason.'
+      ],
+      promptsTitle: 'How you would approach it',
+      promptOne: `If you had to move the "${job.title}" role forward in the first 30 days, what would you start with?`,
+      promptTwo: 'You hit ambiguity or a priority conflict. How do you pick the next step and what do you communicate?',
+      promptHint: 'Responses stay private and should show how you think. Short and concrete is enough.',
+      supportingTitle: 'Additional context (optional)',
+      supportingDesc: 'CV, contact details, and a cover letter can still be added, but they are not the core of first contact.',
+      send: 'Send first contact',
+      sending: 'Sending first contact',
+      successTitle: 'First contact sent',
+      successDesc: `${job.company} received your first signal and can continue with a calmer next step.`,
+      missingAnswers: 'Please answer both short situations first.',
+      optionalContext: 'Optional context',
+      optionalPlaceholder: 'You can add a short note or important context.',
+      scenarioOnePlaceholder: 'Briefly describe your first move, what you would weigh, and how you would explain it.',
+      scenarioTwoPlaceholder: 'Focus on your decision process, not on polished self-presentation.'
+    }
+  } as const)[locale === 'at' ? 'de' : (['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en')];
   const parsedFirstReply = extractMarkdownSection(job.description || '', ['First Reply']);
   const parsedTruthHard = extractMarkdownSection(job.description || '', ['Company Truth: What Is Actually Hard?']);
   const parsedTruthFail = extractMarkdownSection(job.description || '', ['Company Truth: Who Typically Struggles?']);
   const effectivePromptOne = parsedFirstReply || handshakeUiCopy.promptOne;
   const effectivePromptTwo = handshakeUiCopy.promptTwo;
-  const effectiveTruthPoints = [
-    `Role: ${job.title}`,
-    `Firma: ${job.company}`,
-    `Kontext: ${job.location || 'lokace bude upresnena v dialogu'}`
-  ];
-  if (!isCsLike) {
-    effectiveTruthPoints[1] = `Company: ${job.company}`;
-    effectiveTruthPoints[2] = `Context: ${job.location || 'location will be clarified in the dialogue'}`;
-  }
+  const effectiveTruthPoints = [...handshakeUiCopy.truthPoints.slice(0, 3)];
   if (parsedTruthHard) {
     effectiveTruthPoints.push(parsedTruthHard);
   }
@@ -153,8 +234,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   if (!parsedTruthHard && !parsedTruthFail) {
     effectiveTruthPoints.push(
       isCsLike
-        ? 'Uzavreni dialogu ma vzdy jasny stav a duvod.'
-        : 'Every closed dialogue must end with a clear status and reason.'
+        ? handshakeUiCopy.truthPoints[3]
+        : handshakeUiCopy.truthPoints[3]
     );
   }
   const [step, setStep] = useState<Step>('form');
@@ -184,9 +265,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const [showSupportingContext, setShowSupportingContext] = useState(false);
 
   // AI State
-  const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAiInput, setShowAiInput] = useState(false);
+  const [draftSuggestion, setDraftSuggestion] = useState<ApplicationDraftSuggestion | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [effectiveTier, setEffectiveTier] = useState<string>((user.subscription?.tier || 'free').toLowerCase());
 
   // Determine if role is suitable for AI Assessment (Knowledge worker vs Manual/Service)
@@ -244,6 +326,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     return () => { isMounted = false; };
   }, [user.id, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setShowAiInput(false);
+    setDraftSuggestion(null);
+    setDraftError(null);
+  }, [isOpen, job.id]);
+
   if (!isOpen) return null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,20 +347,29 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   };
 
   const handleAiGenerate = async () => {
-    if (!aiPrompt) return;
+    if (!hasPremiumCoverLetter) {
+      alert(t('alerts.premium_only_feature'));
+      return;
+    }
     setIsGenerating(true);
+    setDraftError(null);
     try {
-      const draft = await generateCoverLetter(
-        job.title,
-        job.company,
-        job.description,
-        aiPrompt,
-        user.cvText || ''
-      );
-      setCoverLetter(draft);
-      setShowAiInput(false); // Close the input, show the result
+      const draft = await generateApplicationDraft(job.id, {
+        cvDocumentId: useSavedCv ? selectedCvId : null,
+        tone: 'concise',
+        language: 'auto',
+        regenerate: Boolean(draftSuggestion),
+      });
+      setDraftSuggestion(draft);
+      setCoverLetter(draft.draftText);
+      setShowAiInput(true);
     } catch (error) {
-      console.error(error);
+      console.error('Application draft generation failed:', error);
+      setDraftError(
+        error instanceof Error
+          ? error.message
+          : t('apply.ai_generate_failed', { defaultValue: 'Nepodařilo se připravit návrh odpovědi.' })
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -316,109 +414,48 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         values: Array.isArray(user.values) ? user.values.slice(0, 8) : [],
         preferredCountryCode: user.preferredCountryCode || ''
       };
-      let recorded = false;
       let applicationStatus: 'created' | 'exists' | null = null;
 
-      try {
-        const backendResult = await openDialogue(
-          job.id,
-          'handshake_modal',
-          {
-            job_title: job.title,
-            job_company: job.company,
-            job_location: job.location,
-            job_url: job.url || null,
-            job_source: job.source || null,
-            job_contact_email: job.contact_email || null,
-            handshake_entrypoint: 'candidate_modal',
-            handshake_mode: 'micro_dialogue_v1',
-            handshake_prompts: [effectivePromptOne, effectivePromptTwo],
-            handshake_responses: [
-              handshakeAnswers.scenarioOne.trim(),
-              handshakeAnswers.scenarioTwo.trim()
-            ],
-            handshake_optional_note: handshakeAnswers.optionalNote.trim() || null,
-            role_truth: effectiveTruthPoints,
-            cover_letter_present: Boolean(coverLetter?.trim()),
-            has_saved_cv: Boolean(useSavedCv && selectedCvSnapshot),
-            has_uploaded_cv: Boolean(!useSavedCv && cvFile),
-            jcfpm_share_level: effectiveJcfpmShareLevel
-          },
-          {
-            coverLetter: coverLetter ? coverLetter.slice(0, 2000) : null,
-            cvDocumentId: useSavedCv ? selectedCvId : null,
-            cvSnapshot: selectedCvSnapshot,
-            candidateProfileSnapshot,
-            jcfpmShareLevel: effectiveJcfpmShareLevel,
-            sharedJcfpmPayload
-          }
-        );
-        applicationStatus = backendResult?.status === 'exists' ? 'exists' : (backendResult?.status === 'created' ? 'created' : null);
-        recorded = !!backendResult;
-      } catch {
-        recorded = false;
-      }
-
-      if (!recorded && supabase) {
-        try {
-          await supabase.from('job_applications').insert({
-            job_id: job.id,
-            candidate_id: user.id || null,
-            company_id: job.company_id,
-            applied_at: new Date().toISOString(),
-            submitted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            source: 'handshake_modal',
-            cover_letter: coverLetter || null,
-            cv_document_id: useSavedCv ? selectedCvId : null,
-            cv_snapshot: selectedCvSnapshot,
-            candidate_profile_snapshot: candidateProfileSnapshot,
-            jcfpm_share_level: effectiveJcfpmShareLevel,
-            shared_jcfpm_payload: sharedJcfpmPayload,
-            application_payload: {
-              job_title: job.title,
-              job_company: job.company,
-              job_location: job.location,
-              job_url: job.url || null,
-              job_source: job.source || null,
-              job_contact_email: job.contact_email || null,
-              handshake_entrypoint: 'candidate_modal',
-              handshake_mode: 'micro_dialogue_v1',
-              handshake_prompts: [effectivePromptOne, effectivePromptTwo],
-              handshake_responses: [
-                handshakeAnswers.scenarioOne.trim(),
-                handshakeAnswers.scenarioTwo.trim()
-              ],
-              handshake_optional_note: handshakeAnswers.optionalNote.trim() || null,
-              role_truth: effectiveTruthPoints,
-              manual_contact_fields: {
-                first_name: formData.firstName,
-                last_name: formData.lastName,
-                linkedin: formData.linkedin || null
-              }
-            },
-            status: 'pending'
-          });
-          recorded = true;
-        } catch (dbErr) {
-          console.error('Failed to record enriched application in DB:', dbErr);
-          try {
-            await supabase.from('job_applications').insert({
-              job_id: job.id,
-              candidate_id: user.id || null,
-              company_id: job.company_id,
-              applied_at: new Date().toISOString(),
-              cover_letter: coverLetter || null,
-              status: 'pending'
-            });
-            recorded = true;
-          } catch (legacyDbErr) {
-            console.error('Failed to record legacy application in DB:', legacyDbErr);
-          }
+      const backendResult = await openDialogue(
+        job.id,
+        'handshake_modal',
+        {
+          job_title: job.title,
+          job_company: job.company,
+          job_location: job.location,
+          job_url: job.url || null,
+          job_source: job.source || null,
+          job_contact_email: job.contact_email || null,
+          handshake_entrypoint: 'candidate_modal',
+          handshake_mode: 'micro_dialogue_v1',
+          handshake_prompts: [effectivePromptOne, effectivePromptTwo],
+          handshake_responses: [
+            handshakeAnswers.scenarioOne.trim(),
+            handshakeAnswers.scenarioTwo.trim()
+          ],
+          handshake_optional_note: handshakeAnswers.optionalNote.trim() || null,
+          role_truth: effectiveTruthPoints,
+          cover_letter_present: Boolean(coverLetter?.trim()),
+          application_draft_used: Boolean(draftSuggestion?.draftText && coverLetter?.trim()),
+          application_draft_language: draftSuggestion?.language || null,
+          application_draft_tone: draftSuggestion?.tone || null,
+          application_draft_used_fallback: Boolean(draftSuggestion?.usedFallback),
+          has_saved_cv: Boolean(useSavedCv && selectedCvSnapshot),
+          has_uploaded_cv: Boolean(!useSavedCv && cvFile),
+          jcfpm_share_level: effectiveJcfpmShareLevel
+        },
+        {
+          coverLetter: coverLetter ? coverLetter.slice(0, 2000) : null,
+          cvDocumentId: useSavedCv ? selectedCvId : null,
+          cvSnapshot: selectedCvSnapshot,
+          candidateProfileSnapshot,
+          jcfpmShareLevel: effectiveJcfpmShareLevel,
+          sharedJcfpmPayload
         }
-      }
+      );
+      applicationStatus = backendResult?.status === 'exists' ? 'exists' : (backendResult?.status === 'created' ? 'created' : null);
 
-      if (!recorded) {
+      if (!backendResult) {
         alert(t('alerts.application_send_error'));
         setStep('form');
         return;
@@ -572,7 +609,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={handshakeAnswers.scenarioOne}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioOne: e.target.value }))}
                 className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
-                placeholder={isCsLike ? 'Krátce popiš první krok, trade-off a jak bys to komunikoval(a).' : 'Briefly describe the first move, the trade-off, and how you would communicate it.'}
+                placeholder={handshakeUiCopy.scenarioOnePlaceholder}
               />
             </div>
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4">
@@ -581,18 +618,18 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 value={handshakeAnswers.scenarioTwo}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioTwo: e.target.value }))}
                 className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
-                placeholder={isCsLike ? 'Zaměř se na způsob rozhodnutí, ne na perfektní sebeprezentaci.' : 'Focus on your decision process, not on polished self-presentation.'}
+                placeholder={handshakeUiCopy.scenarioTwoPlaceholder}
               />
             </div>
             <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/30 p-4">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                {isCsLike ? 'Volitelny kontext' : 'Optional context'}
+                {handshakeUiCopy.optionalContext}
               </p>
               <textarea
                 value={handshakeAnswers.optionalNote}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, optionalNote: e.target.value }))}
                 className="mt-3 w-full h-20 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
-                placeholder={isCsLike ? 'Můžeš doplnit krátkou poznámku nebo kontext. Krátké audio přijde v další verzi.' : 'You can add a short note or context. Short audio will come in a later version.'}
+                placeholder={handshakeUiCopy.optionalPlaceholder}
               />
             </div>
           </div>
@@ -788,29 +825,70 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 className={`text-xs flex items-center gap-1 font-medium ${hasPremiumCoverLetter ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}
               >
                 <Wand2 size={12} />
-                {showAiInput ? t('apply.ai_hide') : t('apply.ai_write')}
+                {showAiInput
+                  ? t('apply.ai_hide', { defaultValue: isCsLike ? 'Skrýt copilot' : 'Hide copilot' })
+                  : t('apply.ai_write', { defaultValue: isCsLike ? 'AI copilot' : 'AI copilot' })}
               </button>
             </div>
           </div>
 
-          {/* AI Assistant Input */}
           {showAiInput && (
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/20 animate-in slide-in-from-top-2 mb-2">
-              <p className="text-xs text-purple-700 dark:text-purple-300 mb-2 font-semibold">{t('apply.ai_prompt_label')}:</p>
-              <textarea
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                placeholder={t('apply.ai_prompt_placeholder')}
-                className="w-full p-2 text-sm border border-purple-300 dark:border-purple-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 h-20 bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-              <button
-                onClick={handleAiGenerate}
-                disabled={isGenerating || !aiPrompt}
-                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-md hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed ml-auto shadow-[0_0_10px_rgba(147,51,234,0.3)]"
-              >
-                {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                {t('apply.ai_generate')}
-              </button>
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/20 animate-in slide-in-from-top-2 mb-2 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-purple-700 dark:text-purple-300">
+                    {t('apply.ai_prompt_label', { defaultValue: isCsLike ? 'Candidate copilot' : 'Candidate copilot' })}
+                  </p>
+                  <p className="mt-1 text-xs text-purple-700/80 dark:text-purple-300/80">
+                    {t('apply.ai_copilot_hint', { defaultValue: isCsLike ? 'Vygeneruje editovatelný draft a ukáže, proč role sedí k profilu.' : 'Generates an editable draft and shows why the role fits your profile.' })}
+                  </p>
+                </div>
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={isGenerating}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-md hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(147,51,234,0.3)]"
+                >
+                  {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                  {draftSuggestion
+                    ? t('apply.ai_regenerate', { defaultValue: isCsLike ? 'Přegenerovat draft' : 'Regenerate draft' })
+                    : t('apply.ai_generate', { defaultValue: isCsLike ? 'Vygenerovat draft' : 'Generate draft' })}
+                </button>
+              </div>
+
+              {draftError && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                  {draftError}
+                </div>
+              )}
+
+              {draftSuggestion && (
+                <div className="rounded-xl border border-white/60 bg-white/80 dark:border-slate-800 dark:bg-slate-950/40 p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                      {t('apply.ai_fit_title', { defaultValue: isCsLike ? 'Why this role fits' : 'Why this role fits' })}
+                    </div>
+                    <div className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      {draftSuggestion.fitScore != null
+                        ? `${Math.round(draftSuggestion.fitScore)} / 100`
+                        : t('apply.ai_fit_pending', { defaultValue: isCsLike ? 'bez skóre' : 'no score' })}
+                    </div>
+                  </div>
+                  {draftSuggestion.fitReasons.length > 0 && (
+                    <div className="space-y-1">
+                      {draftSuggestion.fitReasons.slice(0, 4).map((reason) => (
+                        <div key={reason} className="text-sm text-slate-700 dark:text-slate-200">
+                          {reason}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {draftSuggestion.fitWarnings.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                      {draftSuggestion.fitWarnings.slice(0, 2).join(' ')}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

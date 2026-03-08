@@ -5,11 +5,13 @@ import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
 import { detectCurrency, detectCurrencyFromLocation, estimateNetSalaryByCountry } from './financialService';
 import { geocodeWithCaching } from './geocodingService';
+import { isRemoteJob } from './commuteService';
 import i18n from '../src/i18n';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 import { estimateNoise } from '../utils/noise';
+import { deriveChallengeFields } from './challengeContentService';
 
 const EMPTY_JHI: JHI = {
     score: 0,
@@ -26,10 +28,15 @@ const EMPTY_JHI: JHI = {
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
     id: number | string;
+    company_id?: string | number | null;
     title?: string;
     company?: string;
     location?: string;
     description?: string;
+    role_summary?: string | null;
+    first_reply_prompt?: string | null;
+    company_truth_hard?: string | null;
+    company_truth_fail?: string | null;
     benefits?: string[] | string | null;
     contract_type?: string;
     salary_from?: number | string;
@@ -244,7 +251,14 @@ const BENEFIT_PATTERNS = [
     { regex: /sick days|zdravotn[íi] volno|krankentage|dni chorobowe/i, label: 'Sick days' },
     { regex: /notebook|počítač|laptop|arbeitslaptop/i, label: 'Notebook' },
     { regex: /telefon|mobil|diensthandy|firmenhandy|telefon służbowy/i, label: 'Mobilní telefon' },
-    { regex: /vzděláv|školen[íi]|training|education|weiterbildung|szkolen|kursy/i, label: 'Vzdělávací kurzy' }
+    { regex: /vzděláv|školen[íi]|training|education|weiterbildung|szkolen|kursy/i, label: 'Vzdělávací kurzy' },
+    { regex: /služebn[íi] auto|firemn[íi] auto|company car|firmenwagen|dienstwagen|car allowance|samoch[oó]d służbowy|auto pro osobn[íi]/i, label: 'Služební auto' },
+    { regex: /parking|parkov[aá]n[íi]|parkovac[íi] m[ií]sto|mhd|doprav|public transport|fahrkarte|fahrkost|commuter|jízdn[ée]|benz[ií]n/i, label: 'Doprava a parkování' },
+    { regex: /private medical|medical care|healthcare|zdravotn[íi] p[eé]če|zdravotn[íi] pojišt|health insurance|krankenversicherung|opieka medyczna|ubezpieczenie zdrowotne/i, label: 'Zdravotní péče' },
+    { regex: /penzijn[íi]|důchodov[ée] spořen[íi]|retirement|pension plan|401k|renten|altersvorsorge|emerytal/i, label: 'Penzijní spoření' },
+    { regex: /childcare|dětsk[áe] skupin|školk|jesle|kindergarten|kinderbetreuung|przedszkol|opieka nad d[ěe]tmi/i, label: 'Podpora péče o děti' },
+    { regex: /relocation|přestěhov|ubytov[aá]n[íi]|housing allowance|accommodation|relokačn[íi]|wohnung|zakwaterowanie/i, label: 'Relokace a bydlení' },
+    { regex: /stock option|stock options|equity|esop|akcie|share option|mitarbeiteraktien|aktienoptionen|opcje na akcje/i, label: 'Zaměstnanecké akcie' }
 ];
 
 // Job transformation helper
@@ -282,6 +296,15 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     const extractedDescription = extractHiringStageMetadata(scrapedJob.description);
     const hiringStage = normalizeJobHiringStage((scrapedJob as any)?.hiring_stage) || extractedDescription.hiringStage;
     const fullDesc = extractedDescription.description || 'Popis pozice není k dispozici.';
+    const challengeFields = deriveChallengeFields({
+        title: scrapedJob.title,
+        description: fullDesc,
+        source: scrapedJob.source,
+        role_summary: scrapedJob.role_summary,
+        first_reply_prompt: scrapedJob.first_reply_prompt,
+        company_truth_hard: scrapedJob.company_truth_hard,
+        company_truth_fail: scrapedJob.company_truth_fail
+    });
     const openDialoguesCount = safeParseInt(scrapedJob.open_dialogues_count);
     const dialogueCapacityLimit = safeParseInt(scrapedJob.dialogue_capacity_limit);
     const reactionWindowHours = safeParseInt(scrapedJob.reaction_window_hours);
@@ -300,6 +323,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
 
     return {
         id: String(scrapedJob.id),
+        company_id: scrapedJob.company_id ? String(scrapedJob.company_id) : undefined,
         title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
         company: scrapedJob.company || 'Neznámá společnost',
         location: locationString,
@@ -330,6 +354,11 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         tags: uniqueTags,
         benefits: benefits,
         required_skills: [], // Initialize empty array
+        challenge: challengeFields.challenge,
+        risk: challengeFields.risk,
+        firstStepPrompt: challengeFields.firstStepPrompt,
+        listingKind: challengeFields.listingKind,
+        companyPageSummary: challengeFields.companyPageSummary,
         salary_from: salaryFrom || undefined,
         salary_to: salaryTo || undefined,
         salary_timeframe: scrapedJob.salary_timeframe,
@@ -540,10 +569,15 @@ export const fetchJobsPaginated = async (
             const processedJobs = data.map((row: any) => {
                 const job = transformJob({
                     id: row.id,
+                    company_id: row.company_id,
                     title: row.title,
                     company: row.company,
                     location: row.location,
                     description: row.description,
+                    role_summary: row.role_summary,
+                    first_reply_prompt: row.first_reply_prompt,
+                    company_truth_hard: row.company_truth_hard,
+                    company_truth_fail: row.company_truth_fail,
                     benefits: row.benefits,
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
@@ -1010,6 +1044,20 @@ const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
         /\bkarta lunch\b/,
         /\blunch card\b/
     ],
+    transport_support: [
+        /\bparking\b/,
+        /\bparkov/,
+        /\bparkplace\b/,
+        /\bpublic transport\b/,
+        /\btransport\b/,
+        /\btransit\b/,
+        /\bfahrkarte\b/,
+        /\bfahrkost/,
+        /\bcommuter\b/,
+        /\bjizdne\b/,
+        /\bbenzin\b/,
+        /\bpalivo\b/
+    ],
     vacation_5w: [
         /\b5 tydn/,
         /\b5 tydnu\b/,
@@ -1023,6 +1071,48 @@ const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
         /\b5 wochen\b/,
         /\b5 tygodni\b/,
         /\b25 tage\b/
+    ],
+    health_care: [
+        /\bprivate medical\b/,
+        /\bmedical care\b/,
+        /\bhealthcare\b/,
+        /\bhealth care\b/,
+        /\bzdravotn/,
+        /\bhealth insurance\b/,
+        /\bkrankenversicherung\b/,
+        /\bopieka medyczna\b/,
+        /\bubezpieczenie zdrowotne\b/
+    ],
+    pension: [
+        /\bpenzij/,
+        /\bduchodov/,
+        /\bretirement\b/,
+        /\bpension\b/,
+        /\b401k\b/,
+        /\brenten/,
+        /\baltersvorsorge\b/,
+        /\bemerytal/
+    ],
+    childcare_support: [
+        /\bchildcare\b/,
+        /\bdaycare\b/,
+        /\bdetsk/,
+        /\bskolk/,
+        /\bjesle\b/,
+        /\bkindergarten\b/,
+        /\bkinderbetreuung\b/,
+        /\bprzedszkol/,
+        /\bopieka nad d/
+    ],
+    relocation_support: [
+        /\brelocation\b/,
+        /\brelokac/,
+        /\bprestehov/,
+        /\bubytov/,
+        /\bhousing allowance\b/,
+        /\baccommodation\b/,
+        /\bwohnung\b/,
+        /\bzakwaterowanie\b/
     ],
     employee_shares: [
         /\bakcie\b/,
@@ -1542,8 +1632,9 @@ export const fetchJobsWithFilters = async (
         const type = String(job.type || '').toLowerCase();
         const workModel = String(job.work_model || '').toLowerCase();
         const desc = String(job.description || '').toLowerCase();
+        const remoteRole = isRemoteJob(job);
 
-        if (constraints.mustRemote && !(type.includes('remote') || workModel.includes('remote'))) {
+        if (constraints.mustRemote && !remoteRole && !(type.includes('remote') || workModel.includes('remote'))) {
             violations.push('remote_required');
             distance += 100;
         }
@@ -1558,7 +1649,7 @@ export const fetchJobsWithFilters = async (
             distance += 45;
         }
 
-        if (constraints.maxCommuteMinutes && constraints.maxCommuteMinutes > 0) {
+        if (!remoteRole && constraints.maxCommuteMinutes && constraints.maxCommuteMinutes > 0) {
             const distanceKm = resolveJobDistanceKm(job);
             if (distanceKm !== null) {
                 const commuteMinutes = Math.round(distanceKm * 2.5 * 2);
@@ -1818,10 +1909,15 @@ export const fetchJobsWithFilters = async (
             return rows.map((row: any) => {
                 const job = transformJob({
                     id: row.id,
+                    company_id: row.company_id,
                     title: row.title,
                     company: row.company,
                     location: row.location,
                     description: row.description,
+                    role_summary: row.role_summary,
+                    first_reply_prompt: row.first_reply_prompt,
+                    company_truth_hard: row.company_truth_hard,
+                    company_truth_fail: row.company_truth_fail,
                     benefits: row.benefits,
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
@@ -1871,10 +1967,15 @@ export const fetchJobsWithFilters = async (
             return rows.map((row: any) => {
                 const job = transformJob({
                     id: row.id,
+                    company_id: row.company_id,
                     title: row.title,
                     company: row.company,
                     location: row.location,
                     description: row.description,
+                    role_summary: row.role_summary,
+                    first_reply_prompt: row.first_reply_prompt,
+                    company_truth_hard: row.company_truth_hard,
+                    company_truth_fail: row.company_truth_fail,
                     benefits: row.benefits,
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
@@ -2140,10 +2241,15 @@ export const fetchJobsWithFilters = async (
         const processedJobs = data.map((row: any) => {
             const job = transformJob({
                 id: row.id,
+                company_id: row.company_id,
                 title: row.title,
                 company: row.company,
                 location: row.location,
                 description: row.description,
+                role_summary: row.role_summary,
+                first_reply_prompt: row.first_reply_prompt,
+                company_truth_hard: row.company_truth_hard,
+                company_truth_fail: row.company_truth_fail,
                 benefits: row.benefits,
                 contract_type: row.contract_type,
                 salary_from: row.salary_from,
@@ -2259,10 +2365,15 @@ export const fetchJobById = async (jobId: string): Promise<Job | null> => {
 
         const job = transformJob({
             id: data.id,
+            company_id: data.company_id,
             title: data.title,
             company: data.company,
             location: data.location,
             description: data.description,
+            role_summary: data.role_summary,
+            first_reply_prompt: data.first_reply_prompt,
+            company_truth_hard: data.company_truth_hard,
+            company_truth_fail: data.company_truth_fail,
             benefits: data.benefits,
             contract_type: data.contract_type,
             salary_from: data.salary_from,
@@ -2469,6 +2580,15 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
 
             // 1. Description Processing
             const fullDesc = formatDescription(scraped.description);
+            const challengeFields = deriveChallengeFields({
+                title: scraped.title,
+                description: fullDesc,
+                source: scraped.source,
+                role_summary: scraped.role_summary,
+                first_reply_prompt: scraped.first_reply_prompt,
+                company_truth_hard: scraped.company_truth_hard,
+                company_truth_fail: scraped.company_truth_fail
+            });
 
             if (!skipQualityFilter && fullDesc.length < 20) {
                 return null;
@@ -2594,6 +2714,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
 
             return {
                 id: `db-${scraped.id}`,
+                company_id: scraped.company_id ? String(scraped.company_id) : undefined,
                 title: scraped.title || (scraped.company ? `${scraped.company} - Pozice` : 'Pozice bez názvu'),
                 company: scraped.company || 'Neznámá společnost',
                 location: locationString,
@@ -2634,6 +2755,11 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 benefits: benefits,
                 contextualRelevance: contextualRelevance,
                 required_skills: [],
+                challenge: challengeFields.challenge,
+                risk: challengeFields.risk,
+                firstStepPrompt: challengeFields.firstStepPrompt,
+                listingKind: challengeFields.listingKind,
+                companyPageSummary: challengeFields.companyPageSummary,
                 salary_from: salaryFrom || undefined,
                 salary_to: salaryTo || undefined,
                 salary_timeframe: scraped.salary_timeframe,
@@ -2667,6 +2793,45 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
 
     return validJobs;
 }
+
+export const fetchJobsByCompany = async (companyId: string, limit: number = 20): Promise<Job[]> => {
+    if (!isSupabaseConfigured() || !supabase || !companyId) {
+        return [];
+    }
+
+    try {
+        const exactLimit = Math.max(1, Math.min(50, Math.floor(limit || 20)));
+        let data: any[] | null = null;
+
+        const activeResult = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('company_id', companyId)
+            .eq('status', 'active')
+            .order('scraped_at', { ascending: false })
+            .limit(exactLimit);
+
+        if (!activeResult.error && Array.isArray(activeResult.data)) {
+            data = activeResult.data;
+        } else {
+            const fallback = await supabase
+                .from('jobs')
+                .select('*')
+                .eq('company_id', companyId)
+                .order('scraped_at', { ascending: false })
+                .limit(exactLimit);
+            if (fallback.error || !Array.isArray(fallback.data)) {
+                return [];
+            }
+            data = fallback.data;
+        }
+
+        return mapJobs(data || [], undefined, undefined, true, true);
+    } catch (error) {
+        console.warn('Failed to fetch company jobs:', error);
+        return [];
+    }
+};
 
 /**
  * Validates if a job posting meets quality standards

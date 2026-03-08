@@ -48,7 +48,7 @@ const WorkspaceSyncBadge: React.FC<WorkspaceSyncBadgeProps> = ({
       {onRefresh && (
         <button
           onClick={onRefresh}
-          className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-[0_12px_24px_-24px_rgba(15,23,42,0.18)] backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-900"
+          className="app-button-secondary rounded-full px-3 py-2 text-xs"
         >
           {t('company.workspace.sync.refresh_now', { defaultValue: 'Refresh now' })}
         </button>

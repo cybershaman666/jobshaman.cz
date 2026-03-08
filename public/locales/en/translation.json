@@ -1019,7 +1019,7 @@
         "open_dossier": "Open profile",
         "open_jobs": "Open jobs",
         "open_assessment_library": "Open library",
-        "use_assessment": "Use in workflow",
+        "use_assessment": "Use in process",
         "preview_assessment": "Preview",
         "open_candidates": "Open candidates"
       },
@@ -1050,7 +1050,7 @@
         "assessment_title": "No screening template is ready yet",
         "assessment_detail": "Save at least one reusable screening template so your team can invite candidates faster.",
         "clear_title": "No urgent blockers",
-        "clear_detail": "The core hiring workflow is clear right now. Use the workspace below for active monitoring."
+        "clear_detail": "Hiring is currently moving without urgent blockers. Use the overview below for the next steps."
       },
       "cards": {
         "recent_applications": "Newest candidate responses",
@@ -1214,7 +1214,7 @@
     },
     "job_editor": {
       "title": "Structured Job Editor",
-      "subtitle": "Drafts, validation, preview, and publishing in one workflow.",
+      "subtitle": "Drafts, validation, preview, and publishing in one place.",
       "compat_mode": "Compatibility mode: local drafts + direct publish fallback",
       "new_draft": "New draft",
       "resume_draft": "Resume draft",
@@ -1434,6 +1434,10 @@
       "team_members": "Team access",
       "active": "Active",
       "inactive": "Inactive",
+      "role_opens": "Open roles",
+      "dialogue_slots": "Dialogue slots",
+      "used_this_period": "used this period",
+      "occupied_now": "occupied now",
       "tiers": {
         "business": "Professional",
         "basic": "Basic",

@@ -5,7 +5,7 @@ import {
     detectCurrency,
     calculateFinancialScoreAdjustment,
     estimateNetSalaryByCountry,
-    detectCurrencyFromLocation
+    detectCurrencyForJob
 } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 import { matchesIcoKeywords } from '../utils/contractType';
@@ -124,6 +124,11 @@ const COMMUTE_CORRIDORS: CommuteCorridor[] = [
         publicMinutesOneWay: 165
     }
 ];
+
+export const isRemoteJob = (job: Pick<Job, 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
+    const remoteSignals = `${job.type || ''} ${job.work_model || ''} ${job.location || ''} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase();
+    return /(^|\b)(remote|remote first|anywhere|work from home|distributed|home office)\b/.test(remoteSignals);
+};
 
 const containsAny = (text: string, aliases: string[]): boolean => aliases.some(alias => text.includes(alias));
 
@@ -583,12 +588,13 @@ export const calculateValuesScore = (job: Job, benefits: string[]): number => {
 };
 
 export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAnalysis | null => {
-    if (!user.address) {
+    const isRemote = isRemoteJob(job);
+
+    if (!user.address && !isRemote) {
         return null;
     }
 
     // 1. Calculate Physical Commute
-    const isRemote = job.type === 'Remote';
     let distanceKm = 0;
     let isRelocation = false;
     let corridorProfile: { carMinutesOneWay: number; publicMinutesOneWay: number } | null = null;
@@ -654,7 +660,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     }
     // Priority 3: Fallback Location Detection
     else {
-        currency = detectCurrencyFromLocation(job.location);
+        currency = detectCurrencyForJob(job);
         // Keep gross 0, but currency correct for benefits/commute calc
     }
 

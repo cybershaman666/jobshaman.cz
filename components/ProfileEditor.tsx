@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
+import { CandidateSearchProfile, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
 import {
   User,
   Upload,
@@ -39,7 +39,7 @@ import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { getCurrentSubscription, getPushPermission, isPushSupported, registerPushSubscription, subscribeToPush, unsubscribeFromPush } from '../services/pushNotificationsService';
 
 import TransportModeSelector from './TransportModeSelector';
-import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
+import { createDefaultCandidateSearchProfile, createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 import { simulateHappinessAudit } from '../services/assessmentThreeService';
 import { fetchJobsByIds } from '../services/jobService';
@@ -235,6 +235,72 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     help: 'Used for job recommendations and daily digest targeting when your address is missing or approximate.',
     countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
   };
+  const searchProfileCopy = isCsLikeProfile
+    ? {
+        title: 'Výchozí nastavení hledání',
+        intro: 'Nastav si hledání tak, aby odpovídalo realitě tvého života: forma práce, dojezd, rodinná situace, psi i benefity, které skutečně potřebuješ.',
+        nearBorder: 'Chci snadno hledat i přeshraničně',
+        contractor: 'Primárně hledám práci na IČO / živnost',
+        dogFriendly: 'Chci preferovat dog-friendly kanceláře',
+        childFriendly: 'Potřebuji role vhodné pro rodiče / child-friendly',
+        avoidShift: 'Chci se vyhýbat směnnému a nočnímu provozu',
+        remote: 'Chci mít připravený remote preset',
+        languages: 'Jazyky pro remote práci',
+        commuteTitle: 'Dojezd a forma dopravy',
+        commuteIntro: 'Tohle nastavení se použije pro commute preset i reality check v marketplace.',
+        commuteToggle: 'Zapnout dojezd jako výchozí filtr',
+        commuteRadius: 'Výchozí radius dojezdu',
+        benefitPriorities: 'Další benefity důležité pro moji situaci',
+        activeSignals: 'Aktivní signály',
+        impactTitle: 'Kde se to projeví',
+        impactMarketplace: 'Marketplace presetů',
+        impactSaved: 'Uložená hledání',
+        impactFeed: 'Doporučené feedy',
+        helper: 'Tyto preference se propsají do presetů v marketplace, uložených hledání a doporučených shortlistů.',
+      }
+    : {
+        title: 'Search setup',
+        intro: 'Set search defaults around the actual reality of your life: work mode, commute, family context, dogs, and benefits that matter.',
+        nearBorder: 'I live near a border and want cross-border search to stay easy',
+        contractor: 'I primarily want contractor / self-employed roles',
+        dogFriendly: 'Prefer dog-friendly offices',
+        childFriendly: 'I need parent-friendly / child-friendly roles',
+        avoidShift: 'Avoid shift-based and night roles',
+        remote: 'Keep a remote-focused preset ready',
+        languages: 'Languages I can use in remote roles',
+        commuteTitle: 'Commute and transport mode',
+        commuteIntro: 'This becomes part of your commute preset and marketplace reality checks.',
+        commuteToggle: 'Use commute as a default filter',
+        commuteRadius: 'Default commute radius',
+        benefitPriorities: 'Additional benefits relevant to my situation',
+        activeSignals: 'Active signals',
+        impactTitle: 'Where this applies',
+        impactMarketplace: 'Marketplace presets',
+        impactSaved: 'Saved searches',
+        impactFeed: 'Recommended feeds',
+        helper: 'These preferences feed marketplace presets, saved searches, and recommended feeds.',
+      };
+  const remoteLanguageOptions: Array<{ code: SearchLanguageCode; label: string }> = [
+    { code: 'cs', label: isCsLikeProfile ? 'Čeština' : 'Czech' },
+    { code: 'en', label: isCsLikeProfile ? 'Angličtina' : 'English' },
+    { code: 'de', label: isCsLikeProfile ? 'Němčina' : 'German' },
+    { code: 'sk', label: isCsLikeProfile ? 'Slovenština' : 'Slovak' },
+    { code: 'pl', label: isCsLikeProfile ? 'Polština' : 'Polish' },
+  ];
+  const searchBenefitOptions: Array<{ key: string; label: string }> = [
+    { key: 'childcare_support', label: isCsLikeProfile ? 'Podpora péče o děti' : 'Childcare support' },
+    { key: 'child_friendly', label: isCsLikeProfile ? 'Child-friendly prostředí' : 'Child-friendly environment' },
+    { key: 'home_office', label: isCsLikeProfile ? 'Home office' : 'Home office' },
+    { key: 'flex_time', label: isCsLikeProfile ? 'Flexibilní režim' : 'Flexible schedule' },
+    { key: 'meal_allowance', label: isCsLikeProfile ? 'Stravování' : 'Meals' },
+    { key: 'transport_support', label: isCsLikeProfile ? 'Doprava / parkování' : 'Transport / parking' },
+    { key: 'health_care', label: isCsLikeProfile ? 'Zdravotní péče' : 'Healthcare' },
+    { key: 'pension', label: isCsLikeProfile ? 'Penzijko / spoření' : 'Pension / retirement' },
+    { key: 'vacation_5w', label: isCsLikeProfile ? 'Extra dovolená' : 'Extra vacation' },
+    { key: 'education', label: isCsLikeProfile ? 'Vzdělávání' : 'Education' },
+    { key: 'multisport', label: isCsLikeProfile ? 'Sport / wellness' : 'Sport / wellness' },
+    { key: 'car_personal', label: isCsLikeProfile ? 'Služební auto' : 'Company car' },
+  ];
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
@@ -445,6 +511,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       dailyDigestTime: sourceProfile.dailyDigestTime || '07:30',
       dailyDigestTimezone: sourceProfile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
     },
+    searchProfile: {
+      ...createDefaultCandidateSearchProfile(),
+      ...(sourceProfile.preferences?.searchProfile || {}),
+      remoteLanguageCodes: (
+        sourceProfile.preferences?.searchProfile?.remoteLanguageCodes &&
+        sourceProfile.preferences.searchProfile.remoteLanguageCodes.length > 0
+          ? sourceProfile.preferences.searchProfile.remoteLanguageCodes
+          : createDefaultCandidateSearchProfile().remoteLanguageCodes
+      ) as SearchLanguageCode[],
+    },
     experience: sourceProfile.workHistory || [],
     education: sourceProfile.education || [],
     skills: sourceProfile.skills || [],
@@ -513,11 +589,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const isCvTab = activeTab === 'cv';
   const isJcfpmTab = activeTab === 'jcfpm';
   const isSettingsTab = activeTab === 'settings';
-  const profileInputClass = 'w-full rounded-[0.95rem] border border-slate-300 bg-white/90 px-4 py-2.5 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]';
-  const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-slate-300 bg-white/90 px-3 py-2 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]';
-  const profileIconButtonClass = 'rounded-[0.9rem] p-2 text-slate-500 transition-colors hover:bg-cyan-50 hover:text-cyan-600 dark:text-slate-400 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-400';
-  const profilePrimaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-[0.95rem] bg-cyan-600 px-5 py-2.5 font-medium text-white shadow-[0_18px_32px_-24px_rgba(6,182,212,0.34)] transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60';
-  const profileSurfaceClass = 'overflow-hidden rounded-[1.18rem] border border-slate-200/80 bg-white/92 shadow-[0_24px_48px_-36px_rgba(15,23,42,0.24)] backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-800/92';
+  const profileInputClass = 'w-full rounded-[0.95rem] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
+  const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
+  const profileIconButtonClass = 'rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]';
+  const profilePrimaryButtonClass = 'app-button-primary disabled:cursor-not-allowed disabled:opacity-60';
+  const profileSurfaceClass = 'app-surface overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-card)]';
 
   const profileHeroCopy = isCsLikeProfile
     ? {
@@ -550,6 +626,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileReadinessScore = Math.round((profileSignals.filter(Boolean).length / profileSignals.length) * 100);
   const profileTotalSections = [formData.experience.length, formData.education.length, formData.skills.length].reduce((sum, value) => sum + value, 0);
   const profileDocumentsReady = [Boolean(profile.cvUrl), Boolean(editableCvAiText.trim())].filter(Boolean).length;
+  const searchSetupSignalCount = [
+    formData.searchProfile.nearBorder,
+    formData.searchProfile.wantsContractorRoles,
+    formData.searchProfile.wantsDogFriendlyOffice,
+    formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support'),
+    formData.searchProfile.wantsRemoteRoles,
+    formData.searchProfile.remoteLanguageCodes.length > 0,
+    formData.searchProfile.defaultEnableCommuteFilter,
+    formData.jhiPreferences.hardConstraints.excludeShift,
+    formData.searchProfile.preferredBenefitKeys.length > 0
+  ].filter(Boolean).length;
+  const searchSetupAreas = [
+    searchProfileCopy.impactMarketplace,
+    searchProfileCopy.impactSaved,
+    searchProfileCopy.impactFeed
+  ];
 
   const renderAiGuidePanel = isCvTab ? (
     <div className="h-full overflow-hidden rounded-[1.05rem] border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-[0_22px_42px_-34px_rgba(8,145,178,0.28)] dark:border-cyan-800/60 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950">
@@ -966,6 +1058,64 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   };
 
+  const handleSearchProfileChange = <K extends keyof CandidateSearchProfile>(
+    field: K,
+    value: CandidateSearchProfile[K]
+  ) => {
+    const nextSearchProfile: CandidateSearchProfile = {
+      ...formData.searchProfile,
+      [field]: value
+    };
+
+    if (field === 'remoteLanguageCodes') {
+      const uniqueCodes = Array.from(new Set((value as SearchLanguageCode[]) || []));
+      nextSearchProfile.remoteLanguageCodes = (uniqueCodes.length > 0 ? uniqueCodes : ['cs']) as SearchLanguageCode[];
+    }
+
+    if (field === 'preferredBenefitKeys') {
+      nextSearchProfile.preferredBenefitKeys = Array.from(new Set(((value as string[]) || []).map((item) => String(item || '').trim()).filter(Boolean)));
+    }
+
+    if (field === 'defaultMaxDistanceKm') {
+      nextSearchProfile.defaultMaxDistanceKm = Math.max(5, Number(value) || 5);
+    }
+
+    setFormData(prev => ({ ...prev, searchProfile: nextSearchProfile }));
+    onChange({
+      ...profile,
+      preferences: {
+        ...profile.preferences,
+        searchProfile: nextSearchProfile
+      }
+    });
+  };
+
+  const toggleBenefitPriority = (benefitKey: string) => {
+    const current = formData.searchProfile.preferredBenefitKeys || [];
+    const next = current.includes(benefitKey)
+      ? current.filter((item) => item !== benefitKey)
+      : [...current, benefitKey];
+    handleSearchProfileChange('preferredBenefitKeys', next);
+  };
+
+  const syncDogFriendlySetup = (checked: boolean) => {
+    handleSearchProfileChange('wantsDogFriendlyOffice', checked);
+    const current = formData.searchProfile.preferredBenefitKeys || [];
+    const next = checked
+      ? Array.from(new Set([...current, 'dog_friendly']))
+      : current.filter((item) => item !== 'dog_friendly');
+    handleSearchProfileChange('preferredBenefitKeys', next);
+  };
+
+  const syncChildFriendlySetup = (checked: boolean) => {
+    const childKeys = ['child_friendly', 'childcare_support'];
+    const current = formData.searchProfile.preferredBenefitKeys || [];
+    const next = checked
+      ? Array.from(new Set([...current, ...childKeys]))
+      : current.filter((item) => !childKeys.includes(item));
+    handleSearchProfileChange('preferredBenefitKeys', next);
+  };
+
   const handleNotificationChange = (field: string, value: string | boolean) => {
     const newNotifications = { ...formData.notifications, [field]: value };
     const newFormData = { ...formData, notifications: newNotifications };
@@ -1351,16 +1501,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-slate-100/80 dark:bg-slate-950">
+    <div className="app-shell-bg relative min-h-screen overflow-x-clip">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-18rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/15" />
-        <div className="absolute right-[-14rem] top-[8rem] h-[24rem] w-[24rem] rounded-full bg-sky-200/30 blur-3xl dark:bg-sky-500/10" />
+        <div className="absolute left-[-18rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-[rgba(var(--accent-rgb),0.14)] blur-3xl" />
+        <div className="absolute right-[-14rem] top-[8rem] h-[24rem] w-[24rem] rounded-full bg-[rgba(var(--accent-rgb),0.08)] blur-3xl" />
         <div className="absolute bottom-[-12rem] left-[30%] h-[24rem] w-[24rem] rounded-full bg-emerald-200/20 blur-3xl dark:bg-emerald-500/10" />
       </div>
 
       <div className="relative mx-auto w-full max-w-[1720px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
         {/* Header */}
-        <div className="overflow-hidden rounded-[1.3rem] border border-cyan-200/70 bg-gradient-to-br from-slate-950 via-cyan-900 to-sky-800 p-5 text-white shadow-[0_32px_56px_-38px_rgba(8,47,73,0.62)] dark:border-cyan-700/40 sm:p-7">
+        <div className="app-page-header overflow-hidden rounded-[var(--radius-2xl)] border p-5 shadow-[var(--shadow-card)] sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
@@ -1368,16 +1518,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <img
                     src={profile.photo}
                     alt="Profile"
-                    className="h-20 w-20 rounded-full border border-white/35 object-cover ring-2 ring-white/35 sm:h-24 sm:w-24"
+                    className="h-20 w-20 rounded-full border border-[var(--border)] object-cover ring-2 ring-[rgba(var(--accent-rgb),0.14)] sm:h-24 sm:w-24"
                     onError={() => setProfilePhotoFailed(true)}
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/35 bg-white/15 ring-2 ring-white/30 sm:h-24 sm:w-24">
-                    <Camera size={32} className="text-cyan-100/90" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-muted)] ring-2 ring-[rgba(var(--accent-rgb),0.14)] sm:h-24 sm:w-24">
+                    <Camera size={32} className="text-[var(--accent)]" />
                   </div>
                 )}
 
-                <label className="absolute bottom-0 right-0 cursor-pointer rounded-full border border-white/45 bg-cyan-500 p-2 text-white transition-colors hover:bg-cyan-400">
+                <label className="absolute bottom-0 right-0 cursor-pointer rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent)] p-2 text-white transition-colors hover:bg-[var(--accent-hover)]">
                   <input
                     type="file"
                     accept="image/*"
@@ -1390,23 +1540,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
 
               <div className="min-w-0">
-                <span className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                <span className="app-eyebrow">
                   {profileHeroCopy.eyebrow}
                 </span>
-                <h1 className="mt-2 break-words text-2xl font-semibold text-white sm:text-3xl">
+                <h1 className="mt-2 break-words text-2xl font-semibold text-[var(--text-strong)] sm:text-3xl">
                   {profile.name || t('profile.placeholder_name')}
                 </h1>
-                <p className="break-words text-sm text-cyan-100/90 sm:text-base">
+                <p className="break-words text-sm text-[var(--text-muted)] sm:text-base">
                   {profile.jobTitle || t('profile.placeholder_job')}
                 </p>
-                <p className="mt-2 max-w-2xl text-xs text-cyan-100/80 sm:text-sm">
+                <p className="mt-2 max-w-2xl text-xs text-[var(--text-muted)] sm:text-sm">
                   {profileHeroCopy.subtitle}
                 </p>
                 {isExternalProfilePhotoUrl(profile.photo) && (
                   <button
                     onClick={handlePhotoRepair}
                     disabled={isRepairingPhoto}
-                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-50 transition-colors hover:bg-white/20"
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-elevated)]"
                   >
                     {isRepairingPhoto ? t('profile.photo_uploading') : t('profile.photo_repair')}
                   </button>
@@ -1416,24 +1566,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             <div className="w-full max-w-[34rem] space-y-3 lg:w-auto">
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
-                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.readiness}</div>
-                  <div className="mt-1 text-xl font-semibold text-white">{profileReadinessScore}%</div>
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.readiness}</div>
+                  <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileReadinessScore}%</div>
                 </div>
-                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
-                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.sections}</div>
-                  <div className="mt-1 text-xl font-semibold text-white">{profileTotalSections}</div>
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.sections}</div>
+                  <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileTotalSections}</div>
                 </div>
-                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
-                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.docs}</div>
-                  <div className="mt-1 text-xl font-semibold text-white">{profileDocumentsReady}/2</div>
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.docs}</div>
+                  <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileDocumentsReady}/2</div>
                 </div>
               </div>
 
               <button
                 onClick={handleSaveClick}
                 disabled={isSavingProfile}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[0.98rem] border border-white/35 bg-white px-6 py-3 font-semibold text-slate-900 shadow-[0_18px_34px_-24px_rgba(15,23,42,0.42)] transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${profilePrimaryButtonClass} w-full px-6 py-3`}
               >
                 <Save size={18} />
                 {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
@@ -1442,8 +1592,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
           {saveFeedback && (
             <div className={`mt-4 flex items-center gap-2 text-sm font-medium ${saveFeedback.type === 'success'
-              ? 'text-emerald-200'
-              : 'text-rose-200'
+              ? 'text-emerald-600 dark:text-emerald-300'
+              : 'text-rose-600 dark:text-rose-300'
               }`}>
               <CheckCircle size={16} />
               <span>{saveFeedback.text}</span>
@@ -1462,18 +1612,18 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`rounded-[1rem] border px-3 py-3 text-left transition-all ${isActive
-                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-[0_20px_36px_-28px_rgba(6,182,212,0.4)]'
-                    : 'border-slate-200/85 bg-slate-50/90 text-slate-700 hover:-translate-y-[1px] hover:border-cyan-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800'
+                    ? 'border-[rgba(var(--accent-rgb),0.26)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[var(--shadow-soft)]'
+                    : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.18)] hover:bg-[var(--surface-elevated)]'
                     }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`rounded-lg p-2 ${isActive ? 'bg-white/15' : 'bg-cyan-100 dark:bg-cyan-900/30'}`}>
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-cyan-600 dark:text-cyan-400'}`} />
+                    <div className={`rounded-lg p-2 ${isActive ? 'bg-white/70 text-[var(--accent)]' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold leading-tight">{tab.label}</div>
                       {tab.caption ? (
-                        <div className={`mt-0.5 text-[11px] leading-tight ${isActive ? 'text-cyan-100/90' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <div className={`mt-0.5 text-[11px] leading-tight ${isActive ? 'text-[var(--text-muted)]' : 'text-[var(--text-faint)]'}`}>
                           {tab.caption}
                         </div>
                       ) : null}
@@ -1640,6 +1790,205 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         placeholder={t('profile.github_placeholder')}
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 rounded-[1.2rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,255,255,0.96))] p-5 shadow-[var(--shadow-soft)]">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-xl bg-white/85 p-2 text-[var(--accent)] shadow-sm">
+                        <Sparkles className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="app-eyebrow w-fit">{searchProfileCopy.title}</div>
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.intro}</p>
+                      </div>
+                    </div>
+                    <div className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/75 px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                        {searchProfileCopy.activeSignals}
+                      </div>
+                      <div className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
+                        {searchSetupSignalCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {[
+                      { field: 'nearBorder' as const, label: searchProfileCopy.nearBorder, active: formData.searchProfile.nearBorder },
+                      { field: 'wantsContractorRoles' as const, label: searchProfileCopy.contractor, active: formData.searchProfile.wantsContractorRoles },
+                      { field: 'wantsRemoteRoles' as const, label: searchProfileCopy.remote, active: formData.searchProfile.wantsRemoteRoles }
+                    ].map((item) => (
+                      <label
+                        key={item.field}
+                        className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
+                          item.active
+                            ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                            : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.active}
+                          onChange={(e) => handleSearchProfileChange(item.field, e.target.checked)}
+                          className="mt-1 accent-[var(--accent)]"
+                        />
+                        <span>{item.label}</span>
+                      </label>
+                    ))}
+                    <label
+                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
+                        formData.searchProfile.wantsDogFriendlyOffice
+                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.searchProfile.wantsDogFriendlyOffice}
+                        onChange={(e) => syncDogFriendlySetup(e.target.checked)}
+                        className="mt-1 accent-[var(--accent)]"
+                      />
+                      <span>{searchProfileCopy.dogFriendly}</span>
+                    </label>
+                    <label
+                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
+                        formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')
+                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')}
+                        onChange={(e) => syncChildFriendlySetup(e.target.checked)}
+                        className="mt-1 accent-[var(--accent)]"
+                      />
+                      <span>{searchProfileCopy.childFriendly}</span>
+                    </label>
+                    <label
+                      className={`flex items-start gap-3 rounded-[1rem] border px-4 py-3 text-sm transition ${
+                        formData.jhiPreferences.hardConstraints.excludeShift
+                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                          : 'border-[var(--border-subtle)] bg-white/80 text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.jhiPreferences.hardConstraints.excludeShift}
+                        onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
+                        className="mt-1 accent-[var(--accent)]"
+                      />
+                      <span>{searchProfileCopy.avoidShift}</span>
+                    </label>
+                  </div>
+
+                  <div className="mt-5 rounded-[1rem] border border-[var(--border-subtle)] bg-white/80 p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {searchProfileCopy.commuteTitle}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.commuteIntro}</p>
+                    <div className="mt-4 flex flex-wrap items-start gap-4">
+                      <label className="flex min-w-[260px] items-start gap-3 rounded-[1rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text)]">
+                        <input
+                          type="checkbox"
+                          checked={formData.searchProfile.defaultEnableCommuteFilter}
+                          onChange={(e) => handleSearchProfileChange('defaultEnableCommuteFilter', e.target.checked)}
+                          className="mt-1 accent-[var(--accent)]"
+                        />
+                        <span>{searchProfileCopy.commuteToggle}</span>
+                      </label>
+                      <div className="min-w-[220px] flex-1">
+                        <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">
+                          {searchProfileCopy.commuteRadius}: {formData.searchProfile.defaultMaxDistanceKm} km
+                        </label>
+                        <input
+                          type="range"
+                          min={5}
+                          max={120}
+                          step={5}
+                          value={formData.searchProfile.defaultMaxDistanceKm}
+                          onChange={(e) => handleSearchProfileChange('defaultMaxDistanceKm', Number(e.target.value))}
+                          className="w-full accent-[var(--accent)]"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <TransportModeSelector
+                        selectedMode={profile.transportMode || 'public'}
+                        onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
+                        compact
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.languages}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {remoteLanguageOptions.map((option) => {
+                        const active = formData.searchProfile.remoteLanguageCodes.includes(option.code);
+                        return (
+                          <button
+                            key={option.code}
+                            type="button"
+                            onClick={() => {
+                              const next = active
+                                ? formData.searchProfile.remoteLanguageCodes.filter((code) => code !== option.code)
+                                : [...formData.searchProfile.remoteLanguageCodes, option.code];
+                              handleSearchProfileChange('remoteLanguageCodes', next as SearchLanguageCode[]);
+                            }}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                              active
+                                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                                : 'border-[var(--border-subtle)] bg-white text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.benefitPriorities}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {searchBenefitOptions.map((option) => {
+                        const active = formData.searchProfile.preferredBenefitKeys.includes(option.key);
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => toggleBenefitPriority(option.key)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                              active
+                                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                                : 'border-[var(--border-subtle)] bg-white text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[1rem] border border-[var(--border-subtle)] bg-white/80 p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {searchProfileCopy.impactTitle}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {searchSetupAreas.map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{searchProfileCopy.helper}</p>
                   </div>
                 </div>
               </div>

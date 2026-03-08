@@ -73,3 +73,14 @@ class AIGuidedProfileResponseV2(BaseModel):
     cv_ai_text: str
     cv_summary: str
     meta: AIGenerationMeta
+
+
+class JobApplicationDraftResponse(BaseModel):
+    draft_text: str
+    fit_score: Optional[float] = None
+    fit_reasons: List[str] = Field(default_factory=list)
+    fit_warnings: List[str] = Field(default_factory=list)
+    language: str = "cs"
+    tone: str = "concise"
+    used_fallback: bool = False
+    model_meta: Dict[str, Any] = Field(default_factory=dict)

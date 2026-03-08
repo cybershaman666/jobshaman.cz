@@ -1,5 +1,6 @@
 
 import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './types';
+import { createDefaultCandidateSearchProfile } from './services/profileDefaults';
 
 // Backend API Configuration
 const normalizeBackendHost = (raw?: string): string => {
@@ -190,6 +191,7 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
     financialGoals: 50,
     commuteTolerance: 45,
     priorities: [],
+    searchProfile: createDefaultCandidateSearchProfile(),
     profile_visibility: 'recruiter'
   },
   taxProfile: {

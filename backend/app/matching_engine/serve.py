@@ -148,8 +148,18 @@ def _benefit_tags_from_text(value: Optional[str]) -> set:
         tags.add("multisport")
     if re.search(r"\b(meal|meal_allowance|meal_vouchers|meal_voucher)\b", v):
         tags.add("meal_allowance")
+    if re.search(r"\b(transport_support|parking|transport|transit|public_transport|commuter)\b", v):
+        tags.add("transport_support")
     if re.search(r"\b(vacation_5w|5_weeks_vacation)\b", v):
         tags.add("vacation_5w")
+    if re.search(r"\b(health_care|healthcare|health_insurance|private_medical|medical_care)\b", v):
+        tags.add("health_care")
+    if re.search(r"\b(pension|retirement|pension_plan|401k|altersvorsorge)\b", v):
+        tags.add("pension")
+    if re.search(r"\b(childcare_support|childcare|daycare|kindergarten_support)\b", v):
+        tags.add("childcare_support")
+    if re.search(r"\b(relocation_support|relocation|housing_allowance|accommodation)\b", v):
+        tags.add("relocation_support")
     if re.search(r"\b(stock|employee_stock|employee_shares|equity)\b", v):
         tags.add("employee_shares")
     if re.search(r"\b(car|company_car|car_personal)\b", v):
@@ -176,8 +186,23 @@ def _benefit_tags_from_text(value: Optional[str]) -> set:
     if re.search(r"(^| )(strav[a-z]*|meal|lunch|obed|obedy|kantin|essens|posilk|karta lunch|lunch card)( |$)", v):
         tags.add("meal_allowance")
 
+    if re.search(r"(^| )(parking|parkov|parkplace|public transport|transport|transit|fahrkarte|fahrkost|commuter|jizdne|benzin|palivo)( |$)", v):
+        tags.add("transport_support")
+
     if re.search(r"(^| )(5 tydn|5 tydnu|5 tydny|25 dn|25 dni|25 days|5 weeks|5 week|5 woch|5 wochen|5 tygodni|25 tage)( |$)", v):
         tags.add("vacation_5w")
+
+    if re.search(r"(^| )(private medical|medical care|healthcare|health care|zdravotn|health insurance|krankenversicherung|opieka medyczna|ubezpieczenie zdrowotne)( |$)", v):
+        tags.add("health_care")
+
+    if re.search(r"(^| )(penzij|duchodov|retirement|pension|401k|renten|altersvorsorge|emerytal)( |$)", v):
+        tags.add("pension")
+
+    if re.search(r"(^| )(childcare|daycare|detsk|skolk|jesle|kindergarten|kinderbetreuung|przedszkol|opieka nad d)( |$)", v):
+        tags.add("childcare_support")
+
+    if re.search(r"(^| )(relocation|relokac|prestehov|ubytov|housing allowance|accommodation|wohnung|zakwaterowanie)( |$)", v):
+        tags.add("relocation_support")
 
     if re.search(r"(^| )(akcie|stock option|stock options|stock|equity|share option|share options|esop|mitarbeiteraktien|aktienoptionen|opcje na akcje)( |$)", v):
         tags.add("employee_shares")

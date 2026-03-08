@@ -23,6 +23,17 @@ except Exception:
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
+try:
+    from .scraper_api_sources import run_external_api_sources
+except ImportError:
+    from scraper_api_sources import run_external_api_sources  # type: ignore
+try:
+    from scripts.backfill_remote_import_metadata import backfill as backfill_remote_import_metadata
+except ImportError:
+    try:
+        from ..scripts.backfill_remote_import_metadata import backfill as backfill_remote_import_metadata  # type: ignore
+    except ImportError:
+        backfill_remote_import_metadata = None  # type: ignore
 
 def load_environment():
     """Robust environment variable loading matching scraper_base.py"""
@@ -1410,6 +1421,28 @@ def run_all_scrapers():
             )
         except Exception as e:
             print(f"❌ Chyba při scrapování {site['name']}: {e}")
+
+    try:
+        grand_total += run_external_api_sources(supabase)
+    except Exception as e:
+        print(f"❌ Chyba při ingestu API zdrojů: {e}")
+
+    should_backfill_remote_metadata = os.getenv("SCRAPER_REMOTE_METADATA_BACKFILL", "true").strip().lower() not in {"0", "false", "no", "off"}
+    if should_backfill_remote_metadata and backfill_remote_import_metadata:
+        try:
+            backfill_stats = backfill_remote_import_metadata(
+                dry_run=False,
+                batch_size=int(os.getenv("SCRAPER_REMOTE_METADATA_BACKFILL_BATCH_SIZE", "200")),
+                sleep_seconds=float(os.getenv("SCRAPER_REMOTE_METADATA_BACKFILL_SLEEP_SECONDS", "0.05")),
+                start_id=0,
+                max_rows=int(os.getenv("SCRAPER_REMOTE_METADATA_BACKFILL_MAX_ROWS", "5000")),
+            )
+            print(
+                "✅ Remote metadata normalization finished. "
+                f"scanned={backfill_stats['scanned']} updated={backfill_stats['updated']} skipped={backfill_stats['skipped']}"
+            )
+        except Exception as e:
+            print(f"❌ Chyba při post-import normalizaci remote metadata: {e}")
 
     print(f"✅ Scrapování dokončeno. Celkem uloženo {grand_total} nabídek.")
     return grand_total

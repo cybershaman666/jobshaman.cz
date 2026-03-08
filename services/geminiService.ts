@@ -75,28 +75,6 @@ export const estimateSalary = async (title: string, company: string, location: s
   }
 };
 
-export const generateCoverLetter = async (
-  jobTitle: string,
-  company: string,
-  description: string,
-  userExperience: string,
-  candidateCvText?: string
-): Promise<string> => {
-  try {
-    const payload = await callAiExecute('generate_cover_letter', {
-      jobTitle,
-      company,
-      description,
-      userExperience,
-      candidateCvText: candidateCvText || ''
-    });
-    return payload?.text || 'Nepodařilo se vygenerovat dopis.';
-  } catch (e) {
-    console.error('Cover letter generation failed:', e);
-    return 'Chyba při generování dopisu. Zkuste to prosím znovu.';
-  }
-};
-
 export const analyzeUserCV = async (cvText: string): Promise<CVAnalysis> => {
   try {
     const payload = await callAiExecute('analyze_user_cv', { cvText });

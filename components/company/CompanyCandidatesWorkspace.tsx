@@ -180,21 +180,21 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             loadingDefault="Syncing candidate signals..."
                             onRefresh={onRefresh}
                         />
-                        <div className="company-surface rounded-2xl border border-slate-200/80 bg-white/85 px-4 py-3 min-w-[240px] shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/50">
-                            <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="company-control min-w-[240px] px-4 py-3">
+                            <div className="mb-1 text-[11px] uppercase tracking-widest text-[var(--text-faint)]">
                                 {t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
                             </div>
                             <select
                                 value={selectedJobId}
                                 onChange={(e) => onSelectedJobChange(e.target.value)}
-                                className="w-full bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0 p-0 dark:[color-scheme:dark]"
+                                className="w-full cursor-pointer border-none bg-transparent p-0 font-semibold text-[var(--text-strong)] ring-0 focus:outline-none dark:[color-scheme:dark]"
                             >
                                 {jobs.map((job) => (
                                     <option key={job.id} value={job.id} className="bg-white dark:bg-slate-900">{job.title}</option>
                                 ))}
                             </select>
                         </div>
-                        <div className="company-surface rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-400 max-w-md">
+                        <div className="company-control max-w-md px-4 py-3 text-xs text-[var(--text-muted)]">
                             {isLoadingCandidateBenchmarks
                                 ? t('common.loading')
                                 : (candidateBenchmarks?.transparency?.note || t('company.candidates.benchmark.note', { defaultValue: 'Separate operational metrics without an aggregated quality index yet.' }))}
@@ -249,20 +249,20 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                     className="mb-3"
                 />
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,0.6fr))]">
-                    <label className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
-                        <Search size={16} className="text-slate-400" />
+                    <label className="company-control flex items-center gap-2 px-3 py-3 text-sm text-[var(--text-muted)]">
+                        <Search size={16} className="text-[var(--text-faint)]" />
                         <input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={t('company.candidates.search_placeholder', { defaultValue: 'Search by name, role, skill, value, keyword...' })}
-                            className="w-full bg-transparent outline-none placeholder:text-slate-400 dark:[color-scheme:dark]"
+                            className="w-full bg-transparent outline-none placeholder:text-[var(--text-faint)] dark:[color-scheme:dark]"
                         />
                     </label>
 
                     <select
                         value={candidateRoleFilter}
                         onChange={(e) => setCandidateRoleFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
+                        className="company-control px-3 py-3 text-sm font-medium outline-none dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.all_roles', { defaultValue: 'All candidate roles' })}</option>
                         {candidateRoleOptions.map((role) => (
@@ -273,7 +273,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                     <select
                         value={fitFilter}
                         onChange={(e) => setFitFilter(e.target.value as typeof fitFilter)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
+                        className="company-control px-3 py-3 text-sm font-medium outline-none dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.fit_all', { defaultValue: 'Any fit score' })}</option>
                         <option value="high">{t('company.candidates.filters.fit_high', { defaultValue: 'Fit 75+' })}</option>
@@ -285,15 +285,15 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                     <select
                         value={jcfpmFilter}
                         onChange={(e) => setJcfpmFilter(e.target.value as typeof jcfpmFilter)}
-                        className="rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:[color-scheme:dark]"
+                        className="company-control px-3 py-3 text-sm font-medium outline-none dark:[color-scheme:dark]"
                     >
                         <option value="all">{t('company.candidates.filters.jcfpm_all', { defaultValue: 'JCFPM: all' })}</option>
                         <option value="with">{t('company.candidates.filters.jcfpm_with', { defaultValue: 'Has JCFPM' })}</option>
                         <option value="without">{t('company.candidates.filters.jcfpm_without', { defaultValue: 'No JCFPM' })}</option>
                     </select>
 
-                    <label className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200">
-                        <ArrowUpDown size={15} className="text-slate-400" />
+                    <label className="company-control flex items-center gap-2 px-3 py-3 text-sm font-medium">
+                        <ArrowUpDown size={15} className="text-[var(--text-faint)]" />
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -337,7 +337,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{candidate.name}</h3>
+                                        <h3 className="text-lg font-bold text-slate-900 transition-colors group-hover:text-[var(--accent)] dark:text-white">{candidate.name}</h3>
                                         <span className="company-pill-surface rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{candidate.role || (candidate as any).job_title}</span>
                                         {getCandidateHasJcfpm(candidate) && (
                                             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
@@ -345,7 +345,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                             </span>
                                         )}
                                         {getCandidateMatchScore(candidate) != null && (
-                                            <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700 dark:border-cyan-900/30 dark:bg-cyan-950/20 dark:text-cyan-300">
+                                            <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">
                                                 {t('company.candidates.fit_badge', { defaultValue: 'Fit' })}: {Math.round(getCandidateMatchScore(candidate) || 0)}
                                             </span>
                                         )}
@@ -371,8 +371,8 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                     </div>
 
                                     {getCandidateComparisonSignals(candidate).length > 0 && (
-                                        <div className="mt-4 rounded-2xl border border-cyan-100/80 bg-cyan-50/60 p-3 dark:border-cyan-900/30 dark:bg-cyan-950/10">
-                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                                        <div className="mt-4 rounded-2xl border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
+                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                                                 {t('company.candidates.comparison_signals', { defaultValue: 'Comparable signal' })}
                                             </div>
                                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -384,7 +384,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                                         <div className="mt-1 flex items-center gap-2">
                                                             <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                                                                 <div
-                                                                    className="h-full rounded-full bg-cyan-500"
+                                                                    className="h-full rounded-full bg-[var(--accent)]"
                                                                     style={{ width: `${Math.max(6, Math.min(100, signal.score || 0))}%` }}
                                                                 />
                                                             </div>

@@ -1,18 +1,10 @@
 import { supabase } from './supabaseService';
+import { JobSearchFilters } from '../types';
 
 export interface SavedFilterSet {
     id: string;
     name: string;
-    filters: {
-        filterCity?: string;
-        filterContractTypes?: string[];
-        filterBenefits?: string[];
-        filterMinSalary?: number;
-        filterDatePosted?: string;
-        filterExperienceLevels?: string[];
-        filterMaxDistance?: number;
-        enableCommuteFilter?: boolean;
-    };
+    filters: JobSearchFilters;
     isFavorite: boolean;
     usageCount: number;
     createdAt: string;

@@ -150,7 +150,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
             case 'closed_role_filled':
                 return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
             case 'reviewed':
-                return 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300';
+                return 'border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] text-[var(--accent)]';
             default:
                 return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
         }
@@ -254,7 +254,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
             className:
                 totalHours <= 12
                     ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                    : 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300'
+                    : 'border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] text-[var(--accent)]'
         };
     };
 
@@ -293,24 +293,21 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                             syncedAt={lastSyncedAt}
                             onRefresh={onRefresh}
                         />
-                        <div className="min-w-[240px] rounded-[1rem] border border-slate-200/80 bg-white/85 px-3.5 py-2.5 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-700 dark:bg-slate-950/50">
-                            <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
+                        <div className="company-control min-w-[240px] px-3.5 py-2.5">
+                            <div className="mb-1 text-[11px] uppercase tracking-widest text-[var(--text-faint)]">
                                 {t('company.jobs.open_applications', { defaultValue: 'Open role dialogues' })}
                             </div>
                             <select
                                 value={selectedJobId}
                                 onChange={(e) => onSelectedJobChange(e.target.value)}
-                                className="w-full bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0 p-0 dark:[color-scheme:dark]"
+                                className="w-full cursor-pointer border-none bg-transparent p-0 font-semibold text-[var(--text-strong)] ring-0 focus:outline-none dark:[color-scheme:dark]"
                             >
                                 {jobs.map((job) => (
                                     <option key={job.id} value={job.id} className="bg-white dark:bg-slate-900">{job.title}</option>
                                 ))}
                             </select>
                         </div>
-                        <button
-                            onClick={onOpenJobs}
-                            className="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_28px_-26px_rgba(15,23,42,0.45)] backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800"
-                        >
+                        <button onClick={onOpenJobs} className="app-button-secondary rounded-full px-4 py-2.5 text-sm">
                             {t('company.workspace.actions.open_jobs', { defaultValue: 'Open roles' })}
                         </button>
                     </>
@@ -350,7 +347,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                         ) : undefined}
                         className="mb-3"
                     />
-                    <div className="mb-3 rounded-[0.9rem] border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300">
+                    <div className="mb-3 rounded-[0.9rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent)]">
                         {t('company.applications.reaction_sla_hint', {
                             defaultValue: isCsLike
                                 ? 'Kandidát vidí očekávání první reakce do {{window}}.'
@@ -386,7 +383,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                 <select
                                                     value={dialogue.status}
                                                     onChange={(e) => onStatusChange(dialogue.id, e.target.value as CompanyApplicationRow['status'])}
-                                                    className="rounded-full border border-slate-200 dark:border-slate-700 bg-white px-2.5 py-1 text-xs dark:bg-slate-900 dark:[color-scheme:dark]"
+                                                    className="company-control rounded-full px-2.5 py-1 text-xs dark:[color-scheme:dark]"
                                                     disabled={resolvedDialoguesUpdating[dialogue.id]}
                                                 >
                                                     <option value="pending">{t('company.applications.response_state_pending', { defaultValue: isCsLike ? 'Čeká na první reakci' : 'Waiting for first response' })}</option>
@@ -412,13 +409,13 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                     {closeReasonMeta.label}
                                                 </span>
                                             )}
-                                            <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                            <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
                                                 {getResponseSlaHint(dialogue)}
                                             </span>
                                             {dialogue.hasCv && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">CV</span>}
                                             {dialogue.hasCoverLetter && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{t('company.workspace.labels.cover_letter', { defaultValue: 'Cover letter' })}</span>}
                                             {dialogue.hasJcfpm && (
-                                                <span className="rounded-full bg-cyan-100 px-2 py-1 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                                <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
                                                     JCFPM: {t('company.applications.labels.summary', { defaultValue: 'Shared' })}
                                                 </span>
                                             )}
@@ -433,8 +430,8 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                 onClick={() => handleOpenDialogue?.(dialogue.id)}
                                                 className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                                                     resolvedSelectedDialogueId === dialogue.id
-                                                        ? 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300'
-                                                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
+                                                        ? 'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                                                        : 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)] hover:bg-[var(--surface-elevated)]'
                                                 }`}
                                             >
                                                 {t('company.candidates.open_application', { defaultValue: 'Open dialogue' })}

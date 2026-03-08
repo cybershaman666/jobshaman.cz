@@ -6,12 +6,15 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
-from ..models.responses import JobCheckResponse
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, JobApplicationStatusUpdateRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
+from ..models.responses import JobCheckResponse, JobApplicationDraftResponse
 from ..services.legality import check_legality_rules
-from ..services.matching import calculate_candidate_match
 from ..services.asset_service import load_assets_metadata, serialize_asset_metadata
+from ..services.subscription_access import fetch_latest_subscription_by, is_active_subscription, user_has_allowed_subscription
 from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs, hybrid_search_jobs_v2
+from ..matching_engine.feature_store import extract_candidate_features, extract_job_features
+from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings
+from ..matching_engine.scoring import score_from_embeddings, score_job
 from ..services.email import send_review_email, send_recruiter_legality_email
 from ..services.dialogue_composer import build_dialogue_enrichment
 from ..core.database import supabase
@@ -77,57 +80,16 @@ def _parse_iso_datetime(value: str) -> datetime | None:
         return None
 
 
-def _is_active_subscription(sub: dict) -> bool:
-    if not sub:
-        return False
-    status = (sub.get("status") or "").lower()
-    if status not in ["active", "trialing"]:
-        return False
-
-    expires_at = _parse_iso_datetime(sub.get("current_period_end"))
-    if expires_at:
-        return datetime.now(timezone.utc) <= expires_at
-    return True
+def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
+    return user_has_allowed_subscription(user, allowed_tiers)
 
 
 def _fetch_latest_subscription_by(column: str, value: str) -> dict | None:
-    if not supabase or not value:
-        return None
-    try:
-        resp = (
-            supabase
-            .table("subscriptions")
-            .select("*")
-            .eq(column, value)
-            .order("updated_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        return resp.data[0] if resp.data else None
-    except Exception:
-        return None
+    return fetch_latest_subscription_by(column, value)
 
 
-def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
-    user_tier = (user.get("subscription_tier") or "").lower()
-    if user.get("is_subscription_active") and user_tier in allowed_tiers:
-        return True
-
-    user_id = user.get("id") or user.get("auth_id")
-    if user_id:
-        user_sub = _fetch_latest_subscription_by("user_id", user_id)
-        if user_sub and _is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() in allowed_tiers:
-            return True
-
-    # Keep recruiter/company fallback for shared auth contexts.
-    for company_id in (user.get("authorized_ids") or []):
-        if company_id == user_id:
-            continue
-        company_sub = _fetch_latest_subscription_by("company_id", company_id)
-        if company_sub and _is_active_subscription(company_sub) and (company_sub.get("tier") or "").lower() in allowed_tiers:
-            return True
-
-    return False
+def _is_active_subscription(sub: dict | None) -> bool:
+    return is_active_subscription(sub)
 
 
 def _user_has_direct_premium(user: dict) -> bool:
@@ -138,7 +100,7 @@ def _user_has_direct_premium(user: dict) -> bool:
     if not user_id:
         return False
     user_sub = _fetch_latest_subscription_by("user_id", user_id)
-    return bool(user_sub and _is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() == "premium")
+    return bool(user_sub and is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() == "premium")
 
 
 _COMPANY_TIER_JOB_LIMITS: dict[str, int] = {
@@ -1092,6 +1054,303 @@ def _write_company_activity_log(
         if _is_missing_table_error(exc, "company_activity_log"):
             return
         print(f"⚠️ Failed to write company activity log: {exc}")
+
+
+def _write_analytics_event(
+    event_type: str,
+    user_id: str | None = None,
+    company_id: str | None = None,
+    feature: str | None = None,
+    tier: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    if not supabase or not event_type:
+        return
+    try:
+        supabase.table("analytics_events").insert(
+            {
+                "event_type": event_type,
+                "user_id": user_id or None,
+                "company_id": company_id or None,
+                "feature": feature or None,
+                "tier": tier or None,
+                "metadata": metadata or {},
+                "created_at": now_iso(),
+            }
+        ).execute()
+    except Exception as exc:
+        if _is_missing_table_error(exc, "analytics_events"):
+            return
+        print(f"⚠️ Failed to write analytics event {event_type}: {exc}")
+
+
+def _strip_html_tags(value: Any) -> str:
+    text = str(value or "")
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</p\s*>", "\n\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _clip_text(value: Any, limit: int) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    clipped = text[:limit].rsplit(" ", 1)[0].strip()
+    return clipped or text[:limit].strip()
+
+
+def _clip_words(text: str, max_words: int = 220) -> str:
+    words = str(text or "").strip().split()
+    if len(words) <= max_words:
+        return " ".join(words)
+    return " ".join(words[:max_words]).strip()
+
+
+def _fetch_candidate_profile_for_draft(user_id: str) -> dict[str, Any]:
+    if not supabase or not user_id:
+        return {}
+    try:
+        resp = supabase.table("candidate_profiles").select("*").eq("id", user_id).maybe_single().execute()
+        return resp.data if isinstance(resp.data, dict) else {}
+    except Exception as exc:
+        print(f"⚠️ Failed to fetch candidate profile for draft: {exc}")
+        return {}
+
+
+def _fetch_cv_document_for_draft(user_id: str, cv_document_id: str | None) -> dict[str, Any] | None:
+    if not supabase or not user_id or not cv_document_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("cv_documents")
+            .select("*")
+            .eq("id", cv_document_id)
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        return resp.data if isinstance(resp.data, dict) else None
+    except Exception as exc:
+        print(f"⚠️ Failed to fetch CV document for draft: {exc}")
+        return None
+
+
+def _resolve_application_draft_language(requested: str, candidate_profile: dict[str, Any], cv_document: dict[str, Any] | None, job: dict[str, Any]) -> str:
+    normalized = str(requested or "auto").strip().lower()
+    if normalized and normalized != "auto":
+        return normalized.split("-", 1)[0][:8]
+
+    locale = str((cv_document or {}).get("locale") or "").strip().lower()
+    if locale:
+        return locale.split("-", 1)[0][:8]
+
+    preferred_country = str((_safe_dict(candidate_profile.get("preferences")).get("preferredCountryCode") or candidate_profile.get("preferred_country_code") or "")).strip().upper()
+    if preferred_country == "CZ":
+        return "cs"
+    if preferred_country == "SK":
+        return "sk"
+    if preferred_country in {"DE", "AT"}:
+        return "de"
+    if preferred_country == "PL":
+        return "pl"
+
+    explicit_job_language = str(job.get("language_code") or job.get("language") or "").strip().lower()
+    if explicit_job_language:
+        return explicit_job_language.split("-", 1)[0][:8]
+
+    job_text = " ".join(
+        [
+            str(job.get("title") or ""),
+            str(job.get("company") or ""),
+            _strip_html_tags(job.get("description") or ""),
+        ]
+    ).lower()
+    if re.search(r"[ěščřžýáíéůúťďň]", job_text):
+        return "cs"
+    return "en"
+
+
+def _extract_candidate_cv_context(candidate_profile: dict[str, Any], cv_document: dict[str, Any] | None) -> tuple[str, str]:
+    parsed = _safe_dict((cv_document or {}).get("parsed_data"))
+    cv_ai_text = str(parsed.get("cvAiText") or parsed.get("cv_ai_text") or candidate_profile.get("cv_ai_text") or "").strip()
+    cv_text = str(parsed.get("cvText") or parsed.get("cv_text") or candidate_profile.get("cv_text") or "").strip()
+    return cv_text, cv_ai_text
+
+
+def _derive_fit_signals(job: dict[str, Any], candidate_profile: dict[str, Any], recommendation: dict[str, Any] | None) -> tuple[float | None, list[str], list[str]]:
+    if isinstance(recommendation, dict):
+        score = recommendation.get("score")
+        try:
+            fit_score = round(float(score), 1) if score is not None else None
+        except Exception:
+            fit_score = None
+        fit_reasons = _safe_string_list(recommendation.get("reasons"), limit=4)
+        breakdown = _safe_dict(recommendation.get("breakdown"))
+        fit_warnings = []
+        if breakdown.get("missing_required_qualifications"):
+            fit_warnings.append("Pozice pravděpodobně vyžaduje některé kvalifikace, které nejsou v profilu jasně doložené.")
+        if breakdown.get("domain_mismatch"):
+            fit_warnings.append("Role je částečně mimo dosavadní doménové zaměření profilu.")
+        return fit_score, fit_reasons, fit_warnings[:3]
+
+    fit_reasons: list[str] = []
+    fit_warnings: list[str] = []
+    skills = _safe_string_list(candidate_profile.get("skills"), limit=12)
+    inferred_skills = _safe_string_list(candidate_profile.get("inferred_skills"), limit=8)
+    known_skills = [item.lower() for item in (skills + inferred_skills) if item]
+    job_text = " ".join(
+        [
+            str(job.get("title") or ""),
+            str(job.get("company") or ""),
+            _strip_html_tags(job.get("description") or ""),
+        ]
+    ).lower()
+    matched_skills = []
+    for skill in known_skills:
+        if skill and skill not in matched_skills and skill in job_text:
+            matched_skills.append(skill)
+    if matched_skills:
+        fit_reasons.append(f"Profil se potkává s požadavky v oblastech: {', '.join(matched_skills[:4])}.")
+
+    candidate_title = str(candidate_profile.get("job_title") or "").strip()
+    if candidate_title and candidate_title.lower() in job_text:
+        fit_reasons.append("Současné nebo cílové zaměření kandidáta odpovídá názvu role.")
+
+    if str(job.get("is_remote") or job.get("remote") or "").lower() in {"true", "1"}:
+        fit_reasons.append("Role působí jako remote nebo remote-friendly.")
+
+    salary_from = job.get("salary_from") or job.get("salary_min")
+    salary_to = job.get("salary_to") or job.get("salary_max")
+    desired_salary = _safe_dict(candidate_profile.get("preferences")).get("desiredSalary")
+    try:
+        desired_salary_value = float(desired_salary) if desired_salary is not None else None
+    except Exception:
+        desired_salary_value = None
+    try:
+        salary_value = float(salary_to or salary_from) if (salary_to or salary_from) is not None else None
+    except Exception:
+        salary_value = None
+    if desired_salary_value is not None and salary_value is not None and salary_value < desired_salary_value:
+        fit_warnings.append("Nabízená mzda může být pod preferovanou úrovní kandidáta.")
+
+    if not fit_reasons:
+        fit_reasons.append("Role tematicky navazuje na dosavadní profil a cílové pracovní směřování kandidáta.")
+
+    return None, fit_reasons[:4], fit_warnings[:3]
+
+
+def _build_application_draft_prompt(
+    *,
+    job: dict[str, Any],
+    candidate_profile: dict[str, Any],
+    cv_text: str,
+    cv_ai_text: str,
+    fit_score: float | None,
+    fit_reasons: list[str],
+    fit_warnings: list[str],
+    language: str,
+    tone: str,
+) -> str:
+    language_label = {
+        "cs": "Czech",
+        "sk": "Slovak",
+        "de": "German",
+        "pl": "Polish",
+    }.get(language, "English")
+    summary = _clip_text(candidate_profile.get("story") or candidate_profile.get("job_title") or "", 1200)
+    skills = ", ".join(_safe_string_list(candidate_profile.get("skills"), limit=10))
+    strengths = ", ".join(_safe_string_list(candidate_profile.get("strengths"), limit=6))
+    experience = _clip_text(cv_ai_text or cv_text, 5000)
+    fit_score_line = "unknown" if fit_score is None else str(fit_score)
+    prompt = f"""
+Write a concise job application message in {language_label}.
+Return plain text only. No markdown, no bullets, no subject line.
+
+Rules:
+- Maximum 220 words.
+- Use only facts supported by the candidate profile or CV context below.
+- Do not invent years of experience, relocation plans, notice period, salary expectations, or availability.
+- Keep the tone {tone}.
+- Mention 1-2 concrete relevant strengths.
+- Close with a calm invitation to continue the conversation.
+
+Job:
+- Title: {str(job.get("title") or "")}
+- Company: {str(job.get("company") or "")}
+- Location: {str(job.get("location") or "")}
+- Salary: {str(job.get("salary_from") or job.get("salary_min") or "")} - {str(job.get("salary_to") or job.get("salary_max") or "")} {str(job.get("salary_currency") or "")}
+- Description: {_clip_text(_strip_html_tags(job.get("description") or ""), 5000)}
+
+Candidate:
+- Current title: {str(candidate_profile.get("job_title") or "")}
+- Summary: {summary}
+- Skills: {skills}
+- Strengths: {strengths}
+- CV context: {experience}
+
+Fit signals:
+- Score: {fit_score_line}
+- Reasons: {' | '.join(fit_reasons[:4])}
+- Warnings: {' | '.join(fit_warnings[:3]) if fit_warnings else 'none'}
+""".strip()
+    return prompt
+
+
+def _fallback_application_draft(
+    *,
+    job: dict[str, Any],
+    candidate_profile: dict[str, Any],
+    fit_reasons: list[str],
+    language: str,
+) -> str:
+    title = str(job.get("title") or "tuto pozici").strip()
+    company = str(job.get("company") or "vaši společnost").strip()
+    candidate_title = str(candidate_profile.get("job_title") or "").strip()
+    strengths = _safe_string_list(candidate_profile.get("strengths"), limit=2)
+    primary_reason = fit_reasons[0] if fit_reasons else ""
+    strength_text = ", ".join(strengths)
+    if language in {"cs", "sk"}:
+        opener = f"Dobrý den, reaguji na pozici {title} ve společnosti {company}."
+        profile_line = f" V mém profilu navazuje tato role na zkušenosti v oblasti {candidate_title}." if candidate_title else ""
+        reason_line = f" Zaujala mě hlavně tato shoda: {primary_reason}" if primary_reason else ""
+        strength_line = f" Relevantní pro tuto roli jsou také moje silné stránky: {strength_text}." if strength_text else ""
+        close = " Pokud bude dávat smysl krátký navazující kontakt, rád doplním konkrétní zkušenosti nebo ukázky práce."
+    else:
+        opener = f"Hello, I am reaching out about the {title} role at {company}."
+        profile_line = f" The role aligns with my background in {candidate_title}." if candidate_title else ""
+        reason_line = f" What stood out to me most is this fit signal: {primary_reason}" if primary_reason else ""
+        strength_line = f" Relevant strengths I can bring include {strength_text}." if strength_text else ""
+        close = " If useful, I would be glad to continue with a short follow-up conversation and share more concrete examples of my work."
+    return _clip_words(f"{opener}{profile_line}{reason_line}{strength_line}{close}", 220)
+
+
+def _generate_application_draft_text(prompt: str) -> tuple[str, dict[str, Any]]:
+    default_primary = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    default_fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+    cfg = get_active_model_config("ai_orchestration", "application_draft")
+    primary_model = cfg.get("primary_model") or default_primary
+    fallback_model = cfg.get("fallback_model") or default_fallback
+    generation_config = {
+        "temperature": cfg.get("temperature", 0.3),
+        "top_p": cfg.get("top_p", 1),
+        "top_k": cfg.get("top_k", 1),
+    }
+    result, fallback_used = call_primary_with_fallback(
+        prompt,
+        primary_model,
+        fallback_model,
+        generation_config=generation_config,
+    )
+    text = _clip_words(result.text or "", 220)
+    return text, {
+        "model_used": result.model_name,
+        "fallback_used": fallback_used,
+        "token_usage": {"input": result.tokens_in, "output": result.tokens_out},
+        "latency_ms": result.latency_ms,
+    }
 
 
 def _normalize_jcfpm_share_level(level: str | None, payload: dict | None = None) -> str:
@@ -2207,6 +2466,20 @@ async def create_dialogue_legacy(
         if res.data:
             app_id = res.data[0].get("id")
             row = res.data[0]
+        if _safe_dict(payload.metadata).get("application_draft_used"):
+            _write_analytics_event(
+                event_type="application_draft_used_on_submit",
+                user_id=user_id,
+                company_id=str(company_id or "") or None,
+                feature="candidate_copilot",
+                tier=(user.get("subscription_tier") or "").lower() or None,
+                metadata={
+                    "job_id": job_id,
+                    "application_id": app_id,
+                    "source": payload.source or "application_modal",
+                    "cv_document_id": payload.cv_document_id,
+                },
+            )
         if company_id:
             _sync_company_dialogue_slots_usage(str(company_id))
         return {
@@ -2238,6 +2511,21 @@ async def create_dialogue_legacy(
                 }
                 res = supabase.table("job_applications").insert(fallback_payload).execute()
                 app_id = res.data[0].get("id") if res.data else None
+                if _safe_dict(payload.metadata).get("application_draft_used"):
+                    _write_analytics_event(
+                        event_type="application_draft_used_on_submit",
+                        user_id=user_id,
+                        company_id=str(company_id or "") or None,
+                        feature="candidate_copilot",
+                        tier=(user.get("subscription_tier") or "").lower() or None,
+                        metadata={
+                            "job_id": job_id,
+                            "application_id": app_id,
+                            "source": payload.source or "application_modal",
+                            "cv_document_id": payload.cv_document_id,
+                            "legacy_fallback": True,
+                        },
+                    )
                 if company_id:
                     _sync_company_dialogue_slots_usage(str(company_id))
                 return {
@@ -4081,6 +4369,123 @@ async def analyze_job(
         },
     }
 
+
+@router.post("/jobs/{job_id}/application-draft", response_model=JobApplicationDraftResponse)
+@limiter.limit("12/minute")
+async def generate_job_application_draft(
+    job_id: str,
+    payload: JobApplicationDraftRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    if not _user_has_allowed_subscription(user, {"premium"}):
+        raise HTTPException(status_code=403, detail="Premium subscription required")
+
+    normalized_job_id = _normalize_job_id(job_id)
+    if normalized_job_id is None:
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+
+    try:
+        job_resp = supabase.table("jobs").select("*").eq("id", normalized_job_id).maybe_single().execute()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to load job: {exc}")
+    job = job_resp.data if job_resp and isinstance(job_resp.data, dict) else None
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
+    cv_document = None
+    if payload.cv_document_id:
+        cv_document = _fetch_cv_document_for_draft(user_id, payload.cv_document_id)
+        if not cv_document:
+            raise HTTPException(status_code=404, detail="CV document not found")
+
+    recommendation = None
+    try:
+        recommendations = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
+        recommendation = next(
+            (
+                item
+                for item in recommendations
+                if str(_safe_dict(item.get("job")).get("id") or "") == str(normalized_job_id)
+            ),
+            None,
+        )
+    except Exception as exc:
+        print(f"⚠️ Failed to compute draft recommendation context: {exc}")
+
+    fit_score, fit_reasons, fit_warnings = _derive_fit_signals(job, candidate_profile, recommendation)
+    language = _resolve_application_draft_language(payload.language, candidate_profile, cv_document, job)
+    cv_text, cv_ai_text = _extract_candidate_cv_context(candidate_profile, cv_document)
+
+    used_fallback = False
+    model_meta: dict[str, Any]
+    try:
+        prompt = _build_application_draft_prompt(
+            job=job,
+            candidate_profile=candidate_profile,
+            cv_text=cv_text,
+            cv_ai_text=cv_ai_text,
+            fit_score=fit_score,
+            fit_reasons=fit_reasons,
+            fit_warnings=fit_warnings,
+            language=language,
+            tone=payload.tone,
+        )
+        draft_text, model_meta = _generate_application_draft_text(prompt)
+        if not draft_text.strip():
+            raise ValueError("Empty application draft")
+    except Exception as exc:
+        used_fallback = True
+        draft_text = _fallback_application_draft(
+            job=job,
+            candidate_profile=candidate_profile,
+            fit_reasons=fit_reasons,
+            language=language,
+        )
+        model_meta = {
+            "mode": "deterministic_fallback",
+            "error": str(exc),
+            "model_used": None,
+            "fallback_used": False,
+            "token_usage": {"input": 0, "output": 0},
+            "latency_ms": 0,
+        }
+
+    _write_analytics_event(
+        event_type="application_draft_regenerated" if payload.regenerate else "application_draft_generated",
+        user_id=user_id,
+        company_id=str(job.get("company_id") or "") or None,
+        feature="candidate_copilot",
+        tier=(user.get("subscription_tier") or "").lower() or "premium",
+        metadata={
+            "job_id": normalized_job_id,
+            "cv_document_id": payload.cv_document_id,
+            "tone": payload.tone,
+            "language": language,
+            "used_fallback": used_fallback,
+            "fit_score": fit_score,
+        },
+    )
+
+    return JobApplicationDraftResponse(
+        draft_text=draft_text,
+        fit_score=fit_score,
+        fit_reasons=fit_reasons,
+        fit_warnings=fit_warnings,
+        language=language,
+        tone=payload.tone,
+        used_fallback=used_fallback,
+        model_meta=model_meta,
+    )
+
+
 @router.post("/match-candidates")
 @limiter.limit("10/minute")
 async def match_candidates_service(request: Request, job_id: str = Query(...), user: dict = Depends(verify_subscription)):
@@ -4090,14 +4495,34 @@ async def match_candidates_service(request: Request, job_id: str = Query(...), u
     job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
     if not job_res.data: raise HTTPException(status_code=404, detail="Job not found")
     job = job_res.data
-    
+
     cand_res = supabase.table("candidate_profiles").select("*").execute()
     candidates = cand_res.data or []
-    
+    job_features = extract_job_features(job)
+    job_embeddings = ensure_job_embeddings([job], persist=False)
+    job_embedding = job_embeddings.get(str(job.get("id") or job_id)) or []
+
     matches = []
     for cand in candidates:
-        score, reasons = calculate_candidate_match(cand, job)
-        if score > 15:
-            matches.append({"candidate_id": cand["id"], "score": score, "reasons": reasons})
-    
+        candidate_id = str(cand.get("id") or "")
+        if not candidate_id:
+            continue
+        candidate_features = extract_candidate_features(cand)
+        candidate_embedding = ensure_candidate_embedding(
+            candidate_id,
+            candidate_features.get("text") or "",
+            persist=False,
+        )
+        semantic = score_from_embeddings(candidate_embedding, job_embedding)
+        score, reasons, breakdown = score_job(candidate_features, job_features, semantic)
+        if score >= 25:
+            matches.append(
+                {
+                    "candidate_id": candidate_id,
+                    "score": score,
+                    "reasons": reasons,
+                    "breakdown": breakdown,
+                }
+            )
+
     return {"job_id": job_id, "matches": sorted(matches, key=lambda x: x["score"], reverse=True)[:10]}

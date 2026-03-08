@@ -20,6 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import OfferImpactSnapshot from './OfferImpactSnapshot';
 import { FEATURE_SALARY_BENCHMARKS } from '../constants';
+import { isRemoteJob } from '../services/commuteService';
 
 interface FinancialCardProps {
     selectedJob: Job;
@@ -50,10 +51,28 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
     setShowFinancialMethodology,
     getTransportIcon
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [showMarketDetails, setShowMarketDetails] = useState(false);
+    const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = locale === 'cs' || locale === 'sk';
+    const remoteRole = isRemoteJob(selectedJob);
     const cur = commuteAnalysis?.financialReality.currency || 'Kč';
     const locationLabel = userProfile.address || t('financial.current_location_label');
+    const takeHomeCopy = isCsLike
+        ? {
+            title: 'Reálně domů',
+            subtitle: 'Po daních, odvodech a dojezdu',
+            contractor: 'počítáno jako IČO',
+            employee: 'počítáno jako zaměstnanec',
+            family: 'děti v profilu'
+        }
+        : {
+            title: 'Real take-home',
+            subtitle: 'After taxes, deductions, and commute',
+            contractor: 'calculated as contractor',
+            employee: 'calculated as employee',
+            family: 'children in profile'
+        };
     const salaryBenchmarkReady = !!salaryBenchmark && !salaryBenchmark.insufficient_data;
     const salaryCurrency = salaryBenchmark?.currency || cur;
     const salaryTierLabel = salaryBenchmarkReady && salaryBenchmark?.delta_vs_p50 !== undefined
@@ -158,7 +177,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
             {showCommuteDetails && commuteAnalysis && (
                 <div className="grid grid-cols-1 md:grid-cols-2">
                     <div className="p-6 border-r border-slate-700 flex flex-col justify-center">
-                        {selectedJob.type === 'Remote' ? (
+                        {remoteRole ? (
                             <div className="text-center py-2">
                                 <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
                                 <h4 className="text-white font-bold text-lg mb-1">{t('financial.home_office')}</h4>
@@ -205,6 +224,29 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     </div>
                     <div className="flex flex-col">
                         <div className="flex-1">
+                            <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+                                            {takeHomeCopy.title}
+                                        </div>
+                                        <div className="mt-1 text-xs text-emerald-100/80">
+                                            {takeHomeCopy.subtitle}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-white">
+                                            {commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} {cur}
+                                        </div>
+                                        <div className="mt-1 text-[11px] text-emerald-200/80">
+                                            {commuteAnalysis.financialReality.isIco ? takeHomeCopy.contractor : takeHomeCopy.employee}
+                                            {userProfile.taxProfile?.childrenCount
+                                                ? ` • ${userProfile.taxProfile.childrenCount} ${takeHomeCopy.family}`
+                                                : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <OfferImpactSnapshot
                                 title={
                                     <span className="inline-flex items-center gap-2">

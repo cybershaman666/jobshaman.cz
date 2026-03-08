@@ -48,6 +48,7 @@ const resolveRequestTimeoutMs = (url: string): number => {
     if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
     if (path === '/jobs/interactions/state') return 12_000;
     if (path === '/jobs/recommendations') return RECOMMENDATIONS_FETCH_TIMEOUT_MS;
+    if (/^\/jobs\/[^/]+\/application-draft$/.test(path)) return AI_FETCH_TIMEOUT_MS;
     if (path === '/assessments/invitations') return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path.startsWith('/assessments/invitations/')) return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path === '/jobs/hybrid-search' || path === '/jobs/hybrid-search-v2') return HYBRID_FETCH_TIMEOUT_MS;

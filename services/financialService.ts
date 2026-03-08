@@ -2,6 +2,7 @@
 import { Job, UserProfile, FinancialReality, BenefitValuation, SupportedCountryCode, TaxProfile } from '../types';
 import { convertCurrency, getExchangeRateSnapshot } from './exchangeRatesService';
 import { computeTaxByProfile, createDefaultTaxProfile, DEFAULT_TAX_YEAR } from './taxEngine';
+import { matchesIcoKeywords } from '../utils/contractType';
 
 // MVP Benefit values - Conservative estimates based on CZ market averages
 // Base is EUR, 1 EUR ~ 25 CZK
@@ -144,6 +145,26 @@ export const detectCurrencyFromLocation = (location: string): string => {
   return 'CZK';
 }
 
+export const detectCurrencyForJob = (job: Pick<Job, 'location' | 'country_code' | 'source' | 'type' | 'work_model'>): string => {
+  const countryCode = String(job.country_code || '').toLowerCase();
+  if (countryCode === 'at' || countryCode === 'de' || countryCode === 'sk') return '€';
+  if (countryCode === 'pl') return 'PLN';
+  if (countryCode === 'cs' || countryCode === 'cz') return 'CZK';
+
+  const source = String(job.source || '').toLowerCase();
+  const workModel = `${job.type || ''} ${job.work_model || ''}`.toLowerCase();
+  const location = String(job.location || '').toLowerCase();
+
+  if (
+    (source.includes('weworkremotely') || source.includes('arbeitnow')) &&
+    (workModel.includes('remote') || location.includes('remote') || location.includes('anywhere') || location.includes('europe'))
+  ) {
+    return '€';
+  }
+
+  return detectCurrencyFromLocation(job.location || '');
+};
+
 const hasYearlyMarker = (text: string): boolean =>
   /(?:\/\s*rok|ročn|rocni|rok|year|annual|annually|jahr|jährlich|jaehrlich|rocznie|rok(?:u)?|p\.a\.)/i.test(text);
 
@@ -213,20 +234,25 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   const cleanString = salaryRange.replace(/,/g, '').replace(/\s/g, '');
   const lower = salaryRange.toLowerCase();
 
-  // Extract first number found
-  const match = cleanString.match(/(\d+)/);
-  if (!match) return 0;
+  const numberMatches = cleanString.match(/\d+/g);
+  if (!numberMatches || numberMatches.length === 0) return 0;
 
-  let value = parseInt(match[0], 10);
+  const values = numberMatches.slice(0, 2).map((value) => parseInt(value, 10));
   const currency = detectCurrency(salaryRange);
+  const hasRangeSeparator = /(?:-|–|—| až | to | od .* do )/i.test(lower);
 
   // Detect annual vs monthly
   const hasThousandSuffix = /\d+\s*k(?!\s*(č|c|czk))\b/.test(lower); // e.g. 85k, but not Kč/CZK
   const isAnnualByText = hasYearlyMarker(lower) && !hasMonthlyMarker(lower) && !hasShortTimeframeMarker(lower);
 
   // Handle "k" suffix (e.g. 85k)
-  if (hasThousandSuffix && value < 1000) {
-    value *= 1000;
+  const normalizedValues = hasThousandSuffix
+    ? values.map((value) => (value < 1000 ? value * 1000 : value))
+    : values;
+
+  let value = normalizedValues[0];
+  if (normalizedValues.length > 1 && hasRangeSeparator) {
+    value = Math.round((normalizedValues[0] + normalizedValues[1]) / 2);
   }
 
   if (hasShortTimeframeMarker(lower)) {
@@ -241,7 +267,7 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   return value;
 };
 
-export const calculateBenefitsValue = (benefits: string[], currency: string, grossMonthlySalary?: number): number => {
+export const calculateBenefitsValue = (benefits: string[], currency: string, _grossMonthlySalary?: number): number => {
   const currencyCode = normalizeCurrencyCode(currency);
   const multiplier = convertCurrency(1, 'EUR', currencyCode);
 
@@ -260,11 +286,6 @@ export const calculateBenefitsValue = (benefits: string[], currency: string, gro
         break; // Match first keyword in this benefit string and move to next benefit string
       }
     }
-  }
-
-  // Add conservative bonus/prémie estimate based on salary (2,000 Kč = 80 EUR)
-  if (grossMonthlySalary && grossMonthlySalary > 0) {
-    totalValue += (80 * multiplier);
   }
 
   return Math.round(totalValue);
@@ -484,7 +505,7 @@ export const calculateFinancialReality = async (
   // Detect currency first so salary_from conversion can use it.
   const currency = job.salaryRange
     ? detectCurrency(job.salaryRange)
-    : detectCurrencyFromLocation(job.location);
+    : detectCurrencyForJob(job);
 
   // Extract salary information
   const rawSalaryFrom = job.salary_from || 0;
@@ -529,9 +550,11 @@ export const calculateFinancialReality = async (
 
   // Calculate net monthly (country-specific, versioned tax engine)
   const grossMonthly = baseSalary + (benefitsValue / 12);
+  const contractorMode = userProfile.taxProfile?.employmentType === 'contractor'
+    || matchesIcoKeywords(job.type, job.description, job.title);
   const taxResult = estimateNetSalaryByCountry(
     grossMonthly,
-    userProfile.taxProfile?.employmentType === 'contractor',
+    contractorMode,
     job.country_code,
     job.location,
     currency,
@@ -551,7 +574,7 @@ export const calculateFinancialReality = async (
     avoidedCommuteCost: 0, // Could be calculated for remote jobs
     finalRealMonthlyValue: Math.max(0, netAfterCommute),
     scoreAdjustment: calculateFinancialScoreAdjustment(taxResult.net, baseSalary, benefitsValue, convertedCommuteCost),
-    isIco: userProfile.taxProfile?.employmentType === 'contractor',
+    isIco: contractorMode,
     taxBreakdown: taxResult.breakdown,
     ruleVersion: `${taxResult.ruleVersion}@fx-${ratesSnapshot.asOf}`,
     commuteDetails

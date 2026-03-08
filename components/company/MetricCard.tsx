@@ -14,15 +14,15 @@ const MetricCard: React.FC<MetricCardProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`company-surface-elevated rounded-[1rem] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-3.5 shadow-[0_18px_34px_-32px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(2,6,23,0.92))] ${className}`.trim()}>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+    <div className={`company-surface-elevated rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)] ${className}`.trim()}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
         {label}
       </div>
-      <div className="mt-2.5 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+      <div className="mt-2.5 text-2xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
         {value}
       </div>
       {hint ? (
-        <div className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+        <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
           {hint}
         </div>
       ) : null}

@@ -133,10 +133,10 @@ const CompanyJobsWorkspace: React.FC<CompanyJobsWorkspaceProps> = ({
                     </div>
 
                     {(firstReply || companyTruthHard || companyTruthFail) && (
-                      <div className="space-y-2 rounded-[0.95rem] border border-cyan-200/70 bg-cyan-50/60 p-3 dark:border-cyan-900/30 dark:bg-cyan-950/15">
-                        {firstReply && (
+                    <div className="space-y-2 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
+                      {firstReply && (
                           <div>
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                               {t('company.job_editor.handshake.first_reply', { defaultValue: 'First reply' })}
                             </div>
                             <div className="mt-1 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
@@ -178,7 +178,7 @@ const CompanyJobsWorkspace: React.FC<CompanyJobsWorkspaceProps> = ({
                       </button>
                       <button
                         onClick={() => onCreateAssessment(job.id)}
-                        className="rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 dark:border-cyan-900/30 dark:bg-cyan-950/20 dark:text-cyan-300 dark:hover:bg-cyan-950/40"
+                        className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:opacity-90"
                       >
                         {t('company.dashboard.actions.create_assessment', { defaultValue: 'Set up assessment' })}
                       </button>

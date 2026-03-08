@@ -1,0 +1,32 @@
+desired_titles:
+- Full Stack Developer
+- Backend Developer
+- AI Engineer
+required_keywords:
+- python
+- fastapi
+optional_keywords:
+- typescript
+- react
+- llm
+- ai
+excluded_keywords:
+- php
+- onsite only
+locations:
+- remote
+- europe
+remote_only: true
+min_salary: 70000
+contract_types:
+- full-time
+language_codes:
+- en
+- cs
+min_match_score: 65.0
+seniority_preferences:
+- senior
+- mid
+notes_for_cover_letter:
+- Preferuji role s vysokou autonomií a reálným dopadem na produkt.
+- Umím převzít ownership od návrhu po nasazení.

@@ -175,8 +175,8 @@ const AssessmentInvitationModal: React.FC<Props> = ({
           {error && <div className="text-sm text-rose-600">{error}</div>}
 
           <div className="flex gap-2 justify-end mt-2">
-            <button onClick={onClose} className="px-4 py-2 rounded bg-slate-100 dark:bg-slate-800">{t('app.cancel')}</button>
-            <button onClick={handleSend} disabled={loading} className="px-4 py-2 rounded bg-cyan-600 text-white">{loading ? t('assessment_invitation_modal.sending') : t('assessment_invitation_modal.send_button')}</button>
+            <button onClick={onClose} className="app-button-secondary !rounded-md !px-4 !py-2">{t('app.cancel')}</button>
+            <button onClick={handleSend} disabled={loading} className="app-button-primary !rounded-md !px-4 !py-2">{loading ? t('assessment_invitation_modal.sending') : t('assessment_invitation_modal.send_button')}</button>
           </div>
         </div>
       </div>

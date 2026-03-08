@@ -154,6 +154,14 @@ class JobApplicationCreateRequest(BaseModel):
     jcfpm_share_level: Optional[Literal["summary", "full_report", "do_not_share"]] = None
     shared_jcfpm_payload: Optional[dict] = None
 
+
+class JobApplicationDraftRequest(BaseModel):
+    cv_document_id: Optional[str] = Field(default=None, max_length=128)
+    tone: Literal["concise", "assertive", "warm"] = "concise"
+    language: str = Field(default="auto", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
+    regenerate: bool = False
+
+
 class JobApplicationStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(pending|reviewed|shortlisted|rejected|hired)$")
 

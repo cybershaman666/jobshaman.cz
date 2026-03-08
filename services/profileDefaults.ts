@@ -1,4 +1,4 @@
-import { JHIPreferences, SupportedCountryCode, TaxProfile } from '../types';
+import { CandidateSearchProfile, JHIPreferences, SupportedCountryCode, TaxProfile } from '../types';
 import { createDefaultTaxProfile, DEFAULT_TAX_YEAR } from './taxEngine';
 
 export const createDefaultJHIPreferences = (): JHIPreferences => ({
@@ -21,6 +21,18 @@ export const createDefaultJHIPreferences = (): JHIPreferences => ({
     careerGrowthPreference: 50,
     homeOfficePreference: 50,
   },
+});
+
+export const createDefaultCandidateSearchProfile = (): CandidateSearchProfile => ({
+  nearBorder: false,
+  dogCount: 0,
+  wantsContractorRoles: false,
+  wantsDogFriendlyOffice: false,
+  wantsRemoteRoles: false,
+  remoteLanguageCodes: ['cs'],
+  preferredBenefitKeys: [],
+  defaultEnableCommuteFilter: false,
+  defaultMaxDistanceKm: 30,
 });
 
 export const createDefaultTaxProfileByCountry = (

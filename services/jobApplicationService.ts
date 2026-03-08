@@ -8,7 +8,9 @@ import {
     DialogueDetail,
     CandidateDialogueCapacity,
     DialogueSummary,
-    CompanyApplicationRow
+    CompanyApplicationRow,
+    ApplicationDraftSuggestion,
+    ApplicationDraftTone,
 } from '../types';
 let companyDialoguesApiUnavailable = false;
 
@@ -32,6 +34,13 @@ export interface DialogueMessageCreatePayload {
 }
 
 export type ApplicationMessageCreatePayload = DialogueMessageCreatePayload;
+
+const normalizeDialogueJobId = (jobId: string | number): number => {
+    if (typeof jobId === 'number') return jobId;
+    const raw = String(jobId || '').trim();
+    const normalized = raw.startsWith('db-') ? raw.slice(3) : raw;
+    return Number(normalized);
+};
 
 export interface OpenDialogueDetails {
     coverLetter?: string | null;
@@ -70,6 +79,23 @@ export type CreateJobApplicationResult = {
     application_id?: string;
     application?: DialogueDossier;
     candidate_capacity?: CandidateDialogueCapacity;
+};
+
+export interface GenerateApplicationDraftPayload {
+    cvDocumentId?: string | null;
+    tone?: ApplicationDraftTone;
+    language?: string;
+    regenerate?: boolean;
+}
+
+const parseErrorDetail = async (response: Response, fallback: string): Promise<string> => {
+    try {
+        const payload = await response.json();
+        if (payload?.detail) return String(payload.detail);
+    } catch {
+        // ignore malformed error payloads
+    }
+    return fallback;
 };
 
 const normalizeDialogueLikeRow = (row: any): any => {
@@ -141,11 +167,15 @@ export const openDialogue = async (
     details?: OpenDialogueDetails
 ): Promise<OpenDialogueResult | null> => {
     try {
+        const normalizedJobId = normalizeDialogueJobId(jobId);
+        if (!Number.isFinite(normalizedJobId)) {
+            return null;
+        }
         const response = await authenticatedFetch(`${BACKEND_URL}/dialogues`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                job_id: Number(jobId),
+                job_id: normalizedJobId,
                 source: source || null,
                 metadata: metadata || null,
                 cover_letter: details?.coverLetter || null,
@@ -168,6 +198,43 @@ export const openDialogue = async (
     } catch {
         return null;
     }
+};
+
+export const generateApplicationDraft = async (
+    jobId: string | number,
+    payload: GenerateApplicationDraftPayload = {}
+): Promise<ApplicationDraftSuggestion> => {
+    const normalizedJobId = normalizeDialogueJobId(jobId);
+    if (!Number.isFinite(normalizedJobId)) {
+        throw new Error('Invalid job ID');
+    }
+
+    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/${normalizedJobId}/application-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            cv_document_id: payload.cvDocumentId || null,
+            tone: payload.tone || 'concise',
+            language: payload.language || 'auto',
+            regenerate: Boolean(payload.regenerate),
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(await parseErrorDetail(response, 'Nepodařilo se připravit návrh odpovědi.'));
+    }
+
+    const data = await response.json();
+    return {
+        draftText: String(data?.draft_text || ''),
+        fitScore: typeof data?.fit_score === 'number' ? data.fit_score : null,
+        fitReasons: Array.isArray(data?.fit_reasons) ? data.fit_reasons.map((item: unknown) => String(item)) : [],
+        fitWarnings: Array.isArray(data?.fit_warnings) ? data.fit_warnings.map((item: unknown) => String(item)) : [],
+        language: String(data?.language || 'cs'),
+        tone: String(data?.tone || payload.tone || 'concise') as ApplicationDraftTone,
+        usedFallback: Boolean(data?.used_fallback),
+        modelMeta: data?.model_meta && typeof data.model_meta === 'object' ? data.model_meta : null,
+    };
 };
 
 export const fetchCompanyDialogueDetail = async (

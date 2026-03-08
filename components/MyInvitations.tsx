@@ -138,7 +138,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
               : t('my_invitations.candidate_hint', { defaultValue: 'Resume invited assessments without leaving your dialogue flow.' })}
           </p>
         </div>
-        <button onClick={load} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800">{t('my_invitations.refresh')}</button>
+        <button onClick={load} className="app-button-secondary rounded-full px-3 py-1.5 text-sm text-slate-500 dark:text-slate-300 hover:!text-[var(--accent)]">{t('my_invitations.refresh')}</button>
       </div>
 
       {loading && <div className="text-sm text-slate-500 animate-pulse">{t('my_invitations.loading')}</div>}
@@ -172,7 +172,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
               <div className="flex items-center gap-3">
                 <div className={`rounded-full px-3 py-1 text-sm font-bold ${inv.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                   inv.status === 'expired' ? 'bg-slate-100 text-slate-500' :
-                    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400'
+                    'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)]'
                   }`}>
                   {inv.status === 'pending' ? t('my_invitations.status_pending') :
                     inv.status === 'completed' ? t('my_invitations.status_completed') : t('my_invitations.status_expired')}
@@ -181,7 +181,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
                 {inv.status === 'pending' && !forCompany && (
                   <button
                     onClick={() => handleStartAssessment(inv)}
-                    className="rounded-[0.95rem] bg-cyan-600 px-4 py-2 text-white font-bold shadow-[0_18px_32px_-22px_rgba(8,145,178,0.45)] transition-colors hover:bg-cyan-500 active:scale-95"
+                    className="rounded-[0.95rem] bg-[var(--accent)] px-4 py-2 font-bold text-white shadow-[0_18px_32px_-22px_rgba(var(--accent-rgb),0.38)] transition-colors hover:bg-[var(--accent-hover)] active:scale-95"
                   >
                     {t('my_invitations.start_test')}
                   </button>

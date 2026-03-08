@@ -168,23 +168,23 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
         <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)] gap-4 animate-in fade-in">
             {/* Sidebar Navigation */}
             <div className="space-y-3">
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm xl:sticky xl:top-4">
-                    <div className="pb-3 border-b border-slate-200 dark:border-slate-800">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-300">
+                <div className="company-surface rounded-[var(--radius-lg)] border p-3 shadow-[var(--shadow-soft)] xl:sticky xl:top-[var(--app-header-offset)]">
+                    <div className="border-b border-[var(--border-subtle)] pb-3">
+                        <div className="app-eyebrow">
                             <Sparkles size={12} />
                             {t('company.settings.title')}
                         </div>
-                        <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
+                        <h2 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
                             {t('company.settings.workspace_title', { defaultValue: 'Company operating setup' })}
                         </h2>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
                             {t('company.settings.workspace_desc', { defaultValue: 'Keep company identity, recruiter access, and hiring defaults in one compact workspace.' })}
                         </p>
                     </div>
                     <div className="pt-3 space-y-2">
                         <button
                             onClick={() => setActiveTab('dna')}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                            className={`w-full flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]'}`}
                         >
                             <Sparkles size={17} />
                             <div className="text-left">
@@ -196,7 +196,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         </button>
                         <button
                             onClick={() => setActiveTab('team')}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                            className={`w-full flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]'}`}
                         >
                             <Users size={17} />
                             <div className="text-left">
@@ -214,14 +214,14 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                     {summaryCards.map((card) => (
-                        <div key={card.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-                            <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+                        <div key={card.id} className="company-surface rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)]">
+                            <div className="mb-2 text-[11px] uppercase tracking-widest text-[var(--text-faint)]">
                                 {card.label}
                             </div>
-                            <div className="text-xl font-bold text-slate-900 dark:text-white">
+                            <div className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
                                 {card.value}
                             </div>
-                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
                                 {card.hint}
                             </div>
                         </div>
@@ -229,33 +229,33 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 </div>
 
                 {activeTab === 'dna' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm relative overflow-hidden">
+                    <div className="company-surface rounded-[var(--radius-lg)] border p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                            <div className="rounded-[var(--radius-md)] bg-[var(--accent-soft)] p-2 text-[var(--accent)]">
                                 <Target size={24} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('company.settings.culture_title')}</h3>
-                                <p className="text-sm text-slate-500">{t('company.settings.culture_desc')}</p>
+                                <h3 className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{t('company.settings.culture_title')}</h3>
+                                <p className="text-sm text-[var(--text-muted)]">{t('company.settings.culture_desc')}</p>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             {/* Company Logo */}
                             <div>
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label className="app-field-label">
                                     <Building2 size={16} /> {t('company.settings.logo')}
                                 </label>
                                 <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)]">
                                         {localProfile.logo_url ? (
                                             <img src={localProfile.logo_url} alt={localProfile.name} className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-lg font-bold text-slate-500">{localProfile.name?.charAt(0) || 'C'}</span>
+                                            <span className="text-lg font-bold text-[var(--text-faint)]">{localProfile.name?.charAt(0) || 'C'}</span>
                                         )}
                                     </div>
                                     <div>
-                                        <label className="inline-flex items-center px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-semibold cursor-pointer">
+                                        <label className="app-button-secondary cursor-pointer rounded-[var(--radius-md)] px-4 py-2">
                                             {logoUploading ? (t('company.settings.logo_uploading') || 'Nahrávám...') : (t('company.settings.logo_btn') || 'Nahrát logo')}
                                             <input
                                                 type="file"
@@ -265,7 +265,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                                 onChange={(e) => handleLogoUpload(e.target.files?.[0] || null)}
                                             />
                                         </label>
-                                        <div className="text-xs text-slate-500 mt-1">
+                                        <div className="mt-1 text-xs text-[var(--text-muted)]">
                                             {t('company.settings.logo_hint') || 'Doporučeno: čtverec, min. 300×300 px'}
                                         </div>
                                     </div>
@@ -275,7 +275,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                             {/* Basic Company Info */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="company-name" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-name" className="app-field-label">
                                         <Building2 size={16} /> {t('company.settings.name')}
                                     </label>
                                     <input
@@ -283,13 +283,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-name"
                                         type="text"
                                         placeholder={t('company.settings.name_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.name || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company-ico" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-ico" className="app-field-label">
                                         <Shield size={16} /> {t('company.settings.ico')}
                                     </label>
                                     <input
@@ -297,13 +297,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-ico"
                                         type="text"
                                         placeholder={t('company.settings.ico_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.ico || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, ico: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company-dic" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-dic" className="app-field-label">
                                         <Shield size={16} /> {t('company.settings.dic')}
                                     </label>
                                     <input
@@ -311,13 +311,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-dic"
                                         type="text"
                                         placeholder={t('company.settings.dic_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.dic || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, dic: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company-website" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-website" className="app-field-label">
                                         <Briefcase size={16} /> {t('company.settings.website')}
                                     </label>
                                     <input
@@ -325,13 +325,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-website"
                                         type="url"
                                         placeholder={t('company.settings.website_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.website || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, website: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company-legal-address" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-legal-address" className="app-field-label">
                                         <Building2 size={16} /> {t('company.settings.legal_address')}
                                     </label>
                                     <input
@@ -339,13 +339,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-legal-address"
                                         type="text"
                                         placeholder={t('company.settings.legal_address_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.legal_address || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, legal_address: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company-registry" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-registry" className="app-field-label">
                                         <Shield size={16} /> {t('company.settings.registry_info')}
                                     </label>
                                     <input
@@ -353,7 +353,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-registry"
                                         type="text"
                                         placeholder={t('company.settings.registry_info_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.registry_info || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, registry_info: e.target.value })}
                                     />
@@ -362,13 +362,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
 
                             {/* Mission / Philosophy */}
                             <div>
-                                <label htmlFor="company-mission" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label htmlFor="company-mission" className="app-field-label">
                                     <MessageSquare size={16} /> {t('company.settings.mission')}
                                 </label>
                                 <textarea
                                     id="company-mission"
                                     name="company-mission"
-                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px] dark:[color-scheme:dark]"
+                                    className="app-input-field min-h-[100px]"
                                     value={localProfile.philosophy || ''}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
                                     placeholder={t('company.settings.mission_placeholder')}
@@ -378,13 +378,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                             {/* Tone of Voice */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="company-tone" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-tone" className="app-field-label">
                                         <Heart size={16} /> {t('company.settings.tone')}
                                     </label>
                                     <select
                                         id="company-tone"
                                         name="company-tone"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={localProfile.tone}
                                         onChange={(e) => setLocalProfile({ ...localProfile, tone: e.target.value })}
                                     >
@@ -396,13 +396,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 </div>
 
                                 <div>
-                                    <label htmlFor="company-size" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-size" className="app-field-label">
                                         <Building2 size={16} /> {t('company.settings.size')}
                                     </label>
                                     <select
                                         id="company-size"
                                         name="company-size"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={(localProfile as any).company_size || '1-10'}
                                         onChange={(e) => setLocalProfile({ ...localProfile, company_size: e.target.value } as any)}
                                     >
@@ -415,7 +415,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label htmlFor="company-industry" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-industry" className="app-field-label">
                                         <Target size={16} /> {t('company.settings.industry')}
                                     </label>
                                     <input
@@ -423,14 +423,14 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-industry"
                                         type="text"
                                         placeholder={t('company.settings.industry_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 dark:[color-scheme:dark]"
+                                        className="app-input-field"
                                         value={(localProfile as any).field_of_business || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, field_of_business: e.target.value } as any)}
                                     />
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label htmlFor="company-address" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-address" className="app-field-label">
                                         <Briefcase size={16} /> {t('company.settings.address')}
                                     </label>
                                     <input
@@ -438,7 +438,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-address"
                                         type="text"
                                         placeholder={t('company.settings.address_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="app-input-field"
                                         value={localProfile.address || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, address: e.target.value })}
                                     />
@@ -447,12 +447,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
 
                             {/* Values Tags */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('company.settings.values')}</label>
+                                <label className="app-field-label !mb-2">{t('company.settings.values')}</label>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {localProfile.values.map((val, idx) => (
-                                        <span key={idx} className="bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+                                        <span key={idx} className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-1 text-sm font-medium text-[var(--accent)]">
                                             {val}
-                                            <button onClick={() => removeValue(val)} className="hover:text-cyan-900 dark:hover:text-white"><X size={14} /></button>
+                                            <button onClick={() => removeValue(val)} className="hover:opacity-80"><X size={14} /></button>
                                         </span>
                                     ))}
                                 </div>
@@ -462,13 +462,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         id="add-value"
                                         name="add-value"
                                         type="text"
-                                        className="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="app-input-field flex-1"
                                         placeholder={t('company.settings.add_value_placeholder')}
                                         value={newValue}
                                         onChange={(e) => setNewValue(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && addValue()}
                                     />
-                                    <button onClick={addValue} className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+                                    <button onClick={addValue} className="app-button-secondary rounded-[var(--radius-md)] px-4 py-2">
                                         {t('company.settings.add_btn')}
                                     </button>
                                 </div>
@@ -478,19 +478,19 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 )}
 
                 {activeTab === 'team' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div className="company-surface rounded-[var(--radius-lg)] border p-5 shadow-[var(--shadow-card)]">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                                <div className="rounded-[var(--radius-md)] bg-[var(--accent-soft)] p-2 text-[var(--accent)]">
                                     <Users size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('company.settings.team_mgmt')}</h3>
-                                    <p className="text-sm text-slate-500">{t('company.settings.team_mgmt_desc')}</p>
+                                    <h3 className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{t('company.settings.team_mgmt')}</h3>
+                                    <p className="text-sm text-[var(--text-muted)]">{t('company.settings.team_mgmt_desc')}</p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm font-medium text-slate-500">
+                                <span className="text-sm font-medium text-[var(--text-muted)]">
                                     {t('company.settings.plan_label')} {profile.subscription?.tier === 'professional' ? t('company.subscription.tiers.professional', { defaultValue: 'Professional' }) : profile.subscription?.tier === 'growth' ? t('company.subscription.tiers.growth', { defaultValue: 'Growth' }) : profile.subscription?.tier === 'starter' ? t('company.subscription.tiers.starter', { defaultValue: 'Starter' }) : profile.subscription?.tier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' }) : t('company.subscription.tiers.free')}
                                 </span>
                                 {profile.subscription?.expiresAt && (
@@ -507,17 +507,17 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         </div>
 
                         {/* Invite Form */}
-                        <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
-                            <label htmlFor="invite-email" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.settings.invite_colleague')}</label>
+                        <div className="company-surface-soft mb-4 rounded-[var(--radius-md)] border p-3">
+                            <label htmlFor="invite-email" className="block text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-2">{t('company.settings.invite_colleague')}</label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
-                                    <Mail size={16} className="absolute left-3 top-3.5 text-slate-400" />
+                                    <Mail size={16} className="absolute left-3 top-3.5 text-[var(--text-faint)]" />
                                     <input
                                         id="invite-email"
                                         name="invite-email"
                                         type="email"
                                         placeholder={t('company.settings.invite_placeholder')}
-                                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        className="app-input-field pl-10"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
                                     />
@@ -525,7 +525,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 <button
                                     onClick={handleInvite}
                                     disabled={!inviteEmail || isInviting}
-                                    className="px-6 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="app-button-primary rounded-[var(--radius-md)] px-6 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {isInviting ? <Sparkles className="animate-spin" size={18} /> : <UserPlus size={18} />}
                                     {t('company.settings.invite_btn')}
@@ -536,23 +536,23 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         {/* Members List */}
                         <div className="space-y-2.5">
                             {members.map(member => (
-                                <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                <div key={member.id} className="group flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--surface-muted)]">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-muted)] font-bold text-[var(--text-muted)]">
                                             {member.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                            <div className="flex items-center gap-2 font-semibold text-[var(--text-strong)]">
                                                 {member.name}
-                                                {member.role === 'admin' && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1"><Shield size={10} /> {t('company.settings.admin_label')}</span>}
+                                                {member.role === 'admin' && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"><Shield size={10} /> {t('company.settings.admin_label')}</span>}
                                             </div>
-                                            <div className="text-xs text-slate-500">{member.email}</div>
+                                            <div className="text-xs text-[var(--text-muted)]">{member.email}</div>
                                         </div>
                                     </div>
                                     {member.role !== 'admin' && (
                                         <button
                                             onClick={() => removeMember(member.id)}
-                                            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                            className="rounded-[var(--radius-sm)] p-2 text-[var(--text-faint)] opacity-0 transition-colors group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500"
                                             title="Odebrat z týmu"
                                         >
                                             <X size={18} />
@@ -564,11 +564,11 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                     </div>
                 )}
 
-                <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex justify-end border-t border-[var(--border-subtle)] pt-3">
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20 flex items-center gap-2 disabled:opacity-50"
+                        className="app-button-primary rounded-[var(--radius-md)] px-8 py-3 disabled:opacity-50"
                     >
                         <Save size={18} />
                         {isSaving ? t('common.saving') : t('company.settings.save_changes')}
@@ -576,24 +576,24 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 </div>
 
                 {/* Danger Zone */}
-                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-                    <h3 className="text-lg font-bold text-rose-600 mb-4 flex items-center gap-2">
+                <div className="mt-6 border-t border-[var(--border-subtle)] pt-6">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-rose-600">
                         <AlertCircle className="w-5 h-5" />
                         {t('profile.danger_zone_title') || 'Nebezpečná zóna'}
                     </h3>
-                    <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-xl p-4">
+                    <div className="rounded-[var(--radius-lg)] border border-rose-200 bg-rose-50 p-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white mb-1">
+                                <h4 className="mb-1 font-semibold text-[var(--text-strong)]">
                                     {t('profile.delete_account_title') || 'Smazat účet'}
                                 </h4>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <p className="text-sm text-[var(--text-muted)]">
                                     {t('profile.delete_account_desc') || 'Trvale smaže váš účet a všechna přidružená data společnosti. Tuto akci nelze vrátit zpět.'}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="px-6 py-3 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-bold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-[0.98] shadow-sm shadow-rose-500/5 whitespace-nowrap"
+                                className="whitespace-nowrap rounded-[var(--radius-md)] border border-rose-200 bg-white px-6 py-3 font-semibold text-rose-600 transition-all hover:bg-rose-50 active:scale-[0.98]"
                             >
                                 {t('profile.delete_account_btn') || 'Smazat můj účet'}
                             </button>
