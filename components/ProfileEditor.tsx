@@ -238,30 +238,57 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     help: 'Used for default market scope and daily digest targeting when your address is missing or approximate.',
     countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
   };
-  const searchProfileCopy = isCsLikeProfile
+  const searchProfileCopy = localeBase === 'cs'
     ? {
         title: 'Výchozí nastavení hledání',
-        intro: 'Nastavte hledání tak, aby odpovídalo realitě vašeho života: forma práce, dojezd, rodinná situace, psi i benefity, které skutečně potřebujete.',
-        nearBorder: 'Chci snadno hledat i přeshraničně',
+        intro: 'Nastavte hledání tak, aby odpovídalo vaší skutečné situaci: typu práce, dojíždění, rodině, psům i benefitům, na kterých vám opravdu záleží.',
+        nearBorder: 'Chci snadno hledat i přes hranice',
         contractor: 'Primárně hledám práci na IČO / živnost',
-        dogFriendly: 'Chci preferovat dog-friendly kanceláře',
-        childFriendly: 'Potřebuji role vhodné pro rodiče / child-friendly',
+        dogFriendly: 'Chci upřednostňovat kanceláře, kam mohou psi',
+        childFriendly: 'Potřebuji role vhodné pro rodiče',
         avoidShift: 'Chci se vyhýbat směnnému a nočnímu provozu',
-        remote: 'Chci mít připravený remote preset',
-        languages: 'Jazyky pro remote práci',
-        commuteTitle: 'Dojezd a forma dopravy',
-        commuteIntro: 'Tohle nastavení se použije pro commute preset i reality check v marketplace.',
-        commuteToggle: 'Zapnout dojezd jako výchozí filtr',
-        commuteRadius: 'Výchozí radius dojezdu',
-        benefitPriorities: 'Další benefity důležité pro moji situaci',
-        activeSignals: 'Aktivní signály',
+        remote: 'Chci mít připravené hledání práce na dálku',
+        languages: 'Jazyky pro práci na dálku',
+        commuteTitle: 'Dojíždění a způsob dopravy',
+        commuteIntro: 'Toto nastavení se použije při výchozím filtrování dojezdu a při vyhodnocení, zda je nabídka z hlediska cesty pro vás reálně zvládnutelná.',
+        commuteOrigin: 'Výchozí adresa pro dojíždění',
+        commuteOriginMissing: 'Adresa zatím chybí. Doplňte ji v osobních údajích, aby šel dojezd počítat správně.',
+        commuteToggle: 'Používat dojíždění jako výchozí filtr',
+        commuteRadius: 'Výchozí vzdálenost dojezdu',
+        benefitPriorities: 'Další benefity důležité pro vaši situaci',
+        activeSignals: 'Aktivní preference',
         impactTitle: 'Kde se to projeví',
-        impactMarketplace: 'Marketplace presetů',
+        impactMarketplace: 'Přednastavená hledání',
         impactSaved: 'Uložená hledání',
-        impactFeed: 'Můj feed nabídek',
-        helper: 'Tyto preference se propsají do presetů v marketplace, uložených hledání a hlavního přehledu nabídek.',
+        impactFeed: 'Váš hlavní přehled nabídek',
+        helper: 'Tyto preference se promítnou do přednastavených hledání, uložených filtrů i hlavního přehledu nabídek.',
       }
-    : {
+    : localeBase === 'sk'
+      ? {
+          title: 'Predvolené nastavenie hľadania',
+          intro: 'Nastavte hľadanie tak, aby zodpovedalo vašej skutočnej situácii: typu práce, dochádzaniu, rodine, psom aj benefitom, na ktorých vám naozaj záleží.',
+          nearBorder: 'Chcem jednoducho hľadať aj cez hranice',
+          contractor: 'Primárne hľadám prácu na živnosť / kontrakt',
+          dogFriendly: 'Chcem uprednostňovať kancelárie, kam môžu psy',
+          childFriendly: 'Potrebujem roly vhodné pre rodičov',
+          avoidShift: 'Chcem sa vyhýbať zmenovej a nočnej prevádzke',
+          remote: 'Chcem mať pripravené hľadanie práce na diaľku',
+          languages: 'Jazyky pre prácu na diaľku',
+          commuteTitle: 'Dochádzanie a spôsob dopravy',
+          commuteIntro: 'Toto nastavenie sa použije pri predvolenom filtrovaní dochádzania a pri vyhodnotení, či je ponuka z pohľadu cesty pre vás reálne zvládnuteľná.',
+          commuteOrigin: 'Východisková adresa pre dochádzanie',
+          commuteOriginMissing: 'Adresa zatiaľ chýba. Doplňte ju v osobných údajoch, aby sa dochádzanie dalo počítať správne.',
+          commuteToggle: 'Používať dochádzanie ako predvolený filter',
+          commuteRadius: 'Predvolená vzdialenosť dochádzania',
+          benefitPriorities: 'Ďalšie benefity dôležité pre vašu situáciu',
+          activeSignals: 'Aktívne preferencie',
+          impactTitle: 'Kde sa to prejaví',
+          impactMarketplace: 'Prednastavené hľadania',
+          impactSaved: 'Uložené hľadania',
+          impactFeed: 'Váš hlavný prehľad ponúk',
+          helper: 'Tieto preferencie sa premietnu do prednastavených hľadaní, uložených filtrov aj hlavného prehľadu ponúk.',
+        }
+      : {
         title: 'Search setup',
         intro: 'Set search defaults around the actual reality of your life: work mode, commute, family context, dogs, and benefits that matter.',
         nearBorder: 'I live near a border and want cross-border search to stay easy',
@@ -273,6 +300,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         languages: 'Languages I can use in remote roles',
         commuteTitle: 'Commute and transport mode',
         commuteIntro: 'This becomes part of your commute preset and marketplace reality checks.',
+        commuteOrigin: 'Starting address for commute',
+        commuteOriginMissing: 'Your address is missing. Add it in personal details so commute can be calculated correctly.',
         commuteToggle: 'Use commute as a default filter',
         commuteRadius: 'Default commute radius',
         benefitPriorities: 'Additional benefits relevant to my situation',
@@ -580,6 +609,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   // Form state for different sections
   const [formData, setFormData] = useState(() => buildFormDataFromProfile(profile));
+  const commuteOriginAddress = String(formData.personal.address || profile.address || '').trim();
 
   useEffect(() => {
     setFormData(buildFormDataFromProfile(profile));
@@ -1172,7 +1202,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.commuteIntro}</p>
               </div>
-              <div className="grid min-w-[220px] gap-2 sm:grid-cols-2">
+              <div className="grid min-w-[220px] gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                     {isCsLikeProfile ? 'Výchozí dojezd' : 'Default commute'}
@@ -1188,6 +1218,19 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="mt-1 text-sm font-semibold text-[var(--text-strong)]">
                     {t(`profile.transport_mode.${profile.transportMode || 'public'}`)}
                   </div>
+                </div>
+                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5 sm:col-span-2 xl:col-span-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                    {searchProfileCopy.commuteOrigin}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--text-strong)] break-words">
+                    {commuteOriginAddress || (isCsLikeProfile ? 'Neuvedeno' : 'Not set')}
+                  </div>
+                  {!commuteOriginAddress ? (
+                    <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                      {searchProfileCopy.commuteOriginMissing}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1682,21 +1725,72 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   const syncDogFriendlySetup = (checked: boolean) => {
-    handleSearchProfileChange('wantsDogFriendlyOffice', checked);
     const current = formData.searchProfile.preferredBenefitKeys || [];
-    const next = checked
+    const nextBenefitKeys = checked
       ? Array.from(new Set([...current, 'dog_friendly']))
       : current.filter((item) => item !== 'dog_friendly');
-    handleSearchProfileChange('preferredBenefitKeys', next);
+    const nextSearchProfile: CandidateSearchProfile = {
+      ...formData.searchProfile,
+      wantsDogFriendlyOffice: checked,
+      preferredBenefitKeys: nextBenefitKeys,
+    };
+    const nextProfileDraft: UserProfile = {
+      ...profile,
+      jobTitle: formData.personal.jobTitle,
+      workHistory: formData.experience,
+      education: formData.education,
+      skills: formData.skills,
+      preferences: {
+        ...profile.preferences,
+        searchProfile: nextSearchProfile,
+      },
+    };
+    const enrichedSearchProfile = enrichSearchProfileWithInference(nextProfileDraft);
+    setFormData((prev) => ({
+      ...prev,
+      searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile },
+    }));
+    onChange({
+      ...nextProfileDraft,
+      preferences: {
+        ...nextProfileDraft.preferences,
+        searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile },
+      },
+    });
   };
 
   const syncChildFriendlySetup = (checked: boolean) => {
     const childKeys = ['child_friendly', 'childcare_support'];
     const current = formData.searchProfile.preferredBenefitKeys || [];
-    const next = checked
+    const nextSearchProfile: CandidateSearchProfile = {
+      ...formData.searchProfile,
+      preferredBenefitKeys: checked
       ? Array.from(new Set([...current, ...childKeys]))
-      : current.filter((item) => !childKeys.includes(item));
-    handleSearchProfileChange('preferredBenefitKeys', next);
+      : current.filter((item) => !childKeys.includes(item)),
+    };
+    const nextProfileDraft: UserProfile = {
+      ...profile,
+      jobTitle: formData.personal.jobTitle,
+      workHistory: formData.experience,
+      education: formData.education,
+      skills: formData.skills,
+      preferences: {
+        ...profile.preferences,
+        searchProfile: nextSearchProfile,
+      },
+    };
+    const enrichedSearchProfile = enrichSearchProfileWithInference(nextProfileDraft);
+    setFormData((prev) => ({
+      ...prev,
+      searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile },
+    }));
+    onChange({
+      ...nextProfileDraft,
+      preferences: {
+        ...nextProfileDraft.preferences,
+        searchProfile: { ...nextSearchProfile, ...enrichedSearchProfile },
+      },
+    });
   };
 
   const handleNotificationChange = (field: string, value: string | boolean) => {

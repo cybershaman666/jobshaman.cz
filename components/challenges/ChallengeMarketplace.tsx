@@ -114,14 +114,41 @@ const simplifyDescription = (value: string | null | undefined): string => {
     .replace(/\s+/g, ' ')
     .trim();
   if (!plain) return '';
-  if (plain.length <= 180) return plain;
-  return `${plain.slice(0, 177).trim()}...`;
+  if (plain.length <= 132) return plain;
+  return `${plain.slice(0, 129).trim()}...`;
+};
+
+const pickReadableChallengeSlice = (value: string): string => {
+  const plain = simplifyDescription(value);
+  if (!plain) return '';
+
+  const taskMarkerMatch = plain.match(
+    /\b(n[aá]pl[nň]\s+pr[aá]ce|pracovn[ií]\s+n[aá]pl[nň]|job\s+description|responsibilities|your\s+tasks|deine\s+aufgaben|aufgaben|what\s+you(?:'|’)ll\s+do)\s*:\s*(.+)$/i
+  );
+  if (taskMarkerMatch?.[2]) {
+    return simplifyDescription(taskMarkerMatch[2]);
+  }
+
+  const colonIndex = plain.indexOf(':');
+  if (colonIndex > 0) {
+    const before = plain.slice(0, colonIndex).trim();
+    const after = plain.slice(colonIndex + 1).trim();
+    const uppercaseRatio =
+      before.length > 0
+        ? before.replace(/[^A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽÄÖÜß]/g, '').length / Math.max(1, before.replace(/[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽÄÖÜß]/g, '').length)
+        : 0;
+    if (after && (uppercaseRatio > 0.5 || before.length > 36)) {
+      return simplifyDescription(after);
+    }
+  }
+
+  const sentence = plain.split(/(?<=[.!?])\s+/)[0] || plain;
+  return simplifyDescription(sentence);
 };
 
 const getChallengePreview = (job: Job): string => {
   const source = String(job.challenge || job.aiAnalysis?.summary || job.description || '').trim();
-  const sentence = source.split(/(?<=[.!?])\s+/)[0] || source;
-  return simplifyDescription(sentence || job.title);
+  return pickReadableChallengeSlice(source || job.title);
 };
 
 const getRiskPreview = (job: Job): string => {
@@ -1443,7 +1470,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                                   {copy.challengeLabel}
                                 </div>
-                                <h4 className="mt-2 max-w-4xl text-xl font-semibold leading-snug tracking-[-0.04em] text-[var(--text-strong)] md:text-[1.7rem]">
+                                <h4 className="mt-2 max-w-3xl text-lg font-semibold leading-snug tracking-[-0.03em] text-[var(--text-strong)] md:text-[1.35rem]">
                                   {getChallengePreview(job)}
                                 </h4>
                               </div>

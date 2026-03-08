@@ -35,8 +35,10 @@ interface AppHeaderProps {
   onIntentionalListClick?: () => void;
   discoveryLane?: 'challenges' | 'imports';
   setDiscoveryLane?: (lane: 'challenges' | 'imports') => void;
+  discoverySearchMode?: boolean;
   onOpenInsights?: () => void;
   onOpenDiscoverySearch?: () => void;
+  setDiscoverySearchMode?: (active: boolean) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -58,8 +60,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onIntentionalListClick,
   discoveryLane = 'challenges',
   setDiscoveryLane,
+  discoverySearchMode = false,
   onOpenInsights,
-  onOpenDiscoverySearch
+  onOpenDiscoverySearch,
+  setDiscoverySearchMode
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -101,6 +105,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setIsOnboardingCompany(false);
     setSelectedJobId(null);
     setDiscoveryLane?.('challenges');
+    setDiscoverySearchMode?.(false);
     setViewState(ViewState.LIST);
     window.setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -121,6 +126,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setSelectedJobId(null);
     setViewState(ViewState.LIST);
     setDiscoveryLane?.(lane);
+    setDiscoverySearchMode?.(focusSearch);
     if (focusSearch) {
       onOpenDiscoverySearch?.();
       return;
@@ -132,13 +138,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     {
       key: 'overview',
       label: isCsLike ? 'Úvod' : 'Overview',
-      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges',
+      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && !discoverySearchMode,
       onClick: openHomeOverview
     },
     {
       key: 'search',
       label: isCsLike ? 'Hledání a filtry' : 'Search and filters',
-      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges',
+      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoverySearchMode,
       onClick: () => openDiscoveryLane('challenges', true)
     },
     {
@@ -150,6 +156,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         setShowCompanyLanding(false);
         setIsOnboardingCompany(false);
         setIsBlogOpen?.(false);
+        setDiscoverySearchMode?.(false);
         setViewState(ViewState.SAVED);
         setSelectedJobId(null);
         setSelectedBlogPostSlug?.(null);
@@ -214,6 +221,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     onIntentionalListClick?.();
     setDiscoveryLane?.('challenges');
+    setDiscoverySearchMode?.(false);
     setIsBlogOpen?.(false);
     setViewState(ViewState.LIST);
     setSelectedJobId(null);
@@ -241,6 +249,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       setShowCompanyLanding(false);
       setIsBlogOpen?.(false);
       setSelectedBlogPostSlug?.(null);
+      setDiscoverySearchMode?.(false);
       setViewState(ViewState.LIST);
       return;
     }
@@ -253,6 +262,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     if (companyProfile) {
       setIsBlogOpen?.(false);
       setSelectedBlogPostSlug?.(null);
+      setDiscoverySearchMode?.(false);
       setViewState(ViewState.COMPANY_DASHBOARD);
       return;
     }
@@ -265,6 +275,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           setIsOnboardingCompany(false);
           setIsBlogOpen?.(false);
           setSelectedBlogPostSlug?.(null);
+          setDiscoverySearchMode?.(false);
           setViewState(ViewState.COMPANY_DASHBOARD);
           return;
         }
@@ -388,6 +399,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     setShowCompanyLanding(false);
                     setIsOnboardingCompany(false);
                     setIsBlogOpen?.(false);
+                    setDiscoverySearchMode?.(false);
                     setViewState(ViewState.PROFILE);
                     setSelectedJobId(null);
                     setSelectedBlogPostSlug?.(null);

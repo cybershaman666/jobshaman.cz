@@ -152,6 +152,7 @@ export default function App() {
         return null;
     });
     const [discoveryLane, setDiscoveryLane] = useState<'challenges' | 'imports'>('challenges');
+    const [discoverySearchMode, setDiscoverySearchMode] = useState(false);
     const [challengeRemoteOnly, setChallengeRemoteOnly] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
 
@@ -229,6 +230,12 @@ export default function App() {
     const isAdminRoute = normalizedPath === '/admin';
     const usePageScrollLayout = !isImmersiveAssessmentRoute && (viewState === ViewState.PROFILE || viewState === ViewState.LIST || !!selectedCompanyId);
     const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST && !selectedJobId && !selectedCompanyId;
+
+    useEffect(() => {
+        if (viewState !== ViewState.LIST || selectedCompanyId || isBlogOpen || showCompanyLanding) {
+            setDiscoverySearchMode(false);
+        }
+    }, [isBlogOpen, selectedCompanyId, showCompanyLanding, viewState]);
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
@@ -2044,19 +2051,22 @@ export default function App() {
                             />
                         ) : (
                             <>
-                                <ChallengeHomeSections
-                                    hasNativeChallenges={hasNativeChallenges}
-                                    featuredChallenges={featuredChallenges}
-                                    importedJobs={featuredImportedJobs}
-                                    onOpenChallenge={handleJobSelect}
-                                    onSearchFocus={() => {
-                                        window.setTimeout(() => {
-                                            document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                            focusDiscoverySearch();
-                                        }, 0);
-                                    }}
-                                    onOpenAuth={() => handleAuthAction('register')}
-                                />
+                                {!discoverySearchMode ? (
+                                    <ChallengeHomeSections
+                                        hasNativeChallenges={hasNativeChallenges}
+                                        featuredChallenges={featuredChallenges}
+                                        importedJobs={featuredImportedJobs}
+                                        onOpenChallenge={handleJobSelect}
+                                        onSearchFocus={() => {
+                                            setDiscoverySearchMode(true);
+                                            window.setTimeout(() => {
+                                                document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                focusDiscoverySearch();
+                                            }, 0);
+                                        }}
+                                        onOpenAuth={() => handleAuthAction('register')}
+                                    />
+                                ) : null}
                                 <div id="challenge-discovery">
                                     <ChallengeMarketplace
                                         hasNativeChallenges={hasNativeChallenges}
@@ -2154,9 +2164,12 @@ export default function App() {
                     onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
                     discoveryLane={discoveryLane}
                     setDiscoveryLane={setDiscoveryLane}
+                    discoverySearchMode={discoverySearchMode}
                     onOpenInsights={handleInsightsOpen}
+                    setDiscoverySearchMode={setDiscoverySearchMode}
                     onOpenDiscoverySearch={() => {
                         userIntentionallyClickedListRef.current = true;
+                        setDiscoverySearchMode(true);
                         setIsBlogOpen(false);
                         setShowCompanyLanding(false);
                         setIsOnboardingCompany(false);
