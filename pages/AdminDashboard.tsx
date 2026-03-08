@@ -179,6 +179,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     last_contacted_at: '',
   });
   const [founderBoardLoading, setFounderBoardLoading] = useState(false);
+  const [founderBoardUnsupported, setFounderBoardUnsupported] = useState(false);
   const [founderCards, setFounderCards] = useState<any[]>([]);
   const [founderBoardQuery, setFounderBoardQuery] = useState('');
   const [founderBoardStatus, setFounderBoardStatus] = useState<'all' | (typeof FOUNDER_CARD_STATUSES)[number]>('all');
@@ -303,9 +304,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         status: founderBoardStatus === 'all' ? undefined : founderBoardStatus,
         limit: 160,
       });
+      setFounderBoardUnsupported(Boolean((data as any)?.unsupported));
       setFounderCards(data.items || []);
     } catch (err: any) {
       handleAuthError(err?.message || 'Failed to load founder board');
+      setFounderBoardUnsupported(false);
       setFounderCards([]);
     } finally {
       setFounderBoardLoading(false);
@@ -885,7 +888,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   };
 
   const handleCreateFounderCard = async () => {
-    if (!founderCardCreate.title.trim() || founderBoardSaving) return;
+    if (!founderCardCreate.title.trim() || founderBoardSaving || founderBoardUnsupported) return;
     setFounderBoardSaving(true);
     try {
       await createAdminFounderBoardCard({
@@ -913,7 +916,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   };
 
   const handleFounderCardQuickUpdate = async (cardId: string, payload: Record<string, unknown>) => {
-    if (founderBoardSaving) return;
+    if (founderBoardSaving || founderBoardUnsupported) return;
     setFounderBoardSaving(true);
     try {
       await updateAdminFounderBoardCard(cardId, payload);
@@ -1972,6 +1975,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   <Plus size={15} className="text-[var(--accent)]" />
                   {t('admin_dashboard.workspace.create', { defaultValue: 'Nová karta pro tým' })}
                 </div>
+                {founderBoardUnsupported && (
+                  <div className="mb-3 rounded-[0.9rem] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                    {t('admin_dashboard.workspace.unsupported', { defaultValue: 'Board ještě není nasazený na aktuálním backendu.' })}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <input
                     value={founderCardCreate.title}
@@ -1995,7 +2003,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <input value={founderCardCreate.assignee_name} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, assignee_name: e.target.value }))} placeholder={t('admin_dashboard.workspace.assignee_name', { defaultValue: 'Komu to patří' })} className={inputClass} />
                     <input value={founderCardCreate.assignee_email} onChange={(e) => setFounderCardCreate((prev) => ({ ...prev, assignee_email: e.target.value }))} placeholder="mail@..." className={inputClass} />
                   </div>
-                  <button onClick={handleCreateFounderCard} disabled={founderBoardSaving || !founderCardCreate.title.trim()} className="app-button-primary !rounded-[0.9rem] !px-4 !py-2 text-sm disabled:opacity-60">
+                  <button onClick={handleCreateFounderCard} disabled={founderBoardSaving || founderBoardUnsupported || !founderCardCreate.title.trim()} className="app-button-primary !rounded-[0.9rem] !px-4 !py-2 text-sm disabled:opacity-60">
                     <Plus size={14} />
                     {founderBoardSaving ? t('app.saving') : t('admin_dashboard.workspace.create_cta', { defaultValue: 'Přidat kartu' })}
                   </button>

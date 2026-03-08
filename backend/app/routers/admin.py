@@ -125,12 +125,17 @@ def require_admin_user(user: dict) -> dict:
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
     user_id = user.get("id") or user.get("auth_id")
     email = user.get("email")
+    cache_identity = str(user_id or email or "").strip().lower()
+    if cache_identity:
+        cached = _admin_cache_get(f"admin_user:{cache_identity}")
+        if cached is not None:
+            return cached
 
     if user_id:
         try:
-            resp = supabase.table("admin_users").select("*").eq("user_id", user_id).eq("is_active", True).execute()
+            resp = supabase.table("admin_users").select("*").eq("user_id", user_id).eq("is_active", True).limit(1).execute()
             if resp.data:
-                return resp.data[0]
+                return _admin_cache_set(f"admin_user:{cache_identity}", resp.data[0], 300)
         except Exception as e:
             msg = str(e)
             print(f"⚠️ Admin lookup by user_id failed: {msg}")
@@ -141,9 +146,9 @@ def require_admin_user(user: dict) -> dict:
 
     if email:
         try:
-            resp = supabase.table("admin_users").select("*").eq("email", email).eq("is_active", True).execute()
+            resp = supabase.table("admin_users").select("*").eq("email", email).eq("is_active", True).limit(1).execute()
             if resp.data:
-                return resp.data[0]
+                return _admin_cache_set(f"admin_user:{cache_identity}", resp.data[0], 300)
         except Exception as e:
             msg = str(e)
             print(f"⚠️ Admin lookup by email failed: {msg}")
@@ -1298,14 +1303,15 @@ async def admin_founder_board(
         return cached
 
     try:
-        query = supabase.table("admin_founder_board_cards").select("*", count="exact")
+        query = supabase.table("admin_founder_board_cards").select("*")
         safe_q = _safe_query(q or "")
         if safe_q:
             query = query.or_(f"title.ilike.%{safe_q}%,body.ilike.%{safe_q}%,assignee_name.ilike.%{safe_q}%,author_admin_email.ilike.%{safe_q}%")
         if status:
             query = query.eq("status", status)
         resp = query.order("updated_at", desc=True).limit(limit).execute()
-        return _admin_cache_set(cache_key, {"items": resp.data or [], "count": resp.count or 0}, 30)
+        items = resp.data or []
+        return _admin_cache_set(cache_key, {"items": items, "count": len(items)}, 30)
     except Exception as exc:
         print(f"⚠️ Founder board load failed: {exc}")
         print(traceback.format_exc())

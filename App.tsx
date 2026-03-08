@@ -226,6 +226,7 @@ export default function App() {
             normalizedPath === '/profile/jcfpm' ||
             normalizedPath === '/profil/jcfpm';
     }, [viewState, normalizedPath]);
+    const isAdminRoute = normalizedPath === '/admin';
     const usePageScrollLayout = !isImmersiveAssessmentRoute && (viewState === ViewState.PROFILE || viewState === ViewState.LIST || !!selectedCompanyId);
     const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST && !selectedJobId && !selectedCompanyId;
     const userProfileRef = useRef<UserProfile>(userProfile);
@@ -558,7 +559,7 @@ export default function App() {
         setAbroadOnly,
         sortBy,
         applyInteractionState
-    } = usePaginatedJobs({ userProfile: effectiveUserProfile });
+    } = usePaginatedJobs({ userProfile: effectiveUserProfile, enabled: !isAdminRoute });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
     useEffect(() => {
         if (viewState === ViewState.SAVED) {
@@ -828,6 +829,7 @@ export default function App() {
     }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
 
     useEffect(() => {
+        if (isAdminRoute) return;
         if (!userProfile.isLoggedIn || !userProfile.id) {
             return;
         }
@@ -847,7 +849,7 @@ export default function App() {
             }
         }, 10_000);
         return () => clearTimeout(warmupTimer);
-    }, [userProfile.isLoggedIn, userProfile.id]);
+    }, [userProfile.isLoggedIn, userProfile.id, isAdminRoute]);
 
     const loadRealJobs = useCallback(async () => {
         try {
@@ -2064,6 +2066,7 @@ export default function App() {
                                     onSearchFocus={() => {
                                         window.setTimeout(() => {
                                             document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            focusDiscoverySearch();
                                         }, 0);
                                     }}
                                     onOpenAuth={() => handleAuthAction('register')}
@@ -2124,6 +2127,23 @@ export default function App() {
         );
     };
 
+    const focusDiscoverySearch = () => {
+        const attemptFocus = () => {
+            const input = document.getElementById('challenge-discovery-search') as HTMLInputElement | null;
+            if (!input) return false;
+            input.focus({ preventScroll: true });
+            input.select?.();
+            return true;
+        };
+
+        window.setTimeout(() => {
+            if (attemptFocus()) return;
+            window.setTimeout(() => {
+                attemptFocus();
+            }, 180);
+        }, 80);
+    };
+
     return (
         <div className={`flex min-h-screen flex-col ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-shell-bg text-[var(--text)] dark:text-[var(--text)]'} font-sans transition-colors duration-300`}>
             {!isImmersiveAssessmentRoute && (
@@ -2158,6 +2178,7 @@ export default function App() {
                         setSelectedJobId(null);
                         window.setTimeout(() => {
                             document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            focusDiscoverySearch();
                         }, 0);
                     }}
                 />

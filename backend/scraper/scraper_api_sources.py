@@ -46,6 +46,54 @@ DEFAULT_WWR_RSS_URLS = [
 ]
 DEFAULT_GERMAN_TECH_JOBS_RSS_URL = "https://germantechjobs.de/rss"
 HTTP_TIMEOUT_SECONDS = 30
+WWR_EU_INCLUDE_TOKENS = [
+    "emea",
+    "europe",
+    "europe only",
+    "european union",
+    "eu only",
+    "uk",
+    "united kingdom",
+    "germany",
+    "deutschland",
+    "austria",
+    "österreich",
+    "poland",
+    "slovakia",
+    "czech republic",
+    "czechia",
+    "česko",
+    "france",
+    "italy",
+    "spain",
+    "netherlands",
+    "belgium",
+    "portugal",
+    "sweden",
+    "norway",
+    "denmark",
+    "finland",
+    "ireland",
+    "switzerland",
+]
+WWR_NON_EU_EXCLUDE_TOKENS = [
+    "united states",
+    "usa only",
+    "u.s.",
+    "us only",
+    "north america",
+    "canada",
+    "latin america",
+    "latam",
+    "apac",
+    "asia pacific",
+    "australia",
+    "new zealand",
+    "worldwide",
+    "anywhere in the world",
+    "anywhere worldwide",
+    "global",
+]
 
 
 def _html_to_text(value: Any) -> str:
@@ -114,6 +162,24 @@ def _infer_work_model(location: str, description: str, tags: Iterable[str]) -> s
     if any(token in haystack for token in ["remote", "work from home", "anywhere", "distributed", "home office"]):
         return "Remote"
     return "On-site"
+
+
+def _is_wwr_eu_relevant(title: str, description: str, categories: Iterable[str]) -> bool:
+    haystack = norm_text("\n".join([
+        title or "",
+        description or "",
+        " ".join(categories or []),
+    ])).lower()
+    if not haystack:
+        return False
+
+    if any(token in haystack for token in WWR_NON_EU_EXCLUDE_TOKENS):
+        return False
+
+    if any(token in haystack for token in WWR_EU_INCLUDE_TOKENS):
+        return True
+
+    return False
 
 
 def _save_api_job(
@@ -286,6 +352,8 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
                 title = norm_text(role_part)
                 company = norm_text(company_part)
             categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+            if not _is_wwr_eu_relevant(title, description, categories):
+                continue
             combined_text = f"{title}\n{description}"
             location_match = None
             for marker in ["Anywhere in the World", "United States", "Europe", "EMEA", "UK", "Canada", "Australia"]:

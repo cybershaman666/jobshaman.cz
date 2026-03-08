@@ -148,15 +148,33 @@ body {
     color: var(--text-muted);
   }
 
+  .dark .app-filter-chip {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #d8e0eb;
+  }
+
   .app-filter-chip:hover {
     border-color: rgba(var(--accent-rgb), 0.22);
     color: var(--text-strong);
+  }
+
+  .dark .app-filter-chip:hover {
+    border-color: rgba(var(--accent-rgb), 0.34);
+    background: rgba(21, 32, 52, 0.96);
+    color: #f5f8fc;
   }
 
   .app-filter-chip-active {
     background: var(--accent-soft);
     border-color: rgba(var(--accent-rgb), 0.26);
     color: var(--accent);
+  }
+
+  .dark .app-filter-chip-active {
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.34);
+    color: #fde68a;
   }
 
   .app-button-primary {

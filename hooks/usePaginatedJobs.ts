@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, SearchLanguageCode, UserProfile } from '../types';
 import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
@@ -11,11 +11,11 @@ import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobIntera
 const getCountryCodeFromAddress = (address: string): string | null => {
     if (!address) return null;
     const loc = address.toLowerCase();
-    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'sk';
-    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'pl';
-    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'de';
-    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'at';
-    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'cs';
+    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
+    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'PL';
+    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'DE';
+    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'AT';
+    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'CZ';
     return null;
 };
 
@@ -23,17 +23,34 @@ const getCountryCodeFromAddress = (address: string): string | null => {
 const getCountryCodeFromLanguage = (lng?: string): string | null => {
     if (!lng) return null;
     const code = lng.split('-')[0].toLowerCase();
-    if (code === 'cs') return 'cs';
-    if (code === 'sk') return 'sk';
-    if (code === 'de') return 'de';
-    if (code === 'pl') return 'pl';
-    if (code === 'at') return 'at';
+    if (code === 'cs') return 'CZ';
+    if (code === 'sk') return 'SK';
+    if (code === 'de') return 'DE';
+    if (code === 'pl') return 'PL';
+    if (code === 'at') return 'AT';
     return null;
+};
+
+const expandCountryAliases = (countryCode?: string | null): string[] => {
+    const normalized = String(countryCode || '').trim().toUpperCase();
+    if (!normalized) return [];
+    if (normalized === 'CZ' || normalized === 'CS') return ['CZ', 'CS'];
+    if (normalized === 'SK') return ['SK'];
+    if (normalized === 'PL') return ['PL'];
+    if (normalized === 'DE') return ['DE'];
+    if (normalized === 'AT') return ['AT'];
+    return [];
+};
+
+const sameCountryCodeSet = (left: string[], right: string[]): boolean => {
+    if (left.length !== right.length) return false;
+    return left.every((code, index) => code === right[index]);
 };
 
 interface UsePaginatedJobsProps {
     userProfile: UserProfile;
     initialPageSize?: number;
+    enabled?: boolean;
 }
 
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
@@ -45,12 +62,12 @@ const DISMISSED_JOB_IDS_PREFIX = 'dismissedJobIds';
 
 const normalizeCountryCodes = (codes: string[]): string[] => {
     if (!codes || codes.length === 0) return [];
-    const lowered = codes.map(c => c.toLowerCase());
-    const hasCs = lowered.includes('cs');
-    const hasCz = lowered.includes('cz');
+    const uppered = codes.map(c => String(c || '').trim().toUpperCase()).filter(Boolean);
+    const hasCs = uppered.includes('CS');
+    const hasCz = uppered.includes('CZ');
     const expanded = (hasCs || hasCz)
-        ? Array.from(new Set([...lowered.filter(c => c !== 'cs' && c !== 'cz'), 'cs', 'cz']))
-        : lowered;
+        ? Array.from(new Set([...uppered.filter(c => c !== 'CS' && c !== 'CZ'), 'CZ', 'CS']))
+        : uppered;
     return expanded;
 };
 
@@ -94,7 +111,7 @@ const normalizeContractTypeFilter = (value: string): string => {
     return normalized;
 };
 
-export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
+export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const activeFetchControllerRef = useRef<AbortController | null>(null);
@@ -103,9 +120,20 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const hasHandledInitialSortFetchRef = useRef(false);
     const hasRunFilterEffectRef = useRef(false);
     const pendingHardRefreshRef = useRef(false);
-    const defaultDomesticCountries = ['cs', 'cz', 'sk'];
-    const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
-    const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
+    const defaultCountryCodes = useMemo(() => {
+        const fromPreference = expandCountryAliases(userProfile.preferredCountryCode);
+        if (fromPreference.length > 0) return fromPreference;
+
+        const fromAddress = expandCountryAliases(getCountryCodeFromAddress(userProfile.address));
+        if (fromAddress.length > 0) return fromAddress;
+
+        return expandCountryAliases(getCountryCodeFromLanguage(i18n.language));
+    }, [i18n.language, userProfile.address, userProfile.preferredCountryCode]);
+    const normalizedDefaultDomesticCountries = useMemo(
+        () => normalizeCountryCodes(defaultCountryCodes),
+        [defaultCountryCodes]
+    );
+    const [countryCodes, setCountryCodes] = useState<string[]>(() => defaultCountryCodes);
 
     const [jobs, setJobs] = useState<Job[]>(() => {
         try {
@@ -136,7 +164,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
-    const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
+    const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // recommended | newest | distance | jhi_desc | salary_desc
     const hasAutoSortAppliedRef = useRef(false);
@@ -235,6 +263,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [dismissedJobIds, dismissedJobStorageKey]);
 
     useEffect(() => {
+        if (!enabled) return;
         if (!userProfile.isLoggedIn || !userProfile.id) return;
         if (!interactionStateHydratedRef.current) return;
 
@@ -277,10 +306,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 window.clearTimeout(interactionSyncTimerRef.current);
             }
         };
-    }, [savedJobIds, dismissedJobIds, userProfile.isLoggedIn, userProfile.id]);
+    }, [savedJobIds, dismissedJobIds, userProfile.isLoggedIn, userProfile.id, enabled]);
 
     useEffect(() => {
         let cancelled = false;
+        if (!enabled) return;
         if (!userProfile.isLoggedIn || !userProfile.id) return;
 
         (async () => {
@@ -319,7 +349,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         return () => {
             cancelled = true;
         };
-    }, [userProfile.isLoggedIn, userProfile.id]);
+    }, [userProfile.isLoggedIn, userProfile.id, enabled]);
 
     // Persist a warm cache so first paint is never empty when backend wakes up.
     useEffect(() => {
@@ -357,6 +387,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [userProfile.id]);
 
     const refreshAiMatchScoresCache = useCallback(async () => {
+        if (!enabled) return;
         if (!userProfile.isLoggedIn) return;
         const now = Date.now();
         if (now < aiMatchScoresRetryAfterRef.current) return;
@@ -391,9 +422,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         }
 
         await aiMatchScoresRequestRef.current;
-    }, [userProfile.isLoggedIn]);
+    }, [userProfile.isLoggedIn, enabled]);
 
     const hydrateJobsWithAiMatchScores = useCallback((requestId: number) => {
+        if (!enabled) return;
         if (!userProfile.isLoggedIn) return;
 
         void refreshAiMatchScoresCache().then(() => {
@@ -411,7 +443,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return { ...(job as any), aiMatchScore: score } as Job;
             }));
         });
-    }, [refreshAiMatchScoresCache, userProfile.isLoggedIn]);
+    }, [refreshAiMatchScoresCache, userProfile.isLoggedIn, enabled]);
 
     // Auto-switch to recommended sorting when we have a parsed CV or skills signal.
     useEffect(() => {
@@ -444,6 +476,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Use the RPC-based filtering function
     const fetchFilteredJobs = useCallback(async (page: number, isLoadMore: boolean = false) => {
+        if (!enabled) {
+            if (!isLoadMore) {
+                setLoading(false);
+                setLoadingMore(false);
+                setJobs([]);
+                setHasMore(false);
+                setTotalCount(0);
+            }
+            return;
+        }
         if (!isLoadMore && activeFetchControllerRef.current) {
             activeFetchControllerRef.current.abort();
         }
@@ -591,7 +633,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return;
             }
 
-            const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : defaultDomesticCountries;
+            const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
             const effectiveCountryCodes = globalSearch ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
 
@@ -664,14 +706,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
         }
     }, [
-        initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
+        enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs, normalizedDefaultDomesticCountries
     ]);
 
 
     // Debounced reload when filters change
     useEffect(() => {
+        if (!enabled) return;
         if (hasRunFilterEffectRef.current) {
             setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
         }
@@ -696,13 +739,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
         return () => clearTimeout(timeoutId);
     }, [
-        searchTerm, filterCity, filterContractType, filterBenefits,
+        enabled, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
         filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Re-apply sorting when sort option changes
     useEffect(() => {
+        if (!enabled) return;
         if (!hasHandledInitialSortFetchRef.current) {
             hasHandledInitialSortFetchRef.current = true;
             return;
@@ -716,7 +760,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setTotalCount(0);
         setCurrentPage(0);
         fetchFilteredJobs(0, false);
-    }, [sortBy, fetchFilteredJobs]);
+    }, [sortBy, fetchFilteredJobs, enabled]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
@@ -738,10 +782,25 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // If user has address and we are still in global search with no country, narrow to their country
     useEffect(() => {
+        if (globalSearch && countryCodes.length === 0 && defaultCountryCodes.length > 0) {
+            setCountryCodes(defaultCountryCodes);
+            setGlobalSearch(false);
+        }
+    }, [globalSearch, countryCodes.length, defaultCountryCodes]);
+
+    useEffect(() => {
+        if (globalSearch || abroadOnly) return;
+        if (defaultCountryCodes.length === 0) return;
+        if (!sameCountryCodeSet(countryCodes, defaultCountryCodes)) {
+            setCountryCodes(defaultCountryCodes);
+        }
+    }, [defaultCountryCodes, countryCodes, globalSearch, abroadOnly]);
+
+    useEffect(() => {
         if (globalSearch && countryCodes.length === 0) {
-            const inferred = getCountryCodeFromAddress(userProfile.address);
-            if (inferred) {
-                setCountryCodes([inferred]);
+            const inferred = expandCountryAliases(getCountryCodeFromAddress(userProfile.address));
+            if (inferred.length > 0) {
+                setCountryCodes(inferred);
                 setGlobalSearch(false);
             }
         }
@@ -756,17 +815,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             setAbroadOnly(false);
         }
     }, [abroadOnly, globalSearch]);
-
-    // When UI language changes, default to that country's jobs
-    useEffect(() => {
-        const langCountry = getCountryCodeFromLanguage(i18n.language);
-        if (!langCountry) return;
-        if (!globalSearch && !abroadOnly) {
-            if (countryCodes.length !== 1 || countryCodes[0] !== langCountry) {
-                setCountryCodes([langCountry]);
-            }
-        }
-    }, [i18n.language, countryCodes, globalSearch, abroadOnly]);
 
     // Perform search is now just setting the search term
     const performSearch = useCallback((term: string) => {
@@ -838,6 +886,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterMaxDistance(50);
         setFilterLanguageCodes([]);
         setAbroadOnly(false);
+        setCountryCodes(defaultCountryCodes);
+        setGlobalSearch(defaultCountryCodes.length === 0);
         // Reset page
         setCurrentPage(0);
     };

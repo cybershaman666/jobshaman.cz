@@ -852,6 +852,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <div className="app-command-field">
             <Search size={16} className="text-[var(--text-faint)]" />
             <input
+              id="challenge-discovery-search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               onKeyDown={(event) => {
@@ -914,8 +915,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </div>
               <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                 <MetricTile label={copy.scoreLabel} value={`${averageJhi}/100`} tone="accent" />
-                <MetricTile label={copy.results} value={jobsInLane.length} />
-                <MetricTile label={copy.workModel} value={topJob ? getWorkModel(topJob, isCsLike) : '—'} />
+                <MetricTile label={copy.results} value={jobsInLane.length} tone="accent" />
+                <MetricTile label={copy.workModel} value={topJob ? getWorkModel(topJob, isCsLike) : '—'} tone="accent" />
               </div>
               {challengeLaneUsesImportedFallback ? (
                 <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">

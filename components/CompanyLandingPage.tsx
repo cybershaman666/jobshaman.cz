@@ -28,6 +28,8 @@ interface PlanCard {
   note: string;
   features: string[];
   highlighted?: boolean;
+  ctaLabel?: string;
+  ctaMode?: 'register' | 'demo';
 }
 
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
@@ -98,8 +100,15 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       }
     ],
     pricingTitle: 'Monetizace je v souladu s chováním',
-    pricingLead: 'Neplatíte za CV databázi ani za počet zobrazení. Platíte za kapacitu, kterou opravdu používáte.',
+    pricingLead: 'Začít můžete zdarma. Neplatíte za CV databázi ani za počet zobrazení. Platíte až za kapacitu, kterou opravdu používáte.',
     pricingPlans: [
+      {
+        name: 'Free',
+        price: 'Zdarma',
+        note: 'Na první vyzkoušení bez rizika',
+        features: ['1 otevření role', '3 aktivní dialogové sloty', 'Bez AI funkcí'],
+        ctaLabel: 'Vyzkoušet zdarma'
+      },
       {
         name: 'Starter',
         price: '249 EUR / měsíc',
@@ -123,7 +132,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         name: 'Enterprise',
         price: 'Custom',
         note: 'Pro komplexní hiring provoz',
-        features: ['Custom limity', 'Success fee volitelně', 'Integrace a custom rollout']
+        features: ['Custom limity', 'Success fee volitelně', 'Integrace a custom rollout'],
+        ctaMode: 'demo'
       }
     ] as PlanCard[],
     faqTitle: 'Co firmy řeší nejčastěji',
@@ -197,8 +207,15 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       }
     ],
     pricingTitle: 'Monetization aligned with behavior',
-    pricingLead: 'You do not pay for CV inventory or impressions. You pay for the capacity you actually use.',
+    pricingLead: 'You can start for free. You do not pay for CV inventory or impressions. You pay only for the capacity you actually use.',
     pricingPlans: [
+      {
+        name: 'Free',
+        price: 'Free',
+        note: 'A safe way to try the workflow first',
+        features: ['1 role open', '3 active dialogue slots', 'No AI features'],
+        ctaLabel: 'Try for free'
+      },
       {
         name: 'Starter',
         price: '249 EUR / month',
@@ -222,7 +239,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         name: 'Enterprise',
         price: 'Custom',
         note: 'For complex hiring operations',
-        features: ['Custom limits', 'Optional success fee', 'Integrations and tailored rollout']
+        features: ['Custom limits', 'Optional success fee', 'Integrations and tailored rollout'],
+        ctaMode: 'demo'
       }
     ] as PlanCard[],
     faqTitle: 'What companies ask most often',
@@ -384,7 +402,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
           <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.pricingLead}</p>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             {copy.pricingPlans.map((plan) => (
               <div
                 key={plan.name}
@@ -412,10 +430,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                   ))}
                 </div>
                 <button
-                  onClick={() => (plan.name === 'Enterprise' ? handleDemo('pricing') : handleRegister('pricing'))}
+                  onClick={() => (plan.ctaMode === 'demo' ? handleDemo('pricing') : handleRegister('pricing'))}
                   className={plan.highlighted ? 'app-button-primary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3' : 'app-button-secondary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3'}
                 >
-                  {plan.name === 'Enterprise' ? copy.secondaryCta : copy.primaryCta}
+                  {plan.ctaLabel || (plan.ctaMode === 'demo' ? copy.secondaryCta : copy.primaryCta)}
                 </button>
               </div>
             ))}

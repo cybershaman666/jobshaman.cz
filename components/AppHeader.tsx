@@ -149,6 +149,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     return parts[0] === 'demo-handshake' || parts[0] === 'demo-company-handshake';
   };
 
+  const isAdminRoute = () => {
+    const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+    return parts[0] === 'admin';
+  };
+
   const leaveDemoHandshakeRoute = (targetPath?: string): boolean => {
     if (!isDemoHandshakeRoute()) return false;
     const localePrefix = getLocalePrefix();
@@ -161,6 +168,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const navigateToShellHome = () => {
     if (leaveDemoHandshakeRoute()) return;
+    if (isAdminRoute()) {
+      window.location.assign(`${getLocalePrefix()}/`);
+      return;
+    }
     onIntentionalListClick?.();
     setDiscoveryLane?.('challenges');
     setIsBlogOpen?.(false);
