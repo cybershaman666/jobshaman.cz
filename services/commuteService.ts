@@ -598,6 +598,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     let distanceKm = 0;
     let isRelocation = false;
     let corridorProfile: { carMinutesOneWay: number; publicMinutesOneWay: number } | null = null;
+    let bestOneWayMinutes = 0;
 
     if (!isRemote) {
         const userCoords = user.coordinates || getCoordinates(user.address);
@@ -620,7 +621,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
             const carMinutesOneWay = corridorProfile?.carMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.car) * 60);
             const publicMinutesOneWay = corridorProfile?.publicMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.public) * 60);
-            const bestOneWayMinutes = Math.min(carMinutesOneWay, publicMinutesOneWay);
+            bestOneWayMinutes = Math.min(carMinutesOneWay, publicMinutesOneWay);
 
             // Relocation is driven by best realistic one-way travel time.
             if (bestOneWayMinutes > RELOCATION_TIME_THRESHOLD_MIN) {
@@ -634,14 +635,20 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const avoidedDistanceKm = isRemote ? 20 : 0;
 
     const mode = user.transportMode;
-    const timeMinutes = (isRemote || isRelocation || distanceKm === -1)
+    const timeMinutes = (isRemote || distanceKm === -1)
         ? 0
         : (
-            mode === 'car' && corridorProfile
-                ? corridorProfile.carMinutesOneWay
-                : mode === 'public' && corridorProfile
-                    ? corridorProfile.publicMinutesOneWay
-                    : Math.round((distanceKm / SPEED_KMPH[mode]) * 60)
+            corridorProfile && bestOneWayMinutes > 0
+                ? (
+                    mode === 'car'
+                        ? corridorProfile.carMinutesOneWay
+                        : mode === 'public'
+                            ? corridorProfile.publicMinutesOneWay
+                            : Math.round((distanceKm / SPEED_KMPH[mode]) * 60)
+                )
+                : (
+                    Math.round((distanceKm / SPEED_KMPH[mode]) * 60)
+                )
         );
 
     // 2. Determine Financial Baseline (Gross & Currency)
@@ -672,11 +679,11 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const costPerKm = COST_PER_KM_BASE[mode] * currencyMultiplier;
 
     // Base Monthly Cost: 2 trips * 20 days
-    let monthlyCost = (isRemote || isRelocation || distanceKm === -1) ? 0 : Math.round(distanceKm * costPerKm * 2 * 20);
+    let monthlyCost = (isRemote || distanceKm === -1) ? 0 : Math.round(distanceKm * costPerKm * 2 * 20);
 
     // --- CAR SPECIFIC LOGIC ---
     let parkingWarning = undefined;
-    if (!isRemote && !isRelocation && distanceKm !== -1 && mode === 'car') {
+    if (!isRemote && distanceKm !== -1 && mode === 'car') {
         const jobLocNormalized = removeAccents(job.location);
         const isPaidZone = PAID_PARKING_ZONES.some(zone => jobLocNormalized.includes(zone));
 
@@ -695,7 +702,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     }
 
     // --- PUBLIC TRANSPORT SPECIFIC LOGIC ---
-    if (!isRemote && !isRelocation && distanceKm !== -1 && mode === 'public') {
+    if (!isRemote && distanceKm !== -1 && mode === 'public') {
         // Get country code and monthly pass cost (with city-specific prices for CZ)
         const countryCode = getCountryCode(job.location, currency);
         const monthlyPassCost = getMonthlyPublicTransportCost(countryCode, currency, job.location);
@@ -753,12 +760,12 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     );
     const benefitsValue = calculateBenefitsValue(job.benefits, currency, grossMonthlySalary);
 
-    const realMonthlyCost = (distanceKm === -1 || isRelocation) ? 0 : monthlyCost;
+    const realMonthlyCost = distanceKm === -1 ? 0 : monthlyCost;
     const finalRealMonthlyValue = net + benefitsValue - realMonthlyCost;
 
     const scoreAdjustment = calculateFinancialScoreAdjustment(net, grossMonthlySalary, benefitsValue, realMonthlyCost);
 
-    const distanceForJhi = (isRemote || isRelocation || distanceKm === -1) ? 0 : distanceKm;
+    const distanceForJhi = (isRemote || distanceKm === -1) ? 0 : distanceKm;
     const calculatedJhi = calculateJHI({
         salary_from: Math.round(grossMonthlySalary),
         salary_to: Math.round(grossMonthlySalary),

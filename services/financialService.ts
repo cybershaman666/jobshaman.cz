@@ -348,12 +348,14 @@ export const calculateFinancialScoreAdjustment = (
   benefitsValue: number,
   commuteCost: number
 ): number => {
-  // When no salary info available, still give bonus for good benefits
+  // When salary is unknown, benefits alone should never outweigh a bad commute reality.
   if (netSalary === 0 && baseGross === 0) {
-    // Give small positive score for good benefits, even without salary
-    // Assuming benefitsValue is in EUR from financial calculation
-    if (benefitsValue > 200) return 5; // Benefits worth >200 EUR/month
-    if (benefitsValue > 100) return 3; // Benefits worth >100 EUR/month
+    const standaloneValue = benefitsValue - commuteCost;
+    if (standaloneValue <= 0) {
+      return commuteCost > 0 ? -10 : 0;
+    }
+    if (standaloneValue > 200) return 5;
+    if (standaloneValue > 100) return 3;
     return 0;
   }
 

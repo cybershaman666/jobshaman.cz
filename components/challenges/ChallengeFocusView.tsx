@@ -44,6 +44,40 @@ const shorten = (value: string | null | undefined, maxLength = 220): string => {
   return `${plain.slice(0, maxLength - 3).trim()}...`;
 };
 
+const normalizeBenefitChips = (benefits: string[] | null | undefined): string[] => {
+  if (!Array.isArray(benefits) || benefits.length === 0) return [];
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  benefits.forEach((rawBenefit) => {
+    const raw = stripMarkdown(rawBenefit);
+    if (!raw) return;
+
+    const chunks = raw.length > 120
+      ? raw.split(/[\n;|•]+/g)
+      : [raw];
+
+    chunks.forEach((chunk) => {
+      const cleaned = chunk
+        .replace(/^(náplň práce|požadujeme|požadovaný profil|odpovědnosti|responsibilities|requirements|deine aufgaben)\s*:?\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!cleaned) return;
+      if (cleaned.length > 64) return;
+      if (cleaned.split(' ').length > 8) return;
+
+      const key = cleaned.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      normalized.push(cleaned);
+    });
+  });
+
+  return normalized.slice(0, 8);
+};
+
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -372,6 +406,8 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const responsePrompt = job.firstStepPrompt || shorten(job.description, 180);
   const companySignal = shorten(job.companyPageSummary || job.aiAnalysis?.summary || job.description, 220);
   const displayedSalary = formatSalary(job, i18n.language, isCsLike);
+  const locationValue = shorten(job.location, 72) || (isCsLike ? 'Místo neuvedeno' : 'Location not specified');
+  const benefitChips = useMemo(() => normalizeBenefitChips(job.benefits), [job.benefits]);
   const realIncomeValue = commuteAnalysis
     ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} ${commuteAnalysis.financialReality.currency}`
     : displayedSalary;
@@ -384,6 +420,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         : (isCsLike ? 'Po přihlášení' : 'After sign in');
   const quickInsights = [
     { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+    { label: copy.location, value: locationValue },
     { label: copy.realIncome, value: realIncomeValue },
     { label: copy.commute, value: commuteValue },
     { label: copy.workModel, value: job.work_model || job.type || '—' },
@@ -513,6 +550,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         actions={
           <>
             <MetricTile label={copy.fit} value={`${Math.round(job.jhi?.score || 0)}/100`} tone="accent" className="min-w-[150px]" />
+            <MetricTile label={copy.location} value={locationValue} className="min-w-[170px]" />
             <MetricTile label={copy.salary} value={displayedSalary} className="min-w-[150px]" />
             <MetricTile label={copy.workModel} value={job.work_model || job.type || '—'} className="min-w-[150px]" />
           </>
@@ -568,21 +606,25 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
 
           <SurfaceCard className="space-y-5">
             <SectionTitle title={copy.company} />
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="space-y-4">
               <NarrativeCard title={copy.companySignal} body={companySignal} />
-              <div className="flex flex-wrap items-start gap-2">
-                {Array.isArray(job.benefits) && job.benefits.length > 0 ? (
-                  job.benefits.slice(0, 8).map((benefit) => (
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
+                <div className="flex flex-wrap items-start gap-2">
+                {benefitChips.length > 0 ? (
+                  benefitChips.map((benefit) => (
                     <span
                       key={benefit}
-                      className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
+                      title={benefit}
+                      className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
                     >
-                      {benefit}
+                      <span className="block max-w-[280px] truncate">{benefit}</span>
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-[var(--text-faint)]">{copy.benefitsList}: —</span>
+                  <span className="text-sm text-[var(--text-faint)]">—</span>
                 )}
+                </div>
               </div>
             </div>
           </SurfaceCard>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   Bookmark,
@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { CandidateDialogueCapacity, Job, JobSearchFilters, SearchLanguageCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
+import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { isRemoteJob } from '../../services/commuteService';
 import { annotateJobsForCandidate, getCandidateIntentDomainLabel, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
@@ -164,6 +165,11 @@ const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
 
+const isWwrListing = (job: Job): boolean => {
+  const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
+  return haystack.includes('weworkremotely');
+};
+
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -181,6 +187,9 @@ const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
 const getWorkModel = (job: Job, isCsLike: boolean): string => {
   const raw = String(job.work_model || job.type || '').trim();
   if (!raw) return isCsLike ? 'Model neuveden' : 'Work model TBD';
+  if (/remote/i.test(raw)) {
+    return isCsLike ? 'Práce z domu' : 'Home office';
+  }
   return raw;
 };
 
@@ -248,6 +257,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
+  const [usePersonalSetup, setUsePersonalSetup] = useState(true);
   const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
 
   const copy = ({
@@ -273,6 +283,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       personalPresets: 'Nastavení pro moji situaci',
       mySetup: 'Moje nastavení',
       mySetupBody: 'Přehled začíná rolemi, které odpovídají vašemu nastavení a aktuálním filtrům.',
+      mySetupOffBody: 'Přehled teď používá jen vaše ruční filtry a hledaná slova. Osobní nastavení je pro toto hledání vypnuté.',
+      useSetup: 'Používat moje nastavení',
+      disableSetup: 'Hledat bez přednastavení',
       matchesNow: 'Sedí právě teď',
       setupEmpty: 'Přidejte filtry nebo preference a přehled se začne skládat podle vaší reality.',
       setupSection: 'Nejrelevantnější pro vás',
@@ -283,10 +296,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       dogSectionBody: 'Týmy, kde kancelářský režim není v konfliktu s péčí o psa.',
       moreSection: 'Širší možnosti ve vašem směru',
       moreSectionBody: 'Širší tržní záběr po aplikaci vašich filtrů a životní situace.',
+      manualSection: 'Výsledky podle vašeho hledání',
+      manualSectionBody: 'Role podle zadaných slov a aktuálně zapnutých filtrů.',
       intentPromptTitle: 'Potvrďte svůj obor a cílovou roli',
       intentPromptBody: 'Máme předvyplněný odhad z profilu nebo životopisu. Stačí ho potvrdit nebo upravit a feed bude mnohem přesnější.',
       intentPromptCta: 'Upravit profil',
-      remote: 'Práce na dálku',
+      remote: 'Práce z domu',
       commute: 'Dojíždění',
       commuteHint: 'Bez adresy zůstává výpočet dojezdu vypnutý, ale práce na dálku se pořád zobrazí správně.',
       scope: 'Záběr',
@@ -300,7 +315,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       allMarkets: 'Široký záběr',
       border: 'Příhraničí / zahraničí',
       domestic: 'Jen tuzemsko',
-      remoteOnly: 'Jen práce na dálku',
+      remoteOnly: 'Jen práce z domu',
       allWorkModels: 'Všechny modely',
       anySalary: 'Bez minima',
       allDates: 'Kdykoliv',
@@ -366,6 +381,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       personalPresets: 'Nastavenie pre moju situáciu',
       mySetup: 'Moje nastavenie',
       mySetupBody: 'Prehľad začína rolami, ktoré zodpovedajú vášmu nastaveniu a aktuálnym filtrom.',
+      mySetupOffBody: 'Prehľad teraz používa len vaše ručné filtre a hľadané slová. Osobné nastavenie je pre toto hľadanie vypnuté.',
+      useSetup: 'Používať moje nastavenie',
+      disableSetup: 'Hľadať bez prednastavenia',
       matchesNow: 'Sedí práve teraz',
       setupEmpty: 'Pridajte filtre alebo preferencie a prehľad sa začne skladať podľa vašej reality.',
       setupSection: 'Najrelevantnejšie pre vás',
@@ -376,10 +394,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       dogSectionBody: 'Tímy, kde kancelársky režim nie je v konflikte so starostlivosťou o psa.',
       moreSection: 'Širšie možnosti vo vašom smere',
       moreSectionBody: 'Širší trhový záber po aplikovaní vašich filtrov a životnej situácie.',
+      manualSection: 'Výsledky podľa vášho hľadania',
+      manualSectionBody: 'Roly podľa zadaných slov a aktuálne zapnutých filtrov.',
       intentPromptTitle: 'Potvrďte svoj odbor a cieľovú rolu',
       intentPromptBody: 'Máme predvyplnený odhad z profilu alebo životopisu. Stačí ho potvrdiť alebo upraviť a feed bude presnejší.',
       intentPromptCta: 'Upraviť profil',
-      remote: 'Práca na diaľku',
+      remote: 'Práca z domu',
       commute: 'Dochádzanie',
       commuteHint: 'Bez adresy zostáva výpočet dochádzania vypnutý, ale práca na diaľku sa stále zobrazí správne.',
       scope: 'Záber',
@@ -393,7 +413,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       allMarkets: 'Široký záber',
       border: 'Pohraničie / zahraničie',
       domestic: 'Len domáci trh',
-      remoteOnly: 'Len práca na diaľku',
+      remoteOnly: 'Len práca z domu',
       allWorkModels: 'Všetky modely',
       anySalary: 'Bez minima',
       allDates: 'Kedykoľvek',
@@ -459,6 +479,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       personalPresets: 'Einstellungen für meine Situation',
       mySetup: 'Meine Einstellungen',
       mySetupBody: 'Die Übersicht beginnt mit Rollen, die zu deinen Einstellungen und aktuellen Filtern passen.',
+      mySetupOffBody: 'Die Übersicht nutzt jetzt nur Ihre manuellen Filter und Suchbegriffe. Persönliche Voreinstellungen sind für diese Suche ausgeschaltet.',
+      useSetup: 'Meine Einstellungen nutzen',
+      disableSetup: 'Ohne Voreinstellungen suchen',
       matchesNow: 'Passt gerade',
       setupEmpty: 'Füge Filter oder Präferenzen hinzu, dann richtet sich die Übersicht nach deiner Realität aus.',
       setupSection: 'Am relevantesten für Sie',
@@ -469,10 +492,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       dogSectionBody: 'Teams, bei denen Büroarbeit nicht im Konflikt mit Hundebetreuung steht.',
       moreSection: 'Breiterer Markt in Ihrer Richtung',
       moreSectionBody: 'Breiterer Marktüberblick nach Anwendung Ihrer Filter und Alltagsbedingungen.',
+      manualSection: 'Ergebnisse für Ihre Suche',
+      manualSectionBody: 'Rollen passend zu Ihren Suchbegriffen und aktuell aktiven Filtern.',
       intentPromptTitle: 'Bereich und Zielrolle bestätigen',
       intentPromptBody: 'Wir haben aus Profil oder Lebenslauf eine erste Richtung abgeleitet. Bestätigen oder korrigieren Sie sie für einen besseren Feed.',
       intentPromptCta: 'Profil öffnen',
-      remote: 'Remote',
+      remote: 'Homeoffice',
       commute: 'Pendeln',
       commuteHint: 'Ohne Adresse bleibt die Pendelberechnung aus, Remote-Rollen werden aber weiterhin korrekt angezeigt.',
       scope: 'Umfang',
@@ -486,7 +511,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       allMarkets: 'Breiter Fokus',
       border: 'Grenzregion / Ausland',
       domestic: 'Nur Inland',
-      remoteOnly: 'Nur Remote',
+      remoteOnly: 'Nur Homeoffice',
       allWorkModels: 'Alle Modelle',
       anySalary: 'Kein Minimum',
       allDates: 'Jederzeit',
@@ -553,6 +578,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       personalPresets: 'Ustawienia dla mojej sytuacji',
       mySetup: 'Moje ustawienia',
       mySetupBody: 'Przegląd zaczyna się od ról, które pasują do twoich ustawień i bieżących filtrów.',
+      mySetupOffBody: 'Przegląd korzysta teraz tylko z twoich ręcznych filtrów i wpisanych słów. Osobiste ustawienia są wyłączone dla tego wyszukiwania.',
+      useSetup: 'Używaj moich ustawień',
+      disableSetup: 'Szukaj bez ustawień',
       matchesNow: 'Pasuje teraz',
       setupEmpty: 'Dodaj filtry lub preferencje, a przegląd zacznie układać się pod twoją rzeczywistość.',
       setupSection: 'Najbardziej trafne dla ciebie',
@@ -563,10 +591,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       dogSectionBody: 'Zespoły, w których tryb biurowy nie koliduje z opieką nad psem.',
       moreSection: 'Szerszy rynek w twoim kierunku',
       moreSectionBody: 'Szerszy przegląd rynku po zastosowaniu filtrów i twojej sytuacji życiowej.',
+      manualSection: 'Wyniki według twojego wyszukiwania',
+      manualSectionBody: 'Role zgodne z wpisanymi słowami i aktualnie włączonymi filtrami.',
       intentPromptTitle: 'Potwierdź branżę i docelową rolę',
       intentPromptBody: 'Mamy wstępną sugestię z profilu lub CV. Wystarczy ją potwierdzić albo poprawić, żeby feed był trafniejszy.',
       intentPromptCta: 'Edytuj profil',
-      remote: 'Zdalnie',
+      remote: 'Praca z domu',
       commute: 'Dojazd',
       commuteHint: 'Bez adresu wyliczenie dojazdu pozostaje wyłączone, ale role zdalne nadal pokazują się poprawnie.',
       scope: 'Zakres',
@@ -580,7 +610,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       allMarkets: 'Szeroki zakres',
       border: 'Pogranicze / zagranica',
       domestic: 'Tylko kraj',
-      remoteOnly: 'Tylko zdalnie',
+      remoteOnly: 'Tylko praca z domu',
       allWorkModels: 'Wszystkie modele',
       anySalary: 'Bez minimum',
       allDates: 'Dowolnie',
@@ -649,6 +679,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         personalPresets: 'Presets for my situation',
         mySetup: 'My setup',
         mySetupBody: 'The feed starts with roles that match your setup and current filters.',
+        mySetupOffBody: 'The feed now uses only your manual filters and search terms. Personal setup is disabled for this search.',
+        useSetup: 'Use my setup',
+        disableSetup: 'Search without setup',
         matchesNow: 'Matching now',
         setupEmpty: 'Add filters or preferences and the feed will start shaping around your reality.',
         setupSection: 'Most relevant for you',
@@ -659,10 +692,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         dogSectionBody: 'Office-based roles that still work with dog care in real life.',
         moreSection: 'Broader market in your direction',
         moreSectionBody: 'A wider market view after applying your filters and life context.',
+        manualSection: 'Results for your search',
+        manualSectionBody: 'Roles based on your search terms and currently active filters.',
         intentPromptTitle: 'Confirm your domain and target role',
         intentPromptBody: 'We have a first suggestion from your profile or CV. Confirm or adjust it and the feed will get much sharper.',
         intentPromptCta: 'Open profile',
-        remote: 'Remote',
+        remote: 'Home office',
         commute: 'Commute',
         commuteHint: 'Without an address commute heuristics stay off, but remote roles still render correctly.',
         scope: 'Market scope',
@@ -676,7 +711,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         allMarkets: 'Global scope',
         border: 'Cross-border',
         domestic: 'Domestic',
-        remoteOnly: 'Remote only',
+        remoteOnly: 'Home office only',
         allWorkModels: 'All work models',
         anySalary: 'No minimum',
         allDates: 'Any time',
@@ -774,6 +809,35 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     () => resolveCandidateIntentProfile(userProfile),
     [userProfile]
   );
+  const resolvedSearchProfile = useMemo(
+    () => ({
+      ...createDefaultCandidateSearchProfile(),
+      ...(userProfile.preferences.searchProfile || {}),
+    }),
+    [userProfile.preferences.searchProfile]
+  );
+  const personalSetupBootstrappedRef = useRef(false);
+  const effectiveCandidateIntent = useMemo(
+    () =>
+      usePersonalSetup
+        ? candidateIntent
+        : {
+            ...candidateIntent,
+            primaryDomain: null,
+            secondaryDomains: [],
+            targetRole: '',
+            seniority: null,
+            includeAdjacentDomains: false,
+            inferredPrimaryDomain: null,
+            inferredTargetRole: '',
+            inferenceSource: 'none',
+            inferenceConfidence: 0,
+            usedManualDomain: false,
+            usedManualRole: false,
+            usedManualSeniority: false,
+          },
+    [candidateIntent, usePersonalSetup]
+  );
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -789,6 +853,23 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filterDate !== 'all' ||
       filterExperience.length > 0
   );
+
+  useEffect(() => {
+    if (personalSetupBootstrappedRef.current || !usePersonalSetup || hasActiveFilters || remoteOnly) return;
+    personalSetupBootstrappedRef.current = true;
+    if (resolvedSearchProfile.defaultEnableCommuteFilter) {
+      setEnableCommuteFilter(true);
+      setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
+    }
+  }, [
+    hasActiveFilters,
+    remoteOnly,
+    resolvedSearchProfile.defaultEnableCommuteFilter,
+    resolvedSearchProfile.defaultMaxDistanceKm,
+    setEnableCommuteFilter,
+    setFilterMaxDistance,
+    usePersonalSetup,
+  ]);
 
   const applyFilterSnapshot = (filters: JobSearchFilters) => {
     const nextRemoteOnly = Boolean(filters.remoteOnly);
@@ -811,7 +892,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const jobsInLane = useMemo(() => {
     const nativeJobs = jobs.filter((job) => job.listingKind !== 'imported');
     const importedJobs = jobs.filter((job) => job.listingKind === 'imported');
-    const byWorkMode = (items: Job[]) => items.filter((job) => (!remoteOnly ? true : isRemoteListing(job)));
+    const byWorkMode = (items: Job[]) =>
+      items.filter((job) => {
+        if (isWwrListing(job) && !remoteOnly) return false;
+        if (!remoteOnly) return true;
+        return isRemoteListing(job);
+      });
     const nativeMatches = byWorkMode(nativeJobs);
     const importedMatches = byWorkMode(importedJobs);
     const useImportedFallback = lane === 'challenges' && (nativeMatches.length === 0 || !hasNativeChallenges);
@@ -820,8 +906,32 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   }, [jobs, lane, remoteOnly, hasNativeChallenges]);
 
   const prioritizedJobsInLane = useMemo(
-    () => annotateJobsForCandidate(jobsInLane, userProfile, i18n.language),
-    [i18n.language, jobsInLane, userProfile]
+    () =>
+      annotateJobsForCandidate(
+        jobsInLane,
+        usePersonalSetup
+          ? userProfile
+          : {
+              ...userProfile,
+              preferences: {
+                ...userProfile.preferences,
+                searchProfile: {
+                  ...createDefaultCandidateSearchProfile(),
+                  primaryDomain: null,
+                  secondaryDomains: [],
+                  targetRole: '',
+                  seniority: null,
+                  includeAdjacentDomains: false,
+                  inferredPrimaryDomain: null,
+                  inferredTargetRole: '',
+                  inferenceSource: 'none',
+                  inferenceConfidence: null,
+                },
+              },
+            },
+        i18n.language
+      ),
+    [i18n.language, jobsInLane, usePersonalSetup, userProfile]
   );
 
   const hasCommuteProfile = Boolean(userProfile.address || userProfile.coordinates?.lat);
@@ -840,17 +950,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     globalSearch,
     abroadOnly,
     remoteOnly,
-    intentPrimaryDomain: candidateIntent.primaryDomain,
-    intentTargetRole: candidateIntent.targetRole || undefined,
-    intentSeniority: candidateIntent.seniority
+    intentPrimaryDomain: usePersonalSetup ? effectiveCandidateIntent.primaryDomain : null,
+    intentTargetRole: usePersonalSetup ? effectiveCandidateIntent.targetRole || undefined : undefined,
+    intentSeniority: usePersonalSetup ? effectiveCandidateIntent.seniority : null
   };
 
   const setupSignals = useMemo(() => {
     const signals: string[] = [];
-    const searchProfile = userProfile.preferences.searchProfile;
+    const searchProfile = usePersonalSetup ? resolvedSearchProfile : undefined;
     const activeLanguageCodes = filterLanguageCodes.length > 0 ? filterLanguageCodes : searchProfile?.remoteLanguageCodes || [];
     const preferredBenefits = Array.from(new Set(searchProfile?.preferredBenefitKeys || []));
-    const intentSignals = getCandidateIntentSignals(userProfile, i18n.language);
+    const intentSignals = usePersonalSetup ? getCandidateIntentSignals(userProfile, i18n.language) : [];
 
     intentSignals.forEach((signal) => {
       if (signal) signals.push(signal);
@@ -892,8 +1002,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       signals.push(`≤ ${filterMaxDistance} km`);
     } else if (searchProfile?.defaultEnableCommuteFilter && searchProfile?.defaultMaxDistanceKm) {
       signals.push(`≤ ${searchProfile.defaultMaxDistanceKm} km`);
-    } else if (userProfile.preferences.commuteTolerance) {
-      signals.push(`≤ ${userProfile.preferences.commuteTolerance} min`);
     }
     if (userProfile.jhiPreferences?.hardConstraints.excludeShift) {
       signals.push(isCsLike ? 'Bez směn' : 'No shifts');
@@ -929,18 +1037,28 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     remoteOnly,
     searchTerm,
     userProfile.jhiPreferences?.hardConstraints.excludeShift,
-    userProfile.preferences.commuteTolerance,
     userProfile.preferences.desired_salary_min,
-    userProfile.preferences.searchProfile,
+    resolvedSearchProfile,
     userProfile,
     i18n.language
   ]);
 
-  const hasManualIntent = candidateIntent.usedManualDomain || candidateIntent.usedManualRole || candidateIntent.usedManualSeniority;
-  const inferredIntentAvailable = Boolean(candidateIntent.inferredPrimaryDomain || candidateIntent.inferredTargetRole);
+  const hasManualIntent = effectiveCandidateIntent.usedManualDomain || effectiveCandidateIntent.usedManualRole || effectiveCandidateIntent.usedManualSeniority;
+  const inferredIntentAvailable = Boolean(effectiveCandidateIntent.inferredPrimaryDomain || effectiveCandidateIntent.inferredTargetRole);
 
   const feedSections = useMemo(() => {
     const sections: Array<{ key: string; title: string; body: string; jobs: Job[] }> = [];
+    if (!usePersonalSetup) {
+      if (prioritizedJobsInLane.length > 0) {
+        sections.push({
+          key: 'manual-search',
+          title: copy.manualSection,
+          body: copy.manualSectionBody,
+          jobs: prioritizedJobsInLane,
+        });
+      }
+      return sections;
+    }
     const bestFitJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'best_fit');
     const adjacentJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent');
     const broaderJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'broader');
@@ -962,11 +1080,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   }, [
     copy.moreSection,
     copy.moreSectionBody,
+    copy.manualSection,
+    copy.manualSectionBody,
     copy.remoteSection,
     copy.remoteSectionBody,
     copy.setupSection,
     copy.setupSectionBody,
-    prioritizedJobsInLane
+    prioritizedJobsInLane,
+    usePersonalSetup
   ]);
 
   const toggleRemoteOnly = (enabled: boolean) => {
@@ -1054,11 +1175,32 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         <div className="xl:sticky xl:top-[var(--app-sticky-stack-offset)] xl:self-start">
           <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-1.5rem)] xl:overflow-y-auto xl:pr-2 xl:pb-4">
             <SurfaceCard className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-[var(--accent)]" />
-                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.mySetup}</div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-[var(--accent)]" />
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.mySetup}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <FilterChip
+                    active={usePersonalSetup}
+                    onClick={() => {
+                      setUsePersonalSetup(true);
+                      if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
+                        setEnableCommuteFilter(true);
+                        setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
+                      }
+                    }}
+                  >
+                    {copy.useSetup}
+                  </FilterChip>
+                  <FilterChip active={!usePersonalSetup} onClick={() => setUsePersonalSetup(false)}>
+                    {copy.disableSetup}
+                  </FilterChip>
+                </div>
               </div>
-              <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.mySetupBody}</p>
+              <p className="text-sm leading-7 text-[var(--text-muted)]">
+                {usePersonalSetup ? copy.mySetupBody : copy.mySetupOffBody}
+              </p>
               {!hasManualIntent && inferredIntentAvailable ? (
                 <div className="rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-4 py-3">
                   <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.intentPromptTitle}</div>

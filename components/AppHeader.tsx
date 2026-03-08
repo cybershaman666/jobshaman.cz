@@ -161,12 +161,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         setSelectedJobId(null);
         setSelectedBlogPostSlug?.(null);
       }
-    },
-    {
-      key: 'imports',
-      label: isCsLike ? 'Importované nabídky' : 'Imported listings',
-      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'imports',
-      onClick: () => openDiscoveryLane('imports')
     }
   ];
 
