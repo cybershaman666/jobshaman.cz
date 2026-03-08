@@ -23,6 +23,25 @@ export interface AdminSubscriptionUpdate {
   set_trial_until?: string;
 }
 
+export interface AdminCrmLeadPayload {
+  company_name: string;
+  contact_name?: string;
+  contact_role?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  country?: string;
+  city?: string;
+  status?: 'new' | 'contacted' | 'qualified' | 'meeting' | 'proposal' | 'won' | 'lost';
+  priority?: 'low' | 'medium' | 'high';
+  source?: 'manual' | 'outbound' | 'inbound' | 'referral' | 'event';
+  notes?: string;
+  next_follow_up_at?: string;
+  last_contacted_at?: string;
+  linked_company_id?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export async function getAdminSubscriptions(filters: AdminSubscriptionFilters = {}) {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
@@ -89,7 +108,7 @@ export async function getAdminSubscriptionAudit(subscriptionId: string, limit: n
   return response.json();
 }
 
-export async function getAdminCrmEntityDetail(kind: 'company' | 'user', entityId: string) {
+export async function getAdminCrmEntityDetail(kind: 'company' | 'user' | 'lead', entityId: string) {
   const params = new URLSearchParams({ kind, entity_id: entityId });
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/entity-detail?${params.toString()}`, {
     method: 'GET',
@@ -99,6 +118,56 @@ export async function getAdminCrmEntityDetail(kind: 'company' | 'user', entityId
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Failed to load CRM entity detail');
+  }
+
+  return response.json();
+}
+
+export async function getAdminCrmLeads(params: { q?: string; status?: string; limit?: number; offset?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.status) search.set('status', params.status);
+  if (params.limit) search.set('limit', String(params.limit));
+  if (params.offset) search.set('offset', String(params.offset));
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/leads?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load CRM leads');
+  }
+
+  return response.json();
+}
+
+export async function createAdminCrmLead(payload: AdminCrmLeadPayload) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/leads`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to create CRM lead');
+  }
+
+  return response.json();
+}
+
+export async function updateAdminCrmLead(leadId: string, payload: Partial<AdminCrmLeadPayload>) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/leads/${leadId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to update CRM lead');
   }
 
   return response.json();

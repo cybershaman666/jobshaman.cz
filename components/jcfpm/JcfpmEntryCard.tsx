@@ -142,12 +142,12 @@ const JcfpmEntryCard: React.FC<Props> = ({
   const copy = useMemo(() => ENTRY_COPY[locale] || ENTRY_COPY.cs, [locale]);
 
   return (
-    <div className="jcfpm-entry-card group relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-xl hover:border-cyan-300/50 dark:hover:border-cyan-700/50">
+    <div className="jcfpm-entry-card group relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] transition-all duration-300 hover:border-[rgba(var(--accent-rgb),0.22)] hover:shadow-[var(--shadow-card)]">
       {/* 3D Background Teaser */}
       <div className="absolute inset-0 z-0 opacity-40 dark:opacity-20 transition-opacity group-hover:opacity-60 dark:group-hover:opacity-30">
         <SceneShell
           capability={sceneCapability}
-          fallback={<div className="absolute inset-0 bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-950 dark:to-slate-900" />}
+          fallback={<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,249,235,0.9),rgba(255,255,255,0.96))] dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.22),rgba(10,18,32,0.94))]" />}
           className="h-full w-full"
           glide
           glideIntensity={0.15}
@@ -159,7 +159,7 @@ const JcfpmEntryCard: React.FC<Props> = ({
       <div className="relative z-10 p-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/60 dark:border-cyan-500/30 bg-cyan-50 dark:bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">
               <Sparkles className="h-3 w-3" />
               {copy.badge}
             </div>
@@ -173,15 +173,15 @@ const JcfpmEntryCard: React.FC<Props> = ({
 
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <div className="h-2 w-2 rounded-full bg-cyan-500" />
+                <div className="h-2 w-2 rounded-full bg-[var(--accent)]" />
                 {copy.statDimensions}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <div className="h-2 w-2 rounded-full bg-teal-500" />
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
                 {copy.statAiReadiness}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <div className="h-2 w-2 rounded-full bg-cyan-600" />
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
                 {copy.statAnchors}
               </div>
             </div>
@@ -193,7 +193,7 @@ const JcfpmEntryCard: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={onView}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                  className="app-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <FileText className="h-5 w-5" />
                   {isPremium ? copy.viewResults : copy.viewBasicResults}
@@ -233,7 +233,7 @@ const JcfpmEntryCard: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={onResume}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:scale-[1.02] active:scale-[0.98]"
+                  className="app-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-bold hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Play className="h-5 w-5" />
                   {copy.resume}
@@ -254,7 +254,7 @@ const JcfpmEntryCard: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={onStartCore}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                  className="app-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Play className="h-5 w-5" />
                   {copy.start}

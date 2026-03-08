@@ -226,6 +226,44 @@ class AdminSubscriptionUpdateRequest(BaseModel):
     set_trial_until: Optional[str] = None
 
 
+class AdminCrmLeadCreateRequest(BaseModel):
+    company_name: str = Field(..., min_length=1, max_length=200)
+    contact_name: Optional[str] = Field(None, max_length=160)
+    contact_role: Optional[str] = Field(None, max_length=160)
+    email: Optional[str] = Field(None, max_length=320)
+    phone: Optional[str] = Field(None, max_length=80)
+    website: Optional[str] = Field(None, max_length=320)
+    country: Optional[str] = Field(None, max_length=120)
+    city: Optional[str] = Field(None, max_length=120)
+    status: Optional[Literal["new", "contacted", "qualified", "meeting", "proposal", "won", "lost"]] = "new"
+    priority: Optional[Literal["low", "medium", "high"]] = "medium"
+    source: Optional[Literal["manual", "outbound", "inbound", "referral", "event"]] = "manual"
+    notes: Optional[str] = Field(None, max_length=8000)
+    next_follow_up_at: Optional[str] = None
+    last_contacted_at: Optional[str] = None
+    linked_company_id: Optional[str] = Field(None, max_length=64)
+    metadata: Optional[dict] = None
+
+
+class AdminCrmLeadUpdateRequest(BaseModel):
+    company_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    contact_name: Optional[str] = Field(None, max_length=160)
+    contact_role: Optional[str] = Field(None, max_length=160)
+    email: Optional[str] = Field(None, max_length=320)
+    phone: Optional[str] = Field(None, max_length=80)
+    website: Optional[str] = Field(None, max_length=320)
+    country: Optional[str] = Field(None, max_length=120)
+    city: Optional[str] = Field(None, max_length=120)
+    status: Optional[Literal["new", "contacted", "qualified", "meeting", "proposal", "won", "lost"]] = None
+    priority: Optional[Literal["low", "medium", "high"]] = None
+    source: Optional[Literal["manual", "outbound", "inbound", "referral", "event"]] = None
+    notes: Optional[str] = Field(None, max_length=8000)
+    next_follow_up_at: Optional[str] = None
+    last_contacted_at: Optional[str] = None
+    linked_company_id: Optional[str] = Field(None, max_length=64)
+    metadata: Optional[dict] = None
+
+
 class AdminJobRoleCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     d1: float = Field(..., ge=1, le=7)

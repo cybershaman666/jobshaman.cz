@@ -10,6 +10,8 @@ import {
   Globe,
   Layers,
   Mail,
+  Phone,
+  Plus,
   RefreshCcw,
   Search,
   Settings,
@@ -20,16 +22,19 @@ import { UserProfile } from '../types';
 import { BACKEND_URL } from '../constants';
 import {
   adminSearch,
+  createAdminCrmLead,
   createAdminJobRole,
   deleteAdminJobRole,
   getAdminAiQuality,
   getAdminCrmEntityDetail,
+  getAdminCrmLeads,
   getAdminJobRoles,
   getAdminNotifications,
   getAdminSubscriptionAudit,
   getAdminStats,
   getAdminSubscriptions,
   getAdminUserDigest,
+  updateAdminCrmLead,
   updateAdminJobRole,
   updateAdminSubscription,
   updateAdminUserDigest,
@@ -57,7 +62,7 @@ interface AdminDashboardProps {
 }
 
 type ViewMode = 'overview' | 'operations' | 'crm' | 'jcfpm';
-type CrmEntityKind = 'company' | 'user';
+type CrmEntityKind = 'company' | 'user' | 'lead';
 
 type CrmRecord = {
   key: string;
@@ -72,6 +77,9 @@ type CrmRecord = {
 
 const TIERS = ['free', 'premium', 'starter', 'growth', 'professional', 'trial', 'enterprise'];
 const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];
+const CRM_LEAD_STATUSES = ['new', 'contacted', 'qualified', 'meeting', 'proposal', 'won', 'lost'] as const;
+const CRM_LEAD_PRIORITIES = ['low', 'medium', 'high'] as const;
+const CRM_LEAD_SOURCES = ['manual', 'outbound', 'inbound', 'referral', 'event'] as const;
 
 const num = (value: any) => Number(value) || 0;
 
@@ -130,6 +138,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [crmDetailLoading, setCrmDetailLoading] = useState(false);
   const [crmEntityDetail, setCrmEntityDetail] = useState<any | null>(null);
   const [crmTimelineFilter, setCrmTimelineFilter] = useState<string>('all');
+  const [crmLeadSaving, setCrmLeadSaving] = useState(false);
+  const [crmLeadCreate, setCrmLeadCreate] = useState({
+    company_name: '',
+    contact_name: '',
+    contact_role: '',
+    email: '',
+    phone: '',
+    website: '',
+    city: '',
+    country: '',
+    status: 'new',
+    priority: 'medium',
+    source: 'manual',
+    notes: '',
+    next_follow_up_at: '',
+  });
+  const [crmLeadEdit, setCrmLeadEdit] = useState({
+    company_name: '',
+    contact_name: '',
+    contact_role: '',
+    email: '',
+    phone: '',
+    website: '',
+    city: '',
+    country: '',
+    status: 'new',
+    priority: 'medium',
+    source: 'manual',
+    notes: '',
+    next_follow_up_at: '',
+    last_contacted_at: '',
+  });
 
   const formatDate = (value?: string) => {
     if (!value) return '—';
@@ -253,39 +293,60 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     };
   };
 
+  const toCrmRecordFromLead = (lead: any): CrmRecord => ({
+    key: `lead:${lead.id}`,
+    entityKind: 'lead',
+    entityId: String(lead.id),
+    label: lead.company_name || lead.id,
+    secondary: [lead.contact_name, lead.contact_role, lead.email || lead.phone].filter(Boolean).join(' • '),
+    subscription: null,
+    subscriptionId: null,
+    source: 'lookup',
+  });
+
   const loadCrmWorkspace = async () => {
     setCrmLoading(true);
     setError(null);
     try {
       const normalizedQuery = crmQuery.trim();
-      const subscriptionPromise = getAdminSubscriptions({
-        q: normalizedQuery || undefined,
-        kind: crmKind === 'all' ? undefined : crmKind,
-        limit: 120,
-        offset: 0,
-      });
+      const subscriptionPromise = crmKind === 'lead'
+        ? Promise.resolve({ items: [] as any[] })
+        : getAdminSubscriptions({
+            q: normalizedQuery || undefined,
+            kind: crmKind === 'all' ? undefined : crmKind,
+            limit: 120,
+            offset: 0,
+          });
+      const leadsPromise = crmKind === 'all' || crmKind === 'lead'
+        ? getAdminCrmLeads({ q: normalizedQuery || undefined, limit: 120, offset: 0 })
+        : Promise.resolve({ items: [] as any[] });
 
       const lookupPromises: Promise<any>[] = [];
       if (normalizedQuery.length >= 2) {
         if (crmKind === 'all') {
           lookupPromises.push(adminSearch(normalizedQuery, 'company'));
           lookupPromises.push(adminSearch(normalizedQuery, 'user'));
-        } else {
+          lookupPromises.push(adminSearch(normalizedQuery, 'lead' as any));
+        } else if (crmKind !== 'lead') {
           lookupPromises.push(adminSearch(normalizedQuery, crmKind));
         }
       }
 
-      const [subscriptionData, ...lookupData] = await Promise.all([subscriptionPromise, ...lookupPromises]);
+      const [subscriptionData, leadsData, ...lookupData] = await Promise.all([subscriptionPromise, leadsPromise, ...lookupPromises]);
       const subscriptionRows: CrmRecord[] = (subscriptionData?.items || []).map((sub: any) => toCrmRecordFromSubscription(sub));
+      const leadRows: CrmRecord[] = (leadsData?.items || []).map((lead: any) => toCrmRecordFromLead(lead));
       const entityToRecord = new Map<string, CrmRecord>();
 
       subscriptionRows.forEach((row) => {
         entityToRecord.set(`${row.entityKind}:${row.entityId}`, row);
       });
+      leadRows.forEach((row) => {
+        entityToRecord.set(`${row.entityKind}:${row.entityId}`, row);
+      });
 
       lookupData.forEach((packet) => {
         (packet?.items || []).forEach((item: any) => {
-          const entityKind = item.kind === 'company' ? 'company' : 'user';
+          const entityKind = item.kind === 'company' ? 'company' : item.kind === 'lead' ? 'lead' : 'user';
           const entityId = String(item.id || '');
           if (!entityId) return;
           const mapKey = `${entityKind}:${entityId}`;
@@ -398,7 +459,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         setCrmDigest(null);
       }
 
-      if (sub?.id) {
+      if (selectedCrmRecord.entityKind === 'lead') {
+        setCrmAuditItems([]);
+        setCrmAuditAvailable(true);
+      } else if (sub?.id) {
         setCrmAuditLoading(true);
         try {
           const audit = await getAdminSubscriptionAudit(sub.id, 20);
@@ -426,6 +490,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       cancelled = true;
     };
   }, [selectedCrmRecord]);
+
+  useEffect(() => {
+    if (selectedCrmRecord?.entityKind !== 'lead') return;
+    const entity = crmEntityDetail?.entity || {};
+    setCrmLeadEdit({
+      company_name: entity.company_name || '',
+      contact_name: entity.contact_name || '',
+      contact_role: entity.contact_role || '',
+      email: entity.email || '',
+      phone: entity.phone || '',
+      website: entity.website || '',
+      city: entity.city || '',
+      country: entity.country || '',
+      status: entity.status || 'new',
+      priority: entity.priority || 'medium',
+      source: entity.source || 'manual',
+      notes: entity.notes || '',
+      next_follow_up_at: entity.next_follow_up_at ? String(entity.next_follow_up_at).slice(0, 16) : '',
+      last_contacted_at: entity.last_contacted_at ? String(entity.last_contacted_at).slice(0, 16) : '',
+    });
+  }, [selectedCrmRecord?.entityKind, crmEntityDetail]);
 
   const kpis = useMemo(() => {
     const users = stats?.users || {};
@@ -474,12 +559,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const crmSummary = useMemo(() => {
     const companies = crmRecords.filter((row) => row.entityKind === 'company').length;
     const users = crmRecords.filter((row) => row.entityKind === 'user').length;
+    const leads = crmRecords.filter((row) => row.entityKind === 'lead').length;
     const subscribed = crmRecords.filter((row) => Boolean(row.subscription)).length;
     const trialing = crmRecords.filter((row) => row.subscription?.status === 'trialing').length;
     return {
       total: crmRecords.length,
       companies,
       users,
+      leads,
       subscribed,
       trialing,
     };
@@ -487,7 +574,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const crmMetricCards = useMemo(() => {
     const metrics = crmEntityDetail?.metrics || {};
     const isCompany = crmEntityDetail?.kind === 'company';
-    const items = isCompany
+    const isLead = crmEntityDetail?.kind === 'lead';
+    const items = isLead
+      ? [
+        { label: t('admin_dashboard.crm.metrics.days_open', { defaultValue: 'Dní v pipeline' }), value: metrics.days_open },
+        { label: t('admin_dashboard.crm.metrics.follow_up_scheduled', { defaultValue: 'Naplánovaný follow-up' }), value: metrics.follow_up_scheduled },
+        { label: t('admin_dashboard.crm.metrics.has_email', { defaultValue: 'Má e-mail' }), value: metrics.has_email },
+        { label: t('admin_dashboard.crm.metrics.has_phone', { defaultValue: 'Má telefon' }), value: metrics.has_phone },
+        { label: t('admin_dashboard.crm.metrics.linked_company', { defaultValue: 'Navázaná firma' }), value: metrics.linked_company },
+      ]
+      : isCompany
       ? [
         { label: t('admin_dashboard.crm.metrics.jobs_active', { defaultValue: 'Aktivní role' }), value: metrics.jobs_active },
         { label: t('admin_dashboard.crm.metrics.jobs_total', { defaultValue: 'Role celkem' }), value: metrics.jobs_total },
@@ -670,6 +766,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       handleAuthError(err?.message || 'Failed to update digest settings');
     } finally {
       setCrmDigestSaving(false);
+    }
+  };
+
+  const handleCreateLead = async () => {
+    if (!crmLeadCreate.company_name.trim() || crmLeadSaving) return;
+    setCrmLeadSaving(true);
+    try {
+      await createAdminCrmLead({
+        ...crmLeadCreate,
+        company_name: crmLeadCreate.company_name.trim(),
+        status: crmLeadCreate.status as (typeof CRM_LEAD_STATUSES)[number],
+        priority: crmLeadCreate.priority as (typeof CRM_LEAD_PRIORITIES)[number],
+        source: crmLeadCreate.source as (typeof CRM_LEAD_SOURCES)[number],
+        next_follow_up_at: crmLeadCreate.next_follow_up_at ? new Date(crmLeadCreate.next_follow_up_at).toISOString() : undefined,
+      });
+      setCrmLeadCreate({
+        company_name: '',
+        contact_name: '',
+        contact_role: '',
+        email: '',
+        phone: '',
+        website: '',
+        city: '',
+        country: '',
+        status: 'new',
+        priority: 'medium',
+        source: 'manual',
+        notes: '',
+        next_follow_up_at: '',
+      });
+      await loadCrmWorkspace();
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to create CRM lead');
+    } finally {
+      setCrmLeadSaving(false);
+    }
+  };
+
+  const handleUpdateLead = async () => {
+    if (!selectedCrmRecord || selectedCrmRecord.entityKind !== 'lead' || crmLeadSaving) return;
+    setCrmLeadSaving(true);
+    try {
+      await updateAdminCrmLead(selectedCrmRecord.entityId, {
+        ...crmLeadEdit,
+        company_name: crmLeadEdit.company_name.trim(),
+        status: crmLeadEdit.status as (typeof CRM_LEAD_STATUSES)[number],
+        priority: crmLeadEdit.priority as (typeof CRM_LEAD_PRIORITIES)[number],
+        source: crmLeadEdit.source as (typeof CRM_LEAD_SOURCES)[number],
+        next_follow_up_at: crmLeadEdit.next_follow_up_at ? new Date(crmLeadEdit.next_follow_up_at).toISOString() : undefined,
+        last_contacted_at: crmLeadEdit.last_contacted_at ? new Date(crmLeadEdit.last_contacted_at).toISOString() : undefined,
+      });
+      await loadCrmWorkspace();
+      const detail = await getAdminCrmEntityDetail('lead', selectedCrmRecord.entityId);
+      setCrmEntityDetail(detail || null);
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to update CRM lead');
+    } finally {
+      setCrmLeadSaving(false);
     }
   };
 
@@ -1144,11 +1298,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
         {view === 'crm' && (
           <>
-            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
               {[
                 { label: t('admin_dashboard.crm.total_entities', { defaultValue: 'CRM entity' }), value: crmSummary.total },
                 { label: t('admin_dashboard.crm.companies', { defaultValue: 'Firmy' }), value: crmSummary.companies },
                 { label: t('admin_dashboard.crm.users', { defaultValue: 'Uživatelé' }), value: crmSummary.users },
+                { label: t('admin_dashboard.crm.leads', { defaultValue: 'Leady' }), value: crmSummary.leads },
                 { label: t('admin_dashboard.crm.with_subscription', { defaultValue: 'S předplatným' }), value: crmSummary.subscribed },
                 { label: t('admin_dashboard.crm.trialing', { defaultValue: 'Trialing' }), value: crmSummary.trialing },
               ].map((item) => (
@@ -1161,6 +1316,68 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
               <article className={`xl:col-span-5 ${panelClass}`}>
+                <div className={`${panelSoftClass} mb-3`}>
+                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <Plus size={15} className="text-[var(--accent)]" />
+                    {t('admin_dashboard.crm.add_lead', { defaultValue: 'Přidat firmu jako lead' })}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <input
+                      value={crmLeadCreate.company_name}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, company_name: e.target.value }))}
+                      placeholder={t('admin_dashboard.crm.company_name', { defaultValue: 'Firma' })}
+                      className={inputClass}
+                    />
+                    <input
+                      value={crmLeadCreate.contact_name}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, contact_name: e.target.value }))}
+                      placeholder={t('admin_dashboard.crm.contact_name', { defaultValue: 'Kontaktní osoba' })}
+                      className={inputClass}
+                    />
+                    <input
+                      value={crmLeadCreate.email}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="E-mail"
+                      className={inputClass}
+                    />
+                    <input
+                      value={crmLeadCreate.phone}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder={t('admin_dashboard.crm.phone', { defaultValue: 'Telefon' })}
+                      className={inputClass}
+                    />
+                    <select
+                      value={crmLeadCreate.status}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, status: e.target.value }))}
+                      className={inputClass}
+                    >
+                      {CRM_LEAD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                    <input
+                      type="datetime-local"
+                      value={crmLeadCreate.next_follow_up_at}
+                      onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, next_follow_up_at: e.target.value }))}
+                      className={inputClass}
+                    />
+                  </div>
+                  <textarea
+                    value={crmLeadCreate.notes}
+                    onChange={(e) => setCrmLeadCreate((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder={t('admin_dashboard.crm.notes', { defaultValue: 'Poznámka k leadu' })}
+                    className={`${inputClass} mt-2 min-h-[92px] resize-y`}
+                  />
+                  <div className="mt-3">
+                    <button
+                      onClick={handleCreateLead}
+                      disabled={crmLeadSaving || !crmLeadCreate.company_name.trim()}
+                      className="app-button-primary !rounded-[0.85rem] !px-4 !py-2 text-sm disabled:opacity-60"
+                    >
+                      <Plus size={14} />
+                      {crmLeadSaving ? t('app.saving') : t('admin_dashboard.crm.create_lead_cta', { defaultValue: 'Uložit lead' })}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                   <div className="relative flex-1">
                     <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
@@ -1185,6 +1402,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <option value="all">{t('admin_dashboard.crm.kind_all', { defaultValue: 'Vše' })}</option>
                     <option value="company">{t('admin_dashboard.entity.company')}</option>
                     <option value="user">{t('admin_dashboard.entity.user')}</option>
+                    <option value="lead">{t('admin_dashboard.crm.leads', { defaultValue: 'Leady' })}</option>
                   </select>
                   <button
                     onClick={loadCrmWorkspace}
@@ -1226,10 +1444,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           <div className="flex shrink-0 items-center gap-1">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${record.entityKind === 'company'
                               ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+                              : record.entityKind === 'lead'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
                               {record.entityKind}
                             </span>
-                            {sub ? (
+                            {record.entityKind === 'lead' ? (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                lead
+                              </span>
+                            ) : sub ? (
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${sub.status === 'active'
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
                                 : sub.status === 'trialing'
@@ -1268,7 +1492,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             <Building2 size={12} />
                             {selectedCrmRecord.entityKind === 'company'
                               ? t('admin_dashboard.entity.company')
-                              : t('admin_dashboard.entity.user')}
+                              : selectedCrmRecord.entityKind === 'lead'
+                                ? t('admin_dashboard.crm.lead', { defaultValue: 'Lead' })
+                                : t('admin_dashboard.entity.user')}
                           </span>
                           {selectedCrmRecord.subscriptionId && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 font-semibold text-[var(--accent)]">
@@ -1458,6 +1684,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       )}
                     </div>
 
+                    {selectedCrmRecord.entityKind === 'lead' && (
+                      <div className={panelSoftClass}>
+                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <Phone size={15} className="text-[var(--accent)]" />
+                          {t('admin_dashboard.crm.lead_detail', { defaultValue: 'Obchodní lead' })}
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <input value={crmLeadEdit.company_name} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, company_name: e.target.value }))} placeholder={t('admin_dashboard.crm.company_name', { defaultValue: 'Firma' })} className={inputClass} />
+                          <input value={crmLeadEdit.contact_name} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, contact_name: e.target.value }))} placeholder={t('admin_dashboard.crm.contact_name', { defaultValue: 'Kontaktní osoba' })} className={inputClass} />
+                          <input value={crmLeadEdit.contact_role} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, contact_role: e.target.value }))} placeholder={t('admin_dashboard.crm.contact_role', { defaultValue: 'Role kontaktu' })} className={inputClass} />
+                          <input value={crmLeadEdit.email} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, email: e.target.value }))} placeholder="E-mail" className={inputClass} />
+                          <input value={crmLeadEdit.phone} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, phone: e.target.value }))} placeholder={t('admin_dashboard.crm.phone', { defaultValue: 'Telefon' })} className={inputClass} />
+                          <input value={crmLeadEdit.website} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, website: e.target.value }))} placeholder="https://..." className={inputClass} />
+                          <input value={crmLeadEdit.city} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, city: e.target.value }))} placeholder={t('admin_dashboard.crm.city', { defaultValue: 'Město' })} className={inputClass} />
+                          <input value={crmLeadEdit.country} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, country: e.target.value }))} placeholder={t('admin_dashboard.crm.country', { defaultValue: 'Země' })} className={inputClass} />
+                          <select value={crmLeadEdit.status} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, status: e.target.value }))} className={inputClass}>
+                            {CRM_LEAD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          </select>
+                          <select value={crmLeadEdit.priority} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, priority: e.target.value }))} className={inputClass}>
+                            {CRM_LEAD_PRIORITIES.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+                          </select>
+                          <select value={crmLeadEdit.source} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, source: e.target.value }))} className={inputClass}>
+                            {CRM_LEAD_SOURCES.map((source) => <option key={source} value={source}>{source}</option>)}
+                          </select>
+                          <input type="datetime-local" value={crmLeadEdit.last_contacted_at} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, last_contacted_at: e.target.value }))} className={inputClass} />
+                          <input type="datetime-local" value={crmLeadEdit.next_follow_up_at} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, next_follow_up_at: e.target.value }))} className={inputClass} />
+                        </div>
+                        <textarea value={crmLeadEdit.notes} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, notes: e.target.value }))} placeholder={t('admin_dashboard.crm.notes', { defaultValue: 'Poznámka k leadu' })} className={`${inputClass} mt-2 min-h-[120px] resize-y`} />
+                        <div className="mt-3">
+                          <button onClick={handleUpdateLead} disabled={crmLeadSaving || !crmLeadEdit.company_name.trim()} className="app-button-primary !rounded-[0.85rem] !px-4 !py-2 text-sm disabled:opacity-60">
+                            {crmLeadSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedCrmRecord.entityKind !== 'lead' && (
                     <div className={panelSoftClass}>
                       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                         <Clock3 size={15} className="text-[var(--accent)]" />
@@ -1506,6 +1769,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         </span>
                       </div>
                     </div>
+                    )}
 
                     {selectedCrmRecord.entityKind === 'user' && (
                       <div className={panelSoftClass}>
@@ -1563,6 +1827,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     )}
 
+                    {selectedCrmRecord.entityKind !== 'lead' && (
                     <div className={panelSoftClass}>
                       <div className="mb-2 flex items-center justify-between">
                         <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1592,6 +1857,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
               </article>

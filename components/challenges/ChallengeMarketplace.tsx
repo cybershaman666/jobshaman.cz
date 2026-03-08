@@ -16,6 +16,7 @@ import { CandidateDialogueCapacity, Job, JobSearchFilters, SearchLanguageCode, U
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { isRemoteJob } from '../../services/commuteService';
+import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
 
@@ -27,6 +28,12 @@ interface ChallengeMarketplaceProps {
   userProfile: UserProfile;
   lane: 'challenges' | 'imports';
   setLane: (lane: 'challenges' | 'imports') => void;
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  loadMoreJobs: () => void;
+  applyInteractionState: (jobId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
+  theme: 'light' | 'dark';
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   performSearch: (term: string) => void;
@@ -167,6 +174,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   userProfile,
   lane,
   setLane,
+  loading,
+  loadingMore,
+  hasMore,
+  loadMoreJobs,
+  applyInteractionState,
+  theme,
   searchTerm,
   setSearchTerm,
   performSearch,
@@ -204,6 +217,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
   const isCsLike = language === 'cs' || language === 'sk';
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
+  const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
 
   const copy = ({
     cs: {
@@ -281,7 +295,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsEmpty: 'Po přihlášení uvidíš, kolik aktivních dialogů ti ještě zbývá.',
       slotsValue: '{{active}} / {{limit}} obsazeno',
       slotsRemaining: '{{remaining}} volných',
-      slotsRemainingLabel: 'Volná kapacita'
+      slotsRemainingLabel: 'Volná kapacita',
+      mobileSwipe: 'Karty',
+      mobileList: 'Seznam',
+      mobileSwipeBody: 'Na mobilu můžeš procházet nabídky tahem doleva nebo doprava.'
     },
     sk: {
       eyebrow: 'Hľadanie',
@@ -355,7 +372,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsEmpty: 'Po prihlásení uvidíš, koľko aktívnych dialógov ti ešte zostáva.',
       slotsValue: '{{active}} / {{limit}} obsadené',
       slotsRemaining: '{{remaining}} voľných',
-      slotsRemainingLabel: 'Voľná kapacita'
+      slotsRemainingLabel: 'Voľná kapacita',
+      mobileSwipe: 'Karty',
+      mobileList: 'Zoznam',
+      mobileSwipeBody: 'Na mobile môžeš ponuky prechádzať ťahom doľava alebo doprava.'
     },
     de: {
       eyebrow: 'Suche',
@@ -429,7 +449,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsEmpty: 'Nach dem Anmelden siehst du, wie viele aktive Dialoge dir noch bleiben.',
       slotsValue: '{{active}} / {{limit}} belegt',
       slotsRemaining: '{{remaining}} frei',
-      slotsRemainingLabel: 'Freie Kapazität'
+      slotsRemainingLabel: 'Freie Kapazität',
+      mobileSwipe: 'Karten',
+      mobileList: 'Liste',
+      mobileSwipeBody: 'Auf dem Handy kannst du Rollen per Wischen nach links oder rechts durchgehen.'
     },
     at: {} as any,
     pl: {
@@ -504,7 +527,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsEmpty: 'Po zalogowaniu zobaczysz, ile aktywnych rozmów jeszcze ci zostało.',
       slotsValue: '{{active}} / {{limit}} zajęte',
       slotsRemaining: '{{remaining}} wolnych',
-      slotsRemainingLabel: 'Wolna pojemność'
+      slotsRemainingLabel: 'Wolna pojemność',
+      mobileSwipe: 'Karty',
+      mobileList: 'Lista',
+      mobileSwipeBody: 'Na telefonie możesz przeglądać oferty przesunięciem w lewo albo w prawo.'
     },
     en: {
         eyebrow: 'Discovery cockpit',
@@ -577,11 +603,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         riskLabel: 'Risk',
         openCard: 'Open challenge',
         slotsTitle: 'Dialogue slots',
-      slotsBody: 'Each reply opens a limited number of active dialogues, so the process does not turn into an endless funnel with no response.',
-      slotsEmpty: 'After signing in, you will see how many active dialogues you still have left.',
-      slotsValue: '{{active}} / {{limit}} in use',
-      slotsRemaining: '{{remaining}} left',
-      slotsRemainingLabel: 'Open capacity'
+        slotsBody: 'Each reply opens a limited number of active dialogues, so the process does not turn into an endless funnel with no response.',
+        slotsEmpty: 'After signing in, you will see how many active dialogues you still have left.',
+        slotsValue: '{{active}} / {{limit}} in use',
+        slotsRemaining: '{{remaining}} left',
+        slotsRemainingLabel: 'Open capacity',
+        mobileSwipe: 'Cards',
+        mobileList: 'List',
+        mobileSwipeBody: 'On mobile you can browse roles by swiping left or right.'
       }
   } as const)[language === 'at' ? 'de' : language];
 
@@ -1124,6 +1153,43 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         </div>
 
         <div className="space-y-4">
+          <SurfaceCard className="space-y-4 xl:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.laneChallenges}</div>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.mobileSwipeBody}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip active={mobileViewMode === 'swipe'} onClick={() => setMobileViewMode('swipe')}>
+                  {copy.mobileSwipe}
+                </FilterChip>
+                <FilterChip active={mobileViewMode === 'list'} onClick={() => setMobileViewMode('list')}>
+                  {copy.mobileList}
+                </FilterChip>
+              </div>
+            </div>
+          </SurfaceCard>
+
+          {mobileViewMode === 'swipe' ? (
+            <div className="xl:hidden">
+              <MobileSwipeJobBrowser
+                jobs={jobsInLane}
+                swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
+                savedJobIds={savedJobIds}
+                onToggleSave={handleToggleSave}
+                onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
+                onOpenDetails={handleJobSelect}
+                onSwitchToList={() => setMobileViewMode('list')}
+                isLoadingMore={loadingMore}
+                isLoading={loading}
+                hasMore={hasMore}
+                onLoadMore={loadMoreJobs}
+                theme={theme}
+              />
+            </div>
+          ) : null}
+
+          <div className={cn(mobileViewMode === 'swipe' && 'hidden xl:block')}>
           <SurfaceCard className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
@@ -1254,6 +1320,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </section>

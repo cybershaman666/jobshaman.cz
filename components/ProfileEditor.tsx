@@ -51,6 +51,7 @@ import NebulaOfPotential from './three/NebulaOfPotential';
 import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
 import AnalyticsService from '../services/analyticsService';
 import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
+import JcfpmReportPanel from './jcfpm/JcfpmReportPanel';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 
@@ -594,6 +595,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileIconButtonClass = 'rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]';
   const profilePrimaryButtonClass = 'app-button-primary disabled:cursor-not-allowed disabled:opacity-60';
   const profileSurfaceClass = 'app-surface overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-card)]';
+  const profileAccentIconShellClass = 'rounded-lg bg-[var(--accent-soft)] p-2';
+  const profileAccentIconClass = 'h-5 w-5 text-[var(--accent)]';
+  const profileAccentPanelClass = 'rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4';
+  const profileAccentBadgeClass = 'inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]';
 
   const profileHeroCopy = isCsLikeProfile
     ? {
@@ -644,14 +649,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   ];
 
   const renderAiGuidePanel = isCvTab ? (
-    <div className="h-full overflow-hidden rounded-[1.05rem] border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-[0_22px_42px_-34px_rgba(8,145,178,0.28)] dark:border-cyan-800/60 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950">
-      <div className="border-b border-cyan-200/80 dark:border-cyan-800/60 bg-white/70 dark:bg-cyan-950/10 px-5 py-4">
+    <div className="h-full overflow-hidden rounded-[1.05rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.98))] shadow-[var(--shadow-card)] dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.32),rgba(10,18,32,0.96))]">
+      <div className="border-b border-[rgba(var(--accent-rgb),0.16)] bg-white/70 px-5 py-4 dark:bg-[rgba(var(--accent-rgb),0.04)]">
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
             <Sparkles className="h-3.5 w-3.5" />
             Premium
           </div>
-          <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-100 px-2.5 py-1 text-[11px] font-semibold text-cyan-800 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300">
+          <span className={profileAccentBadgeClass}>
             {t('profile.ai_guide_core_badge', { defaultValue: profilePremiumCopy.aiGuideBadge })}
           </span>
         </div>
@@ -676,7 +681,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           ))}
         </div>
 
-        <div className="rounded-[1rem] border border-cyan-200/80 bg-white/80 p-4 dark:border-cyan-900/40 dark:bg-slate-900/70">
+        <div className="rounded-[1rem] border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 p-4 dark:bg-slate-900/70">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {t('profile.ai_guide_long_desc', {
               defaultValue: 'Nadiktujte svůj příběh a AI z něj sestaví použitelný profilový narativ, doporučení pro CV i konkrétní text, který můžete dál ručně ladit.'
@@ -687,13 +692,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isPremium ? (
               <button
                 onClick={() => setShowAIGuide(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[0.95rem] bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_32px_-24px_rgba(6,182,212,0.34)] transition-colors hover:bg-cyan-700"
+                className={`${profilePrimaryButtonClass} inline-flex w-full items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2.5 text-sm`}
               >
                 <Sparkles className="h-4 w-4" />
                 {t('profile.ai_guide_start', { defaultValue: profilePremiumCopy.aiGuideStart })}
               </button>
             ) : (
-              <div className="space-y-3 rounded-xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-4">
+              <div className={`${profileAccentPanelClass} space-y-3`}>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {t('alerts.premium_only_feature')}
@@ -708,7 +713,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       redirectToCheckout('premium', profile.id);
                     }
                   }}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-cyan-500/30 transition-colors hover:bg-cyan-700"
+                  className={`${profilePrimaryButtonClass} inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm`}
                 >
                   {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
                 </button>
@@ -749,7 +754,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             value={editableCvAiText}
             onChange={(e) => setEditableCvAiText(e.target.value)}
             rows={5}
-            className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-3 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            className={`${profileInputClass} mt-4 min-h-[140px] px-3 py-3`}
             placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: supportingContextCopy.aiDraftPlaceholder })}
           />
 
@@ -1646,8 +1651,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <div className={profileAccentIconShellClass}>
+                      <User className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.personal_info')}</h2>
                   </div>
@@ -1711,9 +1716,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     type="text"
                     value={formData.personal.address}
                     onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
-                    className={`w-full rounded-[0.95rem] border bg-white/90 px-4 py-2.5 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
+                    className={`w-full rounded-[0.95rem] border bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
                       addressVerificationStatus === 'error' ? 'border-rose-500' :
-                        'border-slate-300 dark:border-slate-600'
+                        'border-[var(--border)]'
                       }`}
                     placeholder={t('profile.address_placeholder')}
                   />
@@ -1758,7 +1763,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.linkedIn}
                         onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
-                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
+                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
                         placeholder={t('profile.linkedin_placeholder')}
                       />
                     </div>
@@ -1772,7 +1777,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.portfolio}
                         onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
-                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
+                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
                         placeholder={t('profile.portfolio_placeholder')}
                       />
                     </div>
@@ -1786,7 +1791,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         type="url"
                         value={formData.personal.github}
                         onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
-                        className="w-full rounded-[0.95rem] border border-slate-300 bg-white/90 py-2.5 pl-10 pr-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40"
+                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
                         placeholder={t('profile.github_placeholder')}
                       />
                     </div>
@@ -2007,8 +2012,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-cyan-100 p-2 dark:bg-cyan-900/30">
-                    <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  <div className={profileAccentIconShellClass}>
+                    <FileText className={profileAccentIconClass} />
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
@@ -2030,10 +2035,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   className="hidden"
                 />
 
-                <div className={`w-full p-5 border-2 border-dashed rounded-lg transition-colors ${profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
+                <div className={`w-full rounded-lg border-2 border-dashed p-5 transition-colors ${profile.cvUrl ? 'border-[rgba(var(--accent-rgb),0.42)] bg-[rgba(var(--accent-rgb),0.08)]' : 'border-slate-300 hover:border-[rgba(var(--accent-rgb),0.3)]'
                   }`}>
                   <div className="text-center">
-                    <FileText className={`w-10 h-10 mx-auto mb-3 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
+                    <FileText className={`mx-auto mb-3 h-10 w-10 ${profile.cvUrl ? 'text-[var(--accent)]' : 'text-slate-400'}`} />
 
                     {profile.cvUrl ? (
                       <div>
@@ -3166,7 +3171,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   {profilePremiumCopy.jcfpmSummary}
                 </p>
               </div>
-              <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
+              <div className="space-y-4 bg-[linear-gradient(180deg,rgba(255,250,240,0.88),rgba(255,255,255,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.28),rgba(10,18,32,0.96))]">
                 <JcfpmEntryCard
                   isPremium={isPremium}
                   sceneCapability={sceneCapability}
@@ -3191,8 +3196,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     window.location.href = `/${lng}/profile/jcfpm?section=deep_dive&mode=start`;
                   }}
                   onView={() => {
-                    const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?mode=report`;
+                    window.requestAnimationFrame(() => {
+                      document.getElementById('profile-jcfpm-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
                   }}
                   onUpgrade={() => {
                     if (profile.id) {
@@ -3200,8 +3206,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     }
                   }}
                 />
+                {jcfpmSnapshot && (
+                  <div id="profile-jcfpm-report" className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-soft)]">
+                    <JcfpmReportPanel snapshot={jcfpmSnapshot} showAdvancedReport={isPremium} />
+                  </div>
+                )}
                 {profile.preferences?.jcfpm_jhi_adjustment_v1 && isPremium && (
-                  <div className="rounded-xl border border-cyan-200/70 dark:border-cyan-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+                  <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 p-4 dark:bg-slate-900/70">
                     <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                       Jak test upravil JHI preference
                     </div>

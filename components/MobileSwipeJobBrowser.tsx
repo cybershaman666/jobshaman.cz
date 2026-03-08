@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackJobInteraction } from '../services/jobInteractionService';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
+import { cn } from './ui/primitives';
 
 interface MobileSwipeJobBrowserProps {
     jobs: Job[];
@@ -42,6 +43,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     theme
 }) => {
     const { t } = useTranslation();
+    void theme;
     const [currentIndex, setCurrentIndex] = useState(0);
     const [processedJobIds, setProcessedJobIds] = useState<string[]>([]);
     const [swipeState, setSwipeState] = useState<SwipeState>({
@@ -382,27 +384,17 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     if (jobs.length === 0) {
         if (isLoading) {
             return (
-                <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
-                    theme === 'dark' ? 'bg-slate-900' : 'bg-white'
-                }`}>
-                    <Activity className="animate-spin text-cyan-500 mb-3" size={28} />
-                    <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                        {t('app.searching')}
-                    </p>
+                <div className="app-surface flex min-h-[64dvh] flex-col items-center justify-center rounded-[var(--radius-2xl)] border p-6 text-center shadow-[var(--shadow-card)]">
+                    <Activity className="mb-3 animate-spin text-[var(--accent)]" size={28} />
+                    <p className="text-[var(--text-muted)]">{t('app.searching')}</p>
                 </div>
             );
         }
         return (
-            <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
-                theme === 'dark' ? 'bg-slate-900' : 'bg-white'
-            }`}>
-                <div className={`text-5xl mb-4 ${theme === 'dark' ? 'text-slate-600' : 'text-slate-300'}`}>
-                    🎯
-                </div>
+            <div className="app-surface flex min-h-[64dvh] flex-col items-center justify-center rounded-[var(--radius-2xl)] border p-6 text-center shadow-[var(--shadow-card)]">
+                <div className="mb-4 text-5xl text-[var(--text-faint)]">🎯</div>
                 <h2 className="text-xl font-bold mb-2">{t('job.no_jobs_title')}</h2>
-                <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                    {t('job.no_jobs_message')}
-                </p>
+                <p className="text-[var(--text-muted)]">{t('job.no_jobs_message')}</p>
             </div>
         );
     }
@@ -410,12 +402,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     // All jobs swiped
     if (!currentJob || reviewedCount >= jobs.length) {
         return (
-            <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
-                theme === 'dark' ? 'bg-slate-900' : 'bg-white'
-            }`}>
+            <div className="app-surface flex min-h-[64dvh] flex-col items-center justify-center rounded-[var(--radius-2xl)] border p-6 text-center shadow-[var(--shadow-card)]">
                 <div className="text-5xl mb-4">🎉</div>
                 <h2 className="text-xl font-bold mb-2">{t('job.all_reviewed')}</h2>
-                <p className={`mb-6 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="mb-6 text-[var(--text-muted)]">
                     {t('job.swiped_count', { count: reviewedCount })}
                 </p>
                 <button
@@ -426,7 +416,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             window.localStorage.removeItem(swipeStateKey);
                         }
                     }}
-                    className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium"
+                    className="app-button-primary"
                 >
                     {t('job.start_over')}
                 </button>
@@ -441,9 +431,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     return (
         <div
             ref={containerRef}
-            className={`relative w-full h-full flex flex-col ${
-                theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'
-            } overflow-hidden`}
+            className="app-surface relative flex min-h-[70dvh] w-full flex-col overflow-hidden rounded-[var(--radius-2xl)] border shadow-[var(--shadow-card)]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -453,28 +441,22 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             onMouseLeave={handleMouseUp}
         >
             {/* Header with job counter */}
-            <div className={`flex-none px-4 py-3 border-b ${
-                theme === 'dark' 
-                    ? 'border-slate-800 bg-slate-900' 
-                    : 'border-slate-200 bg-white'
-            }`}>
+            <div className="flex-none border-b border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-4 py-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-cyan-600">{displayPosition}</span>
-                        <span className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className="text-sm font-semibold text-[var(--accent)]">{displayPosition}</span>
+                        <span className="text-sm text-[var(--text-muted)]">
                             / {jobs.length} {t('job.jobs')}
                         </span>
                     </div>
-                    <div className="text-xs text-slate-500 font-medium">
+                    <div className="text-xs font-medium text-[var(--text-faint)]">
                         {t('job.swipe_hint')}
                     </div>
                 </div>
                 {/* Progress bar */}
-                <div className={`mt-2 h-1 rounded-full overflow-hidden ${
-                    theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'
-                }`}>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--border-subtle)]">
                     <div
-                        className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all"
+                        className="h-full bg-[linear-gradient(90deg,rgba(var(--accent-rgb),0.55),var(--accent))] transition-all"
                         style={{ width: `${(displayPosition / jobs.length) * 100}%` }}
                     />
                 </div>
@@ -496,12 +478,12 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.96, opacity: 0, y: 10 }}
                                 transition={{ duration: 0.2 }}
-                                className="relative z-10 w-[90%] max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 text-center"
+                                className="app-surface relative z-10 w-[90%] max-w-sm rounded-[var(--radius-xl)] border p-5 text-center shadow-[var(--shadow-overlay)]"
                             >
-                                <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                                <div className="mb-1 text-sm font-bold text-[var(--text-strong)]">
                                     {t('job.swipe_tutorial_title')}
                                 </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                <div className="mb-4 text-xs text-[var(--text-muted)]">
                                     {t('job.swipe_tutorial_desc')}
                                 </div>
                                 <div className="relative h-16 mb-4 flex items-center justify-center">
@@ -520,14 +502,14 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         →
                                     </motion.div>
                                     <motion.div
-                                        className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm"
+                                        className="h-14 w-24 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] shadow-sm"
                                         animate={{ x: [0, 18, 0, -18, 0], rotate: [0, 2, 0, -2, 0] }}
                                         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                                     />
                                 </div>
                                 <button
                                     onClick={() => setShowSwipeCoach(false)}
-                                    className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors"
+                                    className="app-button-primary w-full"
                                 >
                                     {t('job.swipe_tutorial_cta')}
                                 </button>
@@ -549,11 +531,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     : 'translateX(0) rotate(0deg)',
                                 opacity: swipeState.isDragging ? opacity : 1,
                             }}
-                            className={`absolute inset-4 rounded-2xl p-6 overflow-y-auto custom-scrollbar cursor-grab active:cursor-grabbing select-none ${
-                                theme === 'dark'
-                                    ? 'bg-slate-900 border border-slate-800 shadow-xl'
-                                    : 'bg-white border border-slate-200 shadow-xl'
-                            }`}
+                            className="absolute inset-4 app-surface custom-scrollbar cursor-grab select-none overflow-y-auto rounded-[var(--radius-xl)] border bg-[var(--surface-elevated)] p-6 shadow-[var(--shadow-card)] active:cursor-grabbing"
                             drag={swipeState.isDragging ? 'x' : false}
                             role="button"
                             tabIndex={0}
@@ -569,14 +547,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                         >
                             {/* Job Title and Company */}
                             <div className="mb-4">
-                                <h2 className={`text-2xl font-bold mb-2 ${
-                                    theme === 'dark' ? 'text-white' : 'text-slate-900'
-                                }`}>
+                                <h2 className="mb-2 text-2xl font-bold text-[var(--text-strong)]">
                                     {currentJob.title}
                                 </h2>
-                                <p className={`text-lg font-semibold ${
-                                    theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'
-                                }`}>
+                                <p className="text-lg font-semibold text-[var(--accent)]">
                                     {currentJob.company}
                                 </p>
                             </div>
@@ -584,74 +558,48 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             {/* Quick Info */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                 {currentJob.location && (
-                                    <div className={`p-3 rounded-lg ${
-                                        theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
-                                    }`}>
-                                        <p className={`text-xs font-semibold ${
-                                            theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>
+                                    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-muted)] p-3">
+                                        <p className="text-xs font-semibold text-[var(--text-faint)]">
                                             {t('job.location')}
                                         </p>
-                                        <p className={`text-sm font-medium leading-snug break-words ${
-                                            theme === 'dark' ? 'text-white' : 'text-slate-900'
-                                        }`}>
+                                        <p className="break-words text-sm font-medium leading-snug text-[var(--text-strong)]">
                                             {currentJob.location}
                                         </p>
                                     </div>
                                 )}
                                 {currentJob.salaryRange && (
-                                    <div className={`p-3 rounded-lg ${
-                                        theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
-                                    }`}>
-                                        <p className={`text-xs font-semibold ${
-                                            theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>
+                                    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-muted)] p-3">
+                                        <p className="text-xs font-semibold text-[var(--text-faint)]">
                                             {t('job.salary')}
                                         </p>
-                                        <p className={`text-sm font-medium leading-snug break-words ${
-                                            theme === 'dark' ? 'text-white' : 'text-slate-900'
-                                        }`}>
+                                        <p className="break-words text-sm font-medium leading-snug text-[var(--text-strong)]">
                                             {currentJob.salaryRange}
                                         </p>
                                     </div>
                                 )}
                                 {currentJob.type && (
-                                    <div className={`p-3 rounded-lg ${
-                                        theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
-                                    }`}>
-                                        <p className={`text-xs font-semibold ${
-                                            theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>
+                                    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-muted)] p-3">
+                                        <p className="text-xs font-semibold text-[var(--text-faint)]">
                                             {t('job.type')}
                                         </p>
-                                        <p className={`text-sm font-medium leading-snug break-words ${
-                                            theme === 'dark' ? 'text-white' : 'text-slate-900'
-                                        }`}>
+                                        <p className="break-words text-sm font-medium leading-snug text-[var(--text-strong)]">
                                             {formatJobTypeLabel(currentJob.type)}
                                         </p>
                                     </div>
                                 )}
                                 {jhiScore !== undefined && (
-                                    <div className={`p-3 rounded-lg ${
-                                        theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
-                                    }`}>
-                                        <p className={`text-xs font-semibold ${
-                                            theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                                        }`}>
+                                    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-muted)] p-3">
+                                        <p className="text-xs font-semibold text-[var(--text-faint)]">
                                             {t('job.jhi_score')}
                                         </p>
-                                        <p className="text-sm font-semibold text-cyan-600">
+                                        <p className="text-sm font-semibold text-[var(--accent)]">
                                             {Math.round(jhiScore)} {t('job.points')}
                                         </p>
                                     </div>
                                 )}
                                 {aiMatchScore !== null && (
-                                    <div className={`p-3 rounded-lg ${
-                                        theme === 'dark' ? 'bg-emerald-900/20' : 'bg-emerald-50'
-                                    }`}>
-                                        <p className={`text-xs font-semibold ${
-                                            theme === 'dark' ? 'text-emerald-300' : 'text-emerald-700'
-                                        }`}>
+                                    <div className="rounded-[var(--radius-lg)] border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/30 dark:bg-emerald-950/20">
+                                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                                             {t('job.ai_match')}
                                         </p>
                                         <p className="text-sm font-semibold text-emerald-600">
@@ -663,24 +611,18 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
                             {/* Description Preview */}
                             <div className="mb-6">
-                                <h3 className={`text-sm font-bold uppercase mb-2 ${
-                                    theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                                }`}>
+                                <h3 className="mb-2 text-sm font-bold uppercase text-[var(--text-faint)]">
                                     {t('job.description')}
                                 </h3>
-                                <p className={`text-sm leading-relaxed line-clamp-6 ${
-                                    theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
-                                }`}>
+                                <p className="line-clamp-6 text-sm leading-relaxed text-[var(--text-muted)]">
                                     {currentJob.description?.substring(0, 300)}...
                                 </p>
                             </div>
 
                             {/* Hint about full details */}
-                            <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${
-                                theme === 'dark' ? 'bg-cyan-500/10' : 'bg-cyan-50'
-                            }`}>
-                                <ChevronDown size={16} className="text-cyan-600 flex-shrink-0" />
-                                <p className="text-xs text-cyan-600 font-medium">
+                            <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
+                                <ChevronDown size={16} className="flex-shrink-0 text-[var(--accent)]" />
+                                <p className="text-xs font-medium text-[var(--accent)]">
                                     {t('job.tap_to_see_more')}
                                 </p>
                             </div>
@@ -711,19 +653,12 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className={`flex-none flex gap-4 p-4 border-t ${
-                theme === 'dark'
-                    ? 'border-slate-800 bg-slate-900'
-                    : 'border-slate-200 bg-white'
-            }`}>
+            <div className="flex-none border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
+                <div className="grid grid-cols-4 gap-3">
                 {/* Reject Button */}
                 <button
                     onClick={handleReject}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
-                        theme === 'dark'
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
-                    }`}
+                    className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-3 font-semibold text-[var(--text-strong)] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:hover:border-rose-900/30 dark:hover:bg-rose-950/20"
                     title={t('job.swipe_left_title')}
                 >
                     <X size={20} />
@@ -733,13 +668,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 {/* Save Button */}
                 <button
                     onClick={handleSave}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                        isSaved
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : theme === 'dark'
-                            ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                            : 'bg-cyan-500 hover:bg-cyan-600 text-white'
-                    }`}
+                    className={cn(
+                        'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-3 py-3 font-semibold text-white transition',
+                        isSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
+                    )}
                     title={t('job.swipe_right_title')}
                 >
                     <Bookmark size={20} fill={isSaved ? 'currentColor' : 'none'} />
@@ -751,11 +683,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 {/* View Details */}
                 <button
                     onClick={handleOpenDetails}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
-                        theme === 'dark'
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
-                    }`}
+                    className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-3 font-semibold text-[var(--text-strong)] transition hover:border-[rgba(var(--accent-rgb),0.2)] hover:bg-[var(--surface)]"
                     title={t('job.see_full_details_title')}
                 >
                     <Sparkles size={20} />
@@ -765,22 +693,19 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 {/* List View */}
                 <button
                     onClick={onSwitchToList}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
-                        theme === 'dark'
-                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
-                    }`}
+                    className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-3 font-semibold text-[var(--text-strong)] transition hover:border-[rgba(var(--accent-rgb),0.2)] hover:bg-[var(--surface)]"
                     title={t('job.switch_to_list_title')}
                 >
                     <List size={20} />
                     <span className="hidden sm:inline">{t('job.list_view')}</span>
                 </button>
+                </div>
             </div>
 
             {/* Loading indicator for infinite scroll */}
             {isLoadingMore && (
                 <div className="flex-none p-2 flex justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-cyan-500" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-[var(--accent)]" />
                 </div>
             )}
         </div>

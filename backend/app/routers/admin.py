@@ -10,6 +10,8 @@ from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
 from ..matching_engine.evaluation import run_offline_recommendation_evaluation
 from ..models.requests import (
+    AdminCrmLeadCreateRequest,
+    AdminCrmLeadUpdateRequest,
     AdminSubscriptionUpdateRequest,
     AdminUserDigestUpdateRequest,
     AdminJobRoleCreateRequest,
@@ -44,6 +46,41 @@ def _safe_float(value, default: float = 0.0) -> float:
         return float(value)
     except Exception:
         return default
+
+
+def _clean_admin_text(value: Optional[str], max_len: int = 5000) -> Optional[str]:
+    if value is None:
+        return None
+    clean = re.sub(r"\s+", " ", str(value)).strip()
+    if not clean:
+        return None
+    return clean[:max_len]
+
+
+def _build_lead_payload(raw: dict, *, admin: Optional[dict] = None, include_owner: bool = False) -> dict:
+    payload = {
+        "company_name": _clean_admin_text(raw.get("company_name"), 200),
+        "contact_name": _clean_admin_text(raw.get("contact_name"), 160),
+        "contact_role": _clean_admin_text(raw.get("contact_role"), 160),
+        "email": _clean_admin_text(raw.get("email"), 320),
+        "phone": _clean_admin_text(raw.get("phone"), 80),
+        "website": _clean_admin_text(raw.get("website"), 320),
+        "country": _clean_admin_text(raw.get("country"), 120),
+        "city": _clean_admin_text(raw.get("city"), 120),
+        "status": _clean_admin_text(raw.get("status"), 32),
+        "priority": _clean_admin_text(raw.get("priority"), 32),
+        "source": _clean_admin_text(raw.get("source"), 32),
+        "notes": _clean_admin_text(raw.get("notes"), 8000),
+        "next_follow_up_at": raw.get("next_follow_up_at"),
+        "last_contacted_at": raw.get("last_contacted_at"),
+        "linked_company_id": _clean_admin_text(raw.get("linked_company_id"), 64),
+        "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
+        "updated_at": now_iso(),
+    }
+    if include_owner and admin:
+        payload["owner_admin_user_id"] = admin.get("user_id")
+        payload["owner_admin_email"] = admin.get("email")
+    return {k: v for k, v in payload.items() if v is not None}
 
 def require_admin_user(user: dict) -> dict:
     if not supabase:
@@ -403,6 +440,33 @@ async def admin_search(
             ]
             return {"items": items}
 
+        if kind == "lead":
+            lead_rows = []
+            try:
+                resp = (
+                    supabase.table("admin_crm_leads")
+                    .select("id,company_name,contact_name,email,status,city,country,updated_at")
+                    .or_(f"company_name.ilike.%{safe_q}%,contact_name.ilike.%{safe_q}%,email.ilike.%{safe_q}%,phone.ilike.%{safe_q}%")
+                    .order("updated_at", desc=True)
+                    .limit(limit)
+                    .execute()
+                )
+                lead_rows = resp.data or []
+            except Exception as exc:
+                print(f"⚠️ Admin lead search failed: {exc}")
+
+            return {
+                "items": [
+                    {
+                        "id": r.get("id"),
+                        "label": r.get("company_name") or r.get("id"),
+                        "secondary": " • ".join([part for part in [r.get("contact_name"), r.get("email"), r.get("status")] if part]),
+                        "kind": "lead",
+                    }
+                    for r in lead_rows
+                ]
+            }
+
         company_rows = None
         company_attempts = [
             "id, name, industry",
@@ -447,7 +511,7 @@ async def admin_search(
 async def admin_crm_entity_detail(
     request: Request,
     user: dict = Depends(get_current_user),
-    kind: str = Query(..., pattern="^(company|user)$"),
+    kind: str = Query(..., pattern="^(company|user|lead)$"),
     entity_id: str = Query(..., min_length=8, max_length=64),
 ):
     require_admin_user(user)
@@ -543,6 +607,92 @@ async def admin_crm_entity_detail(
             "timestamp": timestamp,
             "severity": severity,
         })
+
+    if kind == "lead":
+        try:
+            lead_resp = (
+                supabase.table("admin_crm_leads")
+                .select("*")
+                .eq("id", entity_id)
+                .maybe_single()
+                .execute()
+            )
+            lead = lead_resp.data if lead_resp else None
+        except Exception:
+            lead = None
+
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+
+        created_at = lead.get("created_at")
+        updated_at = lead.get("updated_at")
+        last_contacted_at = lead.get("last_contacted_at")
+        next_follow_up_at = lead.get("next_follow_up_at")
+
+        timeline: List[dict] = []
+        _append_timeline(
+            timeline,
+            entry_id=f"lead-created:{entity_id}",
+            category="crm",
+            event_type="lead_created",
+            title="Lead přidaný do CRM",
+            detail=lead.get("source") or "manual",
+            timestamp=created_at,
+            severity="info",
+        )
+        _append_timeline(
+            timeline,
+            entry_id=f"lead-contacted:{entity_id}",
+            category="contact",
+            event_type="last_contacted",
+            title="Poslední kontakt",
+            detail=lead.get("contact_name") or lead.get("email") or "",
+            timestamp=last_contacted_at,
+            severity="info",
+        )
+        _append_timeline(
+            timeline,
+            entry_id=f"lead-followup:{entity_id}",
+            category="follow_up",
+            event_type="next_follow_up",
+            title="Naplánovaný follow-up",
+            detail=lead.get("status") or "",
+            timestamp=next_follow_up_at,
+            severity="warning",
+        )
+        if updated_at and updated_at != created_at:
+            _append_timeline(
+                timeline,
+                entry_id=f"lead-updated:{entity_id}",
+                category="crm",
+                event_type="lead_updated",
+                title="Lead naposledy upravený",
+                detail=lead.get("owner_admin_email") or "",
+                timestamp=updated_at,
+                severity="info",
+            )
+
+        days_open = 0
+        created_dt = _parse_iso_datetime(created_at) if created_at else None
+        if created_dt:
+            days_open = max(0, int((now - created_dt).total_seconds() // 86400))
+
+        return {
+            "kind": "lead",
+            "entity": lead,
+            "subscription": None,
+            "metrics": {
+                "days_open": days_open,
+                "has_email": 1 if lead.get("email") else 0,
+                "has_phone": 1 if lead.get("phone") else 0,
+                "follow_up_scheduled": 1 if lead.get("next_follow_up_at") else 0,
+                "linked_company": 1 if lead.get("linked_company_id") else 0,
+            },
+            "breakdowns": {},
+            "recent": {},
+            "timeline": sorted(timeline, key=lambda item: item.get("timestamp") or "", reverse=True),
+            "timeline_categories": ["crm", "contact", "follow_up"],
+        }
 
     if kind == "company":
         entity = _safe_select_single(
@@ -1004,6 +1154,92 @@ async def admin_crm_entity_detail(
             "subscription_audit_available": subscription_audit_available,
         },
     }
+
+
+@router.get("/admin/crm/leads")
+async def admin_crm_leads(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        query = supabase.table("admin_crm_leads").select("*", count="exact")
+        safe_q = _safe_query(q or "")
+        if safe_q:
+            query = query.or_(f"company_name.ilike.%{safe_q}%,contact_name.ilike.%{safe_q}%,email.ilike.%{safe_q}%,phone.ilike.%{safe_q}%")
+        if status:
+            query = query.eq("status", status)
+        resp = query.order("updated_at", desc=True).range(offset, offset + limit - 1).execute()
+        return {"items": resp.data or [], "count": resp.count or 0}
+    except Exception as exc:
+        print(f"⚠️ Admin CRM leads load failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to load CRM leads")
+
+
+@router.post("/admin/crm/leads")
+async def admin_crm_lead_create(
+    payload: AdminCrmLeadCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        lead_payload = _build_lead_payload(payload.model_dump(), admin=admin, include_owner=True)
+        if not lead_payload.get("company_name"):
+            raise HTTPException(status_code=400, detail="company_name is required")
+        resp = supabase.table("admin_crm_leads").insert(lead_payload).execute()
+        return {"item": (resp.data or [None])[0]}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"⚠️ Admin CRM lead create failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to create CRM lead")
+
+
+@router.patch("/admin/crm/leads/{lead_id}")
+async def admin_crm_lead_update(
+    lead_id: str,
+    payload: AdminCrmLeadUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    try:
+        lead_payload = _build_lead_payload(payload.model_dump(exclude_unset=True), admin=admin, include_owner=False)
+        lead_payload["owner_admin_user_id"] = admin.get("user_id")
+        lead_payload["owner_admin_email"] = admin.get("email")
+        if list(lead_payload.keys()) == ["updated_at", "owner_admin_user_id", "owner_admin_email"]:
+            return {"status": "noop", "lead_id": lead_id}
+        resp = (
+            supabase.table("admin_crm_leads")
+            .update(lead_payload)
+            .eq("id", lead_id)
+            .execute()
+        )
+        return {"item": (resp.data or [None])[0], "lead_id": lead_id}
+    except Exception as exc:
+        print(f"⚠️ Admin CRM lead update failed: {exc}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to update CRM lead")
 
 
 @router.get("/admin/jcfpm/job-roles")

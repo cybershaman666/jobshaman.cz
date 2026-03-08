@@ -49,7 +49,7 @@ import {
     withActivationState
 } from './services/candidateActivationService';
 import { calculateJHI } from './utils/jhiCalculator';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowUp } from 'lucide-react';
 
 type PendingApplyFollowup = {
     jobId: number;
@@ -188,6 +188,7 @@ export default function App() {
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
+    const [showScrollToTop, setShowScrollToTop] = useState(false);
     const onboardingDismissedRef = useRef(false);
     const activationNudgeShownRef = useRef(false);
     const timeToValueTrackedRef = useRef(false);
@@ -1094,6 +1095,51 @@ export default function App() {
         const timeoutId = window.setTimeout(restoreScroll, 90);
         return () => window.clearTimeout(timeoutId);
     }, [selectedJobId, selectedCompanyId, viewState]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const updateVisibility = () => {
+            setShowScrollToTop(window.scrollY > 560);
+        };
+
+        updateVisibility();
+        window.addEventListener('scroll', updateVisibility, { passive: true });
+        return () => window.removeEventListener('scroll', updateVisibility);
+    }, []);
+
+    const handleFloatingScrollToTop = useCallback(() => {
+        const parseCssLengthToPx = (rawValue: string, fallback: number) => {
+            const raw = String(rawValue || '').trim();
+            if (!raw) return fallback;
+            if (raw.endsWith('rem')) {
+                const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
+                const remValue = parseFloat(raw);
+                return Number.isFinite(remValue) ? remValue * rootFontSize : fallback;
+            }
+            if (raw.endsWith('px')) {
+                const pxValue = parseFloat(raw);
+                return Number.isFinite(pxValue) ? pxValue : fallback;
+            }
+            const numericValue = parseFloat(raw);
+            return Number.isFinite(numericValue) ? numericValue : fallback;
+        };
+
+        if (viewState === ViewState.LIST && !selectedJobId && !selectedCompanyId && !isBlogOpen) {
+            const discoveryRoot = document.getElementById('challenge-discovery');
+            if (discoveryRoot) {
+                const headerOffset = parseCssLengthToPx(
+                    getComputedStyle(document.documentElement).getPropertyValue('--app-header-offset'),
+                    104
+                );
+                const targetY = Math.max(0, window.scrollY + discoveryRoot.getBoundingClientRect().top - headerOffset - 16);
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+                return;
+            }
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [isBlogOpen, selectedCompanyId, selectedJobId, viewState]);
 
     // Keep URL in sync with current view state (locale-prefixed routes)
     useEffect(() => {
@@ -2031,6 +2077,12 @@ export default function App() {
                                         userProfile={userProfile}
                                         lane={discoveryLane}
                                         setLane={setDiscoveryLane}
+                                        loading={isLoadingJobs}
+                                        loadingMore={loadingMore}
+                                        hasMore={hasMore}
+                                        loadMoreJobs={loadMoreJobs}
+                                        applyInteractionState={applyInteractionState}
+                                        theme={theme}
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
                                         performSearch={performSearch}
@@ -2163,6 +2215,18 @@ export default function App() {
                     </Suspense>
                 </div>
             </main>
+
+            {!isImmersiveAssessmentRoute && showScrollToTop && (
+                <button
+                    type="button"
+                    onClick={handleFloatingScrollToTop}
+                    aria-label={t('app.back_to_top')}
+                    title={t('app.back_to_top')}
+                    className="fixed bottom-5 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[var(--surface-elevated)] text-[var(--accent)] shadow-[var(--shadow-card)] backdrop-blur transition hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.34)] hover:bg-[var(--surface)] hover:text-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] sm:bottom-6 sm:right-6"
+                >
+                    <ArrowUp size={18} />
+                </button>
+            )}
 
             <CandidateOnboardingModal
                 isOpen={showCandidateOnboarding}
