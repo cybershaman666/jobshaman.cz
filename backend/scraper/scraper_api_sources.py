@@ -8,7 +8,7 @@ API/RSS-based job sources for imported listings.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
 from bs4 import BeautifulSoup
@@ -116,36 +116,119 @@ def _as_list(value: Any) -> List[str]:
     return [norm_text(str(value))]
 
 
-def _infer_country_code(location: str, tags: Iterable[str]) -> str:
-    haystack = f"{location} {' '.join(tags)}".lower()
+COUNTRY_DETECTION_RULES: List[Tuple[str, str]] = [
+    ("canada", "ca"),
+    ("toronto", "ca"),
+    ("vancouver", "ca"),
+    ("montreal", "ca"),
+    ("united states", "us"),
+    ("usa", "us"),
+    ("new york", "us"),
+    ("california", "us"),
+    ("texas", "us"),
+    ("united kingdom", "gb"),
+    ("london", "gb"),
+    ("manchester", "gb"),
+    ("austria", "at"),
+    ("österreich", "at"),
+    ("vienna", "at"),
+    ("wien", "at"),
+    ("germany", "de"),
+    ("deutschland", "de"),
+    ("berlin", "de"),
+    ("munich", "de"),
+    ("münchen", "de"),
+    ("hamburg", "de"),
+    ("frankfurt", "de"),
+    ("cologne", "de"),
+    ("köln", "de"),
+    ("poland", "pl"),
+    ("polska", "pl"),
+    ("warsaw", "pl"),
+    ("krakow", "pl"),
+    ("wroclaw", "pl"),
+    ("slovakia", "sk"),
+    ("slovensko", "sk"),
+    ("bratislava", "sk"),
+    ("czech republic", "cs"),
+    ("czechia", "cs"),
+    ("czech", "cs"),
+    ("cesko", "cs"),
+    ("česko", "cs"),
+    ("prague", "cs"),
+    ("praha", "cs"),
+    ("netherlands", "nl"),
+    ("amsterdam", "nl"),
+    ("rotterdam", "nl"),
+    ("france", "fr"),
+    ("paris", "fr"),
+    ("lyon", "fr"),
+    ("spain", "es"),
+    ("madrid", "es"),
+    ("barcelona", "es"),
+    ("italy", "it"),
+    ("rome", "it"),
+    ("milan", "it"),
+]
+
+
+def _infer_country_code(location: str, tags: Iterable[str], extra_text: str = "") -> Optional[str]:
+    haystack = f"{location} {' '.join(tags)} {extra_text}".lower()
     rules = [
-        (" at", "at"),
-        ("austria", "at"),
-        ("österreich", "at"),
-        ("vienna", "at"),
-        ("wien", "at"),
-        ("germany", "de"),
-        ("deutschland", "de"),
-        ("berlin", "de"),
-        ("munich", "de"),
-        ("münchen", "de"),
-        ("poland", "pl"),
-        ("polska", "pl"),
-        ("warsaw", "pl"),
-        ("krakow", "pl"),
-        ("slovakia", "sk"),
-        ("slovensko", "sk"),
-        ("bratislava", "sk"),
-        ("czech", "cs"),
-        ("cesko", "cs"),
-        ("česko", "cs"),
-        ("prague", "cs"),
-        ("praha", "cs"),
+        (" at ", "at"),
+        ("remote / germany", "de"),
+        ("remote / austria", "at"),
+        ("remote / poland", "pl"),
+        ("remote / slovakia", "sk"),
+        ("remote / czech", "cs"),
     ]
     for needle, code in rules:
         if needle in haystack:
             return code
-    return "de" if "europe" in haystack or "remote" in haystack else "cs"
+    for needle, code in COUNTRY_DETECTION_RULES:
+        if needle in haystack:
+            return code
+    return None
+
+
+def _extract_wwr_location_and_country(title: str, description: str, categories: Iterable[str]) -> Tuple[str, Optional[str]]:
+    combined_text = norm_text("\n".join([title or "", description or "", " ".join(categories or [])]))
+    lowered = combined_text.lower()
+
+    explicit_location_markers: List[Tuple[str, str, Optional[str]]] = [
+        ("europe", "Europe", None),
+        ("emea", "EMEA", None),
+        ("united kingdom", "United Kingdom", "gb"),
+        ("uk", "United Kingdom", "gb"),
+        ("germany", "Germany", "de"),
+        ("deutschland", "Germany", "de"),
+        ("austria", "Austria", "at"),
+        ("österreich", "Austria", "at"),
+        ("poland", "Poland", "pl"),
+        ("slovakia", "Slovakia", "sk"),
+        ("czech republic", "Czech Republic", "cs"),
+        ("czechia", "Czech Republic", "cs"),
+        ("canada", "Canada", "ca"),
+        ("united states", "United States", "us"),
+        ("usa", "United States", "us"),
+    ]
+    for marker, label, code in explicit_location_markers:
+        if marker in lowered:
+            return label, code
+
+    inferred_country = _infer_country_code("", categories, combined_text)
+    if inferred_country == "de":
+        return "Germany", inferred_country
+    if inferred_country == "at":
+        return "Austria", inferred_country
+    if inferred_country == "pl":
+        return "Poland", inferred_country
+    if inferred_country == "sk":
+        return "Slovakia", inferred_country
+    if inferred_country == "cs":
+        return "Czech Republic", inferred_country
+
+    return "Remote", None
 
 
 def _build_contract_type(value: Any) -> Optional[str]:
@@ -223,8 +306,10 @@ def _save_api_job(
         "salary_to": salary_to,
         "salary_currency": detected_currency or salary_currency or "EUR",
         "scraped_at": now_iso(),
-        "country_code": country_code or _infer_country_code(cleaned_location, normalized_tags),
     }
+    resolved_country_code = country_code or _infer_country_code(cleaned_location, normalized_tags, cleaned_description)
+    if resolved_country_code:
+        job_data["country_code"] = resolved_country_code
     return save_job_to_supabase(supabase_client, job_data, seen_urls=seen_urls)
 
 
@@ -297,7 +382,11 @@ def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
                 url=str(url or ""),
                 tags=_as_list(item.get("tags")),
                 contract_type=_build_contract_type(item.get("job_types")),
-                country_code=_infer_country_code(str(item.get("location") or ""), _as_list(item.get("tags"))),
+                country_code=_infer_country_code(
+                    str(item.get("location") or ""),
+                    _as_list(item.get("tags")),
+                    str(item.get("description") or ""),
+                ),
                 salary_currency="EUR",
                 work_model=_infer_work_model(
                     str(item.get("location") or "Remote"),
@@ -354,14 +443,7 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
             categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
             if not _is_wwr_eu_relevant(title, description, categories):
                 continue
-            combined_text = f"{title}\n{description}"
-            location_match = None
-            for marker in ["Anywhere in the World", "United States", "Europe", "EMEA", "UK", "Canada", "Australia"]:
-                if marker.lower() in combined_text.lower():
-                    location_match = marker
-                    break
-            if location_match:
-                location = location_match
+            location, inferred_country_code = _extract_wwr_location_and_country(title, description, categories)
 
             saved = _save_api_job(
                 supabase_client,
@@ -374,7 +456,7 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
                 tags=categories,
                 contract_type=None,
                 salary_text=description,
-                country_code=_infer_country_code(location, categories),
+                country_code=inferred_country_code,
                 salary_currency="EUR",
                 work_model="Remote",
             )

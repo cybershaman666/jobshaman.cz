@@ -39,16 +39,16 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
   ];
 
   return (
-    <div className={`rounded-[1rem] border border-cyan-200/80 dark:border-cyan-700/50 bg-white/95 dark:bg-slate-900/90 shadow-[0_18px_34px_-30px_rgba(2,132,199,0.16)] ${compact ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-[1rem] border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] shadow-[0_18px_34px_-30px_rgba(180,83,9,0.18)] dark:border-amber-200/80 dark:bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] ${compact ? 'p-3' : 'p-4'}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
             {t('activation.title', { defaultValue: 'Handshake activation' })}
           </div>
-          <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-slate-900 dark:text-slate-100 truncate`}>
+          <div className={`${compact ? 'text-sm' : 'text-base'} truncate font-semibold text-slate-900`}>
             {nextStepLabel}
           </div>
-          <div className="text-xs text-slate-600 dark:text-slate-300">
+          <div className="text-xs text-slate-600">
             {t('activation.eta', {
               defaultValue: '{{minutes}} min do silnějších handshake signálů',
               minutes: etaMinutes,
@@ -58,18 +58,18 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
         <button
           type="button"
           onClick={onContinue}
-          className="shrink-0 rounded-[0.9rem] bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-500"
+          className="shrink-0 rounded-[0.9rem] bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
         >
           {t('activation.cta_continue', { defaultValue: 'Pokračovat' })}
         </button>
       </div>
-      <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
         <div
-          className="h-full bg-gradient-to-r from-cyan-500 to-sky-400 transition-all duration-500"
+          className="h-full bg-gradient-to-r from-amber-500 to-orange-400 transition-all duration-500"
           style={{ width: `${state.completion_percent}%` }}
         />
       </div>
-      <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+      <div className="mt-2 text-[11px] text-slate-500">
         {t('activation.progress', {
           defaultValue: 'Dokončeno {{percent}}%',
           percent: state.completion_percent,
@@ -81,8 +81,8 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
             <div
               key={item.id}
               className={`rounded-[0.8rem] px-2 py-1 border ${item.done
-                ? 'border-emerald-300/70 dark:border-emerald-700/70 text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20'
-                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/50'
+                ? 'border-emerald-300/70 text-emerald-700 bg-emerald-50/70'
+                : 'border-amber-200 text-slate-600 bg-white/65'
                 }`}
             >
               {item.done ? '[OK] ' : ''}{item.label}

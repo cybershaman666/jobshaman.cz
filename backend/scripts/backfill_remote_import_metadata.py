@@ -10,6 +10,7 @@ sys.path.insert(0, backend_dir)
 sys.path.insert(0, os.path.join(backend_dir, "scraper"))
 
 from scraper_base import get_supabase_client, norm_text  # type: ignore
+from scraper_api_sources import _infer_country_code  # type: ignore
 
 
 DEFAULT_BATCH_SIZE = int(os.getenv("BACKFILL_REMOTE_BATCH_SIZE", "200"))
@@ -26,21 +27,12 @@ def infer_work_model(location: Optional[str], description: Optional[str], tags: 
     return "On-site"
 
 
-def infer_country_code(location: Optional[str], source: Optional[str], work_model: str) -> Optional[str]:
-    haystack = f"{location or ''} {source or ''} {work_model}".lower()
-    if any(token in haystack for token in ["austria", "österreich", "vienna", "wien"]):
-        return "at"
-    if any(token in haystack for token in ["germany", "deutschland", "berlin", "munich", "münchen"]):
-        return "de"
-    if any(token in haystack for token in ["poland", "polska", "warsaw", "krakow"]):
-        return "pl"
-    if any(token in haystack for token in ["slovakia", "slovensko", "bratislava"]):
-        return "sk"
-    if any(token in haystack for token in ["czech", "česko", "cesko", "prague", "praha"]):
-        return "cs"
-    if work_model == "Remote" and any(token in haystack for token in ["weworkremotely", "arbeitnow", "europe", "emea", "worldwide", "anywhere"]):
-        return "de"
-    return None
+def infer_country_code(location: Optional[str], source: Optional[str], work_model: str, description: Optional[str], title: Optional[str], tags: Iterable[str]) -> Optional[str]:
+    return _infer_country_code(
+        location or "",
+        [str(tag) for tag in tags],
+        f"{source or ''} {work_model or ''} {description or ''} {title or ''}",
+    )
 
 
 def backfill(
@@ -89,15 +81,25 @@ def backfill(
             if not isinstance(tags, list):
                 tags = []
             next_work_model = infer_work_model(row.get("location"), row.get("description"), [str(tag) for tag in tags], row.get("title"))
-            next_country_code = infer_country_code(row.get("location"), source, next_work_model) or row.get("country_code")
+            next_country_code = infer_country_code(
+                row.get("location"),
+                source,
+                next_work_model,
+                row.get("description"),
+                row.get("title"),
+                [str(tag) for tag in tags],
+            )
 
             patch = {}
             if row.get("work_model") != next_work_model:
                 patch["work_model"] = next_work_model
             if row.get("work_type") != next_work_model:
                 patch["work_type"] = next_work_model
-            if next_country_code and row.get("country_code") != next_country_code:
+            current_country_code = norm_text(str(row.get("country_code") or "")).lower() or None
+            if next_country_code and current_country_code != next_country_code:
                 patch["country_code"] = next_country_code
+            elif source == "weworkremotely.com" and current_country_code and not next_country_code:
+                patch["country_code"] = None
             if next_work_model == "Remote" and (row.get("lat") is not None or row.get("lng") is not None):
                 patch["lat"] = None
                 patch["lng"] = None

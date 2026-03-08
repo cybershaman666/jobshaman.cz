@@ -836,7 +836,8 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         # We will assign this after country_code detection below
         pass
     
-    # DETECT AND ASSIGN COUNTRY CODE based on domain
+    # DETECT AND ASSIGN COUNTRY CODE based on domain when it is truly known.
+    # Do not silently default unknown/global sources to Czechia.
     if "country_code" not in job_data:
         domain = parsed_url.netloc.lower()
         if '.cz' in domain:
@@ -849,9 +850,8 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             job_data["country_code"] = "de"
         elif '.at' in domain:
             job_data["country_code"] = "at" # Correctly map .at to AT
-        else:
-            # Default to Czech if domain is unknown
-            job_data["country_code"] = "cs"
+    elif not job_data.get("country_code"):
+        job_data.pop("country_code", None)
             
     # Final currency fallback based on country code
     if not job_data.get('salary_currency') and not job_data.get('currency'):
@@ -863,7 +863,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
     elif not job_data.get('salary_currency'):
         job_data['salary_currency'] = job_data['currency']
     
-    print(f"    🌍 Country code: {job_data['country_code']} (detected from {job_data.get('source', 'URL')})")
+    print(f"    🌍 Country code: {job_data.get('country_code') or 'unknown'} (detected from {job_data.get('source', 'URL')})")
 
     # Detect language of the job text (title + description)
     if "language_code" not in job_data:

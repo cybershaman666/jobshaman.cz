@@ -11,11 +11,33 @@ import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobIntera
 const getCountryCodeFromAddress = (address: string): string | null => {
     if (!address) return null;
     const loc = address.toLowerCase();
+    if (loc.includes('canada') || loc.includes('toronto') || loc.includes('vancouver') || loc.includes('montreal')) return 'CA';
+    if (loc.includes('united states') || loc.includes('usa') || loc.includes('new york') || loc.includes('california') || loc.includes('texas')) return 'US';
+    if (loc.includes('united kingdom') || loc.includes('uk') || loc.includes('london') || loc.includes('manchester')) return 'GB';
+    if (loc.includes('netherlands') || loc.includes('nederland') || loc.includes('amsterdam') || loc.includes('rotterdam')) return 'NL';
+    if (loc.includes('france') || loc.includes('franc') || loc.includes('paris') || loc.includes('lyon')) return 'FR';
+    if (loc.includes('spain') || loc.includes('espa') || loc.includes('madrid') || loc.includes('barcelona')) return 'ES';
+    if (loc.includes('italy') || loc.includes('italia') || loc.includes('rome') || loc.includes('milan')) return 'IT';
+    if (loc.includes('romania') || loc.includes('bucharest') || loc.includes('bucure')) return 'RO';
+    if (loc.includes('hungary') || loc.includes('budapest')) return 'HU';
     if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
     if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'PL';
     if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'DE';
     if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'AT';
     if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'CZ';
+    return null;
+};
+
+const getCountryCodeFromJobSource = (job: Job): string | null => {
+    const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
+    if (!haystack.trim()) return null;
+    if (haystack.includes('karriere.at')) return 'AT';
+    if (haystack.includes('germantechjobs')) return 'DE';
+    if (haystack.includes('stepstone.de')) return 'DE';
+    if (haystack.includes('stepstone.at')) return 'AT';
+    if (haystack.includes('pracuj.pl')) return 'PL';
+    if (haystack.includes('profesia.sk')) return 'SK';
+    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) return 'CZ';
     return null;
 };
 
@@ -69,6 +91,16 @@ const normalizeCountryCodes = (codes: string[]): string[] => {
         ? Array.from(new Set([...uppered.filter(c => c !== 'CS' && c !== 'CZ'), 'CZ', 'CS']))
         : uppered;
     return expanded;
+};
+
+const inferJobCountryCode = (job: Job): string | null => {
+    const explicit = expandCountryAliases(job.country_code)[0];
+    if (explicit) return explicit;
+
+    const fromLocation = getCountryCodeFromAddress(job.location || '');
+    if (fromLocation) return fromLocation;
+
+    return getCountryCodeFromJobSource(job);
 };
 
 const normalizeOrigin = (value: string): string => {
@@ -204,6 +236,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         if (!dismissed.size || !list.length) return list;
         return list.filter((job) => !dismissed.has(job.id));
     }, []);
+
+    const applyDomesticCountrySafeguard = useCallback((list: Job[]) => {
+        if (globalSearch || countryCodes.length === 0 || list.length === 0) {
+            return list;
+        }
+
+        const allowedCodes = new Set(normalizeCountryCodes(countryCodes));
+        return list.filter((job) => {
+            const inferredCountry = inferJobCountryCode(job);
+            if (!inferredCountry) return false;
+            return allowedCodes.has(inferredCountry);
+        });
+    }, [countryCodes, globalSearch]);
 
     useEffect(() => {
         const readIds = (key: string): string[] => {
@@ -581,7 +626,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     try {
                         const recs = await fetchRecommendedJobs(initialPageSize);
                         if (isStaleRequest()) return;
-                        const visibleRecs = filterDismissedJobs(recs);
+                        const visibleRecs = applyDomesticCountrySafeguard(filterDismissedJobs(recs));
                         setJobs(visibleRecs);
                         const nextMap = new Map<string, number>();
                         for (const rec of recs) {
@@ -620,7 +665,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 );
                 if (isStaleRequest()) return;
 
-                const visibleJobs = filterDismissedJobs(basicResult.jobs);
+                const visibleJobs = applyDomesticCountrySafeguard(filterDismissedJobs(basicResult.jobs));
                 if (isLoadMore) {
                     setJobs(prev => dedupeJobs(visibleJobs, prev));
                 } else {
@@ -661,7 +706,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             });
             if (isStaleRequest()) return;
 
-            const visibleJobs = filterDismissedJobs(result.jobs);
+            const visibleJobs = applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs));
             if (isLoadMore) {
                 setJobs(prev => dedupeJobs(visibleJobs, prev));
             } else {

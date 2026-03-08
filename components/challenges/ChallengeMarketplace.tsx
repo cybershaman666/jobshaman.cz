@@ -65,6 +65,7 @@ interface ChallengeMarketplaceProps {
   setFilterLanguageCodes: (codes: SearchLanguageCode[]) => void;
   handleJobSelect: (jobId: string | null) => void;
   handleToggleSave: (jobId: string) => void;
+  onOpenPremium: (featureLabel: string) => void;
 }
 
 const ROLE_TYPES = [
@@ -210,7 +211,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   filterLanguageCodes,
   setFilterLanguageCodes,
   handleJobSelect,
-  handleToggleSave
+  handleToggleSave,
+  onOpenPremium
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
@@ -218,11 +220,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const isCsLike = language === 'cs' || language === 'sk';
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
+  const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
 
   const copy = ({
     cs: {
       eyebrow: 'Hledání',
-      title: 'Přehled výzev podle tvé situace',
+      title: 'Přehled výzev podle vaší situace',
       body: 'Nabídky, filtry podle reality a chytrý předvýběr na jednom místě.',
       toolbarSearch: 'Hledat nabídky, firmy, typy rolí nebo důležité signály',
       toolbarLocation: 'Město, region, práce na dálku',
@@ -241,9 +244,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             : 'Vlastní role s doplněnými importy tam, kde trhu chybí podrobnější zadání.',
       personalPresets: 'Nastavení pro moji situaci',
       mySetup: 'Moje nastavení',
-      mySetupBody: 'Přehled začíná rolemi, které odpovídají tvému nastavení a aktuálním filtrům.',
+      mySetupBody: 'Přehled začíná rolemi, které odpovídají vašemu nastavení a aktuálním filtrům.',
       matchesNow: 'Sedí právě teď',
-      setupEmpty: 'Přidej filtry nebo preference a přehled se začne skládat podle tvé reality.',
+      setupEmpty: 'Přidejte filtry nebo preference a přehled se začne skládat podle vaší reality.',
       setupSection: 'Podle mého nastavení',
       setupSectionBody: 'Nejrelevantnější role podle aktivních filtrů a uložených preferencí.',
       remoteSection: 'Práce na dálku',
@@ -286,7 +289,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       openPreview: 'Zobrazit ukázku',
       selected: 'Vybráno',
       scoreLabel: 'Skóre shody',
-      fitNote: 'Systém zvýrazní role s největší šancí, že budou opravdu dávat smysl.',
+      fitNote: 'Systém zvýrazní role s největší šancí, že budou opravdu dávat smysl pro vaši situaci.',
       challengeLabel: 'Co bude potřeba zvládnout',
       riskLabel: 'Na co si dát pozor',
       openCard: 'Otevřít nabídku',
@@ -296,13 +299,24 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsValue: '{{active}} / {{limit}} obsazeno',
       slotsRemaining: '{{remaining}} volných',
       slotsRemainingLabel: 'Volná kapacita',
+      premiumTitle: hasPremiumAccess ? 'Premium je aktivní' : 'Co odemyká premium',
+      premiumBody: hasPremiumAccess
+        ? 'Máte odemčené širší rozhodovací vrstvu včetně detailnější podpory a větší kapacity pro odpovědi.'
+        : 'Premium dává víc prostoru pro odpovědi, chytřejší vedení profilem a přesnější doporučení podle vaší reality.',
+      premiumCta: hasPremiumAccess ? 'Spravovat premium' : 'Zobrazit premium',
+      premiumBullets: [
+        'Více dialogových slotů pro aktivní odpovědi',
+        'AI průvodce profilem a životní situací',
+        'Personalizovaný JHI index',
+        'Detailní report JCFPM testu'
+      ],
       mobileSwipe: 'Karty',
       mobileList: 'Seznam',
       mobileSwipeBody: 'Na mobilu můžeš procházet nabídky tahem doleva nebo doprava.'
     },
     sk: {
       eyebrow: 'Hľadanie',
-      title: 'Prehľad výziev podľa tvojej situácie',
+      title: 'Prehľad výziev podľa vašej situácie',
       body: 'Ponuky, filtre podľa reality a múdry predvýber na jednom mieste.',
       toolbarSearch: 'Hľadať ponuky, firmy, typy rolí alebo dôležité signály',
       toolbarLocation: 'Mesto, región, práca na diaľku',
@@ -318,9 +332,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       laneBody: lane === 'imports' ? 'Širší importovaný prehľad, stále čítaný cez to, čo bude treba zvládnuť.' : 'Vlastné výzvy doplnené importmi tam, kde trhu chýba podrobnejšie zadanie.',
       personalPresets: 'Nastavenie pre moju situáciu',
       mySetup: 'Moje nastavenie',
-      mySetupBody: 'Prehľad začína rolami, ktoré zodpovedajú tvojmu nastaveniu a aktuálnym filtrom.',
+      mySetupBody: 'Prehľad začína rolami, ktoré zodpovedajú vášmu nastaveniu a aktuálnym filtrom.',
       matchesNow: 'Sedí práve teraz',
-      setupEmpty: 'Pridaj filtre alebo preferencie a prehľad sa začne skladať podľa tvojej reality.',
+      setupEmpty: 'Pridajte filtre alebo preferencie a prehľad sa začne skladať podľa vašej reality.',
       setupSection: 'Podľa môjho nastavenia',
       setupSectionBody: 'Najrelevantnejšie roly podľa aktívnych filtrov a uložených preferencií.',
       remoteSection: 'Práca na diaľku',
@@ -373,6 +387,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsValue: '{{active}} / {{limit}} obsadené',
       slotsRemaining: '{{remaining}} voľných',
       slotsRemainingLabel: 'Voľná kapacita',
+      premiumTitle: hasPremiumAccess ? 'Premium je aktívne' : 'Čo odomyká premium',
+      premiumBody: hasPremiumAccess
+        ? 'Máte odomknutú silnejšiu rozhodovaciu vrstvu vrátane detailnejšej podpory a väčšej kapacity pre odpovede.'
+        : 'Premium dáva viac priestoru na odpovede, múdrejšie vedenie profilom a presnejšie odporúčania podľa vašej reality.',
+      premiumCta: hasPremiumAccess ? 'Spravovať premium' : 'Zobraziť premium',
+      premiumBullets: [
+        'Viac dialógových slotov pre aktívne odpovede',
+        'AI sprievodca profilom a životnou situáciou',
+        'Personalizovaný JHI index',
+        'Detailný report JCFPM testu'
+      ],
       mobileSwipe: 'Karty',
       mobileList: 'Zoznam',
       mobileSwipeBody: 'Na mobile môžeš ponuky prechádzať ťahom doľava alebo doprava.'
@@ -450,6 +475,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsValue: '{{active}} / {{limit}} belegt',
       slotsRemaining: '{{remaining}} frei',
       slotsRemainingLabel: 'Freie Kapazität',
+      premiumTitle: hasPremiumAccess ? 'Premium ist aktiv' : 'Was Premium freischaltet',
+      premiumBody: hasPremiumAccess
+        ? 'Die erweiterte Entscheidungsebene ist aktiv, mit mehr Unterstützung und mehr Raum für laufende Antworten.'
+        : 'Premium gibt mehr Raum für Antworten, bessere Profilführung und präzisere Empfehlungen passend zu deiner Realität.',
+      premiumCta: hasPremiumAccess ? 'Premium verwalten' : 'Premium ansehen',
+      premiumBullets: [
+        'Mehr Dialog-Slots für aktive Antworten',
+        'KI-Begleitung für Profil und Lebenssituation',
+        'Personalisierter JHI-Index',
+        'Detaillierter JCFPM-Bericht'
+      ],
       mobileSwipe: 'Karten',
       mobileList: 'Liste',
       mobileSwipeBody: 'Auf dem Handy kannst du Rollen per Wischen nach links oder rechts durchgehen.'
@@ -528,6 +564,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       slotsValue: '{{active}} / {{limit}} zajęte',
       slotsRemaining: '{{remaining}} wolnych',
       slotsRemainingLabel: 'Wolna pojemność',
+      premiumTitle: hasPremiumAccess ? 'Premium jest aktywne' : 'Co odblokowuje premium',
+      premiumBody: hasPremiumAccess
+        ? 'Masz aktywną rozszerzoną warstwę decyzji z większym wsparciem i większą pojemnością na odpowiedzi.'
+        : 'Premium daje więcej miejsca na odpowiedzi, mądrzejsze prowadzenie profilu i trafniejsze rekomendacje względem twojej sytuacji.',
+      premiumCta: hasPremiumAccess ? 'Zarządzaj premium' : 'Pokaż premium',
+      premiumBullets: [
+        'Więcej slotów rozmów dla aktywnych odpowiedzi',
+        'Przewodnik AI dla profilu i sytuacji życiowej',
+        'Spersonalizowany indeks JHI',
+        'Szczegółowy raport JCFPM'
+      ],
       mobileSwipe: 'Karty',
       mobileList: 'Lista',
       mobileSwipeBody: 'Na telefonie możesz przeglądać oferty przesunięciem w lewo albo w prawo.'
@@ -608,6 +655,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         slotsValue: '{{active}} / {{limit}} in use',
         slotsRemaining: '{{remaining}} left',
         slotsRemainingLabel: 'Open capacity',
+        premiumTitle: hasPremiumAccess ? 'Premium is active' : 'What premium unlocks',
+        premiumBody: hasPremiumAccess
+          ? 'Your stronger decision layer is active, including deeper support and more room for active replies.'
+          : 'Premium adds more room for replies, a smarter life-context guide, and sharper recommendations around your own reality.',
+        premiumCta: hasPremiumAccess ? 'Manage premium' : 'See premium',
+        premiumBullets: [
+          'More dialogue slots for active replies',
+          'AI guide for profile and life context',
+          'Personalized JHI score',
+          'Detailed JCFPM report'
+        ],
         mobileSwipe: 'Cards',
         mobileList: 'List',
         mobileSwipeBody: 'On mobile you can browse roles by swiping left or right.'
@@ -683,13 +741,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     return useImportedFallback ? importedMatches : nativeMatches;
   }, [jobs, lane, remoteOnly, hasNativeChallenges]);
 
-  const challengeLaneUsesImportedFallback = lane === 'challenges' && jobsInLane.length > 0 && jobsInLane.every((job) => job.listingKind === 'imported');
   const hasCommuteProfile = Boolean(userProfile.address || userProfile.coordinates?.lat);
-  const topJob = jobsInLane[0] || null;
-  const averageJhi =
-    jobsInLane.length > 0
-      ? Math.round(jobsInLane.reduce((sum, job) => sum + Number(job.jhi?.score || 0), 0) / jobsInLane.length)
-      : 0;
 
   const currentFilters: JobSearchFilters = {
     searchTerm,
@@ -903,28 +955,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="xl:sticky xl:top-[var(--app-sticky-stack-offset)] xl:self-start">
-          <div className="space-y-5 xl:max-h-[calc(100dvh-12rem)] xl:overflow-y-auto xl:pr-2">
-            <SurfaceCard className="space-y-4" tone="accent">
-              <div className="space-y-2">
-                <div className="app-eyebrow w-fit">
-                  <Sparkles size={12} />
-                  {copy.cockpitTitle}
-                </div>
-                <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{copy.filters}</h3>
-                <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.cockpitBody}</p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                <MetricTile label={copy.scoreLabel} value={`${averageJhi}/100`} tone="accent" />
-                <MetricTile label={copy.results} value={jobsInLane.length} tone="accent" />
-                <MetricTile label={copy.workModel} value={topJob ? getWorkModel(topJob, isCsLike) : '—'} tone="accent" />
-              </div>
-              {challengeLaneUsesImportedFallback ? (
-                <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">
-                  {copy.noNative}
-                </div>
-              ) : null}
-            </SurfaceCard>
-
+          <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-1.5rem)] xl:overflow-y-auto xl:pr-2 xl:pb-4">
             <SurfaceCard className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-[var(--accent)]" />
@@ -950,31 +981,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 />
               </div>
               <SavedFiltersMenu onLoadFilter={applyFilterSnapshot} currentFilters={currentFilters} hasActiveFilters={hasActiveFilters} />
-            </SurfaceCard>
-
-            <SurfaceCard className="space-y-4">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={16} className="text-[var(--accent)]" />
-                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.slotsTitle}</div>
-              </div>
-              <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.slotsBody}</p>
-              {dialogueCapacity ? (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                  <MetricTile
-                    label={copy.slotsTitle}
-                    value={copy.slotsValue
-                      .replace('{{active}}', String(dialogueCapacity.active))
-                      .replace('{{limit}}', String(dialogueCapacity.limit))}
-                    tone="accent"
-                  />
-                  <MetricTile
-                    label={copy.slotsRemainingLabel}
-                    value={copy.slotsRemaining.replace('{{remaining}}', String(dialogueCapacity.remaining))}
-                  />
-                </div>
-              ) : (
-                <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.slotsEmpty}</p>
-              )}
             </SurfaceCard>
 
             <SurfaceCard className="space-y-4">
@@ -1167,6 +1173,79 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 <FilterChip active={mobileViewMode === 'list'} onClick={() => setMobileViewMode('list')}>
                   {copy.mobileList}
                 </FilterChip>
+              </div>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard className="overflow-hidden border-amber-200/70 bg-[linear-gradient(135deg,rgba(255,248,230,0.98),rgba(255,255,255,0.98))] shadow-[0_28px_70px_-50px_rgba(217,119,6,0.55)] dark:bg-[linear-gradient(135deg,rgba(255,248,230,0.98),rgba(255,255,255,0.98))]">
+            <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-6">
+              <div className="space-y-3">
+                <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
+                  <Sparkles size={12} />
+                  {copy.premiumTitle}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">
+                    {isCsLike
+                      ? 'Více prostoru pro odpovědi, chytřejší vedení a přesnější doporučení'
+                      : 'More room for replies, sharper guidance, and stronger recommendations'}
+                  </h3>
+                  <p className="max-w-3xl text-sm leading-7 text-slate-700">{copy.premiumBody}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(copy.premiumBullets as string[]).map((item: string) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center rounded-full border border-amber-200 bg-white/92 px-3 py-1.5 text-sm font-medium text-slate-700"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                {!hasPremiumAccess ? (
+                  <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      className="app-button-primary justify-center"
+                      onClick={() => onOpenPremium(copy.premiumTitle)}
+                    >
+                      <Sparkles size={16} />
+                      {copy.premiumCta}
+                    </button>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                      {isCsLike ? 'Více slotů • AI průvodce • JHI • JCFPM' : 'More slots • AI guide • JHI • JCFPM'}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+              <div className="space-y-3 rounded-[var(--radius-xl)] border border-white/80 bg-white/88 p-4 shadow-[0_16px_38px_-28px_rgba(15,23,42,0.35)]">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[var(--accent)]" />
+                  <div className="text-sm font-semibold text-slate-900">{copy.slotsTitle}</div>
+                </div>
+                <p className="text-sm leading-6 text-slate-700">{copy.slotsBody}</p>
+                {dialogueCapacity ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <MetricTile
+                      label={copy.slotsTitle}
+                      value={copy.slotsValue
+                        .replace('{{active}}', String(dialogueCapacity.active))
+                        .replace('{{limit}}', String(dialogueCapacity.limit))}
+                      tone="accent"
+                    />
+                    <MetricTile
+                      label={copy.slotsRemainingLabel}
+                      value={copy.slotsRemaining.replace('{{remaining}}', String(dialogueCapacity.remaining))}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm leading-6 text-slate-700">{copy.slotsEmpty}</p>
+                )}
+                {hasPremiumAccess ? (
+                  <div className="rounded-[var(--radius-lg)] border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-700">
+                    {isCsLike ? 'Premium je aktivní' : 'Premium is active'}
+                  </div>
+                ) : null}
               </div>
             </div>
           </SurfaceCard>

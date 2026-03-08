@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { requestPasswordResetEmail, signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
 import { fetchCsrfToken, waitForSession } from '../services/csrfService';
 import { supabase } from '../services/supabaseClient';
-import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin, Sparkles, CheckCircle2 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -39,7 +39,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
         confirmPassword: '',
         fullName: '',
         preferredCountryCode: resolveDefaultCountry(),
-        wantsDigestEmail: false
+        wantsDigestEmail: false,
+        agreedToTerms: false,
+        agreedToPrivacy: false
     });
     const countryOptions = [
         { code: 'CZ', label: t('countries.cz', { defaultValue: 'Česko' }) },
@@ -51,6 +53,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
     const isLogin = mode === 'login';
     const isResetMode = mode === 'reset';
+    const isCsLike = ['cs', 'sk'].includes((i18n.language || 'cs').split('-')[0].toLowerCase());
 
     useEffect(() => {
         if (isOpen) {
@@ -107,6 +110,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                 if (result.error) throw result.error;
                 userData = result.data?.user;
             } else {
+                if (!formData.agreedToTerms || !formData.agreedToPrivacy) {
+                    throw new Error(
+                        t('auth.legal_consent_required', {
+                            defaultValue: 'Pro vytvoření účtu je potřeba souhlasit s podmínkami použití a zpracováním osobních údajů.'
+                        })
+                    );
+                }
                 const result = await signUpWithEmail(
                     formData.email,
                     formData.password,
@@ -206,105 +216,127 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
     };
 
     const isBusy = loading || oauthLoading !== null;
+    const premiumBullets = isCsLike
+        ? [
+            'Více dialogových slotů pro odpovědi bez zbytečného limitu.',
+            'AI průvodce pro profil, životní situaci a podpůrné podklady.',
+            'Personalizovaný JHI a detailní JCFPM report místo jen základního náhledu.'
+        ]
+        : [
+            'More dialogue slots for real replies without tight limits.',
+            'An AI guide for profile setup, life context, and supporting materials.',
+            'Personalized JHI and a detailed JCFPM report instead of only the basic preview.'
+        ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-                onClick={onClose}
-            ></div>
+        <div className="app-modal-backdrop">
+            <div className="absolute inset-0" onClick={onClose}></div>
 
-            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 p-8">
+            <div className="app-modal-panel max-h-[92vh] max-w-5xl overflow-y-auto animate-in zoom-in-95 duration-300">
+                <div className="app-modal-topline" />
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-full"
+                    className="absolute right-5 top-5 z-10 rounded-full p-2 text-[var(--text-faint)] transition hover:bg-black/5 hover:text-[var(--text-strong)] dark:hover:bg-white/5"
                 >
                     <X size={20} />
                 </button>
-
-                <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                        {isResetMode
-                            ? t('auth.reset_password_title', { defaultValue: 'Nastavit nové heslo' })
-                            : (isLogin ? t('auth.welcome_back') : t('auth.create_account'))}
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-                        {isResetMode
-                            ? t('auth.reset_password_desc', { defaultValue: 'Zadejte nové heslo pro svůj účet.' })
-                            : (isLogin ? t('auth.login_desc') : t('auth.register_desc'))}
-                    </p>
-                </div>
-
-                {isLogin && (
-                    <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300">
-                        <AlertCircle size={16} className="mt-0.5" />
-                        <div>
-                            <div className="font-semibold">{t('auth.email_confirm_notice_title')}</div>
-                            <div>{t('auth.email_confirm_notice_body')}</div>
+                <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                    <div className="app-modal-surface hidden border-r px-8 py-8 lg:block lg:rounded-none lg:border-b-0 lg:border-l-0 lg:border-t-0">
+                        <div className="space-y-6">
+                            <div className="app-modal-kicker">
+                                <Sparkles size={12} />
+                                {isCsLike ? 'Career OS vstup' : 'Career OS access'}
+                            </div>
+                            <div className="space-y-3">
+                                <h2 className="text-3xl font-black tracking-[-0.04em] text-[var(--text-strong)]">
+                                    {isResetMode
+                                        ? t('auth.reset_password_title', { defaultValue: 'Nastavit nové heslo' })
+                                        : (isLogin ? t('auth.welcome_back') : t('auth.create_account'))}
+                                </h2>
+                                <p className="text-sm leading-7 text-[var(--text-muted)]">
+                                    {isResetMode
+                                        ? t('auth.reset_password_desc', { defaultValue: 'Zadejte nové heslo pro svůj účet.' })
+                                        : (isLogin ? t('auth.login_desc') : t('auth.register_desc'))}
+                                </p>
+                            </div>
+                            {!isResetMode ? (
+                                <div className="app-premium-note space-y-3">
+                                    <div className="flex items-center gap-2 text-sm font-semibold">
+                                        <Sparkles size={16} />
+                                        {isCsLike ? 'Proč si premium rychle získá hodnotu' : 'Why premium becomes useful fast'}
+                                    </div>
+                                    <div className="space-y-2">
+                                        {premiumBullets.map((item) => (
+                                            <div key={item} className="flex items-start gap-2 text-sm leading-6">
+                                                <CheckCircle2 size={16} className="mt-1 shrink-0" />
+                                                <span>{item}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
-                )}
 
-                {infoMessage && (
-                    <div className={`mb-6 p-3 border rounded-lg flex items-start gap-2 text-sm ${awaitingConfirmation ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                        <AlertCircle size={16} className="mt-0.5" />
-                        <div>
-                            {awaitingConfirmation && (
-                                <div className="font-semibold mb-1">{t('auth.confirmation_required_title')}</div>
-                            )}
-                            <div>{infoMessage}</div>
-                        </div>
-                    </div>
-                )}
-
-                {error && (
-                    <div className="mb-6 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400">
-                        <AlertCircle size={16} />
-                        {error}
-                    </div>
-                )}
-
-                {!isResetMode && (
-                    <>
-                        <div className="space-y-3 mb-6">
-                            <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() => handleOAuthSignIn('google')}
-                                className="w-full py-3 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
-                            >
-                                {oauthLoading === 'google' ? <Loader2 className="animate-spin" size={18} /> : <Chrome size={18} />}
-                                {t('auth.continue_with_google')}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() => handleOAuthSignIn('linkedin_oidc')}
-                                className="w-full py-3 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
-                            >
-                                {oauthLoading === 'linkedin_oidc' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
-                                {t('auth.continue_with_linkedin')}
-                            </button>
+                    <div className="app-modal-surface px-5 py-5 sm:px-6 sm:py-6 lg:rounded-none lg:border-0">
+                        <div className="mb-5 space-y-2.5 lg:hidden">
+                            <div className="app-modal-kicker w-fit">
+                                <Sparkles size={12} />
+                                {isCsLike ? 'Career OS vstup' : 'Career OS access'}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-[var(--text-strong)]">
+                                    {isResetMode
+                                        ? t('auth.reset_password_title', { defaultValue: 'Nastavit nové heslo' })
+                                        : (isLogin ? t('auth.welcome_back') : t('auth.create_account'))}
+                                </h2>
+                                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                                    {isResetMode
+                                        ? t('auth.reset_password_desc', { defaultValue: 'Zadejte nové heslo pro svůj účet.' })
+                                        : (isLogin ? t('auth.login_desc') : t('auth.register_desc'))}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                            <span className="text-xs font-bold text-slate-400 uppercase">{t('auth.or')}</span>
-                            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                        </div>
-                    </>
-                )}
+                        {isLogin && (
+                            <div className="mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">
+                                <AlertCircle size={16} className="mt-0.5" />
+                                <div>
+                                    <div className="font-semibold">{t('auth.email_confirm_notice_title')}</div>
+                                    <div>{t('auth.email_confirm_notice_body')}</div>
+                                </div>
+                            </div>
+                        )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                        {infoMessage && (
+                            <div className={`mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-sm ${awaitingConfirmation ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-200 dark:bg-emerald-50 dark:text-emerald-800' : 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text)]'}`}>
+                                <AlertCircle size={16} className="mt-0.5" />
+                                <div>
+                                    {awaitingConfirmation && (
+                                        <div className="mb-1 font-semibold">{t('auth.confirmation_required_title')}</div>
+                                    )}
+                                    <div>{infoMessage}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-200 dark:bg-rose-50 dark:text-rose-700">
+                                <AlertCircle size={16} />
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-3">
                     {!isLogin && !isResetMode && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('auth.full_name')}</label>
+                            <label className="mb-1 block text-xs font-bold uppercase text-[var(--text-muted)]">{t('auth.full_name')}</label>
                             <div className="relative">
-                                <User className="absolute left-3 top-3 text-slate-400" size={18} />
+                                <User className="absolute left-3 top-3 text-[var(--text-faint)]" size={18} />
                                 <input
                                     type="text"
                                     required
-                                    className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                    className="app-modal-input pl-10"
                                     placeholder="Jan Novák"
                                     value={formData.fullName}
                                     onChange={e => setFormData({ ...formData, fullName: e.target.value })}
@@ -315,12 +347,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
                     {!isLogin && !isResetMode && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                            <label className="mb-1 block text-xs font-bold uppercase text-[var(--text-muted)]">
                                 {t('auth.preferred_country', { defaultValue: 'Země pro nabídky' })}
                             </label>
                             <select
                                 required
-                                className="w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                className="app-modal-input"
                                 value={formData.preferredCountryCode}
                                 onChange={e => setFormData({
                                     ...formData,
@@ -333,7 +365,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                     </option>
                                 ))}
                             </select>
-                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            <p className="mt-2 text-xs leading-6 text-[var(--text)]">
                                 {t('auth.preferred_country_help', {
                                     defaultValue: 'Použijeme ji pro cílení doporučení a denního digestu. Později ji můžete změnit v profilu.'
                                 })}
@@ -343,13 +375,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
                     {!isResetMode && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('auth.email')}</label>
+                            <label className="mb-1 block text-xs font-bold uppercase text-[var(--text-muted)]">{t('auth.email')}</label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
+                                <Mail className="absolute left-3 top-3 text-[var(--text-faint)]" size={18} />
                                 <input
                                     type="email"
                                     required
-                                    className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                    className="app-modal-input pl-10"
                                     placeholder="jan@example.com"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -359,18 +391,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     )}
 
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                        <label className="mb-1 block text-xs font-bold uppercase text-[var(--text-muted)]">
                             {isResetMode
                                 ? t('auth.new_password', { defaultValue: 'Nové heslo' })
                                 : t('auth.password')}
                         </label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+                            <Lock className="absolute left-3 top-3 text-[var(--text-faint)]" size={18} />
                             <input
                                 type="password"
                                 required
                                 minLength={6}
-                                className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                className="app-modal-input pl-10"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -382,7 +414,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                     type="button"
                                     onClick={handleForgotPassword}
                                     disabled={isBusy}
-                                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline disabled:opacity-50"
+                                    className="text-xs font-semibold text-[var(--accent)] hover:underline disabled:opacity-50"
                                 >
                                     {t('auth.forgot_password')}
                                 </button>
@@ -392,16 +424,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
                     {isResetMode && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                            <label className="mb-1 block text-xs font-bold uppercase text-[var(--text-muted)]">
                                 {t('auth.confirm_new_password', { defaultValue: 'Potvrzení hesla' })}
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+                                <Lock className="absolute left-3 top-3 text-[var(--text-faint)]" size={18} />
                                 <input
                                     type="password"
                                     required
                                     minLength={6}
-                                    className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                    className="app-modal-input pl-10"
                                     placeholder="••••••••"
                                     value={formData.confirmPassword}
                                     onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -411,59 +443,135 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     )}
 
                     {!isLogin && !isResetMode && (
-                        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+                        <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
                             <input
                                 type="checkbox"
                                 checked={formData.wantsDigestEmail}
                                 onChange={e => setFormData({ ...formData, wantsDigestEmail: e.target.checked })}
-                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
                             />
                             <span>
-                                <span className="block font-semibold text-slate-900 dark:text-white">
+                                <span className="block text-[13px] font-semibold leading-5 text-[var(--text-strong)]">
                                     {t('auth.digest_consent_title', { defaultValue: 'Souhlasím se zasíláním emailového digestu' })}
-                                </span>
-                                <span className="block mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    {t('auth.digest_consent_help', {
-                                        defaultValue: 'Jen pokud toto zapnete, budeme vám posílat denní přehled pracovních nabídek. Nastavení můžete kdykoli změnit v profilu.'
-                                    })}
                                 </span>
                             </span>
                         </label>
                     )}
 
-                    <button
-                        type="submit"
-                        disabled={isBusy}
-                        className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2"
-                    >
-                        {loading && <Loader2 className="animate-spin" size={18} />}
-                        {isResetMode
-                            ? t('auth.set_new_password', { defaultValue: 'Nastavit nové heslo' })
-                            : (isLogin ? t('auth.login_button') : t('auth.register_button'))}
-                    </button>
-                </form>
+                    {!isLogin && !isResetMode && (
+                        <div className="space-y-3">
+                            <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.agreedToTerms}
+                                    onChange={e => setFormData({ ...formData, agreedToTerms: e.target.checked })}
+                                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
+                                />
+                                <span>
+                                    <span className="block text-[13px] font-semibold leading-5 text-[var(--text-strong)]">
+                                        {t('auth.register_terms_title', { defaultValue: 'Souhlasím s podmínkami použití' })}
+                                    </span>
+                                    <span className="mt-0.5 block text-[11px] leading-5 text-[var(--text)]">
+                                        {t('auth.register_terms_help_prefix', { defaultValue: 'Přečetl(a) jsem si' })}{' '}
+                                        <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-[var(--accent)] hover:underline">
+                                            {t('footer.terms', { defaultValue: 'Podmínky používání' })}
+                                        </a>.
+                                    </span>
+                                </span>
+                            </label>
 
-                <div className="mt-6 text-center text-sm">
+                            <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.agreedToPrivacy}
+                                    onChange={e => setFormData({ ...formData, agreedToPrivacy: e.target.checked })}
+                                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
+                                />
+                                <span>
+                                    <span className="block text-[13px] font-semibold leading-5 text-[var(--text-strong)]">
+                                        {t('auth.register_privacy_title', { defaultValue: 'Souhlasím se zpracováním osobních údajů' })}
+                                    </span>
+                                    <span className="mt-0.5 block text-[11px] leading-5 text-[var(--text)]">
+                                        {t('auth.register_privacy_help_prefix', { defaultValue: 'Podrobnosti najdete v dokumentu' })}{' '}
+                                        <a href="/privacy-policy" target="_blank" rel="noreferrer" className="font-semibold text-[var(--accent)] hover:underline">
+                                            {t('footer.privacy', { defaultValue: 'Ochrana osobních údajů' })}
+                                        </a>.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    )}
+
+                    <div className="sticky bottom-0 -mx-5 border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)]/96 px-5 pb-1 pt-3 backdrop-blur sm:-mx-6 sm:px-6">
+                        <div className="space-y-3">
+                            <button
+                                type="submit"
+                                disabled={isBusy || (!isLogin && !isResetMode && (!formData.agreedToTerms || !formData.agreedToPrivacy))}
+                                className="app-button-primary w-full"
+                            >
+                                {loading && <Loader2 className="animate-spin" size={18} />}
+                                {isResetMode
+                                    ? t('auth.set_new_password', { defaultValue: 'Nastavit nové heslo' })
+                                    : (isLogin ? t('auth.login_button') : t('auth.register_button'))}
+                            </button>
+
+                            {!isResetMode && (
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                                        <span className="text-xs font-bold uppercase text-[var(--text-faint)]">{t('auth.or')}</span>
+                                        <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                                    </div>
+
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <button
+                                            type="button"
+                                            disabled={isBusy}
+                                            onClick={() => handleOAuthSignIn('google')}
+                                            className="app-button-secondary w-full"
+                                        >
+                                            {oauthLoading === 'google' ? <Loader2 className="animate-spin" size={18} /> : <Chrome size={18} />}
+                                            {t('auth.continue_with_google')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={isBusy}
+                                            onClick={() => handleOAuthSignIn('linkedin_oidc')}
+                                            className="app-button-secondary w-full"
+                                        >
+                                            {oauthLoading === 'linkedin_oidc' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
+                                            {t('auth.continue_with_linkedin')}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                        </form>
+
+                        <div className="mt-4 text-center text-sm">
                     {isResetMode ? (
                         <button
                             onClick={() => setMode('login')}
-                            className="font-bold text-cyan-600 dark:text-cyan-400 hover:underline"
+                            className="font-bold text-[var(--accent)] hover:underline"
                         >
                             {t('auth.login_button')}
                         </button>
                     ) : (
                         <>
-                            <span className="text-slate-500 dark:text-slate-400">
+                            <span className="text-[var(--text-muted)]">
                                 {isLogin ? t('auth.no_account') : t('auth.have_account')}
                             </span>
                             <button
                                 onClick={() => setMode(isLogin ? 'register' : 'login')}
-                                className="ml-2 font-bold text-cyan-600 dark:text-cyan-400 hover:underline"
+                                className="ml-2 font-bold text-[var(--accent)] hover:underline"
                             >
                                 {isLogin ? t('auth.create_account') : t('auth.login_button')}
                             </button>
                         </>
                     )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

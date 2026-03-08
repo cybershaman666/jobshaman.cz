@@ -2117,6 +2117,7 @@ export default function App() {
                                         setFilterLanguageCodes={setFilterLanguageCodes}
                                         handleJobSelect={handleJobSelect}
                                         handleToggleSave={handleToggleSave}
+                                        onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
                                     />
                                 </div>
                             </>

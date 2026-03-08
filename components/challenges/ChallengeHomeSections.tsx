@@ -24,22 +24,22 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
   const copyMap = {
     cs: {
       badge: 'Odpovědi vedou k lidskému dialogu, ne k algoritmu.',
-      title: 'Reaguj na výzvu a ukaž svůj přístup.',
-      body: 'Zapojíš se do smysluplného dialogu místo střelby naslepo.',
+      title: 'Reagujte na výzvu a ukažte svůj přístup.',
+      body: 'Zapojíte se do smysluplného dialogu místo střelby naslepo.',
       primaryCta: 'Začít odpověď',
       secondaryCta: 'Přejít do hledání',
-      promisePills: ['Firma otevře problém', 'Ty pošleš první přístup', 'Pak se otevře soukromý dialog'],
+      promisePills: ['Firma otevře problém', 'Pošlete první přístup', 'Pak se otevře soukromý dialog'],
       heroDemoEyebrow: 'Ukázka první výzvy',
       heroDemoLead: 'Takto vypadá první kontakt místo slepého posílání životopisu.',
       heroTeamLabel: 'Výzva týmu',
       heroRiskLabel: 'Riziko',
-      heroEditorLabel: 'Jak bys začal(a) problém řešit?',
+      heroEditorLabel: 'Jak byste začal(a) problém řešit?',
       heroEditorPlaceholder: 'Můj první krok by byl…',
       heroEditorHint: 'Kliknutí otevře registraci a naváže na tuto první odpověď.',
       heroTimelineTitle: 'Jak začíná první kontakt',
       heroTimelineSteps: [
         'Firma otevře konkrétní problém v týmu.',
-        'Ty pošleš první přístup, ne přílohu bez kontextu.',
+        'Pošlete první přístup, ne přílohu bez kontextu.',
         'Teprve potom vznikne soukromý dialog.'
       ],
       valueCards: [
@@ -68,13 +68,13 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       previewCta: 'Otevřít detail výzvy',
       previewChallengeFallback: 'Tým potřebuje člověka, který zvládne převzít nejasnou situaci a rychle v ní udělat pořádek.',
       previewRiskFallback: 'Bez dobré koordinace se problém rozpadne do improvizace, zdržení a ztracené důvěry.',
-      previewQuestionFallback: 'Jak bys během prvního týdne ověřil(a), kde je skutečné úzké místo, a co by byl tvůj první krok?',
+      previewQuestionFallback: 'Jak byste během prvního týdne ověřil(a), kde je skutečné úzké místo, a co by byl váš první krok?',
       previewReplyFallback: 'Začal(a) bych rychlým rozdělením problému na dva až tři rozhodující body, ověřil(a) je s týmem a navrhl(a) první konkrétní zásah místo obecného slibu.',
       engineEyebrow: 'Potom přichází chytřejší hledání',
       engineTitle: 'Hledání, filtry a předvýběr na jednom místě.',
       enginePoints: [
-        'Najdeš role podle toho, co budeš opravdu řešit, ne jen podle názvu pozice.',
-        'Použiješ filtry podle životní reality a osobní nastavení z profilu.',
+        'Najdete role podle toho, co budete opravdu řešit, ne jen podle názvu pozice.',
+        'Použijete filtry podle životní reality a osobní nastavení z profilu.',
         'Systém zvýrazní nabídky, kde má smysl ozvat se jako první.'
       ],
       sampleTitle: 'Jak vypadá kvalitní výzva',
@@ -93,22 +93,22 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     },
     sk: {
       badge: 'Odpovede vedú k ľudskému dialógu, nie k algoritmu.',
-      title: 'Reaguj na výzvu a ukáž svoj prístup.',
-      body: 'Zapojíš sa do zmysluplného dialógu namiesto streľby naslepo.',
+      title: 'Reagujte na výzvu a ukážte svoj prístup.',
+      body: 'Zapojíte sa do zmysluplného dialógu namiesto streľby naslepo.',
       primaryCta: 'Začať odpoveď',
       secondaryCta: 'Prejsť do hľadania',
-      promisePills: ['Firma otvorí problém', 'Ty pošleš prvý prístup', 'Potom sa otvorí súkromný dialóg'],
+      promisePills: ['Firma otvorí problém', 'Pošlete prvý prístup', 'Potom sa otvorí súkromný dialóg'],
       heroDemoEyebrow: 'Ukážka prvej výzvy',
       heroDemoLead: 'Takto vyzerá prvý kontakt namiesto slepého posielania životopisu.',
       heroTeamLabel: 'Výzva tímu',
       heroRiskLabel: 'Riziko',
-      heroEditorLabel: 'Ako by si začal(a) riešiť problém?',
+      heroEditorLabel: 'Ako by ste začal(a) riešiť problém?',
       heroEditorPlaceholder: 'Môj prvý krok by bol…',
       heroEditorHint: 'Kliknutie otvorí registráciu a nadviaže na túto prvú odpoveď.',
       heroTimelineTitle: 'Ako začína prvý kontakt',
       heroTimelineSteps: [
         'Firma otvorí konkrétny problém v tíme.',
-        'Ty pošleš prvý prístup, nie prílohu bez kontextu.',
+        'Pošlete prvý prístup, nie prílohu bez kontextu.',
         'Až potom vznikne súkromný dialóg.'
       ],
       valueCards: [
@@ -137,13 +137,13 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       previewCta: 'Otvoriť detail výzvy',
       previewChallengeFallback: 'Tím potrebuje človeka, ktorý zvládne prevziať nejasnú situáciu a rýchlo v nej urobiť poriadok.',
       previewRiskFallback: 'Bez dobrej koordinácie sa problém rozpadne na improvizáciu, zdržanie a stratu dôvery.',
-      previewQuestionFallback: 'Ako by si počas prvého týždňa overil(a), kde je skutočné úzke miesto, a čo by bol tvoj prvý krok?',
+      previewQuestionFallback: 'Ako by ste počas prvého týždňa overil(a), kde je skutočné úzke miesto, a čo by bol váš prvý krok?',
       previewReplyFallback: 'Začal(a) by som rýchlym rozdelením problému na dva až tri rozhodujúce body, overil(a) ich s tímom a navrhol(a) prvý konkrétny zásah namiesto všeobecného sľubu.',
       engineEyebrow: 'Potom prichádza múdrejšie hľadanie',
       engineTitle: 'Hľadanie, filtre a predvýber na jednom mieste.',
       enginePoints: [
-        'Nájdeš roly podľa toho, čo budeš naozaj riešiť, nielen podľa názvu pozície.',
-        'Použiješ filtre podľa životnej reality a osobné nastavenie z profilu.',
+        'Nájdete roly podľa toho, čo budete naozaj riešiť, nielen podľa názvu pozície.',
+        'Použijete filtre podľa životnej reality a osobné nastavenie z profilu.',
         'Systém zvýrazní ponuky, kde má zmysel ozvať sa ako prvý.'
       ],
       sampleTitle: 'Ako vyzerá kvalitná výzva',
@@ -352,7 +352,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Zástupce vedoucího recepce',
         challenge: 'Recepce a housekeeping si často předávají nepřesné informace o připravenosti pokojů.',
         risk: 'Hosté čekají déle na check-in, tým improvizuje a zbytečně roste napětí v provozu.',
-        question: 'Jak bys během prvních dnů zjistil(a), kde se informace ztrácí, a jaký by byl tvůj první zásah?'
+        question: 'Jak byste během prvních dnů zjistil(a), kde se informace ztrácí, a jaký by byl váš první zásah?'
       },
       {
         eyebrow: 'Ukázka první výzvy',
@@ -360,7 +360,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Koordinátor expedice',
         challenge: 'Sklad, doprava a zákaznická linka pracují s různými časy odjezdu a vznikají chybné sliby směrem ke klientům.',
         risk: 'Zákazníci dostávají nepřesné termíny, tým hasí reklamace a expedice ztrácí rytmus.',
-        question: 'Čím bys začal(a), aby všichni pracovali se stejnou pravdou o odjezdech a zpožděních?'
+        question: 'Čím byste začal(a), aby všichni pracovali se stejnou pravdou o odjezdech a zpožděních?'
       },
       {
         eyebrow: 'Ukázka první výzvy',
@@ -368,7 +368,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Specialista zákaznické podpory',
         challenge: 'Objednávky z ordinací chodí několika kanály najednou a tým pak řeší stejné požadavky duplicitně.',
         risk: 'Přibývá zmatků v prioritách, zákazníci čekají na potvrzení a interně roste únava.',
-        question: 'Jak bys ověřil(a), kde vznikají duplicity, a jaký jednoduchý krok bys zavedl(a) hned na začátku?'
+        question: 'Jak byste ověřil(a), kde vznikají duplicity, a jaký jednoduchý krok byste zavedl(a) hned na začátku?'
       }
     ],
     sk: [
@@ -378,7 +378,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Zástupca vedúceho recepcie',
         challenge: 'Recepcia a housekeeping si často odovzdávajú nepresné informácie o pripravenosti izieb.',
         risk: 'Hostia čakajú dlhšie na check-in, tím improvizuje a v prevádzke rastie napätie.',
-        question: 'Ako by si počas prvých dní zistil(a), kde sa informácie strácajú, a aký by bol tvoj prvý zásah?'
+        question: 'Ako by ste počas prvých dní zistil(a), kde sa informácie strácajú, a aký by bol váš prvý zásah?'
       },
       {
         eyebrow: 'Ukážka prvej výzvy',
@@ -386,7 +386,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Koordinátor expedície',
         challenge: 'Sklad, doprava a zákaznícka linka pracujú s rôznymi časmi odchodu a vznikajú chybné sľuby smerom ku klientom.',
         risk: 'Zákazníci dostávajú nepresné termíny, tím hasí reklamácie a expedícia stráca rytmus.',
-        question: 'Čím by si začal(a), aby všetci pracovali s rovnakou pravdou o odchodoch a meškaniach?'
+        question: 'Čím by ste začal(a), aby všetci pracovali s rovnakou pravdou o odchodoch a meškaniach?'
       },
       {
         eyebrow: 'Ukážka prvej výzvy',
@@ -394,7 +394,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
         title: 'Špecialista zákazníckej podpory',
         challenge: 'Objednávky z ambulancií prichádzajú viacerými kanálmi naraz a tím potom rieši tie isté požiadavky duplicitne.',
         risk: 'Pribúda zmätok v prioritách, zákazníci čakajú na potvrdenie a interne rastie únava.',
-        question: 'Ako by si overil(a), kde vznikajú duplicity, a aký jednoduchý krok by si zaviedol(a) hneď na začiatku?'
+        question: 'Ako by ste overil(a), kde vznikajú duplicity, a aký jednoduchý krok by ste zaviedol(a) hneď na začiatku?'
       }
     ],
     de: [
@@ -484,62 +484,62 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(145deg,#f7fafc_0%,#ffffff_30%,#f8fbff_62%,#eef4fb_100%)] p-5 text-slate-900 shadow-[0_44px_110px_-74px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-[linear-gradient(155deg,#1c1620_0%,#111827_34%,#0f172a_70%,#10211d_100%)] dark:text-slate-100 sm:p-6">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(145deg,#f7fafc_0%,#ffffff_30%,#f8fbff_62%,#eef4fb_100%)] p-4 text-slate-900 shadow-[0_44px_110px_-74px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-[linear-gradient(155deg,#1c1620_0%,#111827_34%,#0f172a_70%,#10211d_100%)] dark:text-slate-100 sm:p-5">
         <div className="pointer-events-none absolute -left-20 top-[-4.5rem] h-56 w-56 rounded-[46%_54%_58%_42%/40%_44%_56%_60%] bg-sky-200/38 blur-3xl dark:bg-sky-500/12" />
         <div className="pointer-events-none absolute right-[-3.5rem] top-[-2rem] h-48 w-48 rounded-[58%_42%_36%_64%/46%_58%_42%_54%] bg-amber-200/30 blur-3xl dark:bg-amber-400/10" />
         <div className="pointer-events-none absolute bottom-[-4rem] left-[18%] h-44 w-56 rounded-[62%_38%_52%_48%/52%_40%_60%_48%] bg-indigo-100/60 blur-3xl dark:bg-indigo-300/8" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_16%,rgba(255,255,255,0.92),transparent_26%),radial-gradient(circle_at_88%_16%,rgba(226,232,240,0.64),transparent_22%),radial-gradient(circle_at_72%_84%,rgba(253,230,138,0.26),transparent_20%)] dark:bg-[radial-gradient(circle_at_18%_20%,rgba(56,189,248,0.10),transparent_20%),radial-gradient(circle_at_84%_18%,rgba(251,191,36,0.10),transparent_18%),radial-gradient(circle_at_70%_78%,rgba(255,255,255,0.04),transparent_18%)]" />
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.16fr)_360px] xl:items-start 2xl:grid-cols-[minmax(0,1.08fr)_390px]">
-          <div className="relative z-10 space-y-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_340px] xl:items-start 2xl:grid-cols-[minmax(0,1.1fr)_372px]">
+          <div className="relative z-10 space-y-3.5">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-300/90 bg-white/92 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.28)] dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-200">
               <Sparkles size={12} className="text-[var(--accent)]" />
               {copy.badge}
             </div>
-            <div className="space-y-3">
-              <h1 className="max-w-4xl text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl sm:leading-[1.02]">
+            <div className="space-y-2.5">
+              <h1 className="max-w-4xl text-[2rem] font-black tracking-tight text-slate-950 dark:text-white sm:text-[2.7rem] sm:leading-[1.02]">
                 {copy.title}
               </h1>
-              <p className="max-w-2xl text-[15px] leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+              <p className="max-w-2xl text-[15px] leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
                 {copy.body}
               </p>
             </div>
-            <div className="rounded-[1.6rem] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-4 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.72),rgba(15,23,42,0.62))] sm:p-5">
-              <div className="space-y-3">
+            <div className="rounded-[1.55rem] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-4 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.72),rgba(15,23,42,0.62))]">
+              <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-800/90 bg-slate-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white dark:border-white/10 dark:bg-slate-900 dark:text-slate-100">
                     {heroDemo.eyebrow}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {heroDemo.company} · {heroDemo.title}
+                    {heroDemo.title}
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   {copy.heroDemoLead}
                 </p>
-                <div className="rounded-[1.35rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.9))] p-4 dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(15,23,42,0.72))]">
+                <div className="rounded-[1.25rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.9))] p-3.5 dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(15,23,42,0.72))]">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroTeamLabel}</div>
-                  <div className="mt-2 text-lg font-semibold leading-7 tracking-[-0.03em] text-slate-950 dark:text-white">
+                  <div className="mt-1.5 text-[1.05rem] font-semibold leading-6 tracking-[-0.03em] text-slate-950 dark:text-white">
                     {heroDemo.challenge}
                   </div>
-                  <div className="mt-4 text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroRiskLabel}</div>
-                  <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  <div className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroRiskLabel}</div>
+                  <div className="mt-1.5 text-sm leading-5.5 text-slate-700 dark:text-slate-200">
                     {heroDemo.risk}
                   </div>
                 </div>
               </div>
-              <div className="mt-4 rounded-[1.35rem] border border-slate-900/88 bg-[linear-gradient(160deg,#172033_0%,#0f172a_100%)] p-4 text-white shadow-[0_24px_50px_-34px_rgba(15,23,42,0.58)] dark:border-amber-400/16 dark:bg-[linear-gradient(160deg,#101826_0%,#0b1220_100%)]">
+              <div className="mt-3 rounded-[1.25rem] border border-slate-900/88 bg-[linear-gradient(160deg,#172033_0%,#0f172a_100%)] p-3.5 text-white shadow-[0_24px_50px_-34px_rgba(15,23,42,0.58)] dark:border-amber-400/16 dark:bg-[linear-gradient(160deg,#101826_0%,#0b1220_100%)]">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-amber-300">{copy.heroEditorLabel}</div>
-                <div className="mt-3 rounded-[1rem] border border-white/10 bg-white/5 p-3">
-                  <div className="text-sm leading-6 text-slate-100">{heroDemo.question}</div>
+                <div className="mt-2.5 rounded-[1rem] border border-white/10 bg-white/5 p-3">
+                  <div className="text-sm leading-5.5 text-slate-100">{heroDemo.question}</div>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenAuth}
-                  className="mt-3 block w-full rounded-[1rem] border border-amber-300/90 bg-white px-4 py-3 text-left text-sm text-slate-500 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-300/40 dark:bg-white dark:text-slate-700 dark:hover:bg-amber-50"
+                  className="mt-2.5 block w-full rounded-[1rem] border border-amber-300/90 bg-white px-4 py-2.5 text-left text-sm text-slate-500 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-300/40 dark:bg-white dark:text-slate-700 dark:hover:bg-amber-50"
                 >
                   {copy.heroEditorPlaceholder}
                 </button>
-                <div className="mt-3 text-xs leading-5 text-slate-300">
+                <div className="mt-2.5 text-xs leading-5 text-slate-300">
                   {copy.heroEditorHint}
                 </div>
               </div>
@@ -548,7 +548,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 {copy.primaryCta}
                 <ArrowRight size={16} />
@@ -556,7 +556,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
               <button
                 type="button"
                 onClick={onSearchFocus}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-amber-300 hover:bg-amber-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-amber-300/40 dark:hover:bg-white/10"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-amber-300 hover:bg-amber-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-amber-300/40 dark:hover:bg-white/10"
               >
                 <Search size={16} />
                 {copy.secondaryCta}
@@ -564,15 +564,15 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
             </div>
           </div>
 
-          <div className="relative z-10 w-full rounded-[1.6rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.92))] p-4 shadow-[0_30px_70px_-46px_rgba(15,23,42,0.34)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.82),rgba(2,6,23,0.74))]">
+          <div className="relative z-10 w-full rounded-[1.5rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.92))] p-3.5 shadow-[0_30px_70px_-46px_rgba(15,23,42,0.34)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.82),rgba(2,6,23,0.74))]">
             <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               {copy.heroTimelineTitle}
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2.5">
               {[copy.handshakeLaneCompany, copy.handshakeLaneResponse, copy.handshakeLaneOpen].map((label, index) => (
-                <div key={label} className="relative rounded-[1.25rem] border border-slate-200/90 bg-white/88 p-4 dark:border-slate-800 dark:bg-slate-900/72">
+                <div key={label} className="relative rounded-[1.15rem] border border-slate-200/90 bg-white/88 p-3.5 dark:border-slate-800 dark:bg-slate-900/72">
                   {index < 2 ? (
-                    <div className="pointer-events-none absolute left-7 top-full h-5 w-px bg-[rgba(var(--accent-rgb),0.24)]" />
+                    <div className="pointer-events-none absolute left-7 top-full h-4 w-px bg-[rgba(var(--accent-rgb),0.24)]" />
                   ) : null}
                   <div className="flex items-start gap-3">
                     <div className={cn(
@@ -585,7 +585,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                     </div>
                     <div className="space-y-1">
                       <div className="text-sm font-semibold text-slate-950 dark:text-white">{label}</div>
-                      <div className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      <div className="text-sm leading-5.5 text-slate-600 dark:text-slate-300">
                         {copy.heroTimelineSteps[index]}
                       </div>
                     </div>
@@ -593,7 +593,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                 </div>
               ))}
             </div>
-            <div className="mt-4 rounded-[1.25rem] border border-dashed border-slate-300/90 bg-slate-50/92 p-4 text-sm leading-6 text-slate-600 dark:border-amber-400/20 dark:bg-slate-950/50 dark:text-slate-300">
+            <div className="mt-3 rounded-[1.15rem] border border-dashed border-slate-300/90 bg-slate-50/92 p-3.5 text-sm leading-5.5 text-slate-600 dark:border-amber-400/20 dark:bg-slate-950/50 dark:text-slate-300">
               {copy.supportNote}
             </div>
           </div>

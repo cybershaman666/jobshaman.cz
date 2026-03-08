@@ -11,6 +11,21 @@ export interface SavedFilterSet {
     lastUsedAt: string;
 }
 
+const getCurrentAuthUserId = async (): Promise<string | null> => {
+    if (!supabase) return null;
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+            console.error('Failed to resolve current auth user for saved filters:', error);
+            return null;
+        }
+        return data.user?.id || null;
+    } catch (error) {
+        console.error('Error resolving current auth user for saved filters:', error);
+        return null;
+    }
+};
+
 /**
  * Save a new filter set for the current user
  */
@@ -24,9 +39,16 @@ export const saveFilterSet = async (
     }
 
     try {
+        const userId = await getCurrentAuthUserId();
+        if (!userId) {
+            console.error('Cannot save filter set without authenticated user');
+            return null;
+        }
+
         const { data, error } = await supabase
             .from('saved_filter_sets')
             .insert({
+                user_id: userId,
                 name,
                 filters: filters as any
             })
@@ -63,9 +85,15 @@ export const getSavedFilterSets = async (): Promise<SavedFilterSet[]> => {
     }
 
     try {
+        const userId = await getCurrentAuthUserId();
+        if (!userId) {
+            return [];
+        }
+
         const { data, error } = await supabase
             .from('saved_filter_sets')
             .select('*')
+            .eq('user_id', userId)
             .order('last_used_at', { ascending: false });
 
         if (error) {
@@ -98,10 +126,16 @@ export const deleteFilterSet = async (id: string): Promise<boolean> => {
     }
 
     try {
+        const userId = await getCurrentAuthUserId();
+        if (!userId) {
+            return false;
+        }
+
         const { error } = await supabase
             .from('saved_filter_sets')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) {
             console.error('Failed to delete filter set:', error);
@@ -141,10 +175,16 @@ export const toggleFavorite = async (id: string, isFavorite: boolean): Promise<b
     if (!supabase) return false;
 
     try {
+        const userId = await getCurrentAuthUserId();
+        if (!userId) {
+            return false;
+        }
+
         const { error } = await supabase
             .from('saved_filter_sets')
             .update({ is_favorite: isFavorite })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (error) {
             console.error('Failed to toggle favorite:', error);

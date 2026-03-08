@@ -77,14 +77,16 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         uploadBody: 'Nahrajte životopis nebo jiný podpůrný dokument. Použije se jen tehdy, když si tým vyžádá víc detailu.',
         uploadCta: 'Nahrát dokument',
         dictateCta: 'Vytvořit AI draft podkladů',
-        success: 'Podpůrný dokument je připravený'
+        success: 'Podpůrný dokument je připravený',
+        premiumNote: 'Premium odemyká AI průvodce, detailní JCFPM report, personalizovaný JHI a více prostoru pro aktivní dialogy.'
     } : {
         title: 'Add supporting context',
         desc: 'A CV or AI draft works here as optional supporting context. Add a document only if you want extra material ready for teams that ask for more detail.',
         uploadBody: 'Upload a resume or another supporting document. It is used only when a team asks for extra context.',
         uploadCta: 'Upload document',
         dictateCta: 'Create an AI context draft',
-        success: 'Supporting document is ready'
+        success: 'Supporting document is ready',
+        premiumNote: 'Premium unlocks the AI guide, the detailed JCFPM report, personalized JHI, and more room for active dialogues.'
     };
 
     useEffect(() => {
@@ -308,14 +310,14 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     };
 
     const renderStepIndicator = () => (
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <span className={step >= 1 ? 'text-cyan-500' : ''}>1</span>
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-faint)]">
+            <span className={step >= 1 ? 'text-[var(--accent)]' : ''}>1</span>
             <span>•</span>
-            <span className={step >= 2 ? 'text-cyan-500' : ''}>2</span>
+            <span className={step >= 2 ? 'text-[var(--accent)]' : ''}>2</span>
             <span>•</span>
-            <span className={step >= 3 ? 'text-cyan-500' : ''}>3</span>
+            <span className={step >= 3 ? 'text-[var(--accent)]' : ''}>3</span>
             <span>•</span>
-            <span className={step >= 4 ? 'text-cyan-500' : ''}>4</span>
+            <span className={step >= 4 ? 'text-[var(--accent)]' : ''}>4</span>
         </div>
     );
 
@@ -337,7 +339,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                             setAddressStatus('idle');
                         }}
                         placeholder={t('profile.address_placeholder')}
-                        className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none dark:[color-scheme:dark]"
+                        className="app-modal-input pl-10 dark:[color-scheme:dark]"
                     />
                 </div>
             </div>
@@ -354,7 +356,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 <button
                     onClick={handleVerifyAddress}
                     disabled={isSavingLocation || !address}
-                    className="flex-1 px-4 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                    className="app-button-primary flex-1 disabled:opacity-50"
                 >
                     {isSavingLocation ? <Loader2 className="inline-block animate-spin mr-2" size={16} /> : null}
                     {t('onboarding.location.verify')}
@@ -376,13 +378,13 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                     onClick={onClose}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_skip')}
                 </button>
                 <button
                     onClick={() => setStep(2)}
-                    className="flex-1 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-semibold hover:opacity-90"
+                    className="app-button-primary flex-1"
                 >
                     {t('onboarding.cta_next')}
                 </button>
@@ -408,7 +410,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         value={desiredRole}
                         onChange={(e) => setDesiredRole(e.target.value)}
                         placeholder={t('onboarding.pref_role_placeholder', { defaultValue: 'Např. Product Manager / Backend Engineer' })}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -418,7 +420,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onChange={(e) => setDesiredSalaryMin(e.target.value)}
                         inputMode="numeric"
                         placeholder="45000"
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -428,7 +430,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onChange={(e) => setDesiredSalaryMax(e.target.value)}
                         inputMode="numeric"
                         placeholder="90000"
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -436,7 +438,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     <select
                         value={desiredEmploymentType}
                         onChange={(e) => setDesiredEmploymentType(e.target.value as EmploymentChoice)}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     >
                         <option value="full_time">{t('onboarding.pref_type_full', { defaultValue: 'Full-time' })}</option>
                         <option value="part_time">{t('onboarding.pref_type_part', { defaultValue: 'Part-time' })}</option>
@@ -450,7 +452,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     <select
                         value={profileVisibility}
                         onChange={(e) => setProfileVisibility(e.target.value as VisibilityChoice)}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     >
                         <option value="private">{t('onboarding.visibility_private', { defaultValue: 'Private' })}</option>
                         <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: 'Only recruiters' })}</option>
@@ -463,7 +465,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         value={skillsInput}
                         onChange={(e) => setSkillsInput(e.target.value)}
                         placeholder={t('onboarding.pref_skills_placeholder', { defaultValue: 'Např. SQL, komunikace se zákazníkem, Python, triáž' })}
-                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white min-h-[90px] dark:[color-scheme:dark]"
+                        className="app-modal-input mt-1 min-h-[90px] dark:[color-scheme:dark]"
                     />
                 </label>
             </div>
@@ -471,14 +473,14 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                     onClick={() => setStep(1)}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_back')}
                 </button>
                 <button
                     onClick={handleSavePreferences}
                     disabled={isSavingPreferences}
-                    className="flex-1 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+                    className="app-button-primary flex-1 disabled:opacity-60"
                 >
                     {isSavingPreferences ? <Loader2 className="inline-block animate-spin mr-2" size={16} /> : null}
                     {t('onboarding.cta_continue', { defaultValue: 'Pokračovat' })}
@@ -498,8 +500,8 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
-                <FileText size={32} className="mx-auto text-cyan-600 dark:text-cyan-400 mb-3" />
+            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center">
+                <FileText size={32} className="mx-auto mb-3 text-[var(--accent)]" />
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     {t('profile.upload_cv_desc', { defaultValue: supportStepCopy.uploadBody })}
                 </p>
@@ -514,11 +516,21 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 <button
                     onClick={() => cvInputRef.current?.click()}
                     disabled={isUploadingCv}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                    className="app-button-primary inline-flex disabled:opacity-50"
                 >
                     {isUploadingCv ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
                     {t('onboarding.cta_upload', { defaultValue: supportStepCopy.uploadCta })}
                 </button>
+            </div>
+
+            <div className="app-premium-note">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Sparkles size={16} />
+                    {isCsLike ? 'Co odemyká premium' : 'What premium unlocks'}
+                </div>
+                <p className="mt-2 text-sm leading-6">
+                    {supportStepCopy.premiumNote}
+                </p>
             </div>
 
             <button
@@ -529,7 +541,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onOpenPremium(t('onboarding.feature_dictate', { defaultValue: isCsLike ? 'AI draft podkladů' : 'AI supporting draft' }));
                     }
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 rounded-xl text-sm font-semibold hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                className="app-button-secondary w-full"
             >
                 <Sparkles size={16} />
                 {t('onboarding.cta_dictate', { defaultValue: supportStepCopy.dictateCta })}
@@ -550,13 +562,13 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                     onClick={() => setStep(2)}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_back')}
                 </button>
                 <button
                     onClick={onClose}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_skip')}
                 </button>
@@ -565,7 +577,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onStepCompleted?.('cv');
                         setStep(4);
                     }}
-                    className="flex-1 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-semibold hover:opacity-90"
+                    className="app-button-primary flex-1"
                 >
                     {t('onboarding.cta_next')}
                 </button>
@@ -626,7 +638,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                     onClick={() => setStep(hasCv ? 2 : 3)}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_back')}
                 </button>
@@ -638,7 +650,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                             onComplete();
                         }
                     }}
-                    className="flex-1 px-4 py-2.5 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 rounded-xl text-sm font-semibold hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                    className="app-button-secondary flex-1"
                 >
                     {t('onboarding.cta_profile')}
                 </button>
@@ -647,7 +659,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         onStepCompleted?.('done');
                         onComplete();
                     }}
-                    className="flex-1 px-4 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700"
+                    className="app-button-primary flex-1"
                 >
                     {t('onboarding.cta_finish')}
                 </button>
@@ -656,26 +668,30 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        <div className="app-modal-backdrop z-[150]">
             <div
-                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                className="absolute inset-0"
                 onClick={onClose}
             ></div>
 
-            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300">
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500"></div>
+            <div className="app-modal-panel max-h-[90vh] max-w-3xl overflow-y-auto animate-in zoom-in-95 duration-300">
+                <div className="app-modal-topline"></div>
 
                 <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-full transition-all"
+                    className="absolute top-6 right-6 rounded-full p-2 text-[var(--text-faint)] transition hover:bg-black/5 hover:text-[var(--text-strong)] dark:hover:bg-white/5"
                 >
                     <X size={20} />
                 </button>
 
-                <div className="p-8 sm:p-10">
+                <div className="app-modal-surface m-4 p-8 sm:m-5 sm:p-10">
                     <div className="flex items-start justify-between mb-8">
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{t('onboarding.title')}</h2>
+                            <div className="app-modal-kicker w-fit">
+                                <Sparkles size={12} />
+                                {isCsLike ? 'Základ kandidátského profilu' : 'Candidate setup'}
+                            </div>
+                            <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{t('onboarding.title')}</h2>
                             <div className="mt-2">{renderStepIndicator()}</div>
                         </div>
                     </div>
