@@ -9,7 +9,7 @@ backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, backend_dir)
 sys.path.insert(0, os.path.join(backend_dir, "scraper"))
 
-from scraper_base import get_supabase_client, norm_text  # type: ignore
+from scraper_base import get_supabase_client, norm_text, normalize_jobs_country_code  # type: ignore
 from scraper_api_sources import _infer_country_code  # type: ignore
 
 
@@ -18,8 +18,8 @@ DEFAULT_SLEEP_SECONDS = float(os.getenv("BACKFILL_REMOTE_SLEEP_SECONDS", "0.1"))
 REMOTE_SOURCES = {"weworkremotely.com", "arbeitnow.com", "www.arbeitnow.com"}
 
 
-def infer_work_model(location: Optional[str], description: Optional[str], tags: Iterable[str], title: Optional[str]) -> str:
-    haystack = f"{location or ''} {description or ''} {' '.join(tags)} {title or ''}".lower()
+def infer_work_model(location: Optional[str], description: Optional[str], signals: Iterable[str], title: Optional[str]) -> str:
+    haystack = f"{location or ''} {description or ''} {' '.join(signals)} {title or ''}".lower()
     if "hybrid" in haystack:
         return "Hybrid"
     if any(token in haystack for token in ["remote", "remote first", "anywhere", "work from home", "distributed", "home office", "worldwide"]):
@@ -27,12 +27,13 @@ def infer_work_model(location: Optional[str], description: Optional[str], tags: 
     return "On-site"
 
 
-def infer_country_code(location: Optional[str], source: Optional[str], work_model: str, description: Optional[str], title: Optional[str], tags: Iterable[str]) -> Optional[str]:
-    return _infer_country_code(
+def infer_country_code(location: Optional[str], source: Optional[str], work_model: str, description: Optional[str], title: Optional[str], signals: Iterable[str]) -> Optional[str]:
+    inferred = _infer_country_code(
         location or "",
-        [str(tag) for tag in tags],
+        [str(tag) for tag in signals],
         f"{source or ''} {work_model or ''} {description or ''} {title or ''}",
     )
+    return normalize_jobs_country_code(inferred)
 
 
 def backfill(
@@ -58,7 +59,7 @@ def backfill(
         limit = min(batch_size, max_rows - scanned)
         res = (
             supabase.table("jobs")
-            .select("id,source,title,location,description,tags,work_model,work_type,country_code,lat,lng")
+            .select("id,source,title,location,description,benefits,work_model,work_type,country_code,lat,lng")
             .gt("id", last_id)
             .order("id", desc=False)
             .limit(limit)
@@ -77,17 +78,18 @@ def backfill(
                 skipped += 1
                 continue
 
-            tags = row.get("tags") or []
-            if not isinstance(tags, list):
-                tags = []
-            next_work_model = infer_work_model(row.get("location"), row.get("description"), [str(tag) for tag in tags], row.get("title"))
+            signals = row.get("benefits") or []
+            if not isinstance(signals, list):
+                signals = []
+            normalized_signals = [str(tag) for tag in signals]
+            next_work_model = infer_work_model(row.get("location"), row.get("description"), normalized_signals, row.get("title"))
             next_country_code = infer_country_code(
                 row.get("location"),
                 source,
                 next_work_model,
                 row.get("description"),
                 row.get("title"),
-                [str(tag) for tag in tags],
+                normalized_signals,
             )
 
             patch = {}
@@ -95,10 +97,13 @@ def backfill(
                 patch["work_model"] = next_work_model
             if row.get("work_type") != next_work_model:
                 patch["work_type"] = next_work_model
-            current_country_code = norm_text(str(row.get("country_code") or "")).lower() or None
-            if next_country_code and current_country_code != next_country_code:
+            raw_country_code = norm_text(str(row.get("country_code") or "")) or None
+            current_country_code = normalize_jobs_country_code(raw_country_code)
+            if next_country_code and (current_country_code != next_country_code or raw_country_code != next_country_code):
                 patch["country_code"] = next_country_code
-            elif source == "weworkremotely.com" and current_country_code and not next_country_code:
+            elif raw_country_code and current_country_code != raw_country_code:
+                patch["country_code"] = current_country_code
+            elif source == "weworkremotely.com" and raw_country_code and not next_country_code:
                 patch["country_code"] = None
             if next_work_model == "Remote" and (row.get("lat") is not None or row.get("lng") is not None):
                 patch["lat"] = None

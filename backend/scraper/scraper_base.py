@@ -196,6 +196,32 @@ def guess_currency(country_code: str) -> str:
     return 'Kč'
 
 
+def normalize_country_code(country_code: Any) -> Optional[str]:
+    raw = str(country_code or "").strip()
+    if not raw:
+        return None
+    normalized = raw.upper()
+    aliases = {
+        "CS": "CZ",
+        "UK": "GB",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def normalize_jobs_country_code(country_code: Any) -> Optional[str]:
+    normalized = normalize_country_code(country_code)
+    if not normalized:
+        return None
+    allowed = {
+        "CZ": "cz",
+        "SK": "sk",
+        "PL": "pl",
+        "DE": "de",
+        "AT": "at",
+    }
+    return allowed.get(normalized)
+
+
 # --- HTTP Session (reuse connections + more realistic headers) ---
 
 _SESSION = requests.Session()
@@ -841,7 +867,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
     if "country_code" not in job_data:
         domain = parsed_url.netloc.lower()
         if '.cz' in domain:
-            job_data["country_code"] = "cs"
+            job_data["country_code"] = "cz"
         elif '.sk' in domain:
             job_data["country_code"] = "sk"
         elif '.pl' in domain:
@@ -851,6 +877,11 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         elif '.at' in domain:
             job_data["country_code"] = "at" # Correctly map .at to AT
     elif not job_data.get("country_code"):
+        job_data.pop("country_code", None)
+    normalized_country_code = normalize_jobs_country_code(job_data.get("country_code"))
+    if normalized_country_code:
+        job_data["country_code"] = normalized_country_code
+    else:
         job_data.pop("country_code", None)
             
     # Final currency fallback based on country code
