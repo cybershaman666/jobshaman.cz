@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Optional, List, Dict, Any
 import re
 import traceback
+from uuid import UUID
 
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
@@ -79,6 +80,16 @@ def _clean_admin_text(value: Optional[str], max_len: int = 5000) -> Optional[str
     if not clean:
         return None
     return clean[:max_len]
+
+
+def _clean_uuid(value: Optional[str]) -> Optional[str]:
+    clean = _clean_admin_text(value, 64)
+    if not clean:
+        return None
+    try:
+        return str(UUID(clean))
+    except Exception:
+        return None
 
 
 def _safe_count(table: str, *, since: Optional[str] = None, filters: Optional[List[tuple[str, Any]]] = None) -> int:
@@ -167,7 +178,7 @@ def _build_founder_card_payload(raw: dict, *, admin: Optional[dict] = None, incl
         "updated_at": now_iso(),
     }
     if include_author and admin:
-        payload["author_admin_user_id"] = admin.get("user_id")
+        payload["author_admin_user_id"] = _clean_uuid(admin.get("user_id"))
         payload["author_admin_email"] = admin.get("email")
     return {k: v for k, v in payload.items() if v is not None}
 
@@ -175,7 +186,7 @@ def _build_founder_card_payload(raw: dict, *, admin: Optional[dict] = None, incl
 def _build_founder_comment_payload(raw: dict, *, admin: Optional[dict] = None) -> dict:
     payload = {
         "body": _clean_admin_text(raw.get("body"), 4000),
-        "author_admin_user_id": admin.get("user_id") if admin else None,
+        "author_admin_user_id": _clean_uuid(admin.get("user_id")) if admin else None,
         "author_admin_email": admin.get("email") if admin else None,
         "updated_at": now_iso(),
     }
