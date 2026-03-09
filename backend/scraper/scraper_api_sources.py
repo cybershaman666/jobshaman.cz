@@ -8,6 +8,7 @@ API/RSS-based job sources for imported listings.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from importlib import import_module
 import os
 import time
 from email.utils import parsedate_to_datetime
@@ -16,33 +17,31 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import requests
 from bs4 import BeautifulSoup
 
-try:
-    from .scraper_base import (
-        detect_work_type,
-        extract_salary,
-        get_supabase_client,
-        normalize_country_code,
-        normalize_jobs_country_code,
-        norm_text,
-        now_iso,
-        save_job_to_supabase,
-    )
-except ImportError:
-    from scraper.scraper_base import (  # type: ignore
-        detect_work_type,
-        extract_salary,
-        normalize_country_code,
-        get_supabase_client,
-        normalize_jobs_country_code,
-        norm_text,
-        now_iso,
-        save_job_to_supabase,
-    )
+def _import_first(module_names: list[str]) -> Any:
+    last_error: Exception | None = None
+    for module_name in module_names:
+        try:
+            return import_module(module_name)
+        except Exception as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise ImportError("No module names provided")
 
-try:
-    from geocoding import geocode_location, normalize_address  # type: ignore
-except ImportError:
-    from backend.geocoding import geocode_location, normalize_address  # type: ignore
+
+_scraper_base = _import_first(["scraper.scraper_base", "backend.scraper.scraper_base"])
+detect_work_type = _scraper_base.detect_work_type
+extract_salary = _scraper_base.extract_salary
+get_supabase_client = _scraper_base.get_supabase_client
+normalize_country_code = _scraper_base.normalize_country_code
+normalize_jobs_country_code = _scraper_base.normalize_jobs_country_code
+norm_text = _scraper_base.norm_text
+now_iso = _scraper_base.now_iso
+save_job_to_supabase = _scraper_base.save_job_to_supabase
+
+_geocoding = _import_first(["geocoding", "backend.geocoding"])
+geocode_location = _geocoding.geocode_location
+normalize_address = _geocoding.normalize_address
 
 
 DEFAULT_ARBEITNOW_API_URL = "https://www.arbeitnow.com/api/job-board-api"
