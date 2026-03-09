@@ -271,6 +271,26 @@ def _is_missing_admin_audit_table_error(error: Exception) -> bool:
     return "admin_subscription_audit" in msg and ("PGRST205" in msg or "does not exist" in msg)
 
 
+def _is_missing_table_error(error: Exception, table_name: str) -> bool:
+    msg = str(error).lower()
+    table = table_name.lower()
+    return (
+        ("pgrst205" in msg and table in msg)
+        or (f"relation \"public.{table}\"" in msg and "does not exist" in msg)
+        or (f"relation \"{table}\"" in msg and "does not exist" in msg)
+        or (f"table '{table}'" in msg)
+    )
+
+
+def _is_foreign_key_error(error: Exception, table_name: str, field_name: str) -> bool:
+    msg = str(error).lower()
+    return (
+        "foreign key" in msg
+        and table_name.lower() in msg
+        and field_name.lower() in msg
+    ) or "23503" in msg
+
+
 def _log_audit_table_missing_once(error: Exception) -> None:
     global _audit_table_missing_logged
     if _audit_table_missing_logged:
@@ -1502,6 +1522,16 @@ async def admin_founder_board_comment_create(
         raise HTTPException(status_code=500, detail="Database unavailable")
 
     try:
+        card_resp = (
+            supabase.table("admin_founder_board_cards")
+            .select("id")
+            .eq("id", card_id)
+            .limit(1)
+            .execute()
+        )
+        if not (card_resp.data or []):
+            raise HTTPException(status_code=404, detail="Founder board card not found")
+
         insert_payload = _build_founder_comment_payload(payload.model_dump(), admin=admin)
         if not insert_payload.get("body"):
             raise HTTPException(status_code=400, detail="body is required")
@@ -1514,7 +1544,19 @@ async def admin_founder_board_comment_create(
     except Exception as exc:
         print(f"⚠️ Founder board comment create failed: {exc}")
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Failed to create founder board comment")
+        if _is_missing_table_error(exc, "admin_founder_board_comments"):
+            raise HTTPException(
+                status_code=500,
+                detail="admin_founder_board_comments table missing. Run migrations in production."
+            )
+        if _is_missing_table_error(exc, "admin_founder_board_cards"):
+            raise HTTPException(
+                status_code=500,
+                detail="admin_founder_board_cards table missing. Run migrations in production."
+            )
+        if _is_foreign_key_error(exc, "admin_founder_board_comments", "card_id"):
+            raise HTTPException(status_code=404, detail="Founder board card not found")
+        raise HTTPException(status_code=500, detail=f"Failed to create founder board comment: {str(exc)[:240]}")
 
 
 @router.get("/admin/jcfpm/job-roles")
