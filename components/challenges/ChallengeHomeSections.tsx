@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ArrowRight, BrainCircuit, MessageSquareText, Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BrainCircuit, MessageSquareText, Search, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Job } from '../../types';
 import { cn } from '../ui/primitives';
@@ -14,18 +14,51 @@ interface ChallengeHomeSectionsProps {
 }
 
 const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
-  onSearchFocus,
   onOpenAuth
 }) => {
   const { i18n } = useTranslation();
+  const [activeHeroMoment, setActiveHeroMoment] = useState(0);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setActiveHeroMoment((current) => (current + 1) % 3);
+    }, 5600);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const copyMap = {
     cs: {
       badge: 'Odpovědi vedou k lidskému dialogu, ne k algoritmu.',
-      title: 'Reagujte na výzvu a ukažte svůj přístup.',
-      body: 'Zapojíte se do smysluplného dialogu místo střelby naslepo.',
+      title: 'Nejdřív výzva. Pak dialog.',
+      body: 'Firmy ukazují skutečný problém. Ty ukážeš svůj přístup.',
+      heroCompareLeftTitle: 'Poslat CV',
+      heroCompareRightTitle: 'Ukázat přístup',
+      heroCompareLeftMode: 'Starý model',
+      heroCompareRightMode: 'Nový model',
+      heroDemoCaption: 'Jak vypadá první kontakt',
+      heroLegacyLabel: 'Job board',
+      heroLegacyBrand: 'Profesní feed',
+      heroLegacyListTitle: 'Seznam pozic',
+      heroLegacySearch: 'Hledat pozice',
+      heroLegacyChipOne: 'remote',
+      heroLegacyChipTwo: 'hybrid',
+      heroLegacyChipThree: 'easy apply',
+      heroLegacyRole: 'Product Manager',
+      heroLegacyCompany: 'Talvex Cargo',
+      heroLegacyMeta: 'Brno • Hybrid • Plný úvazek',
+      heroLegacyRoleAlt: 'Operations Specialist',
+      heroLegacyMetaAlt: 'Ostrava • On-site • Směny',
+      heroLegacyApply: 'Apply now',
+      heroLegacyButton: 'Poslat CV',
+      heroLegacyQueue: '100+ uchazečů',
+      heroLegacyDelay: 'Bez odpovědi 12 dní',
+      heroLegacyBatch: 'Ve frontě s dalšími CV',
+      heroLegacyApplicantsPrimary: 'Odpovědělo 143 uchazečů',
+      heroLegacyApplicantsSecondary: 'Odpovědělo 97 uchazečů',
+      heroHandshakeLabel: 'JobShaman',
       primaryCta: 'Začít odpověď',
       secondaryCta: 'Přejít do hledání',
       promisePills: ['Firma otevře problém', 'Pošlete první přístup', 'Pak se otevře soukromý dialog'],
@@ -35,12 +68,26 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       heroRiskLabel: 'Riziko',
       heroEditorLabel: 'Jak byste začal(a) problém řešit?',
       heroEditorPlaceholder: 'Můj první krok by byl…',
-      heroEditorHint: 'Kliknutí otevře registraci a naváže na tuto první odpověď.',
+      heroEditorHint: 'Kliknutí otevře registraci.',
+      heroEditorAction: 'Klikněte sem a začněte psát',
+      heroEditorDraft: 'Nejdřív bych sjednotil odjezdy do jedné pravdy a ověřil, kde se data rozcházejí.',
+      heroEditorContinue: 'pokračovat do registrace',
+      heroLiveCandidateLabel: 'Tvůj první krok',
+      heroLiveCompanyLabel: 'Firma odpověděla',
+      heroLiveCompanyBody: 'Dobrý den, váš způsob řešení nás zaujal. Pojďme si o tom říct víc.',
+      heroLiveCompanyEta: 'reakce do 2 pracovních dnů',
+      heroLiveSlotsLabel: 'Premium sloty',
+      heroLiveSlotsValue: '7 / 10 zbývá',
+      heroLiveSlotsNote: 'Omezené sloty drží dialog živý.',
+      heroDialogOpenBody: 'Soukromý dialog je otevřený. Teď má smysl pokračovat.',
+      heroDialogOpenCta: 'Otevřít dialog',
+      heroWhyTitle: 'Proč se ti tato výzva ukazuje?',
+      heroWhySignals: ['25 km od tebe', 'IČO možné', 'Čeština nebo angličtina', 'JHI 82'],
       heroTimelineTitle: 'Jak začíná první kontakt',
       heroTimelineSteps: [
-        'Firma otevře konkrétní problém v týmu.',
-        'Pošlete první přístup, ne přílohu bez kontextu.',
-        'Teprve potom vznikne soukromý dialog.'
+        'Firma otevře výzvu.',
+        'Ty pošleš první přístup.',
+        'Otevře se soukromý dialog.'
       ],
       valueCards: [
         {
@@ -93,8 +140,33 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     },
     sk: {
       badge: 'Odpovede vedú k ľudskému dialógu, nie k algoritmu.',
-      title: 'Reagujte na výzvu a ukážte svoj prístup.',
-      body: 'Zapojíte sa do zmysluplného dialógu namiesto streľby naslepo.',
+      title: 'Najprv výzva. Potom dialóg.',
+      body: 'Firmy ukazujú skutočný problém. Ty ukážeš svoj prístup.',
+      heroCompareLeftTitle: 'Poslať CV',
+      heroCompareRightTitle: 'Ukázať prístup',
+      heroCompareLeftMode: 'Starý model',
+      heroCompareRightMode: 'Nový model',
+      heroDemoCaption: 'Ako vyzerá prvý kontakt',
+      heroLegacyLabel: 'Job board',
+      heroLegacyBrand: 'Pracovný feed',
+      heroLegacyListTitle: 'Zoznam pozícií',
+      heroLegacySearch: 'Hľadať pozície',
+      heroLegacyChipOne: 'remote',
+      heroLegacyChipTwo: 'hybrid',
+      heroLegacyChipThree: 'easy apply',
+      heroLegacyRole: 'Product Manager',
+      heroLegacyCompany: 'Talvex Cargo',
+      heroLegacyMeta: 'Brno • Hybrid • Plný úväzok',
+      heroLegacyRoleAlt: 'Operations Specialist',
+      heroLegacyMetaAlt: 'Ostrava • On-site • Zmeny',
+      heroLegacyApply: 'Apply now',
+      heroLegacyButton: 'Poslať CV',
+      heroLegacyQueue: '100+ uchádzačov',
+      heroLegacyDelay: 'Bez odpovede 12 dní',
+      heroLegacyBatch: 'Vo fronte s ďalšími CV',
+      heroLegacyApplicantsPrimary: 'Odpovedalo 143 uchádzačov',
+      heroLegacyApplicantsSecondary: 'Odpovedalo 97 uchádzačov',
+      heroHandshakeLabel: 'JobShaman',
       primaryCta: 'Začať odpoveď',
       secondaryCta: 'Prejsť do hľadania',
       promisePills: ['Firma otvorí problém', 'Pošlete prvý prístup', 'Potom sa otvorí súkromný dialóg'],
@@ -104,12 +176,26 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       heroRiskLabel: 'Riziko',
       heroEditorLabel: 'Ako by ste začal(a) riešiť problém?',
       heroEditorPlaceholder: 'Môj prvý krok by bol…',
-      heroEditorHint: 'Kliknutie otvorí registráciu a nadviaže na túto prvú odpoveď.',
+      heroEditorHint: 'Kliknutie otvorí registráciu.',
+      heroEditorAction: 'Kliknite sem a začnite písať',
+      heroEditorDraft: 'Najprv by som zjednotil odchody do jednej pravdy a overil, kde sa dáta rozchádzajú.',
+      heroEditorContinue: 'pokračovať do registrácie',
+      heroLiveCandidateLabel: 'Tvoj prvý krok',
+      heroLiveCompanyLabel: 'Firma odpovedala',
+      heroLiveCompanyBody: 'Dobrý deň, váš spôsob riešenia nás zaujal. Poďme si o tom povedať viac.',
+      heroLiveCompanyEta: 'reakcia do 2 pracovných dní',
+      heroLiveSlotsLabel: 'Premium sloty',
+      heroLiveSlotsValue: '7 / 10 zostáva',
+      heroLiveSlotsNote: 'Obmedzené sloty držia dialóg živý.',
+      heroDialogOpenBody: 'Súkromný dialóg je otvorený. Teraz má zmysel pokračovať.',
+      heroDialogOpenCta: 'Otvoriť dialóg',
+      heroWhyTitle: 'Prečo sa ti táto výzva ukazuje?',
+      heroWhySignals: ['25 km od teba', 'Živnosť možná', 'Slovenčina alebo angličtina', 'JHI 82'],
       heroTimelineTitle: 'Ako začína prvý kontakt',
       heroTimelineSteps: [
-        'Firma otvorí konkrétny problém v tíme.',
-        'Pošlete prvý prístup, nie prílohu bez kontextu.',
-        'Až potom vznikne súkromný dialóg.'
+        'Firma otvorí výzvu.',
+        'Ty pošleš prvý prístup.',
+        'Otvorí sa súkromný dialóg.'
       ],
       valueCards: [
         {
@@ -162,8 +248,33 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     },
     de: {
       badge: 'Antworten führen zu einem echten Gespräch, nicht zu einem Algorithmus.',
-      title: 'Löse echte Aufgaben.',
-      body: 'Unternehmen zeigen zuerst das Problem. Du zeigst, wie du es angehen würdest.',
+      title: 'Erst die Aufgabe. Dann das Gespräch.',
+      body: 'Unternehmen zeigen das echte Problem. Du zeigst deinen Ansatz.',
+      heroCompareLeftTitle: 'CV senden',
+      heroCompareRightTitle: 'Ansatz zeigen',
+      heroCompareLeftMode: 'Altes Modell',
+      heroCompareRightMode: 'Neues Modell',
+      heroDemoCaption: 'So sieht der erste Kontakt aus',
+      heroLegacyLabel: 'Job board',
+      heroLegacyBrand: 'Job-Feed',
+      heroLegacyListTitle: 'Stellenliste',
+      heroLegacySearch: 'Jobs suchen',
+      heroLegacyChipOne: 'remote',
+      heroLegacyChipTwo: 'hybrid',
+      heroLegacyChipThree: 'schnell bewerben',
+      heroLegacyRole: 'Product Manager',
+      heroLegacyCompany: 'Talvex Cargo',
+      heroLegacyMeta: 'Brno • Hybrid • Vollzeit',
+      heroLegacyRoleAlt: 'Operations Specialist',
+      heroLegacyMetaAlt: 'Ostrava • Vor Ort • Schichten',
+      heroLegacyApply: 'Apply now',
+      heroLegacyButton: 'CV senden',
+      heroLegacyQueue: '100+ Bewerber',
+      heroLegacyDelay: '12 Tage ohne Antwort',
+      heroLegacyBatch: 'In der Warteschlange mit weiteren CVs',
+      heroLegacyApplicantsPrimary: '143 Bewerber haben reagiert',
+      heroLegacyApplicantsSecondary: '97 Bewerber haben reagiert',
+      heroHandshakeLabel: 'JobShaman',
       primaryCta: 'Antwort starten',
       secondaryCta: 'Zur Suche',
       promisePills: ['Das Unternehmen öffnet das Problem', 'Du sendest den ersten Ansatz', 'Dann öffnet sich der private Dialog'],
@@ -173,12 +284,26 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       heroRiskLabel: 'Risiko',
       heroEditorLabel: 'Wie würdest du das Problem angehen?',
       heroEditorPlaceholder: 'Mein erster Schritt wäre…',
-      heroEditorHint: 'Ein Klick öffnet die Registrierung und führt mit dieser ersten Antwort weiter.',
+      heroEditorHint: 'Klick öffnet die Registrierung.',
+      heroEditorAction: 'Hier klicken und losschreiben',
+      heroEditorDraft: 'Ich würde zuerst eine gemeinsame Quelle für Abfahrten schaffen und prüfen, wo die Daten auseinanderlaufen.',
+      heroEditorContinue: 'weiter zur Registrierung',
+      heroLiveCandidateLabel: 'Dein erster Schritt',
+      heroLiveCompanyLabel: 'Firma hat geantwortet',
+      heroLiveCompanyBody: 'Guten Tag, Ihr Lösungsansatz hat uns angesprochen. Lassen Sie uns dazu mehr besprechen.',
+      heroLiveCompanyEta: 'Antwort in 2 Werktagen',
+      heroLiveSlotsLabel: 'Premium-Slots',
+      heroLiveSlotsValue: '7 / 10 frei',
+      heroLiveSlotsNote: 'Begrenzte Slots halten den Dialog aktiv.',
+      heroDialogOpenBody: 'Der private Dialog ist offen. Jetzt lohnt sich der nächste Schritt.',
+      heroDialogOpenCta: 'Dialog öffnen',
+      heroWhyTitle: 'Warum wird dir diese Aufgabe gezeigt?',
+      heroWhySignals: ['25 km entfernt', 'Freier Vertrag möglich', 'Deutsch oder Englisch', 'JHI 82'],
       heroTimelineTitle: 'So beginnt der erste Kontakt',
       heroTimelineSteps: [
-        'Das Unternehmen zeigt ein konkretes Problem im Team.',
-        'Du sendest deinen ersten Ansatz statt eines kontextlosen Anhangs.',
-        'Erst danach beginnt der private Dialog.'
+        'Das Unternehmen öffnet die Aufgabe.',
+        'Du sendest deinen ersten Ansatz.',
+        'Der private Dialog öffnet sich.'
       ],
       valueCards: [
         { title: 'Erster Kontakt statt blindem CV-Versand', body: 'Der erste Schritt ist keine Datei, sondern eine kurze Antwort auf eine reale Teamsituation.' },
@@ -223,8 +348,33 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     at: {} as any,
     pl: {
       badge: 'Odpowiedzi prowadzą do rozmowy z człowiekiem, a nie do algorytmu.',
-      title: 'Rozwiązuj prawdziwe wyzwania w pracy.',
-      body: 'Firmy najpierw pokazują problem. Ty pokazujesz, jak go rozwiążesz.',
+      title: 'Najpierw wyzwanie. Potem rozmowa.',
+      body: 'Firmy pokazują prawdziwy problem. Ty pokazujesz swoje podejście.',
+      heroCompareLeftTitle: 'Wyślij CV',
+      heroCompareRightTitle: 'Pokaż podejście',
+      heroCompareLeftMode: 'Stary model',
+      heroCompareRightMode: 'Nowy model',
+      heroDemoCaption: 'Tak wygląda pierwszy kontakt',
+      heroLegacyLabel: 'Job board',
+      heroLegacyBrand: 'Feed zawodowy',
+      heroLegacyListTitle: 'Lista ofert',
+      heroLegacySearch: 'Szukaj ofert',
+      heroLegacyChipOne: 'remote',
+      heroLegacyChipTwo: 'hybrid',
+      heroLegacyChipThree: 'easy apply',
+      heroLegacyRole: 'Product Manager',
+      heroLegacyCompany: 'Talvex Cargo',
+      heroLegacyMeta: 'Brno • Hybrydowo • Pełny etat',
+      heroLegacyRoleAlt: 'Operations Specialist',
+      heroLegacyMetaAlt: 'Ostrawa • Na miejscu • Zmiany',
+      heroLegacyApply: 'Apply now',
+      heroLegacyButton: 'Wyślij CV',
+      heroLegacyQueue: '100+ kandydatów',
+      heroLegacyDelay: '12 dni bez odpowiedzi',
+      heroLegacyBatch: 'W kolejce z innymi CV',
+      heroLegacyApplicantsPrimary: 'Odpowiedziało 143 kandydatów',
+      heroLegacyApplicantsSecondary: 'Odpowiedziało 97 kandydatów',
+      heroHandshakeLabel: 'JobShaman',
       primaryCta: 'Zacznij odpowiedź',
       secondaryCta: 'Przejdź do wyszukiwania',
       promisePills: ['Firma otwiera problem', 'Ty wysyłasz pierwsze podejście', 'Potem otwiera się prywatna rozmowa'],
@@ -234,12 +384,26 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       heroRiskLabel: 'Ryzyko',
       heroEditorLabel: 'Jak zaczął(a)byś rozwiązywać problem?',
       heroEditorPlaceholder: 'Mój pierwszy krok to…',
-      heroEditorHint: 'Kliknięcie otworzy rejestrację i oprze dalszy krok na tej odpowiedzi.',
+      heroEditorHint: 'Kliknięcie otworzy rejestrację.',
+      heroEditorAction: 'Kliknij tutaj i zacznij pisać',
+      heroEditorDraft: 'Najpierw ustawił(a)bym jedno źródło prawdy dla wyjazdów i sprawdził(a), gdzie dane się rozjeżdżają.',
+      heroEditorContinue: 'przejdź do rejestracji',
+      heroLiveCandidateLabel: 'Twój pierwszy krok',
+      heroLiveCompanyLabel: 'Firma odpowiedziała',
+      heroLiveCompanyBody: 'Dzień dobry, sposób rozwiązania zwrócił naszą uwagę. Porozmawiajmy o tym szerzej.',
+      heroLiveCompanyEta: 'odpowiedź do 2 dni roboczych',
+      heroLiveSlotsLabel: 'Sloty premium',
+      heroLiveSlotsValue: '7 / 10 wolnych',
+      heroLiveSlotsNote: 'Ograniczone sloty utrzymują żywy dialog.',
+      heroDialogOpenBody: 'Prywatna rozmowa jest otwarta. Teraz warto przejść dalej.',
+      heroDialogOpenCta: 'Otwórz rozmowę',
+      heroWhyTitle: 'Dlaczego widzisz to wyzwanie?',
+      heroWhySignals: ['25 km od Ciebie', 'B2B możliwe', 'Polski lub angielski', 'JHI 82'],
       heroTimelineTitle: 'Jak zaczyna się pierwszy kontakt',
       heroTimelineSteps: [
-        'Firma pokazuje konkretny problem w zespole.',
-        'Ty wysyłasz pierwsze podejście, a nie załącznik bez kontekstu.',
-        'Dopiero potem otwiera się prywatna rozmowa.'
+        'Firma otwiera wyzwanie.',
+        'Ty wysyłasz pierwsze podejście.',
+        'Otwiera się prywatna rozmowa.'
       ],
       valueCards: [
         { title: 'Pierwszy kontakt zamiast ślepego CV', body: 'Pierwszy krok to nie plik, ale krótka odpowiedź na realną sytuację w zespole.' },
@@ -283,8 +447,33 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
     },
     en: {
       badge: 'Replies lead to human dialogue, not an algorithm.',
-      title: 'Solve real work challenges.',
-      body: 'Companies show the problem first. You show how you would solve it.',
+      title: 'Challenge first. Dialogue second.',
+      body: 'Companies show the real problem. You show your approach.',
+      heroCompareLeftTitle: 'Send CV',
+      heroCompareRightTitle: 'Show your approach',
+      heroCompareLeftMode: 'Old model',
+      heroCompareRightMode: 'New model',
+      heroDemoCaption: 'What the first contact looks like',
+      heroLegacyLabel: 'Job board',
+      heroLegacyBrand: 'Professional feed',
+      heroLegacyListTitle: 'Job list',
+      heroLegacySearch: 'Search roles',
+      heroLegacyChipOne: 'remote',
+      heroLegacyChipTwo: 'hybrid',
+      heroLegacyChipThree: 'easy apply',
+      heroLegacyRole: 'Product Manager',
+      heroLegacyCompany: 'Talvex Cargo',
+      heroLegacyMeta: 'Brno • Hybrid • Full-time',
+      heroLegacyRoleAlt: 'Operations Specialist',
+      heroLegacyMetaAlt: 'Ostrava • On-site • Shifts',
+      heroLegacyApply: 'Apply now',
+      heroLegacyButton: 'Send CV',
+      heroLegacyQueue: '100+ applicants',
+      heroLegacyDelay: 'No reply for 12 days',
+      heroLegacyBatch: 'Queued with other CVs',
+      heroLegacyApplicantsPrimary: '143 applicants responded',
+      heroLegacyApplicantsSecondary: '97 applicants responded',
+      heroHandshakeLabel: 'JobShaman',
       primaryCta: 'Start your reply',
       secondaryCta: 'Go to search',
       promisePills: ['The company opens the problem', 'You send your first approach', 'Then the private dialogue opens'],
@@ -294,12 +483,26 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
       heroRiskLabel: 'Risk',
       heroEditorLabel: 'How would you start solving the problem?',
       heroEditorPlaceholder: 'My first step would be…',
-      heroEditorHint: 'Clicking continues into registration and keeps this first answer as the starting point.',
+      heroEditorHint: 'Click opens registration.',
+      heroEditorAction: 'Click here and start typing',
+      heroEditorDraft: 'I would first create one source of truth for departures and verify where the data starts diverging.',
+      heroEditorContinue: 'continue to registration',
+      heroLiveCandidateLabel: 'Your first step',
+      heroLiveCompanyLabel: 'Company replied',
+      heroLiveCompanyBody: 'Hello, your way of solving this caught our attention. Let us talk about it in more detail.',
+      heroLiveCompanyEta: 'reply within 2 business days',
+      heroLiveSlotsLabel: 'Premium slots',
+      heroLiveSlotsValue: '7 / 10 left',
+      heroLiveSlotsNote: 'Limited slots keep the dialogue active.',
+      heroDialogOpenBody: 'The private dialogue is open. Now it makes sense to continue.',
+      heroDialogOpenCta: 'Open dialogue',
+      heroWhyTitle: 'Why are you seeing this challenge?',
+      heroWhySignals: ['Within 25 km', 'Contractor setup possible', 'English-friendly', 'JHI 82'],
       heroTimelineTitle: 'How the first contact starts',
       heroTimelineSteps: [
-        'The company opens a concrete team problem.',
-        'You send your first approach instead of a contextless attachment.',
-        'Only then does the private dialogue begin.'
+        'The company opens the challenge.',
+        'You send your first approach.',
+        'The private dialogue opens.'
       ],
       valueCards: [
         { title: 'First contact instead of blind CV drops', body: 'The first step is not a document upload but a short response to a real team situation.' },
@@ -344,257 +547,356 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
   } as const;
 
   const copy = copyMap[(language === 'at' ? 'de' : language) as keyof typeof copyMap];
-  const demoCardsByLanguage = {
-    cs: [
-      {
-        eyebrow: 'Ukázka první výzvy',
-        company: 'Hotel Vltava Residence',
-        title: 'Zástupce vedoucího recepce',
-        challenge: 'Recepce a housekeeping si často předávají nepřesné informace o připravenosti pokojů.',
-        risk: 'Hosté čekají déle na check-in, tým improvizuje a zbytečně roste napětí v provozu.',
-        question: 'Jak byste během prvních dnů zjistil(a), kde se informace ztrácí, a jaký by byl váš první zásah?'
-      },
-      {
-        eyebrow: 'Ukázka první výzvy',
-        company: 'Beskyd Cargo',
-        title: 'Koordinátor expedice',
-        challenge: 'Sklad, doprava a zákaznická linka pracují s různými časy odjezdu a vznikají chybné sliby směrem ke klientům.',
-        risk: 'Zákazníci dostávají nepřesné termíny, tým hasí reklamace a expedice ztrácí rytmus.',
-        question: 'Čím byste začal(a), aby všichni pracovali se stejnou pravdou o odjezdech a zpožděních?'
-      },
-      {
-        eyebrow: 'Ukázka první výzvy',
-        company: 'Morava Medica',
-        title: 'Specialista zákaznické podpory',
-        challenge: 'Objednávky z ordinací chodí několika kanály najednou a tým pak řeší stejné požadavky duplicitně.',
-        risk: 'Přibývá zmatků v prioritách, zákazníci čekají na potvrzení a interně roste únava.',
-        question: 'Jak byste ověřil(a), kde vznikají duplicity, a jaký jednoduchý krok byste zavedl(a) hned na začátku?'
-      }
-    ],
-    sk: [
-      {
-        eyebrow: 'Ukážka prvej výzvy',
-        company: 'Hotel Vltava Residence',
-        title: 'Zástupca vedúceho recepcie',
-        challenge: 'Recepcia a housekeeping si často odovzdávajú nepresné informácie o pripravenosti izieb.',
-        risk: 'Hostia čakajú dlhšie na check-in, tím improvizuje a v prevádzke rastie napätie.',
-        question: 'Ako by ste počas prvých dní zistil(a), kde sa informácie strácajú, a aký by bol váš prvý zásah?'
-      },
-      {
-        eyebrow: 'Ukážka prvej výzvy',
-        company: 'Beskyd Cargo',
-        title: 'Koordinátor expedície',
-        challenge: 'Sklad, doprava a zákaznícka linka pracujú s rôznymi časmi odchodu a vznikajú chybné sľuby smerom ku klientom.',
-        risk: 'Zákazníci dostávajú nepresné termíny, tím hasí reklamácie a expedícia stráca rytmus.',
-        question: 'Čím by ste začal(a), aby všetci pracovali s rovnakou pravdou o odchodoch a meškaniach?'
-      },
-      {
-        eyebrow: 'Ukážka prvej výzvy',
-        company: 'Morava Medica',
-        title: 'Špecialista zákazníckej podpory',
-        challenge: 'Objednávky z ambulancií prichádzajú viacerými kanálmi naraz a tím potom rieši tie isté požiadavky duplicitne.',
-        risk: 'Pribúda zmätok v prioritách, zákazníci čakajú na potvrdenie a interne rastie únava.',
-        question: 'Ako by ste overil(a), kde vznikajú duplicity, a aký jednoduchý krok by ste zaviedol(a) hneď na začiatku?'
-      }
-    ],
-    de: [
-      {
-        eyebrow: 'Vorschau der ersten Aufgabe',
-        company: 'Nordbahn Pflegezentrum',
-        title: 'Schichtkoordinator Pflegeaufnahme',
-        challenge: 'Empfang und Station übergeben Informationen zu Neuaufnahmen uneinheitlich, wodurch wichtige Details verloren gehen.',
-        risk: 'Patienten warten länger, das Team improvisiert und die Übergaben werden hektisch.',
-        question: 'Wie würdest du in den ersten Tagen herausfinden, wo Informationen verloren gehen, und was wäre dein erster Schritt?'
-      },
-      {
-        eyebrow: 'Vorschau der ersten Aufgabe',
-        company: 'RheinWerk Logistik',
-        title: 'Koordinator Warenausgang',
-        challenge: 'Lager, Disposition und Kundenservice arbeiten mit unterschiedlichen Versandständen und geben deshalb widersprüchliche Zusagen heraus.',
-        risk: 'Kunden erhalten falsche Termine, Reklamationen steigen und der operative Druck wächst.',
-        question: 'Womit würdest du starten, damit alle mit demselben Stand zu Versand und Verzögerungen arbeiten?'
-      },
-      {
-        eyebrow: 'Vorschau der ersten Aufgabe',
-        company: 'ElbCampus Service',
-        title: 'Teamleiter Kundenservice',
-        challenge: 'Anfragen aus Telefon, Mail und Formularen landen in getrennten Listen und werden deshalb doppelt oder gar nicht bearbeitet.',
-        risk: 'Die Antwortzeiten steigen, Prioritäten verschwimmen und das Team verliert Vertrauen in den Prozess.',
-        question: 'Wie würdest du prüfen, wo die Doppelarbeit beginnt, und welche einfache Änderung würdest du zuerst einführen?'
-      }
-    ],
-    pl: [
-      {
-        eyebrow: 'Podgląd pierwszego wyzwania',
-        company: 'Baltic Stay Gdańsk',
-        title: 'Koordynator recepcji',
-        challenge: 'Recepcja i housekeeping często pracują na różnych informacjach o gotowości pokoi.',
-        risk: 'Goście czekają dłużej na meldunek, zespół improwizuje, a w operacji rośnie chaos.',
-        question: 'Jak w pierwszych dniach sprawdził(a)byś, gdzie giną informacje, i jaki byłby twój pierwszy ruch?'
-      },
-      {
-        eyebrow: 'Podgląd pierwszego wyzwania',
-        company: 'Mazovia Dispatch',
-        title: 'Koordynator wysyłek',
-        challenge: 'Magazyn, transport i obsługa klienta pracują na różnych godzinach wyjazdu i przekazują klientom sprzeczne terminy.',
-        risk: 'Rośnie liczba reklamacji, zespół gasi pożary, a wysyłki tracą przewidywalność.',
-        question: 'Od czego zaczął(a)byś, żeby wszyscy pracowali na tej samej informacji o wysyłkach i opóźnieniach?'
-      },
-      {
-        eyebrow: 'Podgląd pierwszego wyzwania',
-        company: 'Silesia Med Support',
-        title: 'Specjalista obsługi placówek',
-        challenge: 'Zamówienia i pytania z placówek wpadają kilkoma kanałami jednocześnie, więc zespół dubluje odpowiedzi.',
-        risk: 'Priorytety się rozmywają, odpowiedzi trwają za długo, a frustracja rośnie po obu stronach.',
-        question: 'Jak sprawdził(a)byś, gdzie zaczynają się duplikaty, i jaki prosty krok wdrożył(a)byś najpierw?'
-      }
-    ],
-    en: [
-      {
-        eyebrow: 'Preview of the first challenge',
-        company: 'Hotel Vltava Residence',
-        title: 'Deputy Front Office Lead',
-        challenge: 'Reception and housekeeping keep passing inconsistent information about which rooms are truly ready.',
-        risk: 'Guests wait longer to check in, the team improvises, and pressure builds across the operation.',
-        question: 'How would you find where the information breaks down in the first days, and what would be your first move?'
-      },
-      {
-        eyebrow: 'Preview of the first challenge',
-        company: 'RheinWerk Logistik',
-        title: 'Outbound Coordination Lead',
-        challenge: 'Warehouse, dispatch, and customer support work with different shipment statuses and promise different delivery times.',
-        risk: 'Customers get conflicting expectations, complaints rise, and the team spends energy on firefighting.',
-        question: 'Where would you look first to create one shared source of truth for departures and delays?'
-      },
-      {
-        eyebrow: 'Preview of the first challenge',
-        company: 'Silesia Med Support',
-        title: 'Client Operations Specialist',
-        challenge: 'Requests from clinics arrive through multiple channels at once, so the team keeps answering the same thing twice.',
-        risk: 'Priorities blur, response times slip, and internal trust in the process drops quickly.',
-        question: 'How would you verify where duplicate work begins, and what simple fix would you test first?'
-      }
-    ]
+  const heroDemoByLanguage = {
+    cs: {
+      eyebrow: 'VÝZVA TÝMU',
+      company: 'Talvex Cargo',
+      title: 'Koordinátor expedice',
+      challenge: 'Sklad, doprava a zákaznická linka pracují s různými časy odjezdu.',
+      risk: 'Zákazníci dostávají nepřesné termíny a tým řeší zbytečné reklamace.',
+      question: 'Čím byste začal(a), aby všichni pracovali se stejnou pravdou o odjezdech a zpožděních?'
+    },
+    sk: {
+      eyebrow: 'VÝZVA TÍMU',
+      company: 'Talvex Cargo',
+      title: 'Koordinátor expedície',
+      challenge: 'Sklad, doprava a zákaznícka linka pracujú s rôznymi časmi odchodu.',
+      risk: 'Zákazníci dostávajú nepresné termíny a tím rieši zbytočné reklamácie.',
+      question: 'Čím by ste začal(a), aby všetci pracovali s rovnakou pravdou o odchodoch a meškaniach?'
+    },
+    de: {
+      eyebrow: 'TEAM-AUFGABE',
+      company: 'Talvex Cargo',
+      title: 'Koordinator Warenausgang',
+      challenge: 'Lager, Disposition und Kundenservice arbeiten mit unterschiedlichen Abfahrtszeiten.',
+      risk: 'Kunden erhalten ungenaue Termine und das Team verliert Zeit mit unnötigen Reklamationen.',
+      question: 'Womit würdest du beginnen, damit alle mit demselben Stand zu Abfahrten und Verzögerungen arbeiten?'
+    },
+    pl: {
+      eyebrow: 'WYZWANIE ZESPOŁU',
+      company: 'Talvex Cargo',
+      title: 'Koordynator wysyłek',
+      challenge: 'Magazyn, transport i obsługa klienta pracują na różnych godzinach wyjazdu.',
+      risk: 'Klienci dostają niedokładne terminy, a zespół traci czas na zbędne reklamacje.',
+      question: 'Od czego zaczął(a)byś, żeby wszyscy pracowali na tej samej informacji o wysyłkach i opóźnieniach?'
+    },
+    en: {
+      eyebrow: 'TEAM CHALLENGE',
+      company: 'Talvex Cargo',
+      title: 'Outbound Coordination Lead',
+      challenge: 'Warehouse, dispatch, and customer support work from different departure times.',
+      risk: 'Customers get inaccurate delivery dates and the team spends time on avoidable complaints.',
+      question: 'Where would you start so everyone works from the same source of truth on departures and delays?'
+    }
   } as const;
 
-  const heroDemo = useMemo(() => {
-    const variants = demoCardsByLanguage[(language === 'at' ? 'de' : language) as keyof typeof demoCardsByLanguage] || demoCardsByLanguage.en;
-    return variants[Math.floor(Math.random() * variants.length)];
-  }, [language]);
+  const heroDemo = heroDemoByLanguage[(language === 'at' ? 'de' : language) as keyof typeof heroDemoByLanguage] || heroDemoByLanguage.en;
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(145deg,#f7fafc_0%,#ffffff_30%,#f8fbff_62%,#eef4fb_100%)] p-4 text-slate-900 shadow-[0_44px_110px_-74px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-[linear-gradient(155deg,#1c1620_0%,#111827_34%,#0f172a_70%,#10211d_100%)] dark:text-slate-100 sm:p-5">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(145deg,#f7fafc_0%,#ffffff_30%,#f8fbff_62%,#eef4fb_100%)] p-3 text-slate-900 shadow-[0_44px_110px_-74px_rgba(15,23,42,0.42)] dark:border-white/10 dark:bg-[linear-gradient(155deg,#1c1620_0%,#111827_34%,#0f172a_70%,#10211d_100%)] dark:text-slate-100 sm:p-4">
         <div className="pointer-events-none absolute -left-20 top-[-4.5rem] h-56 w-56 rounded-[46%_54%_58%_42%/40%_44%_56%_60%] bg-sky-200/38 blur-3xl dark:bg-sky-500/12" />
         <div className="pointer-events-none absolute right-[-3.5rem] top-[-2rem] h-48 w-48 rounded-[58%_42%_36%_64%/46%_58%_42%_54%] bg-amber-200/30 blur-3xl dark:bg-amber-400/10" />
         <div className="pointer-events-none absolute bottom-[-4rem] left-[18%] h-44 w-56 rounded-[62%_38%_52%_48%/52%_40%_60%_48%] bg-indigo-100/60 blur-3xl dark:bg-indigo-300/8" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_16%,rgba(255,255,255,0.92),transparent_26%),radial-gradient(circle_at_88%_16%,rgba(226,232,240,0.64),transparent_22%),radial-gradient(circle_at_72%_84%,rgba(253,230,138,0.26),transparent_20%)] dark:bg-[radial-gradient(circle_at_18%_20%,rgba(56,189,248,0.10),transparent_20%),radial-gradient(circle_at_84%_18%,rgba(251,191,36,0.10),transparent_18%),radial-gradient(circle_at_70%_78%,rgba(255,255,255,0.04),transparent_18%)]" />
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.18fr)_340px] xl:items-start 2xl:grid-cols-[minmax(0,1.1fr)_372px]">
-          <div className="relative z-10 space-y-3.5">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-300/90 bg-white/92 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.28)] dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-200">
-              <Sparkles size={12} className="text-[var(--accent)]" />
-              {copy.badge}
+        <div className="relative z-10 space-y-4">
+          <div className="grid items-center gap-3 text-center xl:grid-cols-[minmax(240px,0.66fr)_24px_minmax(0,1.34fr)] xl:text-left">
+            <div className="justify-self-center rounded-full border border-slate-300/90 bg-slate-100/92 px-4 py-2 text-sm font-semibold text-slate-600 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-slate-950/30 dark:text-slate-300 xl:justify-self-start">
+              <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">{copy.heroCompareLeftMode}</span>
+              {copy.heroCompareLeftTitle}
             </div>
-            <div className="space-y-2.5">
-              <h1 className="max-w-4xl text-[2rem] font-black tracking-tight text-slate-950 dark:text-white sm:text-[2.7rem] sm:leading-[1.02]">
-                {copy.title}
-              </h1>
-              <p className="max-w-2xl text-[15px] leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
-                {copy.body}
-              </p>
+            <div className="justify-self-center rounded-full border border-slate-300/90 bg-slate-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white dark:border-white/10 dark:bg-white dark:text-slate-950">
+              vs
             </div>
-            <div className="rounded-[1.55rem] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-4 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.72),rgba(15,23,42,0.62))]">
-              <div className="space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-800/90 bg-slate-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white dark:border-white/10 dark:bg-slate-900 dark:text-slate-100">
-                    {heroDemo.eyebrow}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {heroDemo.title}
-                  </div>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  {copy.heroDemoLead}
-                </p>
-                <div className="rounded-[1.25rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.9))] p-3.5 dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(15,23,42,0.72))]">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroTeamLabel}</div>
-                  <div className="mt-1.5 text-[1.05rem] font-semibold leading-6 tracking-[-0.03em] text-slate-950 dark:text-white">
-                    {heroDemo.challenge}
-                  </div>
-                  <div className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroRiskLabel}</div>
-                  <div className="mt-1.5 text-sm leading-5.5 text-slate-700 dark:text-slate-200">
-                    {heroDemo.risk}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 rounded-[1.25rem] border border-slate-900/88 bg-[linear-gradient(160deg,#172033_0%,#0f172a_100%)] p-3.5 text-white shadow-[0_24px_50px_-34px_rgba(15,23,42,0.58)] dark:border-amber-400/16 dark:bg-[linear-gradient(160deg,#101826_0%,#0b1220_100%)]">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-amber-300">{copy.heroEditorLabel}</div>
-                <div className="mt-2.5 rounded-[1rem] border border-white/10 bg-white/5 p-3">
-                  <div className="text-sm leading-5.5 text-slate-100">{heroDemo.question}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={onOpenAuth}
-                  className="mt-2.5 block w-full rounded-[1rem] border border-amber-300/90 bg-white px-4 py-2.5 text-left text-sm text-slate-500 transition hover:border-amber-400 hover:bg-amber-50 dark:border-amber-300/40 dark:bg-white dark:text-slate-700 dark:hover:bg-amber-50"
-                >
-                  {copy.heroEditorPlaceholder}
-                </button>
-                <div className="mt-2.5 text-xs leading-5 text-slate-300">
-                  {copy.heroEditorHint}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2.5 sm:flex-row">
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-              >
-                {copy.primaryCta}
-                <ArrowRight size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={onSearchFocus}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-amber-300 hover:bg-amber-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-amber-300/40 dark:hover:bg-white/10"
-              >
-                <Search size={16} />
-                {copy.secondaryCta}
-              </button>
+            <div className="justify-self-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--accent)] shadow-[0_14px_28px_-24px_rgba(var(--accent-rgb),0.18)] dark:border-[rgba(var(--accent-rgb),0.18)] dark:bg-[var(--accent-soft)] dark:text-[var(--accent)] xl:justify-self-start">
+              <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent)]">{copy.heroCompareRightMode}</span>
+              {copy.heroCompareRightTitle}
             </div>
           </div>
 
-          <div className="relative z-10 w-full rounded-[1.5rem] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.92))] p-3.5 shadow-[0_30px_70px_-46px_rgba(15,23,42,0.34)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.82),rgba(2,6,23,0.74))]">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              {copy.heroTimelineTitle}
-            </div>
-            <div className="mt-3 space-y-2.5">
-              {[copy.handshakeLaneCompany, copy.handshakeLaneResponse, copy.handshakeLaneOpen].map((label, index) => (
-                <div key={label} className="relative rounded-[1.15rem] border border-slate-200/90 bg-white/88 p-3.5 dark:border-slate-800 dark:bg-slate-900/72">
-                  {index < 2 ? (
-                    <div className="pointer-events-none absolute left-7 top-full h-4 w-px bg-[rgba(var(--accent-rgb),0.24)]" />
-                  ) : null}
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                      index === 0 && 'bg-amber-500 text-slate-950',
-                      index === 1 && 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-100',
-                      index === 2 && 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-100'
-                    )}>
-                      {index + 1}
+          <div className="grid gap-4 xl:grid-cols-[minmax(240px,0.66fr)_24px_minmax(0,1.34fr)] xl:items-stretch">
+            <article className="relative rounded-[1.6rem] border border-slate-300/90 bg-[linear-gradient(180deg,rgba(246,248,251,0.96),rgba(235,239,245,0.96))] p-3 text-slate-700 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.6),rgba(15,23,42,0.56))] dark:text-slate-300">
+              <div className="pointer-events-none absolute inset-0 rounded-[1.6rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0))]" />
+              <div className="pointer-events-none absolute inset-y-6 right-6 w-10 rounded-full bg-slate-400/10 blur-2xl" />
+              <div className="relative overflow-hidden rounded-[0.9rem] border border-slate-300 bg-[#f3f4f6] shadow-[0_12px_24px_-22px_rgba(15,23,42,0.12)] grayscale-[0.22] dark:border-white/10 dark:bg-slate-950/36">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-300 bg-[#0a66c2] px-3 py-2.5 text-white">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-[0.7rem] bg-white text-[#0a66c2] shadow-inner">
+                      <div className="h-3 w-3 rounded-full bg-[#0a66c2]" />
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold text-slate-950 dark:text-white">{label}</div>
-                      <div className="text-sm leading-5.5 text-slate-600 dark:text-slate-300">
-                        {copy.heroTimelineSteps[index]}
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">{copy.heroLegacyLabel}</div>
+                      <div className="text-sm font-semibold">{copy.heroLegacyBrand}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2.5 w-2.5 rounded-full bg-white/60" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-white/40" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-white/30" />
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 p-3">
+                  <div className="flex items-center gap-2 rounded-[0.45rem] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                    <Search size={15} />
+                    <span>{copy.heroLegacySearch}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">{copy.heroLegacyChipOne}</div>
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:bg-white/5 dark:text-slate-400">{copy.heroLegacyChipTwo}</div>
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:bg-white/5 dark:text-slate-400">{copy.heroLegacyChipThree}</div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {[0, 1].map((index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          'rounded-[0.5rem] border bg-white px-3 py-2.5 transition',
+                          index === 0
+                            ? 'border-slate-400 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/5'
+                            : 'border-slate-300 opacity-80 dark:border-white/5 dark:bg-white/[0.03]'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex gap-3">
+                            <div className="mt-0.5 h-10 w-10 rounded-[0.35rem] border border-slate-300 bg-slate-200 dark:bg-white/10" />
+                            <div>
+                              <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                {index === 0 ? copy.heroLegacyRole : copy.heroLegacyRoleAlt}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{copy.heroLegacyCompany}</div>
+                              <div className="mt-1.5 flex flex-wrap gap-2 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                                {(index === 0 ? copy.heroLegacyMeta : copy.heroLegacyMetaAlt).split(' • ').map((part: string, partIndex: number) => (
+                                  <React.Fragment key={part}>
+                                    {partIndex > 0 ? <span>•</span> : null}
+                                    <span>{part}</span>
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="rounded-[0.35rem] border border-rose-300 bg-rose-100 px-2 py-1 text-[10px] font-semibold leading-4 text-rose-800">
+                              {index === 0 ? copy.heroLegacyApplicantsPrimary : copy.heroLegacyApplicantsSecondary}
+                            </div>
+                            <div className="mt-1 h-5 w-5 rounded-[0.25rem] border border-slate-300 bg-slate-50 dark:border-white/10 dark:bg-white/5" />
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 flex items-center justify-between gap-3">
+                          <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                            {copy.heroLegacyApply}
+                          </div>
+                          {index === 0 ? (
+                            <div className="rounded-[0.35rem] bg-[#0a66c2] px-3 py-1.5 text-xs font-semibold text-white">
+                              {copy.heroLegacyButton}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-[1rem] border border-rose-300/90 bg-rose-100/92 p-3 shadow-[0_16px_30px_-24px_rgba(244,63,94,0.22)] dark:border-rose-400/18 dark:bg-rose-400/10">
+                    <div className="flex items-center justify-between gap-3 text-sm font-semibold text-rose-950 dark:text-rose-100">
+                      <span>{copy.heroLegacyQueue}</span>
+                      <span>{copy.heroLegacyDelay}</span>
+                    </div>
+                    <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/70 dark:bg-white/10">
+                      <div className="h-full w-[88%] rounded-full bg-rose-500" />
+                    </div>
+                    <div className="mt-3 text-sm font-medium text-rose-900 dark:text-rose-200">
+                      {copy.heroLegacyBatch}
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            </article>
+
+            <div className="relative hidden xl:flex xl:items-center xl:justify-center">
+              <div className="h-full w-px bg-[linear-gradient(180deg,rgba(148,163,184,0),rgba(148,163,184,0.45),rgba(14,165,233,0.28),rgba(148,163,184,0))]" />
+              <div className="absolute grid h-10 w-10 place-items-center rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-white text-[var(--accent)] shadow-[0_10px_24px_-18px_rgba(var(--accent-rgb),0.24)] animate-pulse">
+                →
+              </div>
             </div>
-            <div className="mt-3 rounded-[1.15rem] border border-dashed border-slate-300/90 bg-slate-50/92 p-3.5 text-sm leading-5.5 text-slate-600 dark:border-amber-400/20 dark:bg-slate-950/50 dark:text-slate-300">
-              {copy.supportNote}
+
+            <div className="relative overflow-hidden rounded-[1.85rem] border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-slate-900 shadow-[var(--shadow-card)] dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-white sm:p-4">
+
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] dark:text-[var(--accent)]">
+                    {copy.heroHandshakeLabel}
+                  </div>
+                  <div className="text-sm text-[var(--text-muted)] dark:text-slate-300">
+                    {copy.heroDemoCaption}
+                  </div>
+                </div>
+                <div className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] dark:text-[var(--accent)]">
+                  handshake
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-3 grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(300px,1.2fr)]">
+                <div className="space-y-3">
+                  <article className="rounded-[1.35rem] border border-[var(--border-subtle)] bg-white/92 p-3.5 shadow-[var(--shadow-soft)] dark:border-white/10 dark:bg-white/6">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroTeamLabel}</div>
+                      <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{heroDemo.company}</div>
+                    </div>
+                    <div className="mt-2 text-[1.02rem] font-semibold leading-6 text-slate-950 dark:text-white">
+                      {heroDemo.challenge}
+                    </div>
+                    <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-rose-200/90 bg-rose-50/88 px-3 py-2 text-sm text-rose-900 dark:border-rose-400/14 dark:bg-rose-400/8 dark:text-slate-200">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-700 dark:text-rose-200">{copy.heroRiskLabel}</span>
+                      <span className="truncate">
+                        {heroDemo.risk}
+                      </span>
+                    </div>
+                  </article>
+
+                  <article className="rounded-[1.22rem] border border-emerald-300/40 bg-emerald-50/82 p-3.5 shadow-[0_18px_34px_-28px_rgba(5,150,105,0.16)] dark:border-emerald-400/16 dark:bg-emerald-500/10">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">{copy.heroWhyTitle}</div>
+                    <div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
+                      {copy.heroWhySignals.map((signal: string) => (
+                        <div
+                          key={signal}
+                          className="rounded-[999px] border border-emerald-200/70 bg-white/78 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-300/18 dark:bg-emerald-400/8 dark:text-emerald-50"
+                        >
+                          ✓ {signal}
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="group relative flex min-h-[21rem] flex-col rounded-[1.55rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 text-left text-slate-900 shadow-[var(--shadow-soft)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-card)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.28)] dark:border-white/10 dark:bg-[var(--surface)] dark:text-white sm:min-h-[23rem] sm:p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent)] dark:text-[var(--accent)]">{copy.heroEditorLabel}</div>
+                    <div className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] dark:border-white/10 dark:bg-white/8 dark:text-[var(--accent)]">
+                      {copy.heroEditorHint}
+                    </div>
+                  </div>
+
+                  <div className="relative mt-3 rounded-[1.15rem] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_16px_34px_-30px_rgba(14,165,233,0.18)] dark:border-white/10 dark:bg-slate-950/32">
+                    <div className="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
+                      {heroDemo.eyebrow}
+                    </div>
+                    <div className="mt-2 text-base font-semibold leading-6 text-slate-950 dark:text-white sm:text-[1.18rem]">
+                      {heroDemo.question}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex-1 rounded-[1.32rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[linear-gradient(180deg,#ffffff_0%,#fffdfa_100%)] px-3.5 py-3.5 text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_20px_40px_-34px_rgba(15,23,42,0.10)] dark:border-[rgba(var(--accent-rgb),0.16)] dark:bg-white/8">
+                    <div className="flex items-center gap-2">
+                      {[`1. ${copy.heroLiveCandidateLabel}`, `2. ${copy.heroLiveCompanyLabel}`, `3. ${copy.handshakeLaneOpen}`].map((label, index) => (
+                        <div
+                          key={label}
+                          className={cn(
+                            'rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all duration-300',
+                            activeHeroMoment === index
+                              ? 'bg-[var(--accent)] text-white shadow-[0_10px_22px_-14px_rgba(var(--accent-rgb),0.55)]'
+                              : 'border border-[var(--border-subtle)] bg-white text-slate-400 dark:border-white/10 dark:bg-white/6 dark:text-slate-400'
+                          )}
+                        >
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 h-[17.5rem] sm:h-[17.75rem]">
+                      <div className="flex h-full flex-col rounded-[1.12rem] border border-[var(--border-subtle)] bg-white/92 p-4 shadow-[0_20px_38px_-26px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-white/6">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
+                            {[`1. ${copy.heroLiveCandidateLabel}`, `2. ${copy.heroLiveCompanyLabel}`, `3. ${copy.handshakeLaneOpen}`][activeHeroMoment]}
+                          </div>
+                          <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-white/8 dark:text-slate-300">
+                            {activeHeroMoment === 0
+                              ? copy.heroEditorHint
+                              : activeHeroMoment === 1
+                                ? copy.heroLiveCompanyEta
+                                : copy.heroLiveSlotsValue}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[1rem] border border-slate-200 bg-[var(--surface)] p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/20">
+                          {activeHeroMoment === 0 ? (
+                            <>
+                              <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] shadow-[0_12px_24px_-22px_rgba(var(--accent-rgb),0.2)] dark:border-white/10 dark:bg-white/8 dark:text-[var(--accent)]">
+                                {copy.heroEditorAction}
+                              </div>
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border-2 border-dashed border-[rgba(var(--accent-rgb),0.28)] bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-[rgba(var(--accent-rgb),0.24)] dark:bg-slate-950/26">
+                                <div className="text-[15px] font-medium leading-6 text-slate-500 sm:text-base">
+                                  {copy.heroEditorPlaceholder}
+                                </div>
+                                <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-5 w-0.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                                    <div className="text-xs font-medium text-slate-400">
+                                      {copy.heroEditorHint}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_10px_24px_-16px_rgba(var(--accent-rgb),0.6)]">
+                                    {copy.primaryCta}
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : null}
+
+                          {activeHeroMoment === 1 ? (
+                            <>
+                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                                {copy.heroLiveCompanyLabel}
+                              </div>
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-slate-950/26">
+                                <div className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                  {copy.heroLiveCompanyBody}
+                                </div>
+                                <div className="mt-auto flex items-center justify-end gap-3 pt-4">
+                                  <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/8 dark:text-slate-200">
+                                    {copy.handshakeLaneOpen}
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : null}
+
+                          {activeHeroMoment === 2 ? (
+                            <>
+                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                                {copy.handshakeLaneOpen}
+                              </div>
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-slate-950/26">
+                                <div className="space-y-3">
+                                  <div className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                    {copy.heroDialogOpenBody}
+                                  </div>
+                                  <div className="rounded-[0.85rem] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                                    {copy.heroLiveSlotsNote}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-end pt-3">
+                                  <div className="inline-flex max-w-full items-center justify-center rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_12px_24px_-16px_rgba(var(--accent-rgb),0.62)]">
+                                    {copy.heroDialogOpenCta}
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
