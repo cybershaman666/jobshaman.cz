@@ -149,7 +149,10 @@ async def add_cors_on_error(request: Request, call_next):
         return await call_next(request)
     except HTTPException as exc:
         origin = request.headers.get("origin")
-        response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+        detail = exc.detail
+        if exc.status_code >= 500 and not EXPOSE_DEBUG_ERRORS:
+            detail = "Internal Server Error"
+        response = JSONResponse({"detail": detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
         return _apply_cors_headers(response, origin)
     except Exception as exc:
         print(f"🔥 Unhandled error: {exc}")
@@ -229,8 +232,6 @@ def _start_scheduler() -> None:
 
 @app.on_event("startup")
 async def _on_startup():
-    print(f"DEBUG: Environment keys: {sorted(os.environ.keys())}")
-    print(f"DEBUG: OPENAI_API_KEY set: {bool(os.getenv('OPENAI_API_KEY'))}")
     _start_scheduler()
 
 

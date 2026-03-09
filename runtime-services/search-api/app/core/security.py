@@ -1,3 +1,5 @@
+from copy import deepcopy
+from hashlib import sha256
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -10,6 +12,8 @@ from .database import supabase
 
 security = HTTPBearer()
 csrf_tokens: dict[str, dict[str, Any]] = {}
+_AUTH_CONTEXT_CACHE_TTL_SECONDS = 30
+_AUTH_CONTEXT_CACHE: dict[str, tuple[datetime, dict[str, Any]]] = {}
 
 
 def generate_csrf_token(user_id: str) -> str:
@@ -94,6 +98,13 @@ def consume_csrf_token(token: str) -> None:
 def verify_supabase_token(token: str) -> dict:
     if not supabase:
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
+    cache_key = sha256(token.encode("utf-8")).hexdigest()
+    cached = _AUTH_CONTEXT_CACHE.get(cache_key)
+    now = datetime.now(timezone.utc)
+    if cached and cached[0] > now:
+        return deepcopy(cached[1])
+    if cached:
+        _AUTH_CONTEXT_CACHE.pop(cache_key, None)
     try:
         user_response = supabase.auth.get_user(token)
         if not user_response or not user_response.user:
@@ -101,19 +112,26 @@ def verify_supabase_token(token: str) -> dict:
 
         auth_user = user_response.user
         user_id = auth_user.id
-        return {
+        payload = {
             "id": user_id,
             "auth_id": user_id,
             "email": getattr(auth_user, "email", "") or "",
         }
+        _AUTH_CONTEXT_CACHE[cache_key] = (now + timedelta(seconds=_AUTH_CONTEXT_CACHE_TTL_SECONDS), deepcopy(payload))
+        return payload
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=401, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return verify_supabase_token(credentials.credentials)
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    cached_user = getattr(request.state, "current_user", None)
+    if isinstance(cached_user, dict):
+        return cached_user
+    user = verify_supabase_token(credentials.credentials)
+    request.state.current_user = user
+    return user
 
 
 def verify_csrf_token_header(request: Request, user: dict) -> bool:

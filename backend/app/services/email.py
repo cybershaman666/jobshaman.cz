@@ -1,5 +1,7 @@
+from html import escape
+
 import resend
-from ..core.config import RESEND_API_KEY
+from ..core.config import APPLICATION_NOTIFICATION_EMAIL, RESEND_API_KEY
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -59,7 +61,6 @@ def send_email(to_email: str, subject: str, html: str):
         print("⚠️ Resend API key missing. Email not sent.")
         return False
     try:
-        print("📧 Attempting to send email.")
         params = {
             "from": "JobShaman <floki@jobshaman.cz>",
             "to": [to_email],
@@ -67,11 +68,92 @@ def send_email(to_email: str, subject: str, html: str):
             "html": html,
         }
         resend.Emails.send(params)
-        print("✅ Email sent successfully.")
         return True
-    except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+    except Exception:
+        print("❌ Failed to send email.")
         return False
+
+
+def _safe_text(value: object, max_length: int = 1000) -> str:
+    text = str(value or "").strip()
+    if len(text) > max_length:
+        text = f"{text[: max_length - 1].rstrip()}…"
+    return escape(text)
+
+
+def send_application_notification_email(
+    *,
+    candidate_profile: dict | None,
+    metadata: dict | None,
+    cover_letter: str | None = None,
+    cv_snapshot: dict | None = None,
+) -> bool:
+    target_email = str(APPLICATION_NOTIFICATION_EMAIL or "").strip()
+    if not target_email:
+        return False
+
+    profile = candidate_profile if isinstance(candidate_profile, dict) else {}
+    meta = metadata if isinstance(metadata, dict) else {}
+    cv = cv_snapshot if isinstance(cv_snapshot, dict) else {}
+
+    candidate_name = _safe_text(profile.get("name") or "Unknown candidate", 160)
+    candidate_email = _safe_text(profile.get("email"), 320)
+    candidate_phone = _safe_text(profile.get("phone"), 80)
+    candidate_job_title = _safe_text(profile.get("jobTitle"), 160)
+    candidate_linkedin = _safe_text(profile.get("linkedin"), 320)
+    job_title = _safe_text(meta.get("job_title") or "Unknown role", 200)
+    job_company = _safe_text(meta.get("job_company") or "Unknown company", 200)
+    job_location = _safe_text(meta.get("job_location"), 200)
+    job_url = _safe_text(meta.get("job_url"), 500)
+    source = _safe_text(meta.get("job_source"), 80)
+    handshake_prompts = meta.get("handshake_prompts") if isinstance(meta.get("handshake_prompts"), list) else []
+    handshake_responses = meta.get("handshake_responses") if isinstance(meta.get("handshake_responses"), list) else []
+    optional_note = _safe_text(meta.get("handshake_optional_note"), 2000)
+    cover_letter_html = _safe_text(cover_letter, 4000)
+    cv_name = _safe_text(cv.get("originalName") or cv.get("label"), 255)
+    cv_url = _safe_text(cv.get("fileUrl"), 500)
+
+    prompt_one = _safe_text(handshake_prompts[0] if len(handshake_prompts) > 0 else "", 500)
+    prompt_two = _safe_text(handshake_prompts[1] if len(handshake_prompts) > 1 else "", 500)
+    response_one = _safe_text(handshake_responses[0] if len(handshake_responses) > 0 else "", 3000)
+    response_two = _safe_text(handshake_responses[1] if len(handshake_responses) > 1 else "", 3000)
+
+    subject = f"Nový handshake: {candidate_name} -> {job_title}"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8fafc;">
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px;">
+        <h2 style="margin: 0 0 16px; color: #0f172a;">Nový handshake v JobShaman</h2>
+        <p style="margin: 0 0 20px; color: #475569;">Do systému přišel nový první kontakt kandidáta.</p>
+
+        <h3 style="margin: 20px 0 10px; color: #0f172a;">Role</h3>
+        <p style="margin: 0; color: #334155;"><strong>{job_title}</strong> v {job_company}</p>
+        <p style="margin: 6px 0 0; color: #64748b;">{job_location or 'Lokalita neuvedena'}{f' · {source}' if source else ''}</p>
+        <p style="margin: 6px 0 0; color: #2563eb;">{job_url}</p>
+
+        <h3 style="margin: 20px 0 10px; color: #0f172a;">Kandidát</h3>
+        <p style="margin: 0; color: #334155;"><strong>{candidate_name}</strong></p>
+        <p style="margin: 6px 0 0; color: #64748b;">{candidate_email or 'Bez e-mailu'}{f' · {candidate_phone}' if candidate_phone else ''}</p>
+        <p style="margin: 6px 0 0; color: #64748b;">{candidate_job_title or 'Bez role'}{f' · {candidate_linkedin}' if candidate_linkedin else ''}</p>
+
+        <h3 style="margin: 20px 0 10px; color: #0f172a;">První krok kandidáta</h3>
+        <div style="padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; color: #334155;">
+          <p style="margin: 0 0 8px;"><strong>{prompt_one or 'Otázka 1'}</strong></p>
+          <p style="margin: 0 0 14px; white-space: pre-wrap;">{response_one or 'Bez odpovědi'}</p>
+          <p style="margin: 0 0 8px;"><strong>{prompt_two or 'Otázka 2'}</strong></p>
+          <p style="margin: 0; white-space: pre-wrap;">{response_two or 'Bez odpovědi'}</p>
+        </div>
+
+        <h3 style="margin: 20px 0 10px; color: #0f172a;">Další kontext</h3>
+        <p style="margin: 0; color: #334155; white-space: pre-wrap;">{optional_note or 'Bez doplňující poznámky'}</p>
+
+        <h3 style="margin: 20px 0 10px; color: #0f172a;">Podklady</h3>
+        <p style="margin: 0; color: #334155;">CV: {cv_name or 'neuvedeno'}</p>
+        <p style="margin: 6px 0 0; color: #2563eb;">{cv_url}</p>
+        <p style="margin: 12px 0 0; color: #334155; white-space: pre-wrap;">{cover_letter_html or 'Bez doprovodného textu'}</p>
+      </div>
+    </div>
+    """
+    return send_email(target_email, subject, html)
 
 def send_review_email(job, result, context=None):
     subject = f"🚨 { '[ZAKÁZÁNO]' if not result.is_legal else '[REVIZE]' } Inzerát: {job.title}"

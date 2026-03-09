@@ -15,7 +15,7 @@ from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs, hybri
 from ..matching_engine.feature_store import extract_candidate_features, extract_job_features
 from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings
 from ..matching_engine.scoring import score_from_embeddings, score_job
-from ..services.email import send_review_email, send_recruiter_legality_email
+from ..services.email import send_application_notification_email, send_review_email, send_recruiter_legality_email
 from ..services.dialogue_composer import build_dialogue_enrichment
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
@@ -2531,6 +2531,7 @@ async def get_company_job_views(
 async def create_dialogue_legacy(
     payload: JobApplicationCreateRequest,
     request: Request,
+    background_tasks: BackgroundTasks = None,
     user: dict = Depends(get_current_user),
 ):
     if not supabase:
@@ -2629,6 +2630,14 @@ async def create_dialogue_legacy(
         if company_id:
             _sync_company_dialogue_slots_usage(str(company_id))
         _invalidate_my_dialogues_cache(user_id)
+        if background_tasks is not None:
+            background_tasks.add_task(
+                send_application_notification_email,
+                candidate_profile=candidate_profile_snapshot,
+                metadata=_safe_dict(payload.metadata),
+                cover_letter=payload.cover_letter,
+                cv_snapshot=cv_snapshot,
+            )
         return {
             "status": "created",
             "application_id": app_id,
@@ -3464,9 +3473,10 @@ update_company_application_status = update_company_dialogue_status_legacy
 async def create_dialogue(
     payload: JobApplicationCreateRequest,
     request: Request,
+    background_tasks: BackgroundTasks = None,
     user: dict = Depends(get_current_user),
 ):
-    response = await create_dialogue_legacy(payload=payload, request=request, user=user)
+    response = await create_dialogue_legacy(payload=payload, request=request, background_tasks=background_tasks, user=user)
     dialogue = response.get("application")
     out = {
         "status": response.get("status"),

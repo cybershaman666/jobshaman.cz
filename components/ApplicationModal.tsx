@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApplicationJcfpmShareLevel, Job, UserProfile, CVDocument, ApplicationDraftSuggestion } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown, MessageSquare, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-import { sendEmail, EmailTemplates } from '../services/emailService';
 import { trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
 import { openDialogue, generateApplicationDraft } from '../services/jobApplicationService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
@@ -464,33 +463,6 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       if (applicationStatus === 'exists') {
         setStep('success');
         return;
-      }
-
-      // Use environment variable for recipient email, with fallback
-      const recipientEmail = import.meta.env.VITE_CONTACT_EMAIL || 'floki@jobshaman.cz';
-
-      // Send email notification
-      const applicationPayload = {
-        ...formData,
-        handshakePromptOne: effectivePromptOne,
-        handshakePromptTwo: effectivePromptTwo,
-        handshakeAnswerOne: handshakeAnswers.scenarioOne,
-        handshakeAnswerTwo: handshakeAnswers.scenarioTwo,
-        handshakeOptionalNote: handshakeAnswers.optionalNote,
-        coverLetter,
-        cvFile: cvFile ? cvFile.name : null,
-        cvSelectedName: selectedCv?.originalName || selectedCv?.label || null,
-        cvSelectedUrl: selectedCv?.fileUrl || null,
-        jcfpmShareLevel: effectiveJcfpmShareLevel
-      };
-
-      const emailResult = await sendEmail({
-        to: recipientEmail,
-        ...EmailTemplates.jobApplication(applicationPayload, job)
-      });
-
-      if (!emailResult.success) {
-        console.error('Failed to send application email:', emailResult.error);
       }
 
       await trackAnalyticsEvent({

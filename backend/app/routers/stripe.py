@@ -15,11 +15,40 @@ from ..models.requests import CheckoutRequest
 from ..core.database import supabase
 from ..utils.helpers import now_iso
 from datetime import datetime, timezone, timedelta
+from ..services.subscription_access import invalidate_subscription_cache
 
 router = APIRouter()
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+
+def fetch_existing_subscription_by_stripe_id(stripe_subscription_id: str | None) -> dict | None:
+    if not supabase or not stripe_subscription_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("subscriptions")
+            .select("user_id,company_id")
+            .eq("stripe_subscription_id", stripe_subscription_id)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception:
+        return None
+
+
+def invalidate_subscription_record_cache(subscription_row: dict | None) -> None:
+    if not isinstance(subscription_row, dict):
+        return
+    user_id = str(subscription_row.get("user_id") or "").strip()
+    company_id = str(subscription_row.get("company_id") or "").strip()
+    if user_id:
+        invalidate_subscription_cache("user_id", user_id)
+    if company_id:
+        invalidate_subscription_cache("company_id", company_id)
 
 @router.post("/create-checkout-session")
 @limiter.limit("10/minute")
@@ -69,8 +98,10 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
             metadata={"userId": req.userId, "tier": backend_tier},
         )
         return {"url": checkout_session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
 
 @router.post("/webhooks/stripe")
 async def stripe_webhook(request: Request):
@@ -113,6 +144,7 @@ async def stripe_webhook(request: Request):
                     "updated_at": now_iso(),
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="user_id").execute()
+                invalidate_subscription_cache("user_id", user_id)
             
             elif tier in ["starter", "growth", "professional"]:
                 data = {
@@ -123,32 +155,39 @@ async def stripe_webhook(request: Request):
                     "updated_at": now_iso(),
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()
+                invalidate_subscription_cache("company_id", user_id)
 
     elif event["type"] == "customer.subscription.updated":
         subscription = event["data"]["object"]
         stripe_sub_id = subscription["id"]
+        existing = fetch_existing_subscription_by_stripe_id(stripe_sub_id)
         supabase.table("subscriptions").update({
             "current_period_end": datetime.fromtimestamp(subscription["current_period_end"], timezone.utc).isoformat(),
             "status": "active" if subscription["status"] in ["active", "trialing"] else "inactive",
             "updated_at": now_iso()
         }).eq("stripe_subscription_id", stripe_sub_id).execute()
+        invalidate_subscription_record_cache(existing)
 
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         stripe_sub_id = subscription["id"]
+        existing = fetch_existing_subscription_by_stripe_id(stripe_sub_id)
         supabase.table("subscriptions").update({
             "status": "canceled",
             "canceled_at": now_iso(),
             "updated_at": now_iso()
         }).eq("stripe_subscription_id", stripe_sub_id).execute()
+        invalidate_subscription_record_cache(existing)
 
     elif event["type"] == "invoice.payment_failed":
         invoice = event["data"]["object"]
         stripe_sub_id = invoice.get("subscription")
         if stripe_sub_id:
+            existing = fetch_existing_subscription_by_stripe_id(stripe_sub_id)
             supabase.table("subscriptions").update({
                 "status": "suspended",
                 "updated_at": now_iso()
             }).eq("stripe_subscription_id", stripe_sub_id).execute()
+            invalidate_subscription_record_cache(existing)
 
     return {"status": "success"}

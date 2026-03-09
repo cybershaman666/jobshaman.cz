@@ -8,17 +8,11 @@ import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import CompanyOnboarding from './components/CompanyOnboarding';
-import AuthModal from './components/AuthModal';
-import CandidateOnboardingModal from './components/CandidateOnboardingModal';
 import ApplyFollowupModal from './components/ApplyFollowupModal';
-import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import EnterpriseSignup from './components/EnterpriseSignup';
-import ApplicationModal from './components/ApplicationModal';
-import ProfileEditor from './components/ProfileEditor';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
-import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import CandidateActivationRail from './components/CandidateActivationRail';
 import ChallengeHomeSections from './components/challenges/ChallengeHomeSections';
 import ChallengeMarketplace from './components/challenges/ChallengeMarketplace';
@@ -89,6 +83,12 @@ const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage')
 const DemoHandshakePage = lazy(() => import('./pages/DemoHandshakePage'));
 const DemoCompanyHandshakePage = lazy(() => import('./pages/DemoCompanyHandshakePage'));
 const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const CandidateOnboardingModal = lazy(() => import('./components/CandidateOnboardingModal'));
+const CompanyRegistrationModal = lazy(() => import('./components/CompanyRegistrationModal'));
+const ApplicationModal = lazy(() => import('./components/ApplicationModal'));
+const ProfileEditor = lazy(() => import('./components/ProfileEditor'));
+const PremiumUpgradeModal = lazy(() => import('./components/PremiumUpgradeModal'));
 
 // JHI and formatting utilities now imported from utils/
 
@@ -1959,19 +1959,21 @@ export default function App() {
                                 />
                             </div>
                         )}
-                    <ProfileEditor
-                        profile={userProfile}
-                        onChange={(p, persist) => handleProfileUpdate(p, persist)} // Pass persist flag for immediate saves
-                        onSave={handleProfileSave} // Explicit save button
-                        onRefreshProfile={refreshUserProfile}
-                        onDeleteAccount={deleteAccount}
-                        savedJobs={resolvedSavedJobs}
-                        savedJobIds={savedJobIds}
-                        onToggleSave={handleToggleSave}
-                        onJobSelect={handleJobSelect}
-                        onApplyToJob={handleApplyToJob}
-                        selectedJobId={selectedJobId}
-                    />
+                    <Suspense fallback={null}>
+                        <ProfileEditor
+                            profile={userProfile}
+                            onChange={(p, persist) => handleProfileUpdate(p, persist)} // Pass persist flag for immediate saves
+                            onSave={handleProfileSave} // Explicit save button
+                            onRefreshProfile={refreshUserProfile}
+                            onDeleteAccount={deleteAccount}
+                            savedJobs={resolvedSavedJobs}
+                            savedJobIds={savedJobIds}
+                            onToggleSave={handleToggleSave}
+                            onJobSelect={handleJobSelect}
+                            onApplyToJob={handleApplyToJob}
+                            selectedJobId={selectedJobId}
+                        />
+                    </Suspense>
                 </div>
             );
         }
@@ -2258,62 +2260,64 @@ export default function App() {
                 </button>
             )}
 
-            <CandidateOnboardingModal
-                isOpen={showCandidateOnboarding}
-                profile={userProfile}
-                initialStep={
-                    activationNextStep === 'skills'
-                        ? 'preferences'
-                        : activationNextStep === 'quality_action'
-                            ? 'done'
-                            : activationNextStep
-                }
-                onClose={() => {
-                    onboardingDismissedRef.current = true;
-                    setShowCandidateOnboarding(false);
-                }}
-                onComplete={() => {
-                    onboardingDismissedRef.current = true;
-                    setShowCandidateOnboarding(false);
-                }}
-                onGoToProfile={() => {
-                    onboardingDismissedRef.current = true;
-                    setShowCandidateOnboarding(false);
-                    setSelectedJobId(null);
-                    setSelectedBlogPostSlug(null);
-                    setShowCompanyLanding(false);
-                    try {
-                        const lng = getLocalePrefix();
-                        window.history.replaceState({}, '', `/${lng}/profil${window.location.search || ''}${window.location.hash || ''}`);
-                    } catch (error) {
-                        console.warn('Failed to navigate to profile path:', error);
+            <Suspense fallback={null}>
+                <CandidateOnboardingModal
+                    isOpen={showCandidateOnboarding}
+                    profile={userProfile}
+                    initialStep={
+                        activationNextStep === 'skills'
+                            ? 'preferences'
+                            : activationNextStep === 'quality_action'
+                                ? 'done'
+                                : activationNextStep
                     }
-                    setViewState(ViewState.PROFILE);
-                }}
-                onStepViewed={(step) => {
-                    void trackAnalyticsEvent({
-                        event_type: 'onboarding_step_viewed',
-                        feature: 'candidate_activation_v1',
-                        metadata: {
-                            step,
-                            completion_percent: candidateActivationState.completion_percent,
-                        },
-                    });
-                }}
-                onStepCompleted={(step) => {
-                    void trackAnalyticsEvent({
-                        event_type: 'onboarding_step_completed',
-                        feature: 'candidate_activation_v1',
-                        metadata: {
-                            step,
-                            completion_percent: candidateActivationState.completion_percent,
-                        },
-                    });
-                }}
-                onUpdateProfile={handleProfileUpdate}
-                onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
-                onRefreshProfile={refreshUserProfile}
-            />
+                    onClose={() => {
+                        onboardingDismissedRef.current = true;
+                        setShowCandidateOnboarding(false);
+                    }}
+                    onComplete={() => {
+                        onboardingDismissedRef.current = true;
+                        setShowCandidateOnboarding(false);
+                    }}
+                    onGoToProfile={() => {
+                        onboardingDismissedRef.current = true;
+                        setShowCandidateOnboarding(false);
+                        setSelectedJobId(null);
+                        setSelectedBlogPostSlug(null);
+                        setShowCompanyLanding(false);
+                        try {
+                            const lng = getLocalePrefix();
+                            window.history.replaceState({}, '', `/${lng}/profil${window.location.search || ''}${window.location.hash || ''}`);
+                        } catch (error) {
+                            console.warn('Failed to navigate to profile path:', error);
+                        }
+                        setViewState(ViewState.PROFILE);
+                    }}
+                    onStepViewed={(step) => {
+                        void trackAnalyticsEvent({
+                            event_type: 'onboarding_step_viewed',
+                            feature: 'candidate_activation_v1',
+                            metadata: {
+                                step,
+                                completion_percent: candidateActivationState.completion_percent,
+                            },
+                        });
+                    }}
+                    onStepCompleted={(step) => {
+                        void trackAnalyticsEvent({
+                            event_type: 'onboarding_step_completed',
+                            feature: 'candidate_activation_v1',
+                            metadata: {
+                                step,
+                                completion_percent: candidateActivationState.completion_percent,
+                            },
+                        });
+                    }}
+                    onUpdateProfile={handleProfileUpdate}
+                    onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
+                    onRefreshProfile={refreshUserProfile}
+                />
+            </Suspense>
 
             <ApplyFollowupModal
                 isOpen={showApplyFollowup}
@@ -2324,38 +2328,44 @@ export default function App() {
                 onLater={handleApplyFollowupLater}
             />
 
-            <PremiumUpgradeModal
-                show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}
-                onClose={() => setShowPremiumUpgrade({ open: false })}
-                userProfile={userProfile}
-                onAuth={() => handleAuthAction('login')}
-            />
+            <Suspense fallback={null}>
+                <PremiumUpgradeModal
+                    show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}
+                    onClose={() => setShowPremiumUpgrade({ open: false })}
+                    userProfile={userProfile}
+                    onAuth={() => handleAuthAction('login')}
+                />
+            </Suspense>
 
-            <AuthModal
-                isOpen={isAuthModalOpen}
-                onClose={() => {
-                    setIsAuthModalOpen(false);
-                    passwordRecoveryInProgressRef.current = false;
-                    clearPasswordRecoveryPending();
-                    setAuthModalMode('login');
-                }}
-                onSuccess={() => {
-                    setIsAuthModalOpen(false);
-                    passwordRecoveryInProgressRef.current = false;
-                    clearPasswordRecoveryPending();
-                    setAuthModalMode('login');
-                }}
-                defaultMode={authModalMode}
-            />
+            <Suspense fallback={null}>
+                <AuthModal
+                    isOpen={isAuthModalOpen}
+                    onClose={() => {
+                        setIsAuthModalOpen(false);
+                        passwordRecoveryInProgressRef.current = false;
+                        clearPasswordRecoveryPending();
+                        setAuthModalMode('login');
+                    }}
+                    onSuccess={() => {
+                        setIsAuthModalOpen(false);
+                        passwordRecoveryInProgressRef.current = false;
+                        clearPasswordRecoveryPending();
+                        setAuthModalMode('login');
+                    }}
+                    defaultMode={authModalMode}
+                />
+            </Suspense>
 
-            <CompanyRegistrationModal
-                isOpen={isCompanyRegistrationOpen}
-                onClose={() => setIsCompanyRegistrationOpen(false)}
-                onSuccess={() => {
-                    setIsCompanyRegistrationOpen(false);
-                    console.log('Company registration successful');
-                }}
-            />
+            <Suspense fallback={null}>
+                <CompanyRegistrationModal
+                    isOpen={isCompanyRegistrationOpen}
+                    onClose={() => setIsCompanyRegistrationOpen(false)}
+                    onSuccess={() => {
+                        setIsCompanyRegistrationOpen(false);
+                        console.log('Company registration successful');
+                    }}
+                />
+            </Suspense>
 
             {isOnboardingCompany && userProfile.id && (
                 <CompanyOnboarding
@@ -2369,12 +2379,14 @@ export default function App() {
             )}
 
             {selectedJob && (
-                <ApplicationModal
-                    isOpen={isApplyModalOpen}
-                    onClose={() => setIsApplyModalOpen(false)}
-                    job={selectedJob}
-                    user={userProfile}
-                />
+                <Suspense fallback={null}>
+                    <ApplicationModal
+                        isOpen={isApplyModalOpen}
+                        onClose={() => setIsApplyModalOpen(false)}
+                        job={selectedJob}
+                        user={userProfile}
+                    />
+                </Suspense>
             )}
 
             {/* Cookie Banner - Only show when needed */}

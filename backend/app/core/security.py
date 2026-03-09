@@ -1,12 +1,17 @@
+from copy import deepcopy
+from hashlib import sha256
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .database import supabase
 from .config import CSRF_TOKEN_EXPIRY
+from ..services.subscription_access import fetch_latest_subscription_by, is_active_subscription
 
 security = HTTPBearer()
 csrf_tokens: dict = {}
+_AUTH_CONTEXT_CACHE_TTL_SECONDS = 30
+_AUTH_CONTEXT_CACHE: dict[str, tuple[datetime, dict]] = {}
 
 def generate_csrf_token(user_id: str) -> str:
     token = secrets.token_urlsafe(32)
@@ -64,6 +69,13 @@ def consume_csrf_token(token: str) -> None:
 def verify_supabase_token(token: str) -> dict:
     if not supabase:
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
+    cache_key = sha256(token.encode("utf-8")).hexdigest()
+    cached = _AUTH_CONTEXT_CACHE.get(cache_key)
+    now = datetime.now(timezone.utc)
+    if cached and cached[0] > now:
+        return deepcopy(cached[1])
+    if cached:
+        _AUTH_CONTEXT_CACHE.pop(cache_key, None)
     try:
         user_response = supabase.auth.get_user(token)
         if not user_response or not user_response.user:
@@ -116,19 +128,25 @@ def verify_supabase_token(token: str) -> dict:
                 
             profile["authorized_ids"] = authorized_ids
             profile["user_type"] = profile.get("user_type", "candidate")
+            _AUTH_CONTEXT_CACHE[cache_key] = (now + timedelta(seconds=_AUTH_CONTEXT_CACHE_TTL_SECONDS), deepcopy(profile))
             return profile
             
         raise HTTPException(status_code=401, detail="Profile not found")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 def require_company_access(user: dict, company_id: str) -> str:
     if not company_id or company_id not in user.get("authorized_ids", []):
         raise HTTPException(status_code=403, detail="Unauthorized")
     return company_id
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    return verify_supabase_token(credentials.credentials)
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    cached_user = getattr(request.state, "current_user", None)
+    if isinstance(cached_user, dict):
+        return cached_user
+    user = verify_supabase_token(credentials.credentials)
+    request.state.current_user = user
+    return user
 
 def _parse_iso_datetime(value: str) -> datetime | None:
     if not value:
@@ -151,71 +169,35 @@ def verify_subscription(user: dict = Depends(get_current_user), request: Request
     user_id = user.get("id") or user.get("auth_id")
     if not user_id or not supabase:
         return user
+    if request is not None:
+        cached_user = getattr(request.state, "subscription_user", None)
+        if isinstance(cached_user, dict):
+            return cached_user
 
     is_company = bool(user.get("company_name"))
-    sub_resp = None
-    try:
-        if is_company:
-            company_id = user.get("company_id")
-            if company_id:
-                sub_resp = (
-                    supabase
-                    .table("subscriptions")
-                    .select("*")
-                    .eq("company_id", company_id)
-                    .order("updated_at", desc=True)
-                    .execute()
-                )
-        else:
-            sub_resp = (
-                supabase
-                .table("subscriptions")
-                .select("*")
-                .eq("user_id", user_id)
-                .order("updated_at", desc=True)
-                .execute()
-            )
-    except Exception:
-        sub_resp = None
-
-    def _is_subscription_active(sub: dict) -> bool:
-        status = (sub.get("status") or "").lower()
-        if status not in ["active", "trialing"]:
-            return False
-        expires_at = _parse_iso_datetime(sub.get("current_period_end"))
-        if not expires_at:
-            return True
-        try:
-            return datetime.now(timezone.utc) <= expires_at
-        except TypeError:
-            return True
-
-    subs = list(sub_resp.data or []) if sub_resp and sub_resp.data else []
-    active_subs = [s for s in subs if _is_subscription_active(s)]
-    sub = active_subs[0] if active_subs else (subs[0] if subs else None)
+    sub = None
+    if is_company:
+        company_id = user.get("company_id")
+        if company_id:
+            sub = fetch_latest_subscription_by("company_id", str(company_id))
+    else:
+        sub = fetch_latest_subscription_by("user_id", str(user_id))
     tier = sub.get("tier") if sub else "free"
     status = sub.get("status") if sub else "inactive"
     expires_at_raw = sub.get("current_period_end") if sub else None
     expires_at = _parse_iso_datetime(expires_at_raw)
 
-    is_active_status = status in ["active", "trialing"]
-    not_expired = True
-    if expires_at:
-        try:
-            not_expired = datetime.now(timezone.utc) <= expires_at
-        except TypeError:
-            # Safety fallback in case of malformed datetime objects.
-            not_expired = True
-
     user["subscription_tier"] = tier
     user["subscription_status"] = status
     user["subscription_expires_at"] = expires_at_raw
     user["subscription_id"] = sub.get("id") if sub else None
-    user["is_subscription_active"] = bool(is_active_status and not_expired)
+    user["is_subscription_active"] = bool(is_active_subscription(sub))
 
     if not user["is_subscription_active"] and tier == "free":
         user["subscription_status"] = "free"
 
+    if request is not None:
+        request.state.subscription_user = user
     return user
 
 def verify_csrf_token_header(request: Request, user: dict) -> bool:

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 
 from ..core.database import supabase
+
+_SUBSCRIPTION_CACHE_TTL_SECONDS = 30
+_SUBSCRIPTION_CACHE: dict[tuple[str, str], tuple[datetime, dict | None]] = {}
 
 
 def parse_iso_datetime(value: str) -> datetime | None:
@@ -33,6 +37,13 @@ def is_active_subscription(sub: dict | None) -> bool:
 def fetch_latest_subscription_by(column: str, value: str) -> dict | None:
     if not supabase or not value:
         return None
+    key = (str(column or ""), str(value or ""))
+    now = datetime.now(timezone.utc)
+    cached = _SUBSCRIPTION_CACHE.get(key)
+    if cached and cached[0] > now:
+        return deepcopy(cached[1]) if cached[1] else None
+    if cached:
+        _SUBSCRIPTION_CACHE.pop(key, None)
     try:
         resp = (
             supabase
@@ -43,9 +54,18 @@ def fetch_latest_subscription_by(column: str, value: str) -> dict | None:
             .limit(1)
             .execute()
         )
-        return resp.data[0] if resp.data else None
+        value_out = resp.data[0] if resp.data else None
+        _SUBSCRIPTION_CACHE[key] = (now + timedelta(seconds=_SUBSCRIPTION_CACHE_TTL_SECONDS), deepcopy(value_out) if value_out else None)
+        return deepcopy(value_out) if value_out else None
     except Exception:
         return None
+
+
+def invalidate_subscription_cache(column: str | None = None, value: str | None = None) -> None:
+    if column is not None and value is not None:
+        _SUBSCRIPTION_CACHE.pop((str(column), str(value)), None)
+        return
+    _SUBSCRIPTION_CACHE.clear()
 
 
 def user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:

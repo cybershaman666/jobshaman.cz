@@ -60,10 +60,6 @@ def _geo_from_ip(ip: str) -> Dict[str, Any]:
                 "country_code": payload.get("country"),
                 "region": payload.get("region"),
                 "city": payload.get("city"),
-                "org": payload.get("org"),
-                "asn": payload.get("asn"),
-                "latitude": payload.get("latitude"),
-                "longitude": payload.get("longitude"),
             }
     except Exception:
         data = {}
@@ -92,7 +88,6 @@ def _parse_user_agent(ua_raw: str) -> Dict[str, Any]:
         "os_version": str(ua.os.version_string or ""),
         "browser": str(ua.browser.family or ""),
         "browser_version": str(ua.browser.version_string or ""),
-        "ua": ua_raw[:256],
     }
 
 
@@ -116,17 +111,11 @@ async def track_analytics_event(payload: AnalyticsEvent, request: Request):
     # 2. Extract Client IP
     client_ip = _extract_client_ip(request)
     if client_ip:
-        metadata.setdefault("ip", client_ip)
-        
         # 3. Only do heavy Geo Lookup if we don't have country yet or want full details
         if not metadata.get("country_code") or metadata.get("country_code") == "XX":
             geo = _geo_from_ip(client_ip)
             if geo:
                 metadata.update({k: v for k, v in geo.items() if v})
-
-    # Debug: log headers if everything failed
-    if not metadata.get("country_code"):
-        print(f"DEBUG: Geo failed for IP {client_ip}. Headers: {dict(headers)}")
 
     # 4. Parse User Agent
     ua_raw = headers.get("user-agent", "")

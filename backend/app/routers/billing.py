@@ -5,6 +5,7 @@ from ..core.security import get_current_user, verify_subscription, verify_csrf_t
 from ..models.requests import BillingVerificationRequest
 from ..core.database import supabase
 from ..services.email import send_email
+from ..services.subscription_access import invalidate_subscription_cache
 from ..utils.helpers import now_iso
 from datetime import datetime, timezone, timedelta
 
@@ -284,4 +285,8 @@ async def cancel_subscription(request: Request, user: dict = Depends(verify_subs
         except: pass
 
     supabase.table("subscriptions").update({"status": "canceled", "canceled_at": now_iso()}).eq("id", sub["id"]).execute()
+    if is_company:
+        invalidate_subscription_cache("company_id", company_id)
+    else:
+        invalidate_subscription_cache("user_id", user_id)
     return {"status": "success"}

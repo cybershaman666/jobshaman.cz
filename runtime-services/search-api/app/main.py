@@ -91,7 +91,10 @@ async def add_cors_on_error(request: Request, call_next):
         return await call_next(request)
     except HTTPException as exc:
         origin = request.headers.get("origin")
-        response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+        detail = exc.detail
+        if exc.status_code >= 500 and not EXPOSE_DEBUG_ERRORS:
+            detail = "Internal Server Error"
+        response = JSONResponse({"detail": detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
         if _is_allowed_origin(origin):
             response.headers["Access-Control-Allow-Origin"] = _normalize_origin(origin)
             response.headers["Vary"] = "Origin"
