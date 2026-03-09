@@ -121,10 +121,72 @@ const hasDedicatedSearchRuntime = (): boolean => {
     return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
 };
 
-// Global deduper helper to prevent "duplicate key" React warnings
+const normalizeDedupText = (value?: string | null): string =>
+    String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+const normalizeJobUrl = (value?: string | null): string => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+
+    try {
+        const url = new URL(raw);
+        url.hash = '';
+        const pathname = url.pathname.replace(/\/+$/, '') || '/';
+        return `${url.origin.toLowerCase()}${pathname}${url.search}`;
+    } catch {
+        return raw.toLowerCase().replace(/\/+$/, '');
+    }
+};
+
+const getJobDedupKeys = (job: Job): string[] => {
+    const keys = new Set<string>();
+    const normalizedId = normalizeDedupText(job.id);
+    if (normalizedId) {
+        keys.add(`id:${normalizedId}`);
+    }
+
+    const normalizedUrl = normalizeJobUrl(job.url);
+    if (normalizedUrl) {
+        keys.add(`url:${normalizedUrl}`);
+    }
+
+    const title = normalizeDedupText(job.title);
+    const company = normalizeDedupText(job.company);
+    const location = normalizeDedupText(job.location);
+    const source = normalizeDedupText(job.source);
+
+    if (title && company) {
+        keys.add(`role:${title}|${company}|${location}`);
+        if (normalizedUrl) {
+            keys.add(`role-url:${title}|${company}|${normalizedUrl}`);
+        }
+        if (source) {
+            keys.add(`role-source:${title}|${company}|${location}|${source}`);
+        }
+    }
+
+    return Array.from(keys);
+};
+
+// Global deduper helper to prevent repeated logical listings in feed and React key warnings.
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
-    const seen = new Set(existingJobs.map(j => j.id));
-    return [...existingJobs, ...newJobs.filter(j => !seen.has(j.id))];
+    const deduped: Job[] = [];
+    const seen = new Set<string>();
+
+    const pushIfUnique = (job: Job) => {
+        const dedupKeys = getJobDedupKeys(job);
+        const isDuplicate = dedupKeys.some((key) => seen.has(key));
+        if (isDuplicate) return;
+        dedupKeys.forEach((key) => seen.add(key));
+        deduped.push(job);
+    };
+
+    existingJobs.forEach(pushIfUnique);
+    newJobs.forEach(pushIfUnique);
+    return deduped;
 };
 
 const normalizeContractTypeFilter = (value: string): string => {
