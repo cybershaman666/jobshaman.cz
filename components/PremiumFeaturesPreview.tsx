@@ -144,10 +144,10 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
             <div>
               <p className="text-slate-600 dark:text-slate-300 mb-1">{copy.priceLine}</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {price.eurMonthlyLabel} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+                {price.eurLabel} <span className="text-lg text-slate-500 dark:text-slate-400">{price.billingLabel}</span>
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
+                {`≈ ${price.czkLabel} / ${price.plnLabel}`}
               </p>
             </div>
 
@@ -294,10 +294,10 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
               {t('premium.price_access_all')}
             </p>
             <p className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-              {price.eurMonthlyLabel} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+              {price.eurLabel} <span className="text-lg text-slate-500 dark:text-slate-400">{price.billingLabel}</span>
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
+              {`≈ ${price.czkLabel} / ${price.plnLabel}`}
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               {t('premium.cancel_anytime')}

@@ -278,7 +278,7 @@ _DIALOGUE_TERMINAL_STATUSES: set[str] = {
 }
 _CANDIDATE_TIER_DIALOGUE_LIMITS: dict[str, int] = {
     "free": 3,
-    "premium": 10,
+    "premium": 25,
 }
 _DIALOGUE_RESPONSE_TIMEOUT_HOURS: int = 72
 _ROLE_DIALOGUE_PREVIEW_LIMIT: int = max(1, int(os.getenv("ROLE_DIALOGUE_PREVIEW_LIMIT", "25")))

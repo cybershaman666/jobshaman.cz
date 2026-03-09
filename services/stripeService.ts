@@ -17,7 +17,7 @@ const API_URL = BILLING_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://l
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium' for personal users (14.99 EUR/month), 'starter'/'growth'/'professional' for companies
+ * @param tier 'premium' for personal users (14.99 EUR one-time / 2 months), 'starter'/'growth'/'professional' for companies
  * @param userId The ID of the user or company to associate with the payment
  */
 export const redirectToCheckout = async (tier: 'premium' | 'starter' | 'growth' | 'professional', userId: string) => {

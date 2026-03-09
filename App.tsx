@@ -2114,6 +2114,7 @@ export default function App() {
                                         handleJobSelect={handleJobSelect}
                                         handleToggleSave={handleToggleSave}
                                         onOpenProfile={() => setViewState(ViewState.PROFILE)}
+                                        onOpenAuth={() => handleAuthAction('register')}
                                         onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
                                     />
                                 </div>
@@ -2167,6 +2168,11 @@ export default function App() {
                     discoverySearchMode={discoverySearchMode}
                     onOpenInsights={handleInsightsOpen}
                     setDiscoverySearchMode={setDiscoverySearchMode}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    filterCity={filterCity}
+                    setFilterCity={setFilterCity}
+                    performSearch={performSearch}
                     onOpenDiscoverySearch={() => {
                         userIntentionallyClickedListRef.current = true;
                         setDiscoverySearchMode(true);

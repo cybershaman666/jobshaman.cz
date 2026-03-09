@@ -109,7 +109,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     {t('common.close', { defaultValue: 'Zavřít' })}
                 </button>
 
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                     <div className="app-modal-surface space-y-5 border-b px-6 py-6 lg:rounded-none lg:border-b-0 lg:border-r lg:border-l-0 lg:border-t-0 lg:px-7 lg:py-7">
                         <div className="space-y-4">
                             <span className="app-modal-kicker">
@@ -145,55 +145,57 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                         </div>
                     </div>
 
-                    <div
-                        className="m-4 rounded-[calc(var(--radius-xl)+4px)] border border-amber-200/80 p-5 shadow-[0_24px_60px_-40px_rgba(217,119,6,0.55)] lg:m-6 lg:ml-0"
-                        style={{
-                            background: 'linear-gradient(180deg, rgba(255, 247, 224, 0.98), rgba(255, 255, 255, 0.98))'
-                        }}
-                    >
-                        <div className="space-y-4">
-                            <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
-                                <CheckCircle2 size={12} />
-                                {featureName}
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium text-slate-600">{isCsLike ? 'Premium přidá navíc' : 'Premium adds'}</div>
-                                <div className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                                    {price.eurMonthlyLabel}
-                                    <span className="ml-2 text-base font-medium text-slate-600">/ {t('financial.per_month')}</span>
+                    <div className="app-modal-surface border-t px-4 py-4 lg:rounded-none lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:px-6 lg:py-6">
+                        <div
+                            className="rounded-[calc(var(--radius-xl)+4px)] border border-amber-200/80 p-5 shadow-[0_24px_60px_-40px_rgba(217,119,6,0.55)]"
+                            style={{
+                                background: 'linear-gradient(180deg, rgba(255, 247, 224, 0.98), rgba(255, 255, 255, 0.98))'
+                            }}
+                        >
+                            <div className="space-y-4">
+                                <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
+                                    <CheckCircle2 size={12} />
+                                    {featureName}
                                 </div>
-                                <div className="mt-2 text-sm text-slate-600">
-                                    ≈ {price.czkMonthlyLabel} / {price.plnMonthlyLabel}
+                                <div>
+                                    <div className="text-sm font-medium text-slate-600">{isCsLike ? 'Premium přidá navíc' : 'Premium adds'}</div>
+                                    <div className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
+                                        {price.eurLabel}
+                                        <span className="ml-2 text-base font-medium text-slate-600">{price.billingLabel}</span>
+                                    </div>
+                                    <div className="mt-2 text-sm text-slate-600">
+                                        ≈ {price.czkLabel} / {price.plnLabel}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="rounded-[var(--radius-xl)] border border-amber-200/80 bg-white p-4">
+                                <div className="rounded-[var(--radius-xl)] border border-amber-200/80 bg-white p-4">
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-semibold text-slate-950">
+                                            {isCsLike ? 'Proč to dává smysl' : 'Why it matters'}
+                                        </div>
+                                        <p className="text-sm leading-6 text-slate-700">
+                                            {copy.note}
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
-                                    <div className="text-sm font-semibold text-slate-950">
-                                        {isCsLike ? 'Proč to dává smysl' : 'Why it matters'}
-                                    </div>
-                                    <p className="text-sm leading-6 text-slate-700">
-                                        {copy.note}
-                                    </p>
+                                    {copy.featureGroups.map((item) => (
+                                        <div key={item.title} className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-white px-3 py-2.5">
+                                            <CheckCircle2 size={16} className="mt-0.5 text-[var(--accent-strong)]" />
+                                            <span className="text-sm text-slate-700">{item.title}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
 
-                            <div className="space-y-2">
-                                {copy.featureGroups.map((item) => (
-                                    <div key={item.title} className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-white px-3 py-2.5">
-                                        <CheckCircle2 size={16} className="mt-0.5 text-[var(--accent-strong)]" />
-                                        <span className="text-sm text-slate-700">{item.title}</span>
-                                    </div>
-                                ))}
+                                <button type="button" onClick={handleCheckout} className="app-button-primary w-full justify-center">
+                                    {copy.primary}
+                                    <ArrowRight size={16} />
+                                </button>
+                                <button type="button" onClick={onClose} className="app-button-secondary w-full justify-center">
+                                    {copy.later}
+                                </button>
                             </div>
-
-                            <button type="button" onClick={handleCheckout} className="app-button-primary w-full justify-center">
-                                {copy.primary}
-                                <ArrowRight size={16} />
-                            </button>
-                            <button type="button" onClick={onClose} className="app-button-secondary w-full justify-center">
-                                {copy.later}
-                            </button>
                         </div>
                     </div>
                 </div>

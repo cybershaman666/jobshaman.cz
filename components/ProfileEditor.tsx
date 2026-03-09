@@ -832,7 +832,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   }}
                   className={`${profilePrimaryButtonClass} inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm`}
                 >
-                  {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                  {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
                 </button>
               </div>
             )}
@@ -1381,7 +1381,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               }}
               className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
             >
-              {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+              {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
             </button>
           </div>
         </div>
@@ -3070,7 +3070,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         }}
                         className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
                       >
-                        {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                        {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
                       </button>
                     </div>
                   </div>
@@ -3118,7 +3118,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       }}
                       className={`${profilePrimaryButtonClass} w-full px-3 py-2 text-sm sm:w-auto`}
                     >
-                      {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                      {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
                     </button>
                   </div>
                 )}

@@ -29,7 +29,8 @@
   --shadow-card: 0 28px 60px -38px rgba(15, 23, 42, 0.24);
   --shadow-overlay: 0 35px 90px -48px rgba(15, 23, 42, 0.28);
   --app-header-offset: 6.5rem;
-  --app-sticky-stack-offset: calc(var(--app-header-offset) + 7.35rem);
+  --app-toolbar-offset: calc(var(--app-header-offset) + 2.5rem);
+  --app-sticky-stack-offset: calc(var(--app-toolbar-offset) + 7.35rem);
   --radius-sm: 0.85rem;
   --radius-md: 1.1rem;
   --radius-lg: 1.35rem;
@@ -239,8 +240,7 @@ body {
   }
 
   .app-modal-topline {
-    height: 4px;
-    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.76), rgba(15, 157, 122, 0.72));
+    display: none;
   }
 
   .app-modal-kicker {

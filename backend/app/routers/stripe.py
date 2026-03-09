@@ -14,7 +14,7 @@ from ..core.security import get_current_user, verify_csrf_token_header
 from ..models.requests import CheckoutRequest
 from ..core.database import supabase
 from ..utils.helpers import now_iso
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter()
 
@@ -59,7 +59,7 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
         price_id = prices.get(backend_tier)
         if not price_id:
             raise HTTPException(status_code=500, detail=f"Stripe price not configured for tier: {backend_tier}")
-        mode = "subscription"
+        mode = "payment" if backend_tier == "premium" else "subscription"
 
         checkout_session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
@@ -103,11 +103,13 @@ async def stripe_webhook(request: Request):
         if supabase:
             if tier == "premium":
                 # Logic for candidates
+                premium_end = (datetime.now(timezone.utc) + timedelta(days=60)).isoformat()
                 data = {
                     "user_id": user_id,
                     "tier": "premium",
                     "status": "active",
-                    "stripe_subscription_id": session.get("subscription"),
+                    "stripe_subscription_id": session.get("subscription") or session.get("payment_intent") or session.get("id"),
+                    "current_period_end": premium_end,
                     "updated_at": now_iso(),
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="user_id").execute()

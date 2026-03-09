@@ -69,6 +69,7 @@ interface ChallengeMarketplaceProps {
   handleToggleSave: (jobId: string) => void;
   onOpenPremium: (featureLabel: string) => void;
   onOpenProfile: () => void;
+  onOpenAuth: () => void;
 }
 
 const ROLE_TYPES = [
@@ -248,7 +249,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   handleJobSelect,
   handleToggleSave,
   onOpenPremium,
-  onOpenProfile
+  onOpenProfile,
+  onOpenAuth
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
@@ -303,7 +305,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       intentPromptCta: 'Upravit profil',
       remote: 'Práce z domu',
       commute: 'Dojíždění',
+      commuteInactive: 'Bez adresy',
       commuteHint: 'Bez adresy zůstává výpočet dojezdu vypnutý, ale práce na dálku se pořád zobrazí správně.',
+      commuteProfileCta: 'Doplnit adresu do profilu',
+      commuteRegisterCta: 'Registrovat se a doplnit adresu',
       scope: 'Záběr',
       roleType: 'Typ spolupráce',
       experience: 'Zkušenost',
@@ -403,7 +408,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       intentPromptCta: 'Upraviť profil',
       remote: 'Práca z domu',
       commute: 'Dochádzanie',
+      commuteInactive: 'Bez adresy',
       commuteHint: 'Bez adresy zostáva výpočet dochádzania vypnutý, ale práca na diaľku sa stále zobrazí správne.',
+      commuteProfileCta: 'Doplniť adresu do profilu',
+      commuteRegisterCta: 'Registrovať sa a doplniť adresu',
       scope: 'Záber',
       roleType: 'Typ spolupráce',
       experience: 'Skúsenosť',
@@ -503,7 +511,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       intentPromptCta: 'Profil öffnen',
       remote: 'Homeoffice',
       commute: 'Pendeln',
+      commuteInactive: 'Ohne Adresse',
       commuteHint: 'Ohne Adresse bleibt die Pendelberechnung aus, Remote-Rollen werden aber weiterhin korrekt angezeigt.',
+      commuteProfileCta: 'Adresse im Profil ergänzen',
+      commuteRegisterCta: 'Registrieren und Adresse ergänzen',
       scope: 'Umfang',
       roleType: 'Arbeitsform',
       experience: 'Erfahrung',
@@ -604,7 +615,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       intentPromptCta: 'Edytuj profil',
       remote: 'Praca z domu',
       commute: 'Dojazd',
+      commuteInactive: 'Bez adresu',
       commuteHint: 'Bez adresu wyliczenie dojazdu pozostaje wyłączone, ale role zdalne nadal pokazują się poprawnie.',
+      commuteProfileCta: 'Uzupełnij adres w profilu',
+      commuteRegisterCta: 'Zarejestruj się i uzupełnij adres',
       scope: 'Zakres',
       roleType: 'Forma współpracy',
       experience: 'Doświadczenie',
@@ -707,7 +721,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         intentPromptCta: 'Open profile',
         remote: 'Home office',
         commute: 'Commute',
+        commuteInactive: 'No address yet',
         commuteHint: 'Without an address commute heuristics stay off, but remote roles still render correctly.',
+        commuteProfileCta: 'Add address to profile',
+        commuteRegisterCta: 'Register and add address',
         scope: 'Market scope',
         roleType: 'Role type',
         experience: 'Experience',
@@ -809,8 +826,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (userProfile.isLoggedIn && hasPremiumAccess) {
       return {
         active: dialogueCapacity?.active || 0,
-        limit: 10,
-        remaining: Math.max(0, 10 - (dialogueCapacity?.active || 0)),
+        limit: 25,
+        remaining: Math.max(0, 25 - (dialogueCapacity?.active || 0)),
       };
     }
     return dialogueCapacity;
@@ -1127,7 +1144,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         }
       />
 
-      <Toolbar sticky className="space-y-4">
+      <Toolbar className="space-y-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto]">
           <div className="app-command-field">
             <Search size={16} className="text-[var(--text-faint)]" />
@@ -1156,7 +1173,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             {copy.search}
           </button>
         </div>
+      </Toolbar>
 
+      <Toolbar sticky>
         <div className="flex flex-wrap items-center gap-2">
           <FilterChip active={lane === 'challenges'} onClick={() => setLane('challenges')}>
             {copy.laneChallenges}
@@ -1182,8 +1201,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       </Toolbar>
 
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="xl:sticky xl:top-[var(--app-sticky-stack-offset)] xl:self-start">
-          <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-1.5rem)] xl:overflow-y-auto xl:pr-2 xl:pb-4">
+        <div className="xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem)] xl:self-start">
+          <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
             <SurfaceCard className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1317,7 +1336,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       {copy.commute}
                     </FilterChip>
                     <FilterChip active={!enableCommuteFilter} onClick={() => setEnableCommuteFilter(false)}>
-                      {hasCommuteProfile ? copy.allWorkModels : copy.commuteHint}
+                      {hasCommuteProfile ? copy.allWorkModels : copy.commuteInactive}
                     </FilterChip>
                   </div>
                   {enableCommuteFilter ? (
@@ -1336,7 +1355,18 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       />
                     </label>
                   ) : (
-                    <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.commuteHint}</p>
+                    <div className="space-y-3">
+                      <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.commuteHint}</p>
+                      {!hasCommuteProfile ? (
+                        <button
+                          type="button"
+                          onClick={userProfile.isLoggedIn ? onOpenProfile : onOpenAuth}
+                          className="app-button-secondary"
+                        >
+                          {userProfile.isLoggedIn ? copy.commuteProfileCta : copy.commuteRegisterCta}
+                        </button>
+                      ) : null}
+                    </div>
                   )}
                 </div>
               </FilterSection>

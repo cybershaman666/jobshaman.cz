@@ -3,6 +3,7 @@ import {
   Briefcase,
   ChevronDown,
   LogOut,
+  MapPin,
   Menu,
   Moon,
   Search,
@@ -39,6 +40,11 @@ interface AppHeaderProps {
   onOpenInsights?: () => void;
   onOpenDiscoverySearch?: () => void;
   setDiscoverySearchMode?: (active: boolean) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  filterCity: string;
+  setFilterCity: (city: string) => void;
+  performSearch: (term: string) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -63,7 +69,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   discoverySearchMode = false,
   onOpenInsights,
   onOpenDiscoverySearch,
-  setDiscoverySearchMode
+  setDiscoverySearchMode,
+  searchTerm,
+  setSearchTerm,
+  filterCity,
+  setFilterCity,
+  performSearch
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -283,10 +294,62 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const activePill = 'bg-[var(--accent-soft)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.18)]';
   const inactivePill = 'text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-white/70 border-transparent';
-  const searchPlaceholder = isCsLike
-    ? 'Hledat nabídky, firmy nebo důležité signály'
-    : 'Search roles, companies, or key signals';
-  const searchLabel = isCsLike ? 'Hledání a filtry' : 'Search and filters';
+  const searchUiCopy =
+    locale === 'cs'
+      ? {
+          label: 'Hledání a filtry',
+          searchPlaceholder: 'Hledat nabídky, firmy, typy rolí nebo důležité signály',
+          locationPlaceholder: 'Město, region, práce na dálku',
+          submit: 'Hledat',
+        }
+      : locale === 'sk'
+        ? {
+            label: 'Hľadanie a filtre',
+            searchPlaceholder: 'Hľadať ponuky, firmy, typy rolí alebo dôležité signály',
+            locationPlaceholder: 'Mesto, región, práca na diaľku',
+            submit: 'Hľadať',
+          }
+        : locale === 'de' || locale === 'at'
+          ? {
+              label: 'Suche und Filter',
+              searchPlaceholder: 'Rollen, Firmen, Arbeitsmodelle oder wichtige Signale suchen',
+              locationPlaceholder: 'Stadt, Region, Remote',
+              submit: 'Suchen',
+            }
+          : locale === 'pl'
+            ? {
+                label: 'Szukaj i filtruj',
+                searchPlaceholder: 'Szukaj ofert, firm, typów pracy lub ważnych sygnałów',
+                locationPlaceholder: 'Miasto, region, zdalnie',
+                submit: 'Szukaj',
+              }
+            : {
+                label: 'Search and filters',
+                searchPlaceholder: 'Search challenges, teams, role types, or signal words',
+                locationPlaceholder: 'City, region, remote',
+                submit: 'Search',
+              };
+
+  const submitDiscoverySearch = () => {
+    if (leaveDemoHandshakeRoute()) return;
+    if (isAdminRoute()) {
+      window.location.assign(`${getLocalePrefix()}/`);
+      return;
+    }
+    onIntentionalListClick?.();
+    setIsBlogOpen?.(false);
+    setSelectedBlogPostSlug?.(null);
+    setShowCompanyLanding(false);
+    setIsOnboardingCompany(false);
+    setSelectedJobId(null);
+    setDiscoveryLane?.('challenges');
+    setDiscoverySearchMode?.(true);
+    setViewState(ViewState.LIST);
+    performSearch(searchTerm);
+    window.setTimeout(() => {
+      document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full px-3 pt-2.5 sm:px-5 lg:px-6">
@@ -469,23 +532,42 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
               <div className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)] xl:block">
-                {searchLabel}
+                {searchUiCopy.label}
               </div>
-              <button
-                type="button"
-                onClick={onOpenDiscoverySearch}
-                className="app-command-field min-w-0 flex-1 justify-between"
-              >
-                <span className="inline-flex min-w-0 items-center gap-3">
+              <div className="grid min-w-0 flex-1 gap-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)_auto]">
+                <div className="app-command-field min-w-0">
                   <Search size={16} className="text-[var(--text-faint)]" />
-                  <span className="min-w-0 truncate text-left text-[var(--text-muted)]">
-                    {searchPlaceholder}
-                  </span>
-                </span>
-                <span className="rounded-md border border-[var(--border-subtle)] bg-white/70 px-2 py-1 font-mono text-[11px] text-[var(--text-faint)] dark:bg-white/5">
-                  /
-                </span>
-              </button>
+                  <input
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') submitDiscoverySearch();
+                    }}
+                    placeholder={searchUiCopy.searchPlaceholder}
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
+                  />
+                </div>
+                <div className="app-command-field min-w-0">
+                  <MapPin size={16} className="text-[var(--text-faint)]" />
+                  <input
+                    value={filterCity}
+                    onChange={(event) => setFilterCity(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') submitDiscoverySearch();
+                    }}
+                    placeholder={searchUiCopy.locationPlaceholder}
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={submitDiscoverySearch}
+                  className="app-button-primary min-w-[120px]"
+                >
+                  <Search size={16} />
+                  {searchUiCopy.submit}
+                </button>
+              </div>
             </div>
           </div>
 
