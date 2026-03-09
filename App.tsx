@@ -1768,9 +1768,10 @@ export default function App() {
         if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm' || normalizedPath === '/profil/jcfpm') {
             const queryParams = new URLSearchParams(window.location.search);
             const requestedSection = queryParams.get('section') || 'full';
+            const normalizedSection = requestedSection === 'basic' ? 'full' : requestedSection;
             const sectionParam = userProfile.subscription?.tier === 'premium'
-                ? requestedSection
-                : 'basic';
+                ? normalizedSection
+                : 'full';
 
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -2055,20 +2056,22 @@ export default function App() {
                         ) : (
                             <>
                                 {!discoverySearchMode ? (
-                                    <ChallengeHomeSections
-                                        hasNativeChallenges={hasNativeChallenges}
-                                        featuredChallenges={featuredChallenges}
-                                        importedJobs={featuredImportedJobs}
-                                        onOpenChallenge={handleJobSelect}
-                                        onSearchFocus={() => {
-                                            setDiscoverySearchMode(true);
-                                            window.setTimeout(() => {
-                                                document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                                focusDiscoverySearch();
-                                            }, 0);
-                                        }}
-                                        onOpenAuth={() => handleAuthAction('register')}
-                                    />
+                                    <div className="hidden md:block">
+                                        <ChallengeHomeSections
+                                            hasNativeChallenges={hasNativeChallenges}
+                                            featuredChallenges={featuredChallenges}
+                                            importedJobs={featuredImportedJobs}
+                                            onOpenChallenge={handleJobSelect}
+                                            onSearchFocus={() => {
+                                                setDiscoverySearchMode(true);
+                                                window.setTimeout(() => {
+                                                    document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                    focusDiscoverySearch();
+                                                }, 0);
+                                            }}
+                                            onOpenAuth={() => handleAuthAction('register')}
+                                        />
+                                    </div>
                                 ) : null}
                                 <div id="challenge-discovery">
                                     <ChallengeMarketplace

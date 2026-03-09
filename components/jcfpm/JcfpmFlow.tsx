@@ -577,7 +577,15 @@ export default function JcfpmFlow({
   const copy = FLOW_COPY[language] || FLOW_COPY.cs;
   const dimensions = buildDimensions(copy);
   const interludes = buildInterludes(copy);
-  const effectiveSection = isPremium ? section : 'basic';
+  const effectiveSection = section === 'basic' ? 'full' : (section || 'full');
+
+  const isSnapshotCompatible = (candidate: JcfpmSnapshotV1 | null, targetSection: string) => {
+    if (!candidate) return false;
+    const dimensionCount = Array.isArray(candidate.dimension_scores) ? candidate.dimension_scores.length : 0;
+    if (targetSection === 'deep_dive') return dimensionCount >= 6;
+    if (targetSection === 'full') return dimensionCount >= 12;
+    return dimensionCount > 0;
+  };
 
   // State
   const [items, setItems] = useState<JcfpmItem[]>([]);
@@ -708,7 +716,13 @@ export default function JcfpmFlow({
       return;
     }
 
-    if (!shouldForceStart && nextSnapshot && !hasDraft && effectiveSection !== 'deep_dive') {
+    if (
+      !shouldForceStart &&
+      nextSnapshot &&
+      !hasDraft &&
+      effectiveSection !== 'deep_dive' &&
+      isSnapshotCompatible(nextSnapshot, effectiveSection)
+    ) {
       setStatus('report');
       return;
     }
@@ -826,7 +840,6 @@ export default function JcfpmFlow({
     }
   };
 
-  // Check premium access
   // Rendering helpers
   const currentItem = items[currentIndex];
   const localizedItem = currentItem ? localizeItem(currentItem, language) : null;

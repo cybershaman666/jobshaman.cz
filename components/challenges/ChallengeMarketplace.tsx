@@ -261,6 +261,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
+  const [mobileSwipeIntroDismissed, setMobileSwipeIntroDismissed] = useState(false);
   const [usePersonalSetup, setUsePersonalSetup] = useState(true);
   const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
 
@@ -367,9 +368,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         'Personalizovaný JHI index',
         'Detailní report JCFPM testu'
       ],
+      mobileSwipeTitle: 'Rychlé procházení nabídek',
       mobileSwipe: 'Karty',
       mobileList: 'Seznam',
-      mobileSwipeBody: 'Na mobilu můžeš procházet nabídky tahem doleva nebo doprava.'
+      mobileSwipeBody: 'Na mobilu můžeš nabídky hned procházet tahem doleva nebo doprava. Detail si otevřeš klepnutím na kartu.',
+      mobileSwipeGuestBody: 'Pokud se zaregistruješ, ukládání a odmítnutí se ti budou pamatovat napříč relacemi.',
+      mobileSwipeRegister: 'Registrovat se',
+      mobileSwipeSkip: 'Raději klasický seznam'
     },
     sk: {
       eyebrow: 'Hľadanie',
@@ -470,9 +475,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         'Personalizovaný JHI index',
         'Detailný report JCFPM testu'
       ],
+      mobileSwipeTitle: 'Rýchle prechádzanie ponúk',
       mobileSwipe: 'Karty',
       mobileList: 'Zoznam',
-      mobileSwipeBody: 'Na mobile môžeš ponuky prechádzať ťahom doľava alebo doprava.'
+      mobileSwipeBody: 'Na mobile môžeš ponuky hneď prechádzať ťahom doľava alebo doprava. Detail otvoríš klepnutím na kartu.',
+      mobileSwipeGuestBody: 'Ak sa zaregistruješ, uloženia a odmietnutia sa ti budú pamätať naprieč reláciami.',
+      mobileSwipeRegister: 'Registrovať sa',
+      mobileSwipeSkip: 'Radšej klasický zoznam'
     },
     de: {
       eyebrow: 'Suche',
@@ -573,9 +582,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         'Personalisierter JHI-Index',
         'Detaillierter JCFPM-Bericht'
       ],
+      mobileSwipeTitle: 'Schnelles Durchgehen von Rollen',
       mobileSwipe: 'Karten',
       mobileList: 'Liste',
-      mobileSwipeBody: 'Auf dem Handy kannst du Rollen per Wischen nach links oder rechts durchgehen.'
+      mobileSwipeBody: 'Auf dem Handy kannst du Rollen sofort per Wischen nach links oder rechts durchgehen. Per Tipp öffnest du das Detail.',
+      mobileSwipeGuestBody: 'Wenn du dich registrierst, bleiben gespeicherte und abgelehnte Rollen zwischen Sitzungen erhalten.',
+      mobileSwipeRegister: 'Registrieren',
+      mobileSwipeSkip: 'Lieber klassische Liste'
     },
     at: {} as any,
     pl: {
@@ -677,9 +690,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         'Spersonalizowany indeks JHI',
         'Szczegółowy raport JCFPM'
       ],
+      mobileSwipeTitle: 'Szybkie przeglądanie ofert',
       mobileSwipe: 'Karty',
       mobileList: 'Lista',
-      mobileSwipeBody: 'Na telefonie możesz przeglądać oferty przesunięciem w lewo albo w prawo.'
+      mobileSwipeBody: 'Na telefonie możesz od razu przeglądać oferty przesunięciem w lewo albo w prawo. Dotknięcie karty otwiera szczegóły.',
+      mobileSwipeGuestBody: 'Jeśli się zarejestrujesz, zapisane i odrzucone oferty będą pamiętane między sesjami.',
+      mobileSwipeRegister: 'Zarejestruj się',
+      mobileSwipeSkip: 'Wolę klasyczną listę'
     },
     en: {
         eyebrow: 'Discovery cockpit',
@@ -783,9 +800,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           'Personalized JHI score',
           'Detailed JCFPM report'
         ],
+        mobileSwipeTitle: 'Fast role browsing',
         mobileSwipe: 'Cards',
         mobileList: 'List',
-        mobileSwipeBody: 'On mobile you can browse roles by swiping left or right.'
+        mobileSwipeBody: 'On mobile you can start browsing roles immediately by swiping left or right. Tap the card to open details.',
+        mobileSwipeGuestBody: 'If you register, saved and rejected roles can persist across sessions.',
+        mobileSwipeRegister: 'Register',
+        mobileSwipeSkip: 'Prefer classic list'
       }
   } as const)[language === 'at' ? 'de' : language];
 
@@ -1126,25 +1147,29 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     }
   };
 
+  const showMobileSwipeIntro = mobileViewMode === 'swipe' && (!userProfile.isLoggedIn || !mobileSwipeIntroDismissed);
+
   return (
     <section className="space-y-5">
-      <PageHeader
-        eyebrow={copy.eyebrow}
-        title={copy.title}
-        body={copy.body}
-        actions={
-          <>
-            <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
-              <Sparkles size={12} />
-              {Math.max(0, totalCount)} {copy.results}
-            </div>
-            <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
-              <ShieldCheck size={12} />
-              {copy.fitNote}
-            </div>
-          </>
-        }
-      />
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow={copy.eyebrow}
+          title={copy.title}
+          body={copy.body}
+          actions={
+            <>
+              <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
+                <Sparkles size={12} />
+                {Math.max(0, totalCount)} {copy.results}
+              </div>
+              <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
+                <ShieldCheck size={12} />
+                {copy.fitNote}
+              </div>
+            </>
+          }
+        />
+      </div>
 
       <Toolbar className="space-y-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto]">
@@ -1203,7 +1228,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       </Toolbar>
 
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
+        <div className="hidden xl:block xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
           <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem-6px)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
             <SurfaceCard className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1460,8 +1485,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <SurfaceCard className="space-y-4 xl:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
-                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.laneChallenges}</div>
+                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.mobileSwipeTitle}</div>
                 <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.mobileSwipeBody}</p>
+                {!userProfile.isLoggedIn && showMobileSwipeIntro ? (
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.mobileSwipeGuestBody}</p>
+                ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
                 <FilterChip active={mobileViewMode === 'swipe'} onClick={() => setMobileViewMode('swipe')}>
@@ -1472,9 +1500,53 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 </FilterChip>
               </div>
             </div>
+            {!userProfile.isLoggedIn && showMobileSwipeIntro ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  className="app-button-primary justify-center"
+                  onClick={onOpenAuth}
+                >
+                  <Sparkles size={16} />
+                  {copy.mobileSwipeRegister}
+                </button>
+                <button
+                  type="button"
+                  className="app-button-secondary justify-center"
+                  onClick={() => {
+                    setMobileSwipeIntroDismissed(true);
+                    setMobileViewMode('list');
+                  }}
+                >
+                  {copy.mobileSwipeSkip}
+                </button>
+              </div>
+            ) : null}
           </SurfaceCard>
 
-          <SurfaceCard className="overflow-hidden border-[rgba(var(--accent-rgb),0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(249,250,251,0.96))] shadow-[0_30px_70px_-52px_rgba(15,23,42,0.35)] dark:bg-[linear-gradient(145deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]">
+          {mobileViewMode === 'swipe' ? (
+            <div className="xl:hidden">
+              <MobileSwipeJobBrowser
+                jobs={prioritizedJobsInLane}
+                swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
+                savedJobIds={savedJobIds}
+                onToggleSave={handleToggleSave}
+                onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
+                onOpenDetails={handleJobSelect}
+                onSwitchToList={() => {
+                  setMobileSwipeIntroDismissed(true);
+                  setMobileViewMode('list');
+                }}
+                isLoadingMore={loadingMore}
+                isLoading={loading}
+                hasMore={hasMore}
+                onLoadMore={loadMoreJobs}
+                theme={theme}
+              />
+            </div>
+          ) : null}
+
+          <SurfaceCard className="hidden overflow-hidden border-[rgba(var(--accent-rgb),0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(249,250,251,0.96))] shadow-[0_30px_70px_-52px_rgba(15,23,42,0.35)] lg:block dark:bg-[linear-gradient(145deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]">
             <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.2fr)_360px] lg:p-5">
               <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)]">
                 <div className="space-y-4">
@@ -1556,25 +1628,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </div>
             </div>
           </SurfaceCard>
-
-          {mobileViewMode === 'swipe' ? (
-            <div className="xl:hidden">
-              <MobileSwipeJobBrowser
-                jobs={prioritizedJobsInLane}
-                swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
-                savedJobIds={savedJobIds}
-                onToggleSave={handleToggleSave}
-                onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
-                onOpenDetails={handleJobSelect}
-                onSwitchToList={() => setMobileViewMode('list')}
-                isLoadingMore={loadingMore}
-                isLoading={loading}
-                hasMore={hasMore}
-                onLoadMore={loadMoreJobs}
-                theme={theme}
-              />
-            </div>
-          ) : null}
 
           <div className={cn(mobileViewMode === 'swipe' && 'hidden xl:block')}>
           <SurfaceCard className="space-y-4">
