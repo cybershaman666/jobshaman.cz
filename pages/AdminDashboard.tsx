@@ -15,14 +15,12 @@ import {
   Plus,
   RefreshCcw,
   Search,
-  Settings,
   Sparkles,
   Users,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { BACKEND_URL } from '../constants';
 import {
-  adminSearch,
   createAdminCrmLead,
   createAdminFounderBoardComment,
   createAdminFounderBoardCard,
@@ -37,7 +35,6 @@ import {
   getAdminNotifications,
   getAdminSubscriptionAudit,
   getAdminStats,
-  getAdminSubscriptions,
   getAdminUserDigest,
   updateAdminCrmLead,
   updateAdminFounderBoardCard,
@@ -67,7 +64,7 @@ interface AdminDashboardProps {
   userProfile: UserProfile;
 }
 
-type ViewMode = 'overview' | 'operations' | 'crm' | 'workspace' | 'jcfpm';
+type ViewMode = 'overview' | 'crm' | 'workspace' | 'jcfpm';
 type CrmEntityKind = 'company' | 'user' | 'lead';
 
 type CrmRecord = {
@@ -104,16 +101,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [stats, setStats] = useState<any | null>(null);
   const [aiQuality, setAiQuality] = useState<any | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
-
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [totalSubscriptions, setTotalSubscriptions] = useState(0);
-  const [subFilters, setSubFilters] = useState({ q: '', tier: '', status: '', kind: '', limit: 25, offset: 0 });
-  const [edits, setEdits] = useState<Record<string, any>>({});
-
-  const [searchKind, setSearchKind] = useState<'company' | 'user'>('company');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [jobRolesQuery, setJobRolesQuery] = useState('');
@@ -263,32 +250,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
-  const loadSubscriptions = async () => {
-    try {
-      const data = await getAdminSubscriptions({
-        q: subFilters.q || undefined,
-        tier: subFilters.tier || undefined,
-        status: subFilters.status || undefined,
-        kind: (subFilters.kind as any) || undefined,
-        limit: subFilters.limit,
-        offset: subFilters.offset,
-      });
-      setSubscriptions(data.items || []);
-      setTotalSubscriptions(data.count || 0);
-      const nextEdits: Record<string, any> = {};
-      (data.items || []).forEach((sub: any) => {
-        nextEdits[sub.id] = {
-          tier: sub.tier || 'free',
-          status: sub.status || 'inactive',
-          set_trial_days: '',
-        };
-      });
-      setEdits(nextEdits);
-    } catch (err: any) {
-      handleAuthError(err?.message || 'Failed to load subscriptions');
-    }
-  };
-
   const loadJobRoles = async () => {
     try {
       const data = await getAdminJobRoles({ q: jobRolesQuery || undefined, limit: 200, offset: 0 });
@@ -366,14 +327,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         ? getAdminCrmLeads({ q: normalizedQuery || undefined, limit: 120, offset: 0 })
         : Promise.resolve({ items: [] as any[] });
 
-      const lookupPromises: Promise<any>[] = [];
-      if (normalizedQuery.length >= 2) {
-        if (crmKind === 'all' || crmKind === 'lead') {
-          lookupPromises.push(adminSearch(normalizedQuery, 'lead' as any));
-        }
-      }
-
-      const [entitiesData, leadsData, ...lookupData] = await Promise.all([entitiesPromise, leadsPromise, ...lookupPromises]);
+      const [entitiesData, leadsData] = await Promise.all([entitiesPromise, leadsPromise]);
       const entityRows: CrmRecord[] = (entitiesData?.items || []).map((item: any) => toCrmRecordFromEntity(item));
       const leadRows: CrmRecord[] = (leadsData?.items || []).map((lead: any) => toCrmRecordFromLead(lead));
       const entityToRecord = new Map<string, CrmRecord>();
@@ -383,26 +337,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       });
       leadRows.forEach((row) => {
         entityToRecord.set(`${row.entityKind}:${row.entityId}`, row);
-      });
-
-      lookupData.forEach((packet) => {
-        (packet?.items || []).forEach((item: any) => {
-          const entityKind = item.kind === 'company' ? 'company' : item.kind === 'lead' ? 'lead' : 'user';
-          const entityId = String(item.id || '');
-          if (!entityId) return;
-          const mapKey = `${entityKind}:${entityId}`;
-          if (entityToRecord.has(mapKey)) return;
-          entityToRecord.set(mapKey, {
-            key: `lookup:${entityKind}:${entityId}`,
-            entityKind,
-            entityId,
-            label: item.label || entityId,
-            secondary: item.secondary || '',
-            subscription: null,
-            subscriptionId: null,
-            source: 'lookup',
-          });
-        });
       });
 
       const records = Array.from(entityToRecord.values()).sort((a, b) => {
@@ -427,11 +361,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (!userProfile?.isLoggedIn) return;
     loadOverview();
   }, [userProfile?.isLoggedIn]);
-
-  useEffect(() => {
-    if (!userProfile?.isLoggedIn || view !== 'operations') return;
-    loadSubscriptions();
-  }, [userProfile?.isLoggedIn, view, subFilters.q, subFilters.tier, subFilters.status, subFilters.kind, subFilters.limit, subFilters.offset]);
 
   useEffect(() => {
     if (!userProfile?.isLoggedIn || view !== 'jcfpm') return;
@@ -738,37 +667,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     URL.revokeObjectURL(csvUrl);
   };
 
-  const handleSearch = async () => {
-    if (searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      const data = await adminSearch(searchQuery.trim(), searchKind);
-      setSearchResults(data.items || []);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleSaveSubscription = async (sub: any) => {
-    const edit = edits[sub.id] || {};
-    const payload: any = { subscription_id: sub.id };
-    if (edit.tier && edit.tier !== sub.tier) payload.tier = edit.tier;
-    if (edit.status && edit.status !== sub.status) payload.status = edit.status;
-    if (edit.set_trial_days) payload.set_trial_days = Number(edit.set_trial_days);
-    if (Object.keys(payload).length <= 1) return;
-    try {
-      await updateAdminSubscription(payload);
-      await loadSubscriptions();
-    } catch (err: any) {
-      handleAuthError(err?.message || 'Failed to save subscription');
-    }
-  };
-
   const handleCrmSaveSubscription = async () => {
     if (!selectedCrmRecord || crmSaving) return;
     const currentSub = selectedCrmRecord.subscription;
@@ -801,7 +699,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     setCrmSaving(true);
     try {
       await updateAdminSubscription(payload);
-      await Promise.all([loadCrmWorkspace(), loadSubscriptions()]);
+      await loadCrmWorkspace();
     } catch (err: any) {
       handleAuthError(err?.message || 'Failed to save CRM subscription');
     } finally {
@@ -1073,7 +971,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-5">
             {([
               { id: 'overview', label: t('admin_dashboard.tabs.overview'), icon: BarChart3 },
-              { id: 'operations', label: t('admin_dashboard.tabs.operations'), icon: Settings },
               { id: 'crm', label: t('admin_dashboard.tabs.crm', { defaultValue: 'CRM' }), icon: Users },
               { id: 'workspace', label: t('admin_dashboard.tabs.workspace', { defaultValue: 'Board' }), icon: Lightbulb },
               { id: 'jcfpm', label: t('admin_dashboard.tabs.jcfpm'), icon: Sparkles },
@@ -1311,105 +1208,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               )}
             </section>
           </>
-        )}
-
-        {view === 'operations' && (
-          <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <article className={`xl:col-span-2 ${panelClass}`}>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">{t('admin_dashboard.operations.title')}</h3>
-                <span className="text-xs text-slate-500">{formatNumber(totalSubscriptions)} {t('admin_dashboard.operations.total')}</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3">
-                <input
-                  value={subFilters.q}
-                  onChange={(e) => setSubFilters((prev) => ({ ...prev, q: e.target.value, offset: 0 }))}
-                  placeholder={t('admin_dashboard.operations.search_placeholder')}
-                  className={`md:col-span-2 ${inputClass}`}
-                />
-                <select value={subFilters.tier} onChange={(e) => setSubFilters((prev) => ({ ...prev, tier: e.target.value, offset: 0 }))} className={inputClass}>
-                  <option value="">{t('admin_dashboard.operations.all_tiers')}</option>
-                  {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
-                </select>
-                <select value={subFilters.status} onChange={(e) => setSubFilters((prev) => ({ ...prev, status: e.target.value, offset: 0 }))} className={inputClass}>
-                  <option value="">{t('admin_dashboard.operations.all_statuses')}</option>
-                  {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
-                </select>
-                <button onClick={loadSubscriptions} className="app-button-primary !rounded-lg !px-3 !py-2 text-sm">{t('admin_dashboard.refresh')}</button>
-              </div>
-
-              <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
-                {subscriptions.map((sub: any) => (
-                  <div key={sub.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center text-xs">
-                      <div className="md:col-span-2">
-                        <div className="font-semibold text-slate-800 dark:text-slate-100 truncate">{sub.companies?.name || sub.profiles?.full_name || sub.profiles?.email || sub.id}</div>
-                        <div className="text-slate-500">{sub.company_id ? t('admin_dashboard.entity.company') : t('admin_dashboard.entity.user')} • {formatDate(sub.current_period_end)}</div>
-                      </div>
-                      <select
-                        value={edits[sub.id]?.tier || sub.tier || 'free'}
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], tier: e.target.value } }))}
-                        className={inputClass}
-                      >
-                        {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
-                      </select>
-                      <select
-                        value={edits[sub.id]?.status || sub.status || 'inactive'}
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], status: e.target.value } }))}
-                        className={inputClass}
-                      >
-                        {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
-                      </select>
-                      <input
-                        value={edits[sub.id]?.set_trial_days || ''}
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], set_trial_days: e.target.value } }))}
-                        placeholder={t('admin_dashboard.operations.trial_days')}
-                        className={inputClass}
-                      />
-                      <button
-                        onClick={() => handleSaveSubscription(sub)}
-                        className="rounded-lg bg-emerald-600 px-2 py-1.5 font-semibold text-white hover:bg-emerald-500"
-                      >{t('admin_dashboard.operations.save')}</button>
-                    </div>
-                  </div>
-                ))}
-                {!subscriptions.length && <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>}
-              </div>
-            </article>
-
-            <article className={panelClass}>
-              <h3 className="font-semibold mb-3">{t('admin_dashboard.sections.admin_search')}</h3>
-              <div className="space-y-2">
-                <select
-                  value={searchKind}
-                  onChange={(e) => setSearchKind(e.target.value as 'company' | 'user')}
-                  className={inputClass}
-                >
-                  <option value="company">{t('admin_dashboard.entity.company')}</option>
-                  <option value="user">{t('admin_dashboard.entity.user')}</option>
-                </select>
-                <div className="flex gap-2">
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('admin_dashboard.search.placeholder')}
-                    className={inputClass}
-                  />
-                  <button onClick={handleSearch} className="app-button-primary !rounded-lg !px-3 !py-2"><Search size={14} /></button>
-                </div>
-              </div>
-              <div className="mt-3 space-y-2 max-h-80 overflow-auto pr-1">
-                {searchLoading && <p className="text-sm text-slate-500">{t('admin_dashboard.search.searching')}</p>}
-                {!searchLoading && searchResults.map((row: any) => (
-                  <div key={`${row.kind}-${row.id}`} className="rounded-lg border border-slate-200 dark:border-slate-800 p-2 text-xs">
-                    <div className="font-semibold">{row.label}</div>
-                    <div className="text-slate-500">{row.secondary || row.id}</div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </section>
         )}
 
         {view === 'crm' && (
