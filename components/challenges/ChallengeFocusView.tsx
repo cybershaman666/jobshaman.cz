@@ -733,7 +733,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
           <SurfaceCard className="hidden space-y-5 md:block">
             <SectionTitle title={copy.originalListing} />
             <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
-            <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-p:text-[var(--text)] prose-li:text-[var(--text)]">
+            <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-strong:text-[var(--text-strong)]">
               {formattedDescription ? (
                 <Markdown>{formattedDescription}</Markdown>
               ) : (
@@ -749,7 +749,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             </summary>
             <div className="mt-4 space-y-4">
               <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
-              <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-p:text-[var(--text)] prose-li:text-[var(--text)]">
+              <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-strong:text-[var(--text-strong)]">
                 {formattedDescription ? (
                   <Markdown>{formattedDescription}</Markdown>
                 ) : (
