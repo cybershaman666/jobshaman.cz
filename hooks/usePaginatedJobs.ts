@@ -54,6 +54,16 @@ const getCountryCodeFromLanguage = (lng?: string): string | null => {
     return null;
 };
 
+const getDefaultLanguageCodesFromLocale = (lng?: string): SearchLanguageCode[] => {
+    const code = String(lng || '').split('-')[0].toLowerCase();
+    if (code === 'cs') return ['cs'];
+    if (code === 'sk') return ['sk'];
+    if (code === 'de' || code === 'at') return ['de'];
+    if (code === 'pl') return ['pl'];
+    if (code === 'en') return ['en'];
+    return [];
+};
+
 const expandCountryAliases = (countryCode?: string | null): string[] => {
     const normalized = String(countryCode || '').trim().toUpperCase();
     if (!normalized) return [];
@@ -102,6 +112,19 @@ const inferJobCountryCode = (job: Job): string | null => {
     if (fromLocation) return fromLocation;
 
     return getCountryCodeFromJobSource(job);
+};
+
+const inferJobLanguageCode = (job: Job): string | null => {
+    const explicit = String(job.language_code || '').trim().toLowerCase();
+    if (explicit) return explicit;
+
+    const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
+    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) return 'cs';
+    if (haystack.includes('profesia.sk')) return 'sk';
+    if (haystack.includes('pracuj.pl')) return 'pl';
+    if (haystack.includes('karriere.at') || haystack.includes('stepstone.de') || haystack.includes('germantechjobs')) return 'de';
+
+    return null;
 };
 
 const normalizeOrigin = (value: string): string => {
@@ -166,6 +189,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         () => normalizeCountryCodes(defaultCountryCodes),
         [defaultCountryCodes]
     );
+    const defaultLanguageCodes = useMemo(
+        () => getDefaultLanguageCodesFromLocale(i18n.language),
+        [i18n.language]
+    );
     const [countryCodes, setCountryCodes] = useState<string[]>(() => defaultCountryCodes);
 
     const [jobs, setJobs] = useState<Job[]>(() => {
@@ -227,17 +254,63 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, []);
 
     const applyDomesticCountrySafeguard = useCallback((list: Job[]) => {
-        if (globalSearch || countryCodes.length === 0 || list.length === 0) {
+        if (list.length === 0) {
             return list;
         }
 
-        const allowedCodes = new Set(normalizeCountryCodes(countryCodes));
+        const allowedCountryCodes = !globalSearch && countryCodes.length > 0
+            ? new Set(normalizeCountryCodes(countryCodes))
+            : null;
+        const allowedLanguageCodes = filterLanguageCodes.length > 0
+            ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
+            : (
+                !globalSearch &&
+                defaultLanguageCodes.length > 0 &&
+                !searchTerm &&
+                !filterCity &&
+                filterContractType.length === 0 &&
+                filterBenefits.length === 0 &&
+                !filterMinSalary &&
+                filterDate === 'all' &&
+                filterExperience.length === 0 &&
+                !enableCommuteFilter &&
+                !abroadOnly
+            )
+                ? new Set(defaultLanguageCodes.map((code) => String(code).trim().toLowerCase()))
+                : null;
+
         return list.filter((job) => {
-            const inferredCountry = inferJobCountryCode(job);
-            if (!inferredCountry) return false;
-            return allowedCodes.has(inferredCountry);
+            if (allowedCountryCodes) {
+                const inferredCountry = inferJobCountryCode(job);
+                if (!inferredCountry || !allowedCountryCodes.has(inferredCountry)) {
+                    return false;
+                }
+            }
+
+            if (allowedLanguageCodes) {
+                const inferredLanguage = inferJobLanguageCode(job);
+                if (inferredLanguage && !allowedLanguageCodes.has(inferredLanguage)) {
+                    return false;
+                }
+            }
+
+            return true;
         });
-    }, [countryCodes, globalSearch]);
+    }, [
+        abroadOnly,
+        countryCodes,
+        defaultLanguageCodes,
+        enableCommuteFilter,
+        filterBenefits,
+        filterCity,
+        filterContractType,
+        filterDate,
+        filterExperience,
+        filterLanguageCodes,
+        filterMinSalary,
+        globalSearch,
+        searchTerm,
+    ]);
 
     useEffect(() => {
         const readIds = (key: string): string[] => {
@@ -513,6 +586,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 hasManualOrInferredIntent &&
                 !hasAnyFilters &&
                 sortBy === 'newest';
+            const implicitLanguageCodes = !globalSearch && !hasAnyFilters && defaultLanguageCodes.length > 0
+                ? defaultLanguageCodes
+                : [];
+            const effectiveLanguageCodes = filterLanguageCodes.length > 0 ? filterLanguageCodes : implicitLanguageCodes;
             const requestedPageSize = shouldUseExpandedPersonalizedPool
                 ? Math.max(initialPageSize, 120)
                 : initialPageSize;
@@ -531,6 +608,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     undefined,
                     50,
                     singleCountry,
+                    effectiveLanguageCodes,
                     false
                 );
                 if (isStaleRequest()) return;
@@ -567,7 +645,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 userLng: lon,
                 countryCodes: effectiveCountryCodes,
                 excludeCountryCodes,
-                filterLanguageCodes: filterLanguageCodes.length > 0 ? filterLanguageCodes : undefined,
+                filterLanguageCodes: effectiveLanguageCodes.length > 0 ? effectiveLanguageCodes : undefined,
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
                 includeJhi: false,

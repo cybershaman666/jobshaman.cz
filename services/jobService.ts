@@ -601,6 +601,7 @@ export const fetchJobsPaginated = async (
     userLng?: number,
     radiusKm: number = 50,
     countryCode?: string,
+    languageCodes?: string[],
     includeJhi: boolean = true
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -626,7 +627,7 @@ export const fetchJobsPaginated = async (
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, undefined, includeJhi);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, languageCodes, includeJhi);
             }
 
             if (!data || data.length === 0) {
@@ -688,7 +689,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, undefined, includeJhi);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, languageCodes, includeJhi);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
