@@ -33,6 +33,7 @@ interface ChallengeMarketplaceProps {
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
+  totalCount: number;
   loadMoreJobs: () => void;
   applyInteractionState: (jobId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
   theme: 'light' | 'dark';
@@ -214,6 +215,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   loading,
   loadingMore,
   hasMore,
+  totalCount,
   loadMoreJobs,
   applyInteractionState,
   theme,
@@ -1134,7 +1136,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <>
             <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
               <Sparkles size={12} />
-              {prioritizedJobsInLane.length} {copy.results}
+              {Math.max(0, totalCount)} {copy.results}
             </div>
             <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
               <ShieldCheck size={12} />

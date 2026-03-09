@@ -533,6 +533,7 @@ export default function App() {
         loading: isLoadingJobs,
         loadingMore,
         hasMore,
+        totalCount,
         searchTerm,
         isSearching,
         loadInitialJobs,
@@ -2079,6 +2080,7 @@ export default function App() {
                                         loading={isLoadingJobs}
                                         loadingMore={loadingMore}
                                         hasMore={hasMore}
+                                        totalCount={totalCount}
                                         loadMoreJobs={loadMoreJobs}
                                         applyInteractionState={applyInteractionState}
                                         theme={theme}
