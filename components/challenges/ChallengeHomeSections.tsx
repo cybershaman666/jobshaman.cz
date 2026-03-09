@@ -615,14 +615,14 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(240px,0.66fr)_24px_minmax(0,1.34fr)] xl:items-stretch">
-            <article className="relative rounded-[1.6rem] border border-slate-300/90 bg-[linear-gradient(180deg,rgba(246,248,251,0.96),rgba(235,239,245,0.96))] p-3 text-slate-700 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.6),rgba(15,23,42,0.56))] dark:text-slate-300">
-              <div className="pointer-events-none absolute inset-0 rounded-[1.6rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0))]" />
+            <article className="relative rounded-[1.6rem] border border-slate-300/90 bg-[linear-gradient(180deg,rgba(246,248,251,0.96),rgba(235,239,245,0.96))] p-3 text-slate-700 shadow-[0_22px_46px_-40px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-none dark:bg-[var(--surface)] dark:text-slate-300">
+              <div className="pointer-events-none absolute inset-0 rounded-[1.6rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0))] dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0))]" />
               <div className="pointer-events-none absolute inset-y-6 right-6 w-10 rounded-full bg-slate-400/10 blur-2xl" />
-              <div className="relative overflow-hidden rounded-[0.9rem] border border-slate-300 bg-[#f3f4f6] shadow-[0_12px_24px_-22px_rgba(15,23,42,0.12)] grayscale-[0.22] dark:border-white/10 dark:bg-slate-950/36">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-300 bg-[#0a66c2] px-3 py-2.5 text-white">
+              <div className="relative overflow-hidden rounded-[0.9rem] border border-slate-300 bg-[#f3f4f6] shadow-[0_12px_24px_-22px_rgba(15,23,42,0.12)] grayscale-[0.22] dark:border-white/10 dark:bg-[var(--surface-elevated)]">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-300 bg-[#0a66c2] px-3 py-2.5 text-white dark:border-white/10 dark:bg-slate-800">
                   <div className="flex items-center gap-2">
-                    <div className="grid h-8 w-8 place-items-center rounded-[0.7rem] bg-white text-[#0a66c2] shadow-inner">
-                      <div className="h-3 w-3 rounded-full bg-[#0a66c2]" />
+                    <div className="grid h-8 w-8 place-items-center rounded-[0.7rem] bg-white text-[#0a66c2] shadow-inner dark:bg-slate-950 dark:text-slate-300">
+                      <div className="h-3 w-3 rounded-full bg-[#0a66c2] dark:bg-slate-300" />
                     </div>
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">{copy.heroLegacyLabel}</div>
@@ -637,15 +637,15 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                 </div>
 
                 <div className="space-y-2.5 p-3">
-                  <div className="flex items-center gap-2 rounded-[0.45rem] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                  <div className="flex items-center gap-2 rounded-[0.45rem] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-500 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-400">
                     <Search size={15} />
                     <span>{copy.heroLegacySearch}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">{copy.heroLegacyChipOne}</div>
-                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:bg-white/5 dark:text-slate-400">{copy.heroLegacyChipTwo}</div>
-                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:bg-white/5 dark:text-slate-400">{copy.heroLegacyChipThree}</div>
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-400">{copy.heroLegacyChipOne}</div>
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-400">{copy.heroLegacyChipTwo}</div>
+                    <div className="rounded-[0.35rem] border border-slate-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-400">{copy.heroLegacyChipThree}</div>
                   </div>
 
                   <div className="space-y-2.5">
@@ -655,13 +655,13 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                         className={cn(
                           'rounded-[0.5rem] border bg-white px-3 py-2.5 transition',
                           index === 0
-                            ? 'border-slate-400 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/5'
-                            : 'border-slate-300 opacity-80 dark:border-white/5 dark:bg-white/[0.03]'
+                            ? 'border-slate-400 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[var(--surface)]'
+                            : 'border-slate-300 opacity-80 dark:border-white/10 dark:bg-[var(--surface)]'
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex gap-3">
-                            <div className="mt-0.5 h-10 w-10 rounded-[0.35rem] border border-slate-300 bg-slate-200 dark:bg-white/10" />
+                            <div className="mt-0.5 h-10 w-10 rounded-[0.35rem] border border-slate-300 bg-slate-200 dark:border-white/10 dark:bg-[var(--surface-elevated)]" />
                             <div>
                               <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                                 {index === 0 ? copy.heroLegacyRole : copy.heroLegacyRoleAlt}
@@ -681,7 +681,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                             <div className="rounded-[0.35rem] border border-rose-300 bg-rose-100 px-2 py-1 text-[10px] font-semibold leading-4 text-rose-800">
                               {index === 0 ? copy.heroLegacyApplicantsPrimary : copy.heroLegacyApplicantsSecondary}
                             </div>
-                            <div className="mt-1 h-5 w-5 rounded-[0.25rem] border border-slate-300 bg-slate-50 dark:border-white/10 dark:bg-white/5" />
+                            <div className="mt-1 h-5 w-5 rounded-[0.25rem] border border-slate-300 bg-slate-50 dark:border-white/10 dark:bg-[var(--surface-elevated)]" />
                           </div>
                         </div>
 
@@ -699,7 +699,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                     ))}
                   </div>
 
-                  <div className="rounded-[1rem] border border-rose-300/90 bg-rose-100/92 p-3 shadow-[0_16px_30px_-24px_rgba(244,63,94,0.22)] dark:border-rose-400/18 dark:bg-rose-400/10">
+                  <div className="rounded-[1rem] border border-rose-300/90 bg-rose-100/92 p-3 shadow-[0_16px_30px_-24px_rgba(244,63,94,0.22)] dark:border-rose-400/18 dark:bg-rose-400/8">
                     <div className="flex items-center justify-between gap-3 text-sm font-semibold text-rose-950 dark:text-rose-100">
                       <span>{copy.heroLegacyQueue}</span>
                       <span>{copy.heroLegacyDelay}</span>
@@ -717,7 +717,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
 
             <div className="relative hidden xl:flex xl:items-center xl:justify-center">
               <div className="h-full w-px bg-[linear-gradient(180deg,rgba(148,163,184,0),rgba(148,163,184,0.45),rgba(14,165,233,0.28),rgba(148,163,184,0))]" />
-              <div className="absolute grid h-10 w-10 place-items-center rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-white text-[var(--accent)] shadow-[0_10px_24px_-18px_rgba(var(--accent-rgb),0.24)] animate-pulse">
+              <div className="absolute grid h-10 w-10 place-items-center rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-white text-[var(--accent)] shadow-[0_10px_24px_-18px_rgba(var(--accent-rgb),0.24)] animate-pulse dark:border-white/10 dark:bg-[var(--surface-elevated)]">
                 →
               </div>
             </div>
@@ -737,7 +737,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
 
               <div className="relative z-10 mt-3 grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(300px,1.2fr)]">
                 <div className="space-y-3">
-                  <article className="rounded-[1.35rem] border border-[var(--border-subtle)] bg-white/92 p-3.5 shadow-[var(--shadow-soft)] dark:border-white/10 dark:bg-white/6">
+                  <article className="rounded-[1.35rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow-soft)] dark:border-white/10 dark:bg-[var(--surface)]">
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{copy.heroTeamLabel}</div>
                       <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{heroDemo.company}</div>
@@ -753,13 +753,13 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                     </div>
                   </article>
 
-                  <article className="rounded-[1.22rem] border border-emerald-300/40 bg-emerald-50/82 p-3.5 shadow-[0_18px_34px_-28px_rgba(5,150,105,0.16)] dark:border-emerald-400/16 dark:bg-emerald-500/10">
+                  <article className="rounded-[1.22rem] border border-emerald-300/40 bg-emerald-50/82 p-3.5 shadow-[0_18px_34px_-28px_rgba(5,150,105,0.16)] dark:border-white/10 dark:bg-[var(--surface)]">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-200">{copy.heroWhyTitle}</div>
                     <div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
                       {copy.heroWhySignals.map((signal: string) => (
                         <div
                           key={signal}
-                          className="rounded-[999px] border border-emerald-200/70 bg-white/78 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-300/18 dark:bg-emerald-400/8 dark:text-emerald-50"
+                          className="rounded-[999px] border border-emerald-200/70 bg-white/78 px-3 py-2 text-sm text-emerald-950 dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-slate-100"
                         >
                           ✓ {signal}
                         </div>
@@ -776,12 +776,12 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent)] dark:text-[var(--accent)]">{copy.heroEditorLabel}</div>
-                    <div className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] dark:border-white/10 dark:bg-white/8 dark:text-[var(--accent)]">
+                    <div className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-[var(--accent)]">
                       {copy.heroEditorHint}
                     </div>
                   </div>
 
-                  <div className="relative mt-3 rounded-[1.15rem] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_16px_34px_-30px_rgba(14,165,233,0.18)] dark:border-white/10 dark:bg-slate-950/32">
+                  <div className="relative mt-3 rounded-[1.15rem] border border-slate-200 bg-white px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_16px_34px_-30px_rgba(14,165,233,0.18)] dark:border-white/10 dark:bg-[var(--surface-elevated)]">
                     <div className="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
                       {heroDemo.eyebrow}
                     </div>
@@ -790,7 +790,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                     </div>
                   </div>
 
-                  <div className="mt-3 flex-1 rounded-[1.32rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[linear-gradient(180deg,#ffffff_0%,#fffdfa_100%)] px-3.5 py-3.5 text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_20px_40px_-34px_rgba(15,23,42,0.10)] dark:border-[rgba(var(--accent-rgb),0.16)] dark:bg-white/8">
+                  <div className="mt-3 flex-1 rounded-[1.32rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[linear-gradient(180deg,#ffffff_0%,#fffdfa_100%)] px-3.5 py-3.5 text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_20px_40px_-34px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-none dark:bg-[var(--surface-elevated)] dark:text-slate-100 dark:shadow-[var(--shadow-soft)]">
                     <div className="flex items-center gap-2">
                       {[`1. ${copy.heroLiveCandidateLabel}`, `2. ${copy.heroLiveCompanyLabel}`, `3. ${copy.handshakeLaneOpen}`].map((label, index) => (
                         <div
@@ -799,7 +799,7 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                             'rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-all duration-300',
                             activeHeroMoment === index
                               ? 'bg-[var(--accent)] text-white shadow-[0_10px_22px_-14px_rgba(var(--accent-rgb),0.55)]'
-                              : 'border border-[var(--border-subtle)] bg-white text-slate-400 dark:border-white/10 dark:bg-white/6 dark:text-slate-400'
+                              : 'border border-[var(--border-subtle)] bg-white text-slate-400 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-300'
                           )}
                         >
                           {label}
@@ -808,12 +808,12 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                     </div>
 
                     <div className="mt-3 h-[17.5rem] sm:h-[17.75rem]">
-                      <div className="flex h-full flex-col rounded-[1.12rem] border border-[var(--border-subtle)] bg-white/92 p-4 shadow-[0_20px_38px_-26px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-white/6">
+                      <div className="flex h-full flex-col rounded-[1.12rem] border border-[var(--border-subtle)] bg-white/92 p-4 shadow-[0_20px_38px_-26px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[var(--surface)]">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
                             {[`1. ${copy.heroLiveCandidateLabel}`, `2. ${copy.heroLiveCompanyLabel}`, `3. ${copy.handshakeLaneOpen}`][activeHeroMoment]}
                           </div>
-                          <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-white/8 dark:text-slate-300">
+                          <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-200">
                             {activeHeroMoment === 0
                               ? copy.heroEditorHint
                               : activeHeroMoment === 1
@@ -822,13 +822,13 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
                           </div>
                         </div>
 
-                        <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[1rem] border border-slate-200 bg-[var(--surface)] p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/20">
+                        <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[1rem] border border-slate-200 bg-[var(--surface)] p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[var(--surface)]">
                           {activeHeroMoment === 0 ? (
                             <>
-                              <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] shadow-[0_12px_24px_-22px_rgba(var(--accent-rgb),0.2)] dark:border-white/10 dark:bg-white/8 dark:text-[var(--accent)]">
+                              <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] shadow-[0_12px_24px_-22px_rgba(var(--accent-rgb),0.2)] dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-[var(--accent)]">
                                 {copy.heroEditorAction}
                               </div>
-                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border-2 border-dashed border-[rgba(var(--accent-rgb),0.28)] bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-[rgba(var(--accent-rgb),0.24)] dark:bg-slate-950/26">
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border-2 border-dashed border-[rgba(var(--accent-rgb),0.28)] bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-[rgba(var(--accent-rgb),0.24)] dark:bg-[var(--surface-elevated)]">
                                 <div className="text-[15px] font-medium leading-6 text-slate-500 sm:text-base">
                                   {copy.heroEditorPlaceholder}
                                 </div>
@@ -849,15 +849,15 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
 
                           {activeHeroMoment === 1 ? (
                             <>
-                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-slate-300">
                                 {copy.heroLiveCompanyLabel}
                               </div>
-                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-slate-950/26">
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-[var(--surface-elevated)]">
                                 <div className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                                   {copy.heroLiveCompanyBody}
                                 </div>
                                 <div className="mt-auto flex items-center justify-end gap-3 pt-4">
-                                  <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/8 dark:text-slate-200">
+                                  <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-200">
                                     {copy.handshakeLaneOpen}
                                   </div>
                                 </div>
@@ -867,15 +867,15 @@ const ChallengeHomeSections: React.FC<ChallengeHomeSectionsProps> = ({
 
                           {activeHeroMoment === 2 ? (
                             <>
-                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                              <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:bg-[var(--surface-elevated)] dark:text-slate-300">
                                 {copy.handshakeLaneOpen}
                               </div>
-                              <div className="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-slate-950/26">
+                              <div className="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-[0.95rem] border border-slate-200 bg-white px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-[var(--surface-elevated)]">
                                 <div className="space-y-3">
                                   <div className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                                     {copy.heroDialogOpenBody}
                                   </div>
-                                  <div className="rounded-[0.85rem] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                                  <div className="rounded-[0.85rem] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:bg-[var(--surface)] dark:text-slate-300">
                                     {copy.heroLiveSlotsNote}
                                   </div>
                                 </div>
