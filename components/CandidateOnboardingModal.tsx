@@ -6,7 +6,7 @@ import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../s
 import { getCandidateIntentDomainOptions, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 import { createDefaultCandidateSearchProfile } from '../services/profileDefaults';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
-import { CheckCircle, FileText, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
+import { CheckCircle, ExternalLink, FileText, Loader2, MapPin, Sparkles, Upload, X } from 'lucide-react';
 
 interface CandidateOnboardingModalProps {
     isOpen: boolean;
@@ -26,6 +26,7 @@ type Step = 1 | 2 | 3 | 4;
 type Status = 'idle' | 'verifying' | 'success' | 'error';
 type EmploymentChoice = 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
 type VisibilityChoice = 'private' | 'recruiter' | 'public';
+const EMPLOYMENT_CHOICES: EmploymentChoice[] = ['full_time', 'part_time', 'contract', 'internship', 'temporary'];
 
 const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     isOpen,
@@ -62,9 +63,13 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const [desiredSalaryMax, setDesiredSalaryMax] = useState(
         profile.preferences?.desired_salary_max != null ? String(profile.preferences.desired_salary_max) : ''
     );
-    const [desiredEmploymentType, setDesiredEmploymentType] = useState<EmploymentChoice>(
-        profile.preferences?.desired_employment_type || 'full_time'
-    );
+    const [desiredEmploymentTypes, setDesiredEmploymentTypes] = useState<EmploymentChoice[]>(() => {
+        const fromArray = profile.preferences?.desired_employment_types || [];
+        if (Array.isArray(fromArray) && fromArray.length > 0) {
+            return fromArray.filter((item): item is EmploymentChoice => EMPLOYMENT_CHOICES.includes(item as EmploymentChoice));
+        }
+        return profile.preferences?.desired_employment_type ? [profile.preferences.desired_employment_type] : ['full_time'];
+    });
     const [primaryDomain, setPrimaryDomain] = useState<CandidateDomainKey | ''>('');
     const [targetRole, setTargetRole] = useState('');
     const [seniority, setSeniority] = useState<CandidateSeniority | ''>('');
@@ -78,6 +83,59 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
     const isPremium = String(profile.subscription?.tier || 'free').toLowerCase() === 'premium';
     const domainOptions = useMemo(() => getCandidateIntentDomainOptions(i18n.language), [i18n.language]);
+    const seniorityUiCopy = isCsLike
+        ? {
+            label: 'Zkušenosti v oboru',
+            placeholder: 'Nevím nebo neřeším',
+            helper: 'Vyberte, co je vám nejbližší. Nemusí to odpovídat firemním názvům.',
+            entry: 'Jsem na začátku nebo po škole',
+            junior: 'Mám krátkou praxi',
+            medior: 'Už pracuji samostatně',
+            senior: 'Mám hodně zkušeností',
+            lead: 'Vedl/a jsem lidi nebo provoz',
+        }
+        : {
+            label: 'Experience level',
+            placeholder: 'Not sure / no preference',
+            helper: 'Pick the closest description. It does not need to match corporate titles.',
+            entry: 'I am just starting or fresh out of school',
+            junior: 'I have a little experience',
+            medior: 'I can work independently',
+            senior: 'I have a lot of experience',
+            lead: 'I have led people or operations',
+        };
+    const employmentUiCopy = isCsLike
+        ? {
+            label: 'Typ spolupráce',
+            helper: 'Můžete vybrat i více možností.',
+            full_time: 'Plný úvazek',
+            part_time: 'Zkrácený úvazek',
+            contract: 'Smlouva / živnost / IČO',
+            internship: 'Stáž nebo zaučení',
+            temporary: 'Dočasná / sezónní práce',
+        }
+        : {
+            label: 'Work arrangement',
+            helper: 'You can choose more than one option.',
+            full_time: 'Full-time',
+            part_time: 'Part-time',
+            contract: 'Contract / freelance',
+            internship: 'Internship / trainee',
+            temporary: 'Temporary / seasonal',
+        };
+    const visibilityUiCopy = isCsLike
+        ? {
+            label: 'Viditelnost profilu',
+            private: 'Soukromý',
+            recruiter: 'Jen pro recruitery',
+            public: 'Veřejný',
+        }
+        : {
+            label: 'Profile visibility',
+            private: 'Private',
+            recruiter: 'Only recruiters',
+            public: 'Public',
+        };
     const supportStepCopy = isCsLike ? {
         title: 'Doplňte podpůrný kontext',
         desc: 'CV nebo AI draft tu fungují jen jako volitelný podpůrný podklad. Přidejte dokument, pokud chcete mít po ruce další kontext pro firmy.',
@@ -117,7 +175,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         setDesiredRole(profile.preferences?.desired_role || profile.jobTitle || '');
         setDesiredSalaryMin(profile.preferences?.desired_salary_min != null ? String(profile.preferences.desired_salary_min) : '');
         setDesiredSalaryMax(profile.preferences?.desired_salary_max != null ? String(profile.preferences.desired_salary_max) : '');
-        setDesiredEmploymentType((profile.preferences?.desired_employment_type || 'full_time') as EmploymentChoice);
+        const nextEmploymentTypes: EmploymentChoice[] = Array.isArray(profile.preferences?.desired_employment_types) && profile.preferences.desired_employment_types.length > 0
+            ? profile.preferences.desired_employment_types.filter((item): item is EmploymentChoice => EMPLOYMENT_CHOICES.includes(item as EmploymentChoice))
+            : (profile.preferences?.desired_employment_type ? [profile.preferences.desired_employment_type as EmploymentChoice] : ['full_time' as EmploymentChoice]);
+        setDesiredEmploymentTypes(nextEmploymentTypes);
         setPrimaryDomain((profile.preferences?.searchProfile?.primaryDomain || resolvedIntent.primaryDomain || '') as CandidateDomainKey | '');
         setTargetRole(profile.preferences?.searchProfile?.targetRole || resolvedIntent.targetRole || profile.preferences?.desired_role || profile.jobTitle || '');
         setSeniority((profile.preferences?.searchProfile?.seniority || resolvedIntent.seniority || '') as CandidateSeniority | '');
@@ -294,6 +355,9 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             return;
         }
 
+        const normalizedEmploymentTypes: EmploymentChoice[] = desiredEmploymentTypes.length > 0
+            ? desiredEmploymentTypes
+            : ['full_time'];
         setIsSavingPreferences(true);
         try {
             const nextSearchProfile = {
@@ -313,7 +377,8 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     desired_role: targetRole || desiredRole || '',
                     desired_salary_min: salaryMin,
                     desired_salary_max: salaryMax,
-                    desired_employment_type: desiredEmploymentType,
+                    desired_employment_type: normalizedEmploymentTypes[0],
+                    desired_employment_types: normalizedEmploymentTypes,
                     profile_visibility: profileVisibility,
                     searchProfile: nextSearchProfile,
                 }
@@ -442,19 +507,22 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     </select>
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {t('onboarding.pref_seniority', { defaultValue: 'Seniorita' })}
+                    {t('onboarding.pref_seniority', { defaultValue: seniorityUiCopy.label })}
                     <select
                         value={seniority}
                         onChange={(e) => setSeniority((e.target.value || '') as CandidateSeniority | '')}
                         className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     >
-                        <option value="">{t('onboarding.pref_seniority_placeholder', { defaultValue: 'Nevybráno' })}</option>
-                        <option value="entry">{t('onboarding.pref_seniority_entry', { defaultValue: 'Entry / trainee' })}</option>
-                        <option value="junior">{t('onboarding.pref_seniority_junior', { defaultValue: 'Junior' })}</option>
-                        <option value="medior">{t('onboarding.pref_seniority_medior', { defaultValue: 'Medior' })}</option>
-                        <option value="senior">{t('onboarding.pref_seniority_senior', { defaultValue: 'Senior' })}</option>
-                        <option value="lead">{t('onboarding.pref_seniority_lead', { defaultValue: 'Lead / Head' })}</option>
+                        <option value="">{t('onboarding.pref_seniority_placeholder', { defaultValue: seniorityUiCopy.placeholder })}</option>
+                        <option value="entry">{t('onboarding.pref_seniority_entry', { defaultValue: seniorityUiCopy.entry })}</option>
+                        <option value="junior">{t('onboarding.pref_seniority_junior', { defaultValue: seniorityUiCopy.junior })}</option>
+                        <option value="medior">{t('onboarding.pref_seniority_medior', { defaultValue: seniorityUiCopy.medior })}</option>
+                        <option value="senior">{t('onboarding.pref_seniority_senior', { defaultValue: seniorityUiCopy.senior })}</option>
+                        <option value="lead">{t('onboarding.pref_seniority_lead', { defaultValue: seniorityUiCopy.lead })}</option>
                     </select>
+                    <span className="mt-1 block text-[11px] normal-case tracking-normal text-slate-500 dark:text-slate-400">
+                        {t('onboarding.pref_seniority_helper', { defaultValue: seniorityUiCopy.helper })}
+                    </span>
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-2">
                     {t('onboarding.pref_role', { defaultValue: 'Cílová role' })}
@@ -489,29 +557,56 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     />
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {t('onboarding.pref_type', { defaultValue: 'Typ úvazku' })}
-                    <select
-                        value={desiredEmploymentType}
-                        onChange={(e) => setDesiredEmploymentType(e.target.value as EmploymentChoice)}
-                        className="app-modal-input mt-1 dark:[color-scheme:dark]"
-                    >
-                        <option value="full_time">{t('onboarding.pref_type_full', { defaultValue: 'Full-time' })}</option>
-                        <option value="part_time">{t('onboarding.pref_type_part', { defaultValue: 'Part-time' })}</option>
-                        <option value="contract">{t('onboarding.pref_type_contract', { defaultValue: 'Contract' })}</option>
-                        <option value="internship">{t('onboarding.pref_type_intern', { defaultValue: 'Internship' })}</option>
-                        <option value="temporary">{t('onboarding.pref_type_temp', { defaultValue: 'Temporary' })}</option>
-                    </select>
+                    {t('onboarding.pref_type', { defaultValue: employmentUiCopy.label })}
+                    <div className="mt-1 flex flex-wrap gap-2">
+                        {EMPLOYMENT_CHOICES.map((choice) => {
+                            const active = desiredEmploymentTypes.includes(choice);
+                            const translationKey =
+                                choice === 'full_time'
+                                    ? 'onboarding.pref_type_full'
+                                    : choice === 'part_time'
+                                        ? 'onboarding.pref_type_part'
+                                        : choice === 'contract'
+                                            ? 'onboarding.pref_type_contract'
+                                            : choice === 'internship'
+                                                ? 'onboarding.pref_type_intern'
+                                                : 'onboarding.pref_type_temp';
+                            return (
+                                <button
+                                    key={choice}
+                                    type="button"
+                                    onClick={() => {
+                                        setDesiredEmploymentTypes((prev) =>
+                                            prev.includes(choice)
+                                                ? prev.filter((item) => item !== choice)
+                                                : [...prev, choice]
+                                        );
+                                    }}
+                                    className={`rounded-full border px-3 py-2 text-xs font-semibold normal-case tracking-normal transition-colors ${
+                                        active
+                                            ? 'border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    {t(translationKey, { defaultValue: employmentUiCopy[choice] })}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <span className="mt-1 block text-[11px] normal-case tracking-normal text-slate-500 dark:text-slate-400">
+                        {t('onboarding.pref_type_helper', { defaultValue: employmentUiCopy.helper })}
+                    </span>
                 </label>
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {t('onboarding.pref_visibility', { defaultValue: 'Viditelnost profilu' })}
+                    {t('onboarding.pref_visibility', { defaultValue: visibilityUiCopy.label })}
                     <select
                         value={profileVisibility}
                         onChange={(e) => setProfileVisibility(e.target.value as VisibilityChoice)}
                         className="app-modal-input mt-1 dark:[color-scheme:dark]"
                     >
-                        <option value="private">{t('onboarding.visibility_private', { defaultValue: 'Private' })}</option>
-                        <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: 'Only recruiters' })}</option>
-                        <option value="public">{t('onboarding.visibility_public', { defaultValue: 'Public' })}</option>
+                        <option value="private">{t('onboarding.visibility_private', { defaultValue: visibilityUiCopy.private })}</option>
+                        <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: visibilityUiCopy.recruiter })}</option>
+                        <option value="public">{t('onboarding.visibility_public', { defaultValue: visibilityUiCopy.public })}</option>
                     </select>
                 </label>
                 <label className="sm:col-span-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-muted)]">
@@ -615,6 +710,29 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
                     <CheckCircle size={16} />
                     {t('onboarding.cv.upload_success', { defaultValue: supportStepCopy.success })}
+                </div>
+            )}
+            {localCvUrl && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {t('onboarding.cv.current_title', { defaultValue: isCsLike ? 'Aktuálně nahraný dokument' : 'Current uploaded document' })}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {t('onboarding.cv.current_desc', { defaultValue: isCsLike ? 'Můžete si ho hned otevřít a zkontrolovat.' : 'You can open it right away and verify it.' })}
+                            </div>
+                        </div>
+                        <a
+                            href={localCvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--text-strong)] transition hover:bg-[var(--surface)]"
+                        >
+                            <ExternalLink size={15} />
+                            {t('onboarding.cv.open_current', { defaultValue: isCsLike ? 'Zobrazit CV' : 'Open CV' })}
+                        </a>
+                    </div>
                 </div>
             )}
             {cvStatus === 'error' && (

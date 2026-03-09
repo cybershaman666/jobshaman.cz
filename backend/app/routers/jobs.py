@@ -22,7 +22,7 @@ from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
-from ...scraper.scraper_api_sources import search_jooble_jobs_live, search_weworkremotely_jobs_live
+from scraper.scraper_api_sources import search_jooble_jobs_live, search_weworkremotely_jobs_live
 
 router = APIRouter()
 _SEARCH_EXPOSURES_AVAILABLE: bool = True

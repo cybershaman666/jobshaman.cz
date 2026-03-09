@@ -11,7 +11,7 @@ export const SurfaceCard: React.FC<{
 }> = ({ children, className, tone = 'default' }) => (
   <div
     className={cn(
-      'app-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-card)]',
+      'app-surface rounded-[var(--radius-xl)] border p-4 shadow-[var(--shadow-card)] sm:p-5',
       tone === 'muted' && 'bg-[var(--surface-muted)]',
       tone === 'accent' && 'bg-[linear-gradient(180deg,rgba(255,249,235,0.98),rgba(255,243,224,0.94))] border-amber-200/70 dark:bg-[linear-gradient(180deg,rgba(59,40,7,0.68),rgba(12,18,30,0.98))] dark:border-amber-400/20',
       className
@@ -44,11 +44,11 @@ export const PageHeader: React.FC<{
   actions?: React.ReactNode;
   className?: string;
 }> = ({ eyebrow, title, body, actions, className }) => (
-  <div className={cn('app-page-header gap-4 rounded-[var(--radius-2xl)] border p-6 md:p-8', className)}>
+  <div className={cn('app-page-header gap-4 rounded-[var(--radius-2xl)] border p-4 sm:p-6 md:p-8', className)}>
     <div className="space-y-3">
       {eyebrow ? <div className="app-eyebrow">{eyebrow}</div> : null}
       <div className="space-y-3">
-        <h1 className="max-w-4xl text-3xl font-semibold tracking-[-0.045em] text-[var(--text-strong)] md:text-[2.7rem]">
+        <h1 className="max-w-4xl text-[1.9rem] font-semibold tracking-[-0.045em] text-[var(--text-strong)] sm:text-3xl md:text-[2.7rem]">
           {title}
         </h1>
         {body ? <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)] md:text-base">{body}</p> : null}

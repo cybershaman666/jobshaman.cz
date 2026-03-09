@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CVDocument } from '../types';
 import { getUserCVDocuments, updateUserCVSelection, deleteCVDocument, uploadCVDocument, updateCVDocumentMetadata, updateCVDocumentParsedData } from '../services/supabaseService';
 import { parseCvFile } from '../services/cvUploadService';
-import { FileText, Download, Trash2, Check, Upload, Calendar, RefreshCw, Tag } from 'lucide-react';
+import { FileText, Download, Trash2, Check, Upload, Calendar, RefreshCw, Tag, Eye, ExternalLink, X } from 'lucide-react';
 
 interface CVManagerProps {
   userId: string;
@@ -19,6 +19,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [reparsingId, setReparsingId] = useState<string | null>(null);
+  const [previewCv, setPreviewCv] = useState<CVDocument | null>(null);
 
   const copy = isCsLike ? {
     title: 'Knihovna dokumentu',
@@ -27,7 +28,11 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
     emptyBody: 'Pridej CV nebo jiny doplnujici dokument. V handshaku zustavaji volitelne.',
     active: 'Aktivne pouzivany',
     tipTitle: 'Tip:',
-    tipBody: 'Drz si 1 az 2 aktualni podpurne dokumenty. Nejsou povinne, ale mohou doplnit kontext tam, kde to dava smysl.'
+    tipBody: 'Drz si 1 az 2 aktualni podpurne dokumenty. Nejsou povinne, ale mohou doplnit kontext tam, kde to dava smysl.',
+    preview: 'Zobrazit',
+    previewTitle: 'Nahled dokumentu',
+    previewOpenNew: 'Otevrit v nove karte',
+    previewFallback: 'Tento typ souboru nejde spolehlive zobrazit primo v aplikaci. Otevri ho v nove karte.',
   } : {
     title: 'Document library',
     upload: 'Add document',
@@ -35,7 +40,18 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
     emptyBody: 'Add a CV or another supporting file. In the handshake flow, these stay optional.',
     active: 'Currently in use',
     tipTitle: 'Tip:',
-    tipBody: 'Keep 1 to 2 current supporting documents ready. They are optional, but useful when extra context helps.'
+    tipBody: 'Keep 1 to 2 current supporting documents ready. They are optional, but useful when extra context helps.',
+    preview: 'Preview',
+    previewTitle: 'Document preview',
+    previewOpenNew: 'Open in new tab',
+    previewFallback: 'This file type cannot be previewed reliably inside the app. Open it in a new tab instead.',
+  };
+
+  const canPreviewInline = (cv: CVDocument | null) => {
+    if (!cv) return false;
+    const name = String(cv.originalName || cv.fileName || '').toLowerCase();
+    const type = String(cv.contentType || '').toLowerCase();
+    return type.includes('pdf') || name.endsWith('.pdf');
   };
 
   useEffect(() => {
@@ -299,6 +315,13 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
 
                 <div className="flex items-center gap-2 ml-4">
                   <button
+                    onClick={() => setPreviewCv(cv)}
+                    className="p-2 text-sky-600 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-500/15 rounded-lg transition-colors"
+                    title={copy.preview}
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <button
                     onClick={() => handleReparseCV(cv.id)}
                     className="p-2 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors"
                     title={t('cv_manager.reparse')}
@@ -352,6 +375,49 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
           <p className="text-sm text-yellow-800 dark:text-amber-200">
             <strong>{copy.tipTitle}</strong> {copy.tipBody}
           </p>
+        </div>
+      )}
+
+      {previewCv && (
+        <div className="app-modal-backdrop p-3 sm:p-4">
+          <div className="app-modal-panel max-w-5xl">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3 sm:px-5">
+              <div>
+                <div className="text-base font-semibold text-[var(--text-strong)]">{copy.previewTitle}</div>
+                <div className="text-xs text-[var(--text-muted)]">{previewCv.label || previewCv.originalName}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewCv.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--text-strong)] transition hover:bg-[var(--surface)]"
+                >
+                  <ExternalLink size={15} />
+                  {copy.previewOpenNew}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewCv(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-strong)] transition hover:bg-[var(--surface)]"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            {canPreviewInline(previewCv) ? (
+              <iframe
+                src={previewCv.fileUrl}
+                title={previewCv.originalName || previewCv.fileName}
+                className="h-[75dvh] w-full bg-white"
+              />
+            ) : (
+              <div className="p-6 text-center">
+                <FileText size={40} className="mx-auto mb-3 text-[var(--text-faint)]" />
+                <p className="text-sm text-[var(--text-muted)]">{copy.previewFallback}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

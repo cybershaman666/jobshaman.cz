@@ -352,15 +352,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full px-3 pt-2.5 sm:px-5 lg:px-6">
-      <div className="app-topnav mx-auto max-w-[1680px] rounded-[1.5rem] border px-3 py-2.5 sm:px-4">
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-4 sm:pt-2.5 lg:px-6">
+      <div className="app-topnav mx-auto max-w-[1680px] rounded-[1.15rem] border px-2.5 py-2 sm:rounded-[1.5rem] sm:px-4 sm:py-2.5">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={navigateToShellHome}
-            className="flex min-w-0 items-center gap-2.5 rounded-[1.1rem] px-2 py-1 text-left transition hover:bg-white/60 dark:hover:bg-white/5"
+            className="flex min-w-0 items-center gap-2 rounded-[1rem] px-1.5 py-1 text-left transition hover:bg-white/60 dark:hover:bg-white/5 sm:gap-2.5 sm:rounded-[1.1rem] sm:px-2"
           >
-            <img src="/logo-alt.png" alt="JobShaman" className="h-10 w-auto object-contain sm:h-11" />
+            <img src="/logo-alt.png" alt="JobShaman" className="h-8 w-auto object-contain sm:h-11" />
             <div className="hidden min-w-0 sm:block">
               <div className="text-lg font-semibold tracking-[-0.045em] text-[var(--text-strong)] sm:text-[1.35rem]">
                 <span>Job</span>
@@ -510,18 +510,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
             <button
               type="button"
               onClick={onOpenDiscoverySearch}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] sm:h-10 sm:w-10"
             >
               <Search size={16} />
             </button>
             <button
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] sm:h-10 sm:w-10"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -602,7 +602,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {mobileMenuOpen ? (
-          <div className="mt-2.5 border-t border-[var(--border-subtle)] pt-2.5 lg:hidden">
+          <div className="mt-2.5 max-h-[calc(100dvh-5.5rem)] overflow-y-auto border-t border-[var(--border-subtle)] pt-2.5 lg:hidden">
             <div className="grid gap-2">
               {navItems.map((item) => (
                 <button
@@ -614,7 +614,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   }}
                   className={cn(
                     'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
-                    item.active ? activePill : 'bg-white/55 text-[var(--text)] border-[var(--border-subtle)]'
+                    item.active ? activePill : 'bg-white/70 text-[var(--text)] border-[var(--border-subtle)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700'
                   )}
                 >
                   {item.label}
@@ -629,7 +629,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 }}
                 className={cn(
                   'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
-                  isBlogOpen ? activePill : 'bg-white/55 text-[var(--text)] border-[var(--border-subtle)]'
+                  isBlogOpen ? activePill : 'bg-white/70 text-[var(--text)] border-[var(--border-subtle)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700'
                 )}
               >
                 {insightsLabel}
@@ -641,7 +641,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     void handleBusinessClick();
                     setMobileMenuOpen(false);
                   }}
-                  className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                  className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
                 >
                   {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
                 </button>
@@ -656,12 +656,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     setLegalMenuOpen((prev) => !prev);
                     setLanguageMenuOpen(false);
                   }}
-                  className="w-full rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                  className="w-full rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
                 >
                   {t('header.more')}
                 </button>
                 {legalMenuOpen ? (
-                  <div className="mt-2 rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 p-2 dark:bg-white/5">
+                  <div className="mt-2 rounded-[1rem] border border-[var(--border-subtle)] bg-white/85 p-2 dark:border-slate-700 dark:bg-slate-900/95">
                     <a
                       href="/podminky-uziti"
                       target="_blank"
@@ -686,7 +686,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <select
                 value={i18n.language}
                 onChange={(event) => changeLanguage(event.target.value)}
-                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-sm text-[var(--text)] dark:bg-white/5"
+                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-sm text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
               >
                 {languages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -697,7 +697,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
               >
                 {theme === 'dark' ? (isCsLike ? 'Světlý režim' : 'Light mode') : (isCsLike ? 'Tmavý režim' : 'Dark mode')}
               </button>
@@ -712,7 +712,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                       setSelectedJobId(null);
                       setMobileMenuOpen(false);
                     }}
-                    className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/55 px-4 py-3 text-left text-sm font-semibold text-[var(--text)]"
+                    className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
                   >
                     {t('nav.profile')}
                   </button>

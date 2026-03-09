@@ -7,6 +7,7 @@ API/RSS-based job sources for imported listings.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 import os
 import time
 from email.utils import parsedate_to_datetime
@@ -26,7 +27,7 @@ try:
         now_iso,
         save_job_to_supabase,
     )
-    from ..geocoding import geocode_location
+    from ..geocoding import geocode_location, normalize_address
 except ImportError:
     from scraper_base import (  # type: ignore
         detect_work_type,
@@ -38,7 +39,7 @@ except ImportError:
         now_iso,
         save_job_to_supabase,
     )
-    from geocoding import geocode_location  # type: ignore
+    from geocoding import geocode_location, normalize_address  # type: ignore
 
 
 DEFAULT_ARBEITNOW_API_URL = "https://www.arbeitnow.com/api/job-board-api"
@@ -64,8 +65,13 @@ DEFAULT_GERMAN_TECH_JOBS_RSS_URL = "https://germantechjobs.de/rss"
 HTTP_TIMEOUT_SECONDS = 30
 LIVE_SEARCH_CACHE_TTL_SECONDS = max(30, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
 LIVE_SEARCH_GEOCODE_TTL_SECONDS = max(300, int(os.getenv("LIVE_SEARCH_GEOCODE_TTL_SECONDS") or "86400"))
+LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
 _LIVE_SEARCH_CACHE: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
 _LIVE_GEOCODE_CACHE: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
+_SUPABASE_CLIENT: Any = None
+_SUPABASE_CLIENT_RESOLVED = False
+_LIVE_SEARCH_CACHE_DB_AVAILABLE: Optional[bool] = None
+_LIVE_GEOCODE_CACHE_DB_AVAILABLE: Optional[bool] = None
 WWR_EU_INCLUDE_TOKENS = [
     "emea",
     "europe",
@@ -382,37 +388,247 @@ def _build_live_cache_key(prefix: str, **parts: Any) -> str:
     return "|".join(normalized_parts)
 
 
+def _get_cache_supabase_client() -> Any:
+    global _SUPABASE_CLIENT, _SUPABASE_CLIENT_RESOLVED
+    if _SUPABASE_CLIENT_RESOLVED:
+        return _SUPABASE_CLIENT
+    _SUPABASE_CLIENT_RESOLVED = True
+    try:
+        _SUPABASE_CLIENT = get_supabase_client()
+    except Exception as exc:
+        print(f"⚠️ Live cache Supabase client init failed: {exc}")
+        _SUPABASE_CLIENT = None
+    return _SUPABASE_CLIENT
+
+
+def _should_disable_cache_table(exc: Exception, table_name: str) -> bool:
+    message = str(exc).lower()
+    return (
+        table_name.lower() in message
+        and (
+            "does not exist" in message
+            or "relation" in message
+            or "schema cache" in message
+            or "column" in message
+        )
+    )
+
+
+def _get_cached_live_search_from_db(cache_key: str) -> Optional[List[Dict[str, Any]]]:
+    global _LIVE_SEARCH_CACHE_DB_AVAILABLE
+    if _LIVE_SEARCH_CACHE_DB_AVAILABLE is False:
+        return None
+
+    supabase = _get_cache_supabase_client()
+    if not supabase:
+        return None
+
+    try:
+        response = (
+            supabase.table(LIVE_SEARCH_CACHE_TABLE)
+            .select("payload_json")
+            .eq("cache_key", cache_key)
+            .gte("expires_at", datetime.now(timezone.utc).isoformat())
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if _should_disable_cache_table(exc, LIVE_SEARCH_CACHE_TABLE):
+            _LIVE_SEARCH_CACHE_DB_AVAILABLE = False
+        print(f"⚠️ Live search DB cache read failed: {exc}")
+        return None
+
+    row = response.data or None
+    payload = row.get("payload_json") if isinstance(row, dict) else None
+    if not isinstance(payload, list):
+        return None
+
+    snapshot = [dict(item) for item in payload if isinstance(item, dict)]
+    _LIVE_SEARCH_CACHE[cache_key] = (time.time(), snapshot)
+    _LIVE_SEARCH_CACHE_DB_AVAILABLE = True
+    return [dict(item) for item in snapshot]
+
+
+def _set_cached_live_search_in_db(
+    cache_key: str,
+    payload: List[Dict[str, Any]],
+    *,
+    provider: str,
+    search_term: str = "",
+    filter_city: str = "",
+    country_codes: Optional[List[str]] = None,
+    exclude_country_codes: Optional[List[str]] = None,
+    page: int = 1,
+) -> None:
+    global _LIVE_SEARCH_CACHE_DB_AVAILABLE
+    if _LIVE_SEARCH_CACHE_DB_AVAILABLE is False:
+        return
+
+    supabase = _get_cache_supabase_client()
+    if not supabase:
+        return
+
+    now = datetime.now(timezone.utc)
+    snapshot = [dict(item) for item in payload]
+    try:
+        supabase.table(LIVE_SEARCH_CACHE_TABLE).upsert(
+            {
+                "cache_key": cache_key,
+                "provider": provider,
+                "search_term": norm_text(search_term),
+                "filter_city": norm_text(filter_city),
+                "country_codes": [
+                    code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+                ],
+                "exclude_country_codes": [
+                    code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
+                ],
+                "page": max(1, int(page or 1)),
+                "result_count": len(snapshot),
+                "payload_json": snapshot,
+                "fetched_at": now.isoformat(),
+                "expires_at": (now + timedelta(seconds=LIVE_SEARCH_CACHE_TTL_SECONDS)).isoformat(),
+                "updated_at": now.isoformat(),
+            },
+            on_conflict="cache_key",
+        ).execute()
+        _LIVE_SEARCH_CACHE_DB_AVAILABLE = True
+    except Exception as exc:
+        if _should_disable_cache_table(exc, LIVE_SEARCH_CACHE_TABLE):
+            _LIVE_SEARCH_CACHE_DB_AVAILABLE = False
+        print(f"⚠️ Live search DB cache write failed: {exc}")
+
+
 def _get_cached_live_search(cache_key: str) -> Optional[List[Dict[str, Any]]]:
     cached = _LIVE_SEARCH_CACHE.get(cache_key)
     if not cached:
-        return None
+        return _get_cached_live_search_from_db(cache_key)
     cached_at, payload = cached
     if time.time() - cached_at > LIVE_SEARCH_CACHE_TTL_SECONDS:
         _LIVE_SEARCH_CACHE.pop(cache_key, None)
-        return None
+        return _get_cached_live_search_from_db(cache_key)
     return [dict(item) for item in payload]
 
 
-def _set_cached_live_search(cache_key: str, payload: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _set_cached_live_search(
+    cache_key: str,
+    payload: List[Dict[str, Any]],
+    *,
+    provider: str,
+    search_term: str = "",
+    filter_city: str = "",
+    country_codes: Optional[List[str]] = None,
+    exclude_country_codes: Optional[List[str]] = None,
+    page: int = 1,
+) -> List[Dict[str, Any]]:
     snapshot = [dict(item) for item in payload]
     _LIVE_SEARCH_CACHE[cache_key] = (time.time(), snapshot)
+    _set_cached_live_search_in_db(
+        cache_key,
+        snapshot,
+        provider=provider,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=country_codes,
+        exclude_country_codes=exclude_country_codes,
+        page=page,
+    )
     return [dict(item) for item in snapshot]
+
+
+def _get_cached_live_geocode_from_db(location: str) -> Optional[Optional[Dict[str, Any]]]:
+    global _LIVE_GEOCODE_CACHE_DB_AVAILABLE
+    if _LIVE_GEOCODE_CACHE_DB_AVAILABLE is False:
+        return None
+
+    supabase = _get_cache_supabase_client()
+    if not supabase:
+        return None
+
+    normalized = normalize_address(location)
+    if not normalized:
+        return None
+
+    freshness_cutoff = (
+        datetime.now(timezone.utc) - timedelta(seconds=LIVE_SEARCH_GEOCODE_TTL_SECONDS)
+    ).isoformat()
+    try:
+        response = (
+            supabase.table("geocode_cache")
+            .select("lat, lon, country")
+            .eq("address_normalized", normalized)
+            .gte("cached_at", freshness_cutoff)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if _should_disable_cache_table(exc, "geocode_cache"):
+            _LIVE_GEOCODE_CACHE_DB_AVAILABLE = False
+        print(f"⚠️ Live geocode DB cache read failed: {exc}")
+        return None
+
+    row = response.data or None
+    if not isinstance(row, dict):
+        return None
+
+    geo = {
+        "lat": row.get("lat"),
+        "lon": row.get("lon"),
+        "country": row.get("country"),
+        "source": "supabase_geocode_cache",
+    }
+    _LIVE_GEOCODE_CACHE[location] = (time.time(), dict(geo))
+    _LIVE_GEOCODE_CACHE_DB_AVAILABLE = True
+    return geo
+
+
+def _set_cached_live_geocode_in_db(location: str, payload: Optional[Dict[str, Any]]) -> None:
+    global _LIVE_GEOCODE_CACHE_DB_AVAILABLE
+    if _LIVE_GEOCODE_CACHE_DB_AVAILABLE is False or not isinstance(payload, dict):
+        return
+
+    supabase = _get_cache_supabase_client()
+    if not supabase:
+        return
+
+    normalized = normalize_address(location)
+    if not normalized:
+        return
+
+    try:
+        supabase.table("geocode_cache").upsert(
+            {
+                "address_normalized": normalized,
+                "address_original": location,
+                "lat": float(payload.get("lat")),
+                "lon": float(payload.get("lon")),
+                "country": payload.get("country"),
+                "cached_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="address_normalized",
+        ).execute()
+        _LIVE_GEOCODE_CACHE_DB_AVAILABLE = True
+    except Exception as exc:
+        if _should_disable_cache_table(exc, "geocode_cache"):
+            _LIVE_GEOCODE_CACHE_DB_AVAILABLE = False
+        print(f"⚠️ Live geocode DB cache write failed: {exc}")
 
 
 def _get_cached_live_geocode(location: str) -> Optional[Optional[Dict[str, Any]]]:
     cached = _LIVE_GEOCODE_CACHE.get(location)
     if not cached:
-        return None
+        return _get_cached_live_geocode_from_db(location)
     cached_at, payload = cached
     if time.time() - cached_at > LIVE_SEARCH_GEOCODE_TTL_SECONDS:
         _LIVE_GEOCODE_CACHE.pop(location, None)
-        return None
+        return _get_cached_live_geocode_from_db(location)
     return dict(payload) if isinstance(payload, dict) else payload
 
 
 def _set_cached_live_geocode(location: str, payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     snapshot = dict(payload) if isinstance(payload, dict) else None
     _LIVE_GEOCODE_CACHE[location] = (time.time(), snapshot)
+    _set_cached_live_geocode_in_db(location, snapshot)
     return dict(snapshot) if isinstance(snapshot, dict) else None
 
 
@@ -740,9 +956,25 @@ def search_weworkremotely_jobs_live(
             seen_urls.add(link)
 
             if len(results) >= max(1, limit):
-                return _set_cached_live_search(cache_key, results)[: max(1, limit)]
+                return _set_cached_live_search(
+                    cache_key,
+                    results,
+                    provider="weworkremotely",
+                    search_term=search_term,
+                    filter_city=filter_city,
+                    country_codes=list(allowed_country_codes),
+                    exclude_country_codes=list(blocked_country_codes),
+                )[: max(1, limit)]
 
-    return _set_cached_live_search(cache_key, results)
+    return _set_cached_live_search(
+        cache_key,
+        results,
+        provider="weworkremotely",
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=list(allowed_country_codes),
+        exclude_country_codes=list(blocked_country_codes),
+    )
 
 
 def search_jooble_jobs_live(
@@ -834,7 +1066,16 @@ def search_jooble_jobs_live(
         if len(results) >= max(1, limit):
             break
 
-    return _set_cached_live_search(cache_key, results)
+    return _set_cached_live_search(
+        cache_key,
+        results,
+        provider="jooble",
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=allowed_country_codes,
+        exclude_country_codes=list(blocked_country_codes),
+        page=page,
+    )
 
 
 def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:

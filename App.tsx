@@ -1765,7 +1765,7 @@ export default function App() {
                 </div>
             );
         }
-        if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm') {
+        if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm' || normalizedPath === '/profil/jcfpm') {
             const queryParams = new URLSearchParams(window.location.search);
             const requestedSection = queryParams.get('section') || 'full';
             const sectionParam = userProfile.subscription?.tier === 'premium'

@@ -1129,9 +1129,9 @@ export default function JcfpmFlow({
                 </p>
                 <button
                   className="w-full h-16 inline-flex items-center justify-center text-xl font-bold bg-white text-slate-900 rounded-3xl hover:bg-slate-100 group transition-all"
-                  onClick={onClose}
+                  onClick={() => setStatus('report')}
                 >
-                  Zobrazit můj profil
+                  Zobrazit můj report
                   <ChevronRight className="ml-2 group-hover:translate-x-2 transition-transform" />
                 </button>
               </div>

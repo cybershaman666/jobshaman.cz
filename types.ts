@@ -988,6 +988,7 @@ export interface UserProfile {
     desired_salary_min?: number | null;
     desired_salary_max?: number | null;
     desired_employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
+    desired_employment_types?: Array<'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'>;
     profile_visibility?: 'private' | 'recruiter' | 'public';
     linkedIn?: string;
     portfolio?: string;
