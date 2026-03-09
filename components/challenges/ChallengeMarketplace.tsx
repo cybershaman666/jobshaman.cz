@@ -1203,8 +1203,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       </Toolbar>
 
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem)] xl:self-start">
-          <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
+        <div className="xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
+          <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem-6px)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
             <SurfaceCard className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">

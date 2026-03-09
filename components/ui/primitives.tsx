@@ -29,7 +29,7 @@ export const Toolbar: React.FC<{
   <div
     className={cn(
       'app-surface rounded-[var(--radius-lg)] border p-3 shadow-[var(--shadow-soft)]',
-      sticky && 'lg:sticky lg:top-[var(--app-toolbar-offset)] z-20',
+      sticky && 'lg:sticky lg:top-[calc(var(--app-toolbar-offset)+6px)] z-20',
       className
     )}
   >
