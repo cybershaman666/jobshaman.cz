@@ -22,6 +22,7 @@ from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
+from ...scraper.scraper_api_sources import search_jooble_jobs_live, search_weworkremotely_jobs_live
 
 router = APIRouter()
 _SEARCH_EXPOSURES_AVAILABLE: bool = True
@@ -4498,6 +4499,66 @@ async def jobs_hybrid_search_v2(
             "engine_meta": meta,
         }
     return response
+
+
+@router.get("/jobs/external/weworkremotely/search")
+@limiter.limit("20/minute")
+async def search_weworkremotely_live(
+    request: Request,
+    search_term: str = Query(default="", max_length=200),
+    limit: int = Query(default=12, ge=1, le=40),
+    country_codes: str | None = Query(default=None),
+    exclude_country_codes: str | None = Query(default=None),
+):
+    def _parse_csv(value: str | None) -> list[str]:
+        if not value:
+            return []
+        return [part.strip().upper() for part in value.split(",") if part and part.strip()]
+
+    jobs = search_weworkremotely_jobs_live(
+        limit=limit,
+        search_term=search_term,
+        country_codes=_parse_csv(country_codes),
+        exclude_country_codes=_parse_csv(exclude_country_codes),
+    )
+    _attach_job_dialogue_preview_metrics(jobs)
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "weworkremotely_live_rss",
+    }
+
+
+@router.get("/jobs/external/jooble/search")
+@limiter.limit("30/minute")
+async def search_jooble_live(
+    request: Request,
+    search_term: str = Query(default="", max_length=200),
+    limit: int = Query(default=12, ge=1, le=40),
+    page: int = Query(default=1, ge=1, le=10),
+    country_codes: str | None = Query(default=None),
+    exclude_country_codes: str | None = Query(default=None),
+):
+    def _parse_csv(value: str | None) -> list[str]:
+        if not value:
+            return []
+        return [part.strip().upper() for part in value.split(",") if part and part.strip()]
+
+    jobs = search_jooble_jobs_live(
+        limit=limit,
+        page=page,
+        search_term=search_term,
+        country_codes=_parse_csv(country_codes),
+        exclude_country_codes=_parse_csv(exclude_country_codes),
+    )
+    _attach_job_dialogue_preview_metrics(jobs)
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "jooble_live_api",
+    }
 
 @router.post("/jobs/analyze")
 @limiter.limit("20/minute")

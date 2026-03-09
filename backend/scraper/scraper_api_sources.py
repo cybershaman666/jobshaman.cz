@@ -8,6 +8,7 @@ API/RSS-based job sources for imported listings.
 from __future__ import annotations
 
 import os
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
@@ -34,6 +35,14 @@ except ImportError:
 
 
 DEFAULT_ARBEITNOW_API_URL = "https://www.arbeitnow.com/api/job-board-api"
+DEFAULT_JOOBLE_API_HOST = "cz.jooble.org"
+DEFAULT_JOOBLE_API_HOSTS = {
+    "CZ": "cz.jooble.org",
+    "SK": "sk.jooble.org",
+    "DE": "de.jooble.org",
+    "AT": "at.jooble.org",
+    "PL": "pl.jooble.org",
+}
 DEFAULT_WWR_RSS_URLS = [
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-customer-support-jobs.rss",
@@ -337,6 +346,335 @@ def _resolve_german_tech_jobs_rss_url() -> str:
     return norm_text(os.getenv("GERMAN_TECH_JOBS_RSS_URL") or DEFAULT_GERMAN_TECH_JOBS_RSS_URL)
 
 
+def _resolve_jooble_api_key() -> str:
+    return norm_text(os.getenv("JOOBLE_API_KEY"))
+
+
+def _resolve_jooble_api_host() -> str:
+    return norm_text(os.getenv("JOOBLE_API_HOST") or DEFAULT_JOOBLE_API_HOST)
+
+
+def _resolve_jooble_api_hosts() -> Dict[str, str]:
+    resolved = dict(DEFAULT_JOOBLE_API_HOSTS)
+    raw = norm_text(os.getenv("JOOBLE_API_HOSTS"))
+    if raw:
+        for chunk in raw.split(","):
+            part = norm_text(chunk)
+            if not part or "=" not in part:
+                continue
+            code_raw, host_raw = part.split("=", 1)
+            code = normalize_country_code(code_raw)
+            host = norm_text(host_raw)
+            if code and host:
+                resolved[code] = host
+
+    fallback = _resolve_jooble_api_host()
+    if fallback:
+        resolved.setdefault("DEFAULT", fallback)
+    return resolved
+
+
+def _select_jooble_api_host(country_codes: Optional[List[str]] = None) -> str:
+    hosts = _resolve_jooble_api_hosts()
+    normalized_codes = [
+        code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+    ]
+
+    if len(normalized_codes) == 1:
+        preferred = hosts.get(normalized_codes[0])
+        if preferred:
+            return preferred
+
+    return hosts.get("DEFAULT") or _resolve_jooble_api_host()
+
+
+def _wwr_db_import_enabled() -> bool:
+    return (os.getenv("ENABLE_WWR_DB_IMPORT") or "true").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_wwr_pub_date(raw: str) -> Optional[str]:
+    value = norm_text(raw)
+    if not value:
+        return None
+    try:
+        return parsedate_to_datetime(value).isoformat()
+    except Exception:
+        return None
+
+
+def _build_wwr_live_job(
+    *,
+    title: str,
+    company: str,
+    location: str,
+    description: str,
+    link: str,
+    categories: List[str],
+    country_code: Optional[str],
+    scraped_at: Optional[str],
+) -> Dict[str, Any]:
+    salary_from, salary_to, detected_currency = extract_salary(description or "", "EUR")
+    normalized_country = normalize_country_code(country_code)
+    return {
+        "id": link,
+        "title": title or "Remote role",
+        "company": company or "Unknown company",
+        "location": location or "Remote",
+        "description": _html_to_text(description) or title or "Remote role",
+        "url": link,
+        "source": "weworkremotely.com",
+        "benefits": categories[:8],
+        "tags": categories[:8],
+        "contract_type": None,
+        "work_type": "Remote",
+        "work_model": "Remote",
+        "salary_from": salary_from,
+        "salary_to": salary_to,
+        "salary_currency": detected_currency or "EUR",
+        "salary_timeframe": "month",
+        "scraped_at": scraped_at or now_iso(),
+        "country_code": normalized_country,
+        "language_code": "en",
+        "education_level": None,
+        "legality_status": "legal",
+        "verification_notes": "Live RSS import from We Work Remotely",
+    }
+
+
+def _country_code_to_jooble_location(country_code: Optional[str]) -> str:
+    normalized = normalize_country_code(country_code)
+    mapping = {
+        "CZ": "Czech Republic",
+        "SK": "Slovakia",
+        "PL": "Poland",
+        "DE": "Germany",
+        "AT": "Austria",
+        "GB": "United Kingdom",
+        "NL": "Netherlands",
+        "FR": "France",
+        "ES": "Spain",
+        "IT": "Italy",
+        "CH": "Switzerland",
+        "BE": "Belgium",
+        "PT": "Portugal",
+        "SE": "Sweden",
+        "DK": "Denmark",
+        "FI": "Finland",
+        "IE": "Ireland",
+    }
+    return mapping.get(normalized or "", "")
+
+
+def _build_jooble_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
+    title = norm_text(item.get("title") or "")
+    location = norm_text(item.get("location") or "Remote")
+    company = norm_text(item.get("company") or "Unknown company")
+    snippet = str(item.get("snippet") or "")
+    salary_text = norm_text(item.get("salary") or "")
+    source = norm_text(item.get("source") or "jooble")
+    link = norm_text(item.get("link") or "")
+    updated = norm_text(item.get("updated") or "") or now_iso()
+    type_label = norm_text(item.get("type") or "")
+    salary_from, salary_to, detected_currency = extract_salary(salary_text, "EUR")
+    country_code = _infer_country_code(location, [source, type_label], snippet)
+
+    benefits: List[str] = []
+    if type_label:
+        benefits.append(type_label)
+    if source:
+        benefits.append(source)
+
+    return {
+        "id": str(item.get("id") or link or f"jooble:{title}:{company}:{location}"),
+        "title": title or "Remote role",
+        "company": company,
+        "location": location or "Remote",
+        "description": _html_to_text(snippet) or title or "Remote role",
+        "url": link,
+        "source": f"jooble:{source}" if source else "jooble",
+        "benefits": benefits[:8],
+        "tags": benefits[:8],
+        "contract_type": type_label or None,
+        "work_type": detect_work_type(title, snippet, location),
+        "work_model": _infer_work_model(location, snippet, benefits),
+        "salary_from": salary_from,
+        "salary_to": salary_to,
+        "salary_currency": detected_currency or "EUR",
+        "salary_timeframe": "month",
+        "scraped_at": updated,
+        "country_code": normalize_country_code(country_code),
+        "language_code": "en",
+        "education_level": None,
+        "legality_status": "legal",
+        "verification_notes": "Live API import from Jooble",
+    }
+
+
+def search_weworkremotely_jobs_live(
+    *,
+    limit: int = 20,
+    search_term: str = "",
+    country_codes: Optional[List[str]] = None,
+    exclude_country_codes: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    rss_urls = _resolve_wwr_rss_urls()
+    normalized_search_tokens = [token for token in norm_text(search_term).lower().split() if token]
+    allowed_country_codes = {
+        code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+    }
+    blocked_country_codes = {
+        code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
+    }
+
+    results: List[Dict[str, Any]] = []
+    seen_urls: set[str] = set()
+
+    for rss_url in rss_urls:
+        try:
+            payload = _request_text(
+                rss_url,
+                headers={"Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8"},
+            )
+        except Exception as exc:
+            print(f"❌ WWR live RSS fetch failed for {rss_url}: {exc}")
+            continue
+
+        soup = BeautifulSoup(payload, "xml")
+        items = soup.find_all("item")
+        if not items:
+            continue
+
+        for item in items:
+            raw_title = norm_text(item.title.get_text()) if item.title else ""
+            description = item.description.get_text() if item.description else ""
+            link = item.link.get_text(strip=True) if item.link else ""
+            pub_date = _parse_wwr_pub_date(item.pubDate.get_text(strip=True)) if item.pubDate else None
+
+            if not raw_title or not link or link in seen_urls:
+                continue
+
+            title = raw_title
+            company = ""
+            if " at " in raw_title:
+                role_part, company_part = raw_title.split(" at ", 1)
+                title = norm_text(role_part)
+                company = norm_text(company_part)
+
+            categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+            if not _is_wwr_eu_relevant(title, description, categories):
+                continue
+
+            location, inferred_country_code = _extract_wwr_location_and_country(title, description, categories)
+            normalized_country = normalize_country_code(inferred_country_code)
+            if allowed_country_codes and normalized_country not in allowed_country_codes:
+                continue
+            if normalized_country and normalized_country in blocked_country_codes:
+                continue
+
+            haystack = norm_text("\n".join([
+                title,
+                company,
+                location,
+                description,
+                " ".join(categories),
+            ])).lower()
+            if normalized_search_tokens and not all(token in haystack for token in normalized_search_tokens):
+                continue
+
+            results.append(
+                _build_wwr_live_job(
+                    title=title,
+                    company=company,
+                    location=location,
+                    description=description,
+                    link=link,
+                    categories=categories,
+                    country_code=normalized_country,
+                    scraped_at=pub_date,
+                )
+            )
+            seen_urls.add(link)
+
+            if len(results) >= max(1, limit):
+                return results
+
+    return results
+
+
+def search_jooble_jobs_live(
+    *,
+    limit: int = 20,
+    search_term: str = "",
+    country_codes: Optional[List[str]] = None,
+    exclude_country_codes: Optional[List[str]] = None,
+    page: int = 1,
+) -> List[Dict[str, Any]]:
+    api_key = _resolve_jooble_api_key()
+    api_host = _select_jooble_api_host(country_codes)
+    if not api_key or not api_host:
+        return []
+
+    keywords = norm_text(search_term)
+    if not keywords:
+        return []
+
+    allowed_country_codes = [
+        code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+    ]
+    blocked_country_codes = {
+        code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
+    }
+
+    location = ""
+    if len(allowed_country_codes) == 1:
+        location = _country_code_to_jooble_location(allowed_country_codes[0])
+
+    endpoint = f"https://{api_host}/api/{api_key}"
+    payload: Dict[str, Any] = {
+        "keywords": keywords,
+        "page": str(max(1, page)),
+        "ResultOnPage": str(max(1, min(limit, 20))),
+        "SearchMode": "0",
+    }
+    if location:
+        payload["location"] = location
+
+    try:
+        response = requests.post(endpoint, json=payload, timeout=HTTP_TIMEOUT_SECONDS)
+        response.raise_for_status()
+        data = response.json() if response.content else {}
+    except Exception as exc:
+        print(f"❌ Jooble live API request failed: {exc}")
+        return []
+
+    jobs = data.get("jobs") if isinstance(data, dict) else None
+    if not isinstance(jobs, list):
+        return []
+
+    results: List[Dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for item in jobs:
+        if not isinstance(item, dict):
+            continue
+        mapped = _build_jooble_live_job(item)
+        url = norm_text(mapped.get("url") or "")
+        if not url or url in seen_urls:
+            continue
+
+        mapped_country = normalize_country_code(mapped.get("country_code"))
+        if allowed_country_codes and mapped_country not in allowed_country_codes:
+            continue
+        if mapped_country and mapped_country in blocked_country_codes:
+            continue
+
+        results.append(mapped)
+        seen_urls.add(url)
+        if len(results) >= max(1, limit):
+            break
+
+    return results
+
+
 def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
     if not supabase_client:
@@ -405,6 +743,9 @@ def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
 def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
     if not supabase_client:
+        return 0
+    if not _wwr_db_import_enabled():
+        print("ℹ️ WWR DB import disabled (ENABLE_WWR_DB_IMPORT=false).")
         return 0
 
     rss_urls = _resolve_wwr_rss_urls()

@@ -933,6 +933,105 @@ const createAbortError = (): Error => {
     return error;
 };
 
+const fetchWeWorkRemotelyLiveJobs = async (options: {
+    searchTerm: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    limit?: number;
+    includeJhi?: boolean;
+}): Promise<Job[]> => {
+    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!backendBase) return [];
+
+    const searchTerm = String(options.searchTerm || '').trim();
+    if (!searchTerm) return [];
+
+    const params = new URLSearchParams();
+    params.set('search_term', searchTerm);
+    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
+    if (options.countryCodes && options.countryCodes.length > 0) {
+        params.set('country_codes', options.countryCodes.join(','));
+    }
+    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
+        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
+    }
+
+    try {
+        const response = await authenticatedFetch(
+            `${backendBase}/jobs/external/weworkremotely/search?${params.toString()}`,
+            {
+                method: 'GET',
+                signal: options.abortSignal
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`WWR live search failed: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+    } catch (error) {
+        if (isAbortFetchError(error)) {
+            throw error;
+        }
+        console.warn('WWR live RSS overlay unavailable:', error);
+        return [];
+    }
+};
+
+const fetchJoobleLiveJobs = async (options: {
+    searchTerm: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    limit?: number;
+    includeJhi?: boolean;
+}): Promise<Job[]> => {
+    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!backendBase) return [];
+
+    const searchTerm = String(options.searchTerm || '').trim();
+    if (!searchTerm) return [];
+
+    const params = new URLSearchParams();
+    params.set('search_term', searchTerm);
+    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
+    params.set('page', '1');
+    if (options.countryCodes && options.countryCodes.length > 0) {
+        params.set('country_codes', options.countryCodes.join(','));
+    }
+    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
+        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
+    }
+
+    try {
+        const response = await authenticatedFetch(
+            `${backendBase}/jobs/external/jooble/search?${params.toString()}`,
+            {
+                method: 'GET',
+                signal: options.abortSignal
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Jooble live search failed: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+    } catch (error) {
+        if (isAbortFetchError(error)) {
+            throw error;
+        }
+        console.warn('Jooble live API overlay unavailable:', error);
+        return [];
+    }
+};
+
 const normalizeTokenText = (input: string): string =>
     input
         .normalize('NFD')
@@ -1740,8 +1839,61 @@ export const fetchJobsWithFilters = async (
         };
     };
 
-    const finalizeResults = (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) =>
-        applyHardConstraintsWithNearFallback(result.jobs, result.hasMore, result.totalCount);
+    const shouldOverlayLiveRss =
+        page === 0 &&
+        !!safeSearchTerm &&
+        safeRadiusKm === null &&
+        !normalizedFilterCity &&
+        effectiveSortMode !== 'distance';
+
+    const maybeOverlayLiveRssJobs = async (
+        result: { jobs: Job[]; hasMore: boolean; totalCount: number }
+    ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+        if (!shouldOverlayLiveRss) {
+            return result;
+        }
+
+        const overlayLimit = Math.min(10, Math.max(4, Math.floor(safeRpcPageSize / 3)));
+        const [wwrLiveJobs, joobleLiveJobs] = await Promise.all([
+            fetchWeWorkRemotelyLiveJobs({
+                searchTerm: safeSearchTerm,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            }),
+            fetchJoobleLiveJobs({
+                searchTerm: safeSearchTerm,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            })
+        ]);
+        const liveJobs = filterJobsByQuality([...wwrLiveJobs, ...joobleLiveJobs]);
+
+        if (!liveJobs.length) {
+            return result;
+        }
+
+        const mergedJobs = filterJobsByQuality([...result.jobs, ...liveJobs]);
+        return {
+            jobs: mergedJobs,
+            hasMore: result.hasMore,
+            totalCount: Math.max(result.totalCount, mergedJobs.length)
+        };
+    };
+
+    const finalizeResults = async (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) => {
+        const withLiveOverlay = await maybeOverlayLiveRssJobs(result);
+        return applyHardConstraintsWithNearFallback(
+            withLiveOverlay.jobs,
+            withLiveOverlay.hasMore,
+            withLiveOverlay.totalCount
+        );
+    };
 
     const fetchViaStrictClientFallback = async (
         reason: string
