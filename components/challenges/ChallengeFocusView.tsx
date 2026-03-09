@@ -137,6 +137,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       net: 'Čistá mzda',
       benefits: 'Hodnota benefitů',
       commute: 'Náklady na dojíždění',
+      commuteDistance: 'Vzdálenost do práce',
       realValue: 'Skutečná měsíční hodnota',
       jhiImpact: 'Dopad do JHI',
       oneWay: 'Jedna cesta',
@@ -154,7 +155,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionTitle: 'Na tuto nabídku odpovíš na původním webu',
       importedActionBody: 'Otázka výše slouží jen jako pomůcka pro tvoje rozhodnutí. Pokud ti nabídka dává smysl, pokračuješ přes původní inzerát, kde má firma vlastní tlačítko pro odpověď.',
       importedActionCta: 'Otevřít původní inzerát',
-      remoteReality: 'Práce na dálku se počítá jako nulové dojíždění, ne jako chybějící údaj.'
+      remoteReality: 'Práce na dálku se počítá jako nulové dojíždění, ne jako chybějící údaj.',
+      moreCompany: 'Firma a kontext',
+      moreOriginal: 'Původní text nabídky'
     },
     sk: {
       back: 'Späť na zoznam',
@@ -185,6 +188,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       net: 'Čistá mzda',
       benefits: 'Hodnota benefitov',
       commute: 'Náklady na dochádzanie',
+      commuteDistance: 'Vzdialenosť do práce',
       realValue: 'Skutočná mesačná hodnota',
       jhiImpact: 'Dopad do JHI',
       oneWay: 'Jedna cesta',
@@ -202,7 +206,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionTitle: 'Na túto ponuku odpovieš na pôvodnom webe',
       importedActionBody: 'Otázka vyššie slúži len ako pomôcka pre tvoje rozhodnutie. Ak ti ponuka dáva zmysel, pokračuješ cez pôvodný inzerát, kde má firma vlastné tlačidlo na odpoveď.',
       importedActionCta: 'Otvoriť pôvodný inzerát',
-      remoteReality: 'Práca na diaľku sa počíta ako nulové dochádzanie, nie ako chýbajúci údaj.'
+      remoteReality: 'Práca na diaľku sa počíta ako nulové dochádzanie, nie ako chýbajúci údaj.',
+      moreCompany: 'Firma a kontext',
+      moreOriginal: 'Pôvodný text ponuky'
     },
     de: {
       back: 'Zurück zur Liste',
@@ -233,6 +239,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       net: 'Nettogehalt',
       benefits: 'Wert der Benefits',
       commute: 'Pendelkosten',
+      commuteDistance: 'Entfernung zur Arbeit',
       realValue: 'Tatsächlicher Monatswert',
       jhiImpact: 'Einfluss auf JHI',
       oneWay: 'Eine Strecke',
@@ -250,7 +257,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionTitle: 'Auf diese Rolle antwortest du auf der Originalseite',
       importedActionBody: 'Die Frage oben dient nur als Denkstütze für deine Entscheidung. Wenn die Rolle für dich passt, gehst du über die Originalanzeige weiter, wo das Unternehmen seinen eigenen Bewerbungsweg hat.',
       importedActionCta: 'Originalanzeige öffnen',
-      remoteReality: 'Remote-Arbeit wird als null Pendelaufwand behandelt, nicht als fehlende Angabe.'
+      remoteReality: 'Remote-Arbeit wird als null Pendelaufwand behandelt, nicht als fehlende Angabe.',
+      moreCompany: 'Firma und Kontext',
+      moreOriginal: 'Originaltext der Anzeige'
     },
     at: {} as any,
     pl: {
@@ -282,6 +291,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       net: 'Wynagrodzenie netto',
       benefits: 'Wartość benefitów',
       commute: 'Koszt dojazdu',
+      commuteDistance: 'Odległość do pracy',
       realValue: 'Rzeczywista wartość miesięczna',
       jhiImpact: 'Wpływ na JHI',
       oneWay: 'W jedną stronę',
@@ -299,7 +309,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionTitle: 'Na tę ofertę odpowiadasz na oryginalnej stronie',
       importedActionBody: 'Pytanie wyżej to tylko pomoc w podjęciu decyzji. Jeśli oferta ma sens, przechodzisz do oryginalnego ogłoszenia, gdzie firma ma własny sposób zgłoszenia.',
       importedActionCta: 'Otwórz oryginalne ogłoszenie',
-      remoteReality: 'Praca zdalna liczy się jako zerowy dojazd, a nie brak danych.'
+      remoteReality: 'Praca zdalna liczy się jako zerowy dojazd, a nie brak danych.',
+      moreCompany: 'Firma i kontekst',
+      moreOriginal: 'Oryginalna treść oferty'
     },
     en: {
       back: 'Back to list',
@@ -330,6 +342,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       net: 'Net salary',
       benefits: 'Benefit value',
       commute: 'Commute cost',
+      commuteDistance: 'Distance to work',
       realValue: 'Real monthly value',
       jhiImpact: 'JHI impact',
       oneWay: 'One way',
@@ -347,7 +360,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionTitle: 'You respond to this role on the original website',
       importedActionBody: 'The question above is only a thinking aid for your decision. If the role makes sense, you continue through the original listing, where the company keeps its own application flow.',
       importedActionCta: 'Open original listing',
-      remoteReality: 'Remote work counts as zero commute, not as missing data.'
+      remoteReality: 'Remote work counts as zero commute, not as missing data.',
+      moreCompany: 'Company and context',
+      moreOriginal: 'Original listing'
     }
   } as const)[language === 'at' ? 'de' : language];
 
@@ -422,8 +437,19 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
     { label: copy.location, value: locationValue },
     { label: copy.realIncome, value: realIncomeValue },
-    { label: copy.commute, value: commuteValue },
+    { label: copy.commuteDistance, value: commuteValue },
     { label: copy.workModel, value: job.work_model || job.type || '—' },
+    { label: copy.source, value: job.source || '—' }
+  ];
+  const mobilePrimaryInsights = [
+    { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+    { label: copy.salary, value: displayedSalary },
+    { label: copy.workModel, value: job.work_model || job.type || '—' },
+    { label: copy.location, value: locationValue }
+  ];
+  const mobileSecondaryInsights = [
+    { label: copy.realIncome, value: realIncomeValue },
+    { label: copy.commuteDistance, value: commuteValue },
     { label: copy.source, value: job.source || '—' }
   ];
 
@@ -548,14 +574,61 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         title={job.title}
         body={copy.body}
         actions={
-          <>
+          <div className="hidden md:contents">
             <MetricTile label={copy.fit} value={`${Math.round(job.jhi?.score || 0)}/100`} tone="accent" className="min-w-[150px]" />
             <MetricTile label={copy.location} value={locationValue} className="min-w-[170px]" />
             <MetricTile label={copy.salary} value={displayedSalary} className="min-w-[150px]" />
             <MetricTile label={copy.workModel} value={job.work_model || job.type || '—'} className="min-w-[150px]" />
-          </>
+          </div>
         }
       />
+
+      <div className="grid gap-4 xl:hidden">
+        <SurfaceCard className="space-y-4">
+          <SectionTitle title={copy.quickInsights} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {mobilePrimaryInsights.map((item, index) => (
+              <MetricTile key={`${item.label}-${index}`} label={item.label} value={item.value} tone={item.tone} />
+            ))}
+          </div>
+          <div className="grid gap-3">
+            {mobileSecondaryInsights.map((item, index) => (
+              <MetricTile key={`${item.label}-secondary-${index}`} label={item.label} value={item.value} />
+            ))}
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard className="space-y-3">
+          <SectionTitle title={copy.reality} />
+          <div className="grid gap-3">
+            {job.company_id ? (
+              <button type="button" onClick={() => onOpenCompanyPage(job.company_id!)} className="app-button-secondary justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Building2 size={16} />
+                  {copy.openCompany}
+                </span>
+                <ArrowUpRight size={15} />
+              </button>
+            ) : null}
+            <button type="button" onClick={onOpenSupportingContext} className="app-button-secondary justify-between">
+              <span className="inline-flex items-center gap-2">
+                <Compass size={16} />
+                {copy.openContext}
+              </span>
+              <ArrowUpRight size={15} />
+            </button>
+            {job.url ? (
+              <button type="button" onClick={onOpenImportedListing} className="app-button-primary justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Sparkles size={16} />
+                  {copy.openListing}
+                </span>
+                <ArrowUpRight size={15} />
+              </button>
+            ) : null}
+          </div>
+        </SurfaceCard>
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_360px]">
         <div className="space-y-5">
@@ -604,7 +677,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
 
           {renderFinancialSection()}
 
-          <SurfaceCard className="space-y-5">
+          <SurfaceCard className="hidden space-y-5 md:block">
             <SectionTitle title={copy.company} />
             <div className="space-y-4">
               <NarrativeCard title={copy.companySignal} body={companySignal} />
@@ -629,7 +702,35 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             </div>
           </SurfaceCard>
 
-          <SurfaceCard className="space-y-5">
+          <details className="group rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] md:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-strong)]">
+              <span>{copy.moreCompany}</span>
+              <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <NarrativeCard title={copy.companySignal} body={companySignal} />
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
+                <div className="flex flex-wrap items-start gap-2">
+                  {benefitChips.length > 0 ? (
+                    benefitChips.map((benefit) => (
+                      <span
+                        key={`mobile-${benefit}`}
+                        title={benefit}
+                        className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
+                      >
+                        <span className="block max-w-[280px] truncate">{benefit}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[var(--text-faint)]">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <SurfaceCard className="hidden space-y-5 md:block">
             <SectionTitle title={copy.originalListing} />
             <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
             <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-p:text-[var(--text)] prose-li:text-[var(--text)]">
@@ -640,9 +741,26 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
               )}
             </div>
           </SurfaceCard>
+
+          <details className="group rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] md:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-strong)]">
+              <span>{copy.moreOriginal}</span>
+              <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
+              <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-p:text-[var(--text)] prose-li:text-[var(--text)]">
+                {formattedDescription ? (
+                  <Markdown>{formattedDescription}</Markdown>
+                ) : (
+                  <p className="text-sm text-[var(--text-muted)]">{copy.noDescription}</p>
+                )}
+              </div>
+            </div>
+          </details>
         </div>
 
-        <div className="space-y-5 xl:sticky xl:top-[var(--app-sticky-stack-offset)] xl:self-start">
+        <div className="hidden min-w-0 space-y-5 xl:block xl:sticky xl:top-[var(--app-sticky-stack-offset)] xl:self-start">
           <SurfaceCard className="space-y-4">
             <SectionTitle title={copy.quickInsights} />
             <div className="grid gap-3">

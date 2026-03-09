@@ -342,11 +342,11 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         } ${isFilterRailMode ? 'flex min-h-0 flex-1 flex-col' : 'flex-none'}`}
                     >
                         {isFilterRailMode && isCompactMobileRail && (
-                            <div className="p-2 border-b border-slate-200/80 dark:border-slate-800">
+                            <div className="border-b border-slate-200/80 p-2 dark:border-slate-800">
                                 <button
                                     type="button"
                                     onClick={() => setIsMobileRailOpen((prev) => !prev)}
-                                    className="inline-flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-950/50 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200"
+                                    className="inline-flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200"
                                 >
                                     <span>
                                         {uiCopy.activeFilters}: {activeFilterCount}
@@ -361,13 +361,13 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
                         {railContentVisible && (
                             <>
-                                <header className="border-b border-slate-200/80 dark:border-slate-800 px-3 py-2.5">
+                                <header className="border-b border-slate-200/80 px-3 py-2.5 dark:border-slate-800">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">
                                                 {uiCopy.railTitle}
                                             </div>
-                                            <div className="mt-0.5 text-[15px] font-bold text-slate-900 dark:text-white">
+                                            <div className="mt-0.5 text-[14px] font-bold text-slate-900 dark:text-white sm:text-[15px]">
                                                 {isCsLike ? 'Digitální první kontakt' : t('home.discovery.badge', { defaultValue: 'Digital first contact' })}
                                             </div>
                                         </div>
@@ -382,7 +382,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         )}
                                     </div>
 
-                                    <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <div className="mt-2 hidden grid-cols-2 gap-2 sm:grid">
                                         <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/40 px-2.5 py-2">
                                             <div className="text-[10px] uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">{uiCopy.totalRoles}</div>
                                             <div className="mt-0.5 text-[18px] font-bold text-slate-900 dark:text-white leading-none">
@@ -396,7 +396,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     </div>
                                 </header>
 
-                                <div className={`${isFilterRailMode ? 'custom-scrollbar min-h-0 flex-1 overflow-y-auto' : ''} px-3 py-2.5 space-y-3`}>
+                                <div className={`${isFilterRailMode ? 'custom-scrollbar min-h-0 flex-1 overflow-y-auto' : ''} space-y-3 px-3 py-2.5`}>
                                     <section className="space-y-1.5">
                                         <div className={sectionTitleClass}>{uiCopy.querySection}</div>
                                         <div className="relative">
@@ -508,7 +508,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-2 gap-1.5">
+                                        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                             <label className={`${optionRowClass} ${globalSearch ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/70 dark:bg-cyan-900/20' : 'bg-white/90 dark:bg-slate-950/45'}`}>
                                                 <span className="text-[11px]">{uiCopy.quickRegion}</span>
                                                 <input
@@ -532,7 +532,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
                                     <section className="space-y-1.5">
                                         <div className={sectionTitleClass}>{uiCopy.rankingSection}</div>
-                                        <div className="grid grid-cols-2 gap-1.5">
+                                        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                             <select
                                                 id="filter-language"
                                                 name="filter_language"
@@ -582,7 +582,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         </div>
 
                                         {activeFilterChips.length > 0 && (
-                                            <div className="flex flex-wrap gap-1">
+                                            <div className="hidden flex-wrap gap-1 sm:flex">
                                                 {activeFilterChips.map((chip) => (
                                                     <span
                                                         key={chip}
@@ -607,7 +607,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     {expandedSections.contract ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                                                 </button>
                                                 {expandedSections.contract && (
-                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                                         {[
                                                             { value: 'hpp', label: t('job.contract_types.hpp') },
                                                             { value: 'ico', label: t('job.contract_types.ico') },
@@ -645,7 +645,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     {expandedSections.date ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                                                 </button>
                                                 {expandedSections.date && (
-                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                                         {[
                                                             { id: 'all', label: t('filters.any_time') },
                                                             { id: '24h', label: t('filters.last_24h') },
@@ -723,7 +723,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     {expandedSections.experience ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                                                 </button>
                                                 {expandedSections.experience && (
-                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                                         {[
                                                             { id: 'Junior', label: t('filters.junior') },
                                                             { id: 'Medior', label: t('filters.medior') },
@@ -800,7 +800,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 )}
                                             </div>
 
-                                            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 p-2">
+                                            <div className="hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-950/50 p-2 sm:block">
                                                 <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                                                     {t('saved_filters.saved_searches')}
                                                 </div>

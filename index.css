@@ -38,6 +38,18 @@
   --radius-2xl: 2.25rem;
 }
 
+@media (max-width: 640px) {
+  :root {
+    --app-header-offset: 5.35rem;
+    --app-toolbar-offset: calc(var(--app-header-offset) + 1.75rem);
+    --app-sticky-stack-offset: calc(var(--app-toolbar-offset) + 4.25rem);
+    --radius-md: 0.95rem;
+    --radius-lg: 1.1rem;
+    --radius-xl: 1.35rem;
+    --radius-2xl: 1.6rem;
+  }
+}
+
 .dark {
   color-scheme: dark;
   --accent-rgb: 251 191 36;
@@ -216,6 +228,33 @@ body {
     border-color: rgba(148, 163, 184, 0.18);
     box-shadow: 0 24px 60px -48px rgba(15, 23, 42, 0.28);
     backdrop-filter: blur(24px);
+  }
+
+  @media (max-width: 640px) {
+    .app-surface {
+      backdrop-filter: blur(12px);
+    }
+
+    .app-page-header {
+      box-shadow: 0 20px 38px -34px rgba(15, 23, 42, 0.2);
+    }
+
+    .app-eyebrow {
+      @apply px-2.5 py-1 text-[10px];
+    }
+
+    .app-command-field {
+      @apply gap-2 rounded-[var(--radius-md)] px-3 py-2 text-[13px];
+    }
+
+    .app-filter-chip {
+      @apply gap-1.5 px-2.5 py-1.5 text-[12px];
+    }
+
+    .app-button-primary,
+    .app-button-secondary {
+      @apply min-h-[40px] gap-1.5 px-3 py-2 text-[13px];
+    }
   }
 
   .dark .app-topnav {

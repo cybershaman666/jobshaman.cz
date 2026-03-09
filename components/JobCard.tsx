@@ -146,6 +146,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   };
 
   const hiringStageLabel = getHiringStageLabel(job.hiring_stage);
+  const relativePostedAt = formatRelativePostedAt();
 
   const getChallengePreview = (): string | null => {
     const raw = String(job.description || '').trim();
@@ -325,7 +326,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     <div
       onClick={onClick}
       className={`
-        h-full ${emphasis === 'hero' ? 'p-[18px]' : 'p-4'} rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden ${emphasis === 'hero' ? 'shadow-[0_18px_34px_-28px_rgba(14,165,233,0.24)]' : 'shadow-[0_12px_26px_-28px_rgba(15,23,42,0.2)]'}
+        h-full ${emphasis === 'hero' ? 'p-4 sm:p-[18px]' : 'p-3 sm:p-4'} rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden ${emphasis === 'hero' ? 'shadow-[0_18px_34px_-28px_rgba(14,165,233,0.24)]' : 'shadow-[0_12px_26px_-28px_rgba(15,23,42,0.2)]'}
         ${isSelected ? selectedStyle : containerBase}
       `}
     >
@@ -373,7 +374,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           </div>
         )}
         {emphasis !== 'hero' && hasStructuredHandshakeSignal && (
-          <div className="mt-2 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-950/28 px-2.5 py-2 space-y-1.5">
+          <div className="mt-2 hidden rounded-lg border border-slate-200/80 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-950/28 px-2.5 py-2 space-y-1.5 sm:block">
             <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
               <span className="font-semibold text-slate-900 dark:text-white">
                 {t('job.card.role_truth_label', { defaultValue: 'Role truth' })}:
@@ -393,7 +394,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       </div>
 
       {(openDialoguesLabel || responseWindowLabel) && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <div className="mb-3 hidden flex-wrap items-center gap-1.5 sm:flex">
           {openDialoguesLabel && (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/70 bg-emerald-50/80 dark:bg-emerald-950/25 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
               <MessageCircle size={11} />
@@ -410,16 +411,22 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       )}
 
       {/* Bottom Badges Row */}
-      <div className="flex justify-between items-start gap-3 mb-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
         {/* Left Side Badges */}
         <div className="flex items-center gap-2 flex-wrap">
+          {relativePostedAt && (
+            <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+              <Clock size={11} className="flex-shrink-0" />
+              <span>{relativePostedAt}</span>
+            </div>
+          )}
           {hiringStageLabel && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-200 dark:border-cyan-800/70">
               <Briefcase size={11} className="flex-shrink-0" />
               <span>{hiringStageLabel}</span>
             </div>
           )}
-          {distanceBadge}
+          <div className="hidden sm:flex">{distanceBadge}</div>
 
           {hasTransparentSalary && (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold 
@@ -449,7 +456,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
             </div>
           )}
           {/* JHI Circular Progress */}
-          <div className="flex items-center gap-2" title={`Job Health Index: ${jhiScore}/100`}>
+          <div className="flex items-center gap-1.5 sm:gap-2" title={`Job Health Index: ${jhiScore}/100`}>
             <div className="relative w-8 h-8 flex items-center justify-center">
               {/* Background Circle */}
               <svg className="w-full h-full transform -rotate-90">
@@ -498,7 +505,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       </div>
 
       {/* Job Metadata */}
-      <div className="flex flex-wrap gap-y-1.5 gap-x-3 text-[13px] mb-3 font-medium text-slate-500 dark:text-slate-400">
+      <div className="mb-3 grid gap-1.5 text-[12px] font-medium text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:gap-y-1.5 sm:gap-x-3 sm:text-[13px]">
         <div className="flex items-center gap-1.5 min-w-0">
           <MapPin size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.location}</span>
         </div>
@@ -506,7 +513,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatJobTypeLabel(job.type)}</span>
         </div>
         {job.work_model && (
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="hidden items-center gap-1.5 min-w-0 sm:flex">
             <Home size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
             <span className="truncate">{formatWorkModelLabel(job.work_model)}</span>
           </div>
@@ -530,13 +537,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Clock size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatRelativePostedAt()}</span>
-        </div>
       </div>
 
       {emphasis === 'hero' && (
-        <div className="mb-3 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/82 dark:bg-slate-950/28 px-3 py-2 text-[11px] text-slate-600 dark:text-slate-300 shadow-[0_10px_20px_-24px_rgba(15,23,42,0.3)]">
+        <div className="mb-3 hidden rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/82 dark:bg-slate-950/28 px-3 py-2 text-[11px] text-slate-600 dark:text-slate-300 shadow-[0_10px_20px_-24px_rgba(15,23,42,0.3)] sm:block">
           <span className="font-semibold text-slate-900 dark:text-white">
             {t('job.card.response_prompt', { defaultValue: 'First reply:' })}
           </span>{' '}

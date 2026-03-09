@@ -242,6 +242,74 @@ const extractHiringStageMetadata = (desc?: string): { description: string; hirin
     };
 };
 
+const normalizeDedupText = (value?: string | number | null): string =>
+    String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+const normalizeDedupUrl = (value?: string | null): string => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+
+    try {
+        const url = new URL(raw);
+        url.hash = '';
+        const pathname = url.pathname.replace(/\/+$/, '') || '/';
+        return `${url.origin.toLowerCase()}${pathname}${url.search}`;
+    } catch {
+        return raw.toLowerCase().replace(/\/+$/, '');
+    }
+};
+
+export const getJobDedupKeys = (job: Partial<Job>): string[] => {
+    const keys = new Set<string>();
+    const id = normalizeDedupText(job.id);
+    const title = normalizeDedupText(job.title);
+    const company = normalizeDedupText(job.company);
+    const location = normalizeDedupText(job.location);
+    const source = normalizeDedupText(job.source);
+    const url = normalizeDedupUrl(job.url);
+
+    if (id) keys.add(`id:${id}`);
+    if (url) keys.add(`url:${url}`);
+
+    if (title && company) {
+        keys.add(`role:${title}|${company}`);
+        if (location) {
+            keys.add(`role-location:${title}|${company}|${location}`);
+        }
+        if (source) {
+            keys.add(`role-source:${title}|${company}|${source}`);
+        }
+        if (url) {
+            keys.add(`role-url:${title}|${company}|${url}`);
+        }
+    }
+
+    return Array.from(keys);
+};
+
+export const dedupeJobsList = <T extends Partial<Job>>(jobs: T[]): T[] => {
+    const seen = new Set<string>();
+    const deduped: T[] = [];
+
+    for (const job of jobs) {
+        const keys = getJobDedupKeys(job);
+        if (keys.length === 0) {
+            deduped.push(job);
+            continue;
+        }
+        if (keys.some((key) => seen.has(key))) {
+            continue;
+        }
+        keys.forEach((key) => seen.add(key));
+        deduped.push(job);
+    }
+
+    return deduped;
+};
+
 const BENEFIT_PATTERNS = [
     { regex: /flexibiln[íi]|pružn[áa] prac|flexible|flexibel|gleitzeit|elastyczn/i, label: 'Flexibilní pracovní doba' },
     { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation|urlaub|urlop/i, label: '5 týdnů dovolené' },
@@ -3116,16 +3184,7 @@ export const filterJobsByQuality = (jobs: Job[]): Job[] => {
     const validJobs = jobs.filter(isValidJobPosting);
 
     // Then remove duplicates - keep first occurrence
-    const seen = new Set<string>();
-    const uniqueJobs = validJobs.filter(job => {
-        const key = `${job.title?.toLowerCase().trim()}|${job.company?.toLowerCase().trim()}|${job.location?.toLowerCase().trim()}`;
-        if (seen.has(key)) {
-            console.log(`⚠️  Filtered duplicate job: ${job.title} at ${job.company}`);
-            return false;
-        }
-        seen.add(key);
-        return true;
-    });
+    const uniqueJobs = dedupeJobsList(validJobs);
 
     const filtered = jobs.length - uniqueJobs.length;
     if (filtered > 0) {

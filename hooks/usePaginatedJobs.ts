@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, SearchLanguageCode, UserProfile } from '../types';
-import { fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
+import { dedupeJobsList, fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
@@ -121,72 +121,9 @@ const hasDedicatedSearchRuntime = (): boolean => {
     return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
 };
 
-const normalizeDedupText = (value?: string | null): string =>
-    String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
-
-const normalizeJobUrl = (value?: string | null): string => {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-
-    try {
-        const url = new URL(raw);
-        url.hash = '';
-        const pathname = url.pathname.replace(/\/+$/, '') || '/';
-        return `${url.origin.toLowerCase()}${pathname}${url.search}`;
-    } catch {
-        return raw.toLowerCase().replace(/\/+$/, '');
-    }
-};
-
-const getJobDedupKeys = (job: Job): string[] => {
-    const keys = new Set<string>();
-    const normalizedId = normalizeDedupText(job.id);
-    if (normalizedId) {
-        keys.add(`id:${normalizedId}`);
-    }
-
-    const normalizedUrl = normalizeJobUrl(job.url);
-    if (normalizedUrl) {
-        keys.add(`url:${normalizedUrl}`);
-    }
-
-    const title = normalizeDedupText(job.title);
-    const company = normalizeDedupText(job.company);
-    const location = normalizeDedupText(job.location);
-    const source = normalizeDedupText(job.source);
-
-    if (title && company) {
-        keys.add(`role:${title}|${company}|${location}`);
-        if (normalizedUrl) {
-            keys.add(`role-url:${title}|${company}|${normalizedUrl}`);
-        }
-        if (source) {
-            keys.add(`role-source:${title}|${company}|${location}|${source}`);
-        }
-    }
-
-    return Array.from(keys);
-};
-
 // Global deduper helper to prevent repeated logical listings in feed and React key warnings.
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
-    const deduped: Job[] = [];
-    const seen = new Set<string>();
-
-    const pushIfUnique = (job: Job) => {
-        const dedupKeys = getJobDedupKeys(job);
-        const isDuplicate = dedupKeys.some((key) => seen.has(key));
-        if (isDuplicate) return;
-        dedupKeys.forEach((key) => seen.add(key));
-        deduped.push(job);
-    };
-
-    existingJobs.forEach(pushIfUnique);
-    newJobs.forEach(pushIfUnique);
-    return deduped;
+    return dedupeJobsList([...existingJobs, ...newJobs]);
 };
 
 const normalizeContractTypeFilter = (value: string): string => {

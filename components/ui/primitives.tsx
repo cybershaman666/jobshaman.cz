@@ -82,7 +82,7 @@ export const MetricTile: React.FC<{
 }> = ({ label, value, tone = 'default', className }) => (
   <div
     className={cn(
-      'rounded-[var(--radius-lg)] border px-4 py-4',
+      'min-w-0 rounded-[var(--radius-lg)] border px-4 py-4',
       tone === 'default' && 'bg-[var(--surface-muted)] border-[var(--border-subtle)]',
       tone === 'accent' && 'bg-[rgba(255,248,233,0.96)] border-amber-200/80 dark:bg-[rgba(74,49,6,0.58)] dark:border-amber-400/20',
       tone === 'success' && 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-950/20',
@@ -91,7 +91,7 @@ export const MetricTile: React.FC<{
     )}
   >
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{label}</div>
-    <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{value}</div>
+    <div className="mt-2 break-words text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)] sm:text-lg">{value}</div>
   </div>
 );
 
