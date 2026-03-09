@@ -8,6 +8,7 @@ API/RSS-based job sources for imported listings.
 from __future__ import annotations
 
 import os
+import time
 from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -19,19 +20,25 @@ try:
         detect_work_type,
         extract_salary,
         get_supabase_client,
+        normalize_country_code,
+        normalize_jobs_country_code,
         norm_text,
         now_iso,
         save_job_to_supabase,
     )
+    from ..geocoding import geocode_location
 except ImportError:
     from scraper_base import (  # type: ignore
         detect_work_type,
         extract_salary,
+        normalize_country_code,
         get_supabase_client,
+        normalize_jobs_country_code,
         norm_text,
         now_iso,
         save_job_to_supabase,
     )
+    from geocoding import geocode_location  # type: ignore
 
 
 DEFAULT_ARBEITNOW_API_URL = "https://www.arbeitnow.com/api/job-board-api"
@@ -55,6 +62,10 @@ DEFAULT_WWR_RSS_URLS = [
 ]
 DEFAULT_GERMAN_TECH_JOBS_RSS_URL = "https://germantechjobs.de/rss"
 HTTP_TIMEOUT_SECONDS = 30
+LIVE_SEARCH_CACHE_TTL_SECONDS = max(30, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
+LIVE_SEARCH_GEOCODE_TTL_SECONDS = max(300, int(os.getenv("LIVE_SEARCH_GEOCODE_TTL_SECONDS") or "86400"))
+_LIVE_SEARCH_CACHE: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
+_LIVE_GEOCODE_CACHE: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
 WWR_EU_INCLUDE_TOKENS = [
     "emea",
     "europe",
@@ -103,6 +114,31 @@ WWR_NON_EU_EXCLUDE_TOKENS = [
     "anywhere worldwide",
     "global",
 ]
+
+_BROAD_LOCATION_TOKENS = {
+    "remote",
+    "worldwide",
+    "global",
+    "europe",
+    "emea",
+    "eu",
+    "european union",
+    "anywhere",
+    "anywhere in the world",
+    "north america",
+    "united states",
+    "usa",
+    "canada",
+    "germany",
+    "deutschland",
+    "austria",
+    "osterreich",
+    "österreich",
+    "poland",
+    "slovakia",
+    "czech republic",
+    "czechia",
+}
 
 
 def _html_to_text(value: Any) -> str:
@@ -334,6 +370,52 @@ def _request_text(url: str, *, headers: Optional[Dict[str, str]] = None) -> str:
     return response.text
 
 
+def _build_live_cache_key(prefix: str, **parts: Any) -> str:
+    normalized_parts: List[str] = [prefix]
+    for key in sorted(parts.keys()):
+        value = parts[key]
+        if isinstance(value, (list, tuple, set)):
+            normalized = ",".join(sorted(str(item).strip().upper() for item in value if str(item).strip()))
+        else:
+            normalized = str(value or "").strip().lower()
+        normalized_parts.append(f"{key}={normalized}")
+    return "|".join(normalized_parts)
+
+
+def _get_cached_live_search(cache_key: str) -> Optional[List[Dict[str, Any]]]:
+    cached = _LIVE_SEARCH_CACHE.get(cache_key)
+    if not cached:
+        return None
+    cached_at, payload = cached
+    if time.time() - cached_at > LIVE_SEARCH_CACHE_TTL_SECONDS:
+        _LIVE_SEARCH_CACHE.pop(cache_key, None)
+        return None
+    return [dict(item) for item in payload]
+
+
+def _set_cached_live_search(cache_key: str, payload: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    snapshot = [dict(item) for item in payload]
+    _LIVE_SEARCH_CACHE[cache_key] = (time.time(), snapshot)
+    return [dict(item) for item in snapshot]
+
+
+def _get_cached_live_geocode(location: str) -> Optional[Optional[Dict[str, Any]]]:
+    cached = _LIVE_GEOCODE_CACHE.get(location)
+    if not cached:
+        return None
+    cached_at, payload = cached
+    if time.time() - cached_at > LIVE_SEARCH_GEOCODE_TTL_SECONDS:
+        _LIVE_GEOCODE_CACHE.pop(location, None)
+        return None
+    return dict(payload) if isinstance(payload, dict) else payload
+
+
+def _set_cached_live_geocode(location: str, payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    snapshot = dict(payload) if isinstance(payload, dict) else None
+    _LIVE_GEOCODE_CACHE[location] = (time.time(), snapshot)
+    return dict(snapshot) if isinstance(snapshot, dict) else None
+
+
 def _resolve_wwr_rss_urls() -> List[str]:
     raw = (os.getenv("WWR_RSS_URLS") or os.getenv("WWR_API_URL") or "").strip()
     if not raw:
@@ -415,7 +497,7 @@ def _build_wwr_live_job(
 ) -> Dict[str, Any]:
     salary_from, salary_to, detected_currency = extract_salary(description or "", "EUR")
     normalized_country = normalize_country_code(country_code)
-    return {
+    payload = {
         "id": link,
         "title": title or "Remote role",
         "company": company or "Unknown company",
@@ -439,6 +521,8 @@ def _build_wwr_live_job(
         "legality_status": "legal",
         "verification_notes": "Live RSS import from We Work Remotely",
     }
+    _attach_live_coordinates(payload)
+    return payload
 
 
 def _country_code_to_jooble_location(country_code: Optional[str]) -> str:
@@ -484,7 +568,7 @@ def _build_jooble_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
     if source:
         benefits.append(source)
 
-    return {
+    payload = {
         "id": str(item.get("id") or link or f"jooble:{title}:{company}:{location}"),
         "title": title or "Remote role",
         "company": company,
@@ -508,17 +592,75 @@ def _build_jooble_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
         "legality_status": "legal",
         "verification_notes": "Live API import from Jooble",
     }
+    _attach_live_coordinates(payload)
+    return payload
+
+
+def _location_precise_enough_for_geocoding(location: str) -> bool:
+    normalized = norm_text(location).lower()
+    if not normalized:
+        return False
+    if normalized in _BROAD_LOCATION_TOKENS:
+        return False
+    if any(token in normalized for token in ["remote", "worldwide", "anywhere", "global", "emea"]):
+        return False
+    segments = [part.strip() for part in normalized.replace("/", ",").split(",") if part.strip()]
+    if len(segments) >= 2:
+        return True
+    tokens = normalized.split()
+    if len(tokens) >= 2 and normalized not in _BROAD_LOCATION_TOKENS:
+        return True
+    return False
+
+
+def _attach_live_coordinates(job_data: Dict[str, Any]) -> None:
+    location = norm_text(job_data.get("location") or "")
+    if not _location_precise_enough_for_geocoding(location):
+        return
+    geo = _get_cached_live_geocode(location)
+    if geo is None and location not in _LIVE_GEOCODE_CACHE:
+        try:
+            geo = geocode_location(location)
+        except Exception as exc:
+            print(f"⚠️ Live geocoding failed for '{location}': {exc}")
+            _set_cached_live_geocode(location, None)
+            return
+        _set_cached_live_geocode(location, geo)
+    if not geo:
+        return
+    try:
+        job_data["lat"] = float(geo.get("lat"))
+        job_data["lng"] = float(geo.get("lon"))
+    except Exception:
+        return
+    geocoded_country = normalize_jobs_country_code(geo.get("country"))
+    if geocoded_country and not job_data.get("country_code"):
+        job_data["country_code"] = normalize_country_code(geocoded_country)
 
 
 def search_weworkremotely_jobs_live(
     *,
     limit: int = 20,
     search_term: str = "",
+    filter_city: str = "",
     country_codes: Optional[List[str]] = None,
     exclude_country_codes: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
+    cache_key = _build_live_cache_key(
+        "wwr",
+        limit=limit,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=country_codes or [],
+        exclude_country_codes=exclude_country_codes or [],
+    )
+    cached = _get_cached_live_search(cache_key)
+    if cached is not None:
+        return cached[: max(1, limit)]
+
     rss_urls = _resolve_wwr_rss_urls()
     normalized_search_tokens = [token for token in norm_text(search_term).lower().split() if token]
+    normalized_city_tokens = [token for token in norm_text(filter_city).lower().split() if token]
     allowed_country_codes = {
         code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
     }
@@ -580,6 +722,8 @@ def search_weworkremotely_jobs_live(
             ])).lower()
             if normalized_search_tokens and not all(token in haystack for token in normalized_search_tokens):
                 continue
+            if normalized_city_tokens and not all(token in haystack for token in normalized_city_tokens):
+                continue
 
             results.append(
                 _build_wwr_live_job(
@@ -596,19 +740,33 @@ def search_weworkremotely_jobs_live(
             seen_urls.add(link)
 
             if len(results) >= max(1, limit):
-                return results
+                return _set_cached_live_search(cache_key, results)[: max(1, limit)]
 
-    return results
+    return _set_cached_live_search(cache_key, results)
 
 
 def search_jooble_jobs_live(
     *,
     limit: int = 20,
     search_term: str = "",
+    filter_city: str = "",
     country_codes: Optional[List[str]] = None,
     exclude_country_codes: Optional[List[str]] = None,
     page: int = 1,
 ) -> List[Dict[str, Any]]:
+    cache_key = _build_live_cache_key(
+        "jooble",
+        limit=limit,
+        page=page,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=country_codes or [],
+        exclude_country_codes=exclude_country_codes or [],
+    )
+    cached = _get_cached_live_search(cache_key)
+    if cached is not None:
+        return cached[: max(1, limit)]
+
     api_key = _resolve_jooble_api_key()
     api_host = _select_jooble_api_host(country_codes)
     if not api_key or not api_host:
@@ -625,9 +783,13 @@ def search_jooble_jobs_live(
         code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
     }
 
-    location = ""
+    location = norm_text(filter_city)
     if len(allowed_country_codes) == 1:
-        location = _country_code_to_jooble_location(allowed_country_codes[0])
+        country_location = _country_code_to_jooble_location(allowed_country_codes[0])
+        if location:
+            location = f"{location}, {country_location}" if country_location else location
+        else:
+            location = country_location
 
     endpoint = f"https://{api_host}/api/{api_key}"
     payload: Dict[str, Any] = {
@@ -672,7 +834,7 @@ def search_jooble_jobs_live(
         if len(results) >= max(1, limit):
             break
 
-    return results
+    return _set_cached_live_search(cache_key, results)
 
 
 def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:

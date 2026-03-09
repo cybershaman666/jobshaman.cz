@@ -935,6 +935,7 @@ const createAbortError = (): Error => {
 
 const fetchWeWorkRemotelyLiveJobs = async (options: {
     searchTerm: string;
+    filterCity?: string;
     countryCodes?: string[];
     excludeCountryCodes?: string[];
     abortSignal?: AbortSignal;
@@ -945,11 +946,15 @@ const fetchWeWorkRemotelyLiveJobs = async (options: {
     if (!backendBase) return [];
 
     const searchTerm = String(options.searchTerm || '').trim();
-    if (!searchTerm) return [];
+    const filterCity = String(options.filterCity || '').trim();
+    if (!searchTerm && !filterCity) return [];
 
     const params = new URLSearchParams();
     params.set('search_term', searchTerm);
     params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
+    if (filterCity) {
+        params.set('filter_city', filterCity);
+    }
     if (options.countryCodes && options.countryCodes.length > 0) {
         params.set('country_codes', options.countryCodes.join(','));
     }
@@ -984,6 +989,7 @@ const fetchWeWorkRemotelyLiveJobs = async (options: {
 
 const fetchJoobleLiveJobs = async (options: {
     searchTerm: string;
+    filterCity?: string;
     countryCodes?: string[];
     excludeCountryCodes?: string[];
     abortSignal?: AbortSignal;
@@ -1000,6 +1006,9 @@ const fetchJoobleLiveJobs = async (options: {
     params.set('search_term', searchTerm);
     params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
     params.set('page', '1');
+    if (options.filterCity && options.filterCity.trim()) {
+        params.set('filter_city', options.filterCity.trim());
+    }
     if (options.countryCodes && options.countryCodes.length > 0) {
         params.set('country_codes', options.countryCodes.join(','));
     }
@@ -1839,17 +1848,14 @@ export const fetchJobsWithFilters = async (
         };
     };
 
-    const shouldOverlayLiveRss =
+    const shouldOverlayLiveImports =
         page === 0 &&
-        !!safeSearchTerm &&
-        safeRadiusKm === null &&
-        !normalizedFilterCity &&
-        effectiveSortMode !== 'distance';
+        (!!safeSearchTerm || !!normalizedFilterCity);
 
-    const maybeOverlayLiveRssJobs = async (
+    const maybeOverlayLiveImportJobs = async (
         result: { jobs: Job[]; hasMore: boolean; totalCount: number }
     ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
-        if (!shouldOverlayLiveRss) {
+        if (!shouldOverlayLiveImports) {
             return result;
         }
 
@@ -1857,6 +1863,7 @@ export const fetchJobsWithFilters = async (
         const [wwrLiveJobs, joobleLiveJobs] = await Promise.all([
             fetchWeWorkRemotelyLiveJobs({
                 searchTerm: safeSearchTerm,
+                filterCity,
                 countryCodes,
                 excludeCountryCodes,
                 abortSignal,
@@ -1865,6 +1872,7 @@ export const fetchJobsWithFilters = async (
             }),
             fetchJoobleLiveJobs({
                 searchTerm: safeSearchTerm,
+                filterCity,
                 countryCodes,
                 excludeCountryCodes,
                 abortSignal,
@@ -1878,7 +1886,10 @@ export const fetchJobsWithFilters = async (
             return result;
         }
 
-        const mergedJobs = filterJobsByQuality([...result.jobs, ...liveJobs]);
+        const mergedJobs = sortJobsForMode(
+            applyStrictClientFilters(filterJobsByQuality([...result.jobs, ...liveJobs])),
+            effectiveSortMode
+        );
         return {
             jobs: mergedJobs,
             hasMore: result.hasMore,
@@ -1887,7 +1898,7 @@ export const fetchJobsWithFilters = async (
     };
 
     const finalizeResults = async (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) => {
-        const withLiveOverlay = await maybeOverlayLiveRssJobs(result);
+        const withLiveOverlay = await maybeOverlayLiveImportJobs(result);
         return applyHardConstraintsWithNearFallback(
             withLiveOverlay.jobs,
             withLiveOverlay.hasMore,

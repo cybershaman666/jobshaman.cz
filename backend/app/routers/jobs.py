@@ -4506,6 +4506,7 @@ async def jobs_hybrid_search_v2(
 async def search_weworkremotely_live(
     request: Request,
     search_term: str = Query(default="", max_length=200),
+    filter_city: str = Query(default="", max_length=120),
     limit: int = Query(default=12, ge=1, le=40),
     country_codes: str | None = Query(default=None),
     exclude_country_codes: str | None = Query(default=None),
@@ -4518,6 +4519,7 @@ async def search_weworkremotely_live(
     jobs = search_weworkremotely_jobs_live(
         limit=limit,
         search_term=search_term,
+        filter_city=filter_city,
         country_codes=_parse_csv(country_codes),
         exclude_country_codes=_parse_csv(exclude_country_codes),
     )
@@ -4535,6 +4537,7 @@ async def search_weworkremotely_live(
 async def search_jooble_live(
     request: Request,
     search_term: str = Query(default="", max_length=200),
+    filter_city: str = Query(default="", max_length=120),
     limit: int = Query(default=12, ge=1, le=40),
     page: int = Query(default=1, ge=1, le=10),
     country_codes: str | None = Query(default=None),
@@ -4549,6 +4552,7 @@ async def search_jooble_live(
         limit=limit,
         page=page,
         search_term=search_term,
+        filter_city=filter_city,
         country_codes=_parse_csv(country_codes),
         exclude_country_codes=_parse_csv(exclude_country_codes),
     )
