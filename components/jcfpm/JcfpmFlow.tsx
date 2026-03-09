@@ -246,6 +246,14 @@ const localizeItem = (item: JcfpmItem, language: string): JcfpmItem => {
 const FLOW_COPY: any = {
   cs: {
     reportLabel: 'Report',
+    introTitle: 'JCFPM test',
+    introBody: 'Vítejte v hloubkové analýze vašeho kognitivního stylu a pracovního potenciálu. Dokončení testu zabere přibližně 15 až 20 minut.',
+    introStart: 'Spustit test',
+    errorTitle: 'Ups!',
+    retry: 'Zkusit znovu',
+    finishedTitle: 'Máš hotovo!',
+    finishedBody: 'Právě jsi dokončil JCFPM ponor do své vnitřní logiky, hodnot a stylu práce. Generujeme tvůj unikátní report...',
+    finishedOpenReport: 'Zobrazit můj report',
     questionProgress: (current: number, total: number, answered: number) => `Otázka ${current} / ${total} • ${answered} zodpovězeno`,
     phaseDeep: 'Hloubkový ponor • Soustředěný režim',
     phaseStandard: 'Standardní sken',
@@ -330,6 +338,14 @@ const FLOW_COPY: any = {
   },
   en: {
     reportLabel: 'Report',
+    introTitle: 'JCFPM test',
+    introBody: 'Welcome to a deep analysis of your cognitive style and work potential. Completing the test takes around 15 to 20 minutes.',
+    introStart: 'Start test',
+    errorTitle: 'Something went wrong',
+    retry: 'Try again',
+    finishedTitle: 'All done!',
+    finishedBody: 'You have just completed the JCFPM deep dive into your internal logic, values, and work style. We are generating your unique report...',
+    finishedOpenReport: 'Show my report',
     questionProgress: (current: number, total: number, answered: number) => `Question ${current} / ${total} • ${answered} answered`,
     phaseDeep: 'Deep Dive • Focus Mode',
     phaseStandard: 'Standard Scan',
@@ -414,6 +430,14 @@ const FLOW_COPY: any = {
   },
   de: {
     reportLabel: 'Bericht',
+    introTitle: 'JCFPM-Test',
+    introBody: 'Willkommen zur vertieften Analyse Ihres kognitiven Stils und Ihres Arbeitspotenzials. Der Test dauert etwa 15 bis 20 Minuten.',
+    introStart: 'Test starten',
+    errorTitle: 'Etwas ist schiefgelaufen',
+    retry: 'Erneut versuchen',
+    finishedTitle: 'Fertig!',
+    finishedBody: 'Sie haben den JCFPM-Tiefgang in Ihre innere Logik, Werte und Ihren Arbeitsstil gerade abgeschlossen. Ihr persönlicher Bericht wird jetzt erstellt...',
+    finishedOpenReport: 'Meinen Bericht anzeigen',
     questionProgress: (current: number, total: number, answered: number) => `Frage ${current} / ${total} • ${answered} beantwortet`,
     phaseDeep: 'Vertiefung • Fokusmodus',
     phaseStandard: 'Standard-Scan',
@@ -827,7 +851,7 @@ export default function JcfpmFlow({
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] text-center px-4 max-w-md mx-auto">
         <AlertCircle className="w-16 h-16 text-rose-500 mb-4" />
-        <h2 className="text-xl font-bold mb-2">Ups!</h2>
+        <h2 className="text-xl font-bold mb-2">{copy.errorTitle}</h2>
         <p className="text-slate-400 mb-6">{error || copy.errors.generic}</p>
         <button
           onClick={() => {
@@ -835,7 +859,7 @@ export default function JcfpmFlow({
           }}
           className="px-6 py-2 border border-slate-700 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"
         >
-          Zkusit znovu
+          {copy.retry}
         </button>
       </div>
     );
@@ -852,17 +876,16 @@ export default function JcfpmFlow({
             <Brain className="w-16 h-16 text-blue-400" />
           </div>
           <h1 className="text-5xl font-black text-white leading-tight uppercase tracking-tighter">
-            JCFPM Test
+            {copy.introTitle}
           </h1>
           <p className="text-xl text-white/70 max-w-lg leading-relaxed">
-            Vítejte v hloubkové analýze vašeho kognitivního stylu a pracovního potenciálu.
-            Dokončení testu zabere přibližně 15-20 minut.
+            {copy.introBody}
           </p>
           <button
             onClick={handleStart}
             className="px-12 py-4 bg-white text-blue-900 text-xl font-bold rounded-2xl hover:scale-105 transition-transform shadow-xl"
           >
-            Spustit test
+            {copy.introStart}
           </button>
         </div>
       </div>
@@ -1123,15 +1146,15 @@ export default function JcfpmFlow({
                 <div className="w-24 h-24 bg-emerald-500/20 border-4 border-emerald-500/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
                   <Check className="w-12 h-12 text-emerald-400" />
                 </div>
-                <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">Máš hotovo!</h2>
+                <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">{copy.finishedTitle}</h2>
                 <p className="text-white/60 text-lg leading-relaxed mb-10">
-                  Právě jsi dokončil JCFPM ponor do své vnitřní logiky, hodnot a stylu práce. Generujeme tvůj unikátní report...
+                  {copy.finishedBody}
                 </p>
                 <button
                   className="w-full h-16 inline-flex items-center justify-center text-xl font-bold bg-white text-slate-900 rounded-3xl hover:bg-slate-100 group transition-all"
                   onClick={() => setStatus('report')}
                 >
-                  Zobrazit můj report
+                  {copy.finishedOpenReport}
                   <ChevronRight className="ml-2 group-hover:translate-x-2 transition-transform" />
                 </button>
               </div>

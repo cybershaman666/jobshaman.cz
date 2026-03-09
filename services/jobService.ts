@@ -1041,6 +1041,64 @@ const fetchJoobleLiveJobs = async (options: {
     }
 };
 
+const fetchCachedExternalFeedJobs = async (options: {
+    searchTerm?: string;
+    filterCity?: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    page?: number;
+    pageSize?: number;
+    includeJhi?: boolean;
+}): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!backendBase) {
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+
+    const params = new URLSearchParams();
+    params.set('page', String(Math.max(0, options.page || 0)));
+    params.set('page_size', String(Math.max(1, Math.min(options.pageSize || 12, 80))));
+    if ((options.searchTerm || '').trim()) {
+        params.set('search_term', String(options.searchTerm).trim());
+    }
+    if ((options.filterCity || '').trim()) {
+        params.set('filter_city', String(options.filterCity).trim());
+    }
+    if (options.countryCodes && options.countryCodes.length > 0) {
+        params.set('country_codes', options.countryCodes.join(','));
+    }
+    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
+        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
+    }
+
+    try {
+        const response = await authenticatedFetch(
+            `${backendBase}/jobs/external/cached-feed?${params.toString()}`,
+            {
+                method: 'GET',
+                signal: options.abortSignal
+            }
+        );
+        if (!response.ok) {
+            throw new Error(`External cached feed failed: ${response.status}`);
+        }
+        const payload = await response.json();
+        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        return {
+            jobs: filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true)),
+            hasMore: Boolean(payload?.has_more),
+            totalCount: Number(payload?.total_count || 0)
+        };
+    } catch (error) {
+        if (isAbortFetchError(error)) {
+            throw error;
+        }
+        console.warn('External cached feed unavailable:', error);
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+};
+
 const normalizeTokenText = (input: string): string =>
     input
         .normalize('NFD')
@@ -1369,6 +1427,22 @@ const parseTimestampMs = (value?: string): number => {
     return Number.isFinite(ms) ? ms : 0;
 };
 
+const isImportedListing = (job: Job): boolean => job.listingKind === 'imported';
+
+const prioritizeNativeListings = (jobs: Job[]): Job[] => {
+    if (!jobs.length) return jobs;
+    const native: Job[] = [];
+    const imported: Job[] = [];
+    jobs.forEach((job) => {
+        if (isImportedListing(job)) {
+            imported.push(job);
+            return;
+        }
+        native.push(job);
+    });
+    return [...native, ...imported];
+};
+
 const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
@@ -1391,22 +1465,22 @@ const sortJobsForMode = (
     sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc'
 ): Job[] => {
     if (!jobs.length || sortMode === 'default' || sortMode === 'recommended') {
-        return jobs;
+        return prioritizeNativeListings(jobs);
     }
 
     const sorted = [...jobs];
     if (sortMode === 'newest') {
-        return sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt));
+        return prioritizeNativeListings(sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt)));
     }
     if (sortMode === 'jhi_desc') {
-        return sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0));
+        return prioritizeNativeListings(sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0)));
     }
     if (sortMode === 'distance') {
-        return sorted.sort((a, b) => {
+        return prioritizeNativeListings(sorted.sort((a, b) => {
             const da = (a as any)?.distance_km ?? (a as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             const db = (b as any)?.distance_km ?? (b as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             return da - db;
-        });
+        }));
     }
     if (sortMode === 'salary_desc') {
         const toMonthly = (job: Job) => {
@@ -1424,9 +1498,9 @@ const sortJobsForMode = (
             if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
             return salary;
         };
-        return sorted.sort((a, b) => toMonthly(b) - toMonthly(a));
+        return prioritizeNativeListings(sorted.sort((a, b) => toMonthly(b) - toMonthly(a)));
     }
-    return jobs;
+    return prioritizeNativeListings(jobs);
 };
 
 /**
@@ -1852,6 +1926,43 @@ export const fetchJobsWithFilters = async (
         page === 0 &&
         (!!safeSearchTerm || !!normalizedFilterCity);
 
+    const shouldIncludeCachedExternalFeed =
+        page >= 0;
+
+    const maybeMergeCachedExternalFeed = async (
+        result: { jobs: Job[]; hasMore: boolean; totalCount: number }
+    ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+        if (!shouldIncludeCachedExternalFeed) {
+            return result;
+        }
+
+        const externalResult = await fetchCachedExternalFeedJobs({
+            searchTerm: safeSearchTerm,
+            filterCity,
+            countryCodes,
+            excludeCountryCodes,
+            abortSignal,
+            page,
+            pageSize: Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6))),
+            includeJhi
+        });
+
+        if (!externalResult.jobs.length) {
+            return result;
+        }
+
+        const mergedJobs = sortJobsForMode(
+            applyStrictClientFilters(filterJobsByQuality([...result.jobs, ...externalResult.jobs])),
+            effectiveSortMode
+        );
+
+        return {
+            jobs: mergedJobs,
+            hasMore: result.hasMore || externalResult.hasMore,
+            totalCount: Math.max(result.totalCount, mergedJobs.length, externalResult.totalCount)
+        };
+    };
+
     const maybeOverlayLiveImportJobs = async (
         result: { jobs: Job[]; hasMore: boolean; totalCount: number }
     ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
@@ -1898,7 +2009,8 @@ export const fetchJobsWithFilters = async (
     };
 
     const finalizeResults = async (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) => {
-        const withLiveOverlay = await maybeOverlayLiveImportJobs(result);
+        const withCachedExternalFeed = await maybeMergeCachedExternalFeed(result);
+        const withLiveOverlay = await maybeOverlayLiveImportJobs(withCachedExternalFeed);
         return applyHardConstraintsWithNearFallback(
             withLiveOverlay.jobs,
             withLiveOverlay.hasMore,

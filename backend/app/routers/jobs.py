@@ -50,6 +50,7 @@ _RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
     "unsave",
 }
 _INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
+_EXTERNAL_LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -71,6 +72,128 @@ def _try_get_optional_user_id(request: Request) -> str | None:
         return user.get("id") or user.get("auth_id")
     except Exception:
         return None
+
+
+def _parse_country_code_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [part.strip().upper() for part in value.split(",") if part and part.strip()]
+
+
+def _normalize_external_job_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _external_job_dedup_keys(job: dict[str, Any]) -> list[str]:
+    keys: set[str] = set()
+    job_id = _normalize_external_job_text(job.get("id"))
+    if job_id:
+        keys.add(f"id:{job_id}")
+
+    url = _normalize_external_job_text(job.get("url"))
+    if url:
+        keys.add(f"url:{url}")
+
+    title = _normalize_external_job_text(job.get("title"))
+    company = _normalize_external_job_text(job.get("company"))
+    location = _normalize_external_job_text(job.get("location"))
+    source = _normalize_external_job_text(job.get("source"))
+    if title and company:
+        keys.add(f"role:{title}|{company}|{location}")
+        if source:
+            keys.add(f"role-source:{title}|{company}|{location}|{source}")
+    return list(keys)
+
+
+def _read_cached_external_jobs(
+    *,
+    page: int,
+    page_size: int,
+    search_term: str = "",
+    filter_city: str = "",
+    country_codes: list[str] | None = None,
+    exclude_country_codes: list[str] | None = None,
+) -> dict[str, Any]:
+    if not supabase:
+        return {"jobs": [], "total_count": 0, "has_more": False}
+
+    normalized_search = _normalize_external_job_text(search_term)
+    normalized_city = _normalize_external_job_text(filter_city)
+    allowed_countries = {code.strip().upper() for code in (country_codes or []) if code.strip()}
+    blocked_countries = {code.strip().upper() for code in (exclude_country_codes or []) if code.strip()}
+
+    try:
+        response = (
+            supabase.table(_EXTERNAL_LIVE_SEARCH_CACHE_TABLE)
+            .select("provider,payload_json,expires_at,fetched_at")
+            .gte("expires_at", datetime.now(timezone.utc).isoformat())
+            .order("fetched_at", desc=True)
+            .limit(120)
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_table_error(exc, _EXTERNAL_LIVE_SEARCH_CACHE_TABLE):
+            print(f"⚠️ Failed to read external live cache: {exc}")
+        return {"jobs": [], "total_count": 0, "has_more": False}
+
+    rows = response.data or []
+    seen: set[str] = set()
+    deduped_jobs: list[dict[str, Any]] = []
+    search_tokens = [token for token in normalized_search.split(" ") if token]
+    city_tokens = [token for token in normalized_city.split(" ") if token]
+
+    for row in rows:
+        payload = row.get("payload_json")
+        if not isinstance(payload, list):
+            continue
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+
+            job_country = str(item.get("country_code") or "").strip().upper()
+            if allowed_countries and job_country not in allowed_countries:
+                continue
+            if job_country and job_country in blocked_countries:
+                continue
+
+            haystack = _normalize_external_job_text(
+                " ".join(
+                    [
+                        str(item.get("title") or ""),
+                        str(item.get("company") or ""),
+                        str(item.get("location") or ""),
+                        str(item.get("description") or ""),
+                        " ".join(item.get("tags") or []) if isinstance(item.get("tags"), list) else "",
+                        " ".join(item.get("benefits") or []) if isinstance(item.get("benefits"), list) else "",
+                    ]
+                )
+            )
+            if search_tokens and not all(token in haystack for token in search_tokens):
+                continue
+            if city_tokens and not all(token in haystack for token in city_tokens):
+                continue
+
+            dedup_keys = _external_job_dedup_keys(item)
+            if any(key in seen for key in dedup_keys):
+                continue
+            for key in dedup_keys:
+                seen.add(key)
+            deduped_jobs.append(dict(item))
+
+    deduped_jobs.sort(
+        key=lambda job: str(job.get("scraped_at") or job.get("fetched_at") or ""),
+        reverse=True,
+    )
+
+    total_count = len(deduped_jobs)
+    start = max(0, page) * max(1, page_size)
+    end = start + max(1, page_size)
+    sliced = deduped_jobs[start:end]
+    return {
+        "jobs": sliced,
+        "total_count": total_count,
+        "has_more": end < total_count,
+    }
 
 
 def _interaction_state_cache_key(user_id: str, limit: int) -> tuple[str, int]:
@@ -4562,6 +4685,35 @@ async def search_jooble_live(
         "has_more": len(jobs) >= limit,
         "total_count": len(jobs),
         "source": "jooble_live_api",
+    }
+
+
+@router.get("/jobs/external/cached-feed")
+@limiter.limit("60/minute")
+async def get_cached_external_feed(
+    request: Request,
+    search_term: str = Query(default="", max_length=200),
+    filter_city: str = Query(default="", max_length=120),
+    page: int = Query(default=0, ge=0, le=20),
+    page_size: int = Query(default=24, ge=1, le=80),
+    country_codes: str | None = Query(default=None),
+    exclude_country_codes: str | None = Query(default=None),
+):
+    result = _read_cached_external_jobs(
+        page=page,
+        page_size=page_size,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=_parse_country_code_csv(country_codes),
+        exclude_country_codes=_parse_country_code_csv(exclude_country_codes),
+    )
+    jobs = result.get("jobs") or []
+    _attach_job_dialogue_preview_metrics(jobs)
+    return {
+        "jobs": jobs,
+        "has_more": bool(result.get("has_more")),
+        "total_count": int(result.get("total_count") or 0),
+        "source": "external_live_search_cache",
     }
 
 @router.post("/jobs/analyze")

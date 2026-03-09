@@ -27,9 +27,8 @@ try:
         now_iso,
         save_job_to_supabase,
     )
-    from ..geocoding import geocode_location, normalize_address
 except ImportError:
-    from scraper_base import (  # type: ignore
+    from scraper.scraper_base import (  # type: ignore
         detect_work_type,
         extract_salary,
         normalize_country_code,
@@ -39,7 +38,11 @@ except ImportError:
         now_iso,
         save_job_to_supabase,
     )
+
+try:
     from geocoding import geocode_location, normalize_address  # type: ignore
+except ImportError:
+    from backend.geocoding import geocode_location, normalize_address  # type: ignore
 
 
 DEFAULT_ARBEITNOW_API_URL = "https://www.arbeitnow.com/api/job-board-api"

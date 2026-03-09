@@ -22,6 +22,7 @@ from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 from .services.daily_digest import run_daily_job_digest
 from .services.benchmarks_public import run_salary_public_reference_refresh
+from .services.external_feed_warmup import run_external_feed_warmup
 from .governance import run_retention_cleanup
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -195,6 +196,8 @@ _scheduler_enabled = os.getenv("ENABLE_BACKGROUND_SCHEDULER", "false").strip().l
 _matching_batch_enabled = os.getenv("ENABLE_MATCHING_BATCH_JOBS", "false").strip().lower() in {"1", "true", "yes", "on"}
 _daily_digest_enabled = os.getenv("ENABLE_DAILY_DIGESTS", "false").strip().lower() in {"1", "true", "yes", "on"}
 _public_benchmarks_enabled = os.getenv("ENABLE_PUBLIC_BENCHMARK_REFRESH", "false").strip().lower() in {"1", "true", "yes", "on"}
+_external_feed_warmup_enabled = os.getenv("ENABLE_EXTERNAL_FEED_WARMUP", "false").strip().lower() in {"1", "true", "yes", "on"}
+_external_feed_warmup_interval_minutes = max(15, int(os.getenv("EXTERNAL_FEED_WARMUP_INTERVAL_MINUTES", "60") or "60"))
 
 
 def _start_scheduler() -> None:
@@ -218,6 +221,15 @@ def _start_scheduler() -> None:
                 hour=4,
                 minute=5,
                 id="public_salary_benchmark_refresh",
+                max_instances=1,
+                coalesce=True,
+            )
+        if _external_feed_warmup_enabled:
+            scheduler.add_job(
+                run_external_feed_warmup,
+                'interval',
+                minutes=_external_feed_warmup_interval_minutes,
+                id="external_feed_warmup",
                 max_instances=1,
                 coalesce=True,
             )
