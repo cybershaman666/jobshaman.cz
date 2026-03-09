@@ -9,6 +9,8 @@ Spouštěj přesně v tomto pořadí:
 5. `database/migrations/20260303_expand_job_role_profiles.sql`
 6. `database/migrations/20260303_application_messages.sql`
 7. `database/migrations/20260303_application_message_storage.sql`
+8. `database/migrations/20260308_admin_founder_board.sql`
+9. `database/migrations/20260308_admin_founder_board_comments.sql`
 
 Poznámky:
 

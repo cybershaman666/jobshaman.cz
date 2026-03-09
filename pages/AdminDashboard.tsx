@@ -29,6 +29,7 @@ import {
   createAdminJobRole,
   deleteAdminJobRole,
   getAdminAiQuality,
+  getAdminCrmEntities,
   getAdminCrmEntityDetail,
   getAdminCrmLeads,
   getAdminFounderBoard,
@@ -77,7 +78,7 @@ type CrmRecord = {
   secondary?: string;
   subscription?: any | null;
   subscriptionId?: string | null;
-  source: 'subscription' | 'lookup';
+  source: 'subscription' | 'lookup' | 'entity';
 };
 
 const TIERS = ['free', 'premium', 'starter', 'growth', 'professional', 'trial', 'enterprise'];
@@ -213,7 +214,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   const handleAuthError = (message: string) => {
     const lower = String(message || '').toLowerCase();
-    if (lower.includes('admin') || lower.includes('forbidden') || lower.includes('403')) {
+    const isForbiddenError =
+      lower.includes('admin access required') ||
+      lower.includes('access denied') ||
+      lower.includes('forbidden') ||
+      lower.includes('csrf validation failed') ||
+      lower.includes('permission denied') ||
+      lower.includes('rls') ||
+      lower.includes('401') ||
+      lower.includes('403');
+    if (isForbiddenError) {
       setForbidden(true);
     } else {
       setError(message || 'Operation failed');
@@ -318,25 +328,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
-  const toCrmRecordFromSubscription = (sub: any): CrmRecord => {
-    const entityKind: CrmEntityKind = sub.company_id ? 'company' : 'user';
-    const entityId = String(sub.company_id || sub.user_id || sub.id);
-    const label = sub.companies?.name || sub.profiles?.full_name || sub.profiles?.email || sub.id;
-    const secondary = entityKind === 'company'
-      ? `${sub.companies?.industry || t('admin_dashboard.entity.company', { defaultValue: 'Company' })} • ${sub.tier || 'free'}`
-      : `${sub.profiles?.email || entityId} • ${sub.tier || 'free'}`;
-
-    return {
-      key: `sub:${sub.id}`,
-      entityKind,
-      entityId,
-      label,
-      secondary,
-      subscription: sub,
-      subscriptionId: sub.id,
-      source: 'subscription',
-    };
-  };
+  const toCrmRecordFromEntity = (item: any): CrmRecord => ({
+    key: `entity:${item.kind}:${item.id}`,
+    entityKind: item.kind === 'company' ? 'company' : 'user',
+    entityId: String(item.id),
+    label: item.label || item.id,
+    secondary: item.secondary || '',
+    subscription: item.subscription || null,
+    subscriptionId: item.subscription?.id || null,
+    source: item.subscription ? 'subscription' : 'entity',
+  });
 
   const toCrmRecordFromLead = (lead: any): CrmRecord => ({
     key: `lead:${lead.id}`,
@@ -354,13 +355,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     setError(null);
     try {
       const normalizedQuery = crmQuery.trim();
-      const subscriptionPromise = crmKind === 'lead'
+      const entitiesPromise = crmKind === 'lead'
         ? Promise.resolve({ items: [] as any[] })
-        : getAdminSubscriptions({
+        : getAdminCrmEntities({
             q: normalizedQuery || undefined,
-            kind: crmKind === 'all' ? undefined : crmKind,
-            limit: 120,
-            offset: 0,
+            kind: crmKind === 'all' ? 'all' : crmKind,
+            limit: 300,
           });
       const leadsPromise = crmKind === 'all' || crmKind === 'lead'
         ? getAdminCrmLeads({ q: normalizedQuery || undefined, limit: 120, offset: 0 })
@@ -368,21 +368,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
       const lookupPromises: Promise<any>[] = [];
       if (normalizedQuery.length >= 2) {
-        if (crmKind === 'all') {
-          lookupPromises.push(adminSearch(normalizedQuery, 'company'));
-          lookupPromises.push(adminSearch(normalizedQuery, 'user'));
+        if (crmKind === 'all' || crmKind === 'lead') {
           lookupPromises.push(adminSearch(normalizedQuery, 'lead' as any));
-        } else if (crmKind !== 'lead') {
-          lookupPromises.push(adminSearch(normalizedQuery, crmKind));
         }
       }
 
-      const [subscriptionData, leadsData, ...lookupData] = await Promise.all([subscriptionPromise, leadsPromise, ...lookupPromises]);
-      const subscriptionRows: CrmRecord[] = (subscriptionData?.items || []).map((sub: any) => toCrmRecordFromSubscription(sub));
+      const [entitiesData, leadsData, ...lookupData] = await Promise.all([entitiesPromise, leadsPromise, ...lookupPromises]);
+      const entityRows: CrmRecord[] = (entitiesData?.items || []).map((item: any) => toCrmRecordFromEntity(item));
       const leadRows: CrmRecord[] = (leadsData?.items || []).map((lead: any) => toCrmRecordFromLead(lead));
       const entityToRecord = new Map<string, CrmRecord>();
 
-      subscriptionRows.forEach((row) => {
+      entityRows.forEach((row) => {
         entityToRecord.set(`${row.entityKind}:${row.entityId}`, row);
       });
       leadRows.forEach((row) => {

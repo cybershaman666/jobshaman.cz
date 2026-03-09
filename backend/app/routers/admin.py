@@ -63,7 +63,7 @@ def _parse_iso_datetime(value: str) -> Optional[datetime]:
 def _safe_query(value: str) -> str:
     if not value:
         return ""
-    return re.sub(r"[^a-zA-Z0-9@._\\- ]+", " ", value).strip()
+    return re.sub(r"[^a-zA-Z0-9@._ -]+", " ", value).strip()
 
 
 def _safe_float(value, default: float = 0.0) -> float:
@@ -640,6 +640,127 @@ async def admin_search(
         print(f"⚠️ Admin search unexpected failure: {exc}")
         print(traceback.format_exc())
         return {"items": []}
+
+
+@router.get("/admin/crm/entities")
+async def admin_crm_entities(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    kind: str = Query("all", pattern="^(company|user|all)$"),
+    limit: int = Query(200, ge=1, le=500),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    safe_q = _safe_query(q or "")
+
+    def _fetch_entities(table: str, select_attempts: List[str], *, search_fields: List[str], entity_kind: str) -> List[dict]:
+        rows: List[dict] = []
+        for select_expr in select_attempts:
+            try:
+                query_builder = supabase.table(table).select(select_expr)
+                if safe_q:
+                    or_filters = ",".join([f"{field}.ilike.%{safe_q}%" for field in search_fields])
+                    query_builder = query_builder.or_(or_filters)
+                try:
+                    resp = query_builder.order("created_at", desc=True).limit(limit).execute()
+                except Exception:
+                    resp = query_builder.limit(limit).execute()
+                rows = resp.data or []
+                break
+            except Exception as exc:
+                print(f"⚠️ Admin CRM entity fetch failed for {table} ({select_expr}): {exc}")
+        return [row for row in rows if isinstance(row, dict) and row.get("id")]
+
+    company_rows: List[dict] = []
+    user_rows: List[dict] = []
+    if kind in {"all", "company"}:
+        company_rows = _fetch_entities(
+            "companies",
+            [
+                "id,name,industry,created_at,website",
+                "id,name,industry,created_at",
+                "id,name,created_at",
+            ],
+            search_fields=["name", "industry"],
+            entity_kind="company",
+        )
+    if kind in {"all", "user"}:
+        user_rows = _fetch_entities(
+            "profiles",
+            [
+                "id,email,full_name,role,created_at",
+                "id,email,full_name,created_at",
+                "id,email,name,created_at",
+                "id,email,created_at",
+            ],
+            search_fields=["email", "full_name", "name"],
+            entity_kind="user",
+        )
+
+    company_ids = [str(row.get("id")) for row in company_rows if row.get("id")]
+    user_ids = [str(row.get("id")) for row in user_rows if row.get("id")]
+    subscription_rows: List[dict] = []
+    if company_ids or user_ids:
+        try:
+            sub_query = supabase.table("subscriptions").select("*")
+            filters: List[str] = []
+            if company_ids:
+                filters.append(f"company_id.in.({','.join(company_ids)})")
+            if user_ids:
+                filters.append(f"user_id.in.({','.join(user_ids)})")
+            if filters:
+                sub_query = sub_query.or_(",".join(filters))
+            subscription_rows = sub_query.limit(max(limit * 2, 200)).execute().data or []
+        except Exception as exc:
+            print(f"⚠️ Admin CRM subscription enrichment failed: {exc}")
+            subscription_rows = []
+
+    subscriptions_by_company = {
+        str(row.get("company_id")): row
+        for row in subscription_rows
+        if row.get("company_id")
+    }
+    subscriptions_by_user = {
+        str(row.get("user_id")): row
+        for row in subscription_rows
+        if row.get("user_id")
+    }
+
+    items: List[dict] = []
+    for row in company_rows:
+        entity_id = str(row.get("id"))
+        subscription = subscriptions_by_company.get(entity_id)
+        items.append({
+            "id": entity_id,
+            "kind": "company",
+            "label": row.get("name") or entity_id,
+            "secondary": " • ".join([part for part in [row.get("industry"), (subscription or {}).get("tier") or "free"] if part]),
+            "entity": row,
+            "subscription": subscription,
+        })
+    for row in user_rows:
+        entity_id = str(row.get("id"))
+        subscription = subscriptions_by_user.get(entity_id)
+        items.append({
+            "id": entity_id,
+            "kind": "user",
+            "label": row.get("full_name") or row.get("name") or row.get("email") or entity_id,
+            "secondary": " • ".join([part for part in [row.get("email"), (subscription or {}).get("tier") or "free"] if part]),
+            "entity": row,
+            "subscription": subscription,
+        })
+
+    items = sorted(
+        items,
+        key=lambda item: (
+            0 if item.get("subscription") else 1,
+            str(item.get("label") or "").lower(),
+        ),
+    )[:limit]
+    return {"items": items, "count": len(items)}
 
 
 @router.get("/admin/crm/entity-detail")

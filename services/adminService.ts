@@ -138,6 +138,25 @@ export async function getAdminCrmEntityDetail(kind: 'company' | 'user' | 'lead',
   return response.json();
 }
 
+export async function getAdminCrmEntities(params: { q?: string; kind?: 'company' | 'user' | 'all'; limit?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.kind) search.set('kind', params.kind);
+  if (params.limit) search.set('limit', String(params.limit));
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/entities?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load CRM entities');
+  }
+
+  return response.json();
+}
+
 export async function getAdminCrmLeads(params: { q?: string; status?: string; limit?: number; offset?: number } = {}) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);

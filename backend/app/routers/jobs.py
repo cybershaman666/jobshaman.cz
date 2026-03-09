@@ -1,6 +1,7 @@
 import os
 import re
 from typing import Any
+from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
@@ -22,7 +23,26 @@ from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
-from scraper.scraper_api_sources import search_jooble_jobs_live, search_weworkremotely_jobs_live
+
+
+def _import_first(module_names: list[str]) -> Any:
+    last_error: Exception | None = None
+    for module_name in module_names:
+        try:
+            return import_module(module_name)
+        except Exception as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise ImportError("No module names provided")
+
+
+_scraper_api_sources = _import_first([
+    "scraper.scraper_api_sources",
+    "backend.scraper.scraper_api_sources",
+])
+search_jooble_jobs_live = _scraper_api_sources.search_jooble_jobs_live
+search_weworkremotely_jobs_live = _scraper_api_sources.search_weworkremotely_jobs_live
 
 router = APIRouter()
 _SEARCH_EXPOSURES_AVAILABLE: bool = True
