@@ -422,6 +422,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const companySignal = shorten(job.companyPageSummary || job.aiAnalysis?.summary || job.description, 220);
   const displayedSalary = formatSalary(job, i18n.language, isCsLike);
   const locationValue = shorten(job.location, 72) || (isCsLike ? 'Místo neuvedeno' : 'Location not specified');
+  const companyValue = shorten(job.company, 72) || (isCsLike ? 'Firma neuvedena' : 'Company not specified');
   const benefitChips = useMemo(() => normalizeBenefitChips(job.benefits), [job.benefits]);
   const realIncomeValue = commuteAnalysis
     ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} ${commuteAnalysis.financialReality.currency}`
@@ -450,6 +451,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const mobileSecondaryInsights = [
     { label: copy.realIncome, value: realIncomeValue },
     { label: copy.commuteDistance, value: commuteValue },
+    { label: copy.company, value: companyValue },
     { label: copy.source, value: job.source || '—' }
   ];
 
@@ -576,6 +578,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         actions={
           <div className="hidden md:contents">
             <MetricTile label={copy.fit} value={`${Math.round(job.jhi?.score || 0)}/100`} tone="accent" className="min-w-[150px]" />
+            <MetricTile label={copy.company} value={companyValue} className="min-w-[200px]" />
             <MetricTile label={copy.location} value={locationValue} className="min-w-[170px]" />
             <MetricTile label={copy.salary} value={displayedSalary} className="min-w-[150px]" />
             <MetricTile label={copy.workModel} value={job.work_model || job.type || '—'} className="min-w-[150px]" />
