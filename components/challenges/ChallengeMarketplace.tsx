@@ -1092,6 +1092,21 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const hasManualIntent = effectiveCandidateIntent.usedManualDomain || effectiveCandidateIntent.usedManualRole || effectiveCandidateIntent.usedManualSeniority;
   const inferredIntentAvailable = Boolean(effectiveCandidateIntent.inferredPrimaryDomain || effectiveCandidateIntent.inferredTargetRole);
 
+  const resetToManualDiscovery = () => {
+    // Switching off personal setup should feel like a real reset (no hidden carry-over filters).
+    setFilterMinSalary(0);
+    setFilterBenefits([]);
+    setFilterContractType([]);
+    setFilterExperience([]);
+    setFilterLanguageCodes([]);
+    setFilterDate('all');
+    setEnableCommuteFilter(false);
+    setFilterMaxDistance(50);
+    setRemoteOnly(false);
+    setAbroadOnly(false);
+    setGlobalSearch(true);
+  };
+
   const feedSections = useMemo(() => {
     const sections: Array<{ key: string; title: string; body: string; jobs: Job[] }> = [];
     if (!usePersonalSetup) {
@@ -1245,7 +1260,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   >
                     {copy.useSetup}
                   </FilterChip>
-                  <FilterChip active={!usePersonalSetup} onClick={() => setUsePersonalSetup(false)}>
+                  <FilterChip
+                    active={!usePersonalSetup}
+                    onClick={() => {
+                      setUsePersonalSetup(false);
+                      resetToManualDiscovery();
+                    }}
+                  >
                     {copy.disableSetup}
                   </FilterChip>
                 </div>

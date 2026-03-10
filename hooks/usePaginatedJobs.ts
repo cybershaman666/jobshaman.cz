@@ -594,10 +594,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 ? Math.max(initialPageSize, 120)
                 : initialPageSize;
 
+            // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
+            // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
+            // simple pagination over `jobs` stays fast and stable.
             const canUseSimplePagination =
-                !dedicatedSearchRuntime &&
                 !hasAnyFilters &&
-                (!hasCountryFilter || normalizedCountryCodes.length === 1);
+                (!hasCountryFilter || normalizedCountryCodes.length === 1) &&
+                (!dedicatedSearchRuntime || globalSearch);
 
             if (canUseSimplePagination) {
                 const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;
@@ -771,14 +774,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         return fetchFilteredJobs(0, false);
     }, [fetchFilteredJobs]);
 
-    // If user has address and we are still in global search with no country, narrow to their country
-    useEffect(() => {
-        if (globalSearch && countryCodes.length === 0 && defaultCountryCodes.length > 0) {
-            setCountryCodes(defaultCountryCodes);
-            setGlobalSearch(false);
-        }
-    }, [globalSearch, countryCodes.length, defaultCountryCodes]);
-
     useEffect(() => {
         if (globalSearch || abroadOnly) return;
         if (defaultCountryCodes.length === 0) return;
@@ -787,15 +782,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
     }, [defaultCountryCodes, countryCodes, globalSearch, abroadOnly]);
 
-    useEffect(() => {
-        if (globalSearch && countryCodes.length === 0) {
-            const inferred = expandCountryAliases(getCountryCodeFromAddress(userProfile.address));
-            if (inferred.length > 0) {
-                setCountryCodes(inferred);
-                setGlobalSearch(false);
-            }
-        }
-    }, [globalSearch, countryCodes.length, userProfile.address]);
+    // Keep `globalSearch` as an explicit user choice.
+    // Auto-flipping it off is confusing and also hides external/imported sources unexpectedly.
 
     useEffect(() => {
         if (abroadOnly && !globalSearch) {

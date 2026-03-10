@@ -1112,6 +1112,14 @@ def _is_missing_column_error(exc: Exception, column_name: str) -> bool:
     msg = str(exc).lower()
     return column_name.lower() in msg and ("does not exist" in msg or "column" in msg)
 
+def _is_missing_relationship_error(exc: Exception, left_table: str, right_table: str) -> bool:
+    msg = str(exc).lower()
+    if "pgrst200" not in msg:
+        return False
+    left = left_table.lower()
+    right = right_table.lower()
+    return f"relationship between '{left}' and '{right}'" in msg or f"relationship between '{right}' and '{left}'" in msg
+
 
 def _safe_dict(value) -> dict:
     return value if isinstance(value, dict) else {}
@@ -2928,6 +2936,91 @@ async def list_my_dialogues_legacy(
             continue
 
     if resp is None:
+        if last_error and _is_missing_relationship_error(last_error, "job_applications", "jobs"):
+            try:
+                base_resp = (
+                    supabase
+                    .table("job_applications")
+                    .select(
+                        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
+                        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
+                        "shared_jcfpm_payload,jcfpm_share_level,application_payload"
+                    )
+                    .eq("candidate_id", user_id)
+                    .order("submitted_at", desc=True)
+                    .limit(limit)
+                    .execute()
+                )
+            except Exception as fallback_exc:
+                print(f"⚠️ Failed to load candidate dialogues for {user_id}: {fallback_exc}")
+                payload = {
+                    "applications": [],
+                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
+                }
+                _set_cached_my_dialogues(user_id, limit, payload)
+                return payload
+
+            base_rows = [r for r in (base_resp.data or []) if isinstance(r, dict)]
+            job_ids = [_canonical_job_id(r.get("job_id")) for r in base_rows if _canonical_job_id(r.get("job_id"))]
+            company_ids = [str(r.get("company_id") or "").strip() for r in base_rows if str(r.get("company_id") or "").strip()]
+
+            jobs_by_id: dict[str, dict] = {}
+            if job_ids:
+                try:
+                    jobs_resp = (
+                        supabase
+                        .table("jobs")
+                        .select("id,title,company,location,url,source,contact_email")
+                        .in_("id", list({int(x) for x in job_ids if x.isdigit()} or job_ids))
+                        .limit(len(job_ids))
+                        .execute()
+                    )
+                    for job in jobs_resp.data or []:
+                        if isinstance(job, dict):
+                            jid = _canonical_job_id(job.get("id"))
+                            if jid:
+                                jobs_by_id[jid] = job
+                except Exception as exc:
+                    print(f"⚠️ Candidate dialogues fallback: failed to hydrate jobs: {exc}")
+
+            companies_by_id: dict[str, dict] = {}
+            if company_ids:
+                try:
+                    companies_resp = (
+                        supabase
+                        .table("companies")
+                        .select("id,name,website")
+                        .in_("id", list(dict.fromkeys(company_ids)))
+                        .limit(len(company_ids))
+                        .execute()
+                    )
+                    for company in companies_resp.data or []:
+                        if isinstance(company, dict):
+                            cid = str(company.get("id") or "").strip()
+                            if cid:
+                                companies_by_id[cid] = company
+                except Exception as exc:
+                    print(f"⚠️ Candidate dialogues fallback: failed to hydrate companies: {exc}")
+
+            resp = base_resp
+            rows = []
+            for row in base_rows:
+                enriched = dict(row)
+                jid = _canonical_job_id(row.get("job_id"))
+                cid = str(row.get("company_id") or "").strip()
+                if jid:
+                    enriched["jobs"] = jobs_by_id.get(jid) or {}
+                if cid:
+                    enriched["companies"] = companies_by_id.get(cid) or {}
+                rows.append(enriched)
+            rows = [_expire_dialogue_if_needed(row) for row in rows if isinstance(row, dict)]
+            payload = {
+                "applications": [_serialize_candidate_application_row(row) for row in rows],
+                "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows, user=user),
+            }
+            _set_cached_my_dialogues(user_id, limit, payload)
+            return payload
+
         print(f"⚠️ Failed to load candidate dialogues for {user_id}: {last_error}")
         payload = {
             "applications": [],
@@ -2970,17 +3063,60 @@ async def get_my_dialogue_detail_legacy(
             .execute()
         )
     except Exception as exc:
-        if not _is_missing_column_error(exc, "contact_email"):
-            raise HTTPException(status_code=500, detail="Failed to load application detail")
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title,company,location,url,source),companies(id,name,website)")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
+        if _is_missing_relationship_error(exc, "job_applications", "jobs"):
+            base = (
+                supabase
+                .table("job_applications")
+                .select("*")
+                .eq("id", application_id)
+                .eq("candidate_id", user_id)
+                .maybe_single()
+                .execute()
+            )
+            row = base.data if base else None
+            if not isinstance(row, dict):
+                raise HTTPException(status_code=404, detail="Application not found")
+            jid = _canonical_job_id(row.get("job_id"))
+            cid = str(row.get("company_id") or "").strip()
+            if jid:
+                try:
+                    job_resp = (
+                        supabase
+                        .table("jobs")
+                        .select("id,title,company,location,url,source,contact_email")
+                        .eq("id", int(jid) if jid.isdigit() else jid)
+                        .maybe_single()
+                        .execute()
+                    )
+                    row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
+                except Exception:
+                    row["jobs"] = {}
+            if cid:
+                try:
+                    company_resp = (
+                        supabase
+                        .table("companies")
+                        .select("id,name,website")
+                        .eq("id", cid)
+                        .maybe_single()
+                        .execute()
+                    )
+                    row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
+                except Exception:
+                    row["companies"] = {}
+            resp = type("Resp", (), {"data": row})()
+        else:
+            if not _is_missing_column_error(exc, "contact_email"):
+                raise HTTPException(status_code=500, detail="Failed to load application detail")
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("*,jobs(id,title,company,location,url,source),companies(id,name,website)")
+                .eq("id", application_id)
+                .eq("candidate_id", user_id)
+                .maybe_single()
+                .execute()
+            )
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -4719,15 +4855,55 @@ async def get_cached_external_feed(
     country_codes: str | None = Query(default=None),
     exclude_country_codes: str | None = Query(default=None),
 ):
+    parsed_country_codes = _parse_country_code_csv(country_codes)
+    parsed_exclude_codes = _parse_country_code_csv(exclude_country_codes)
+
     result = _read_cached_external_jobs(
         page=page,
         page_size=page_size,
         search_term=search_term,
         filter_city=filter_city,
-        country_codes=_parse_country_code_csv(country_codes),
-        exclude_country_codes=_parse_country_code_csv(exclude_country_codes),
+        country_codes=parsed_country_codes,
+        exclude_country_codes=parsed_exclude_codes,
     )
     jobs = result.get("jobs") or []
+
+    # Self-seed: cached feed is only useful if something has populated the cache table.
+    # When it's empty (fresh deployments, cleared DB), fetch a small snapshot from
+    # sources that don't require keywords (WWR RSS) and write via the live cache path.
+    if not jobs:
+        try:
+            seed_limit = max(12, min(40, int(page_size or 24)))
+            search_weworkremotely_jobs_live(
+                limit=seed_limit,
+                search_term=search_term,
+                filter_city=filter_city,
+                country_codes=parsed_country_codes,
+                exclude_country_codes=parsed_exclude_codes,
+            )
+            if str(search_term or "").strip():
+                # Jooble live API requires keywords; only seed when user supplied them.
+                search_jooble_jobs_live(
+                    limit=seed_limit,
+                    page=1,
+                    search_term=search_term,
+                    filter_city=filter_city,
+                    country_codes=parsed_country_codes,
+                    exclude_country_codes=parsed_exclude_codes,
+                )
+        except Exception as exc:
+            print(f"⚠️ External cached feed seeding failed: {exc}")
+
+        result = _read_cached_external_jobs(
+            page=page,
+            page_size=page_size,
+            search_term=search_term,
+            filter_city=filter_city,
+            country_codes=parsed_country_codes,
+            exclude_country_codes=parsed_exclude_codes,
+        )
+        jobs = result.get("jobs") or []
+
     _attach_job_dialogue_preview_metrics(jobs)
     return {
         "jobs": jobs,
