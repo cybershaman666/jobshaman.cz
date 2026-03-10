@@ -1237,16 +1237,22 @@ def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
 
 
 def _build_arbeitnow_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
-    title = norm_text(item.get("title") or "")
-    company = norm_text(item.get("company_name") or item.get("company") or "Unknown company")
-    location = norm_text(item.get("location") or "Remote")
+    # Arbeitnow API payload can contain non-string values (ints, None). norm_text()
+    # expects a string, so always coerce first.
+    title = norm_text(str(item.get("title") or ""))
+    company = norm_text(str(item.get("company_name") or item.get("company") or "Unknown company"))
+    location = norm_text(str(item.get("location") or "Remote"))
     description = str(item.get("description") or "")
-    tags = [norm_text(x) for x in _as_list(item.get("tags")) if norm_text(x)]
+    tags = []
+    for raw in _as_list(item.get("tags")):
+        normalized = norm_text(str(raw or ""))
+        if normalized:
+            tags.append(normalized)
     url = item.get("url") or item.get("slug") or ""
     if url and str(url).startswith("/"):
         url = f"https://www.arbeitnow.com{url}"
     url = norm_text(str(url))
-    created_at = norm_text(item.get("created_at") or "") or now_iso()
+    created_at = norm_text(str(item.get("created_at") or "")) or now_iso()
 
     salary_from, salary_to, detected_currency = extract_salary(description or "", "EUR")
     inferred_country = _infer_country_code(location, tags, description)
@@ -1343,7 +1349,11 @@ def search_arbeitnow_jobs_live(
     for item in jobs:
         if not isinstance(item, dict):
             continue
-        mapped = _build_arbeitnow_live_job(item)
+        try:
+            mapped = _build_arbeitnow_live_job(item)
+        except Exception as exc:
+            print(f"⚠️ Arbeitnow live mapping failed: {exc}")
+            continue
         url = norm_text(mapped.get("url") or "")
         if not url or url in seen_urls:
             continue

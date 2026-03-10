@@ -4900,14 +4900,18 @@ async def search_arbeitnow_live(
             return []
         return [part.strip().upper() for part in value.split(",") if part and part.strip()]
 
-    jobs = search_arbeitnow_jobs_live(
-        limit=limit,
-        page=page,
-        search_term=search_term,
-        filter_city=filter_city,
-        country_codes=_parse_csv(country_codes),
-        exclude_country_codes=_parse_csv(exclude_country_codes),
-    )
+    try:
+        jobs = search_arbeitnow_jobs_live(
+            limit=limit,
+            page=page,
+            search_term=search_term,
+            filter_city=filter_city,
+            country_codes=_parse_csv(country_codes),
+            exclude_country_codes=_parse_csv(exclude_country_codes),
+        )
+    except Exception as exc:
+        print(f"⚠️ Arbeitnow live search failed: {exc}")
+        jobs = []
     _attach_job_dialogue_preview_metrics(jobs)
     return {
         "jobs": jobs,
