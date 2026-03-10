@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Job, UserProfile } from '../types';
-import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, AlertTriangle, MessageCircle } from 'lucide-react';
+import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, MessageCircle } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
@@ -256,24 +256,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   // Check if job has transparent salary information (salary range or both salary_from and salary_to)
   const hasTransparentSalary = !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") ||
     !!(job.salary_from && job.salary_to);
-  const constraintCompromises = Array.isArray(job.constraint_compromises) ? job.constraint_compromises : [];
-  const formatConstraintCompromise = (token: string): string => {
-    if (!token) return '';
-    if (token.startsWith('commute_over:')) {
-      const minutes = Number(token.split(':')[1] || 0);
-      return t('app.constraint_compromise.commute_over', { minutes });
-    }
-    if (token.startsWith('net_below:')) {
-      const amount = Number(token.split(':')[1] || 0);
-      return t('app.constraint_compromise.net_below', { amount: amount.toLocaleString() });
-    }
-    if (token === 'remote_required') return t('app.constraint_compromise.remote_required');
-    if (token === 'shift_excluded') return t('app.constraint_compromise.shift_excluded');
-    if (token === 'growth_required') return t('app.constraint_compromise.growth_required');
-    if (token === 'net_unknown') return t('app.constraint_compromise.net_unknown');
-    return token;
-  };
-  const localizedCompromises = constraintCompromises.map(formatConstraintCompromise).filter(Boolean);
 
   // Calculate quick distance if user profile is available
   let distanceBadge = null;
@@ -547,16 +529,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           {firstReplyPreview}
         </div>
       )}
-
-      {job.constraint_mode === 'near' && localizedCompromises.length > 0 && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-300">
-          <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
-          <span className="leading-relaxed">
-            <strong>{t('app.constraint_compromise.label')}</strong> {localizedCompromises.join(' · ')}
-          </span>
-        </div>
-      )}
-
 
     </div>
   );

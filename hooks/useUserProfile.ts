@@ -60,16 +60,6 @@ const isExternalProfilePhotoUrl = (url?: string | null): boolean => {
     return value.startsWith('http://') || value.startsWith('https://');
 };
 
-const isLegacyFreelancerResidueCompany = (company: any | null | undefined): boolean => {
-    if (!company) return false;
-    const industry = String(company?.industry || '').trim().toLowerCase();
-    const name = String(company?.name || '').trim().toLowerCase();
-    const hasLegacyIndustry = industry === 'freelancer' || industry === 'freelance';
-    const hasLegacyName = name.includes('freelancer') || name.includes('freelance');
-    const hasNoRealBusinessSignals = !company?.website && !company?.ico && !company?.description;
-    return (hasLegacyIndustry || hasLegacyName) && hasNoRealBusinessSignals;
-};
-
 export const useUserProfile = () => {
     const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
@@ -362,21 +352,6 @@ export const useUserProfile = () => {
                     if (company) {
                         setCompanyProfile(company);
                     }
-                }
-
-                // Legacy cleanup: some candidate accounts were historically auto-linked to
-                // placeholder "Freelancer" companies. Treat these as candidate accounts.
-                if (profile.role === 'recruiter' && isLegacyFreelancerResidueCompany(company)) {
-                    console.warn('🧹 Legacy freelancer company residue detected. Reverting user role to candidate.');
-                    profile = { ...profile, role: 'candidate' };
-                    setCompanyProfile(null);
-                    setUserProfile(prev => ({ ...prev, role: 'candidate' }));
-                    try {
-                        await updateUserProfileService(userId, { role: 'candidate' });
-                    } catch (err) {
-                        console.warn('⚠️ Failed to persist role reset to candidate:', err);
-                    }
-                    company = null;
                 }
 
                 // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance

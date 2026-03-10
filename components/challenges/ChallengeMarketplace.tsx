@@ -154,15 +154,6 @@ const getChallengePreview = (job: Job): string => {
   return pickReadableChallengeSlice(source || job.title);
 };
 
-const getRiskPreview = (job: Job): string => {
-  const source =
-    job.risk ||
-    job.aiAnalysis?.culturalFit ||
-    (Array.isArray(job.noiseMetrics?.keywords) ? job.noiseMetrics.keywords.join(', ') : '') ||
-    job.description;
-  return simplifyDescription(source);
-};
-
 const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
@@ -1736,13 +1727,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                                 <h4 className="mt-2 max-w-3xl text-lg font-semibold leading-snug tracking-[-0.03em] text-[var(--text-strong)] md:text-[1.35rem]">
                                   {getChallengePreview(job)}
                                 </h4>
-                              </div>
-
-                              <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
-                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                                  {copy.riskLabel}
-                                </div>
-                                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{getRiskPreview(job)}</p>
                               </div>
                             </div>
 

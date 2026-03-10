@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, time, timedelta
 from zoneinfo import ZoneInfo
-from typing import Any, Dict, List, Optional, Sequence, cast
+from typing import Any, Dict, List, Optional, cast
 import math
 import json
 import unicodedata
@@ -1054,7 +1054,7 @@ def run_daily_job_digest() -> None:
                 "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
                 "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text,tax_profile,preferences)"
             )
-            .in_("role", ["candidate", "freelancer"])
+            .in_("role", ["candidate"])
             .or_("daily_digest_enabled.eq.true,daily_digest_push_enabled.eq.true")
             .execute()
         )

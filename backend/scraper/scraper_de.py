@@ -371,7 +371,7 @@ class GermanyScraper(BaseScraper):
             pills_text = " | ".join(pills).lower()
 
             contract_type = None
-            for ct in ["vollzeit", "teilzeit", "geringfügig", "praktika", "lehre", "freelancer", "projektarbeit"]:
+            for ct in ["vollzeit", "teilzeit", "geringfügig", "praktika", "lehre", "projektarbeit"]:
                 if ct in pills_text:
                     # Preserve original casing if possible
                     for p in pills:
@@ -737,7 +737,7 @@ class GermanyScraper(BaseScraper):
             return "internship"
         if "lehre" in low:
             return "apprenticeship"
-        if "freelancer" in low or "projektarbeit" in low:
+        if "projektarbeit" in low:
             return "contract"
         return None
 

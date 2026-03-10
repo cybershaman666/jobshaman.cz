@@ -65,14 +65,6 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
         canonical: `${baseUrl}/sluzby`
       };
 
-    case 'freelancer-dashboard':
-      return {
-        title: t('seo.freelancer_dashboard_title'),
-        description: t('seo.freelancer_dashboard_description'),
-        keywords: ["profil", "kariéra", "AI profil", "skryté dovednosti"],
-        canonical: `${baseUrl}/profil`
-      };
-
     case 'saved':
       return {
         title: t('seo.saved_title'),
@@ -388,8 +380,6 @@ export const generateAISummary = (page: string, t: any, data?: any): string => {
       return t('seo.ai_summary_company');
     case 'services':
       return t('seo.ai_summary_services');
-    case 'freelancer-dashboard':
-      return t('seo.ai_summary_profile');
     case 'saved':
       return t('seo.ai_summary_saved');
     default:
