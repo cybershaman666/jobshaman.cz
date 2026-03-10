@@ -24,8 +24,11 @@ interface MobileSwipeJobBrowserProps {
 
 interface SwipeState {
     startX: number;
+    startY: number;
     currentX: number;
+    currentY: number;
     isDragging: boolean;
+    gesture: 'idle' | 'pending' | 'swipe' | 'scroll';
 }
 
 const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
@@ -48,12 +51,16 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const [processedJobIds, setProcessedJobIds] = useState<string[]>([]);
     const [swipeState, setSwipeState] = useState<SwipeState>({
         startX: 0,
+        startY: 0,
         currentX: 0,
-        isDragging: false
+        currentY: 0,
+        isDragging: false,
+        gesture: 'idle'
     });
     const [showSwipeCoach, setShowSwipeCoach] = useState(false);
     const [exitAnimation, setExitAnimation] = useState<'left' | 'right' | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const gestureRef = useRef<SwipeState['gesture']>('idle');
     const justSwipedRef = useRef(false);
     const sessionIdRef = useRef(`swipe_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const viewStartRef = useRef<number | null>(null);
@@ -88,6 +95,29 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const aiMatchScore = null;
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
+
+    useEffect(() => {
+        gestureRef.current = swipeState.gesture;
+    }, [swipeState.gesture]);
+
+    // React touch events can be passive in modern React builds, which makes `preventDefault`
+    // unreliable. Add a non-passive listener to prevent vertical scroll while a swipe gesture
+    // is in progress.
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        const onTouchMove = (event: TouchEvent) => {
+            if (gestureRef.current === 'swipe') {
+                event.preventDefault();
+            }
+        };
+
+        el.addEventListener('touchmove', onTouchMove, { passive: false });
+        return () => {
+            el.removeEventListener('touchmove', onTouchMove);
+        };
+    }, []);
 
     const formatJobTypeLabel = (raw?: string) => {
         if (!raw) return t('job.contract_types.unknown');
@@ -289,24 +319,74 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     };
 
     const handleTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
         setSwipeState({
-            startX: e.touches[0].clientX,
-            currentX: e.touches[0].clientX,
-            isDragging: true
+            startX: touch.clientX,
+            startY: touch.clientY,
+            currentX: touch.clientX,
+            currentY: touch.clientY,
+            isDragging: false,
+            gesture: 'pending'
         });
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        if (!swipeState.isDragging) return;
-        
-        setSwipeState(prev => ({
-            ...prev,
-            currentX: e.touches[0].clientX
-        }));
+        const touch = e.touches[0];
+        setSwipeState(prev => {
+            if (prev.gesture === 'idle' || prev.gesture === 'scroll') {
+                return prev;
+            }
+
+            const dx = touch.clientX - prev.startX;
+            const dy = touch.clientY - prev.startY;
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
+
+            let gesture: SwipeState['gesture'] = prev.gesture;
+            let isDragging = prev.isDragging;
+
+            // Direction lock with tolerance: one-handed swipes are rarely perfectly horizontal.
+            const LOCK_THRESHOLD_PX = 6;
+            const HORIZONTAL_TOLERANCE_RATIO = 0.7; // allow some vertical drift
+            const VERTICAL_DOMINANCE_RATIO = 1.25;
+
+            if (gesture === 'pending') {
+                if (absX >= LOCK_THRESHOLD_PX && absX >= absY * HORIZONTAL_TOLERANCE_RATIO) {
+                    gesture = 'swipe';
+                    isDragging = true;
+                } else if (absY >= LOCK_THRESHOLD_PX && absY >= absX * VERTICAL_DOMINANCE_RATIO) {
+                    gesture = 'scroll';
+                    isDragging = false;
+                }
+            }
+
+            // Only update drag position once we know it's a swipe.
+            if (gesture !== 'swipe') {
+                return { ...prev, currentY: touch.clientY, gesture, isDragging };
+            }
+
+            return {
+                ...prev,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                gesture,
+                isDragging
+            };
+        });
     };
 
     const handleTouchEnd = () => {
-        if (!swipeState.isDragging) return;
+        if (!swipeState.isDragging || swipeState.gesture !== 'swipe') {
+            setSwipeState({
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                isDragging: false,
+                gesture: 'idle'
+            });
+            return;
+        }
 
         const deltaX = swipeState.currentX - swipeState.startX;
         const threshold = 50; // pixels
@@ -325,16 +405,22 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
         setSwipeState({
             startX: 0,
+            startY: 0,
             currentX: 0,
-            isDragging: false
+            currentY: 0,
+            isDragging: false,
+            gesture: 'idle'
         });
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
         setSwipeState({
             startX: e.clientX,
+            startY: e.clientY,
             currentX: e.clientX,
-            isDragging: true
+            currentY: e.clientY,
+            isDragging: true,
+            gesture: 'swipe'
         });
     };
 
@@ -343,7 +429,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         
         setSwipeState(prev => ({
             ...prev,
-            currentX: e.clientX
+            currentX: e.clientX,
+            currentY: e.clientY
         }));
     };
 
@@ -365,8 +452,11 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
         setSwipeState({
             startX: 0,
+            startY: 0,
             currentX: 0,
-            isDragging: false
+            currentY: 0,
+            isDragging: false,
+            gesture: 'idle'
         });
     };
 
@@ -429,7 +519,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     return (
         <div
             ref={containerRef}
-            className="app-surface relative flex min-h-[70dvh] w-full flex-col overflow-hidden rounded-[var(--radius-2xl)] border shadow-[var(--shadow-card)]"
+            className={cn(
+                "app-surface relative flex min-h-[70dvh] w-full flex-col overflow-hidden rounded-[var(--radius-2xl)] border shadow-[var(--shadow-card)]",
+                swipeState.gesture === 'swipe' ? 'touch-none' : 'touch-pan-y'
+            )}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}

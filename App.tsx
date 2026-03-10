@@ -1285,6 +1285,8 @@ export default function App() {
     useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
     const backendUnreachableRef = useRef(backendUnreachable);
     useEffect(() => { backendUnreachableRef.current = backendUnreachable; }, [backendUnreachable]);
+    const isLoadingJobsRef = useRef(isLoadingJobs);
+    useEffect(() => { isLoadingJobsRef.current = isLoadingJobs; }, [isLoadingJobs]);
     const loadRealJobsRef = useRef(loadRealJobs);
     useEffect(() => { loadRealJobsRef.current = loadRealJobs; }, [loadRealJobs]);
     const hasDedicatedSearchBackend = useMemo(() => {
@@ -1319,7 +1321,7 @@ export default function App() {
         }
 
         // Guard: don't start if already polling, loading, jobs are present, or backend seems healthy.
-        if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
+        if (backendWakeRetryRef.current || isLoadingJobsRef.current || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
             return;
         }
 
@@ -1353,7 +1355,7 @@ export default function App() {
         // Start polling with a short delay so transient 500s do not cause a visible "flash" in UI.
         backendRetryStartTimerRef.current = window.setTimeout(() => {
             // Re-check guards right before polling starts.
-            if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
+            if (backendWakeRetryRef.current || isLoadingJobsRef.current || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
                 return;
             }
             console.log('Backend wake retry: starting polling to wait for backend wake-up');
@@ -1373,7 +1375,7 @@ export default function App() {
                 backendRetryTimerRef.current = null;
             }
         };
-    }, [hasDedicatedSearchBackend, isLoadingJobs, filteredJobs.length, backendUnreachable]);
+    }, [hasDedicatedSearchBackend, backendUnreachable]);
 
     // SEO Update Effect
     useEffect(() => {
