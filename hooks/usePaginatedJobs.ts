@@ -76,8 +76,12 @@ const expandCountryAliases = (countryCode?: string | null): string[] => {
 };
 
 const sameCountryCodeSet = (left: string[], right: string[]): boolean => {
-    if (left.length !== right.length) return false;
-    return left.every((code, index) => code === right[index]);
+    const canon = (values: string[]) =>
+        (values || []).map((v) => String(v || '').trim().toUpperCase()).filter(Boolean).sort();
+    const a = canon(left);
+    const b = canon(right);
+    if (a.length !== b.length) return false;
+    return a.every((code, idx) => code === b[idx]);
 };
 
 interface UsePaginatedJobsProps {
@@ -240,6 +244,17 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
+
+    // Prevent state churn when callers keep re-setting equivalent country arrays.
+    const setCountryCodesSafe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
+        setCountryCodes(prev => {
+            const nextRaw = typeof value === 'function' ? value(prev) : value;
+            const next = normalizeCountryCodes(nextRaw || []);
+            const prevNorm = normalizeCountryCodes(prev || []);
+            if (sameCountryCodeSet(prevNorm, next)) return prev;
+            return next;
+        });
+    }, []);
 
     const implicitLanguageCodesApplied = useMemo(() => {
         if (!enableAutoLanguageGuard) return [];
@@ -917,9 +932,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         if (globalSearch || abroadOnly) return;
         if (defaultCountryCodes.length === 0) return;
         if (!sameCountryCodeSet(countryCodes, defaultCountryCodes)) {
-            setCountryCodes(defaultCountryCodes);
+            setCountryCodesSafe(defaultCountryCodes);
         }
-    }, [defaultCountryCodes, countryCodes, globalSearch, abroadOnly]);
+    }, [defaultCountryCodes, countryCodes, globalSearch, abroadOnly, setCountryCodesSafe]);
 
     // Keep `globalSearch` as an explicit user choice.
     // Auto-flipping it off is confusing and also hides external/imported sources unexpectedly.
@@ -1005,7 +1020,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterLanguageCodes([]);
         setEnableAutoLanguageGuard(true);
         setAbroadOnly(false);
-        setCountryCodes(defaultCountryCodes);
+        setCountryCodesSafe(defaultCountryCodes);
         setGlobalSearch(defaultCountryCodes.length === 0);
         // Reset page
         setCurrentPage(0);
@@ -1063,7 +1078,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setExpandedSections,
         setGlobalSearch,
         setAbroadOnly,
-        setCountryCodes,
+        setCountryCodes: setCountryCodesSafe,
         setSortBy,
         applyInteractionState,
         toggleBenefitFilter,

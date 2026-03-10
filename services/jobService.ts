@@ -14,6 +14,44 @@ import { estimateNoise } from '../utils/noise';
 import { deriveChallengeFields } from './challengeContentService';
 import { dedupeJobsList, getJobDedupKeys } from '../utils/jobDedupe';
 
+type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number };
+
+// Guard against accidental frontend polling loops that hammer the search backend.
+// If the same hybrid-search request is triggered repeatedly with identical filters,
+// serve a short-lived cached result instead of issuing another request.
+const HYBRID_SEARCH_RECENT_CACHE = new Map<string, { at: number; result: JobsFetchResult }>();
+const HYBRID_SEARCH_RECENT_TTL_MS = 8_000;
+const HYBRID_SEARCH_RECENT_EMPTY_TTL_MS = 30_000;
+
+const _normalizeKeyArray = (value: unknown): string[] | null => {
+    if (!Array.isArray(value) || value.length === 0) return null;
+    return value.map((v) => String(v)).filter(Boolean).sort();
+};
+
+const _hybridSearchRecentCacheKey = (bases: string[], v2Enabled: boolean, payload: Record<string, unknown>) => {
+    const stable = {
+        v2: v2Enabled ? 1 : 0,
+        bases: (bases || []).map((b) => String(b || '').trim()).filter(Boolean).sort(),
+        search_term: String(payload.search_term || ''),
+        page: Number(payload.page || 0),
+        page_size: Number(payload.page_size || 0),
+        user_lat: payload.user_lat == null ? null : Number(payload.user_lat as any),
+        user_lng: payload.user_lng == null ? null : Number(payload.user_lng as any),
+        radius_km: payload.radius_km == null ? null : Number(payload.radius_km as any),
+        sort_mode: String(payload.sort_mode || ''),
+        filter_city: String(payload.filter_city || ''),
+        filter_contract_types: _normalizeKeyArray(payload.filter_contract_types),
+        filter_benefits: _normalizeKeyArray(payload.filter_benefits),
+        filter_min_salary: payload.filter_min_salary == null ? null : Number(payload.filter_min_salary as any),
+        filter_date_posted: String(payload.filter_date_posted || ''),
+        filter_experience_levels: _normalizeKeyArray(payload.filter_experience_levels),
+        filter_country_codes: _normalizeKeyArray(payload.filter_country_codes),
+        exclude_country_codes: _normalizeKeyArray(payload.exclude_country_codes),
+        filter_language_codes: _normalizeKeyArray(payload.filter_language_codes),
+    };
+    return JSON.stringify(stable);
+};
+
 const EMPTY_JHI: JHI = {
     score: 0,
     baseScore: 0,
@@ -2492,6 +2530,25 @@ export const fetchJobsWithFilters = async (
 
         const v2Enabled = isSearchV2Enabled();
         const endpoint = v2Enabled ? '/jobs/hybrid-search-v2' : '/jobs/hybrid-search';
+        const cacheKey = _hybridSearchRecentCacheKey(
+            backendBases.map((b) => String(b || '')),
+            v2Enabled,
+            { ...requestPayloadBase, sort_mode: effectiveSortMode }
+        );
+        const cached = HYBRID_SEARCH_RECENT_CACHE.get(cacheKey);
+        if (cached) {
+            const ttl = cached.result.jobs.length === 0 ? HYBRID_SEARCH_RECENT_EMPTY_TTL_MS : HYBRID_SEARCH_RECENT_TTL_MS;
+            if ((Date.now() - cached.at) < ttl) {
+                return cached.result;
+            }
+            HYBRID_SEARCH_RECENT_CACHE.delete(cacheKey);
+        }
+
+        const cacheAndReturn = async (resultPromise: Promise<JobsFetchResult>) => {
+            const result = await resultPromise;
+            HYBRID_SEARCH_RECENT_CACHE.set(cacheKey, { at: Date.now(), result });
+            return result;
+        };
         let lastError: unknown = null;
 
         for (const baseUrl of backendBases) {
@@ -2530,11 +2587,11 @@ export const fetchJobsWithFilters = async (
                     const fallbackPayload = await fallbackResponse.json();
                     const fallbackRows = fallbackPayload.jobs || [];
                     const fallbackJobs = mapFallbackRowsToJobs(fallbackRows);
-                    return finalizeResults({
+                    return await cacheAndReturn(finalizeResults({
                         jobs: fallbackJobs,
                         hasMore: !!fallbackPayload.has_more,
                         totalCount: Number(fallbackPayload.total_count || fallbackJobs.length)
-                    });
+                    }));
                 }
 
                 if (!hybridResponse.ok) {
@@ -2561,11 +2618,11 @@ export const fetchJobsWithFilters = async (
 
                 const hybridRows = hybridPayload.jobs || [];
                 const processedJobs = mapHybridRowsToJobs(hybridRows, hybridPayload);
-                return finalizeResults({
+                return await cacheAndReturn(finalizeResults({
                     jobs: processedJobs,
                     hasMore: !!hybridPayload.has_more,
                     totalCount: Number(hybridPayload.total_count || processedJobs.length)
-                });
+                }));
             } catch (err) {
                 if (isAbortFetchError(err)) {
                     throw err;

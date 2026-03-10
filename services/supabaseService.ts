@@ -113,6 +113,7 @@ export const verifyAuthSession = async (context: string) => {
             if (hasInvalidRefreshToken) {
                 console.warn(`🧹 Invalid refresh token detected [${context}]. Clearing stale auth storage.`);
                 clearSupabaseAuthStorage();
+                try { localStorage.removeItem('auth_token'); } catch { }
                 return { isValid: false, error: 'Invalid refresh token' };
             }
             if (isLikelySupabaseNetworkError(error)) {
@@ -256,6 +257,7 @@ export const signUpWithEmail = async (
 export const signOut = async (): Promise<void> => {
     if (!supabase) throw new Error("Supabase not configured");
     await supabase.auth.signOut();
+    try { localStorage.removeItem('auth_token'); } catch { }
 };
 
 export const updateCurrentUserPassword = async (newPassword: string): Promise<void> => {

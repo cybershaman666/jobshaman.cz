@@ -22,6 +22,11 @@ const csrfFetchInFlight = new Map<string, Promise<string | null>>();
 let lastRequestTimeoutLogAt = 0;
 let lastMissingCsrfLogAt = 0;
 
+type AuthTokenCache = { token: string | null; expMs: number; checkedAtMs: number };
+let authTokenCache: AuthTokenCache = { token: null, expMs: 0, checkedAtMs: 0 };
+const AUTH_TOKEN_RECHECK_MS = 60_000;
+const AUTH_TOKEN_EXPIRY_SAFETY_MS = 30_000;
+
 const isLikelyNetworkError = (error: unknown): boolean => {
     const msg = String((error as any)?.message || error || '').toLowerCase();
     return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
@@ -320,6 +325,39 @@ export const refreshCsrfTokenIfNeeded = async (authToken: string): Promise<strin
     return getCsrfToken();
 };
 
+const decodeJwtExpMs = (token: string): number => {
+    try {
+        const parts = String(token || '').split('.');
+        if (parts.length < 2) return 0;
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payloadB64.padEnd(payloadB64.length + (4 - (payloadB64.length % 4 || 4)) % 4, '=');
+        const json = JSON.parse(atob(padded));
+        const expSeconds = Number(json?.exp || 0);
+        if (!expSeconds || !Number.isFinite(expSeconds)) return 0;
+        return expSeconds * 1000;
+    } catch {
+        return 0;
+    }
+};
+
+const readCachedAuthToken = (): string | null => {
+    const now = Date.now();
+    if (authTokenCache.token && authTokenCache.expMs > (now + AUTH_TOKEN_EXPIRY_SAFETY_MS)) {
+        return authTokenCache.token;
+    }
+
+    const stored = localStorage.getItem('auth_token');
+    if (stored) {
+        const expMs = decodeJwtExpMs(stored);
+        if (expMs > (now + AUTH_TOKEN_EXPIRY_SAFETY_MS)) {
+            authTokenCache = { token: stored, expMs, checkedAtMs: now };
+            return stored;
+        }
+    }
+
+    return null;
+};
+
 /**
  * Get the current auth token from Supabase session
  * This is the source of truth for the user's authentication token
@@ -328,6 +366,12 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
     try {
         if (!supabase) {
             console.warn('⚠️ Supabase not initialized');
+            return null;
+        }
+
+        const cached = readCachedAuthToken();
+        if (cached) return cached;
+        if (Date.now() - authTokenCache.checkedAtMs < AUTH_TOKEN_RECHECK_MS) {
             return null;
         }
 
@@ -343,7 +387,11 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
             return null;
         }
 
-        return session.access_token;
+        const token = session.access_token;
+        const expMs = (session.expires_at ? Number(session.expires_at) * 1000 : decodeJwtExpMs(token));
+        authTokenCache = { token, expMs, checkedAtMs: Date.now() };
+        try { localStorage.setItem('auth_token', token); } catch { }
+        return token;
     } catch (error) {
         console.warn('⚠️ Error retrieving auth token:', error);
         return null;
@@ -359,13 +407,23 @@ export const getCurrentAuthTokenSilently = async (): Promise<string | null> => {
             return null;
         }
 
+        const cached = readCachedAuthToken();
+        if (cached) return cached;
+        if (Date.now() - authTokenCache.checkedAtMs < AUTH_TOKEN_RECHECK_MS) {
+            return null;
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error || !session || !session.access_token) {
             return null;
         }
 
-        return session.access_token;
+        const token = session.access_token;
+        const expMs = (session.expires_at ? Number(session.expires_at) * 1000 : decodeJwtExpMs(token));
+        authTokenCache = { token, expMs, checkedAtMs: Date.now() };
+        try { localStorage.setItem('auth_token', token); } catch { }
+        return token;
     } catch {
         return null;
     }
