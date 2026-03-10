@@ -613,7 +613,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 );
                 if (isStaleRequest()) return;
 
-                const visibleJobs = applyDomesticCountrySafeguard(filterDismissedJobs(basicResult.jobs));
+                const visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(basicResult.jobs)));
                 if (isLoadMore) {
                     setJobs(prev => dedupeJobs(visibleJobs, prev));
                 } else {
@@ -653,7 +653,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             });
             if (isStaleRequest()) return;
 
-            const visibleJobs = applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs));
+            const visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs)));
             if (isLoadMore) {
                 setJobs(prev => dedupeJobs(visibleJobs, prev));
             } else {
