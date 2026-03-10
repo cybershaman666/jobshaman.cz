@@ -1,10 +1,14 @@
 import os
 import re
+import time
+import json
+import hashlib
 from typing import Any
 from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
+from threading import Lock
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, JobApplicationStatusUpdateRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
@@ -55,6 +59,10 @@ _INTERACTION_STATE_CACHE_TTL_SECONDS = 20
 _INTERACTION_STATE_CACHE: dict[tuple[str, int], tuple[datetime, tuple[list[str], list[str]]]] = {}
 _MY_DIALOGUES_CACHE_TTL_SECONDS = 20
 _MY_DIALOGUES_CACHE: dict[tuple[str, int], tuple[datetime, dict[str, Any]]] = {}
+_HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS = 15
+_HYBRID_SEARCH_V2_HTTP_CACHE_EMPTY_TTL_SECONDS = 60
+_HYBRID_SEARCH_V2_HTTP_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_HYBRID_SEARCH_V2_HTTP_CACHE_LOCK = Lock()
 
 # recommendation_feedback_events historically expects a narrower signal taxonomy
 # than raw UI interaction events. Keep search_feedback_events raw, but normalize
@@ -4726,11 +4734,35 @@ async def jobs_hybrid_search_v2(
     background_tasks: BackgroundTasks,
 ):
     user_id = _try_get_optional_user_id(request)
-    dismissed_job_ids: set[str] = set()
-    if user_id:
-        _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
-        dismissed_job_ids = set(dismissed)
     request_id = str(uuid4())
+    cache_key = ""
+    cache_sig = ""
+    try:
+        cache_payload = {
+            "user_id": user_id or "public",
+            "page": payload.page,
+            "page_size": payload.page_size,
+            "sort_mode": payload.sort_mode,
+            "search_term": (payload.search_term or "").strip(),
+            "user_lat": payload.user_lat,
+            "user_lng": payload.user_lng,
+            "radius_km": payload.radius_km,
+            "filter_city": payload.filter_city,
+            "filter_contract_types": payload.filter_contract_types or None,
+            "filter_benefits": payload.filter_benefits or None,
+            "filter_min_salary": payload.filter_min_salary,
+            "filter_date_posted": payload.filter_date_posted,
+            "filter_experience_levels": payload.filter_experience_levels or None,
+            "filter_country_codes": payload.filter_country_codes or None,
+            "exclude_country_codes": payload.exclude_country_codes or None,
+            "filter_language_codes": payload.filter_language_codes or None,
+        }
+        cache_key = json.dumps(cache_payload, sort_keys=True, default=str)
+        cache_sig = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()[:10]
+    except Exception:
+        cache_key = ""
+        cache_sig = ""
+
     try:
         client_host = request.client.host if request.client else None
     except Exception:
@@ -4746,8 +4778,32 @@ async def jobs_hybrid_search_v2(
         f"client={client_host or '-'} forwarded_for={forwarded_for or '-'} "
         f"ua={(user_agent[:140] + '…') if len(user_agent) > 140 else user_agent or '-'} "
         f"origin={origin or '-'} referer={referer or '-'} "
-        f"page={payload.page} page_size={payload.page_size}"
+        f"page={payload.page} page_size={payload.page_size} sig={cache_sig or '-'}"
     )
+
+    if cache_key:
+        now = time.monotonic()
+        with _HYBRID_SEARCH_V2_HTTP_CACHE_LOCK:
+            cached = _HYBRID_SEARCH_V2_HTTP_CACHE.get(cache_key)
+            if cached:
+                cached_at, cached_response = cached
+                age_seconds = max(0.0, now - cached_at)
+                cached_jobs = cached_response.get("jobs") or []
+                ttl = _HYBRID_SEARCH_V2_HTTP_CACHE_EMPTY_TTL_SECONDS if len(cached_jobs) == 0 else _HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS
+                if age_seconds <= ttl:
+                    response_copy = dict(cached_response)
+                    meta = dict((response_copy.get("meta") or {}))
+                    meta["cache_hit"] = True
+                    meta["cache_age_ms"] = int(age_seconds * 1000)
+                    response_copy["meta"] = meta
+                    return response_copy
+                _HYBRID_SEARCH_V2_HTTP_CACHE.pop(cache_key, None)
+
+    dismissed_job_ids: set[str] = set()
+    if user_id:
+        _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
+        dismissed_job_ids = set(dismissed)
+
     result = hybrid_search_jobs_v2(
         {
             "search_term": payload.search_term,
@@ -4836,6 +4892,9 @@ async def jobs_hybrid_search_v2(
             "user_id_present": bool(user_id),
             "engine_meta": meta,
         }
+    if cache_key:
+        with _HYBRID_SEARCH_V2_HTTP_CACHE_LOCK:
+            _HYBRID_SEARCH_V2_HTTP_CACHE[cache_key] = (time.monotonic(), response)
     return response
 
 
