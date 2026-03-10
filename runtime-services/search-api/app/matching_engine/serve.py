@@ -645,10 +645,11 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         search_term = ""
 
     effective_page_size = max(1, min(200, int(page_size or 50)))
+    rpc_page_size = effective_page_size + 1 if effective_page_size < 200 else effective_page_size
     rpc_payload = {
         "p_search_term": search_term,
         "p_page": max(0, int(page or 0)),
-        "p_page_size": effective_page_size,
+        "p_page_size": rpc_page_size,
         "p_user_id": user_id,
         "p_user_lat": filters.get("user_lat"),
         "p_user_lng": filters.get("user_lng"),
@@ -740,6 +741,11 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                 "effective_page_size": effective_page_size,
             },
         }
+
+    inferred_has_more = False
+    if len(rows) > effective_page_size:
+        inferred_has_more = True
+        rows = rows[:effective_page_size]
 
     cfg = get_active_model_config("matching", "recommendations")
     ranking_cfg = cfg.get("config_json") or {}
@@ -840,7 +846,13 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         )
         ranked_input = selected
 
-    total_count = int((rows[0] or {}).get("total_count") or len(rows))
+    total_count_raw = (rows[0] or {}).get("total_count") if rows else None
+    try:
+        total_count = int(total_count_raw) if total_count_raw is not None else 0
+    except Exception:
+        total_count = 0
+    if total_count <= 0:
+        total_count = (max(0, int(page)) * effective_page_size) + len(rows) + (1 if inferred_has_more else 0)
     out_rows = []
     for idx, item in enumerate(ranked_input):
         row = dict(item.get("job") or {})
@@ -857,7 +869,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     return {
         "jobs": out_rows,
-        "has_more": ((page + 1) * effective_page_size) < total_count,
+        "has_more": inferred_has_more or (((page + 1) * effective_page_size) < total_count),
         "total_count": total_count,
         "meta": {
             "sort_mode": sort_mode,

@@ -117,11 +117,20 @@ WWR_NON_EU_EXCLUDE_TOKENS = [
     "asia pacific",
     "australia",
     "new zealand",
+    # Note: worldwide/global roles are not "non-EU" by definition. Treat them as neutral.
     "worldwide",
     "anywhere in the world",
     "anywhere worldwide",
     "global",
 ]
+WWR_NEUTRAL_TOKENS = [
+    "worldwide",
+    "anywhere in the world",
+    "anywhere worldwide",
+    "global",
+    "anywhere",
+]
+WWR_HARD_EXCLUDE_TOKENS = [token for token in WWR_NON_EU_EXCLUDE_TOKENS if token not in set(WWR_NEUTRAL_TOKENS)]
 
 _BROAD_LOCATION_TOKENS = {
     "remote",
@@ -309,13 +318,27 @@ def _is_wwr_eu_relevant(title: str, description: str, categories: Iterable[str])
     if not haystack:
         return False
 
-    if any(token in haystack for token in WWR_NON_EU_EXCLUDE_TOKENS):
+    # Hard geo constraints first (US-only, APAC-only, etc.).
+    if any(token in haystack for token in WWR_HARD_EXCLUDE_TOKENS):
         return False
 
     if any(token in haystack for token in WWR_EU_INCLUDE_TOKENS):
         return True
 
+    # Worldwide roles are generally EU-relevant for EU candidates.
+    if any(token in haystack for token in WWR_NEUTRAL_TOKENS):
+        return True
+
     return False
+
+
+def _pick_default_country_code(allowed_country_codes: set[str]) -> Optional[str]:
+    if not allowed_country_codes:
+        return None
+    # Prefer CZ to keep default behavior stable for Czech-first deployments.
+    if "CZ" in allowed_country_codes:
+        return "CZ"
+    return sorted(allowed_country_codes)[0]
 
 
 def _save_api_job(
@@ -926,8 +949,13 @@ def search_weworkremotely_jobs_live(
 
             location, inferred_country_code = _extract_wwr_location_and_country(title, description, categories)
             normalized_country = normalize_country_code(inferred_country_code)
-            if allowed_country_codes and normalized_country not in allowed_country_codes:
-                continue
+            if allowed_country_codes:
+                if normalized_country is None:
+                    # WWR often doesn't include a concrete country. If the caller requests countries
+                    # (candidate availability), pin to one of them so the job isn't dropped.
+                    normalized_country = _pick_default_country_code(allowed_country_codes)
+                if normalized_country not in allowed_country_codes:
+                    continue
             if normalized_country and normalized_country in blocked_country_codes:
                 continue
 

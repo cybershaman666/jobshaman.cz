@@ -49,3 +49,40 @@ def test_internal_listing_detection_rejects_known_external_domains():
 
     assert serve._is_internal_job_listing(external_jobs_cz) is False
     assert serve._is_internal_job_listing(external_praca) is False
+
+
+def test_hybrid_search_v2_infers_has_more_when_total_count_missing(monkeypatch):
+    class _RpcResponse:
+        def __init__(self, data):
+            self.data = data
+
+    class _SupabaseStub:
+        def rpc(self, _fn, _payload):
+            # Return one extra row but omit `total_count` entirely to simulate older DB schema.
+            page_size = int(_payload.get("p_page_size") or 50)
+            rows = []
+            for idx in range(page_size):
+                rows.append(
+                    {
+                        "id": f"job-{idx}",
+                        "hybrid_score": 0.9,
+                        "fts_score": 0.1,
+                        "trigram_score": 0.1,
+                        "profile_fit_score": 0.1,
+                        "recency_score": 0.1,
+                        "behavior_prior_score": 0.0,
+                        "company": "Acme",
+                        "title": "Engineer",
+                        "location": "Remote",
+                    }
+                )
+            return type("Rpc", (), {"execute": lambda self: _RpcResponse(rows)})()
+
+    monkeypatch.setattr(serve, "supabase", _SupabaseStub())
+    monkeypatch.setattr(serve, "get_release_flag", lambda *_a, **_k: {"effective_enabled": True})
+    monkeypatch.setattr(serve, "get_active_model_config", lambda *_a, **_k: {"config_json": {}})
+
+    result = serve.hybrid_search_jobs_v2({"search_term": "", "sort_mode": "newest"}, page=0, page_size=20, user_id=None)
+    assert len(result["jobs"]) == 20
+    assert result["has_more"] is True
+    assert int(result["total_count"]) >= 21

@@ -643,13 +643,22 @@ def _resolve_digest_country_code(
     return None
 
 
-def _job_in_country(job: Dict, country_code: Optional[str], allow_missing: bool = False) -> bool:
+def _job_in_country(
+    job: Dict,
+    country_code: Optional[str],
+    allow_missing: bool = False,
+    remote_if_missing: bool = False,
+) -> bool:
     required = str(country_code or "").strip().upper()
     if not required:
         return True
     job_country = str(job.get("country_code") or "").strip().upper()
     if not job_country:
-        return allow_missing
+        if not allow_missing:
+            return False
+        if remote_if_missing:
+            return _is_remote_job(job)
+        return True
     return job_country == required
 
 
@@ -680,7 +689,7 @@ def _fetch_newest_local_jobs(
         if cutoff:
             query = query.gte("scraped_at", cutoff)
         if country_code:
-            query = query.eq("country_code", str(country_code).lower())
+            query = query.ilike("country_code", str(country_code))
         if c_lat is None or c_lng is None:
             city = _extract_city_from_address(address)
             if city:
@@ -770,7 +779,7 @@ def _fetch_role_focused_jobs(
         if cutoff:
             query = query.gte("scraped_at", cutoff)
         if country_code:
-            query = query.eq("country_code", str(country_code).lower())
+            query = query.ilike("country_code", str(country_code))
         if c_lat is None or c_lng is None:
             city = _extract_city_from_address(address)
             if city:
@@ -873,7 +882,7 @@ def _fetch_domain_focused_jobs(
         if cutoff:
             query = query.gte("scraped_at", cutoff)
         if country_code:
-            query = query.eq("country_code", str(country_code).lower())
+            query = query.ilike("country_code", str(country_code))
         if c_lat is None or c_lng is None:
             city = _extract_city_from_address(address)
             if city:
@@ -978,7 +987,7 @@ def _fetch_newest_jobs_relaxed(
     try:
         resp = (
             supabase.table("jobs")
-            .select("id,title,company,location,scraped_at,country_code,language_code")
+            .select("id,title,company,location,work_model,work_type,description,scraped_at,country_code,language_code")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(100)
@@ -1005,7 +1014,7 @@ def _fetch_newest_jobs_relaxed(
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code, allow_missing=True):
+        if not _job_in_country(job, country_code, allow_missing=True, remote_if_missing=bool(country_code)):
             continue
         if not _job_language_allowed(job, allowed_language_codes):
             continue
@@ -1021,17 +1030,6 @@ def _fetch_newest_jobs_relaxed(
         )
         if len(picks) >= limit:
             break
-            
-    # CRITICAL FALLBACK FIX: In relaxed grab, enforce the country code if it is known!
-    # Earlier we set allow_missing=True but we didn't filter strictly by country.
-    # To avoid AT jobs for CZ users, we will strictly require the country_code 
-    # instead of doing allow_missing if the preferred country is known.
-    if country_code:
-        filtered_picks = [p for p in picks if _job_in_country(p, country_code, allow_missing=False)]
-        # Only use strict filtering if we found enough jobs, otherwise keep all picks
-        if len(filtered_picks) >= limit // 2:
-            picks = filtered_picks
-            
     if not picks and lookback_hours:
         return _fetch_newest_jobs_relaxed(
             country_code=country_code,
@@ -1056,7 +1054,7 @@ def run_daily_job_digest() -> None:
                 "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
                 "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text,tax_profile,preferences)"
             )
-            .eq("role", "candidate")
+            .in_("role", ["candidate", "freelancer"])
             .or_("daily_digest_enabled.eq.true,daily_digest_push_enabled.eq.true")
             .execute()
         )

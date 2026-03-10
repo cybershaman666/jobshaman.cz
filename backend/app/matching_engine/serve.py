@@ -697,10 +697,16 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     started = datetime.now(timezone.utc)
 
     effective_page_size = safe_page_size
+    # Robust pagination:
+    # Some DB deployments may return rows without `total_count` (older RPC schema).
+    # Fetching one extra row lets us infer `has_more` without relying on `total_count`.
+    rpc_page_size = safe_page_size
+    if safe_page_size < _SEARCH_V2_PAGE_SIZE_MAX:
+        rpc_page_size = safe_page_size + 1
     rpc_payload = {
         "p_search_term": (filters.get("search_term") or "").strip(),
         "p_page": safe_page,
-        "p_page_size": safe_page_size,
+        "p_page_size": rpc_page_size,
         "p_user_id": user_id,
         "p_user_lat": filters.get("user_lat"),
         "p_user_lng": filters.get("user_lng"),
@@ -888,6 +894,11 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
             },
         }
 
+    inferred_has_more = False
+    if len(rows) > safe_page_size:
+        inferred_has_more = True
+        rows = rows[:safe_page_size]
+
     cfg = get_active_model_config("matching", "recommendations")
     ranking_cfg = cfg.get("config_json") or {}
     company_cap = max(1, min(10, int(ranking_cfg.get("search_v2_max_per_company") or 4)))
@@ -987,7 +998,14 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         )
         ranked_input = selected
 
-    total_count = int((rows[0] or {}).get("total_count") or len(rows))
+    total_count_raw = (rows[0] or {}).get("total_count") if rows else None
+    try:
+        total_count = int(total_count_raw) if total_count_raw is not None else 0
+    except Exception:
+        total_count = 0
+    if total_count <= 0:
+        # Lower-bound estimate when DB doesn't supply total_count.
+        total_count = (safe_page * effective_page_size) + len(rows) + (1 if inferred_has_more else 0)
     out_rows = []
     for idx, item in enumerate(ranked_input):
         row = dict(item.get("job") or {})
@@ -1004,7 +1022,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     return {
         "jobs": out_rows,
-        "has_more": ((safe_page + 1) * effective_page_size) < total_count,
+        "has_more": inferred_has_more or (((safe_page + 1) * effective_page_size) < total_count),
         "total_count": total_count,
         "meta": {
             "sort_mode": sort_mode,

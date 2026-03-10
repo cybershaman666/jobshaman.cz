@@ -289,8 +289,15 @@ def test_run_daily_job_digest_backfills_profile_last_sent_from_fallback(monkeypa
         def select(self, _columns):
             return self
 
+        def in_(self, column, values):
+            self.filters[column] = list(values)
+            return self
+
         def eq(self, column, value):
             self.filters[column] = value
+            return self
+
+        def or_(self, _expr):
             return self
 
         def update(self, payload):
@@ -501,7 +508,13 @@ def test_run_daily_job_digest_retries_without_language_restriction(monkeypatch):
         def select(self, *_args, **_kwargs):
             return self
 
+        def in_(self, *_args, **_kwargs):
+            return self
+
         def eq(self, *_args, **_kwargs):
+            return self
+
+        def or_(self, *_args, **_kwargs):
             return self
 
         def update(self, payload):

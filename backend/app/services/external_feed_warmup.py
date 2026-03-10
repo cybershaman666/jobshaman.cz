@@ -120,14 +120,16 @@ def run_external_feed_warmup() -> dict[str, int]:
 
     for query in queries:
         try:
-            search_weworkremotely_jobs_live(
-                limit=limit,
-                search_term=query,
-                filter_city="",
-                country_codes=countries,
-                exclude_country_codes=[],
-            )
-            wwr_runs += 1
+            # Warm per-country to keep cached rows aligned with country filters.
+            for country in countries:
+                search_weworkremotely_jobs_live(
+                    limit=limit,
+                    search_term=query,
+                    filter_city="",
+                    country_codes=[country],
+                    exclude_country_codes=[],
+                )
+                wwr_runs += 1
         except Exception as exc:
             print(f"⚠️ External warmup WWR failed for {query}: {exc}")
 
