@@ -158,11 +158,6 @@ const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
 
-const isWwrListing = (job: Job): boolean => {
-  const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
-  return haystack.includes('weworkremotely');
-};
-
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -935,16 +930,26 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const importedJobs = jobs.filter((job) => job.listingKind === 'imported');
     const byWorkMode = (items: Job[]) =>
       items.filter((job) => {
-        if (isWwrListing(job) && !remoteOnly) return false;
         if (!remoteOnly) return true;
         return isRemoteListing(job);
       });
     const nativeMatches = byWorkMode(nativeJobs);
     const importedMatches = byWorkMode(importedJobs);
-    const useImportedFallback = lane === 'challenges' && (nativeMatches.length === 0 || !hasNativeChallenges);
     if (lane === 'imports') return importedMatches;
-    return useImportedFallback ? importedMatches : nativeMatches;
-  }, [jobs, lane, remoteOnly, hasNativeChallenges]);
+
+    // Challenge lane should prefer native challenges, but avoid feeling empty when the pool is small.
+    // When personal setup is disabled (manual filters/keywords), mixing in imported listings is the
+    // expected behavior: the user is asking for a broader market list, not only handcrafted challenges.
+    if (nativeMatches.length === 0 || !hasNativeChallenges) return importedMatches;
+    if (!usePersonalSetup) {
+      const seen = new Set(nativeMatches.map((job) => job.id));
+      return [
+        ...nativeMatches,
+        ...importedMatches.filter((job) => !seen.has(job.id)),
+      ];
+    }
+    return nativeMatches;
+  }, [jobs, lane, remoteOnly, hasNativeChallenges, usePersonalSetup]);
 
   const prioritizedJobsInLane = useMemo(
     () =>

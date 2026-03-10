@@ -3099,10 +3099,12 @@ export const isValidJobPosting = (job: Job): boolean => {
         return false;
     }
 
-    // Check description exists and has minimum length (200 characters)
+    const minDescriptionLength = job.listingKind === 'imported' ? 120 : 200;
+
+    // Check description exists and has minimum length (imported listings can be shorter)
     if (!job.description ||
         typeof job.description !== 'string' ||
-        job.description.trim().length < 200) {
+        job.description.trim().length < minDescriptionLength) {
         return false;
     }
 
