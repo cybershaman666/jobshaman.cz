@@ -202,7 +202,12 @@ class AnalyticsService {
 
         try {
             // Get current user (if logged in)
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) {
+                console.warn('Failed to resolve session for filter analytics:', sessionError);
+                return;
+            }
+            const user = session?.user || null;
 
             // Insert analytics record (non-blocking)
             const { error } = await supabase.from('filter_analytics').insert({

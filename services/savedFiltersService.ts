@@ -14,12 +14,12 @@ export interface SavedFilterSet {
 const getCurrentAuthUserId = async (): Promise<string | null> => {
     if (!supabase) return null;
     try {
-        const { data, error } = await supabase.auth.getUser();
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-            console.error('Failed to resolve current auth user for saved filters:', error);
+            console.error('Failed to resolve current session for saved filters:', error);
             return null;
         }
-        return data.user?.id || null;
+        return session?.user?.id || null;
     } catch (error) {
         console.error('Error resolving current auth user for saved filters:', error);
         return null;

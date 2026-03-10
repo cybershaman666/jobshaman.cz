@@ -132,8 +132,14 @@ export const useUserProfile = () => {
             }
 
             // Block unconfirmed emails from entering the app
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (authUser && !authUser.email_confirmed_at) {
+            const { data: { session: gateSession }, error: gateSessionError } = await supabase.auth.getSession();
+            if (gateSessionError) {
+                console.warn('🟠 [SessionRestoration] Unable to read session for email gate. Skipping restoration.', gateSessionError);
+                restorationInProgressRef.current = null;
+                return;
+            }
+            const authUser = gateSession?.user;
+            if (authUser && authUser.email_confirmed_at === null) {
                 console.warn('🟠 [SessionRestoration] Email not confirmed. Signing out.');
                 await signOut();
                 setUserProfile(DEFAULT_USER_PROFILE);
@@ -161,7 +167,11 @@ export const useUserProfile = () => {
                 if (!profile) {
                     console.warn('⚠️ [SessionRestoration] Profile still missing. Attempting to create fallback profile...');
 
-                    const { data: { user } } = await supabase.auth.getUser();
+                    const { data: { session: fallbackSession }, error: fallbackSessionError } = await supabase.auth.getSession();
+                    if (fallbackSessionError) {
+                        console.warn('⚠️ [SessionRestoration] Could not read session for fallback profile creation:', fallbackSessionError);
+                    }
+                    const user = fallbackSession?.user;
                     if (user && user.email) {
                         try {
                             // Do not trust auth metadata role here.
@@ -327,13 +337,14 @@ export const useUserProfile = () => {
                     if (!company && metaCompany) {
                         console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
                         try {
+                            const { data: { session: companySession } } = await supabase.auth.getSession();
                             const newCompanyData = {
                                 name: metaCompany,
                                 // Use metadata values if available
                                 ico: metaIco || '',
                                 address: '',
                                 description: '',
-                                contact_email: supabase ? (await supabase.auth.getUser()).data.user?.email : undefined,
+                                contact_email: companySession?.user?.email || undefined,
                                 contact_phone: '',
                                 website: metaWebsite || '',
                                 // Do not infer industry from legacy auth metadata flags.

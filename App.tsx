@@ -803,7 +803,12 @@ export default function App() {
     const refreshUserProfile = async () => {
         try {
             if (!supabase) return;
-            const userId = (await supabase.auth.getUser()).data.user?.id;
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) {
+                console.warn('[App] Failed to resolve session for profile refresh:', error);
+                return;
+            }
+            const userId = session?.user?.id;
             if (userId) {
                 const profile = await getUserProfile(userId);
                 if (profile) {

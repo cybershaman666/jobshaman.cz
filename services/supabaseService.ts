@@ -288,31 +288,27 @@ export const getCurrentUser = async () => {
     if (isSupabaseNetworkCooldownActive()) return null;
 
     try {
-        // Try to get current user first
-        const { data: { user }, error } = await supabase.auth.getUser();
-
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-            console.error('Error getting current user:', error);
+            console.error('Error getting current session:', error);
 
-            // If it's a refresh token error, try to refresh the session
-            if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
+            const msg = String(error?.message || '').toLowerCase();
+            const hasInvalidRefreshToken =
+                msg.includes('invalid refresh token') ||
+                msg.includes('refresh token not found') ||
+                msg.includes('refresh_token_not_found');
+
+            if (hasInvalidRefreshToken) {
                 clearSupabaseAuthStorage();
                 console.log('Attempting to refresh session...');
-
                 const refreshedSession = await refreshSession();
-                if (refreshedSession) {
-                    // Retry getting the user after refresh
-                    const { data: { user: refreshedUser }, error: retryError } = await supabase.auth.getUser();
-                    if (!retryError && refreshedUser) {
-                        return refreshedUser;
-                    }
-                }
+                return refreshedSession?.user || null;
             }
 
             return null;
         }
 
-        return user;
+        return session?.user || null;
     } catch (error) {
         noteSupabaseNetworkFailure('getCurrentUser', error);
         console.error('Current user fetch error:', error);
@@ -1122,8 +1118,12 @@ export const trackAnalyticsEvent = async (event: {
     if (!supabase || isSupabaseNetworkCooldownActive()) return;
 
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const safeUserId = user?.id || null;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+            console.warn('Analytics fallback: failed to resolve session:', sessionError);
+            return;
+        }
+        const safeUserId = session?.user?.id || null;
         const { error } = await supabase
             .from('analytics_events')
             .insert({
