@@ -547,6 +547,9 @@ export default function App() {
         filterDate,
         filterExperience,
         filterLanguageCodes,
+        enableAutoLanguageGuard,
+        setEnableAutoLanguageGuard,
+        implicitLanguageCodesApplied,
         filterMinSalary,
         savedJobIds,
         setSavedJobIds,
@@ -2118,6 +2121,9 @@ export default function App() {
                                         setFilterExperience={setFilterExperience}
                                         filterLanguageCodes={filterLanguageCodes}
                                         setFilterLanguageCodes={setFilterLanguageCodes}
+                                        enableAutoLanguageGuard={enableAutoLanguageGuard}
+                                        setEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
+                                        implicitLanguageCodesApplied={implicitLanguageCodesApplied}
                                         handleJobSelect={handleJobSelect}
                                         handleToggleSave={handleToggleSave}
                                         onOpenProfile={() => setViewState(ViewState.PROFILE)}
@@ -2135,11 +2141,18 @@ export default function App() {
 
     const focusDiscoverySearch = () => {
         const attemptFocus = () => {
-            const input = document.getElementById('challenge-discovery-search') as HTMLInputElement | null;
-            if (!input) return false;
-            input.focus({ preventScroll: true });
-            input.select?.();
-            return true;
+            // Prefer the header search on lg+, fallback to the in-list input on mobile/tablet.
+            const candidates = ['appheader-discovery-search', 'challenge-discovery-search'];
+            for (const id of candidates) {
+                const input = document.getElementById(id) as HTMLInputElement | null;
+                if (!input) continue;
+                // Skip elements that are not visible (hidden by breakpoint classes).
+                if ((input as any).offsetParent === null) continue;
+                input.focus({ preventScroll: true });
+                input.select?.();
+                return true;
+            }
+            return false;
         };
 
         window.setTimeout(() => {

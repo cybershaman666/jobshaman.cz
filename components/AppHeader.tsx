@@ -538,6 +538,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <div className="app-command-field min-w-0">
                   <Search size={16} className="text-[var(--text-faint)]" />
                   <input
+                    id="appheader-discovery-search"
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     onKeyDown={(event) => {

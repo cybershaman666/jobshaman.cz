@@ -66,6 +66,9 @@ interface ChallengeMarketplaceProps {
   setFilterExperience: (levels: string[]) => void;
   filterLanguageCodes: SearchLanguageCode[];
   setFilterLanguageCodes: (codes: SearchLanguageCode[]) => void;
+  enableAutoLanguageGuard: boolean;
+  setEnableAutoLanguageGuard: (enabled: boolean) => void;
+  implicitLanguageCodesApplied: string[];
   handleJobSelect: (jobId: string | null) => void;
   handleToggleSave: (jobId: string) => void;
   onOpenPremium: (featureLabel: string) => void;
@@ -234,6 +237,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   setFilterExperience,
   filterLanguageCodes,
   setFilterLanguageCodes,
+  enableAutoLanguageGuard,
+  setEnableAutoLanguageGuard,
+  implicitLanguageCodesApplied,
   handleJobSelect,
   handleToggleSave,
   onOpenPremium,
@@ -890,11 +896,33 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filterExperience.length > 0
   );
 
+  const uniqueStrings = <T extends string>(items: unknown): T[] => {
+    if (!Array.isArray(items)) return [];
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const raw of items) {
+      const value = String(raw || '').trim();
+      if (!value) continue;
+      if (seen.has(value)) continue;
+      seen.add(value);
+      out.push(value as T);
+    }
+    return out;
+  };
+
+  const setCommuteEnabled = (enabled: boolean) => {
+    setEnableCommuteFilter(enabled);
+    if (enabled) {
+      // Commute radius and "remote only" are mutually exclusive modes.
+      setRemoteOnly(false);
+    }
+  };
+
   useEffect(() => {
     if (personalSetupBootstrappedRef.current || !usePersonalSetup || hasActiveFilters || remoteOnly) return;
     personalSetupBootstrappedRef.current = true;
     if (resolvedSearchProfile.defaultEnableCommuteFilter) {
-      setEnableCommuteFilter(true);
+      setCommuteEnabled(true);
       setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
     }
   }, [
@@ -902,7 +930,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     remoteOnly,
     resolvedSearchProfile.defaultEnableCommuteFilter,
     resolvedSearchProfile.defaultMaxDistanceKm,
-    setEnableCommuteFilter,
+    setCommuteEnabled,
     setFilterMaxDistance,
     usePersonalSetup,
   ]);
@@ -910,18 +938,20 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const applyFilterSnapshot = (filters: JobSearchFilters) => {
     const nextRemoteOnly = Boolean(filters.remoteOnly);
     const nextCommuteEnabled = nextRemoteOnly ? false : Boolean(filters.enableCommuteFilter);
+    const nextGlobalSearch = Boolean(filters.globalSearch);
+    const nextAbroadOnly = nextGlobalSearch ? false : Boolean(filters.abroadOnly);
     setSearchTerm(filters.searchTerm || '');
     setFilterCity(filters.filterCity || '');
     setFilterMinSalary(filters.filterMinSalary || 0);
-    setFilterBenefits(filters.filterBenefits || []);
-    setFilterContractType(filters.filterContractTypes || []);
+    setFilterBenefits(uniqueStrings(filters.filterBenefits));
+    setFilterContractType(uniqueStrings(filters.filterContractTypes));
     setFilterDate(filters.filterDatePosted || 'all');
-    setFilterExperience(filters.filterExperienceLevels || []);
-    setFilterLanguageCodes((filters.filterLanguageCodes || []) as SearchLanguageCode[]);
-    setEnableCommuteFilter(nextCommuteEnabled);
+    setFilterExperience(uniqueStrings(filters.filterExperienceLevels));
+    setFilterLanguageCodes(uniqueStrings<SearchLanguageCode>(filters.filterLanguageCodes));
+    setCommuteEnabled(nextCommuteEnabled);
     setFilterMaxDistance(filters.filterMaxDistance || 50);
-    setGlobalSearch(Boolean(filters.globalSearch));
-    setAbroadOnly(Boolean(filters.abroadOnly));
+    setGlobalSearch(nextGlobalSearch);
+    setAbroadOnly(nextAbroadOnly);
     setRemoteOnly(nextRemoteOnly);
   };
 
@@ -1182,7 +1212,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         />
       </div>
 
-      <Toolbar className="space-y-4">
+      {/* AppHeader already renders the discovery search on lg+; keep this one for mobile/tablet only. */}
+      <Toolbar className="space-y-4 lg:hidden">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto]">
           <div className="app-command-field">
             <Search size={16} className="text-[var(--text-faint)]" />
@@ -1213,7 +1244,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         </div>
       </Toolbar>
 
-      <Toolbar sticky>
+      {/* Quick toggles are useful on smaller screens; on XL they duplicate the left filter column. */}
+      <Toolbar sticky className="xl:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <FilterChip active={lane === 'challenges'} onClick={() => setLane('challenges')}>
             {copy.laneChallenges}
@@ -1224,7 +1256,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(!remoteOnly)}>
             {copy.remoteOnly}
           </FilterChip>
-          <FilterChip active={enableCommuteFilter} onClick={() => setEnableCommuteFilter(!enableCommuteFilter)}>
+          <FilterChip active={enableCommuteFilter} onClick={() => setCommuteEnabled(!enableCommuteFilter)}>
             <TrainFront size={14} />
             {copy.commute}
           </FilterChip>
@@ -1255,7 +1287,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                     onClick={() => {
                       setUsePersonalSetup(true);
                       if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
-                        setEnableCommuteFilter(true);
+                        setCommuteEnabled(true);
                         setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
                       }
                     }}
@@ -1292,6 +1324,47 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </button>
                 </div>
               ) : null}
+              {implicitLanguageCodesApplied.length > 0 ? (
+                <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                    {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <FilterChip active className="justify-start">
+                      {isCsLike ? 'Jazyk:' : 'Language:'}{' '}
+                      {implicitLanguageCodesApplied
+                        .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
+                        .join(' / ')}
+                    </FilterChip>
+                    <button
+                      type="button"
+                      className="app-button-secondary !px-3 !py-2"
+                      onClick={() => setEnableAutoLanguageGuard(false)}
+                      title={isCsLike ? 'Vypnout automatické omezení podle jazyka' : 'Disable auto language narrowing'}
+                    >
+                      {isCsLike ? 'Vypnout' : 'Disable'}
+                    </button>
+                  </div>
+                </div>
+              ) : (!enableAutoLanguageGuard && filterLanguageCodes.length === 0 && !globalSearch ? (
+                <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                    {isCsLike ? 'Automatika vypnuta' : 'Auto disabled'}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-[var(--text-muted)]">
+                      {isCsLike ? 'Omezení jazyka podle profilu je vypnuté.' : 'Language narrowing based on your profile is disabled.'}
+                    </span>
+                    <button
+                      type="button"
+                      className="app-button-secondary !px-3 !py-2"
+                      onClick={() => setEnableAutoLanguageGuard(true)}
+                    >
+                      {isCsLike ? 'Zapnout' : 'Enable'}
+                    </button>
+                  </div>
+                </div>
+              ) : null)}
               {usePersonalSetup ? (
                 <>
                   {setupSignals.length > 0 ? (
@@ -1397,10 +1470,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <FilterSection title={copy.commute}>
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
-                    <FilterChip active={enableCommuteFilter} onClick={() => setEnableCommuteFilter(true)}>
+                    <FilterChip active={enableCommuteFilter} onClick={() => setCommuteEnabled(true)}>
                       {copy.commute}
                     </FilterChip>
-                    <FilterChip active={!enableCommuteFilter} onClick={() => setEnableCommuteFilter(false)}>
+                    <FilterChip active={!enableCommuteFilter} onClick={() => setCommuteEnabled(false)}>
                       {hasCommuteProfile ? copy.allWorkModels : copy.commuteInactive}
                     </FilterChip>
                   </div>

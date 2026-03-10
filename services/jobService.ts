@@ -881,6 +881,11 @@ export interface JobFilterOptions {
     // Used only for external/live sources that require keywords (e.g. Jooble).
     // This should be a single, specific token to avoid overly strict AND matching.
     externalSearchSeedTerm?: string;
+    // Controls whether external sources are merged synchronously into the main feed.
+    // - 'sync' (default): merge cached + live overlays inside this call.
+    // - 'async': return DB results fast; external overlays should be fetched separately.
+    // - 'off': never include external overlays.
+    externalOverlayMode?: 'sync' | 'async' | 'off';
 }
 
 const isSearchV2Enabled = (): boolean => {
@@ -1157,6 +1162,113 @@ const fetchCachedExternalFeedJobs = async (options: {
         console.warn('External cached feed unavailable:', error);
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
+};
+
+export const fetchExternalOverlayJobs = async (options: {
+    searchTerm?: string;
+    externalSeedTerm?: string;
+    filterCity?: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    includeJhi?: boolean;
+}): Promise<Job[]> => {
+    const safeSearchTerm = String(options.searchTerm || '').trim();
+    const safeSeed = String(options.externalSeedTerm || '').trim();
+    const filterCity = String(options.filterCity || '').trim();
+    const countryCodes = options.countryCodes;
+    const excludeCountryCodes = options.excludeCountryCodes;
+    const abortSignal = options.abortSignal;
+    const includeJhi = options.includeJhi ?? false;
+
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+        if (!ms || ms <= 0) return promise;
+        let timer: number | null = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((resolve) => {
+                    timer = window.setTimeout(() => resolve(fallback), ms);
+                })
+            ]);
+        } finally {
+            if (timer != null) window.clearTimeout(timer);
+        }
+    };
+
+    const cachedBudgetMs = safeSearchTerm ? 1200 : 650;
+    const cached = await withTimeout(
+        fetchCachedExternalFeedJobs({
+            searchTerm: safeSearchTerm || undefined,
+            filterCity,
+            countryCodes,
+            excludeCountryCodes,
+            abortSignal,
+            page: 0,
+            pageSize: 18,
+            includeJhi
+        }),
+        cachedBudgetMs,
+        { jobs: [], hasMore: false, totalCount: 0 }
+    );
+
+    let cachedJobs = cached.jobs || [];
+    if (!safeSearchTerm && safeSeed) {
+        const tokens = safeSeed
+            .toLowerCase()
+            .split(/\s+/g)
+            .filter(Boolean)
+            .slice(0, 4);
+        if (tokens.length > 0) {
+            cachedJobs = cachedJobs.filter((job) => {
+                const haystack = `${job.title || ''}\n${job.company || ''}\n${job.location || ''}\n${job.description || ''}`.toLowerCase();
+                return tokens.every((tok) => haystack.includes(tok));
+            });
+        }
+    }
+
+    const shouldLive = !!safeSearchTerm || !!filterCity;
+    if (!shouldLive) {
+        return filterJobsByQuality(cachedJobs);
+    }
+
+    const overlayLimit = safeSearchTerm ? 8 : 6;
+    const liveBudgetMs = safeSearchTerm ? 1500 : 1100;
+    const [wwr, jooble, arbeitnow] = await withTimeout(
+        Promise.all([
+            fetchWeWorkRemotelyLiveJobs({
+                searchTerm: safeSearchTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            }),
+            fetchJoobleLiveJobs({
+                searchTerm: safeSearchTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            }),
+            fetchArbeitnowLiveJobs({
+                searchTerm: safeSearchTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            })
+        ]),
+        liveBudgetMs,
+        [[], [], []] as [Job[], Job[], Job[]]
+    );
+
+    return filterJobsByQuality(dedupeJobsList([...cachedJobs, ...wwr, ...jooble, ...arbeitnow]));
 };
 
 const normalizeTokenText = (input: string): string =>
@@ -1597,7 +1709,8 @@ export const fetchJobsWithFilters = async (
         userTaxProfile,
         abortSignal,
         includeJhi = true,
-        externalSearchSeedTerm
+        externalSearchSeedTerm,
+        externalOverlayMode = 'sync'
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
 
@@ -1985,11 +2098,30 @@ export const fetchJobsWithFilters = async (
         };
     };
 
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+        if (!ms || ms <= 0) return promise;
+        let timer: number | null = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((resolve) => {
+                    timer = window.setTimeout(() => resolve(fallback), ms);
+                })
+            ]);
+        } finally {
+            if (timer != null) window.clearTimeout(timer);
+        }
+    };
+
     const shouldOverlayLiveImports =
+        externalOverlayMode === 'sync' &&
         page === 0 &&
-        (!!safeSearchTerm || !!safeExternalSeedTerm || !!normalizedFilterCity);
+        // Live overlay should not slow down the default feed. Only run it when the user
+        // explicitly searches (or pins a city), not when we auto-seed external keywords.
+        (!!safeSearchTerm || !!normalizedFilterCity);
 
     const shouldIncludeCachedExternalFeed =
+        externalOverlayMode === 'sync' &&
         page >= 0;
 
     const maybeMergeCachedExternalFeed = async (
@@ -1999,8 +2131,11 @@ export const fetchJobsWithFilters = async (
             return result;
         }
 
-        const externalResult = await fetchCachedExternalFeedJobs({
-            searchTerm: safeSearchTerm || safeExternalSeedTerm,
+        const cachedBudgetMs = safeSearchTerm ? 1200 : 650;
+        const externalResult = await withTimeout(fetchCachedExternalFeedJobs({
+            // Avoid triggering expensive keyword-based providers (Jooble) when the user didn't
+            // explicitly type a query. We'll locally filter broad cache snapshots by seed term.
+            searchTerm: safeSearchTerm || undefined,
             filterCity,
             countryCodes,
             excludeCountryCodes,
@@ -2008,13 +2143,30 @@ export const fetchJobsWithFilters = async (
             page,
             pageSize: Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6))),
             includeJhi
-        });
+        }), cachedBudgetMs, { jobs: [], hasMore: false, totalCount: 0 });
 
         if (!externalResult.jobs.length) {
             return result;
         }
 
-        const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...externalResult.jobs]));
+        let externalJobs = externalResult.jobs;
+        if (!safeSearchTerm && safeExternalSeedTerm) {
+            const tokens = String(safeExternalSeedTerm || '')
+                .trim()
+                .toLowerCase()
+                .split(/\s+/g)
+                .filter(Boolean)
+                .slice(0, 4);
+            if (tokens.length > 0) {
+                externalJobs = externalJobs.filter((job) => {
+                    const haystack = `${job.title || ''}\n${job.company || ''}\n${job.location || ''}\n${job.description || ''}`
+                        .toLowerCase();
+                    return tokens.every((tok) => haystack.includes(tok));
+                });
+            }
+        }
+
+        const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...externalJobs]));
         const mergedJobs = sortJobsForMode(
             applyStrictClientFilters(mergedUnique),
             effectiveSortMode
@@ -2035,9 +2187,10 @@ export const fetchJobsWithFilters = async (
         }
 
         const overlayLimit = Math.min(10, Math.max(4, Math.floor(safeRpcPageSize / 3)));
-        const [wwrLiveJobs, joobleLiveJobs, arbeitnowLiveJobs] = await Promise.all([
+        const liveBudgetMs = safeSearchTerm ? 1500 : 1100;
+        const [wwrLiveJobs, joobleLiveJobs, arbeitnowLiveJobs] = await withTimeout(Promise.all([
             fetchWeWorkRemotelyLiveJobs({
-                searchTerm: safeSearchTerm || safeExternalSeedTerm,
+                searchTerm: safeSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -2046,7 +2199,7 @@ export const fetchJobsWithFilters = async (
                 includeJhi
             }),
             fetchJoobleLiveJobs({
-                searchTerm: safeSearchTerm || safeExternalSeedTerm,
+                searchTerm: safeSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -2055,7 +2208,7 @@ export const fetchJobsWithFilters = async (
                 includeJhi
             }),
             fetchArbeitnowLiveJobs({
-                searchTerm: safeSearchTerm || safeExternalSeedTerm,
+                searchTerm: safeSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -2063,7 +2216,7 @@ export const fetchJobsWithFilters = async (
                 limit: overlayLimit,
                 includeJhi
             })
-        ]);
+        ]), liveBudgetMs, [[], [], []] as [Job[], Job[], Job[]]);
         const liveJobs = filterJobsByQuality([...wwrLiveJobs, ...joobleLiveJobs, ...arbeitnowLiveJobs]);
 
         if (!liveJobs.length) {

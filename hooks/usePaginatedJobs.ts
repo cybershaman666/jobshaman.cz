@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, SearchLanguageCode, UserProfile } from '../types';
-import { dedupeJobsList, fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
+import { dedupeJobsList, fetchExternalOverlayJobs, fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
@@ -180,6 +180,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         return String(label || '').trim();
     }, [candidateIntent.primaryDomain, candidateIntent.targetRole, i18n.language]);
     const activeFetchControllerRef = useRef<AbortController | null>(null);
+    const externalOverlayControllerRef = useRef<AbortController | null>(null);
+    const lastExternalOverlaySignatureRef = useRef<string>('');
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
     const hasHandledInitialSortFetchRef = useRef(false);
@@ -233,9 +235,45 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
+    const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
     const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
+
+    const implicitLanguageCodesApplied = useMemo(() => {
+        if (!enableAutoLanguageGuard) return [];
+        const hasAnyFilters =
+            !!searchTerm ||
+            !!filterCity ||
+            filterContractType.length > 0 ||
+            filterBenefits.length > 0 ||
+            !!filterMinSalary ||
+            filterDate !== 'all' ||
+            filterExperience.length > 0 ||
+            enableCommuteFilter ||
+            sortBy !== 'newest' ||
+            filterLanguageCodes.length > 0 ||
+            abroadOnly;
+        if (globalSearch) return [];
+        if (hasAnyFilters) return [];
+        if (defaultLanguageCodes.length === 0) return [];
+        return defaultLanguageCodes;
+    }, [
+        abroadOnly,
+        defaultLanguageCodes,
+        enableAutoLanguageGuard,
+        enableCommuteFilter,
+        filterBenefits,
+        filterCity,
+        filterContractType,
+        filterDate,
+        filterExperience,
+        filterLanguageCodes,
+        filterMinSalary,
+        globalSearch,
+        searchTerm,
+        sortBy,
+    ]);
 
     const savedJobStorageKey = `${SAVED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
     const dismissedJobStorageKey = `${DISMISSED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
@@ -287,6 +325,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         const allowedLanguageCodes = filterLanguageCodes.length > 0
             ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
             : (
+                enableAutoLanguageGuard &&
                 !globalSearch &&
                 defaultLanguageCodes.length > 0 &&
                 !searchTerm &&
@@ -324,6 +363,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         countryCodes,
         defaultCountryCodes,
         defaultLanguageCodes,
+        enableAutoLanguageGuard,
         enableCommuteFilter,
         filterBenefits,
         filterCity,
@@ -613,7 +653,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const implicitLanguageCodes = !globalSearch && !hasAnyFilters && defaultLanguageCodes.length > 0
                 ? defaultLanguageCodes
                 : [];
-            const effectiveLanguageCodes = filterLanguageCodes.length > 0 ? filterLanguageCodes : implicitLanguageCodes;
+            const effectiveLanguageCodes = filterLanguageCodes.length > 0
+                ? filterLanguageCodes
+                : (enableAutoLanguageGuard ? implicitLanguageCodes : []);
             const requestedPageSize = shouldUseExpandedPersonalizedPool
                 ? Math.max(initialPageSize, 120)
                 : initialPageSize;
@@ -688,6 +730,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
                 externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
+                externalOverlayMode: 'async',
                 includeJhi: false,
                 abortSignal: fetchController.signal
             });
@@ -702,6 +745,49 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             setHasMore(result.hasMore);
             setTotalCount(Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length)));
+
+            // Async external overlay: never block the main feed. Fetch extras in the background
+            // and merge them into the already-rendered list (page 0 only).
+            if (!isLoadMore && page === 0) {
+                try {
+                    const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
+                    const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
+                    const effectiveCountryCodes = globalSearch ? undefined : normalizedCountryCodes;
+                    const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
+
+                    const signature = JSON.stringify({
+                        searchTerm: String(searchTerm || '').trim(),
+                        filterCity: String(filterCity || '').trim(),
+                        countryCodes: effectiveCountryCodes || null,
+                        excludeCountryCodes: excludeCountryCodes || null,
+                        seed: String(externalSearchSeedTerm || '').trim()
+                    });
+                    if (signature !== lastExternalOverlaySignatureRef.current) {
+                        lastExternalOverlaySignatureRef.current = signature;
+                        externalOverlayControllerRef.current?.abort();
+                        const overlayController = new AbortController();
+                        externalOverlayControllerRef.current = overlayController;
+
+                        void (async () => {
+                            const overlayJobs = await fetchExternalOverlayJobs({
+                                searchTerm: searchTerm || undefined,
+                                externalSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
+                                filterCity,
+                                countryCodes: effectiveCountryCodes,
+                                excludeCountryCodes,
+                                abortSignal: overlayController.signal,
+                                includeJhi: false
+                            });
+                            if (overlayController.signal.aborted) return;
+                            if (!overlayJobs.length) return;
+
+                            setJobs((prev) => dedupeJobsList([...prev, ...overlayJobs]));
+                        })();
+                    }
+                } catch {
+                    // No-op: overlay is best-effort only.
+                }
+            }
 
             // Track analytics
             if ((filterCity || filterContractType.length > 0 || filterBenefits.length > 0)) {
@@ -901,6 +987,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterExperience([]);
         setFilterMaxDistance(50);
         setFilterLanguageCodes([]);
+        setEnableAutoLanguageGuard(true);
         setAbroadOnly(false);
         setCountryCodes(defaultCountryCodes);
         setGlobalSearch(defaultCountryCodes.length === 0);
@@ -928,6 +1015,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         filterMinSalary,
         filterExperience,
         filterLanguageCodes,
+        enableAutoLanguageGuard,
+        implicitLanguageCodesApplied,
         savedJobIds,
         dismissedJobIds,
         showFilters,
@@ -950,6 +1039,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterMinSalary,
         setFilterExperience,
         setFilterLanguageCodes,
+        setEnableAutoLanguageGuard,
         setSavedJobIds: setSavedJobIdsWithDedupe,
         setDismissedJobIds: setDismissedJobIdsWithDedupe,
         setShowFilters,
