@@ -159,6 +159,38 @@ export const getCandidateIntentDomainLabel = (domain: CandidateDomainKey | null 
   return TAXONOMY_DOMAINS[domain].labels[normalizeLocale(locale)];
 };
 
+export const getCandidateIntentDomainSeedKeyword = (domain: CandidateDomainKey | null | undefined): string => {
+  if (!domain || !TAXONOMY_DOMAINS[domain]) return '';
+  const definition = TAXONOMY_DOMAINS[domain];
+  const candidates: string[] = [];
+  // Prefer taxonomy keywords because they're mostly English and match external sources better.
+  (definition.keywords || []).forEach((kw) => {
+    const raw = String(kw || '').trim();
+    if (raw) candidates.push(raw);
+  });
+  candidates.push(String(definition.labels.en || '').trim());
+
+  const stop = new Set(['and', 'or', 'the', 'a', 'an', 'for', 'with', 'to', 'of', 'in']);
+  const normalized = candidates
+    .map((value) => ({ raw: value, norm: normalizeText(value) }))
+    .filter((item) => item.norm);
+
+  // Prefer a single, specific token to avoid turning the external search into an AND query.
+  const singleToken = normalized.find((item) => {
+    const parts = item.norm.split(' ').filter(Boolean);
+    if (parts.length !== 1) return false;
+    const tok = parts[0];
+    if (tok.length < 4) return false;
+    if (stop.has(tok)) return false;
+    return true;
+  });
+  if (singleToken) return singleToken.raw;
+
+  // Fallback to the first reasonably short phrase.
+  const shortPhrase = normalized.find((item) => item.norm.length <= 18);
+  return shortPhrase?.raw || String(definition.labels.en || '').trim();
+};
+
 export const resolveCandidateIntentProfile = (profile: UserProfile): CandidateIntentProfile => {
   const searchProfile = profile.preferences?.searchProfile || ({} as CandidateSearchProfile);
   const candidateChunks = collectCandidateTextChunks(profile);

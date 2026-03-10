@@ -42,6 +42,7 @@ _scraper_api_sources = _import_first([
     "backend.scraper.scraper_api_sources",
 ])
 search_jooble_jobs_live = _scraper_api_sources.search_jooble_jobs_live
+search_arbeitnow_jobs_live = _scraper_api_sources.search_arbeitnow_jobs_live
 search_weworkremotely_jobs_live = _scraper_api_sources.search_weworkremotely_jobs_live
 
 router = APIRouter()
@@ -4883,6 +4884,39 @@ async def search_jooble_live(
     }
 
 
+@router.get("/jobs/external/arbeitnow/search")
+@limiter.limit("30/minute")
+async def search_arbeitnow_live(
+    request: Request,
+    search_term: str = Query(default="", max_length=200),
+    filter_city: str = Query(default="", max_length=120),
+    limit: int = Query(default=12, ge=1, le=40),
+    page: int = Query(default=1, ge=1, le=20),
+    country_codes: str | None = Query(default=None),
+    exclude_country_codes: str | None = Query(default=None),
+):
+    def _parse_csv(value: str | None) -> list[str]:
+        if not value:
+            return []
+        return [part.strip().upper() for part in value.split(",") if part and part.strip()]
+
+    jobs = search_arbeitnow_jobs_live(
+        limit=limit,
+        page=page,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=_parse_csv(country_codes),
+        exclude_country_codes=_parse_csv(exclude_country_codes),
+    )
+    _attach_job_dialogue_preview_metrics(jobs)
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "arbeitnow_live_api",
+    }
+
+
 @router.get("/jobs/external/cached-feed")
 @limiter.limit("60/minute")
 async def get_cached_external_feed(
@@ -4911,8 +4945,28 @@ async def get_cached_external_feed(
     # When it's empty (fresh deployments, cleared DB), fetch a small snapshot from
     # sources that don't require keywords (WWR RSS) and write via the live cache path.
     if not jobs:
+        seeded: list[dict[str, Any]] = []
         try:
             seed_limit = max(12, min(40, int(page_size or 24)))
+            arbeitnow_jobs = search_arbeitnow_jobs_live(
+                limit=seed_limit,
+                page=1,
+                search_term=search_term,
+                filter_city=filter_city,
+                country_codes=parsed_country_codes,
+                exclude_country_codes=parsed_exclude_codes,
+            )
+            if isinstance(arbeitnow_jobs, list):
+                seeded.extend([item for item in arbeitnow_jobs if isinstance(item, dict)])
+            _write_external_cache_snapshot(
+                provider="arbeitnow",
+                jobs=arbeitnow_jobs or [],
+                search_term=search_term,
+                filter_city=filter_city,
+                country_codes=parsed_country_codes,
+                exclude_country_codes=parsed_exclude_codes,
+                page=1,
+            )
             wwr_jobs = search_weworkremotely_jobs_live(
                 limit=seed_limit,
                 search_term=search_term,
@@ -4920,6 +4974,8 @@ async def get_cached_external_feed(
                 country_codes=parsed_country_codes,
                 exclude_country_codes=parsed_exclude_codes,
             )
+            if isinstance(wwr_jobs, list):
+                seeded.extend([item for item in wwr_jobs if isinstance(item, dict)])
             _write_external_cache_snapshot(
                 provider="weworkremotely",
                 jobs=wwr_jobs or [],
@@ -4939,6 +4995,8 @@ async def get_cached_external_feed(
                     country_codes=parsed_country_codes,
                     exclude_country_codes=parsed_exclude_codes,
                 )
+                if isinstance(jooble_jobs, list):
+                    seeded.extend([item for item in jooble_jobs if isinstance(item, dict)])
                 _write_external_cache_snapshot(
                     provider="jooble",
                     jobs=jooble_jobs or [],
@@ -4960,6 +5018,28 @@ async def get_cached_external_feed(
             exclude_country_codes=parsed_exclude_codes,
         )
         jobs = result.get("jobs") or []
+
+        # If DB cache is still empty/unavailable, return the live snapshot directly
+        # so users can see external results even during cache failures.
+        if not jobs and seeded:
+            seen: set[str] = set()
+            deduped: list[dict[str, Any]] = []
+            for item in seeded:
+                keys = _external_job_dedup_keys(item)
+                if keys and any(k in seen for k in keys):
+                    continue
+                for k in keys:
+                    seen.add(k)
+                deduped.append(dict(item))
+            deduped.sort(
+                key=lambda job: str(job.get("scraped_at") or job.get("fetched_at") or ""),
+                reverse=True,
+            )
+            total_count = len(deduped)
+            start = max(0, page) * max(1, page_size)
+            end = start + max(1, page_size)
+            jobs = deduped[start:end]
+            result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
 
     _attach_job_dialogue_preview_metrics(jobs)
     return {

@@ -878,6 +878,9 @@ export interface JobFilterOptions {
     userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
     includeJhi?: boolean;
+    // Used only for external/live sources that require keywords (e.g. Jooble).
+    // This should be a single, specific token to avoid overly strict AND matching.
+    externalSearchSeedTerm?: string;
 }
 
 const isSearchV2Enabled = (): boolean => {
@@ -1041,6 +1044,59 @@ const fetchJoobleLiveJobs = async (options: {
             throw error;
         }
         console.warn('Jooble live API overlay unavailable:', error);
+        return [];
+    }
+};
+
+const fetchArbeitnowLiveJobs = async (options: {
+    searchTerm: string;
+    filterCity?: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    limit?: number;
+    includeJhi?: boolean;
+}): Promise<Job[]> => {
+    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!backendBase) return [];
+
+    const searchTerm = String(options.searchTerm || '').trim();
+    const filterCity = String(options.filterCity || '').trim();
+    if (!searchTerm && !filterCity) return [];
+
+    const params = new URLSearchParams();
+    params.set('search_term', searchTerm);
+    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
+    params.set('page', '1');
+    if (filterCity) {
+        params.set('filter_city', filterCity);
+    }
+    if (options.countryCodes && options.countryCodes.length > 0) {
+        params.set('country_codes', options.countryCodes.join(','));
+    }
+    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
+        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
+    }
+
+    try {
+        const response = await authenticatedFetch(
+            `${backendBase}/jobs/external/arbeitnow/search?${params.toString()}`,
+            {
+                method: 'GET',
+                signal: options.abortSignal
+            }
+        );
+        if (!response.ok) {
+            throw new Error(`Arbeitnow live search failed: ${response.status}`);
+        }
+        const payload = await response.json();
+        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+    } catch (error) {
+        if (isAbortFetchError(error)) {
+            throw error;
+        }
+        console.warn('Arbeitnow live API overlay unavailable:', error);
         return [];
     }
 };
@@ -1540,7 +1596,8 @@ export const fetchJobsWithFilters = async (
         jhiPreferences,
         userTaxProfile,
         abortSignal,
-        includeJhi = true
+        includeJhi = true,
+        externalSearchSeedTerm
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
 
@@ -1572,6 +1629,8 @@ export const fetchJobsWithFilters = async (
 
     const normalizedSearchTerm = (searchTerm || '').trim();
     const safeSearchTerm = normalizedSearchTerm.length < 2 ? '' : normalizedSearchTerm;
+    const normalizedExternalSeed = String(externalSearchSeedTerm || '').trim();
+    const safeExternalSeedTerm = normalizedExternalSeed.length < 2 ? '' : normalizedExternalSeed;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = safeSearchTerm.replace(/\s+/g, '').length;
@@ -1928,7 +1987,7 @@ export const fetchJobsWithFilters = async (
 
     const shouldOverlayLiveImports =
         page === 0 &&
-        (!!safeSearchTerm || !!normalizedFilterCity);
+        (!!safeSearchTerm || !!safeExternalSeedTerm || !!normalizedFilterCity);
 
     const shouldIncludeCachedExternalFeed =
         page >= 0;
@@ -1941,7 +2000,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const externalResult = await fetchCachedExternalFeedJobs({
-            searchTerm: safeSearchTerm,
+            searchTerm: safeSearchTerm || safeExternalSeedTerm,
             filterCity,
             countryCodes,
             excludeCountryCodes,
@@ -1976,9 +2035,9 @@ export const fetchJobsWithFilters = async (
         }
 
         const overlayLimit = Math.min(10, Math.max(4, Math.floor(safeRpcPageSize / 3)));
-        const [wwrLiveJobs, joobleLiveJobs] = await Promise.all([
+        const [wwrLiveJobs, joobleLiveJobs, arbeitnowLiveJobs] = await Promise.all([
             fetchWeWorkRemotelyLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: safeSearchTerm || safeExternalSeedTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -1987,7 +2046,16 @@ export const fetchJobsWithFilters = async (
                 includeJhi
             }),
             fetchJoobleLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: safeSearchTerm || safeExternalSeedTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi
+            }),
+            fetchArbeitnowLiveJobs({
+                searchTerm: safeSearchTerm || safeExternalSeedTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -1996,7 +2064,7 @@ export const fetchJobsWithFilters = async (
                 includeJhi
             })
         ]);
-        const liveJobs = filterJobsByQuality([...wwrLiveJobs, ...joobleLiveJobs]);
+        const liveJobs = filterJobsByQuality([...wwrLiveJobs, ...joobleLiveJobs, ...arbeitnowLiveJobs]);
 
         if (!liveJobs.length) {
             return result;

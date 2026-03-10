@@ -13,6 +13,7 @@ import os
 import time
 from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+import xml.etree.ElementTree as ET
 
 import requests
 from bs4 import BeautifulSoup
@@ -166,6 +167,60 @@ def _html_to_text(value: Any) -> str:
         return norm_text(raw)
     soup = BeautifulSoup(raw, "html.parser")
     return soup.get_text("\n", strip=True)
+
+def _xml_local_name(tag: str) -> str:
+    if not tag:
+        return ""
+    return tag.split("}", 1)[-1]
+
+
+def _rss_item_child_text(item: ET.Element, name: str) -> str:
+    wanted = name.lower()
+    for child in list(item):
+        if _xml_local_name(child.tag).lower() == wanted:
+            return norm_text(child.text or "")
+    return ""
+
+
+def _parse_rss_items(payload: str) -> List[Dict[str, Any]]:
+    # Avoid BeautifulSoup("xml") which depends on optional parsers (lxml).
+    # Standard library XML parser is enough for RSS feeds we consume here.
+    try:
+        root = ET.fromstring((payload or "").lstrip())
+    except Exception as exc:
+        print(f"⚠️ RSS XML parse failed: {exc}")
+        return []
+
+    items: List[Dict[str, Any]] = []
+    for item in root.iter():
+        if _xml_local_name(item.tag).lower() != "item":
+            continue
+
+        title = _rss_item_child_text(item, "title")
+        link = _rss_item_child_text(item, "link")
+        description = ""
+        for child in list(item):
+            if _xml_local_name(child.tag).lower() == "description":
+                description = child.text or ""
+                break
+        pub_date = _rss_item_child_text(item, "pubDate")
+
+        categories: List[str] = []
+        for child in list(item):
+            if _xml_local_name(child.tag).lower() == "category":
+                value = norm_text(child.text or "")
+                if value:
+                    categories.append(value)
+
+        items.append({
+            "title": title,
+            "link": link,
+            "description": description,
+            "pubDate": pub_date,
+            "categories": categories,
+        })
+
+    return items
 
 
 def _as_list(value: Any) -> List[str]:
@@ -931,16 +986,15 @@ def search_weworkremotely_jobs_live(
             print(f"❌ WWR live RSS fetch failed for {rss_url}: {exc}")
             continue
 
-        soup = BeautifulSoup(payload, "xml")
-        items = soup.find_all("item")
+        items = _parse_rss_items(payload)
         if not items:
             continue
 
         for item in items:
-            raw_title = norm_text(item.title.get_text()) if item.title else ""
-            description = item.description.get_text() if item.description else ""
-            link = item.link.get_text(strip=True) if item.link else ""
-            pub_date = _parse_wwr_pub_date(item.pubDate.get_text(strip=True)) if item.pubDate else None
+            raw_title = norm_text(item.get("title") or "")
+            description = str(item.get("description") or "")
+            link = norm_text(item.get("link") or "")
+            pub_date = _parse_wwr_pub_date(str(item.get("pubDate") or "")) if item.get("pubDate") else None
 
             if not raw_title or not link or link in seen_urls:
                 continue
@@ -952,7 +1006,7 @@ def search_weworkremotely_jobs_live(
                 title = norm_text(role_part)
                 company = norm_text(company_part)
 
-            categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+            categories = [norm_text(x) for x in (item.get("categories") or []) if norm_text(x)]
             if not _is_wwr_eu_relevant(title, description, categories):
                 continue
 
@@ -1182,6 +1236,157 @@ def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
     return total_saved
 
 
+def _build_arbeitnow_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
+    title = norm_text(item.get("title") or "")
+    company = norm_text(item.get("company_name") or item.get("company") or "Unknown company")
+    location = norm_text(item.get("location") or "Remote")
+    description = str(item.get("description") or "")
+    tags = [norm_text(x) for x in _as_list(item.get("tags")) if norm_text(x)]
+    url = item.get("url") or item.get("slug") or ""
+    if url and str(url).startswith("/"):
+        url = f"https://www.arbeitnow.com{url}"
+    url = norm_text(str(url))
+    created_at = norm_text(item.get("created_at") or "") or now_iso()
+
+    salary_from, salary_to, detected_currency = extract_salary(description or "", "EUR")
+    inferred_country = _infer_country_code(location, tags, description)
+    payload = {
+        "id": url or str(item.get("slug") or f"arbeitnow:{title}:{company}:{location}"),
+        "title": title or "Role",
+        "company": company or "Unknown company",
+        "location": location or "Remote",
+        "description": _html_to_text(description) or title or "Role",
+        "url": url,
+        "source": "arbeitnow.com",
+        "benefits": tags[:8],
+        "tags": tags[:8],
+        "contract_type": _build_contract_type(item.get("job_types")) or None,
+        "work_type": detect_work_type(title, description, location),
+        "work_model": _infer_work_model(location, description, tags),
+        "salary_from": salary_from,
+        "salary_to": salary_to,
+        "salary_currency": detected_currency or "EUR",
+        "salary_timeframe": "month",
+        "scraped_at": created_at,
+        "country_code": normalize_country_code(inferred_country),
+        "language_code": "en",
+        "education_level": None,
+        "legality_status": "legal",
+        "verification_notes": "Live API import from Arbeitnow",
+    }
+    _attach_live_coordinates(payload)
+    return payload
+
+
+def search_arbeitnow_jobs_live(
+    *,
+    limit: int = 20,
+    page: int = 1,
+    search_term: str = "",
+    filter_city: str = "",
+    country_codes: Optional[List[str]] = None,
+    exclude_country_codes: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    cache_key = _build_live_cache_key(
+        "arbeitnow",
+        limit=limit,
+        page=page,
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=country_codes or [],
+        exclude_country_codes=exclude_country_codes or [],
+    )
+    cached = _get_cached_live_search(cache_key)
+    if cached is not None:
+        return cached[: max(1, limit)]
+
+    api_url = (os.getenv("ARBEITNOW_API_URL") or DEFAULT_ARBEITNOW_API_URL).strip()
+    normalized_search_tokens = [token for token in norm_text(search_term).lower().split() if token]
+    normalized_city_tokens = [token for token in norm_text(filter_city).lower().split() if token]
+    allowed_country_codes = {
+        code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+    }
+    blocked_country_codes = {
+        code for code in (normalize_country_code(value) for value in (exclude_country_codes or [])) if code
+    }
+
+    try:
+        payload = _request_json(api_url, params={"page": max(1, int(page or 1))})
+    except Exception as exc:
+        print(f"❌ Arbeitnow live API fetch failed: {exc}")
+        return _set_cached_live_search(
+            cache_key,
+            [],
+            provider="arbeitnow",
+            search_term=search_term,
+            filter_city=filter_city,
+            country_codes=list(allowed_country_codes),
+            exclude_country_codes=list(blocked_country_codes),
+            page=page,
+        )
+
+    jobs = payload.get("data") if isinstance(payload, dict) else payload
+    if not isinstance(jobs, list) or not jobs:
+        return _set_cached_live_search(
+            cache_key,
+            [],
+            provider="arbeitnow",
+            search_term=search_term,
+            filter_city=filter_city,
+            country_codes=list(allowed_country_codes),
+            exclude_country_codes=list(blocked_country_codes),
+            page=page,
+        )
+
+    results: List[Dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for item in jobs:
+        if not isinstance(item, dict):
+            continue
+        mapped = _build_arbeitnow_live_job(item)
+        url = norm_text(mapped.get("url") or "")
+        if not url or url in seen_urls:
+            continue
+
+        mapped_country = normalize_country_code(mapped.get("country_code"))
+        if allowed_country_codes:
+            if mapped_country is None:
+                mapped_country = _pick_default_country_code(allowed_country_codes)
+                mapped["country_code"] = mapped_country
+            if mapped_country not in allowed_country_codes:
+                continue
+        if mapped_country and mapped_country in blocked_country_codes:
+            continue
+
+        haystack = norm_text("\n".join([
+            str(mapped.get("title") or ""),
+            str(mapped.get("company") or ""),
+            str(mapped.get("location") or ""),
+            str(mapped.get("description") or ""),
+            " ".join([norm_text(x) for x in (mapped.get("tags") or []) if norm_text(x)]),
+        ])).lower()
+        if normalized_search_tokens and not all(token in haystack for token in normalized_search_tokens):
+            continue
+        if normalized_city_tokens and not all(token in haystack for token in normalized_city_tokens):
+            continue
+
+        results.append(mapped)
+        seen_urls.add(url)
+        if len(results) >= max(1, limit):
+            break
+
+    return _set_cached_live_search(
+        cache_key,
+        results,
+        provider="arbeitnow",
+        search_term=search_term,
+        filter_city=filter_city,
+        country_codes=list(allowed_country_codes),
+        exclude_country_codes=list(blocked_country_codes),
+        page=page,
+    )[: max(1, limit)]
+
+
 def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
     if not supabase_client:
@@ -1202,17 +1407,16 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
             print(f"❌ WWR RSS fetch failed for {rss_url}: {exc}")
             continue
 
-        soup = BeautifulSoup(payload, "xml")
-        items = soup.find_all("item")
+        items = _parse_rss_items(payload)
         if len(items) == 0:
             print(f"ℹ️ WWR RSS {rss_url}: no items.")
             continue
 
         feed_saved = 0
         for item in items:
-            title = norm_text(item.title.get_text()) if item.title else ""
-            description = item.description.get_text() if item.description else ""
-            link = item.link.get_text(strip=True) if item.link else ""
+            title = norm_text(item.get("title") or "")
+            description = str(item.get("description") or "")
+            link = norm_text(item.get("link") or "")
 
             if not title or not link:
                 continue
@@ -1223,7 +1427,7 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
                 role_part, company_part = title.split(" at ", 1)
                 title = norm_text(role_part)
                 company = norm_text(company_part)
-            categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+            categories = [norm_text(x) for x in (item.get("categories") or []) if norm_text(x)]
             if not _is_wwr_eu_relevant(title, description, categories):
                 continue
             location, inferred_country_code = _extract_wwr_location_and_country(title, description, categories)
@@ -1270,17 +1474,16 @@ def scrape_german_tech_jobs(supabase_client: Any = None) -> int:
         print(f"❌ GermanTechJobs RSS fetch failed for {rss_url}: {exc}")
         return 0
 
-    soup = BeautifulSoup(payload, "xml")
-    items = soup.find_all("item")
+    items = _parse_rss_items(payload)
     if len(items) == 0:
         print(f"ℹ️ GermanTechJobs RSS {rss_url}: no items.")
         return 0
 
     for item in items:
-        title = norm_text(item.title.get_text()) if item.title else ""
-        description = item.description.get_text() if item.description else ""
-        link = item.link.get_text(strip=True) if item.link else ""
-        categories = [norm_text(node.get_text()) for node in item.find_all("category") if norm_text(node.get_text())]
+        title = norm_text(item.get("title") or "")
+        description = str(item.get("description") or "")
+        link = norm_text(item.get("link") or "")
+        categories = [norm_text(x) for x in (item.get("categories") or []) if norm_text(x)]
 
         if not title or not link:
             continue

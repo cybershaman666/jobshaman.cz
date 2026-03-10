@@ -6,7 +6,7 @@ import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingS
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState, updateInteractionStateCache } from '../services/jobInteractionService';
-import { resolveCandidateIntentProfile } from '../services/candidateIntentService';
+import { getCandidateIntentDomainSeedKeyword, getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -170,6 +170,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const { i18n } = useTranslation();
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
+    const externalSearchSeedTerm = useMemo(() => {
+        const explicitRole = String(candidateIntent.targetRole || '').trim();
+        if (explicitRole) return explicitRole;
+        const keyword = getCandidateIntentDomainSeedKeyword(candidateIntent.primaryDomain);
+        if (keyword) return keyword;
+        // Last resort: localized label, but this tends to be worse for English-only sources.
+        const label = getCandidateIntentDomainLabel(candidateIntent.primaryDomain, i18n.language);
+        return String(label || '').trim();
+    }, [candidateIntent.primaryDomain, candidateIntent.targetRole, i18n.language]);
     const activeFetchControllerRef = useRef<AbortController | null>(null);
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
@@ -651,6 +660,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 filterLanguageCodes: effectiveLanguageCodes.length > 0 ? effectiveLanguageCodes : undefined,
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
+                externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
                 includeJhi: false,
                 abortSignal: fetchController.signal
             });
