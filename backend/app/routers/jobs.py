@@ -60,7 +60,9 @@ _INTERACTION_STATE_CACHE: dict[tuple[str, int], tuple[datetime, tuple[list[str],
 _MY_DIALOGUES_CACHE_TTL_SECONDS = 20
 _MY_DIALOGUES_CACHE: dict[tuple[str, int], tuple[datetime, dict[str, Any]]] = {}
 _HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS = 15
-_HYBRID_SEARCH_V2_HTTP_CACHE_EMPTY_TTL_SECONDS = 60
+# Empty result sets are especially likely to be spammed by idle clients (same filters, same page).
+# Use a longer TTL to avoid repeated Supabase RPC calls when the feed is empty.
+_HYBRID_SEARCH_V2_HTTP_CACHE_EMPTY_TTL_SECONDS = 300
 _HYBRID_SEARCH_V2_HTTP_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _HYBRID_SEARCH_V2_HTTP_CACHE_LOCK = Lock()
 
@@ -4772,13 +4774,19 @@ async def jobs_hybrid_search_v2(
     origin = request.headers.get("origin") or ""
     referer = request.headers.get("referer") or ""
     # Keep this log compact; it is crucial for diagnosing unexpected background callers.
+    instance = os.getenv("HOSTNAME") or "-"
+    try:
+        pid = os.getpid()
+    except Exception:
+        pid = -1
     print(
         "📥 [Hybrid Search V2] http_request "
-        f"request_id={request_id} user_id={user_id or 'public'} "
+        f"request_id={request_id} sig={cache_sig or '-'} user_id={user_id or 'public'} "
+        f"instance={instance} pid={pid} "
         f"client={client_host or '-'} forwarded_for={forwarded_for or '-'} "
         f"ua={(user_agent[:140] + '…') if len(user_agent) > 140 else user_agent or '-'} "
         f"origin={origin or '-'} referer={referer or '-'} "
-        f"page={payload.page} page_size={payload.page_size} sig={cache_sig or '-'}"
+        f"page={payload.page} page_size={payload.page_size}"
     )
 
     if cache_key:
@@ -4791,6 +4799,7 @@ async def jobs_hybrid_search_v2(
                 cached_jobs = cached_response.get("jobs") or []
                 ttl = _HYBRID_SEARCH_V2_HTTP_CACHE_EMPTY_TTL_SECONDS if len(cached_jobs) == 0 else _HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS
                 if age_seconds <= ttl:
+                    print(f"🧊 [Hybrid Search V2] cache_hit sig={cache_sig or '-'} age_ms={int(age_seconds * 1000)} ttl_s={ttl} jobs={len(cached_jobs)}")
                     response_copy = dict(cached_response)
                     meta = dict((response_copy.get("meta") or {}))
                     meta["cache_hit"] = True
