@@ -224,6 +224,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [currentPage, setCurrentPage] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [impressionSessionKey, setImpressionSessionKey] = useState(() => `impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+    const [backendUnreachable, setBackendUnreachable] = useState(false);
 
     // Filter state
     const [filterCity, setFilterCity] = useState('');
@@ -681,6 +682,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     false
                 );
                 if (isStaleRequest()) return;
+                setBackendUnreachable(false);
 
                 const visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(basicResult.jobs)));
                 if (isLoadMore) {
@@ -735,6 +737,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 abortSignal: fetchController.signal
             });
             if (isStaleRequest()) return;
+            setBackendUnreachable(false);
 
             const visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs)));
             if (isLoadMore) {
@@ -812,6 +815,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 return;
             }
             console.error('Error fetching filtered jobs:', error);
+            // Only mark backend unreachable for network/timeout-type failures.
+            const msg = String((error as any)?.message || error || '').toLowerCase();
+            const code = String((error as any)?.code || '').toLowerCase();
+            const looksLikeNetwork =
+                msg.includes('failed to fetch') ||
+                msg.includes('networkerror') ||
+                msg.includes('network error') ||
+                msg.includes('ecconnreset') ||
+                msg.includes('econnrefused') ||
+                msg.includes('etimedout') ||
+                msg.includes('timeout') ||
+                code.includes('timeout');
+            setBackendUnreachable(looksLikeNetwork);
             // Keep previous results on transient errors to avoid "flash then disappear" behavior.
         } finally {
             if (activeFetchControllerRef.current === fetchController) {
@@ -1005,6 +1021,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         searchTerm,
         isSearching: !!searchTerm,
         impressionSessionKey,
+        backendUnreachable,
 
         filterCity,
         filterMaxDistance,

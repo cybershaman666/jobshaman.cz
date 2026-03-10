@@ -536,6 +536,7 @@ export default function App() {
         totalCount,
         searchTerm,
         isSearching,
+        backendUnreachable,
         loadInitialJobs,
         loadMoreJobs,
         performSearch,
@@ -1277,6 +1278,8 @@ export default function App() {
     // Keep a ref to filteredJobs so async retry closure can access latest value
     const filteredJobsRef = useRef(filteredJobs);
     useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
+    const backendUnreachableRef = useRef(backendUnreachable);
+    useEffect(() => { backendUnreachableRef.current = backendUnreachable; }, [backendUnreachable]);
     const loadRealJobsRef = useRef(loadRealJobs);
     useEffect(() => { loadRealJobsRef.current = loadRealJobs; }, [loadRealJobs]);
     const hasDedicatedSearchBackend = useMemo(() => {
@@ -1310,8 +1313,8 @@ export default function App() {
             return;
         }
 
-        // Guard: don't start if already polling, loading, or jobs are already present.
-        if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0) {
+        // Guard: don't start if already polling, loading, jobs are present, or backend seems healthy.
+        if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
             return;
         }
 
@@ -1327,7 +1330,7 @@ export default function App() {
                 console.error('Backend wake retry: loadRealJobs error', e);
             }
 
-            if (filteredJobsRef.current.length > 0) {
+            if (filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
                 console.log('Backend wake retry: jobs appeared, stopping polling');
                 backendWakeRetryRef.current = false;
                 return;
@@ -1345,7 +1348,7 @@ export default function App() {
         // Start polling with a short delay so transient 500s do not cause a visible "flash" in UI.
         backendRetryStartTimerRef.current = window.setTimeout(() => {
             // Re-check guards right before polling starts.
-            if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0) {
+            if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
                 return;
             }
             console.log('Backend wake retry: starting polling to wait for backend wake-up');
@@ -1365,7 +1368,7 @@ export default function App() {
                 backendRetryTimerRef.current = null;
             }
         };
-    }, [hasDedicatedSearchBackend, isLoadingJobs, filteredJobs.length]);
+    }, [hasDedicatedSearchBackend, isLoadingJobs, filteredJobs.length, backendUnreachable]);
 
     // SEO Update Effect
     useEffect(() => {
