@@ -933,6 +933,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                         variant={theme}
                                                         userProfile={userProfile}
                                                         emphasis={index < 2 ? 'hero' : 'standard'}
+                                                        displayMode="progressive_teaser"
                                                     />
                                                 </div>
                                             </div>

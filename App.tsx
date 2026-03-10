@@ -1275,9 +1275,11 @@ export default function App() {
     const backendRetryCountRef = useRef(0);
     const backendRetryTimerRef = useRef<number | null>(null);
     const backendRetryStartTimerRef = useRef<number | null>(null);
-    const BACKEND_RETRY_MAX = 8; // total tries
-    const BACKEND_RETRY_DELAY_MS = 3000; // 3s between tries
+    const BACKEND_RETRY_MAX = 6; // total tries
+    const BACKEND_RETRY_DELAY_MS = 6000; // base delay; we apply exponential backoff
     const BACKEND_RETRY_INITIAL_DELAY_MS = 4500; // avoid brief "flash" polling on transient hiccups
+    const backendRetryStartedAtRef = useRef<number>(0);
+    const BACKEND_RETRY_MAX_WINDOW_MS = 2 * 60 * 1000; // never poll longer than 2 minutes per burst
 
     // UI state for showing the waiting hint
     // Keep a ref to filteredJobs so async retry closure can access latest value
@@ -1306,6 +1308,15 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        const canPollNow = (): boolean => {
+            if (typeof document !== 'undefined') {
+                if (document.visibilityState !== 'visible') return false;
+                if (typeof document.hasFocus === 'function' && !document.hasFocus()) return false;
+            }
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+            return true;
+        };
+
         // With dedicated always-on search backend, polling Render wake-ups only creates noisy duplicate reloads.
         if (hasDedicatedSearchBackend) {
             backendWakeRetryRef.current = false;
@@ -1327,6 +1338,15 @@ export default function App() {
 
         const runPoll = async () => {
             if (!backendWakeRetryRef.current) return;
+            if (!canPollNow()) {
+                backendWakeRetryRef.current = false;
+                return;
+            }
+            if (backendRetryStartedAtRef.current && (Date.now() - backendRetryStartedAtRef.current) > BACKEND_RETRY_MAX_WINDOW_MS) {
+                console.log('Backend wake retry: exceeded max polling window, stopping');
+                backendWakeRetryRef.current = false;
+                return;
+            }
 
             backendRetryCountRef.current += 1;
             console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
@@ -1349,7 +1369,9 @@ export default function App() {
                 return;
             }
 
-            backendRetryTimerRef.current = window.setTimeout(runPoll, BACKEND_RETRY_DELAY_MS);
+            const backoffFactor = Math.min(8, Math.pow(2, Math.max(0, backendRetryCountRef.current - 1)));
+            const delayMs = Math.min(60_000, BACKEND_RETRY_DELAY_MS * backoffFactor);
+            backendRetryTimerRef.current = window.setTimeout(runPoll, delayMs);
         };
 
         // Start polling with a short delay so transient 500s do not cause a visible "flash" in UI.
@@ -1358,9 +1380,13 @@ export default function App() {
             if (backendWakeRetryRef.current || isLoadingJobsRef.current || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
                 return;
             }
+            if (!canPollNow()) {
+                return;
+            }
             console.log('Backend wake retry: starting polling to wait for backend wake-up');
             backendWakeRetryRef.current = true;
             backendRetryCountRef.current = 0;
+            backendRetryStartedAtRef.current = Date.now();
             void runPoll();
         }, BACKEND_RETRY_INITIAL_DELAY_MS);
 

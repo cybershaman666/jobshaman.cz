@@ -5,6 +5,7 @@ import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
+import { trackAnalyticsEvent } from '../services/supabaseService';
 
 const extractMarkdownSection = (description: string, headings: string[]): string => {
   if (!description.trim() || headings.length === 0) return '';
@@ -29,6 +30,14 @@ const clampPreview = (value: string, maxLength: number): string => {
   return `${trimmed.slice(0, maxLength - 3).trim()}...`;
 };
 
+const firstSentence = (value: string): string => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  const parts = trimmed.split(/(?<=[.!?])\s+/);
+  const sentence = (parts[0] || '').trim();
+  return sentence || trimmed;
+};
+
 interface JobCardProps {
   job: Job;
   onClick: () => void;
@@ -38,9 +47,10 @@ interface JobCardProps {
   variant?: 'light' | 'dark';
   userProfile?: UserProfile;
   emphasis?: 'standard' | 'hero';
+  displayMode?: 'standard' | 'progressive_teaser';
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile, emphasis = 'standard' }) => {
+const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile, emphasis = 'standard', displayMode = 'standard' }) => {
   const { t, i18n } = useTranslation();
   const localeBase = (i18n.language || 'en').split('-')[0];
   const isCs = localeBase === 'cs';
@@ -294,6 +304,137 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         </div>
       );
     }
+  }
+
+  const shouldUseProgressiveTeaser = displayMode === 'progressive_teaser' && hasStructuredHandshakeSignal;
+
+  if (shouldUseProgressiveTeaser) {
+    const problemSentence = clampPreview(
+      firstSentence(parsedRoleTruthHard) || firstSentence(parsedRoleTruthFail) || firstSentence(challengePreview || ''),
+      140
+    );
+    const contextTokens = [
+      String(job.location || '').trim(),
+      String(job.work_model ? formatWorkModelLabel(job.work_model) : formatJobTypeLabel(job.type)).trim(),
+    ].filter(Boolean);
+    const contextLine = contextTokens.join(' · ');
+
+    const ctaLabel = t('job.card.progressive_cta', {
+      defaultValue: isSk ? 'Ako by si začal(a)?' : isCs ? 'Jak bys začal(a)?' : 'How would you start?'
+    });
+
+    const handleCtaClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void trackAnalyticsEvent({
+        event_type: 'feed_progressive_cta_click',
+        feature: 'progressive_reveal_v1',
+        metadata: {
+          job_id: job.id,
+          source: 'job_card_teaser',
+        }
+      });
+      onClick();
+    };
+
+    return (
+      <div
+        onClick={onClick}
+        className={`
+          h-full p-4 rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden
+          ${isSelected ? "bg-slate-100 dark:bg-slate-800/95 border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800/70 z-10" : "bg-white/88 dark:bg-slate-900/82 border-slate-200/80 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"}
+        `}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-base font-bold leading-snug text-slate-900 dark:text-white break-words">
+              {job.company}
+            </div>
+            {contextLine && (
+              <div className="mt-1 text-[12px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                {contextLine}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5" title={`Job Health Index: ${jhiScore}/100`}>
+              <div className="relative w-8 h-8 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="16"
+                    cy="16"
+                    r="12"
+                    className="stroke-slate-200 dark:stroke-slate-700 fill-none"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="16"
+                    cy="16"
+                    r="12"
+                    className={`fill-none transition-all duration-1000 ease-out
+                      ${jhiScore >= 70 ? 'stroke-emerald-500' :
+                        jhiScore >= 50 ? 'stroke-amber-500' : 'stroke-rose-500'}
+                    `}
+                    strokeWidth="3"
+                    strokeDasharray={2 * Math.PI * 12}
+                    strokeDashoffset={2 * Math.PI * 12 * (1 - jhiScore / 100)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className={`absolute text-[10px] font-bold font-mono tracking-tighter
+                  ${jhiScore >= 70 ? 'text-emerald-700 dark:text-emerald-400' :
+                    jhiScore >= 50 ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
+                `}>
+                  {jhiScore}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveClick}
+              className={`p-2 rounded-full transition-all ${isSaved
+                ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-200 dark:ring-cyan-700'
+                : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              title={isSaved ? t('job.remove_save') : t('job.save')}
+              aria-label={isSaved ? t('job.remove_save') : t('job.save')}
+            >
+              <Bookmark size={18} className={isSaved ? "fill-current" : ""} />
+            </button>
+          </div>
+        </div>
+
+        {problemSentence && (
+          <div className="mt-3 text-[13px] leading-relaxed text-slate-700 dark:text-slate-200">
+            <span className="text-slate-500 dark:text-slate-400">„</span>
+            <span className="line-clamp-2">{problemSentence}</span>
+            <span className="text-slate-500 dark:text-slate-400">“</span>
+          </div>
+        )}
+
+        <div className="mt-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 line-clamp-1">
+          {job.title}
+        </div>
+
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handleCtaClick}
+            className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[var(--accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--accent)] transition hover:border-[rgba(var(--accent-rgb),0.32)]"
+          >
+            {ctaLabel}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Base Styles - Professional Light/Dark

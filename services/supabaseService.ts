@@ -15,6 +15,24 @@ const ANALYTICS_NETWORK_COOLDOWN_MS = 120_000;
 let analyticsNetworkCooldownUntil = 0;
 let lastAnalyticsNetworkLogAt = 0;
 const schemaMissingColumnsCache = new Map<string, Set<string>>();
+let lastAuthRefreshAttemptAt = 0;
+const AUTH_REFRESH_THROTTLE_MS = 120_000;
+
+const decodeJwtExpSeconds = (token: string | null | undefined): number => {
+    try {
+        const raw = String(token || '');
+        if (!raw) return 0;
+        const parts = raw.split('.');
+        if (parts.length < 2) return 0;
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payloadB64.padEnd(payloadB64.length + (4 - (payloadB64.length % 4 || 4)) % 4, '=');
+        const json = JSON.parse(atob(padded));
+        const expSeconds = Number(json?.exp || 0);
+        return Number.isFinite(expSeconds) ? expSeconds : 0;
+    } catch {
+        return 0;
+    }
+};
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
@@ -130,10 +148,21 @@ export const verifyAuthSession = async (context: string) => {
         }
 
         // Check if token is potentially expired (though getSession usually refreshes)
-        const expiresAt = session.expires_at || 0;
+        let expiresAt = Number(session.expires_at || 0);
+        if (!expiresAt) {
+            const decoded = decodeJwtExpSeconds((session as any)?.access_token);
+            if (decoded) expiresAt = decoded;
+        }
         const now = Math.floor(Date.now() / 1000);
 
         if (expiresAt < now + 10) { // 10s buffer
+            const nowMs = Date.now();
+            if (nowMs - lastAuthRefreshAttemptAt < AUTH_REFRESH_THROTTLE_MS) {
+                // Avoid refresh storms (can happen if expires_at is missing/0 in some environments).
+                console.warn(`🟠 Session refresh throttled [${context}] (last attempt ${(nowMs - lastAuthRefreshAttemptAt)}ms ago).`);
+                return { isValid: true, session };
+            }
+            lastAuthRefreshAttemptAt = nowMs;
             console.warn(`🟠 Session token near expiry [${context}]. Attempting refresh...`);
             const { data: { session: refreshed }, error: refreshErr } = await supabase.auth.refreshSession();
             if (refreshErr || !refreshed) {

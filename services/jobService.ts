@@ -20,8 +20,35 @@ type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number };
 // If the same hybrid-search request is triggered repeatedly with identical filters,
 // serve a short-lived cached result instead of issuing another request.
 const HYBRID_SEARCH_RECENT_CACHE = new Map<string, { at: number; result: JobsFetchResult }>();
-const HYBRID_SEARCH_RECENT_TTL_MS = 8_000;
-const HYBRID_SEARCH_RECENT_EMPTY_TTL_MS = 30_000;
+const HYBRID_SEARCH_RECENT_TTL_MS = 20_000;
+const HYBRID_SEARCH_RECENT_EMPTY_TTL_MS = 120_000;
+const HYBRID_SEARCH_RECENT_EMPTY_SESSION_PREFIX = 'jobshaman_hybrid_recent_empty:';
+
+const readSessionTimestamp = (key: string): number => {
+    try {
+        const raw = sessionStorage.getItem(key);
+        const parsed = Number(raw || 0);
+        return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+        return 0;
+    }
+};
+
+const writeSessionTimestamp = (key: string, value: number): void => {
+    try {
+        sessionStorage.setItem(key, String(value));
+    } catch {
+        // ignore
+    }
+};
+
+const deleteSessionKey = (key: string): void => {
+    try {
+        sessionStorage.removeItem(key);
+    } catch {
+        // ignore
+    }
+};
 
 const _normalizeKeyArray = (value: unknown): string[] | null => {
     if (!Array.isArray(value) || value.length === 0) return null;
@@ -2535,10 +2562,24 @@ export const fetchJobsWithFilters = async (
             v2Enabled,
             { ...requestPayloadBase, sort_mode: effectiveSortMode }
         );
+
+        // Cross-reload throttle for empty results: if the same query just returned 0 jobs,
+        // don't keep hammering the backend when the app is idle or stuck in a retry loop.
+        const emptySessionKey = `${HYBRID_SEARCH_RECENT_EMPTY_SESSION_PREFIX}${cacheKey}`;
+        const lastEmptyAt = readSessionTimestamp(emptySessionKey);
+        if (lastEmptyAt && (Date.now() - lastEmptyAt) < HYBRID_SEARCH_RECENT_EMPTY_TTL_MS) {
+            return { jobs: [], hasMore: false, totalCount: 0 };
+        }
+
         const cached = HYBRID_SEARCH_RECENT_CACHE.get(cacheKey);
         if (cached) {
             const ttl = cached.result.jobs.length === 0 ? HYBRID_SEARCH_RECENT_EMPTY_TTL_MS : HYBRID_SEARCH_RECENT_TTL_MS;
             if ((Date.now() - cached.at) < ttl) {
+                if (cached.result.jobs.length === 0) {
+                    writeSessionTimestamp(emptySessionKey, cached.at);
+                } else {
+                    deleteSessionKey(emptySessionKey);
+                }
                 return cached.result;
             }
             HYBRID_SEARCH_RECENT_CACHE.delete(cacheKey);
@@ -2547,6 +2588,11 @@ export const fetchJobsWithFilters = async (
         const cacheAndReturn = async (resultPromise: Promise<JobsFetchResult>) => {
             const result = await resultPromise;
             HYBRID_SEARCH_RECENT_CACHE.set(cacheKey, { at: Date.now(), result });
+            if (result.jobs.length === 0) {
+                writeSessionTimestamp(emptySessionKey, Date.now());
+            } else {
+                deleteSessionKey(emptySessionKey);
+            }
             return result;
         };
         let lastError: unknown = null;
