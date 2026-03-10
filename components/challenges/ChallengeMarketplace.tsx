@@ -1245,7 +1245,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Sparkles size={16} className="text-[var(--accent)]" />
-                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.mySetup}</div>
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">
+                    {usePersonalSetup ? copy.mySetup : copy.manualSection}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <FilterChip
@@ -1290,24 +1292,43 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </button>
                 </div>
               ) : null}
-              {setupSignals.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {setupSignals.map((signal) => (
-                    <FilterChip key={signal} active className="justify-start">
-                      {signal}
-                    </FilterChip>
-                  ))}
-                </div>
+              {usePersonalSetup ? (
+                <>
+                  {setupSignals.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {setupSignals.map((signal) => (
+                        <FilterChip key={signal} active className="justify-start">
+                          {signal}
+                        </FilterChip>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.setupEmpty}</p>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
+                    <MetricTile
+                      label={copy.remoteSection}
+                      value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
+                    />
+                  </div>
+                </>
               ) : (
-                <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.setupEmpty}</p>
+                <>
+                  <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
+                    {isCsLike
+                      ? 'Tip: Pokud je tohle moc široké, napiš jedno klíčové slovo (např. “product”, “hospitality”) nebo zapni Moje nastavení.'
+                      : 'Tip: If this is too broad, type one keyword (e.g. “product”, “hospitality”) or turn on My setup.'}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <MetricTile label={copy.results} value={Math.max(0, totalCount)} tone="accent" />
+                    <MetricTile
+                      label={copy.filters}
+                      value={hasActiveFilters ? (isCsLike ? 'Zapnuté' : 'On') : (isCsLike ? 'Vypnuté' : 'Off')}
+                    />
+                  </div>
+                </>
               )}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
-                <MetricTile
-                  label={copy.remoteSection}
-                  value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
-                />
-              </div>
               <SavedFiltersMenu onLoadFilter={applyFilterSnapshot} currentFilters={currentFilters} hasActiveFilters={hasActiveFilters} />
             </SurfaceCard>
 
@@ -1806,6 +1827,24 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </div>
                 </SurfaceCard>
               ))}
+              <div className="flex justify-center">
+                {hasMore ? (
+                  <button
+                    type="button"
+                    className="app-button-secondary"
+                    disabled={loadingMore || loading}
+                    onClick={loadMoreJobs}
+                  >
+                    {loadingMore
+                      ? (isCsLike ? 'Načítám další…' : 'Loading more…')
+                      : (isCsLike ? 'Načíst další nabídky' : 'Load more roles')}
+                  </button>
+                ) : (
+                  <div className="text-sm text-[var(--text-faint)]">
+                    {isCsLike ? 'Tohle je zatím vše.' : "That's all for now."}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           </div>

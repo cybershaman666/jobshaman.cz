@@ -267,8 +267,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             return list;
         }
 
-        const allowedCountryCodes = !globalSearch && countryCodes.length > 0
-            ? new Set(normalizeCountryCodes(countryCodes))
+        const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
+        const isDefaultCountrySelection = sameCountryCodeSet(
+            normalizedCountryCodes,
+            normalizeCountryCodes(defaultCountryCodes)
+        );
+
+        // If the user is using a commute radius and didn't explicitly narrow countries,
+        // don't drop cross-border jobs that are still inside the circle.
+        const shouldAllowCrossBorderRadius =
+            enableCommuteFilter &&
+            !globalSearch &&
+            !abroadOnly &&
+            isDefaultCountrySelection;
+
+        const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
+            ? new Set(normalizedCountryCodes)
             : null;
         const allowedLanguageCodes = filterLanguageCodes.length > 0
             ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
@@ -308,6 +322,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         abroadOnly,
         countryCodes,
+        defaultCountryCodes,
         defaultLanguageCodes,
         enableCommuteFilter,
         filterBenefits,
