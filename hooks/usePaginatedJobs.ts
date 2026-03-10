@@ -6,7 +6,7 @@ import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingS
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState, updateInteractionStateCache } from '../services/jobInteractionService';
-import { getCandidateIntentDomainSeedKeyword, getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from '../services/candidateIntentService';
+import { getCandidateIntentDomainSeedKeyword, getCandidateIntentDomainLabel, getCandidateIntentRoleSeedKeyword, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -171,7 +171,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
     const externalSearchSeedTerm = useMemo(() => {
-        const explicitRole = String(candidateIntent.targetRole || '').trim();
+        const explicitRole = getCandidateIntentRoleSeedKeyword(candidateIntent.targetRole);
         if (explicitRole) return explicitRole;
         const keyword = getCandidateIntentDomainSeedKeyword(candidateIntent.primaryDomain);
         if (keyword) return keyword;

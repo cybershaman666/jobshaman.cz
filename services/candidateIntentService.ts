@@ -60,6 +60,36 @@ const uniqueStrings = (items: Array<string | null | undefined>): string[] => {
   return out;
 };
 
+// External sources (especially Jooble) behave poorly when we send multiple roles at once
+// (often treated like an AND query). This reduces a composite role string to one
+// reasonably specific segment.
+export const getCandidateIntentRoleSeedKeyword = (role: unknown): string => {
+  const raw = String(role || '').trim();
+  if (!raw) return '';
+
+  const cleaned = raw
+    .replace(/\(([^)]{0,48})\)/g, ' ') // drop short parentheticals
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Split on common composite separators: "A | B", "A, B", "A / B", "A • B"
+  const parts = cleaned
+    .split(/[|,/•·\n\r]+/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const candidates = (parts.length ? parts : [cleaned])
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  // Prefer a short multi-word phrase (e.g. "Product Manager") over a very long one.
+  const reasonable = candidates.find((part) => part.length >= 4 && part.length <= 38);
+  if (reasonable) return reasonable;
+
+  const first = candidates[0] || '';
+  return first.length > 45 ? first.slice(0, 45).trim() : first;
+};
+
 const collectCandidateTextChunks = (profile: UserProfile): string[] => {
   const chunks: string[] = [];
   pushIfPresent(chunks, profile.preferences?.desired_role);
