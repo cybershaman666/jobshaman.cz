@@ -17,7 +17,7 @@ import { buildCandidateSearchPresets } from '../../services/searchProfilePresets
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { isRemoteJob } from '../../services/commuteService';
-import { annotateJobsForCandidate, getCandidateIntentDomainLabel, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
+import { annotateJobsForCandidate, getCandidateIntentDomainLabel, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
@@ -997,7 +997,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     abroadOnly,
     remoteOnly,
     intentPrimaryDomain: usePersonalSetup ? effectiveCandidateIntent.primaryDomain : null,
-    intentTargetRole: usePersonalSetup ? effectiveCandidateIntent.targetRole || undefined : undefined,
+    intentTargetRole: usePersonalSetup ? (getCandidateIntentRoleSeedKeyword(effectiveCandidateIntent.targetRole) || undefined) : undefined,
     intentSeniority: usePersonalSetup ? effectiveCandidateIntent.seniority : null
   };
 

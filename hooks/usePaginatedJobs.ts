@@ -638,7 +638,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             }
 
             const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
-            const effectiveCountryCodes = globalSearch ? undefined : normalizedCountryCodes;
+            const isDefaultCountrySelection = sameCountryCodeSet(normalizedCountryCodes, normalizeCountryCodes(defaultCountryCodes));
+            const shouldAutoExpandBorderCountries =
+                enableCommuteFilter &&
+                lat != null &&
+                lon != null &&
+                !globalSearch &&
+                !abroadOnly &&
+                isDefaultCountrySelection &&
+                normalizedCountryCodes.length > 0;
+
+            // When radius filtering is enabled and the user didn't explicitly narrow countries,
+            // don't block cross-border jobs (AT/SK/DE/PL...) that are still within the commute circle.
+            const effectiveCountryCodes = (globalSearch || shouldAutoExpandBorderCountries) ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
 
             const result = await fetchJobsWithFilters({

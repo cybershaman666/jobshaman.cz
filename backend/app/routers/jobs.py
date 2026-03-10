@@ -1002,7 +1002,7 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
         return jobs
 
     jobs_by_id: dict[str, list[dict]] = {}
-    normalized_job_ids: list[Any] = []
+    normalized_job_ids: list[int] = []
     for job in jobs:
         if not isinstance(job, dict):
             continue
@@ -1010,8 +1010,10 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
         if not canonical:
             continue
         jobs_by_id.setdefault(canonical, []).append(job)
+        # External live listings often use URL-like ids. dialogue metrics are stored for our
+        # internal job_applications (job_id bigint), so only query when the id is numeric.
         normalized = _normalize_job_id(canonical)
-        if normalized not in normalized_job_ids:
+        if isinstance(normalized, int) and normalized not in normalized_job_ids:
             normalized_job_ids.append(normalized)
 
     open_counts: dict[str, int] = {key: 0 for key in jobs_by_id.keys()}
