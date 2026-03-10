@@ -4,6 +4,7 @@ import math
 import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from threading import Lock
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
@@ -34,6 +35,10 @@ _JOBS_STATUS_COLUMN_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_WARNING_EMITTED = False
 _SEARCH_V2_TIMEOUT_RETRY_PAGE_SIZE = 25
+_SEARCH_V2_RESULT_CACHE: dict[str, tuple[datetime, dict]] = {}
+_SEARCH_V2_RESULT_CACHE_LOCK = Lock()
+_SEARCH_V2_RESULT_CACHE_TTL_SECONDS = 15
+_SEARCH_V2_RESULT_EMPTY_CACHE_TTL_SECONDS = 60
 _JOBS_STATUS_WARNING_EMITTED = False
 _INTERNAL_SOURCE_MARKERS = ("jobshaman",)
 _EXTERNAL_LISTING_DOMAINS = (
@@ -631,6 +636,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     if not supabase:
         return {"jobs": [], "has_more": False, "total_count": 0, "meta": {"fallback": "no_supabase"}}
 
+    safe_page = max(0, int(page or 0))
     flag = get_release_flag("search_v2_enabled", subject_id=user_id or "public", default=True)
     if not flag.get("effective_enabled", True):
         fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
@@ -645,10 +651,57 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         search_term = ""
 
     effective_page_size = max(1, min(200, int(page_size or 50)))
+
+    cache_key = ""
+    if not user_id:
+        try:
+            stable = {
+                "page": safe_page,
+                "page_size": effective_page_size,
+                "sort_mode": sort_mode,
+                "search_term": search_term,
+                "user_lat": filters.get("user_lat"),
+                "user_lng": filters.get("user_lng"),
+                "radius_km": filters.get("radius_km"),
+                "filter_city": filters.get("filter_city"),
+                "filter_contract_types": filters.get("filter_contract_types") or None,
+                "filter_benefits": filters.get("filter_benefits") or None,
+                "filter_min_salary": filters.get("filter_min_salary"),
+                "filter_date_posted": filters.get("filter_date_posted") or "all",
+                "filter_experience_levels": filters.get("filter_experience_levels") or None,
+                "filter_country_codes": filters.get("filter_country_codes") or None,
+                "exclude_country_codes": filters.get("exclude_country_codes") or None,
+                "filter_language_codes": filters.get("filter_language_codes") or None,
+            }
+            cache_key = json.dumps(stable, sort_keys=True, default=str)
+        except Exception:
+            cache_key = ""
+
+        if cache_key:
+            now = datetime.now(timezone.utc)
+            with _SEARCH_V2_RESULT_CACHE_LOCK:
+                cached = _SEARCH_V2_RESULT_CACHE.get(cache_key)
+                if cached:
+                    cached_at, cached_result = cached
+                    age_seconds = max(0.0, (now - cached_at).total_seconds())
+                    ttl = (
+                        _SEARCH_V2_RESULT_EMPTY_CACHE_TTL_SECONDS
+                        if not (cached_result.get("jobs") or [])
+                        else _SEARCH_V2_RESULT_CACHE_TTL_SECONDS
+                    )
+                    if age_seconds <= ttl:
+                        out = dict(cached_result)
+                        meta = dict(out.get("meta") or {})
+                        meta["cache_hit"] = True
+                        meta["cache_age_ms"] = int(age_seconds * 1000)
+                        out["meta"] = meta
+                        return out
+                    _SEARCH_V2_RESULT_CACHE.pop(cache_key, None)
+
     rpc_page_size = effective_page_size + 1 if effective_page_size < 200 else effective_page_size
     rpc_payload = {
         "p_search_term": search_term,
-        "p_page": max(0, int(page or 0)),
+        "p_page": safe_page,
         "p_page_size": rpc_page_size,
         "p_user_id": user_id,
         "p_user_lat": filters.get("user_lat"),
@@ -730,7 +783,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
 
     if not rows:
         latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
-        return {
+        result = {
             "jobs": [],
             "has_more": False,
             "total_count": 0,
@@ -741,6 +794,10 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                 "effective_page_size": effective_page_size,
             },
         }
+        if not user_id and cache_key:
+            with _SEARCH_V2_RESULT_CACHE_LOCK:
+                _SEARCH_V2_RESULT_CACHE[cache_key] = (datetime.now(timezone.utc), result)
+        return result
 
     inferred_has_more = False
     if len(rows) > effective_page_size:
@@ -867,7 +924,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         out_rows.append(row)
 
     latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
-    return {
+    result = {
         "jobs": out_rows,
         "has_more": inferred_has_more or (((page + 1) * effective_page_size) < total_count),
         "total_count": total_count,
@@ -878,6 +935,10 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
             "effective_page_size": effective_page_size,
         },
     }
+    if not user_id and cache_key:
+        with _SEARCH_V2_RESULT_CACHE_LOCK:
+            _SEARCH_V2_RESULT_CACHE[cache_key] = (datetime.now(timezone.utc), result)
+    return result
 
 
 def _get_candidate_profile(user_id: str):

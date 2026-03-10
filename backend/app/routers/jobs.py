@@ -4731,6 +4731,23 @@ async def jobs_hybrid_search_v2(
         _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
         dismissed_job_ids = set(dismissed)
     request_id = str(uuid4())
+    try:
+        client_host = request.client.host if request.client else None
+    except Exception:
+        client_host = None
+    forwarded_for = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip") or ""
+    user_agent = request.headers.get("user-agent") or ""
+    origin = request.headers.get("origin") or ""
+    referer = request.headers.get("referer") or ""
+    # Keep this log compact; it is crucial for diagnosing unexpected background callers.
+    print(
+        "📥 [Hybrid Search V2] http_request "
+        f"request_id={request_id} user_id={user_id or 'public'} "
+        f"client={client_host or '-'} forwarded_for={forwarded_for or '-'} "
+        f"ua={(user_agent[:140] + '…') if len(user_agent) > 140 else user_agent or '-'} "
+        f"origin={origin or '-'} referer={referer or '-'} "
+        f"page={payload.page} page_size={payload.page_size}"
+    )
     result = hybrid_search_jobs_v2(
         {
             "search_term": payload.search_term,
