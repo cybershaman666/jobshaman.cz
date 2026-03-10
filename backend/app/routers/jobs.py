@@ -71,6 +71,7 @@ _RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
 }
 _INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 _EXTERNAL_LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
+_EXTERNAL_LIVE_SEARCH_CACHE_TTL_SECONDS = max(60, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -214,6 +215,44 @@ def _read_cached_external_jobs(
         "total_count": total_count,
         "has_more": end < total_count,
     }
+
+
+def _write_external_cache_snapshot(
+    *,
+    provider: str,
+    jobs: list[dict[str, Any]],
+    search_term: str,
+    filter_city: str,
+    country_codes: list[str] | None,
+    exclude_country_codes: list[str] | None,
+    page: int = 1,
+) -> None:
+    if not supabase:
+        return
+    now = datetime.now(timezone.utc)
+    snapshot = [dict(item) for item in jobs if isinstance(item, dict)]
+    if not snapshot:
+        return
+    try:
+        supabase.table(_EXTERNAL_LIVE_SEARCH_CACHE_TABLE).upsert(
+            {
+                "cache_key": f"seed:{provider}:{uuid4()}",
+                "provider": provider,
+                "search_term": str(search_term or "").strip(),
+                "filter_city": str(filter_city or "").strip(),
+                "country_codes": [code.strip().upper() for code in (country_codes or []) if code and code.strip()],
+                "exclude_country_codes": [code.strip().upper() for code in (exclude_country_codes or []) if code and code.strip()],
+                "page": max(1, int(page or 1)),
+                "result_count": len(snapshot),
+                "payload_json": snapshot,
+                "fetched_at": now.isoformat(),
+                "expires_at": (now + timedelta(seconds=_EXTERNAL_LIVE_SEARCH_CACHE_TTL_SECONDS)).isoformat(),
+                "updated_at": now.isoformat(),
+            },
+            on_conflict="cache_key",
+        ).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to persist external cache snapshot ({provider}): {exc}")
 
 
 def _interaction_state_cache_key(user_id: str, limit: int) -> tuple[str, int]:
@@ -4874,22 +4913,40 @@ async def get_cached_external_feed(
     if not jobs:
         try:
             seed_limit = max(12, min(40, int(page_size or 24)))
-            search_weworkremotely_jobs_live(
+            wwr_jobs = search_weworkremotely_jobs_live(
                 limit=seed_limit,
                 search_term=search_term,
                 filter_city=filter_city,
                 country_codes=parsed_country_codes,
                 exclude_country_codes=parsed_exclude_codes,
             )
+            _write_external_cache_snapshot(
+                provider="weworkremotely",
+                jobs=wwr_jobs or [],
+                search_term=search_term,
+                filter_city=filter_city,
+                country_codes=parsed_country_codes,
+                exclude_country_codes=parsed_exclude_codes,
+                page=1,
+            )
             if str(search_term or "").strip():
                 # Jooble live API requires keywords; only seed when user supplied them.
-                search_jooble_jobs_live(
+                jooble_jobs = search_jooble_jobs_live(
                     limit=seed_limit,
                     page=1,
                     search_term=search_term,
                     filter_city=filter_city,
                     country_codes=parsed_country_codes,
                     exclude_country_codes=parsed_exclude_codes,
+                )
+                _write_external_cache_snapshot(
+                    provider="jooble",
+                    jobs=jooble_jobs or [],
+                    search_term=search_term,
+                    filter_city=filter_city,
+                    country_codes=parsed_country_codes,
+                    exclude_country_codes=parsed_exclude_codes,
+                    page=1,
                 )
         except Exception as exc:
             print(f"⚠️ External cached feed seeding failed: {exc}")

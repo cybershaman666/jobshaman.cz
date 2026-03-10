@@ -463,6 +463,11 @@ def _get_cached_live_search_from_db(cache_key: str) -> Optional[List[Dict[str, A
         print(f"⚠️ Live search DB cache read failed: {exc}")
         return None
 
+    # Some Supabase client wrappers can return None on failure without raising.
+    if response is None:
+        _LIVE_SEARCH_CACHE_DB_AVAILABLE = False
+        return None
+
     row = response.data or None
     payload = row.get("payload_json") if isinstance(row, dict) else None
     if not isinstance(payload, list):
@@ -590,6 +595,10 @@ def _get_cached_live_geocode_from_db(location: str) -> Optional[Optional[Dict[st
         if _should_disable_cache_table(exc, "geocode_cache"):
             _LIVE_GEOCODE_CACHE_DB_AVAILABLE = False
         print(f"⚠️ Live geocode DB cache read failed: {exc}")
+        return None
+
+    if response is None:
+        _LIVE_GEOCODE_CACHE_DB_AVAILABLE = False
         return None
 
     row = response.data or None
