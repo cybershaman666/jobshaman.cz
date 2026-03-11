@@ -14,7 +14,6 @@ import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
 import CandidateActivationRail from './components/CandidateActivationRail';
-import ChallengeHomeSections from './components/challenges/ChallengeHomeSections';
 import ChallengeMarketplace from './components/challenges/ChallengeMarketplace';
 import ChallengeFocusView from './components/challenges/ChallengeFocusView';
 import GuestDiscoveryTourOverlay, { GuestDiscoveryTourStep } from './components/GuestDiscoveryTourOverlay';
@@ -2183,11 +2182,7 @@ export default function App() {
         }
 
         const nativeChallenges = jobsForDisplay.filter((job) => job.listingKind !== 'imported');
-        const importedJobs = jobsForDisplay.filter((job) => job.listingKind === 'imported');
         const hasNativeChallenges = nativeChallenges.length > 0;
-        const featuredChallenges = (hasNativeChallenges ? nativeChallenges : importedJobs).slice(0, 6);
-        const featuredImportedJobs = importedJobs.slice(0, 6);
-
         return (
             <>
                 {vercelAnalyticsEnabled && <Analytics />}
@@ -2225,24 +2220,6 @@ export default function App() {
                             />
                         ) : (
                             <>
-                                {!discoverySearchMode && !userProfile.isLoggedIn ? (
-                                    <div className="hidden md:block">
-                                        <ChallengeHomeSections
-                                            hasNativeChallenges={hasNativeChallenges}
-                                            featuredChallenges={featuredChallenges}
-                                            importedJobs={featuredImportedJobs}
-                                            onOpenChallenge={handleJobSelect}
-                                            onSearchFocus={() => {
-                                                setDiscoverySearchMode(true);
-                                                window.setTimeout(() => {
-                                                    document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                                    focusDiscoverySearch();
-                                                }, 0);
-                                            }}
-                                            onOpenAuth={() => handleAuthAction('register')}
-                                        />
-                                    </div>
-                                ) : null}
                                 <div id="challenge-discovery">
                                     <ChallengeMarketplace
                                         hasNativeChallenges={hasNativeChallenges}

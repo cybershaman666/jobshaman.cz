@@ -1993,10 +1993,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           </SurfaceCard>
 
           <div className={cn(mobileViewMode === 'swipe' && 'hidden xl:block')}>
-          <SurfaceCard className="space-y-4">
+          <SurfaceCard className="space-y-4 border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(135deg,rgba(255,252,245,0.98),rgba(255,255,255,0.98)_46%,rgba(245,250,255,0.98))] shadow-[0_24px_70px_-52px_rgba(15,23,42,0.3)] dark:bg-[linear-gradient(135deg,rgba(41,30,8,0.34),rgba(15,23,42,0.96)_48%,rgba(17,24,39,0.98))]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="app-eyebrow w-fit">
+                <div className="app-eyebrow w-fit !bg-[rgba(var(--accent-rgb),0.12)] !text-[var(--accent)]">
                   <Briefcase size={12} />
                   {copy.laneBadge}
                 </div>
@@ -2004,8 +2004,15 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   {lane === 'imports' ? copy.laneImports : copy.laneChallenges}
                 </h2>
                 <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.laneBody}</p>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/78 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)] dark:bg-[rgba(15,23,42,0.72)]">
+                  {isCsLike ? 'Čteno jako výzvy, ne jen seznam pozic' : 'Read as challenges, not just listings'}
+                </div>
               </div>
-              <MetricTile label={copy.results} value={`${prioritizedJobsInLane.length}`} className="min-w-[140px]" />
+              <MetricTile
+                label={copy.results}
+                value={`${prioritizedJobsInLane.length}`}
+                className="min-w-[140px] border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
+              />
             </div>
           </SurfaceCard>
 
