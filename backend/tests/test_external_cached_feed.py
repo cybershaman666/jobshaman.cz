@@ -90,3 +90,22 @@ def test_hybrid_search_v2_response_exposes_default_diagnostics_meta(monkeypatch)
     assert payload["meta"]["fallback_mode"] == "internal_only"
     assert payload["meta"]["cache_hit"] is False
     assert payload["meta"]["degraded_reasons"] == []
+
+
+def test_provider_failure_opens_circuit_immediately_for_forbidden_errors():
+    original_state = jobs._EXTERNAL_PROVIDER_HEALTH["jooble"].copy()
+    try:
+        jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = {
+            "failures": 0,
+            "circuit_open_until": None,
+            "last_error": None,
+            "last_failure_at": None,
+            "last_success_at": None,
+        }
+        jobs._mark_provider_failure("jooble", PermissionError("Jooble API forbidden for host at.jooble.org"))
+        snapshot = jobs._provider_health_snapshot()["jooble"]
+        assert snapshot["state"] == "open"
+        assert snapshot["failure_count"] >= 2
+        assert snapshot["last_error"] == "Jooble API forbidden for host at.jooble.org"
+    finally:
+        jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = original_state

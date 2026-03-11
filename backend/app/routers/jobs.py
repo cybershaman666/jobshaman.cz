@@ -141,11 +141,14 @@ def _mark_provider_success(provider: str) -> None:
 
 def _mark_provider_failure(provider: str, error: Exception | str) -> None:
     now = datetime.now(timezone.utc)
+    error_text = str(error)
     with _EXTERNAL_PROVIDER_HEALTH_LOCK:
         state = _EXTERNAL_PROVIDER_HEALTH.setdefault(provider, {})
         failures = int(state.get("failures") or 0) + 1
+        if "403" in error_text or "forbidden" in error_text.lower():
+            failures = max(failures, _EXTERNAL_PROVIDER_FAILURE_THRESHOLD)
         state["failures"] = failures
-        state["last_error"] = str(error)
+        state["last_error"] = error_text
         state["last_failure_at"] = now.isoformat()
         if failures >= _EXTERNAL_PROVIDER_FAILURE_THRESHOLD:
             state["circuit_open_until"] = now + timedelta(seconds=_EXTERNAL_PROVIDER_COOLDOWN_SECONDS)

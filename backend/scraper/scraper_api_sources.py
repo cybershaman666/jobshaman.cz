@@ -69,8 +69,10 @@ HTTP_TIMEOUT_SECONDS = 30
 LIVE_SEARCH_CACHE_TTL_SECONDS = max(30, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
 LIVE_SEARCH_GEOCODE_TTL_SECONDS = max(300, int(os.getenv("LIVE_SEARCH_GEOCODE_TTL_SECONDS") or "86400"))
 LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
+JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS = max(300, int(os.getenv("JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS") or "3600"))
 _LIVE_SEARCH_CACHE: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
 _LIVE_GEOCODE_CACHE: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
+_JOOBLE_HOST_FORBIDDEN_UNTIL: Dict[str, float] = {}
 _SUPABASE_CLIENT: Any = None
 _SUPABASE_CLIENT_RESOLVED = False
 _LIVE_SEARCH_CACHE_DB_AVAILABLE: Optional[bool] = None
@@ -767,12 +769,28 @@ def _select_jooble_api_host(country_codes: Optional[List[str]] = None) -> str:
         code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
     ]
 
+    def _is_available(host: str) -> bool:
+        cooldown_until = _JOOBLE_HOST_FORBIDDEN_UNTIL.get(host)
+        if cooldown_until and cooldown_until > time.time():
+            return False
+        if cooldown_until:
+            _JOOBLE_HOST_FORBIDDEN_UNTIL.pop(host, None)
+        return True
+
     if len(normalized_codes) == 1:
         preferred = hosts.get(normalized_codes[0])
-        if preferred:
+        if preferred and _is_available(preferred):
             return preferred
 
-    return hosts.get("DEFAULT") or _resolve_jooble_api_host()
+    fallback = hosts.get("DEFAULT") or _resolve_jooble_api_host()
+    if fallback and _is_available(fallback):
+        return fallback
+
+    for host in hosts.values():
+        if host and _is_available(host):
+            return host
+
+    return fallback
 
 
 def _wwr_db_import_enabled() -> bool:
@@ -1130,6 +1148,13 @@ def search_jooble_jobs_live(
         response = requests.post(endpoint, json=payload, timeout=HTTP_TIMEOUT_SECONDS)
         response.raise_for_status()
         data = response.json() if response.content else {}
+    except requests.HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else None
+        if status_code == 403:
+            _JOOBLE_HOST_FORBIDDEN_UNTIL[api_host] = time.time() + JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS
+            raise PermissionError(f"Jooble API forbidden for host {api_host}") from exc
+        print(f"❌ Jooble live API request failed: {exc}")
+        return []
     except Exception as exc:
         print(f"❌ Jooble live API request failed: {exc}")
         return []
