@@ -24,6 +24,9 @@ import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
 
+type MarketplaceLanguage = 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en';
+type LocaleLabels = { cs: string; en: string; sk?: string; de?: string; at?: string; pl?: string };
+
 interface ChallengeMarketplaceProps {
   hasNativeChallenges: boolean;
   jobs: Job[];
@@ -79,42 +82,46 @@ interface ChallengeMarketplaceProps {
   applyDiscoveryDefaults: (filters: JobSearchFilters) => void;
 }
 
+const getLocaleLabel = (labels: LocaleLabels, language: MarketplaceLanguage): string => {
+  return labels[language] || labels.en;
+};
+
 const ROLE_TYPES = [
-  { key: 'hpp', labels: { cs: 'HPP', en: 'Full-time' } },
-  { key: 'part-time', labels: { cs: 'Zkrácený úvazek', en: 'Part-time' } },
-  { key: 'ico', labels: { cs: 'IČO', en: 'Contract' } }
+  { key: 'hpp', labels: { cs: 'HPP', sk: 'HPP', de: 'Vollzeit', at: 'Vollzeit', pl: 'Pełny etat', en: 'Full-time' } },
+  { key: 'part-time', labels: { cs: 'Zkrácený úvazek', sk: 'Skrátený úväzok', de: 'Teilzeit', at: 'Teilzeit', pl: 'Część etatu', en: 'Part-time' } },
+  { key: 'ico', labels: { cs: 'IČO', sk: 'IČO', de: 'Vertrag / Freelance', at: 'Vertrag / Freelance', pl: 'B2B / kontrakt', en: 'Contract' } }
 ];
 
 const BENEFIT_FILTERS = [
-  { key: 'home_office', labels: { cs: 'Home office', en: 'Home office' } },
-  { key: 'dog_friendly', labels: { cs: 'Dog-friendly office', en: 'Dog-friendly office' } },
-  { key: 'child_friendly', labels: { cs: 'Pro rodiče', en: 'Child-friendly' } },
-  { key: 'flex_time', labels: { cs: 'Flexibilita', en: 'Flex time' } },
-  { key: 'childcare_support', labels: { cs: 'Podpora péče o děti', en: 'Childcare support' } },
-  { key: 'meal_allowance', labels: { cs: 'Stravování', en: 'Meals' } },
-  { key: 'car_personal', labels: { cs: 'Služební auto', en: 'Company car' } },
-  { key: 'transport_support', labels: { cs: 'Doprava / parkování', en: 'Transport / parking' } },
-  { key: 'health_care', labels: { cs: 'Zdravotní péče', en: 'Healthcare' } },
-  { key: 'pension', labels: { cs: 'Penzijko / spoření', en: 'Pension / retirement' } },
-  { key: 'vacation_5w', labels: { cs: 'Extra dovolená', en: 'Extra vacation' } },
-  { key: 'multisport', labels: { cs: 'Sport / wellness', en: 'Sport / wellness' } },
-  { key: 'education', labels: { cs: 'Vzdělávání', en: 'Education' } },
-  { key: 'relocation_support', labels: { cs: 'Relokace / bydlení', en: 'Relocation / housing' } },
-  { key: 'employee_shares', labels: { cs: 'Akcie / ESOP', en: 'Equity / ESOP' } }
+  { key: 'home_office', labels: { cs: 'Home office', sk: 'Home office', de: 'Homeoffice', at: 'Homeoffice', pl: 'Home office', en: 'Home office' } },
+  { key: 'dog_friendly', labels: { cs: 'Dog-friendly kancelář', sk: 'Dog-friendly kancelária', de: 'Hundefreundliches Büro', at: 'Hundefreundliches Büro', pl: 'Biuro przyjazne psom', en: 'Dog-friendly office' } },
+  { key: 'child_friendly', labels: { cs: 'Pro rodiče', sk: 'Pre rodičov', de: 'Familienfreundlich', at: 'Familienfreundlich', pl: 'Przyjazne rodzicom', en: 'Child-friendly' } },
+  { key: 'flex_time', labels: { cs: 'Flexibilita', sk: 'Flexibilita', de: 'Flexible Zeiten', at: 'Flexible Zeiten', pl: 'Elastyczny czas', en: 'Flex time' } },
+  { key: 'childcare_support', labels: { cs: 'Podpora péče o děti', sk: 'Podpora starostlivosti o deti', de: 'Kinderbetreuung', at: 'Kinderbetreuung', pl: 'Wsparcie opieki nad dziećmi', en: 'Childcare support' } },
+  { key: 'meal_allowance', labels: { cs: 'Stravování', sk: 'Stravovanie', de: 'Verpflegung', at: 'Verpflegung', pl: 'Posiłki', en: 'Meals' } },
+  { key: 'car_personal', labels: { cs: 'Služební auto', sk: 'Služobné auto', de: 'Firmenwagen', at: 'Firmenwagen', pl: 'Samochód służbowy', en: 'Company car' } },
+  { key: 'transport_support', labels: { cs: 'Doprava / parkování', sk: 'Doprava / parkovanie', de: 'Transport / Parken', at: 'Transport / Parken', pl: 'Dojazd / parking', en: 'Transport / parking' } },
+  { key: 'health_care', labels: { cs: 'Zdravotní péče', sk: 'Zdravotná starostlivosť', de: 'Gesundheitsbenefity', at: 'Gesundheitsbenefity', pl: 'Opieka zdrowotna', en: 'Healthcare' } },
+  { key: 'pension', labels: { cs: 'Penzijko / spoření', sk: 'Dôchodok / sporenie', de: 'Vorsorge / Pension', at: 'Vorsorge / Pension', pl: 'Emerytura / oszczędzanie', en: 'Pension / retirement' } },
+  { key: 'vacation_5w', labels: { cs: 'Extra dovolená', sk: 'Extra dovolenka', de: 'Mehr Urlaub', at: 'Mehr Urlaub', pl: 'Dodatkowy urlop', en: 'Extra vacation' } },
+  { key: 'multisport', labels: { cs: 'Sport / wellness', sk: 'Šport / wellness', de: 'Sport / Wellness', at: 'Sport / Wellness', pl: 'Sport / wellness', en: 'Sport / wellness' } },
+  { key: 'education', labels: { cs: 'Vzdělávání', sk: 'Vzdelávanie', de: 'Weiterbildung', at: 'Weiterbildung', pl: 'Rozwój / szkolenia', en: 'Education' } },
+  { key: 'relocation_support', labels: { cs: 'Relokace / bydlení', sk: 'Relokácia / bývanie', de: 'Umzug / Wohnen', at: 'Umzug / Wohnen', pl: 'Relokacja / mieszkanie', en: 'Relocation / housing' } },
+  { key: 'employee_shares', labels: { cs: 'Akcie / ESOP', sk: 'Akcie / ESOP', de: 'Anteile / ESOP', at: 'Anteile / ESOP', pl: 'Udziały / ESOP', en: 'Equity / ESOP' } }
 ];
 
 const EXPERIENCE_LEVELS = [
-  { key: 'junior', labels: { cs: 'Junior', en: 'Junior' } },
-  { key: 'medior', labels: { cs: 'Medior', en: 'Mid-level' } },
-  { key: 'senior', labels: { cs: 'Senior', en: 'Senior' } }
+  { key: 'junior', labels: { cs: 'Junior', sk: 'Junior', de: 'Junior', at: 'Junior', pl: 'Junior', en: 'Junior' } },
+  { key: 'medior', labels: { cs: 'Medior', sk: 'Medior', de: 'Mittelstufe', at: 'Mittelstufe', pl: 'Mid', en: 'Mid-level' } },
+  { key: 'senior', labels: { cs: 'Senior', sk: 'Senior', de: 'Senior', at: 'Senior', pl: 'Senior', en: 'Senior' } }
 ];
 
-const REMOTE_LANGUAGE_OPTIONS: Array<{ key: SearchLanguageCode; labels: { cs: string; en: string } }> = [
-  { key: 'cs', labels: { cs: 'Čeština', en: 'Czech' } },
-  { key: 'en', labels: { cs: 'Angličtina', en: 'English' } },
-  { key: 'de', labels: { cs: 'Němčina', en: 'German' } },
-  { key: 'sk', labels: { cs: 'Slovenština', en: 'Slovak' } },
-  { key: 'pl', labels: { cs: 'Polština', en: 'Polish' } }
+const REMOTE_LANGUAGE_OPTIONS: Array<{ key: SearchLanguageCode; labels: LocaleLabels }> = [
+  { key: 'cs', labels: { cs: 'Čeština', sk: 'Čeština', de: 'Tschechisch', at: 'Tschechisch', pl: 'Czeski', en: 'Czech' } },
+  { key: 'en', labels: { cs: 'Angličtina', sk: 'Angličtina', de: 'Englisch', at: 'Englisch', pl: 'Angielski', en: 'English' } },
+  { key: 'de', labels: { cs: 'Němčina', sk: 'Nemčina', de: 'Deutsch', at: 'Deutsch', pl: 'Niemiecki', en: 'German' } },
+  { key: 'sk', labels: { cs: 'Slovenština', sk: 'Slovenčina', de: 'Slowakisch', at: 'Slowakisch', pl: 'Słowacki', en: 'Slovak' } },
+  { key: 'pl', labels: { cs: 'Polština', sk: 'Poľština', de: 'Polnisch', at: 'Polnisch', pl: 'Polski', en: 'Polish' } }
 ];
 
 const BORDER_COUNTRY_MAP: Record<SupportedCountryCode, SupportedCountryCode[]> = {
@@ -323,7 +330,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-  const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
+  const language: MarketplaceLanguage = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale)
+    ? (locale as MarketplaceLanguage)
+    : 'en';
   const isCsLike = language === 'cs' || language === 'sk';
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
@@ -1374,7 +1383,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     });
 
     if (filterContractType.includes('ico') || searchProfile?.wantsContractorRoles) {
-      signals.push(isCsLike ? 'IČO / kontrakt' : 'Contract / freelance');
+      signals.push(getLocaleLabel({
+        cs: 'IČO / kontrakt',
+        sk: 'IČO / kontrakt',
+        de: 'Vertrag / Freelance',
+        at: 'Vertrag / Freelance',
+        pl: 'B2B / kontrakt',
+        en: 'Contract / freelance'
+      }, language));
     }
     if (workArrangementFilter === 'remote' || (workArrangementFilter === 'all' && (remoteOnly || searchProfile?.wantsRemoteRoles))) {
       signals.push(copy.remoteOnly);
@@ -1384,7 +1400,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       signals.push(copy.onsiteOnly);
     }
     if (filterBenefits.includes('dog_friendly') || searchProfile?.wantsDogFriendlyOffice) {
-      signals.push(isCsLike ? 'Dog-friendly office' : 'Dog-friendly office');
+      signals.push(getLocaleLabel({
+        cs: 'Dog-friendly kancelář',
+        sk: 'Dog-friendly kancelária',
+        de: 'Hundefreundliches Büro',
+        at: 'Hundefreundliches Büro',
+        pl: 'Biuro przyjazne psom',
+        en: 'Dog-friendly office'
+      }, language));
     }
     if (
       filterBenefits.includes('child_friendly') ||
@@ -1392,18 +1415,29 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       preferredBenefits.includes('child_friendly') ||
       preferredBenefits.includes('childcare_support')
     ) {
-      signals.push(isCsLike ? 'Pro rodiče' : 'Child-friendly');
+      signals.push(getLocaleLabel({
+        cs: 'Pro rodiče',
+        sk: 'Pre rodičov',
+        de: 'Familienfreundlich',
+        at: 'Familienfreundlich',
+        pl: 'Przyjazne rodzicom',
+        en: 'Child-friendly'
+      }, language));
     }
     preferredBenefits
       .filter((benefit) => !['dog_friendly', 'child_friendly', 'childcare_support'].includes(benefit))
       .slice(0, 3)
       .forEach((benefitKey) => {
-        const label = BENEFIT_FILTERS.find((benefit) => benefit.key === benefitKey)?.labels[isCsLike ? 'cs' : 'en'];
+        const labelSource = BENEFIT_FILTERS.find((benefit) => benefit.key === benefitKey)?.labels;
+        const label = labelSource ? getLocaleLabel(labelSource, language) : null;
         if (label) signals.push(label);
       });
     if (activeLanguageCodes.length > 0) {
       const formattedLanguages = activeLanguageCodes
-        .map((code) => REMOTE_LANGUAGE_OPTIONS.find((option) => option.key === code)?.labels[isCsLike ? 'cs' : 'en'] || code.toUpperCase())
+        .map((code) => {
+          const labelSource = REMOTE_LANGUAGE_OPTIONS.find((option) => option.key === code)?.labels;
+          return labelSource ? getLocaleLabel(labelSource, language) : code.toUpperCase();
+        })
         .join(' / ');
       signals.push(formattedLanguages);
     }
@@ -1415,7 +1449,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       signals.push(`≤ ${searchProfile.defaultMaxDistanceKm} km`);
     }
     if (userProfile.jhiPreferences?.hardConstraints.excludeShift) {
-      signals.push(isCsLike ? 'Bez směn' : 'No shifts');
+      signals.push(getLocaleLabel({
+        cs: 'Bez směn',
+        sk: 'Bez zmien',
+        de: 'Ohne Schichten',
+        at: 'Ohne Schichten',
+        pl: 'Bez zmian',
+        en: 'No shifts'
+      }, language));
     }
     const profileDesiredSalary = usePersonalSetup ? userProfile.preferences.desired_salary_min : 0;
     if (filterMinSalary > 0 || profileDesiredSalary) {
@@ -1995,12 +2036,24 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-[var(--text-strong)]">
-                    {isCsLike ? 'Proč se Vám ukazují tyto role' : 'Why these roles show up'}
+                    {getLocaleLabel({
+                      cs: 'Proč se Vám ukazují tyto role',
+                      sk: 'Prečo sa Vám ukazujú tieto roly',
+                      de: 'Warum Ihnen diese Rollen angezeigt werden',
+                      at: 'Warum Ihnen diese Rollen angezeigt werden',
+                      pl: 'Dlaczego widzi Pan/Pani te role',
+                      en: 'Why these roles show up'
+                    }, language)}
                   </div>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
-                    {isCsLike
-                      ? 'Rychlý souhrn signálů, které právě teď nejvíc formují Váš feed.'
-                      : 'A quick summary of the signals shaping the feed right now.'}
+                    {getLocaleLabel({
+                      cs: 'Rychlý souhrn signálů, které právě teď nejvíc formují Váš feed.',
+                      sk: 'Rýchly súhrn signálov, ktoré práve teraz najviac formujú Váš feed.',
+                      de: 'Eine kurze Zusammenfassung der Signale, die den Feed gerade am stärksten prägen.',
+                      at: 'Eine kurze Zusammenfassung der Signale, die den Feed gerade am stärksten prägen.',
+                      pl: 'Krótki przegląd sygnałów, które w tej chwili najmocniej kształtują feed.',
+                      en: 'A quick summary of the signals shaping the feed right now.'
+                    }, language)}
                   </p>
                 </div>
                 {!hasManualIntent && inferredIntentAvailable ? (
@@ -2094,7 +2147,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         <div className="hidden xl:block xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
           <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem-6px)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
             <SurfaceCard className="space-y-5">
-              <FilterSection title={isCsLike ? 'Režim hledání' : 'Search mode'}>
+              <FilterSection title={getLocaleLabel({
+                cs: 'Režim hledání',
+                sk: 'Režim hľadania',
+                de: 'Suchmodus',
+                at: 'Suchmodus',
+                pl: 'Tryb wyszukiwania',
+                en: 'Search mode'
+              }, language)}>
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     <FilterChip
@@ -2121,8 +2181,22 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </div>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
                     {usePersonalSetup
-                      ? (isCsLike ? 'Feed bere v úvahu i Váš profil, situaci a intent.' : 'The feed also uses your profile, context, and intent.')
-                      : (isCsLike ? 'Feed jede čistě podle hledání a ručních filtrů.' : 'The feed runs purely on search and manual filters.')}
+                      ? getLocaleLabel({
+                        cs: 'Feed bere v úvahu i Váš profil, situaci a intent.',
+                        sk: 'Feed berie do úvahy aj Váš profil, situáciu a intent.',
+                        de: 'Der Feed berücksichtigt auch Ihr Profil, Ihren Kontext und Ihren Intent.',
+                        at: 'Der Feed berücksichtigt auch Ihr Profil, Ihren Kontext und Ihren Intent.',
+                        pl: 'Feed uwzględnia też Twój profil, kontekst i intencję.',
+                        en: 'The feed also uses your profile, context, and intent.'
+                      }, language)
+                      : getLocaleLabel({
+                        cs: 'Feed jede čistě podle hledání a ručních filtrů.',
+                        sk: 'Feed ide čisto podľa hľadania a ručných filtrov.',
+                        de: 'Der Feed läuft rein auf Suchbegriff und manuellen Filtern.',
+                        at: 'Der Feed läuft rein auf Suchbegriff und manuellen Filtern.',
+                        pl: 'Feed działa wyłącznie na podstawie wyszukiwania i ręcznych filtrów.',
+                        en: 'The feed runs purely on search and manual filters.'
+                      }, language)}
                   </p>
                 </div>
               </FilterSection>
@@ -2176,20 +2250,18 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                         className="w-full accent-[var(--accent)]"
                       />
                     </label>
-                  ) : (
+                  ) : !hasCommuteProfile ? (
                     <div className="space-y-3">
                       <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.commuteHint}</p>
-                      {!hasCommuteProfile ? (
-                        <button
-                          type="button"
-                          onClick={userProfile.isLoggedIn ? onOpenProfile : onOpenAuth}
-                          className="app-button-secondary"
-                        >
-                          {userProfile.isLoggedIn ? copy.commuteProfileCta : copy.commuteRegisterCta}
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        onClick={userProfile.isLoggedIn ? onOpenProfile : onOpenAuth}
+                        className="app-button-secondary"
+                      >
+                        {userProfile.isLoggedIn ? copy.commuteProfileCta : copy.commuteRegisterCta}
+                      </button>
                     </div>
-                  )}
+                  ) : null}
                   </div>
                 </div>
               </FilterSection>
@@ -2231,13 +2303,23 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   {implicitLanguageCodesApplied.length > 0 ? (
                     <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                          {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
+                          {getLocaleLabel({
+                            cs: 'Automaticky omezeno',
+                            sk: 'Automaticky obmedzené',
+                            de: 'Automatisch eingeschränkt',
+                            at: 'Automatisch eingeschränkt',
+                            pl: 'Automatyczne ograniczenie',
+                            en: 'Auto constraints'
+                          }, language)}
                         </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <FilterChip active className="justify-start">
                           {copy.listingLanguageLabel}{' '}
                           {implicitLanguageCodesApplied
-                            .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
+                            .map((code) => {
+                              const labelSource = REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels;
+                              return labelSource ? getLocaleLabel(labelSource, language) : String(code).toUpperCase();
+                            })
                             .join(' / ')}
                         </FilterChip>
                         <button
@@ -2246,14 +2328,21 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                           onClick={() => setEnableAutoLanguageGuard(false)}
                           title={copy.listingLanguageDisableTitle}
                         >
-                          {isCsLike ? 'Vypnout' : 'Disable'}
+                          {getLocaleLabel({ cs: 'Vypnout', sk: 'Vypnúť', de: 'Deaktivieren', at: 'Deaktivieren', pl: 'Wyłącz', en: 'Disable' }, language)}
                         </button>
                       </div>
                     </div>
                   ) : (!enableAutoLanguageGuard && filterLanguageCodes.length === 0 && !globalSearch ? (
                     <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                        {isCsLike ? 'Automatika vypnuta' : 'Auto disabled'}
+                        {getLocaleLabel({
+                          cs: 'Automatika vypnuta',
+                          sk: 'Automatika vypnutá',
+                          de: 'Automatik aus',
+                          at: 'Automatik aus',
+                          pl: 'Automatyka wyłączona',
+                          en: 'Auto disabled'
+                        }, language)}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="text-sm text-[var(--text-muted)]">
@@ -2264,7 +2353,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                           className="app-button-secondary !px-3 !py-2"
                           onClick={() => setEnableAutoLanguageGuard(true)}
                         >
-                          {isCsLike ? 'Zapnout' : 'Enable'}
+                          {getLocaleLabel({ cs: 'Zapnout', sk: 'Zapnúť', de: 'Aktivieren', at: 'Aktivieren', pl: 'Włącz', en: 'Enable' }, language)}
                         </button>
                       </div>
                     </div>
@@ -2284,7 +2373,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                             )
                           }
                         >
-                          {option.labels[isCsLike ? 'cs' : 'en']}
+                          {getLocaleLabel(option.labels, language)}
                         </FilterChip>
                       );
                     })}
@@ -2300,7 +2389,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       active={filterContractType.includes(type.key)}
                       onClick={() => toggleContractTypeFilter(type.key)}
                     >
-                      {type.labels[isCsLike ? 'cs' : 'en']}
+                      {getLocaleLabel(type.labels, language)}
                     </FilterChip>
                   ))}
                 </div>
@@ -2337,7 +2426,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                         )
                       }
                     >
-                      {level.labels[isCsLike ? 'cs' : 'en']}
+                      {getLocaleLabel(level.labels, language)}
                     </FilterChip>
                   ))}
                 </div>
@@ -2351,7 +2440,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       active={filterBenefits.includes(benefit.key)}
                       onClick={() => toggleBenefitFilter(benefit.key)}
                     >
-                      {benefit.labels[isCsLike ? 'cs' : 'en']}
+                      {getLocaleLabel(benefit.labels, language)}
                     </FilterChip>
                   ))}
                 </div>
@@ -2513,9 +2602,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
-                      {isCsLike
-                        ? 'Víc prostoru pro odpovědi, jasnější vedení a silnější rozhodovací vrstvu'
-                        : 'More room for replies, clearer guidance, and a stronger decision layer'}
+                      {{
+                        cs: 'Víc prostoru pro odpovědi, jasnější vedení a silnější rozhodovací vrstvu',
+                        sk: 'Viac priestoru na odpovede, jasnejšie vedenie a silnejšia rozhodovacia vrstva',
+                        de: 'Mehr Raum für Antworten, klarere Führung und eine stärkere Entscheidungsebene',
+                        at: 'Mehr Raum für Antworten, klarere Führung und eine stärkere Entscheidungsebene',
+                        pl: 'Więcej przestrzeni na odpowiedzi, jaśniejsze prowadzenie i silniejsza warstwa decyzyjna',
+                        en: 'More room for replies, clearer guidance, and a stronger decision layer'
+                      }[language]}
                     </h3>
                     <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.premiumBody}</p>
                   </div>

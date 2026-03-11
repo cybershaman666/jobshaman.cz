@@ -75,6 +75,16 @@ interface ProfileEditorProps {
 
 const ProfileJobManager = lazy(() => import('./ProfileJobManager'));
 type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'settings' | 'saved';
+type ProfileLocale = 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en';
+type ProfileLocaleLabels = { cs: string; en: string; sk?: string; de?: string; at?: string; pl?: string };
+
+const getProfileLocale = (localeBase: string): ProfileLocale => (
+  ['cs', 'sk', 'de', 'at', 'pl'].includes(localeBase) ? (localeBase as ProfileLocale) : 'en'
+);
+
+const getProfileLocaleLabel = (labels: ProfileLocaleLabels, locale: ProfileLocale): string => (
+  labels[locale] || labels.en
+);
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({
   profile,
@@ -91,46 +101,124 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const localeBase = (i18n.language || 'cs').split('-')[0];
+  const profileLocale = getProfileLocale(localeBase);
   const isCsLikeProfile = localeBase === 'cs' || localeBase === 'sk';
-  const supportingContextCopy = isCsLikeProfile
-    ? {
-        tabLabel: 'Podklady',
-        tabCaption: 'CV a doplňky',
-        aiDraftTitle: 'Uložený AI draft profilu',
-        aiDraftDesc: 'Můžete si ručně upravit a uložit AI draft, aby se nemusel generovat znovu.',
-        aiDraftLoad: 'Načíst základní CV text',
-        aiDraftPlaceholder: 'Vložte nebo upravte AI draft profilu...',
-        aiDraftSave: 'Uložit AI draft',
-        aiDraftSaved: 'AI draft byl uložen.',
-        sectionTitle: 'Podklady a CV',
-        sectionIntro: 'CV je tady jen volitelný podpůrný dokument. Můžete si uložit klasické CV, AI draft nebo další materiály pro chvíli, kdy si firma vyžádá kontext navíc.',
-        uploadedTitle: 'Podklad je připravený',
-        uploadedDesc: 'Dokument zůstane připravený jako volitelný kontext pro budoucí dialogy.',
-        replaceLabel: 'Nahradit dokument',
-        emptyTitle: 'Přidat CV nebo podpůrný dokument',
-        emptyDesc: 'Uložte si sem životopis nebo doplňující dokument pro firmy, které chtějí další kontext.',
-        selectLabel: 'Vybrat dokument',
-        libraryTitle: 'Knihovna dokumentů'
-      }
-    : {
-        tabLabel: 'Supporting context',
-        tabCaption: 'CV and supporting docs',
-        aiDraftTitle: 'Saved AI profile draft',
-        aiDraftDesc: 'You can edit and save the AI draft manually so it does not need to be generated again.',
-        aiDraftLoad: 'Load base CV text',
-        aiDraftPlaceholder: 'Paste or edit your AI profile draft here...',
-        aiDraftSave: 'Save AI draft',
-        aiDraftSaved: 'AI draft saved.',
-        sectionTitle: 'Supporting context and CV',
-        sectionIntro: 'Your CV is optional supporting context here. Keep a resume, AI draft, or other background material ready for teams that ask for extra detail.',
-        uploadedTitle: 'Supporting document is ready',
-        uploadedDesc: 'This file stays available as optional context for future dialogues.',
-        replaceLabel: 'Replace document',
-        emptyTitle: 'Add a CV or supporting document',
-        emptyDesc: 'Store a resume or extra background file here for teams that ask for more context.',
-        selectLabel: 'Select document',
-        libraryTitle: 'Document library'
-      };
+  const supportingContextCopy = ({
+    cs: {
+      tabLabel: 'Podklady',
+      tabCaption: 'CV a doplňky',
+      aiDraftTitle: 'Uložený AI draft profilu',
+      aiDraftDesc: 'Můžete si ručně upravit a uložit AI draft, aby se nemusel generovat znovu.',
+      aiDraftLoad: 'Načíst základní CV text',
+      aiDraftPlaceholder: 'Vložte nebo upravte AI draft profilu...',
+      aiDraftSave: 'Uložit AI draft',
+      aiDraftSaved: 'AI draft byl uložen.',
+      sectionTitle: 'Podklady a CV',
+      sectionIntro: 'CV je tady jen volitelný podpůrný dokument. Můžete si uložit klasické CV, AI draft nebo další materiály pro chvíli, kdy si firma vyžádá kontext navíc.',
+      uploadedTitle: 'Podklad je připravený',
+      uploadedDesc: 'Dokument zůstane připravený jako volitelný kontext pro budoucí dialogy.',
+      replaceLabel: 'Nahradit dokument',
+      emptyTitle: 'Přidat CV nebo podpůrný dokument',
+      emptyDesc: 'Uložte si sem životopis nebo doplňující dokument pro firmy, které chtějí další kontext.',
+      selectLabel: 'Vybrat dokument',
+      libraryTitle: 'Knihovna dokumentů'
+    },
+    sk: {
+      tabLabel: 'Podklady',
+      tabCaption: 'CV a doplnky',
+      aiDraftTitle: 'Uložený AI draft profilu',
+      aiDraftDesc: 'AI draft si môžete ručne upraviť a uložiť, aby sa nemusel generovať znova.',
+      aiDraftLoad: 'Načítať základný CV text',
+      aiDraftPlaceholder: 'Vložte alebo upravte AI draft profilu...',
+      aiDraftSave: 'Uložiť AI draft',
+      aiDraftSaved: 'AI draft bol uložený.',
+      sectionTitle: 'Podklady a CV',
+      sectionIntro: 'CV je tu len voliteľný podporný dokument. Môžete si uložiť klasické CV, AI draft alebo ďalšie materiály pre chvíľu, keď si firma vyžiada viac kontextu.',
+      uploadedTitle: 'Podklad je pripravený',
+      uploadedDesc: 'Dokument zostane pripravený ako voliteľný kontext pre budúce dialógy.',
+      replaceLabel: 'Nahradiť dokument',
+      emptyTitle: 'Pridať CV alebo podporný dokument',
+      emptyDesc: 'Uložte si sem životopis alebo doplňujúci dokument pre firmy, ktoré chcú viac kontextu.',
+      selectLabel: 'Vybrať dokument',
+      libraryTitle: 'Knižnica dokumentov'
+    },
+    de: {
+      tabLabel: 'Unterlagen',
+      tabCaption: 'CV und Zusatzunterlagen',
+      aiDraftTitle: 'Gespeicherter KI-Profilentwurf',
+      aiDraftDesc: 'Sie können den KI-Entwurf manuell bearbeiten und speichern, damit er nicht erneut generiert werden muss.',
+      aiDraftLoad: 'Grundtext aus CV laden',
+      aiDraftPlaceholder: 'KI-Profilentwurf hier einfügen oder bearbeiten...',
+      aiDraftSave: 'KI-Entwurf speichern',
+      aiDraftSaved: 'KI-Entwurf gespeichert.',
+      sectionTitle: 'Unterlagen und CV',
+      sectionIntro: 'Ihr CV ist hier nur optionaler Kontext. Halten Sie Lebenslauf, KI-Entwurf oder weitere Unterlagen bereit, falls ein Team mehr Details anfragt.',
+      uploadedTitle: 'Unterlage ist bereit',
+      uploadedDesc: 'Diese Datei bleibt als optionaler Kontext für zukünftige Dialoge verfügbar.',
+      replaceLabel: 'Dokument ersetzen',
+      emptyTitle: 'CV oder Unterlage hinzufügen',
+      emptyDesc: 'Speichern Sie hier Ihren Lebenslauf oder zusätzliche Unterlagen für Teams, die mehr Kontext möchten.',
+      selectLabel: 'Dokument auswählen',
+      libraryTitle: 'Dokumentenbibliothek'
+    },
+    at: {
+      tabLabel: 'Unterlagen',
+      tabCaption: 'CV und Zusatzunterlagen',
+      aiDraftTitle: 'Gespeicherter KI-Profilentwurf',
+      aiDraftDesc: 'Sie können den KI-Entwurf manuell bearbeiten und speichern, damit er nicht erneut generiert werden muss.',
+      aiDraftLoad: 'Grundtext aus CV laden',
+      aiDraftPlaceholder: 'KI-Profilentwurf hier einfügen oder bearbeiten...',
+      aiDraftSave: 'KI-Entwurf speichern',
+      aiDraftSaved: 'KI-Entwurf gespeichert.',
+      sectionTitle: 'Unterlagen und CV',
+      sectionIntro: 'Ihr CV ist hier nur optionaler Kontext. Halten Sie Lebenslauf, KI-Entwurf oder weitere Unterlagen bereit, falls ein Team mehr Details anfragt.',
+      uploadedTitle: 'Unterlage ist bereit',
+      uploadedDesc: 'Diese Datei bleibt als optionaler Kontext für zukünftige Dialoge verfügbar.',
+      replaceLabel: 'Dokument ersetzen',
+      emptyTitle: 'CV oder Unterlage hinzufügen',
+      emptyDesc: 'Speichern Sie hier Ihren Lebenslauf oder zusätzliche Unterlagen für Teams, die mehr Kontext möchten.',
+      selectLabel: 'Dokument auswählen',
+      libraryTitle: 'Dokumentenbibliothek'
+    },
+    pl: {
+      tabLabel: 'Materiały',
+      tabCaption: 'CV i dodatki',
+      aiDraftTitle: 'Zapisany szkic profilu AI',
+      aiDraftDesc: 'Możesz ręcznie edytować i zapisać szkic AI, żeby nie trzeba było generować go ponownie.',
+      aiDraftLoad: 'Wczytaj bazowy tekst CV',
+      aiDraftPlaceholder: 'Wklej lub edytuj szkic profilu AI...',
+      aiDraftSave: 'Zapisz szkic AI',
+      aiDraftSaved: 'Szkic AI został zapisany.',
+      sectionTitle: 'Materiały i CV',
+      sectionIntro: 'CV jest tutaj opcjonalnym materiałem wspierającym. Trzymaj gotowe CV, szkic AI lub inne materiały, jeśli firma poprosi o dodatkowy kontekst.',
+      uploadedTitle: 'Materiał jest gotowy',
+      uploadedDesc: 'Ten plik pozostaje dostępny jako opcjonalny kontekst do przyszłych dialogów.',
+      replaceLabel: 'Zamień dokument',
+      emptyTitle: 'Dodaj CV lub materiał wspierający',
+      emptyDesc: 'Zapisz tutaj CV lub dodatkowy plik dla firm, które proszą o więcej kontekstu.',
+      selectLabel: 'Wybierz dokument',
+      libraryTitle: 'Biblioteka dokumentów'
+    },
+    en: {
+      tabLabel: 'Supporting context',
+      tabCaption: 'CV and supporting docs',
+      aiDraftTitle: 'Saved AI profile draft',
+      aiDraftDesc: 'You can edit and save the AI draft manually so it does not need to be generated again.',
+      aiDraftLoad: 'Load base CV text',
+      aiDraftPlaceholder: 'Paste or edit your AI profile draft here...',
+      aiDraftSave: 'Save AI draft',
+      aiDraftSaved: 'AI draft saved.',
+      sectionTitle: 'Supporting context and CV',
+      sectionIntro: 'Your CV is optional supporting context here. Keep a resume, AI draft, or other background material ready for teams that ask for extra detail.',
+      uploadedTitle: 'Supporting document is ready',
+      uploadedDesc: 'This file stays available as optional context for future dialogues.',
+      replaceLabel: 'Replace document',
+      emptyTitle: 'Add a CV or supporting document',
+      emptyDesc: 'Store a resume or extra background file here for teams that ask for more context.',
+      selectLabel: 'Select document',
+      libraryTitle: 'Document library'
+    }
+  } as const)[profileLocale];
   const profilePremiumCopy = {
     cs: {
       aiGuideBadge: 'Prémiový pomocník',
@@ -238,141 +326,278 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     help: 'Used for default market scope and daily digest targeting when your address is missing or approximate.',
     countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
   };
-  const searchProfileCopy = localeBase === 'cs'
-    ? {
-        title: 'Výchozí nastavení hledání',
-        intro: 'Nastavte hledání tak, aby odpovídalo vaší skutečné situaci: typu práce, dojíždění, rodině, psům i benefitům, na kterých vám opravdu záleží.',
-        nearBorder: 'Chci snadno hledat i přes hranice',
-        contractor: 'Primárně hledám práci na IČO / živnost',
-        dogFriendly: 'Chci upřednostňovat kanceláře, kam mohou psi',
-        childFriendly: 'Potřebuji role vhodné pro rodiče',
-        avoidShift: 'Chci se vyhýbat směnnému a nočnímu provozu',
-        remote: 'Chci mít připravené hledání práce na dálku',
-        languages: 'Jazyky pro práci na dálku',
-        commuteTitle: 'Dojíždění a způsob dopravy',
-        commuteIntro: 'Toto nastavení se použije při výchozím filtrování dojezdu a při vyhodnocení, zda je nabídka z hlediska cesty pro vás reálně zvládnutelná.',
-        commuteOrigin: 'Výchozí adresa pro dojíždění',
-        commuteOriginMissing: 'Adresa zatím chybí. Doplňte ji v osobních údajích, aby šel dojezd počítat správně.',
-        commuteToggle: 'Používat dojíždění jako výchozí filtr',
-        commuteRadius: 'Výchozí vzdálenost dojezdu',
-        benefitPriorities: 'Další benefity důležité pro vaši situaci',
-        activeSignals: 'Aktivní preference',
-        impactTitle: 'Kde se to projeví',
-        impactMarketplace: 'Přednastavená hledání',
-        impactSaved: 'Uložená hledání',
-        impactFeed: 'Váš hlavní přehled nabídek',
-        helper: 'Tyto preference se promítnou do přednastavených hledání, uložených filtrů i hlavního přehledu nabídek.',
-      }
-    : localeBase === 'sk'
-      ? {
-          title: 'Predvolené nastavenie hľadania',
-          intro: 'Nastavte hľadanie tak, aby zodpovedalo vašej skutočnej situácii: typu práce, dochádzaniu, rodine, psom aj benefitom, na ktorých vám naozaj záleží.',
-          nearBorder: 'Chcem jednoducho hľadať aj cez hranice',
-          contractor: 'Primárne hľadám prácu na živnosť / kontrakt',
-          dogFriendly: 'Chcem uprednostňovať kancelárie, kam môžu psy',
-          childFriendly: 'Potrebujem roly vhodné pre rodičov',
-          avoidShift: 'Chcem sa vyhýbať zmenovej a nočnej prevádzke',
-          remote: 'Chcem mať pripravené hľadanie práce na diaľku',
-          languages: 'Jazyky pre prácu na diaľku',
-          commuteTitle: 'Dochádzanie a spôsob dopravy',
-          commuteIntro: 'Toto nastavenie sa použije pri predvolenom filtrovaní dochádzania a pri vyhodnotení, či je ponuka z pohľadu cesty pre vás reálne zvládnuteľná.',
-          commuteOrigin: 'Východisková adresa pre dochádzanie',
-          commuteOriginMissing: 'Adresa zatiaľ chýba. Doplňte ju v osobných údajoch, aby sa dochádzanie dalo počítať správne.',
-          commuteToggle: 'Používať dochádzanie ako predvolený filter',
-          commuteRadius: 'Predvolená vzdialenosť dochádzania',
-          benefitPriorities: 'Ďalšie benefity dôležité pre vašu situáciu',
-          activeSignals: 'Aktívne preferencie',
-          impactTitle: 'Kde sa to prejaví',
-          impactMarketplace: 'Prednastavené hľadania',
-          impactSaved: 'Uložené hľadania',
-          impactFeed: 'Váš hlavný prehľad ponúk',
-          helper: 'Tieto preferencie sa premietnu do prednastavených hľadaní, uložených filtrov aj hlavného prehľadu ponúk.',
-        }
-      : {
-        title: 'Search setup',
-        intro: 'Set search defaults around the actual reality of your life: work mode, commute, family context, dogs, and benefits that matter.',
-        nearBorder: 'I live near a border and want cross-border search to stay easy',
-        contractor: 'I primarily want contractor / self-employed roles',
-        dogFriendly: 'Prefer dog-friendly offices',
-        childFriendly: 'I need parent-friendly / child-friendly roles',
-        avoidShift: 'Avoid shift-based and night roles',
-        remote: 'Keep a remote-focused preset ready',
-        languages: 'Languages I can use in remote roles',
-        commuteTitle: 'Commute and transport mode',
-        commuteIntro: 'This becomes part of your commute preset and marketplace reality checks.',
-        commuteOrigin: 'Starting address for commute',
-        commuteOriginMissing: 'Your address is missing. Add it in personal details so commute can be calculated correctly.',
-        commuteToggle: 'Use commute as a default filter',
-        commuteRadius: 'Default commute radius',
-        benefitPriorities: 'Additional benefits relevant to my situation',
-        activeSignals: 'Active signals',
-        impactTitle: 'Where this applies',
-        impactMarketplace: 'Marketplace presets',
-        impactSaved: 'Saved searches',
-        impactFeed: 'My feed',
-        helper: 'These preferences feed marketplace presets, saved searches, and your main overview.',
-      };
-  const intentProfileCopy = isCsLikeProfile
-    ? {
-        title: 'Můj obor a role',
-        intro: 'Tahle část určuje, co má být v přehledu opravdu vaše. Nejdřív obor a cílová role, až potom životní filtry.',
-        primaryDomain: 'Hlavní obor',
-        secondaryDomains: 'Příbuzné obory',
-        targetRole: 'Cílová role',
-        targetRolePlaceholder: 'Např. Product Manager, Recepční, Finanční účetní',
-        seniority: 'Seniorita',
-        includeAdjacent: 'Zobrazovat i příbuzné role',
-        inferredTitle: 'Odhad podle CV a historie',
-        inferredBody: 'Systém našel pravděpodobný obor a cílovou roli. Můžete je jedním klikem použít do svého feedu.',
-        useSuggestion: 'Použít návrh',
-        manualWins: 'Ruční nastavení má vždy přednost před automatickým odhadem.',
-        none: 'Bez omezení',
-        activeIntent: 'Aktivní směr',
-      }
-    : {
-        title: 'My domain and role',
-        intro: 'This section decides what should actually feel like your feed: first domain and target role, then life-context filters.',
-        primaryDomain: 'Primary domain',
-        secondaryDomains: 'Adjacent domains',
-        targetRole: 'Target role',
-        targetRolePlaceholder: 'For example Product Manager, Receptionist, Financial Accountant',
-        seniority: 'Seniority',
-        includeAdjacent: 'Show adjacent roles too',
-        inferredTitle: 'Detected from CV and history',
-        inferredBody: 'The system detected a likely domain and target role. You can use them for your feed with one click.',
-        useSuggestion: 'Use suggestion',
-        manualWins: 'Manual setup always overrides the automatic estimate.',
-        none: 'No limit',
-        activeIntent: 'Active direction',
-      };
+  const searchProfileCopy = ({
+    cs: {
+      title: 'Výchozí nastavení hledání',
+      intro: 'Nastavte hledání tak, aby odpovídalo vaší skutečné situaci: typu práce, dojíždění, rodině, psům i benefitům, na kterých vám opravdu záleží.',
+      nearBorder: 'Chci snadno hledat i přes hranice',
+      contractor: 'Primárně hledám práci na IČO / živnost',
+      dogFriendly: 'Chci upřednostňovat kanceláře, kam mohou psi',
+      childFriendly: 'Potřebuji role vhodné pro rodiče',
+      avoidShift: 'Chci se vyhýbat směnnému a nočnímu provozu',
+      remote: 'Chci mít připravené hledání práce na dálku',
+      languages: 'Jazyky nabídky',
+      commuteTitle: 'Dojíždění a způsob dopravy',
+      commuteIntro: 'Toto nastavení se použije při výchozím filtrování dojezdu a při vyhodnocení, zda je nabídka z hlediska cesty pro vás reálně zvládnutelná.',
+      commuteOrigin: 'Výchozí adresa pro dojíždění',
+      commuteOriginMissing: 'Adresa zatím chybí. Doplňte ji v osobních údajích, aby šel dojezd počítat správně.',
+      commuteToggle: 'Používat dojíždění jako výchozí filtr',
+      commuteRadius: 'Výchozí vzdálenost dojezdu',
+      benefitPriorities: 'Další benefity důležité pro vaši situaci',
+      activeSignals: 'Aktivní preference',
+      impactTitle: 'Kde se to projeví',
+      impactMarketplace: 'Přednastavená hledání',
+      impactSaved: 'Uložená hledání',
+      impactFeed: 'Váš hlavní přehled nabídek',
+      helper: 'Tyto preference se promítnou do přednastavených hledání, uložených filtrů i hlavního přehledu nabídek.',
+    },
+    sk: {
+      title: 'Predvolené nastavenie hľadania',
+      intro: 'Nastavte hľadanie tak, aby zodpovedalo vašej skutočnej situácii: typu práce, dochádzaniu, rodine, psom aj benefitom, na ktorých vám naozaj záleží.',
+      nearBorder: 'Chcem jednoducho hľadať aj cez hranice',
+      contractor: 'Primárne hľadám prácu na živnosť / kontrakt',
+      dogFriendly: 'Chcem uprednostňovať kancelárie, kam môžu psy',
+      childFriendly: 'Potrebujem roly vhodné pre rodičov',
+      avoidShift: 'Chcem sa vyhýbať zmenovej a nočnej prevádzke',
+      remote: 'Chcem mať pripravené hľadanie práce na diaľku',
+      languages: 'Jazyky ponuky',
+      commuteTitle: 'Dochádzanie a spôsob dopravy',
+      commuteIntro: 'Toto nastavenie sa použije pri predvolenom filtrovaní dochádzania a pri vyhodnotení, či je ponuka z pohľadu cesty pre vás reálne zvládnuteľná.',
+      commuteOrigin: 'Východisková adresa pre dochádzanie',
+      commuteOriginMissing: 'Adresa zatiaľ chýba. Doplňte ju v osobných údajoch, aby sa dochádzanie dalo počítať správne.',
+      commuteToggle: 'Používať dochádzanie ako predvolený filter',
+      commuteRadius: 'Predvolená vzdialenosť dochádzania',
+      benefitPriorities: 'Ďalšie benefity dôležité pre vašu situáciu',
+      activeSignals: 'Aktívne preferencie',
+      impactTitle: 'Kde sa to prejaví',
+      impactMarketplace: 'Prednastavené hľadania',
+      impactSaved: 'Uložené hľadania',
+      impactFeed: 'Váš hlavný prehľad ponúk',
+      helper: 'Tieto preferencie sa premietnu do prednastavených hľadaní, uložených filtrov aj hlavného prehľadu ponúk.',
+    },
+    de: {
+      title: 'Suchvorgaben',
+      intro: 'Stellen Sie die Suche so ein, dass sie Ihrer realen Situation entspricht: Arbeitsmodell, Pendeln, Familie, Hunde und Benefits, die Ihnen wirklich wichtig sind.',
+      nearBorder: 'Ich möchte auch grenznah und grenzüberschreitend suchen können',
+      contractor: 'Ich suche primär nach Freelance- / Vertragsrollen',
+      dogFriendly: 'Hundefreundliche Büros bevorzugen',
+      childFriendly: 'Ich brauche familienfreundliche Rollen',
+      avoidShift: 'Schicht- und Nachtdienste vermeiden',
+      remote: 'Ein Remote-Preset bereithalten',
+      languages: 'Sprachen der Anzeige',
+      commuteTitle: 'Pendeln und Verkehrsmittel',
+      commuteIntro: 'Diese Einstellung wird für den Standard-Pendelfilter und für die Einschätzung verwendet, ob ein Angebot realistisch erreichbar ist.',
+      commuteOrigin: 'Startadresse für Pendeln',
+      commuteOriginMissing: 'Ihre Adresse fehlt noch. Ergänzen Sie sie in den persönlichen Angaben, damit das Pendeln korrekt berechnet werden kann.',
+      commuteToggle: 'Pendeln als Standardfilter verwenden',
+      commuteRadius: 'Standard-Pendelradius',
+      benefitPriorities: 'Weitere Benefits, die zu Ihrer Situation passen',
+      activeSignals: 'Aktive Präferenzen',
+      impactTitle: 'Wo sich das auswirkt',
+      impactMarketplace: 'Marketplace-Vorgaben',
+      impactSaved: 'Gespeicherte Suchen',
+      impactFeed: 'Ihr Hauptfeed',
+      helper: 'Diese Präferenzen fließen in Marketplace-Vorgaben, gespeicherte Suchen und Ihren Hauptfeed ein.',
+    },
+    at: {
+      title: 'Suchvorgaben',
+      intro: 'Stellen Sie die Suche so ein, dass sie Ihrer realen Situation entspricht: Arbeitsmodell, Pendeln, Familie, Hunde und Benefits, die Ihnen wirklich wichtig sind.',
+      nearBorder: 'Ich möchte auch grenznah und grenzüberschreitend suchen können',
+      contractor: 'Ich suche primär nach Freelance- / Vertragsrollen',
+      dogFriendly: 'Hundefreundliche Büros bevorzugen',
+      childFriendly: 'Ich brauche familienfreundliche Rollen',
+      avoidShift: 'Schicht- und Nachtdienste vermeiden',
+      remote: 'Ein Remote-Preset bereithalten',
+      languages: 'Sprachen der Anzeige',
+      commuteTitle: 'Pendeln und Verkehrsmittel',
+      commuteIntro: 'Diese Einstellung wird für den Standard-Pendelfilter und für die Einschätzung verwendet, ob ein Angebot realistisch erreichbar ist.',
+      commuteOrigin: 'Startadresse für Pendeln',
+      commuteOriginMissing: 'Ihre Adresse fehlt noch. Ergänzen Sie sie in den persönlichen Angaben, damit das Pendeln korrekt berechnet werden kann.',
+      commuteToggle: 'Pendeln als Standardfilter verwenden',
+      commuteRadius: 'Standard-Pendelradius',
+      benefitPriorities: 'Weitere Benefits, die zu Ihrer Situation passen',
+      activeSignals: 'Aktive Präferenzen',
+      impactTitle: 'Wo sich das auswirkt',
+      impactMarketplace: 'Marketplace-Vorgaben',
+      impactSaved: 'Gespeicherte Suchen',
+      impactFeed: 'Ihr Hauptfeed',
+      helper: 'Diese Präferenzen fließen in Marketplace-Vorgaben, gespeicherte Suchen und Ihren Hauptfeed ein.',
+    },
+    pl: {
+      title: 'Ustawienia wyszukiwania',
+      intro: 'Ustaw wyszukiwanie tak, aby odpowiadało Twojej realnej sytuacji: modelowi pracy, dojazdom, rodzinie, psom i benefitom, które naprawdę mają znaczenie.',
+      nearBorder: 'Chcę łatwo szukać także po drugiej stronie granicy',
+      contractor: 'Szukam głównie ofert B2B / kontraktowych',
+      dogFriendly: 'Preferuj biura przyjazne psom',
+      childFriendly: 'Potrzebuję ról przyjaznych rodzicom',
+      avoidShift: 'Unikaj pracy zmianowej i nocnej',
+      remote: 'Miej gotowy preset pod pracę zdalną',
+      languages: 'Języki ogłoszenia',
+      commuteTitle: 'Dojazd i środek transportu',
+      commuteIntro: 'To ustawienie będzie używane przy domyślnym filtrowaniu dojazdu i przy ocenie, czy oferta jest realnie osiągalna.',
+      commuteOrigin: 'Adres startowy dojazdu',
+      commuteOriginMissing: 'Brakuje adresu. Uzupełnij go w danych osobowych, aby dojazd był liczony poprawnie.',
+      commuteToggle: 'Używaj dojazdu jako domyślnego filtra',
+      commuteRadius: 'Domyślny promień dojazdu',
+      benefitPriorities: 'Dodatkowe benefity ważne w mojej sytuacji',
+      activeSignals: 'Aktywne preferencje',
+      impactTitle: 'Gdzie to działa',
+      impactMarketplace: 'Presety marketplace',
+      impactSaved: 'Zapisane wyszukiwania',
+      impactFeed: 'Mój feed',
+      helper: 'Te preferencje trafiają do presetów marketplace, zapisanych wyszukiwań i głównego feedu.',
+    },
+    en: {
+      title: 'Search setup',
+      intro: 'Set search defaults around the actual reality of your life: work mode, commute, family context, dogs, and benefits that matter.',
+      nearBorder: 'I live near a border and want cross-border search to stay easy',
+      contractor: 'I primarily want contractor / self-employed roles',
+      dogFriendly: 'Prefer dog-friendly offices',
+      childFriendly: 'I need parent-friendly / child-friendly roles',
+      avoidShift: 'Avoid shift-based and night roles',
+      remote: 'Keep a remote-focused preset ready',
+      languages: 'Listing languages',
+      commuteTitle: 'Commute and transport mode',
+      commuteIntro: 'This becomes part of your commute preset and marketplace reality checks.',
+      commuteOrigin: 'Starting address for commute',
+      commuteOriginMissing: 'Your address is missing. Add it in personal details so commute can be calculated correctly.',
+      commuteToggle: 'Use commute as a default filter',
+      commuteRadius: 'Default commute radius',
+      benefitPriorities: 'Additional benefits relevant to my situation',
+      activeSignals: 'Active signals',
+      impactTitle: 'Where this applies',
+      impactMarketplace: 'Marketplace presets',
+      impactSaved: 'Saved searches',
+      impactFeed: 'My feed',
+      helper: 'These preferences feed marketplace presets, saved searches, and your main overview.',
+    }
+  } as const)[profileLocale];
+  const intentProfileCopy = ({
+    cs: {
+      title: 'Můj obor a role',
+      intro: 'Tahle část určuje, co má být v přehledu opravdu vaše. Nejdřív obor a cílová role, až potom životní filtry.',
+      primaryDomain: 'Hlavní obor',
+      secondaryDomains: 'Příbuzné obory',
+      targetRole: 'Cílová role',
+      targetRolePlaceholder: 'Např. Product Manager, Recepční, Finanční účetní',
+      seniority: 'Seniorita',
+      includeAdjacent: 'Zobrazovat i příbuzné role',
+      inferredTitle: 'Odhad podle CV a historie',
+      inferredBody: 'Systém našel pravděpodobný obor a cílovou roli. Můžete je jedním klikem použít do svého feedu.',
+      useSuggestion: 'Použít návrh',
+      manualWins: 'Ruční nastavení má vždy přednost před automatickým odhadem.',
+      none: 'Bez omezení',
+      activeIntent: 'Aktivní směr',
+    },
+    sk: {
+      title: 'Môj odbor a rola',
+      intro: 'Táto časť určuje, čo má byť v prehľade naozaj vaše. Najprv odbor a cieľová rola, až potom životné filtre.',
+      primaryDomain: 'Hlavný odbor',
+      secondaryDomains: 'Príbuzné odbory',
+      targetRole: 'Cieľová rola',
+      targetRolePlaceholder: 'Napr. Product Manager, Recepčná, Finančná účtovníčka',
+      seniority: 'Seniorita',
+      includeAdjacent: 'Zobrazovať aj príbuzné roly',
+      inferredTitle: 'Odhad podľa CV a histórie',
+      inferredBody: 'Systém našiel pravdepodobný odbor a cieľovú rolu. Môžete ich jedným klikom použiť vo svojom feede.',
+      useSuggestion: 'Použiť návrh',
+      manualWins: 'Ručné nastavenie má vždy prednosť pred automatickým odhadom.',
+      none: 'Bez obmedzenia',
+      activeIntent: 'Aktívny smer',
+    },
+    de: {
+      title: 'Mein Bereich und meine Rolle',
+      intro: 'Dieser Bereich entscheidet, was sich im Feed wirklich nach Ihnen anfühlen soll: zuerst Fachbereich und Zielrolle, dann Lebenskontext-Filter.',
+      primaryDomain: 'Hauptbereich',
+      secondaryDomains: 'Verwandte Bereiche',
+      targetRole: 'Zielrolle',
+      targetRolePlaceholder: 'Zum Beispiel Product Manager, Rezeption, Finanzbuchhaltung',
+      seniority: 'Seniorität',
+      includeAdjacent: 'Auch verwandte Rollen anzeigen',
+      inferredTitle: 'Erkannt aus CV und Verlauf',
+      inferredBody: 'Das System hat einen wahrscheinlichen Bereich und eine Zielrolle erkannt. Sie können den Vorschlag mit einem Klick für Ihren Feed übernehmen.',
+      useSuggestion: 'Vorschlag verwenden',
+      manualWins: 'Manuelle Einstellungen haben immer Vorrang vor der automatischen Schätzung.',
+      none: 'Keine Einschränkung',
+      activeIntent: 'Aktive Richtung',
+    },
+    at: {
+      title: 'Mein Bereich und meine Rolle',
+      intro: 'Dieser Bereich entscheidet, was sich im Feed wirklich nach Ihnen anfühlen soll: zuerst Fachbereich und Zielrolle, dann Lebenskontext-Filter.',
+      primaryDomain: 'Hauptbereich',
+      secondaryDomains: 'Verwandte Bereiche',
+      targetRole: 'Zielrolle',
+      targetRolePlaceholder: 'Zum Beispiel Product Manager, Rezeption, Finanzbuchhaltung',
+      seniority: 'Seniorität',
+      includeAdjacent: 'Auch verwandte Rollen anzeigen',
+      inferredTitle: 'Erkannt aus CV und Verlauf',
+      inferredBody: 'Das System hat einen wahrscheinlichen Bereich und eine Zielrolle erkannt. Sie können den Vorschlag mit einem Klick für Ihren Feed übernehmen.',
+      useSuggestion: 'Vorschlag verwenden',
+      manualWins: 'Manuelle Einstellungen haben immer Vorrang vor der automatischen Schätzung.',
+      none: 'Keine Einschränkung',
+      activeIntent: 'Aktive Richtung',
+    },
+    pl: {
+      title: 'Mój obszar i rola',
+      intro: 'Ta sekcja decyduje, co naprawdę powinno być „Twoim” feedem: najpierw obszar i rola docelowa, dopiero potem filtry życiowe.',
+      primaryDomain: 'Główny obszar',
+      secondaryDomains: 'Powiązane obszary',
+      targetRole: 'Rola docelowa',
+      targetRolePlaceholder: 'Na przykład Product Manager, Recepcjonista, Księgowa',
+      seniority: 'Poziom seniority',
+      includeAdjacent: 'Pokazuj też role pokrewne',
+      inferredTitle: 'Wykryto na podstawie CV i historii',
+      inferredBody: 'System wykrył prawdopodobny obszar i rolę docelową. Możesz użyć tej sugestii w feedzie jednym kliknięciem.',
+      useSuggestion: 'Użyj sugestii',
+      manualWins: 'Ręczne ustawienia zawsze mają pierwszeństwo przed automatycznym oszacowaniem.',
+      none: 'Bez ograniczeń',
+      activeIntent: 'Aktywny kierunek',
+    },
+    en: {
+      title: 'My domain and role',
+      intro: 'This section decides what should actually feel like your feed: first domain and target role, then life-context filters.',
+      primaryDomain: 'Primary domain',
+      secondaryDomains: 'Adjacent domains',
+      targetRole: 'Target role',
+      targetRolePlaceholder: 'For example Product Manager, Receptionist, Financial Accountant',
+      seniority: 'Seniority',
+      includeAdjacent: 'Show adjacent roles too',
+      inferredTitle: 'Detected from CV and history',
+      inferredBody: 'The system detected a likely domain and target role. You can use them for your feed with one click.',
+      useSuggestion: 'Use suggestion',
+      manualWins: 'Manual setup always overrides the automatic estimate.',
+      none: 'No limit',
+      activeIntent: 'Active direction',
+    }
+  } as const)[profileLocale];
   const remoteLanguageOptions: Array<{ code: SearchLanguageCode; label: string }> = [
-    { code: 'cs', label: isCsLikeProfile ? 'Čeština' : 'Czech' },
-    { code: 'en', label: isCsLikeProfile ? 'Angličtina' : 'English' },
-    { code: 'de', label: isCsLikeProfile ? 'Němčina' : 'German' },
-    { code: 'sk', label: isCsLikeProfile ? 'Slovenština' : 'Slovak' },
-    { code: 'pl', label: isCsLikeProfile ? 'Polština' : 'Polish' },
+    { code: 'cs', label: getProfileLocaleLabel({ cs: 'Čeština', sk: 'Čeština', de: 'Tschechisch', at: 'Tschechisch', pl: 'Czeski', en: 'Czech' }, profileLocale) },
+    { code: 'en', label: getProfileLocaleLabel({ cs: 'Angličtina', sk: 'Angličtina', de: 'Englisch', at: 'Englisch', pl: 'Angielski', en: 'English' }, profileLocale) },
+    { code: 'de', label: getProfileLocaleLabel({ cs: 'Němčina', sk: 'Nemčina', de: 'Deutsch', at: 'Deutsch', pl: 'Niemiecki', en: 'German' }, profileLocale) },
+    { code: 'sk', label: getProfileLocaleLabel({ cs: 'Slovenština', sk: 'Slovenčina', de: 'Slowakisch', at: 'Slowakisch', pl: 'Słowacki', en: 'Slovak' }, profileLocale) },
+    { code: 'pl', label: getProfileLocaleLabel({ cs: 'Polština', sk: 'Poľština', de: 'Polnisch', at: 'Polnisch', pl: 'Polski', en: 'Polish' }, profileLocale) },
   ];
   const searchBenefitOptions: Array<{ key: string; label: string }> = [
-    { key: 'childcare_support', label: isCsLikeProfile ? 'Podpora péče o děti' : 'Childcare support' },
-    { key: 'child_friendly', label: isCsLikeProfile ? 'Child-friendly prostředí' : 'Child-friendly environment' },
-    { key: 'home_office', label: isCsLikeProfile ? 'Home office' : 'Home office' },
-    { key: 'flex_time', label: isCsLikeProfile ? 'Flexibilní režim' : 'Flexible schedule' },
-    { key: 'meal_allowance', label: isCsLikeProfile ? 'Stravování' : 'Meals' },
-    { key: 'transport_support', label: isCsLikeProfile ? 'Doprava / parkování' : 'Transport / parking' },
-    { key: 'health_care', label: isCsLikeProfile ? 'Zdravotní péče' : 'Healthcare' },
-    { key: 'pension', label: isCsLikeProfile ? 'Penzijko / spoření' : 'Pension / retirement' },
-    { key: 'vacation_5w', label: isCsLikeProfile ? 'Extra dovolená' : 'Extra vacation' },
-    { key: 'education', label: isCsLikeProfile ? 'Vzdělávání' : 'Education' },
-    { key: 'multisport', label: isCsLikeProfile ? 'Sport / wellness' : 'Sport / wellness' },
-    { key: 'car_personal', label: isCsLikeProfile ? 'Služební auto' : 'Company car' },
+    { key: 'childcare_support', label: getProfileLocaleLabel({ cs: 'Podpora péče o děti', sk: 'Podpora starostlivosti o deti', de: 'Kinderbetreuung', at: 'Kinderbetreuung', pl: 'Wsparcie opieki nad dziećmi', en: 'Childcare support' }, profileLocale) },
+    { key: 'child_friendly', label: getProfileLocaleLabel({ cs: 'Pro rodiče', sk: 'Pre rodičov', de: 'Familienfreundlich', at: 'Familienfreundlich', pl: 'Przyjazne rodzicom', en: 'Child-friendly environment' }, profileLocale) },
+    { key: 'home_office', label: getProfileLocaleLabel({ cs: 'Home office', sk: 'Home office', de: 'Homeoffice', at: 'Homeoffice', pl: 'Home office', en: 'Home office' }, profileLocale) },
+    { key: 'flex_time', label: getProfileLocaleLabel({ cs: 'Flexibilní režim', sk: 'Flexibilný režim', de: 'Flexible Zeiten', at: 'Flexible Zeiten', pl: 'Elastyczny czas', en: 'Flexible schedule' }, profileLocale) },
+    { key: 'meal_allowance', label: getProfileLocaleLabel({ cs: 'Stravování', sk: 'Stravovanie', de: 'Verpflegung', at: 'Verpflegung', pl: 'Posiłki', en: 'Meals' }, profileLocale) },
+    { key: 'transport_support', label: getProfileLocaleLabel({ cs: 'Doprava / parkování', sk: 'Doprava / parkovanie', de: 'Transport / Parken', at: 'Transport / Parken', pl: 'Dojazd / parking', en: 'Transport / parking' }, profileLocale) },
+    { key: 'health_care', label: getProfileLocaleLabel({ cs: 'Zdravotní péče', sk: 'Zdravotná starostlivosť', de: 'Gesundheitsbenefity', at: 'Gesundheitsbenefity', pl: 'Opieka zdrowotna', en: 'Healthcare' }, profileLocale) },
+    { key: 'pension', label: getProfileLocaleLabel({ cs: 'Penzijko / spoření', sk: 'Dôchodok / sporenie', de: 'Vorsorge / Pension', at: 'Vorsorge / Pension', pl: 'Emerytura / oszczędzanie', en: 'Pension / retirement' }, profileLocale) },
+    { key: 'vacation_5w', label: getProfileLocaleLabel({ cs: 'Extra dovolená', sk: 'Extra dovolenka', de: 'Mehr Urlaub', at: 'Mehr Urlaub', pl: 'Dodatkowy urlop', en: 'Extra vacation' }, profileLocale) },
+    { key: 'education', label: getProfileLocaleLabel({ cs: 'Vzdělávání', sk: 'Vzdelávanie', de: 'Weiterbildung', at: 'Weiterbildung', pl: 'Rozwój / szkolenia', en: 'Education' }, profileLocale) },
+    { key: 'multisport', label: getProfileLocaleLabel({ cs: 'Sport / wellness', sk: 'Šport / wellness', de: 'Sport / Wellness', at: 'Sport / Wellness', pl: 'Sport / wellness', en: 'Sport / wellness' }, profileLocale) },
+    { key: 'car_personal', label: getProfileLocaleLabel({ cs: 'Služební auto', sk: 'Služobné auto', de: 'Firmenwagen', at: 'Firmenwagen', pl: 'Samochód służbowy', en: 'Company car' }, profileLocale) },
   ];
   const intentDomainOptions = getCandidateIntentDomainOptions(i18n.language || 'cs');
   const seniorityOptions: Array<{ key: CandidateSeniority; label: string }> = [
-    { key: 'entry', label: isCsLikeProfile ? 'Entry / trainee' : 'Entry / trainee' },
-    { key: 'junior', label: isCsLikeProfile ? 'Junior' : 'Junior' },
-    { key: 'medior', label: isCsLikeProfile ? 'Medior' : 'Mid-level' },
-    { key: 'senior', label: isCsLikeProfile ? 'Senior' : 'Senior' },
-    { key: 'lead', label: isCsLikeProfile ? 'Lead / manažer' : 'Lead / manager' },
+    { key: 'entry', label: getProfileLocaleLabel({ cs: 'Entry / trainee', sk: 'Entry / trainee', de: 'Einstieg / Trainee', at: 'Einstieg / Trainee', pl: 'Entry / trainee', en: 'Entry / trainee' }, profileLocale) },
+    { key: 'junior', label: getProfileLocaleLabel({ cs: 'Junior', sk: 'Junior', de: 'Junior', at: 'Junior', pl: 'Junior', en: 'Junior' }, profileLocale) },
+    { key: 'medior', label: getProfileLocaleLabel({ cs: 'Medior', sk: 'Medior', de: 'Mittelstufe', at: 'Mittelstufe', pl: 'Mid', en: 'Mid-level' }, profileLocale) },
+    { key: 'senior', label: getProfileLocaleLabel({ cs: 'Senior', sk: 'Senior', de: 'Senior', at: 'Senior', pl: 'Senior', en: 'Senior' }, profileLocale) },
+    { key: 'lead', label: getProfileLocaleLabel({ cs: 'Lead / manažer', sk: 'Lead / manažér', de: 'Lead / Management', at: 'Lead / Management', pl: 'Lead / manager', en: 'Lead / manager' }, profileLocale) },
   ];
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
@@ -648,7 +873,20 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     label: string;
     caption?: string;
   }> = [
-    { key: 'personal', icon: User, label: t('profile.personal_info', { defaultValue: 'Osobní údaje' }) },
+    {
+      key: 'personal',
+      icon: User,
+      label: t('profile.personal_info', {
+        defaultValue: getProfileLocaleLabel({
+          cs: 'Osobní údaje',
+          sk: 'Osobné údaje',
+          de: 'Persönliche Angaben',
+          at: 'Persönliche Angaben',
+          pl: 'Dane osobowe',
+          en: 'Personal details'
+        }, profileLocale)
+      })
+    },
     {
       key: 'cv',
       icon: FileText,
@@ -656,12 +894,43 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
     },
     { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
-    { key: 'settings', icon: Bell, label: t('profile.settings_title', { defaultValue: 'Nastavení' }) },
+    {
+      key: 'settings',
+      icon: Bell,
+      label: t('profile.settings_title', {
+        defaultValue: getProfileLocaleLabel({
+          cs: 'Nastavení',
+          sk: 'Nastavenia',
+          de: 'Einstellungen',
+          at: 'Einstellungen',
+          pl: 'Ustawienia',
+          en: 'Settings'
+        }, profileLocale)
+      })
+    },
     {
       key: 'saved',
       icon: Bookmark,
-      label: t('profile.job_hub.badge', { defaultValue: 'Dialogové centrum' }),
-      caption: t('profile.job_hub.tab_caption', { defaultValue: 'Dialogy a sloty' })
+      label: t('profile.job_hub.badge', {
+        defaultValue: getProfileLocaleLabel({
+          cs: 'Dialogové centrum',
+          sk: 'Dialógové centrum',
+          de: 'Dialogzentrum',
+          at: 'Dialogzentrum',
+          pl: 'Centrum dialogów',
+          en: 'Dialogue hub'
+        }, profileLocale)
+      }),
+      caption: t('profile.job_hub.tab_caption', {
+        defaultValue: getProfileLocaleLabel({
+          cs: 'Dialogy a sloty',
+          sk: 'Dialógy a sloty',
+          de: 'Dialoge und Slots',
+          at: 'Dialoge und Slots',
+          pl: 'Dialogi i sloty',
+          en: 'Dialogues and slots'
+        }, profileLocale)
+      })
     },
   ];
   const isPersonalTab = activeTab === 'personal';
@@ -678,21 +947,50 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileAccentPanelClass = 'rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4';
   const profileAccentBadgeClass = 'inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]';
 
-  const profileHeroCopy = isCsLikeProfile
-    ? {
+  const profileHeroCopy = ({
+    cs: {
       eyebrow: 'Profil kandidáta',
       subtitle: 'Udržujte profil připravený pro první kontakt. Jasný kontext, stručné podklady a aktualizované preference.',
       readiness: 'Připravenost profilu',
       sections: 'Aktivní sekce',
       docs: 'Podklady'
-    }
-    : {
+    },
+    sk: {
+      eyebrow: 'Profil kandidáta',
+      subtitle: 'Udržiavajte profil pripravený na prvý kontakt. Jasný kontext, stručné podklady a aktualizované preferencie.',
+      readiness: 'Pripravenosť profilu',
+      sections: 'Aktívne sekcie',
+      docs: 'Podklady'
+    },
+    de: {
+      eyebrow: 'Kandidatenprofil',
+      subtitle: 'Halten Sie Ihr Profil für den ersten Kontakt bereit: klarer Kontext, knappe Unterlagen und aktuelle Präferenzen.',
+      readiness: 'Profilbereitschaft',
+      sections: 'Aktive Bereiche',
+      docs: 'Unterlagen'
+    },
+    at: {
+      eyebrow: 'Kandidatenprofil',
+      subtitle: 'Halten Sie Ihr Profil für den ersten Kontakt bereit: klarer Kontext, knappe Unterlagen und aktuelle Präferenzen.',
+      readiness: 'Profilbereitschaft',
+      sections: 'Aktive Bereiche',
+      docs: 'Unterlagen'
+    },
+    pl: {
+      eyebrow: 'Profil kandydata',
+      subtitle: 'Utrzymuj profil gotowy do pierwszego kontaktu: jasny kontekst, zwięzłe materiały i aktualne preferencje.',
+      readiness: 'Gotowość profilu',
+      sections: 'Aktywne sekcje',
+      docs: 'Materiały'
+    },
+    en: {
       eyebrow: 'Candidate profile',
       subtitle: 'Keep your profile ready for first contact: clear context, concise supporting docs, and up-to-date preferences.',
       readiness: 'Profile readiness',
       sections: 'Active sections',
       docs: 'Documents'
-    };
+    }
+  } as const)[(['cs', 'sk', 'de', 'at', 'pl'].includes(localeBase) ? localeBase : 'en') as 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en'];
 
   const profileSignals = [
     Boolean(formData.personal.name?.trim()),
@@ -862,7 +1160,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 type="button"
                 className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                {t('app.clear', { defaultValue: 'Clear' })}
+                {t('app.clear', {
+                  defaultValue: getProfileLocaleLabel({
+                    cs: 'Vymazat',
+                    sk: 'Vymazať',
+                    de: 'Leeren',
+                    at: 'Leeren',
+                    pl: 'Wyczyść',
+                    en: 'Clear'
+                  }, profileLocale)
+                })}
               </button>
             </div>
           </div>
@@ -877,7 +1184,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              {t('profile.ai_cv_editor.count', { defaultValue: '{{count}} characters', count: editableCvAiText.length })}
+              {t('profile.ai_cv_editor.count', {
+                defaultValue: getProfileLocaleLabel({
+                  cs: '{{count}} znaků',
+                  sk: '{{count}} znakov',
+                  de: '{{count}} Zeichen',
+                  at: '{{count}} Zeichen',
+                  pl: '{{count}} znaków',
+                  en: '{{count}} characters'
+                }, profileLocale),
+                count: editableCvAiText.length
+              })}
             </span>
             <button
               type="button"
@@ -901,7 +1218,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               className="inline-flex items-center justify-center rounded-[0.95rem] bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
             >
               {isSavingCvAiText
-                ? t('profile.ai_cv_editor.saving', { defaultValue: 'Saving...' })
+                ? t('profile.ai_cv_editor.saving', {
+                  defaultValue: getProfileLocaleLabel({
+                    cs: 'Ukládám...',
+                    sk: 'Ukladám...',
+                    de: 'Speichern...',
+                    at: 'Speichern...',
+                    pl: 'Zapisywanie...',
+                    en: 'Saving...'
+                  }, profileLocale)
+                })
                 : t('profile.ai_cv_editor.save', { defaultValue: supportingContextCopy.aiDraftSave })}
             </button>
           </div>
@@ -947,7 +1273,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                {showIntentNudge ? (isCsLikeProfile ? 'Doporučené doplnění po nahrání CV' : 'Suggested update after CV upload') : intentProfileCopy.inferredTitle}
+                {showIntentNudge
+                  ? getProfileLocaleLabel({
+                    cs: 'Doporučené doplnění po nahrání CV',
+                    sk: 'Odporúčané doplnenie po nahraní CV',
+                    de: 'Empfohlene Ergänzung nach dem CV-Upload',
+                    at: 'Empfohlene Ergänzung nach dem CV-Upload',
+                    pl: 'Sugerowane uzupełnienie po wgraniu CV',
+                    en: 'Suggested update after CV upload'
+                  }, profileLocale)
+                  : intentProfileCopy.inferredTitle}
               </div>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
                 {showIntentNudge
@@ -1205,15 +1540,38 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <div className="grid min-w-[220px] gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
-                    {isCsLikeProfile ? 'Výchozí dojezd' : 'Default commute'}
+                    {getProfileLocaleLabel({
+                      cs: 'Výchozí dojezd',
+                      sk: 'Predvolený dojazd',
+                      de: 'Standard-Pendeln',
+                      at: 'Standard-Pendeln',
+                      pl: 'Domyślny dojazd',
+                      en: 'Default commute'
+                    }, profileLocale)}
                   </div>
                   <div className="mt-1 text-base font-semibold text-[var(--text-strong)]">
-                    {formData.searchProfile.defaultEnableCommuteFilter ? `${formData.searchProfile.defaultMaxDistanceKm} km` : (isCsLikeProfile ? 'Vypnuto' : 'Off')}
+                    {formData.searchProfile.defaultEnableCommuteFilter
+                      ? `${formData.searchProfile.defaultMaxDistanceKm} km`
+                      : getProfileLocaleLabel({
+                        cs: 'Vypnuto',
+                        sk: 'Vypnuté',
+                        de: 'Aus',
+                        at: 'Aus',
+                        pl: 'Wyłączone',
+                        en: 'Off'
+                      }, profileLocale)}
                   </div>
                 </div>
                 <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
-                    {isCsLikeProfile ? 'Forma dopravy' : 'Transport mode'}
+                    {getProfileLocaleLabel({
+                      cs: 'Forma dopravy',
+                      sk: 'Forma dopravy',
+                      de: 'Verkehrsmittel',
+                      at: 'Verkehrsmittel',
+                      pl: 'Środek transportu',
+                      en: 'Transport mode'
+                    }, profileLocale)}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-[var(--text-strong)]">
                     {t(`profile.transport_mode.${profile.transportMode || 'public'}`)}
@@ -1224,7 +1582,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     {searchProfileCopy.commuteOrigin}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-[var(--text-strong)] break-words">
-                    {commuteOriginAddress || (isCsLikeProfile ? 'Neuvedeno' : 'Not set')}
+                    {commuteOriginAddress || getProfileLocaleLabel({
+                      cs: 'Neuvedeno',
+                      sk: 'Neuvedené',
+                      de: 'Nicht gesetzt',
+                      at: 'Nicht gesetzt',
+                      pl: 'Nie ustawiono',
+                      en: 'Not set'
+                    }, profileLocale)}
                   </div>
                   {!commuteOriginAddress ? (
                     <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
@@ -3673,7 +4038,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t('profile.save_hint_bottom', { defaultValue: 'Po úpravách profilu změny uložte.' })}
+                  {t('profile.save_hint_bottom', {
+                    defaultValue: ({
+                      cs: 'Po úpravách profilu změny uložte.',
+                      sk: 'Po úpravách profilu zmeny uložte.',
+                      de: 'Speichern Sie Ihre Änderungen nach der Bearbeitung des Profils.',
+                      at: 'Speichern Sie Ihre Änderungen nach der Bearbeitung des Profils.',
+                      pl: 'Po edycji profilu zapisz zmiany.',
+                      en: 'Save your changes after editing the profile.'
+                    } as const)[(['cs', 'sk', 'de', 'at', 'pl'].includes(localeBase) ? localeBase : 'en') as 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en']
+                  })}
                 </p>
                 <button
                   onClick={handleSaveClick}
@@ -3703,7 +4077,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <Mail className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                      {t('profile.account_title', { defaultValue: 'Účet a e-mail' })}
+                      {t('profile.account_title', {
+                        defaultValue: getProfileLocaleLabel({
+                          cs: 'Účet a e-mail',
+                          sk: 'Účet a e-mail',
+                          de: 'Konto und E-Mail',
+                          at: 'Konto und E-Mail',
+                          pl: 'Konto i e-mail',
+                          en: 'Account and email'
+                        }, profileLocale)
+                      })}
                     </h2>
                   </div>
                 </div>
@@ -3748,7 +4131,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <Bell className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                      {t('profile.notifications', { defaultValue: 'Notifikace' })}
+                      {t('profile.notifications', {
+                        defaultValue: getProfileLocaleLabel({
+                          cs: 'Notifikace',
+                          sk: 'Notifikácie',
+                          de: 'Benachrichtigungen',
+                          at: 'Benachrichtigungen',
+                          pl: 'Powiadomienia',
+                          en: 'Notifications'
+                        }, profileLocale)
+                      })}
                     </h2>
                   </div>
                 </div>
@@ -3761,7 +4153,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         checked={Boolean(formData.notifications.dailyDigestEnabled)}
                         onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
                       />
-                      {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
+                      {t('profile.digest_email', {
+                        defaultValue: getProfileLocaleLabel({
+                          cs: 'Denní digest e‑mailem',
+                          sk: 'Denný digest e‑mailom',
+                          de: 'Täglicher Digest per E-Mail',
+                          at: 'Täglicher Digest per E-Mail',
+                          pl: 'Dzienny digest e-mailem',
+                          en: 'Daily digest by email'
+                        }, profileLocale)
+                      })}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                       <input
@@ -3769,14 +4170,32 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
                         onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
                       />
-                      {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
+                      {t('profile.digest_push', {
+                        defaultValue: getProfileLocaleLabel({
+                          cs: 'Denní digest jako push',
+                          sk: 'Denný digest ako push',
+                          de: 'Täglicher Digest als Push',
+                          at: 'Täglicher Digest als Push',
+                          pl: 'Dzienny digest jako push',
+                          en: 'Daily digest as push'
+                        }, profileLocale)
+                      })}
                     </label>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
+                        {t('profile.digest_time', {
+                          defaultValue: getProfileLocaleLabel({
+                            cs: 'Čas doručení',
+                            sk: 'Čas doručenia',
+                            de: 'Zeit der Zustellung',
+                            at: 'Zeit der Zustellung',
+                            pl: 'Godzina dostarczenia',
+                            en: 'Delivery time'
+                          }, profileLocale)
+                        })}
                       </label>
                       <input
                         type="time"
@@ -3787,7 +4206,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
+                        {t('profile.digest_timezone', {
+                          defaultValue: getProfileLocaleLabel({
+                            cs: 'Časové pásmo',
+                            sk: 'Časové pásmo',
+                            de: 'Zeitzone',
+                            at: 'Zeitzone',
+                            pl: 'Strefa czasowa',
+                            en: 'Timezone'
+                          }, profileLocale)
+                        })}
                       </label>
                       <input
                         type="text"
@@ -3803,7 +4231,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <div className="text-xs text-slate-500">
                       {pushSupported
                         ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
-                        : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
+                        : t('profile.push_unsupported', {
+                          defaultValue: getProfileLocaleLabel({
+                            cs: 'Push notifikace nejsou v tomto prohlížeči dostupné.',
+                            sk: 'Push notifikácie nie sú v tomto prehliadači dostupné.',
+                            de: 'Push-Benachrichtigungen sind in diesem Browser nicht verfügbar.',
+                            at: 'Push-Benachrichtigungen sind in diesem Browser nicht verfügbar.',
+                            pl: 'Powiadomienia push nie są dostępne w tej przeglądarce.',
+                            en: 'Push notifications are not available in this browser.'
+                          }, profileLocale)
+                        })}
                     </div>
                     {pushSupported && (
                       <>
@@ -3812,14 +4249,32 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           disabled={pushBusy}
                           className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
                         >
-                          {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
+                          {t('profile.push_enable', {
+                            defaultValue: getProfileLocaleLabel({
+                              cs: 'Povolit push notifikace',
+                              sk: 'Povoliť push notifikácie',
+                              de: 'Push-Benachrichtigungen aktivieren',
+                              at: 'Push-Benachrichtigungen aktivieren',
+                              pl: 'Włącz powiadomienia push',
+                              en: 'Enable push notifications'
+                            }, profileLocale)
+                          })}
                         </button>
                         <button
                           onClick={handleDisablePush}
                           disabled={pushBusy}
                           className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
                         >
-                          {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
+                          {t('profile.push_disable', {
+                            defaultValue: getProfileLocaleLabel({
+                              cs: 'Vypnout push',
+                              sk: 'Vypnúť push',
+                              de: 'Push deaktivieren',
+                              at: 'Push deaktivieren',
+                              pl: 'Wyłącz push',
+                              en: 'Disable push'
+                            }, profileLocale)
+                          })}
                         </button>
                       </>
                     )}
@@ -3836,13 +4291,31 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <Lock className={profileAccentIconClass} />
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                      {t('profile.security_title', { defaultValue: 'Změna hesla' })}
+                      {t('profile.security_title', {
+                        defaultValue: getProfileLocaleLabel({
+                          cs: 'Změna hesla',
+                          sk: 'Zmena hesla',
+                          de: 'Passwort ändern',
+                          at: 'Passwort ändern',
+                          pl: 'Zmiana hasła',
+                          en: 'Change password'
+                        }, profileLocale)
+                      })}
                     </h2>
                   </div>
                 </div>
                 <div className="p-6">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    {t('profile.security_desc', { defaultValue: 'Nastavte si nové heslo pro přihlášení do účtu.' })}
+                    {t('profile.security_desc', {
+                      defaultValue: getProfileLocaleLabel({
+                        cs: 'Nastavte si nové heslo pro přihlášení do účtu.',
+                        sk: 'Nastavte si nové heslo pre prihlásenie do účtu.',
+                        de: 'Legen Sie ein neues Passwort für die Anmeldung fest.',
+                        at: 'Legen Sie ein neues Passwort für die Anmeldung fest.',
+                        pl: 'Ustaw nowe hasło do logowania do konta.',
+                        en: 'Set a new password for signing in to your account.'
+                      }, profileLocale)
+                    })}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

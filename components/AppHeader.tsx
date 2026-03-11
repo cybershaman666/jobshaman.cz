@@ -83,6 +83,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const [avatarFailed, setAvatarFailed] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const isCsLike = locale === 'cs' || locale === 'sk';
+  const headerLabel = (labels: { cs: string; sk?: string; de?: string; at?: string; pl?: string; en: string }) => {
+    if (locale === 'sk' && labels.sk) return labels.sk;
+    if (locale === 'de' && labels.de) return labels.de;
+    if (locale === 'at' && labels.at) return labels.at || labels.de || labels.en;
+    if (locale === 'pl' && labels.pl) return labels.pl;
+    if (locale === 'cs') return labels.cs;
+    return labels.en;
+  };
   const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
   const insightsLabel =
     locale === 'cs' || locale === 'sk'
@@ -148,19 +156,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const navItems = [
     {
       key: 'overview',
-      label: isCsLike ? 'Úvod' : 'Overview',
+      label: headerLabel({ cs: 'Úvod', sk: 'Úvod', de: 'Übersicht', at: 'Übersicht', pl: 'Przegląd', en: 'Overview' }),
       active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && !discoverySearchMode,
       onClick: openHomeOverview
     },
     {
       key: 'search',
-      label: isCsLike ? 'Hledání a filtry' : 'Search and filters',
+      label: headerLabel({ cs: 'Hledání a filtry', sk: 'Hľadanie a filtre', de: 'Suche und Filter', at: 'Suche und Filter', pl: 'Szukaj i filtry', en: 'Search and filters' }),
       active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoverySearchMode,
       onClick: () => openDiscoveryLane('challenges', true)
     },
     {
       key: 'saved',
-      label: isCsLike ? 'Uložené' : 'Saved',
+      label: headerLabel({ cs: 'Uložené', sk: 'Uložené', de: 'Gespeichert', at: 'Gespeichert', pl: 'Zapisane', en: 'Saved' }),
       active: viewState === ViewState.SAVED,
       onClick: () => {
         if (leaveDemoHandshakeRoute('ulozene')) return;

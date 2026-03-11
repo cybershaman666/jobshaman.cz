@@ -13,39 +13,93 @@ interface CVManagerProps {
 
 const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium = false }) => {
   const { t } = useTranslation();
-  const locale = typeof navigator !== 'undefined' ? navigator.language.toLowerCase() : 'en';
-  const isCsLike = locale.startsWith('cs') || locale.startsWith('sk');
+  const locale = typeof navigator !== 'undefined' ? navigator.language.toLowerCase().split('-')[0] : 'en';
   const [cvs, setCvs] = useState<CVDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [reparsingId, setReparsingId] = useState<string | null>(null);
   const [previewCv, setPreviewCv] = useState<CVDocument | null>(null);
 
-  const copy = isCsLike ? {
-    title: 'Knihovna dokumentu',
-    upload: 'Pridat dokument',
-    emptyTitle: 'Zatim tu nejsou zadne podpurne dokumenty.',
-    emptyBody: 'Pridej CV nebo jiny doplnujici dokument. V handshaku zustavaji volitelne.',
-    active: 'Aktivne pouzivany',
-    tipTitle: 'Tip:',
-    tipBody: 'Drz si 1 az 2 aktualni podpurne dokumenty. Nejsou povinne, ale mohou doplnit kontext tam, kde to dava smysl.',
-    preview: 'Zobrazit',
-    previewTitle: 'Nahled dokumentu',
-    previewOpenNew: 'Otevrit v nove karte',
-    previewFallback: 'Tento typ souboru nejde spolehlive zobrazit primo v aplikaci. Otevri ho v nove karte.',
-  } : {
-    title: 'Document library',
-    upload: 'Add document',
-    emptyTitle: 'No supporting documents yet.',
-    emptyBody: 'Add a CV or another supporting file. In the handshake flow, these stay optional.',
-    active: 'Currently in use',
-    tipTitle: 'Tip:',
-    tipBody: 'Keep 1 to 2 current supporting documents ready. They are optional, but useful when extra context helps.',
-    preview: 'Preview',
-    previewTitle: 'Document preview',
-    previewOpenNew: 'Open in new tab',
-    previewFallback: 'This file type cannot be previewed reliably inside the app. Open it in a new tab instead.',
-  };
+  const copy = ({
+    cs: {
+      title: 'Knihovna dokumentů',
+      upload: 'Přidat dokument',
+      emptyTitle: 'Zatím tu nejsou žádné podpůrné dokumenty.',
+      emptyBody: 'Přidejte CV nebo jiný doplňující dokument. V handshaku zůstávají volitelné.',
+      active: 'Aktivně používaný',
+      tipTitle: 'Tip:',
+      tipBody: 'Držte si 1 až 2 aktuální podpůrné dokumenty. Nejsou povinné, ale mohou doplnit kontext tam, kde to dává smysl.',
+      preview: 'Zobrazit',
+      previewTitle: 'Náhled dokumentu',
+      previewOpenNew: 'Otevřít v nové kartě',
+      previewFallback: 'Tento typ souboru nejde spolehlivě zobrazit přímo v aplikaci. Otevřete ho v nové kartě.',
+    },
+    sk: {
+      title: 'Knižnica dokumentov',
+      upload: 'Pridať dokument',
+      emptyTitle: 'Zatiaľ tu nie sú žiadne podporné dokumenty.',
+      emptyBody: 'Pridajte CV alebo iný doplňujúci dokument. V handshaku zostávajú voliteľné.',
+      active: 'Aktívne používaný',
+      tipTitle: 'Tip:',
+      tipBody: 'Majte pripravené 1 až 2 aktuálne podporné dokumenty. Nie sú povinné, ale v správnej chvíli doplnia kontext.',
+      preview: 'Zobraziť',
+      previewTitle: 'Náhľad dokumentu',
+      previewOpenNew: 'Otvoriť v novej karte',
+      previewFallback: 'Tento typ súboru sa nedá spoľahlivo zobraziť priamo v aplikácii. Otvorte ho v novej karte.',
+    },
+    de: {
+      title: 'Dokumentenbibliothek',
+      upload: 'Dokument hinzufügen',
+      emptyTitle: 'Noch keine unterstützenden Dokumente vorhanden.',
+      emptyBody: 'Fügen Sie ein CV oder ein anderes Zusatzdokument hinzu. Im Handshake bleiben diese Unterlagen optional.',
+      active: 'Aktuell verwendet',
+      tipTitle: 'Tipp:',
+      tipBody: 'Halten Sie 1 bis 2 aktuelle Zusatzdokumente bereit. Sie sind optional, können aber nützlichen Kontext ergänzen.',
+      preview: 'Vorschau',
+      previewTitle: 'Dokumentvorschau',
+      previewOpenNew: 'In neuem Tab öffnen',
+      previewFallback: 'Dieser Dateityp lässt sich in der App nicht zuverlässig anzeigen. Öffnen Sie ihn in einem neuen Tab.',
+    },
+    at: {
+      title: 'Dokumentenbibliothek',
+      upload: 'Dokument hinzufügen',
+      emptyTitle: 'Noch keine unterstützenden Dokumente vorhanden.',
+      emptyBody: 'Fügen Sie ein CV oder ein anderes Zusatzdokument hinzu. Im Handshake bleiben diese Unterlagen optional.',
+      active: 'Aktuell verwendet',
+      tipTitle: 'Tipp:',
+      tipBody: 'Halten Sie 1 bis 2 aktuelle Zusatzdokumente bereit. Sie sind optional, können aber nützlichen Kontext ergänzen.',
+      preview: 'Vorschau',
+      previewTitle: 'Dokumentvorschau',
+      previewOpenNew: 'In neuem Tab öffnen',
+      previewFallback: 'Dieser Dateityp lässt sich in der App nicht zuverlässig anzeigen. Öffnen Sie ihn in einem neuen Tab.',
+    },
+    pl: {
+      title: 'Biblioteka dokumentów',
+      upload: 'Dodaj dokument',
+      emptyTitle: 'Nie ma tu jeszcze żadnych materiałów wspierających.',
+      emptyBody: 'Dodaj CV lub inny dokument uzupełniający. W handshaku pozostają one opcjonalne.',
+      active: 'Aktualnie używany',
+      tipTitle: 'Wskazówka:',
+      tipBody: 'Trzymaj 1-2 aktualne dokumenty wspierające. Są opcjonalne, ale czasem dobrze uzupełniają kontekst.',
+      preview: 'Podgląd',
+      previewTitle: 'Podgląd dokumentu',
+      previewOpenNew: 'Otwórz w nowej karcie',
+      previewFallback: 'Tego typu pliku nie da się wiarygodnie podejrzeć bezpośrednio w aplikacji. Otwórz go w nowej karcie.',
+    },
+    en: {
+      title: 'Document library',
+      upload: 'Add document',
+      emptyTitle: 'No supporting documents yet.',
+      emptyBody: 'Add a CV or another supporting file. In the handshake flow, these stay optional.',
+      active: 'Currently in use',
+      tipTitle: 'Tip:',
+      tipBody: 'Keep 1 to 2 current supporting documents ready. They are optional, but useful when extra context helps.',
+      preview: 'Preview',
+      previewTitle: 'Document preview',
+      previewOpenNew: 'Open in new tab',
+      previewFallback: 'This file type cannot be previewed reliably inside the app. Open it in a new tab instead.',
+    },
+  } as const)[(['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en') as 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en'];
 
   const canPreviewInline = (cv: CVDocument | null) => {
     if (!cv) return false;
@@ -194,7 +248,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('cs-CZ', {
+    return new Date(dateString).toLocaleDateString(locale === 'at' ? 'de-AT' : locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
