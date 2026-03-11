@@ -145,12 +145,20 @@ def _mark_provider_failure(provider: str, error: Exception | str) -> None:
     with _EXTERNAL_PROVIDER_HEALTH_LOCK:
         state = _EXTERNAL_PROVIDER_HEALTH.setdefault(provider, {})
         failures = int(state.get("failures") or 0) + 1
+        is_host_scoped_jooble_forbidden = (
+            provider == "jooble"
+            and "forbidden" in error_text.lower()
+            and "host" in error_text.lower()
+            and "all candidate hosts" not in error_text.lower()
+        )
         if "403" in error_text or "forbidden" in error_text.lower():
             failures = max(failures, _EXTERNAL_PROVIDER_FAILURE_THRESHOLD)
+        if is_host_scoped_jooble_forbidden:
+            failures = min(failures, max(1, _EXTERNAL_PROVIDER_FAILURE_THRESHOLD - 1))
         state["failures"] = failures
         state["last_error"] = error_text
         state["last_failure_at"] = now.isoformat()
-        if failures >= _EXTERNAL_PROVIDER_FAILURE_THRESHOLD:
+        if failures >= _EXTERNAL_PROVIDER_FAILURE_THRESHOLD and not is_host_scoped_jooble_forbidden:
             state["circuit_open_until"] = now + timedelta(seconds=_EXTERNAL_PROVIDER_COOLDOWN_SECONDS)
 
 

@@ -54,6 +54,13 @@ DEFAULT_JOOBLE_API_HOSTS = {
     "AT": "at.jooble.org",
     "PL": "pl.jooble.org",
 }
+DEFAULT_JOOBLE_LANGUAGE_CODES = {
+    "CZ": "cs",
+    "SK": "sk",
+    "DE": "de",
+    "AT": "de",
+    "PL": "pl",
+}
 DEFAULT_WWR_RSS_URLS = [
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-customer-support-jobs.rss",
@@ -763,34 +770,67 @@ def _resolve_jooble_api_hosts() -> Dict[str, str]:
     return resolved
 
 
-def _select_jooble_api_host(country_codes: Optional[List[str]] = None) -> str:
-    hosts = _resolve_jooble_api_hosts()
+def _resolve_jooble_allowed_country_codes() -> List[str]:
+    raw = norm_text(os.getenv("JOOBLE_ALLOWED_COUNTRY_CODES") or os.getenv("JOOBLE_USABLE_COUNTRY_CODES"))
+    if not raw:
+        return []
+    result: List[str] = []
+    for chunk in raw.split(","):
+        code = normalize_country_code(chunk)
+        if code and code not in result:
+            result.append(code)
+    return result
+
+
+def _resolve_jooble_language_code(country_codes: Optional[List[str]] = None) -> str:
     normalized_codes = [
         code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
     ]
+    if len(normalized_codes) == 1:
+        return DEFAULT_JOOBLE_LANGUAGE_CODES.get(normalized_codes[0], "en")
+    return "en"
 
-    def _is_available(host: str) -> bool:
-        cooldown_until = _JOOBLE_HOST_FORBIDDEN_UNTIL.get(host)
-        if cooldown_until and cooldown_until > time.time():
-            return False
-        if cooldown_until:
-            _JOOBLE_HOST_FORBIDDEN_UNTIL.pop(host, None)
-        return True
+
+def _iter_jooble_candidate_hosts(country_codes: Optional[List[str]] = None) -> List[Tuple[Optional[str], str]]:
+    hosts = _resolve_jooble_api_hosts()
+    allowed_codes = set(_resolve_jooble_allowed_country_codes())
+    normalized_codes = [
+        code for code in (normalize_country_code(value) for value in (country_codes or [])) if code
+    ]
+    candidates: List[Tuple[Optional[str], str]] = []
+    seen: set[str] = set()
+
+    def _push(code: Optional[str], host: Optional[str]) -> None:
+        resolved_host = norm_text(host)
+        if not resolved_host or resolved_host in seen:
+            return
+        if code and allowed_codes and code not in allowed_codes:
+            return
+        seen.add(resolved_host)
+        candidates.append((code, resolved_host))
 
     if len(normalized_codes) == 1:
-        preferred = hosts.get(normalized_codes[0])
-        if preferred and _is_available(preferred):
-            return preferred
+        preferred_code = normalized_codes[0]
+        _push(preferred_code, hosts.get(preferred_code))
 
     fallback = hosts.get("DEFAULT") or _resolve_jooble_api_host()
-    if fallback and _is_available(fallback):
-        return fallback
+    _push("DEFAULT", fallback)
 
-    for host in hosts.values():
-        if host and _is_available(host):
-            return host
+    for code, host in hosts.items():
+        if code == "DEFAULT":
+            continue
+        _push(code, host)
 
-    return fallback
+    return candidates
+
+
+def _is_jooble_host_available(host: str) -> bool:
+    cooldown_until = _JOOBLE_HOST_FORBIDDEN_UNTIL.get(host)
+    if cooldown_until and cooldown_until > time.time():
+        return False
+    if cooldown_until:
+        _JOOBLE_HOST_FORBIDDEN_UNTIL.pop(host, None)
+    return True
 
 
 def _wwr_db_import_enabled() -> bool:
@@ -891,6 +931,7 @@ def _build_jooble_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
     if source:
         benefits.append(source)
 
+    normalized_country_code = normalize_country_code(country_code)
     payload = {
         "id": str(item.get("id") or link or f"jooble:{title}:{company}:{location}"),
         "title": title or "Remote role",
@@ -909,8 +950,8 @@ def _build_jooble_live_job(item: Dict[str, Any]) -> Dict[str, Any]:
         "salary_currency": detected_currency or "EUR",
         "salary_timeframe": "month",
         "scraped_at": updated,
-        "country_code": normalize_country_code(country_code),
-        "language_code": "en",
+        "country_code": normalized_country_code,
+        "language_code": DEFAULT_JOOBLE_LANGUAGE_CODES.get(normalized_country_code or "", "en"),
         "education_level": None,
         "legality_status": "legal",
         "verification_notes": "Live API import from Jooble",
@@ -1111,8 +1152,8 @@ def search_jooble_jobs_live(
         return cached[: max(1, limit)]
 
     api_key = _resolve_jooble_api_key()
-    api_host = _select_jooble_api_host(country_codes)
-    if not api_key or not api_host:
+    candidate_hosts = _iter_jooble_candidate_hosts(country_codes)
+    if not api_key or not candidate_hosts:
         return []
 
     keywords = norm_text(search_term)
@@ -1134,7 +1175,6 @@ def search_jooble_jobs_live(
         else:
             location = country_location
 
-    endpoint = f"https://{api_host}/api/{api_key}"
     payload: Dict[str, Any] = {
         "keywords": keywords,
         "page": str(max(1, page)),
@@ -1143,20 +1183,49 @@ def search_jooble_jobs_live(
     }
     if location:
         payload["location"] = location
+    payload["language"] = _resolve_jooble_language_code(allowed_country_codes)
 
-    try:
-        response = requests.post(endpoint, json=payload, timeout=HTTP_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        data = response.json() if response.content else {}
-    except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else None
-        if status_code == 403:
-            _JOOBLE_HOST_FORBIDDEN_UNTIL[api_host] = time.time() + JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS
-            raise PermissionError(f"Jooble API forbidden for host {api_host}") from exc
-        print(f"❌ Jooble live API request failed: {exc}")
-        return []
-    except Exception as exc:
-        print(f"❌ Jooble live API request failed: {exc}")
+    last_error: Exception | None = None
+    data: Dict[str, Any] | None = None
+    successful_host: str | None = None
+    forbidden_hosts: List[str] = []
+
+    for host_code, api_host in candidate_hosts:
+        if not _is_jooble_host_available(api_host):
+            continue
+
+        endpoint = f"https://{api_host}/api/{api_key}"
+        try:
+            response = requests.post(endpoint, json=payload, timeout=HTTP_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            parsed = response.json() if response.content else {}
+            if isinstance(parsed, dict):
+                data = parsed
+                successful_host = api_host
+                break
+            last_error = RuntimeError(f"Jooble API returned invalid payload for host {api_host}")
+            print(f"❌ Jooble live API payload invalid for host {api_host}")
+        except requests.HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            if status_code == 403:
+                _JOOBLE_HOST_FORBIDDEN_UNTIL[api_host] = time.time() + JOOBLE_HOST_FORBIDDEN_COOLDOWN_SECONDS
+                forbidden_hosts.append(api_host)
+                last_error = PermissionError(f"Jooble API forbidden for host {api_host}")
+                print(f"❌ Jooble live API request forbidden for host {api_host}")
+                continue
+            last_error = RuntimeError(f"Jooble API request failed for host {api_host}: HTTP {status_code or 'unknown'}")
+            print(f"❌ Jooble live API request failed for host {api_host}: {exc}")
+            continue
+        except Exception as exc:
+            last_error = RuntimeError(f"Jooble API request failed for host {api_host}: {exc}")
+            print(f"❌ Jooble live API request failed for host {api_host}: {exc}")
+            continue
+
+    if data is None:
+        if forbidden_hosts and len(forbidden_hosts) >= len(candidate_hosts):
+            raise PermissionError(f"Jooble API forbidden for all candidate hosts: {', '.join(forbidden_hosts)}")
+        if last_error:
+            raise last_error
         return []
 
     jobs = data.get("jobs") if isinstance(data, dict) else None
@@ -1174,6 +1243,11 @@ def search_jooble_jobs_live(
             continue
 
         mapped_country = normalize_country_code(mapped.get("country_code"))
+        if not mapped_country and len(allowed_country_codes) == 1:
+            mapped["country_code"] = allowed_country_codes[0]
+            mapped_country = allowed_country_codes[0]
+        if successful_host and not mapped.get("language_code"):
+            mapped["language_code"] = _resolve_jooble_language_code(allowed_country_codes)
         if allowed_country_codes and mapped_country not in allowed_country_codes:
             continue
         if mapped_country and mapped_country in blocked_country_codes:

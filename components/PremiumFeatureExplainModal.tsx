@@ -12,6 +12,8 @@ export interface PremiumFeatureExplainContent {
     whyBody: string;
     premiumTitle: string;
     premiumBody: string;
+    premiumEffects?: string[];
+    premiumActiveNote?: string;
 }
 
 interface PremiumFeatureExplainModalProps {
@@ -31,8 +33,57 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-    const isCsLike = locale === 'cs' || locale === 'sk';
     const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
+    const copy = (() => {
+        if (locale === 'sk') {
+            return {
+                active: 'Premium je aktívne',
+                feature: 'Premium funkcia',
+                practical: 'Praktický dopad v aplikácii',
+                fallbackActiveNote: 'Túto vrstvu už máte odomknutú. V discovery sa správa ako plne aktívna súčasť rozhodovania.',
+                cta: 'Zobraziť premium',
+                close: 'Zavrieť'
+            };
+        }
+        if (locale === 'de' || locale === 'at') {
+            return {
+                active: 'Premium ist aktiv',
+                feature: 'Premium-Funktion',
+                practical: 'Praktische Auswirkung in der App',
+                fallbackActiveNote: 'Diese Ebene ist für dich bereits freigeschaltet. In der Discovery arbeitet sie als aktiver Teil der Entscheidungslogik.',
+                cta: 'Premium ansehen',
+                close: 'Schließen'
+            };
+        }
+        if (locale === 'pl') {
+            return {
+                active: 'Premium jest aktywne',
+                feature: 'Funkcja premium',
+                practical: 'Praktyczny efekt w aplikacji',
+                fallbackActiveNote: 'Ta warstwa jest już dla Ciebie odblokowana. W discovery działa jako aktywna część logiki decyzyjnej.',
+                cta: 'Pokaż premium',
+                close: 'Zamknij'
+            };
+        }
+        if (locale === 'cs') {
+            return {
+                active: 'Premium je aktivní',
+                feature: 'Premium funkce',
+                practical: 'Praktický dopad v aplikaci',
+                fallbackActiveNote: 'Tuto vrstvu už máte odemčenou. V discovery se bude chovat jako plně aktivní součást rozhodování.',
+                cta: 'Zobrazit premium',
+                close: 'Zavřít'
+            };
+        }
+        return {
+            active: 'Premium is active',
+            feature: 'Premium feature',
+            practical: 'Practical effect in the app',
+            fallbackActiveNote: 'You already have this layer unlocked. It behaves as a fully active part of discovery.',
+            cta: 'See premium',
+            close: 'Close'
+        };
+    })();
 
     useEffect(() => {
         if (!open) return;
@@ -90,9 +141,7 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                             <div className="space-y-4">
                                 <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
                                     <CheckCircle2 size={12} />
-                                    {hasPremiumAccess
-                                        ? (isCsLike ? 'Premium je aktivní' : 'Premium is active')
-                                        : (isCsLike ? 'Premium funkce' : 'Premium feature')}
+                                    {hasPremiumAccess ? copy.active : copy.feature}
                                 </div>
 
                                 <div className="space-y-2">
@@ -104,11 +153,25 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                                     </p>
                                 </div>
 
+                                {feature.premiumEffects && feature.premiumEffects.length > 0 ? (
+                                    <div className="rounded-[var(--radius-xl)] border border-amber-200/70 bg-white/80 p-4">
+                                        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                                            {copy.practical}
+                                        </div>
+                                        <div className="space-y-2">
+                                            {feature.premiumEffects.map((effect) => (
+                                                <div key={effect} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
+                                                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                                    <span>{effect}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
                                 {hasPremiumAccess ? (
                                     <div className="rounded-[var(--radius-xl)] border border-emerald-200/80 bg-white p-4 text-sm leading-6 text-emerald-800">
-                                        {isCsLike
-                                            ? 'Tuto vrstvu už máte odemčenou. V discovery se bude chovat jako plně aktivní součást rozhodování.'
-                                            : 'You already have this layer unlocked. It behaves as a fully active part of discovery.'}
+                                        {feature.premiumActiveNote || copy.fallbackActiveNote}
                                     </div>
                                 ) : (
                                     <button
@@ -116,13 +179,13 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                                         onClick={() => onOpenPremium(feature.label)}
                                         className="app-button-primary w-full justify-center"
                                     >
-                                        {isCsLike ? 'Zobrazit premium' : 'See premium'}
+                                        {copy.cta}
                                         <ArrowRight size={16} />
                                     </button>
                                 )}
 
                                 <button type="button" onClick={onClose} className="app-button-secondary w-full justify-center">
-                                    {isCsLike ? 'Zavřít' : 'Close'}
+                                    {copy.close}
                                 </button>
                             </div>
                         </div>

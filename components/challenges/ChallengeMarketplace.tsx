@@ -1299,7 +1299,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 
   const showMobileSwipeIntro = mobileViewMode === 'swipe' && (!userProfile.isLoggedIn || !mobileSwipeIntroDismissed);
   const premiumFeatures = useMemo<PremiumFeatureExplainContent[]>(() => {
-    if (isCsLike) {
+    if (language === 'cs') {
       return [
         {
           id: 'dialogue_slots',
@@ -1309,7 +1309,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           whyTitle: 'Proč to v Shamanovi existuje',
           whyBody: 'Cíl není rozeslat co nejvíc CV, ale vést omezený počet kvalitních dialogů tam, kde je reálná šance na odpověď z obou stran.',
           premiumTitle: 'Co se změní s premium',
-          premiumBody: 'Premium rozšíří kapacitu aktivních dialogů, takže můžeš držet víc kvalitních odpovědí najednou a nemusíš tak brzy prioritizovat jen jeden směr.'
+          premiumBody: 'Změní se hlavně kapacita a tempo práce s odpověďmi. Discovery se kvůli tomu nechová jinak, ale můžeš bezpečně držet víc otevřených směrů současně.',
+          premiumEffects: [
+            'Získáš více aktivních dialogových slotů najednou než ve free režimu.',
+            'Nemusíš tak rychle zavírat jedno vlákno jen proto, abys mohl otevřít další.',
+            'Feed se kvůli slotům nepřerovnává, mění se hlavně to, kolik kvalitních reakcí zvládneš obsloužit paralelně.'
+          ],
+          premiumActiveNote: 'Slotová vrstva je u vás aktivní. Praktický dopad je hlavně ve vyšší kapacitě aktivních konverzací, ne v marketingovém badge.'
         },
         {
           id: 'ai_guide',
@@ -1319,7 +1325,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           whyTitle: 'Proč to v Shamanovi existuje',
           whyBody: 'Lidé často nevědí, jak svůj životní kontext promítnout do filtrů. AI průvodce to překládá do použitelného discovery nastavení bez nutnosti všechno ručně vymýšlet.',
           premiumTitle: 'Co se změní s premium',
-          premiumBody: 'Premium odemkne hlubší vedení profilem, životní situací a podpůrnými materiály, takže feed a doporučení budou přesnější a méně obecné.'
+          premiumBody: 'Systém dostane víc strukturovaných vstupů o tvé situaci. Praktický dopad je v přesnějším nastavení filtrů a menším množství obecných nebo hraničních doporučení.',
+          premiumEffects: [
+            'AI průvodce dokáže vyplnit a zpřesnit větší část discovery nastavení bez ručního ladění po jednotlivých filtrech.',
+            'Feed pracuje s přesnější interpretací životní situace, ne jen s oborem a lokalitou.',
+            'Doporučení se méně často rozšiřují do rolí, které sice vypadají podobně, ale nedávají smysl pro tvoje omezení.'
+          ],
+          premiumActiveNote: 'AI průvodce je u vás aktivní jako vstup do discovery logiky. Praktický dopad je ve kvalitnějších defaults, ne jen v dalším formuláři.'
         },
         {
           id: 'jhi',
@@ -1329,7 +1341,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           whyTitle: 'Proč to v Shamanovi existuje',
           whyBody: 'Dvě stejně dobré nabídky mohou být pro dva lidi úplně jinak vhodné. JHI se snaží rozhodování přiblížit realitě, ne jen obecným metrikám.',
           premiumTitle: 'Co se změní s premium',
-          premiumBody: 'Premium aktivuje personalizovanější rozhodovací vrstvu, takže doporučení a priorita nabídek víc odrážejí tvoje skutečné preference a omezení.'
+          premiumBody: 'Nejde o to, že by premium přidalo nové nabídky. Mění hlavně prioritu a interpretaci výsledků, takže nahoře častěji zůstávají role, které odpovídají tvým skutečným trade-offům.',
+          premiumEffects: [
+            'Feed silněji zohlední osobní priority a omezení při řazení výsledků.',
+            'U podobně relevantních rolí se výš dostanou ty, které lépe sedí na tvoji realitu, ne jen na obecný match trhu.',
+            'Discovery bude méně „ploché“ a víc rozhodovací, hlavně když vybíráš mezi několika podobnými směry.'
+          ],
+          premiumActiveNote: 'Personalizovaná JHI vrstva je aktivní. Praktický dopad je v pořadí a prioritě rolí, ne v tom, že by systém tvrdě schovával zbytek trhu.'
         },
         {
           id: 'jcfpm',
@@ -1339,7 +1357,220 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           whyTitle: 'Proč to v Shamanovi existuje',
           whyBody: 'Nestačí vědět jen co umíš. Důležité je i jak funguješ pod tlakem, v nejistotě nebo v různých typech týmů. Tohle report zpřesňuje.',
           premiumTitle: 'Co se změní s premium',
-          premiumBody: 'Premium zpřístupní plný report místo zkráceného výstupu, takže uvidíš detailnější interpretaci a proč systém určité role vyhodnocuje jako vhodnější.'
+          premiumBody: 'Hlavní změna je v transparentnosti a hloubce interpretace. Lépe uvidíš, proč systém některé role tlačí výš a kde vidí riziko dlouhodobé nespokojenosti nebo přetížení.',
+          premiumEffects: [
+            'Místo zkráceného výstupu dostaneš plný report s detailnější interpretací.',
+            'Lépe uvidíš, proč systém považuje některé role za dlouhodobě udržitelnější než jiné.',
+            'JCFPM slouží víc jako rozhodovací vysvětlení a audit doporučení než jako další samostatný test bez návaznosti.'
+          ],
+          premiumActiveNote: 'Plný JCFPM výklad je u vás odemčený. Praktický dopad je hlavně v lepší čitelnosti důvodů, proč systém doporučuje právě tyto směry.'
+        }
+      ];
+    }
+
+    if (language === 'sk') {
+      return [
+        {
+          id: 'dialogue_slots',
+          label: 'Viac dialógových slotov pre aktívne odpovede',
+          title: 'Viac dialógových slotov pre aktívne odpovede',
+          summary: 'Sloty určujú, koľko skutočne aktívnych konverzácií môžeš držať naraz bez rozpadu pozornosti do desiatok slepých vlákien.',
+          whyTitle: 'Prečo to v Shamanovi existuje',
+          whyBody: 'Cieľ nie je rozoslať čo najviac CV, ale viesť obmedzený počet kvalitných dialógov tam, kde je reálna šanca na odpoveď z oboch strán.',
+          premiumTitle: 'Čo sa zmení s premium',
+          premiumBody: 'Zmení sa hlavne kapacita a tempo práce s odpoveďami. Discovery sa kvôli tomu nespráva inak, ale môžeš bezpečne držať viac otvorených smerov súčasne.',
+          premiumEffects: [
+            'Získaš viac aktívnych dialógových slotov naraz než vo free režime.',
+            'Nemusíš tak rýchlo zatvárať jedno vlákno len preto, aby si mohol otvoriť ďalšie.',
+            'Feed sa kvôli slotom nepreusporadúva, mení sa hlavne to, koľko kvalitných reakcií zvládneš obslúžiť paralelne.'
+          ],
+          premiumActiveNote: 'Slotová vrstva je u vás aktívna. Praktický dopad je hlavne vo vyššej kapacite aktívnych konverzácií, nie v marketingovom badge.'
+        },
+        {
+          id: 'ai_guide',
+          label: 'AI sprievodca profilom a životnou situáciou',
+          title: 'AI sprievodca profilom a životnou situáciou',
+          summary: 'Táto vrstva pomáha previesť nejasné preferencie, životné obmedzenia a kariérny smer do konkrétnych nastavení a praktickejšieho feedu.',
+          whyTitle: 'Prečo to v Shamanovi existuje',
+          whyBody: 'Ľudia často nevedia, ako svoj životný kontext premietnuť do filtrov. AI sprievodca to prekladá do použiteľného discovery nastavenia bez nutnosti všetko ručne vymýšľať.',
+          premiumTitle: 'Čo sa zmení s premium',
+          premiumBody: 'Systém dostane viac štruktúrovaných vstupov o tvojej situácii. Praktický dopad je v presnejšom nastavení filtrov a menšom množstve všeobecných alebo hraničných odporúčaní.',
+          premiumEffects: [
+            'AI sprievodca dokáže vyplniť a spresniť väčšiu časť discovery nastavení bez ručného ladenia po jednotlivých filtroch.',
+            'Feed pracuje s presnejšou interpretáciou životnej situácie, nielen s odborom a lokalitou.',
+            'Odporúčania sa menej často rozširujú do rolí, ktoré síce vyzerajú podobne, ale nedávajú zmysel pre tvoje obmedzenia.'
+          ],
+          premiumActiveNote: 'AI sprievodca je u vás aktívny ako vstup do discovery logiky. Praktický dopad je v kvalitnejších defaults, nie len v ďalšom formulári.'
+        },
+        {
+          id: 'jhi',
+          label: 'Personalizovaný JHI index',
+          title: 'Personalizovaný JHI index',
+          summary: 'JHI nie je všeobecné skóre trhu. Je to osobná vrstva, ktorá váži ponuky podľa tvojich priorít, reality a kompromisov, ktoré dávajú zmysel práve tebe.',
+          whyTitle: 'Prečo to v Shamanovi existuje',
+          whyBody: 'Dve rovnako dobré ponuky môžu byť pre dvoch ľudí úplne inak vhodné. JHI sa snaží priblížiť rozhodovanie realite, nie len všeobecným metrikám.',
+          premiumTitle: 'Čo sa zmení s premium',
+          premiumBody: 'Nejde o to, že by premium pridalo nové ponuky. Mení hlavne prioritu a interpretáciu výsledkov, takže hore častejšie zostávajú roly, ktoré zodpovedajú tvojim skutočným trade-offom.',
+          premiumEffects: [
+            'Feed silnejšie zohľadní osobné priority a obmedzenia pri radení výsledkov.',
+            'Pri podobne relevantných rolách sa vyššie dostanú tie, ktoré lepšie sedia na tvoju realitu, nie len na všeobecný match trhu.',
+            'Discovery bude menej ploché a viac rozhodovacie, hlavne keď vyberáš medzi viacerými podobnými smermi.'
+          ],
+          premiumActiveNote: 'Personalizovaná JHI vrstva je aktívna. Praktický dopad je v poradí a priorite rolí, nie v tom, že by systém tvrdo skrýval zvyšok trhu.'
+        },
+        {
+          id: 'jcfpm',
+          label: 'Detailný report JCFPM testu',
+          title: 'Detailný report JCFPM testu',
+          summary: 'JCFPM report rozoberá osobnostné nastavenie do väčšej hĺbky a ukazuje, ako sa premieta do štýlu práce, rizík aj odporúčaní v systéme.',
+          whyTitle: 'Prečo to v Shamanovi existuje',
+          whyBody: 'Nestačí vedieť len čo vieš. Dôležité je aj ako funguješ pod tlakom, v neistote alebo v rôznych typoch tímov. Toto report spresňuje.',
+          premiumTitle: 'Čo sa zmení s premium',
+          premiumBody: 'Hlavná zmena je v transparentnosti a hĺbke interpretácie. Lepšie uvidíš, prečo systém niektoré roly tlačí vyššie a kde vidí riziko dlhodobej nespokojnosti alebo preťaženia.',
+          premiumEffects: [
+            'Namiesto skráteného výstupu dostaneš plný report s detailnejšou interpretáciou.',
+            'Lepšie uvidíš, prečo systém považuje niektoré roly za dlhodobo udržateľnejšie než iné.',
+            'JCFPM slúži viac ako rozhodovacie vysvetlenie a audit odporúčaní než ako ďalší samostatný test bez návaznosti.'
+          ],
+          premiumActiveNote: 'Plný JCFPM výklad je u vás odomknutý. Praktický dopad je hlavne v lepšej čitateľnosti dôvodov, prečo systém odporúča práve tieto smery.'
+        }
+      ];
+    }
+
+    if (language === 'de' || language === 'at') {
+      return [
+        {
+          id: 'dialogue_slots',
+          label: 'Mehr Dialog-Slots für aktive Antworten',
+          title: 'Mehr Dialog-Slots für aktive Antworten',
+          summary: 'Slots bestimmen, wie viele wirklich aktive Gespräche du gleichzeitig führen kannst, ohne deine Aufmerksamkeit auf dutzende blinde Threads zu verteilen.',
+          whyTitle: 'Warum es das in Shaman gibt',
+          whyBody: 'Das Ziel ist nicht, möglichst viele CVs zu versenden, sondern eine begrenzte Zahl hochwertiger Dialoge dort zu führen, wo auf beiden Seiten realistisch eine Antwort zu erwarten ist.',
+          premiumTitle: 'Was sich mit Premium ändert',
+          premiumBody: 'Vor allem ändern sich Kapazität und Arbeitstempo bei Antworten. Discovery rankt dadurch nicht anders, aber du kannst mehrere Richtungen gleichzeitig offen halten.',
+          premiumEffects: [
+            'Du erhältst mehr aktive Dialog-Slots gleichzeitig als im Free-Tier.',
+            'Du musst einen Thread nicht so schnell schließen, nur um einen anderen öffnen zu können.',
+            'Der Feed selbst wird dadurch nicht neu priorisiert; geändert wird vor allem, wie viele ernsthafte Antworten du parallel handhaben kannst.'
+          ],
+          premiumActiveNote: 'Diese Slot-Ebene ist bei dir aktiv. Der praktische Effekt liegt vor allem in höherer Gesprächskapazität, nicht in einem Marketing-Badge.'
+        },
+        {
+          id: 'ai_guide',
+          label: 'KI-Guide für Profil und Lebenssituation',
+          title: 'KI-Guide für Profil und Lebenssituation',
+          summary: 'Diese Ebene übersetzt vage Präferenzen, Lebensumstände und Karriererichtung in konkrete Einstellungen und einen präziseren Discovery-Feed.',
+          whyTitle: 'Warum es das in Shaman gibt',
+          whyBody: 'Viele Menschen kennen ihre Situation, wissen aber nicht, wie sie diese in Filter übersetzen sollen. Der KI-Guide macht daraus praktisch nutzbare Discovery-Einstellungen.',
+          premiumTitle: 'Was sich mit Premium ändert',
+          premiumBody: 'Das System erhält mehr strukturierte Signale über deinen Kontext. Praktisch bedeutet das präzisere Defaults und weniger generische oder grenzwertige Empfehlungen.',
+          premiumEffects: [
+            'Der KI-Guide kann mehr von deinem Discovery-Setup ohne manuelles Feinjustieren ableiten und schärfen.',
+            'Der Feed arbeitet mit einer stärkeren Interpretation deiner realen Situation, nicht nur mit Rolle und Ort.',
+            'Empfehlungen driften seltener in Rollen ab, die auf dem Papier ähnlich wirken, aber nicht zu deinen echten Einschränkungen passen.'
+          ],
+          premiumActiveNote: 'Der KI-Guide ist für dich als Input-Layer in die Discovery-Logik aktiv. Der praktische Effekt sind bessere Defaults, nicht einfach ein weiteres Formular.'
+        },
+        {
+          id: 'jhi',
+          label: 'Personalisierter JHI-Index',
+          title: 'Personalisierter JHI-Index',
+          summary: 'JHI ist kein generischer Marktscore. Es ist eine persönliche Entscheidungsschicht, die Rollen anhand deiner Prioritäten, Trade-offs und Realität gewichtet.',
+          whyTitle: 'Warum es das in Shaman gibt',
+          whyBody: 'Zwei gleich starke Rollen können für zwei Menschen völlig unterschiedlich passen. JHI versucht, reale Entscheidungslogik abzubilden und nicht nur allgemeines Ranking.',
+          premiumTitle: 'Was sich mit Premium ändert',
+          premiumBody: 'Premium erzeugt keine neuen Jobs. Es verändert vor allem die Priorisierung der Ergebnisse, sodass oben häufiger Rollen stehen, die besser zu deinen echten Trade-offs passen.',
+          premiumEffects: [
+            'Der Feed gewichtet persönliche Prioritäten und Einschränkungen bei der Reihenfolge stärker.',
+            'Wenn mehrere Rollen ähnlich relevant sind, steigen die hoch, die besser zu deiner Realität passen.',
+            'Discovery wird weniger flach und stärker entscheidungsorientiert, besonders wenn du zwischen nahen Richtungen abwägst.'
+          ],
+          premiumActiveNote: 'Die personalisierte JHI-Schicht ist aktiv. Der praktische Effekt liegt in Reihenfolge und Priorisierung, nicht darin, dass der Rest des Marktes hart ausgeblendet wird.'
+        },
+        {
+          id: 'jcfpm',
+          label: 'Detaillierter JCFPM-Bericht',
+          title: 'Detaillierter JCFPM-Bericht',
+          summary: 'Der JCFPM-Bericht geht tiefer in Persönlichkeitsmuster hinein und zeigt, wie sie Arbeitsstil, Risikoprofile und Systemempfehlungen beeinflussen.',
+          whyTitle: 'Warum es das in Shaman gibt',
+          whyBody: 'Es reicht nicht zu wissen, was du kannst. Wichtig ist auch, wie du unter Druck, Unsicherheit oder in unterschiedlichen Teamkontexten funktionierst. Genau das schärft dieser Bericht.',
+          premiumTitle: 'Was sich mit Premium ändert',
+          premiumBody: 'Der Hauptunterschied liegt in Tiefe und Transparenz. Du siehst klarer, warum das System manche Rollen höher priorisiert und wo es langfristige Risiken oder Nachhaltigkeit erkennt.',
+          premiumEffects: [
+            'Du erhältst den vollständigen Bericht statt einer gekürzten Fassung.',
+            'Du kannst besser nachvollziehen, warum bestimmte Richtungen langfristig tragfähiger erscheinen als andere.',
+            'JCFPM dient stärker als Erklärungs- und Audit-Schicht für Empfehlungen statt als isolierter Zusatztest.'
+          ],
+          premiumActiveNote: 'Die vollständige JCFPM-Interpretation ist für dich freigeschaltet. Der praktische Effekt liegt in klarerer Begründung der Empfehlungen, nicht in mehr Interface-Lärm.'
+        }
+      ];
+    }
+
+    if (language === 'pl') {
+      return [
+        {
+          id: 'dialogue_slots',
+          label: 'Więcej slotów dialogowych dla aktywnych odpowiedzi',
+          title: 'Więcej slotów dialogowych dla aktywnych odpowiedzi',
+          summary: 'Sloty określają, ile naprawdę aktywnych rozmów możesz prowadzić jednocześnie bez rozpraszania uwagi na dziesiątki pustych wątków.',
+          whyTitle: 'Dlaczego to istnieje w Shamanie',
+          whyBody: 'Celem nie jest rozesłanie jak największej liczby CV, ale prowadzenie ograniczonej liczby jakościowych dialogów tam, gdzie szansa na odpowiedź jest realna po obu stronach.',
+          premiumTitle: 'Co zmienia premium',
+          premiumBody: 'Zmienia się głównie pojemność i tempo pracy z odpowiedziami. Discovery nie rankuje inaczej z powodu slotów, ale możesz bezpiecznie utrzymać więcej otwartych kierunków naraz.',
+          premiumEffects: [
+            'Otrzymujesz więcej aktywnych slotów dialogowych jednocześnie niż w wersji free.',
+            'Nie musisz tak szybko zamykać jednego wątku tylko po to, aby otworzyć kolejny.',
+            'Feed nie jest przez to przestawiany; zmienia się głównie to, ile poważnych odpowiedzi możesz obsłużyć równolegle.'
+          ],
+          premiumActiveNote: 'Warstwa slotów jest już u Ciebie aktywna. Praktyczny efekt to przede wszystkim większa pojemność aktywnych rozmów, a nie marketingowa odznaka.'
+        },
+        {
+          id: 'ai_guide',
+          label: 'AI przewodnik po profilu i sytuacji życiowej',
+          title: 'AI przewodnik po profilu i sytuacji życiowej',
+          summary: 'Ta warstwa pomaga przełożyć niejasne preferencje, ograniczenia życiowe i kierunek kariery na konkretne ustawienia oraz bardziej praktyczny feed.',
+          whyTitle: 'Dlaczego to istnieje w Shamanie',
+          whyBody: 'Ludzie często wiedzą, jaka jest ich sytuacja, ale nie wiedzą, jak przełożyć ją na filtry. AI przewodnik zamienia to w użyteczne ustawienia discovery.',
+          premiumTitle: 'Co zmienia premium',
+          premiumBody: 'System dostaje więcej uporządkowanych sygnałów o Twoim kontekście. W praktyce oznacza to dokładniejsze ustawienia domyślne i mniej ogólnych lub granicznych rekomendacji.',
+          premiumEffects: [
+            'AI przewodnik potrafi uzupełnić i doprecyzować większą część discovery bez ręcznego strojenia każdego filtra.',
+            'Feed pracuje z silniejszą interpretacją Twojej sytuacji życiowej, a nie tylko z rolą i lokalizacją.',
+            'Rekomendacje rzadziej odpływają w role, które wyglądają podobnie na papierze, ale nie pasują do Twoich realnych ograniczeń.'
+          ],
+          premiumActiveNote: 'AI przewodnik jest u Ciebie aktywny jako warstwa wejściowa do logiki discovery. Praktyczny efekt to lepsze defaults, a nie po prostu kolejny formularz.'
+        },
+        {
+          id: 'jhi',
+          label: 'Spersonalizowany indeks JHI',
+          title: 'Spersonalizowany indeks JHI',
+          summary: 'JHI nie jest ogólnym wynikiem rynku. To osobista warstwa decyzyjna, która waży role przez pryzmat Twoich priorytetów, kompromisów i realiów.',
+          whyTitle: 'Dlaczego to istnieje w Shamanie',
+          whyBody: 'Dwie równie dobre role mogą być zupełnie inaczej dopasowane dla dwóch różnych osób. JHI stara się odzwierciedlać realne decyzje, a nie tylko ogólny ranking.',
+          premiumTitle: 'Co zmienia premium',
+          premiumBody: 'Premium nie tworzy nowych ofert. Zmienia głównie priorytet i interpretację wyników, więc na górze częściej zostają role lepiej pasujące do Twoich realnych trade-offów.',
+          premiumEffects: [
+            'Feed silniej uwzględnia osobiste priorytety i ograniczenia podczas rankingu wyników.',
+            'Gdy kilka ról jest podobnie trafnych, wyżej trafiają te, które lepiej pasują do Twojej rzeczywistości.',
+            'Discovery staje się mniej płaskie i bardziej decyzyjne, zwłaszcza gdy porównujesz kilka bliskich kierunków.'
+          ],
+          premiumActiveNote: 'Spersonalizowana warstwa JHI jest aktywna. Praktyczny efekt dotyczy kolejności i priorytetu ról, a nie twardego ukrywania reszty rynku.'
+        },
+        {
+          id: 'jcfpm',
+          label: 'Szczegółowy raport JCFPM',
+          title: 'Szczegółowy raport JCFPM',
+          summary: 'Raport JCFPM głębiej opisuje ustawienie osobowościowe i pokazuje, jak wpływa ono na styl pracy, wzorce ryzyka i rekomendacje systemu.',
+          whyTitle: 'Dlaczego to istnieje w Shamanie',
+          whyBody: 'Nie wystarczy wiedzieć tylko, co potrafisz. Ważne jest także to, jak działasz pod presją, w niepewności i w różnych typach zespołów. Właśnie to ten raport doprecyzowuje.',
+          premiumTitle: 'Co zmienia premium',
+          premiumBody: 'Główna różnica to głębia i transparentność. Lepiej widzisz, dlaczego system wypycha niektóre role wyżej i gdzie widzi ryzyko długoterminowego przeciążenia lub niedopasowania.',
+          premiumEffects: [
+            'Otrzymujesz pełny raport zamiast skróconego wyniku.',
+            'Możesz lepiej zrozumieć, dlaczego niektóre kierunki system uznaje za bardziej zrównoważone długoterminowo.',
+            'JCFPM działa bardziej jako warstwa wyjaśnienia i audytu rekomendacji niż jako kolejny oderwany test.'
+          ],
+          premiumActiveNote: 'Pełna interpretacja JCFPM jest już u Ciebie odblokowana. Praktyczny efekt to czytelniejsze uzasadnienie rekomendacji, a nie więcej szumu w interfejsie.'
         }
       ];
     }
@@ -1353,7 +1584,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         whyTitle: 'Why this exists in Shaman',
         whyBody: 'The goal is not to spray applications everywhere, but to keep a focused number of high-quality dialogues where both sides are likely to respond.',
         premiumTitle: 'What changes with premium',
-        premiumBody: 'Premium expands active dialogue capacity so you can keep more meaningful conversations open at once without narrowing too early.'
+        premiumBody: 'This mainly changes capacity and operating tempo. Discovery does not rank differently because of slots, but you can keep more live directions open at the same time.',
+        premiumEffects: [
+          'You get more active dialogue slots at once than in the free tier.',
+          'You do not need to close one thread as quickly just to open another one.',
+          'The feed itself is not re-ranked by slots; the change is mostly in how many serious responses you can manage in parallel.'
+        ],
+        premiumActiveNote: 'This layer is already active for you. The practical effect is higher conversation capacity, not a cosmetic premium badge.'
       },
       {
         id: 'ai_guide',
@@ -1363,7 +1600,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         whyTitle: 'Why this exists in Shaman',
         whyBody: 'People often know their situation but not how to translate it into filters. The AI guide converts that context into practical discovery settings.',
         premiumTitle: 'What changes with premium',
-        premiumBody: 'Premium unlocks deeper guidance for profile setup, life context, and supporting materials so the feed becomes more precise and less generic.'
+        premiumBody: 'The system receives more structured input about your context. The practical effect is more precise defaults and fewer generic or borderline recommendations.',
+        premiumEffects: [
+          'The AI guide can fill in and refine more of your discovery setup without manual filter tuning.',
+          'The feed works with a stronger interpretation of your real-life context, not only your role and location.',
+          'Recommendations are less likely to drift into roles that look adjacent on paper but do not fit your actual constraints.'
+        ],
+        premiumActiveNote: 'The AI guide is active for you as an input layer into discovery. Its practical effect is better defaults, not just another form.'
       },
       {
         id: 'jhi',
@@ -1373,7 +1616,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         whyTitle: 'Why this exists in Shaman',
         whyBody: 'Two equally strong roles can be a very different fit for two different people. JHI tries to reflect real-life decision making, not only generic ranking.',
         premiumTitle: 'What changes with premium',
-        premiumBody: 'Premium activates a stronger personalized decision layer, so prioritization reflects your actual constraints and preferences more closely.'
+        premiumBody: 'Premium does not create new jobs. It changes how results are prioritized, so the top of the feed more often reflects your actual trade-offs instead of a flatter market ranking.',
+        premiumEffects: [
+          'The feed weighs personal priorities and constraints more strongly during ranking.',
+          'When several roles are similarly relevant, the ones that better fit your reality rise higher.',
+          'Discovery becomes less flat and more decision-oriented, especially when you compare several adjacent directions.'
+        ],
+        premiumActiveNote: 'The personalized JHI layer is active for you. The practical effect is in result ordering and prioritization, not in hard-hiding the rest of the market.'
       },
       {
         id: 'jcfpm',
@@ -1383,7 +1632,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         whyTitle: 'Why this exists in Shaman',
         whyBody: 'It is not enough to know only what you can do. It also matters how you operate under pressure, uncertainty, and in different team environments.',
         premiumTitle: 'What changes with premium',
-        premiumBody: 'Premium unlocks the full report instead of the shortened output, giving you a deeper interpretation and clearer reasoning behind recommendations.'
+        premiumBody: 'The main change is depth and transparency. You can see more clearly why the system pushes some roles higher and where it sees long-term risk or sustainability.',
+        premiumEffects: [
+          'You get the full report instead of the shortened output.',
+          'You can inspect why the system considers some directions more sustainable over time than others.',
+          'JCFPM acts more like an explanation and audit layer for recommendations, not just another isolated test.'
+        ],
+        premiumActiveNote: 'The full JCFPM interpretation is already unlocked for you. The practical effect is clearer reasoning behind recommendations, not more interface noise.'
       }
     ];
   }, [isCsLike]);
@@ -1423,48 +1678,47 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       </div>
 
       {setupSignals.length > 0 ? (
-        <div id="challenge-why-roles">
-          <SurfaceCard className="space-y-3 lg:rounded-b-none">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-[var(--text-strong)]">
-                  {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+        <>
+          <div id="challenge-why-roles">
+            <SurfaceCard className="space-y-3 lg:rounded-b-none lg:border-b-0 lg:pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">
+                    {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    {isCsLike
+                      ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
+                      : 'A quick summary of the signals shaping the feed right now.'}
+                  </p>
                 </div>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">
-                  {isCsLike
-                    ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
-                    : 'A quick summary of the signals shaping the feed right now.'}
-                </p>
+                {!hasManualIntent && inferredIntentAvailable ? (
+                  <button type="button" className="app-button-secondary" onClick={onOpenProfile}>
+                    {copy.intentPromptCta}
+                  </button>
+                ) : null}
               </div>
-              {!hasManualIntent && inferredIntentAvailable ? (
-                <button type="button" className="app-button-secondary" onClick={onOpenProfile}>
-                  {copy.intentPromptCta}
-                </button>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap gap-2 lg:hidden">
-              {setupSignals.map((signal) => (
-                <FilterChip key={`why-${signal}`} active className="justify-start">
-                  {signal}
-                </FilterChip>
-              ))}
-            </div>
-          </SurfaceCard>
-        </div>
-      ) : null}
-
-      {setupSignals.length > 0 ? (
-        <div className="hidden lg:sticky lg:top-[calc(var(--app-toolbar-offset)+6px)] lg:z-20 lg:block">
-          <div className="app-surface rounded-[var(--radius-md)] border p-3 shadow-[var(--shadow-soft)] lg:rounded-t-none lg:border-t-0 lg:bg-[rgba(255,255,255,0.94)] lg:backdrop-blur dark:lg:bg-[rgba(15,23,42,0.9)]">
-            <div className="flex flex-wrap gap-2">
-              {setupSignals.map((signal) => (
-                <FilterChip key={`why-sticky-${signal}`} active className="justify-start">
-                  {signal}
-                </FilterChip>
-              ))}
+              <div className="flex flex-wrap gap-2 lg:hidden">
+                {setupSignals.map((signal) => (
+                  <FilterChip key={`why-${signal}`} active className="justify-start">
+                    {signal}
+                  </FilterChip>
+                ))}
+              </div>
+            </SurfaceCard>
+          </div>
+          <div className="hidden lg:sticky lg:top-[calc(var(--app-toolbar-offset)+6px)] lg:z-20 lg:block">
+            <div className="-mt-px app-surface rounded-[var(--radius-md)] border border-t-0 p-3 shadow-[var(--shadow-soft)] lg:rounded-t-none lg:bg-[rgba(255,255,255,0.9)] lg:backdrop-blur dark:lg:bg-[rgba(15,23,42,0.82)]">
+              <div className="flex flex-wrap gap-2">
+                {setupSignals.map((signal) => (
+                  <FilterChip key={`why-sticky-${signal}`} active className="justify-start">
+                    {signal}
+                  </FilterChip>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       ) : null}
 
       {/* AppHeader already renders the discovery search on lg+; keep this one for mobile/tablet only. */}

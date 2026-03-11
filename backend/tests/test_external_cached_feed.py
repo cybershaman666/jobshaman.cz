@@ -92,7 +92,26 @@ def test_hybrid_search_v2_response_exposes_default_diagnostics_meta(monkeypatch)
     assert payload["meta"]["degraded_reasons"] == []
 
 
-def test_provider_failure_opens_circuit_immediately_for_forbidden_errors():
+def test_provider_failure_opens_circuit_when_all_jooble_hosts_are_forbidden():
+    original_state = jobs._EXTERNAL_PROVIDER_HEALTH["jooble"].copy()
+    try:
+        jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = {
+            "failures": 0,
+            "circuit_open_until": None,
+            "last_error": None,
+            "last_failure_at": None,
+            "last_success_at": None,
+        }
+        jobs._mark_provider_failure("jooble", PermissionError("Jooble API forbidden for all candidate hosts: at.jooble.org, pl.jooble.org"))
+        snapshot = jobs._provider_health_snapshot()["jooble"]
+        assert snapshot["state"] == "open"
+        assert snapshot["failure_count"] >= 2
+        assert snapshot["last_error"] == "Jooble API forbidden for all candidate hosts: at.jooble.org, pl.jooble.org"
+    finally:
+        jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = original_state
+
+
+def test_provider_failure_does_not_open_global_circuit_for_single_jooble_host_forbidden():
     original_state = jobs._EXTERNAL_PROVIDER_HEALTH["jooble"].copy()
     try:
         jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = {
@@ -104,8 +123,76 @@ def test_provider_failure_opens_circuit_immediately_for_forbidden_errors():
         }
         jobs._mark_provider_failure("jooble", PermissionError("Jooble API forbidden for host at.jooble.org"))
         snapshot = jobs._provider_health_snapshot()["jooble"]
-        assert snapshot["state"] == "open"
-        assert snapshot["failure_count"] >= 2
+        assert snapshot["state"] != "open"
+        assert snapshot["failure_count"] < 2
         assert snapshot["last_error"] == "Jooble API forbidden for host at.jooble.org"
     finally:
         jobs._EXTERNAL_PROVIDER_HEALTH["jooble"] = original_state
+
+
+def test_jooble_live_search_falls_back_to_second_host_when_first_is_forbidden(monkeypatch):
+    original_cooldowns = dict(jobs._scraper_api_sources._JOOBLE_HOST_FORBIDDEN_UNTIL)
+    try:
+        monkeypatch.setenv("JOOBLE_API_KEY", "test-key")
+        monkeypatch.setenv("JOOBLE_API_HOSTS", "AT=at.jooble.org,CZ=cz.jooble.org")
+        monkeypatch.setenv("JOOBLE_ALLOWED_COUNTRY_CODES", "AT,CZ")
+        jobs._scraper_api_sources._JOOBLE_HOST_FORBIDDEN_UNTIL.clear()
+
+        class FakeForbiddenResponse:
+            status_code = 403
+            content = b""
+
+            def raise_for_status(self):
+                import requests
+                raise requests.HTTPError("403 Client Error", response=self)
+
+        class FakeSuccessResponse:
+            status_code = 200
+            content = b'{"jobs":[{"id":"1","title":"Ridic","location":"Brno","company":"Acme","link":"https://example.test/job/1","snippet":"Ridic skupiny B","salary":"","source":"jooble","type":"full-time"}]}'
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "jobs": [{
+                        "id": "1",
+                        "title": "Ridic",
+                        "location": "Brno",
+                        "company": "Acme",
+                        "link": "https://example.test/job/1",
+                        "snippet": "Ridic skupiny B",
+                        "salary": "",
+                        "source": "jooble",
+                        "type": "full-time",
+                    }]
+                }
+
+        calls = []
+
+        def fake_post(url, json=None, timeout=None):
+            calls.append(url)
+            if "at.jooble.org" in url:
+                return FakeForbiddenResponse()
+            return FakeSuccessResponse()
+
+        monkeypatch.setattr(jobs._scraper_api_sources.requests, "post", fake_post)
+        monkeypatch.setattr(jobs._scraper_api_sources, "_get_cached_live_search", lambda _key: None)
+        monkeypatch.setattr(jobs._scraper_api_sources, "_set_cached_live_search", lambda _key, results, **_kwargs: results)
+        monkeypatch.setattr(jobs._scraper_api_sources, "_attach_live_coordinates", lambda _job: None)
+
+        result = jobs.search_jooble_jobs_live(
+            limit=5,
+            search_term="ridic",
+            filter_city="",
+            country_codes=["AT"],
+            exclude_country_codes=[],
+            page=1,
+        )
+
+        assert len(result) == 1
+        assert any("at.jooble.org" in url for url in calls)
+        assert any("cz.jooble.org" in url for url in calls)
+    finally:
+        jobs._scraper_api_sources._JOOBLE_HOST_FORBIDDEN_UNTIL.clear()
+        jobs._scraper_api_sources._JOOBLE_HOST_FORBIDDEN_UNTIL.update(original_cooldowns)
