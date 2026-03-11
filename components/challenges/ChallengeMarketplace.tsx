@@ -12,7 +12,7 @@ import {
   TrainFront
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, UserProfile } from '../../types';
+import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
@@ -117,6 +117,17 @@ const REMOTE_LANGUAGE_OPTIONS: Array<{ key: SearchLanguageCode; labels: { cs: st
   { key: 'pl', labels: { cs: 'Polština', en: 'Polish' } }
 ];
 
+const BORDER_COUNTRY_MAP: Record<SupportedCountryCode, SupportedCountryCode[]> = {
+  CZ: ['DE', 'PL', 'SK', 'AT'],
+  SK: ['CZ', 'PL', 'AT'],
+  PL: ['CZ', 'SK', 'DE'],
+  DE: ['CZ', 'PL', 'AT'],
+  AT: ['CZ', 'SK', 'DE'],
+};
+
+type WorkArrangementFilter = 'all' | 'remote' | 'hybrid' | 'onsite';
+type GeographicScopeFilter = 'domestic' | 'border' | 'abroad' | 'all';
+
 const simplifyDescription = (value: string | null | undefined): string => {
   const plain = String(value || '')
     .replace(/[#>*_`~[\]()!-]+/g, ' ')
@@ -164,6 +175,15 @@ const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
 
+const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
+  const raw = String(job.work_model || (job as any).work_type || job.type || '').trim().toLowerCase();
+  if (!raw) return 'all';
+  if (raw.includes('remote') || raw.includes('home office') || raw.includes('homeoffice')) return 'remote';
+  if (raw.includes('hybrid')) return 'hybrid';
+  if (raw.includes('onsite') || raw.includes('on-site') || raw.includes('office') || raw.includes('field')) return 'onsite';
+  return 'all';
+};
+
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -194,6 +214,47 @@ const getExperienceLabel = (job: Job, isCsLike: boolean): string | null => {
   if (/senior|lead|principal|staff/.test(source)) return isCsLike ? 'Senior+' : 'Senior+';
   if (/medior|mid/.test(source)) return isCsLike ? 'Medior' : 'Mid-level';
   return null;
+};
+
+const getJobAgeLabel = (job: Job, language: string): string | null => {
+  const locale = (language || 'en').split('-')[0].toLowerCase();
+  const isCs = locale === 'cs';
+  const isSk = locale === 'sk';
+  const source = String(job.scrapedAt || (job as any).scraped_at || (job as any).created_at || '').trim();
+  if (!source) return null;
+
+  const timestamp = new Date(source).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+
+  const diffMs = Date.now() - timestamp;
+  if (diffMs < 0) return null;
+
+  const diffHours = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60)));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 24) {
+    if (isSk) return `Pred ${diffHours} h`;
+    if (isCs) return `Před ${diffHours} h`;
+    return `${diffHours}h ago`;
+  }
+
+  if (diffDays < 30) {
+    if (isSk) return `Pred ${diffDays} d`;
+    if (isCs) return `Před ${diffDays} d`;
+    return `${diffDays}d ago`;
+  }
+
+  const diffWeeks = Math.max(1, Math.floor(diffDays / 7));
+  if (diffWeeks < 9) {
+    if (isSk) return `Pred ${diffWeeks} t`;
+    if (isCs) return `Před ${diffWeeks} t`;
+    return `${diffWeeks}w ago`;
+  }
+
+  const diffMonths = Math.max(1, Math.floor(diffDays / 30));
+  if (isSk) return `Pred ${diffMonths} mes.`;
+  if (isCs) return `Před ${diffMonths} měs.`;
+  return `${diffMonths}mo ago`;
 };
 
 const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
@@ -320,16 +381,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       locationScope: 'Kde hledat',
       roleType: 'Typ spolupráce',
       experience: 'Zkušenost',
-      remoteLanguages: 'Jazyky pro práci na dálku',
+      remoteLanguages: 'Jazyky nabídky',
       benefits: 'Benefity',
       minSalary: 'Minimální mzda',
       date: 'Jak je nabídka čerstvá',
       saveSearches: 'Uložená hledání',
       allMarkets: 'I širší okolní trhy',
-      border: 'Pouze za hranicemi',
+      border: 'Zahraničí',
       domestic: 'Jen domovský trh',
       remoteOnly: 'Jen práce z domu',
       allWorkModels: 'Všechny modely',
+      hybridOnly: 'Hybrid',
+      onsiteOnly: 'Na místě',
+      locationAll: 'Vše',
+      locationBorder: 'Příhraničí',
+      workModelMode: 'Kde práce probíhá',
+      workModelHint: 'Nejprve určete, jestli chcete jen role z domu, nebo i nabídky s kanceláří a terénem.',
+      commuteMode: 'Filtrovat podle vzdálenosti od bydliště',
+      commuteEnabledLabel: 'Počítat dojezd',
+      commuteDisabledLabel: 'Bez filtru dojezdu',
       anySalary: 'Bez minima',
       allDates: 'Kdykoliv',
       last3Days: 'Poslední 3 dny',
@@ -434,16 +504,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       locationScope: 'Kde hľadať',
       roleType: 'Typ spolupráce',
       experience: 'Skúsenosť',
-      remoteLanguages: 'Jazyky pre prácu na diaľku',
+      remoteLanguages: 'Jazyky ponuky',
       benefits: 'Benefity',
       minSalary: 'Minimálna mzda',
       date: 'Ako je ponuka čerstvá',
       saveSearches: 'Uložené hľadania',
       allMarkets: 'Aj širšie okolité trhy',
-      border: 'Len za hranicami',
+      border: 'Zahraničie',
       domestic: 'Len domáci trh',
       remoteOnly: 'Len práca z domu',
       allWorkModels: 'Všetky modely',
+      hybridOnly: 'Hybrid',
+      onsiteOnly: 'Na mieste',
+      locationAll: 'Všetko',
+      locationBorder: 'Prihraničie',
+      workModelMode: 'Kde práca prebieha',
+      workModelHint: 'Najprv určite, či chcete len roly z domu alebo aj ponuky s kanceláriou a terénom.',
+      commuteMode: 'Filtrovať podľa vzdialenosti od bydliska',
+      commuteEnabledLabel: 'Počítať dochádzanie',
+      commuteDisabledLabel: 'Bez filtra dochádzania',
       anySalary: 'Bez minima',
       allDates: 'Kedykoľvek',
       last3Days: 'Posledné 3 dni',
@@ -548,16 +627,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       locationScope: 'Wo suchen',
       roleType: 'Arbeitsform',
       experience: 'Erfahrung',
-      remoteLanguages: 'Sprachen für Remote-Arbeit',
+      remoteLanguages: 'Sprache der Anzeige',
       benefits: 'Benefits',
       minSalary: 'Mindestgehalt',
       date: 'Aktualität',
       saveSearches: 'Gespeicherte Suchen',
       allMarkets: 'Auch umliegende Märkte',
-      border: 'Nur außerhalb des Heimatmarkts',
+      border: 'Ausland',
       domestic: 'Nur Heimatmarkt',
       remoteOnly: 'Nur Homeoffice',
       allWorkModels: 'Alle Modelle',
+      hybridOnly: 'Hybrid',
+      onsiteOnly: 'Vor Ort',
+      locationAll: 'Alles',
+      locationBorder: 'Grenzregion',
+      workModelMode: 'Wo die Arbeit stattfindet',
+      workModelHint: 'Legen Sie zuerst fest, ob Sie nur Homeoffice-Rollen oder auch Angebote mit Büro und Außendienst sehen möchten.',
+      commuteMode: 'Nach Entfernung vom Wohnort filtern',
+      commuteEnabledLabel: 'Pendeln einbeziehen',
+      commuteDisabledLabel: 'Ohne Pendelfilter',
       anySalary: 'Kein Minimum',
       allDates: 'Jederzeit',
       last3Days: 'Letzte 3 Tage',
@@ -663,16 +751,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       locationScope: 'Gdzie szukać',
       roleType: 'Forma współpracy',
       experience: 'Doświadczenie',
-      remoteLanguages: 'Języki do pracy zdalnej',
+      remoteLanguages: 'Języki ogłoszenia',
       benefits: 'Benefity',
       minSalary: 'Minimalne wynagrodzenie',
       date: 'Aktualność',
       saveSearches: 'Zapisane wyszukiwania',
       allMarkets: 'Także pobliskie rynki',
-      border: 'Tylko poza rynkiem krajowym',
+      border: 'Zagranica',
       domestic: 'Tylko kraj',
       remoteOnly: 'Tylko praca z domu',
       allWorkModels: 'Wszystkie modele',
+      hybridOnly: 'Hybryda',
+      onsiteOnly: 'Na miejscu',
+      locationAll: 'Wszystko',
+      locationBorder: 'Pogranicze',
+      workModelMode: 'Gdzie odbywa się praca',
+      workModelHint: 'Najpierw określ, czy chcesz tylko role zdalne, czy także oferty z biurem i pracą w terenie.',
+      commuteMode: 'Filtruj według odległości od domu',
+      commuteEnabledLabel: 'Licz dojazd',
+      commuteDisabledLabel: 'Bez filtra dojazdu',
       anySalary: 'Bez minimum',
       allDates: 'Dowolnie',
       last3Days: 'Ostatnie 3 dni',
@@ -726,7 +823,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     },
     en: {
         eyebrow: 'Discovery cockpit',
-        title: 'Challenge marketplace built around your life reality',
+        title: 'Challenge marketplace built around your life',
         body: 'Challenges, reality filters, and a decision engine in one clean workspace.',
         toolbarSearch: 'Search challenges, teams, role types, or signal words',
         toolbarLocation: 'City, region, remote',
@@ -780,16 +877,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         locationScope: 'Where to search',
         roleType: 'Role type',
         experience: 'Experience',
-        remoteLanguages: 'Remote languages',
+        remoteLanguages: 'Listing languages',
         benefits: 'Benefits',
         minSalary: 'Minimum salary',
         date: 'Freshness',
         saveSearches: 'Saved searches',
         allMarkets: 'Nearby markets too',
-        border: 'Only outside home market',
+        border: 'Abroad',
         domestic: 'Home market only',
         remoteOnly: 'Home office only',
         allWorkModels: 'All work models',
+        hybridOnly: 'Hybrid',
+        onsiteOnly: 'On-site',
+        locationAll: 'All',
+        locationBorder: 'Border region',
+        workModelMode: 'Where the work happens',
+        workModelHint: 'First decide whether you want only home office roles or also roles with office or field work.',
+        commuteMode: 'Filter by distance from home',
+        commuteEnabledLabel: 'Use commute distance',
+        commuteDisabledLabel: 'No commute filter',
         anySalary: 'No minimum',
         allDates: 'Any time',
         last3Days: 'Last 3 days',
@@ -921,6 +1027,19 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           },
     [candidateIntent, usePersonalSetup]
   );
+  const [workArrangementFilter, setWorkArrangementFilter] = useState<WorkArrangementFilter>(remoteOnly ? 'remote' : 'all');
+  const [geographicScopeFilter, setGeographicScopeFilter] = useState<GeographicScopeFilter>(
+    abroadOnly ? 'abroad' : globalSearch ? 'all' : 'domestic'
+  );
+  const homeCountryCode = useMemo<SupportedCountryCode | null>(() => {
+    const raw = String(userProfile.preferredCountryCode || userProfile.taxProfile?.countryCode || '').trim().toUpperCase();
+    if (raw === 'CZ' || raw === 'SK' || raw === 'PL' || raw === 'DE' || raw === 'AT') return raw;
+    return null;
+  }, [userProfile.preferredCountryCode, userProfile.taxProfile?.countryCode]);
+  const borderCountryCodes = useMemo(() => {
+    if (!homeCountryCode) return [] as SupportedCountryCode[];
+    return [homeCountryCode, ...(BORDER_COUNTRY_MAP[homeCountryCode] || [])];
+  }, [homeCountryCode]);
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -933,6 +1052,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       globalSearch ||
       abroadOnly ||
       remoteOnly ||
+      workArrangementFilter === 'hybrid' ||
+      workArrangementFilter === 'onsite' ||
+      geographicScopeFilter === 'border' ||
       filterDate !== 'all' ||
       filterExperience.length > 0
   );
@@ -982,6 +1104,51 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     }
   };
 
+  const handleWorkArrangementFilterChange = (nextMode: WorkArrangementFilter) => {
+    setWorkArrangementFilter(nextMode);
+    setRemoteOnlyMode(nextMode === 'remote');
+  };
+
+  const handleGeographicScopeChange = (nextScope: GeographicScopeFilter) => {
+    setGeographicScopeFilter(nextScope);
+    if (nextScope === 'domestic') {
+      setGlobalSearch(false, 'user_toggle');
+      setAbroadOnly(false, 'user_toggle');
+      return;
+    }
+    if (nextScope === 'border') {
+      setGlobalSearch(true, 'user_toggle');
+      setAbroadOnly(false, 'user_toggle');
+      return;
+    }
+    if (nextScope === 'abroad') {
+      setGlobalSearch(false, 'user_toggle');
+      setAbroadOnly(true, 'user_toggle');
+      return;
+    }
+    setGlobalSearch(true, 'user_toggle');
+    setAbroadOnly(false, 'user_toggle');
+  };
+
+  useEffect(() => {
+    if (remoteOnly) {
+      setWorkArrangementFilter('remote');
+      return;
+    }
+    setWorkArrangementFilter((current) => (current === 'remote' ? 'all' : current));
+  }, [remoteOnly]);
+
+  useEffect(() => {
+    if (abroadOnly) {
+      setGeographicScopeFilter('abroad');
+      return;
+    }
+    setGeographicScopeFilter((current) => {
+      if (current === 'border' || current === 'all') return current;
+      return globalSearch ? 'all' : 'domestic';
+    });
+  }, [abroadOnly, globalSearch]);
+
   useEffect(() => {
     if (!userProfile.isLoggedIn) return;
     setMobileViewMode('swipe');
@@ -1024,6 +1191,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const nextCommuteEnabled = nextRemoteOnly ? false : Boolean(filters.enableCommuteFilter);
     const nextGlobalSearch = Boolean(filters.globalSearch);
     const nextAbroadOnly = nextGlobalSearch ? false : Boolean(filters.abroadOnly);
+    setWorkArrangementFilter(nextRemoteOnly ? 'remote' : 'all');
+    setGeographicScopeFilter(nextAbroadOnly ? 'abroad' : nextGlobalSearch ? 'all' : 'domestic');
     setSearchTerm(filters.searchTerm || '', 'user_toggle');
     setFilterCity(filters.filterCity || '', 'user_toggle');
     setFilterMinSalary(filters.filterMinSalary || 0, 'user_toggle');
@@ -1044,26 +1213,38 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const importedJobs = jobs.filter((job) => job.listingKind === 'imported');
     const byWorkMode = (items: Job[]) =>
       items.filter((job) => {
-        if (!remoteOnly) return true;
-        return isRemoteListing(job);
+        if (workArrangementFilter === 'all') return true;
+        if (workArrangementFilter === 'remote') return isRemoteListing(job);
+        return getNormalizedWorkArrangement(job) === workArrangementFilter;
+      });
+    const byGeographicScope = (items: Job[]) =>
+      items.filter((job) => {
+        const countryCode = String(job.country_code || '').trim().toUpperCase();
+        if (!countryCode || !homeCountryCode) return true;
+        if (geographicScopeFilter === 'all') return true;
+        if (geographicScopeFilter === 'domestic') return countryCode === homeCountryCode;
+        if (geographicScopeFilter === 'abroad') return countryCode !== homeCountryCode;
+        return borderCountryCodes.includes(countryCode as SupportedCountryCode);
       });
     const nativeMatches = byWorkMode(nativeJobs);
     const importedMatches = byWorkMode(importedJobs);
-    if (lane === 'imports') return importedMatches;
+    const nativeScopedMatches = byGeographicScope(nativeMatches);
+    const importedScopedMatches = byGeographicScope(importedMatches);
+    if (lane === 'imports') return importedScopedMatches;
 
     // Challenge lane should prefer native challenges, but avoid feeling empty when the pool is small.
     // When personal setup is disabled (manual filters/keywords), mixing in imported listings is the
     // expected behavior: the user is asking for a broader market list, not only handcrafted challenges.
-    if (nativeMatches.length === 0 || !hasNativeChallenges) return importedMatches;
+    if (nativeScopedMatches.length === 0 || !hasNativeChallenges) return importedScopedMatches;
     if (!usePersonalSetup) {
-      const seen = new Set(nativeMatches.map((job) => job.id));
+      const seen = new Set(nativeScopedMatches.map((job) => job.id));
       return [
-        ...nativeMatches,
-        ...importedMatches.filter((job) => !seen.has(job.id)),
+        ...nativeScopedMatches,
+        ...importedScopedMatches.filter((job) => !seen.has(job.id)),
       ];
     }
-    return nativeMatches;
-  }, [jobs, lane, remoteOnly, hasNativeChallenges, usePersonalSetup]);
+    return nativeScopedMatches;
+  }, [jobs, lane, workArrangementFilter, geographicScopeFilter, homeCountryCode, borderCountryCodes, hasNativeChallenges, usePersonalSetup]);
 
   const prioritizedJobsInLane = useMemo(
     () => {
@@ -1115,8 +1296,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (filterContractType.includes('ico') || searchProfile?.wantsContractorRoles) {
       signals.push(isCsLike ? 'IČO / kontrakt' : 'Contract / freelance');
     }
-    if (remoteOnly || searchProfile?.wantsRemoteRoles) {
+    if (workArrangementFilter === 'remote' || (workArrangementFilter === 'all' && (remoteOnly || searchProfile?.wantsRemoteRoles))) {
       signals.push(copy.remoteOnly);
+    } else if (workArrangementFilter === 'hybrid') {
+      signals.push(copy.hybridOnly);
+    } else if (workArrangementFilter === 'onsite') {
+      signals.push(copy.onsiteOnly);
     }
     if (filterBenefits.includes('dog_friendly') || searchProfile?.wantsDogFriendlyOffice) {
       signals.push(isCsLike ? 'Dog-friendly office' : 'Dog-friendly office');
@@ -1142,7 +1327,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         .join(' / ');
       signals.push(formattedLanguages);
     }
-    if (remoteOnly) {
+    if (workArrangementFilter === 'remote') {
       // Remote-first mode should not surface commute as an active reality signal.
     } else if (enableCommuteFilter) {
       signals.push(`≤ ${filterMaxDistance} km`);
@@ -1157,9 +1342,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       const salaryFloor = filterMinSalary || profileDesiredSalary || 0;
       signals.push(`≥ ${Number(salaryFloor).toLocaleString(i18n.language)} ${(isCsLike ? 'CZK' : 'EUR')}`);
     }
-    if (globalSearch) {
-      signals.push(copy.allMarkets);
-    } else if (abroadOnly || searchProfile?.nearBorder) {
+    if (geographicScopeFilter === 'all') {
+      signals.push(copy.locationAll);
+    } else if (geographicScopeFilter === 'border') {
+      signals.push(copy.locationBorder);
+    } else if (geographicScopeFilter === 'abroad' || searchProfile?.nearBorder) {
       signals.push(copy.border);
     }
     if (searchTerm) {
@@ -1171,6 +1358,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     abroadOnly,
     copy.allMarkets,
     copy.border,
+    copy.hybridOnly,
+    copy.locationAll,
+    copy.locationBorder,
+    copy.onsiteOnly,
     copy.remoteOnly,
     enableCommuteFilter,
     filterBenefits,
@@ -1182,13 +1373,15 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     i18n.language,
     isCsLike,
     remoteOnly,
+    workArrangementFilter,
     searchTerm,
     userProfile.jhiPreferences?.hardConstraints.excludeShift,
     userProfile.preferences.desired_salary_min,
     usePersonalSetup,
     resolvedSearchProfile,
     userProfile,
-    i18n.language
+    i18n.language,
+    geographicScopeFilter
   ]);
 
   const hasManualIntent = effectiveCandidateIntent.usedManualDomain || effectiveCandidateIntent.usedManualRole || effectiveCandidateIntent.usedManualSeniority;
@@ -1207,6 +1400,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     setRemoteOnly(false);
     setAbroadOnly(false);
     setGlobalSearch(true);
+    setWorkArrangementFilter('all');
+    setGeographicScopeFilter('all');
   };
 
   const feedSections = useMemo(() => {
@@ -1252,10 +1447,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     prioritizedJobsInLane,
     usePersonalSetup
   ]);
-
-  const toggleRemoteOnly = (enabled: boolean) => {
-    setRemoteOnlyMode(enabled);
-  };
 
   const scrollToFirstFeedItem = () => {
     if (typeof window === 'undefined') return;
@@ -1762,18 +1953,18 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           <FilterChip active={lane === 'imports'} onClick={() => setLane('imports')}>
             {copy.laneImports}
           </FilterChip>
-          <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(!remoteOnly)}>
+          <FilterChip active={workArrangementFilter === 'remote'} onClick={() => handleWorkArrangementFilterChange(workArrangementFilter === 'remote' ? 'all' : 'remote')}>
             {copy.remoteOnly}
           </FilterChip>
           <FilterChip active={enableCommuteFilter} onClick={() => setCommuteEnabled(!enableCommuteFilter)}>
             <TrainFront size={14} />
             {copy.commute}
           </FilterChip>
-          <FilterChip active={globalSearch} onClick={() => { setGlobalSearch(true); setAbroadOnly(false); }}>
+          <FilterChip active={geographicScopeFilter === 'all'} onClick={() => handleGeographicScopeChange(geographicScopeFilter === 'all' ? 'domestic' : 'all')}>
             <Globe size={14} />
-            {copy.allMarkets}
+            {copy.locationAll}
           </FilterChip>
-          <FilterChip active={abroadOnly} onClick={() => { setAbroadOnly(true); setGlobalSearch(false); }}>
+          <FilterChip active={geographicScopeFilter === 'abroad'} onClick={() => handleGeographicScopeChange(geographicScopeFilter === 'abroad' ? 'domestic' : 'abroad')}>
             {copy.border}
           </FilterChip>
         </div>
@@ -1817,14 +2008,37 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </FilterSection>
 
               <div id="challenge-commute-section">
-              <FilterSection title={copy.commute}>
+              <FilterSection title={copy.workModel}>
                 <div className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {copy.workModelMode}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <FilterChip active={workArrangementFilter === 'remote'} onClick={() => handleWorkArrangementFilterChange('remote')}>
+                        {copy.remoteOnly}
+                      </FilterChip>
+                      <FilterChip active={workArrangementFilter === 'hybrid'} onClick={() => handleWorkArrangementFilterChange('hybrid')}>
+                        {copy.hybridOnly}
+                      </FilterChip>
+                      <FilterChip active={workArrangementFilter === 'onsite'} onClick={() => handleWorkArrangementFilterChange('onsite')}>
+                        {copy.onsiteOnly}
+                      </FilterChip>
+                      <FilterChip active={workArrangementFilter === 'all'} onClick={() => handleWorkArrangementFilterChange('all')}>
+                        {copy.allWorkModels}
+                      </FilterChip>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {copy.commuteMode}
+                    </div>
                   <div className="flex flex-wrap gap-2">
                     <FilterChip active={enableCommuteFilter} onClick={() => setCommuteEnabled(true)}>
-                      {copy.commute}
+                      {copy.commuteEnabledLabel}
                     </FilterChip>
                     <FilterChip active={!enableCommuteFilter} onClick={() => setCommuteEnabled(false)}>
-                      {hasCommuteProfile ? copy.allWorkModels : copy.commuteInactive}
+                      {hasCommuteProfile ? copy.commuteDisabledLabel : copy.commuteInactive}
                     </FilterChip>
                   </div>
                   {enableCommuteFilter ? (
@@ -1856,6 +2070,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       ) : null}
                     </div>
                   )}
+                  </div>
                 </div>
               </FilterSection>
               </div>
@@ -1863,22 +2078,29 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div id="challenge-location-scope-section">
               <FilterSection title={copy.locationScope}>
                 <div className="flex flex-wrap gap-2">
-                  <FilterChip active={!globalSearch && !abroadOnly} onClick={() => { setGlobalSearch(false); setAbroadOnly(false); }}>
+                  <FilterChip active={geographicScopeFilter === 'domestic'} onClick={() => handleGeographicScopeChange('domestic')}>
                     {copy.domestic}
                   </FilterChip>
                   <FilterChip
-                    active={globalSearch && !abroadOnly}
-                    onClick={() => { setGlobalSearch(true); setAbroadOnly(false); }}
+                    active={geographicScopeFilter === 'border'}
+                    onClick={() => handleGeographicScopeChange('border')}
                     className="justify-start"
                   >
-                    {copy.allMarkets}
+                    {copy.locationBorder}
                   </FilterChip>
                   <FilterChip
-                    active={abroadOnly}
-                    onClick={() => { setGlobalSearch(false); setAbroadOnly(true); }}
+                    active={geographicScopeFilter === 'abroad'}
+                    onClick={() => handleGeographicScopeChange('abroad')}
                     className="justify-start"
                   >
                     {copy.border}
+                  </FilterChip>
+                  <FilterChip
+                    active={geographicScopeFilter === 'all'}
+                    onClick={() => handleGeographicScopeChange('all')}
+                    className="justify-start"
+                  >
+                    {copy.locationAll}
                   </FilterChip>
                 </div>
               </FilterSection>
@@ -1888,12 +2110,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 <div className="space-y-3">
                   {implicitLanguageCodesApplied.length > 0 ? (
                     <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                        {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
-                      </div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                          {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
+                        </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <FilterChip active className="justify-start">
-                          {isCsLike ? 'Jazyk:' : 'Language:'}{' '}
+                          {isCsLike ? 'Jazyk nabídky:' : 'Listing language:'}{' '}
                           {implicitLanguageCodesApplied
                             .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
                             .join(' / ')}
@@ -1902,7 +2124,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                           type="button"
                           className="app-button-secondary !px-3 !py-2"
                           onClick={() => setEnableAutoLanguageGuard(false)}
-                          title={isCsLike ? 'Vypnout automatické omezení podle jazyka' : 'Disable auto language narrowing'}
+                          title={isCsLike ? 'Vypnout automatické omezení podle jazyka nabídky' : 'Disable automatic narrowing by listing language'}
                         >
                           {isCsLike ? 'Vypnout' : 'Disable'}
                         </button>
@@ -1915,7 +2137,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="text-sm text-[var(--text-muted)]">
-                          {isCsLike ? 'Omezení jazyka podle profilu je vypnuté.' : 'Language narrowing based on your profile is disabled.'}
+                          {isCsLike ? 'Omezení jazyka nabídky podle profilu je vypnuté.' : 'Listing language narrowing based on your profile is disabled.'}
                         </span>
                         <button
                           type="button"
@@ -1961,17 +2183,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       {type.labels[isCsLike ? 'cs' : 'en']}
                     </FilterChip>
                   ))}
-                </div>
-              </FilterSection>
-
-              <FilterSection title={copy.remote}>
-                <div className="flex flex-wrap gap-2">
-                  <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(true)}>
-                    {copy.remoteOnly}
-                  </FilterChip>
-                  <FilterChip active={!remoteOnly} onClick={() => toggleRemoteOnly(false)}>
-                    {copy.allWorkModels}
-                  </FilterChip>
                 </div>
               </FilterSection>
 
@@ -2328,6 +2539,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       const isSaved = savedJobIds.includes(job.id);
                       const isSelected = selectedJobId === job.id;
                       const experienceLabel = getExperienceLabel(job, isCsLike);
+                      const ageLabel = getJobAgeLabel(job, i18n.language);
                       const sourceBadge = job.listingKind === 'imported' ? copy.sourceImported : copy.sourceNative;
                       return (
                         <article
@@ -2390,6 +2602,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                             <div className="flex flex-wrap gap-2">
                               <MetaBadge>{job.location || (isCsLike ? 'Lokalita TBD' : 'Location TBD')}</MetaBadge>
                               <MetaBadge>{formatSalary(job, i18n.language, isCsLike)}</MetaBadge>
+                              {ageLabel ? <MetaBadge>{ageLabel}</MetaBadge> : null}
                               <MetaBadge tone="accent">{copy.fit} {Math.round(job.jhi?.score || 0)}</MetaBadge>
                               <MetaBadge>{getWorkModel(job, isCsLike)}</MetaBadge>
                               {experienceLabel ? <MetaBadge>{experienceLabel}</MetaBadge> : null}

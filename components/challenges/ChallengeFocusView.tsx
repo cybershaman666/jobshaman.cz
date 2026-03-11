@@ -22,6 +22,7 @@ import { MetricTile, PageHeader, SurfaceCard, cn } from '../ui/primitives';
 interface ChallengeFocusViewProps {
   job: Job;
   userProfile: UserProfile;
+  firstQualityActionAt?: string | null;
   onBack: () => void;
   onRequireAuth: () => void;
   onOpenProfile: () => void;
@@ -91,6 +92,7 @@ const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
 const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   job,
   userProfile,
+  firstQualityActionAt,
   onBack,
   onRequireAuth,
   onOpenProfile,
@@ -101,11 +103,13 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const { i18n } = useTranslation();
   const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
   const [salaryBenchmark, setSalaryBenchmark] = useState<SalaryBenchmarkResolved | null>(null);
+  const [showFirstContactGuide, setShowFirstContactGuide] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
   const isCsLike = language === 'cs' || language === 'sk';
   const isImported = job.listingKind === 'imported';
   const remoteRole = isRemoteJob(job);
+  const firstContactGuideStorageKey = 'jobshaman_first_contact_guide_dismissed';
 
   const copy = ({
     cs: {
@@ -157,7 +161,22 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionCta: 'Otevřít původní inzerát',
       remoteReality: 'Práce na dálku se počítá jako nulové dojíždění, ne jako chybějící údaj.',
       moreCompany: 'Firma a kontext',
-      moreOriginal: 'Původní text nabídky'
+      moreOriginal: 'Původní text nabídky',
+      firstContactGuideTitle: 'Jak funguje první kontakt s firmou',
+      firstContactGuideBody: isImported
+        ? 'Tady se nejdřív zorientuješ v tom, co firma skutečně řeší. U importované nabídky ti tato otázka pomůže udělat lepší rozhodnutí před odchodem na původní web.'
+        : 'Na JobShamanu nezačínáš slepým CV. Firma nejdřív uvidí krátkou odpověď na konkrétní situaci a až potom volitelný kontext z profilu nebo životopisu.',
+      firstContactGuidePointOne: isImported
+        ? 'Otázka výše se firmě sama neposílá. Slouží jako tvoje příprava před otevřením původního inzerátu.'
+        : 'První signál je tvoje stručná odpověď: co bys udělal(a) jako první krok a co bys potřeboval(a) ověřit.',
+      firstContactGuidePointTwo: isImported
+        ? 'Pokud ti role dává smysl, odpověď dokončíš na původním webu firmy nebo job boardu.'
+        : 'Profil, CV a delší kontext jsou až druhá vrstva. Pomáhají, ale nepřebíjejí první odpověď.',
+      firstContactGuidePointThree: isImported
+        ? 'Doplňující kontext si můžeš připravit tady, ať nejdeš na původní web bez rozmyšlení.'
+        : 'Čím konkrétnější odpověď na skutečný problém, tím vyšší šance na smysluplný dialog místo generické reakce.',
+      firstContactGuideDismiss: 'Rozumím',
+      firstContactGuideContext: 'Doplnit kontext'
     },
     sk: {
       back: 'Späť na zoznam',
@@ -208,7 +227,22 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionCta: 'Otvoriť pôvodný inzerát',
       remoteReality: 'Práca na diaľku sa počíta ako nulové dochádzanie, nie ako chýbajúci údaj.',
       moreCompany: 'Firma a kontext',
-      moreOriginal: 'Pôvodný text ponuky'
+      moreOriginal: 'Pôvodný text ponuky',
+      firstContactGuideTitle: 'Ako funguje prvý kontakt s firmou',
+      firstContactGuideBody: isImported
+        ? 'Tu sa najprv zorientuješ v tom, čo firma skutočne rieši. Pri importovanej ponuke ti táto otázka pomôže urobiť lepšie rozhodnutie ešte pred odchodom na pôvodný web.'
+        : 'Na JobShamane nezačínaš slepým CV. Firma najprv uvidí krátku odpoveď na konkrétnu situáciu a až potom voliteľný kontext z profilu alebo životopisu.',
+      firstContactGuidePointOne: isImported
+        ? 'Otázka vyššie sa firme sama neposiela. Slúži ako tvoja príprava pred otvorením pôvodného inzerátu.'
+        : 'Prvý signál je tvoja stručná odpoveď: čo by si urobil(a) ako prvý krok a čo by si potreboval(a) overiť.',
+      firstContactGuidePointTwo: isImported
+        ? 'Ak ti rola dáva zmysel, odpoveď dokončíš na pôvodnom webe firmy alebo job boarde.'
+        : 'Profil, CV a dlhší kontext sú až druhá vrstva. Pomáhajú, ale neprebíjajú prvú odpoveď.',
+      firstContactGuidePointThree: isImported
+        ? 'Doplňujúci kontext si môžeš pripraviť tu, aby si na pôvodný web nešiel bez rozmyslenia.'
+        : 'Čím konkrétnejšia odpoveď na skutočný problém, tým vyššia šanca na zmysluplný dialóg namiesto generickej reakcie.',
+      firstContactGuideDismiss: 'Rozumiem',
+      firstContactGuideContext: 'Doplniť kontext'
     },
     de: {
       back: 'Zurück zur Liste',
@@ -259,7 +293,22 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionCta: 'Originalanzeige öffnen',
       remoteReality: 'Remote-Arbeit wird als null Pendelaufwand behandelt, nicht als fehlende Angabe.',
       moreCompany: 'Firma und Kontext',
-      moreOriginal: 'Originaltext der Anzeige'
+      moreOriginal: 'Originaltext der Anzeige',
+      firstContactGuideTitle: 'So funktioniert der erste Kontakt mit dem Unternehmen',
+      firstContactGuideBody: isImported
+        ? 'Hier orientierst du dich zuerst daran, was das Unternehmen tatsächlich lösen will. Bei importierten Rollen hilft dir diese Frage, besser zu entscheiden, bevor du zur Originalseite wechselst.'
+        : 'Bei JobShaman startest du nicht mit einem blinden CV. Das Unternehmen sieht zuerst eine kurze Antwort auf eine konkrete Situation und erst danach optionalen Kontext aus Profil oder Lebenslauf.',
+      firstContactGuidePointOne: isImported
+        ? 'Die Frage oben wird nicht automatisch an das Unternehmen gesendet. Sie ist deine Vorbereitung vor dem Wechsel zur Originalanzeige.'
+        : 'Das erste Signal ist deine kurze Antwort: Was wäre dein erster Schritt und was müsstest du zuerst prüfen?',
+      firstContactGuidePointTwo: isImported
+        ? 'Wenn die Rolle für dich passt, machst du auf der Originalseite des Unternehmens oder Jobboards weiter.'
+        : 'Profil, CV und zusätzlicher Kontext sind die zweite Ebene. Sie helfen, ersetzen aber nicht deine erste Antwort.',
+      firstContactGuidePointThree: isImported
+        ? 'Zusätzlichen Kontext kannst du hier vorbereiten, damit du nicht unvorbereitet auf die Originalseite gehst.'
+        : 'Je konkreter deine Antwort auf das echte Problem ist, desto höher die Chance auf einen sinnvollen Dialog statt einer generischen Reaktion.',
+      firstContactGuideDismiss: 'Verstanden',
+      firstContactGuideContext: 'Kontext ergänzen'
     },
     at: {} as any,
     pl: {
@@ -311,7 +360,22 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionCta: 'Otwórz oryginalne ogłoszenie',
       remoteReality: 'Praca zdalna liczy się jako zerowy dojazd, a nie brak danych.',
       moreCompany: 'Firma i kontekst',
-      moreOriginal: 'Oryginalna treść oferty'
+      moreOriginal: 'Oryginalna treść oferty',
+      firstContactGuideTitle: 'Jak działa pierwszy kontakt z firmą',
+      firstContactGuideBody: isImported
+        ? 'Tutaj najpierw orientujesz się, co firma naprawdę chce rozwiązać. Przy importowanej ofercie to pytanie pomaga podjąć lepszą decyzję, zanim przejdziesz na oryginalną stronę.'
+        : 'W JobShaman nie zaczynasz od ślepego CV. Firma najpierw widzi krótką odpowiedź na konkretną sytuację, a dopiero potem opcjonalny kontekst z profilu lub CV.',
+      firstContactGuidePointOne: isImported
+        ? 'Pytanie wyżej nie wysyła się automatycznie do firmy. To twoje przygotowanie przed otwarciem oryginalnego ogłoszenia.'
+        : 'Pierwszym sygnałem jest twoja krótka odpowiedź: jaki byłby pierwszy krok i co chcesz najpierw sprawdzić.',
+      firstContactGuidePointTwo: isImported
+        ? 'Jeśli rola ma sens, kończysz odpowiedź na oryginalnej stronie firmy albo job boardu.'
+        : 'Profil, CV i szerszy kontekst to druga warstwa. Pomagają, ale nie zastępują pierwszej odpowiedzi.',
+      firstContactGuidePointThree: isImported
+        ? 'Dodatkowy kontekst możesz przygotować tutaj, żeby nie iść na oryginalną stronę bez przemyślenia.'
+        : 'Im bardziej konkretna odpowiedź na realny problem, tym większa szansa na sensowny dialog zamiast generycznej reakcji.',
+      firstContactGuideDismiss: 'Rozumiem',
+      firstContactGuideContext: 'Dodaj kontekst'
     },
     en: {
       back: 'Back to list',
@@ -362,9 +426,41 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       importedActionCta: 'Open original listing',
       remoteReality: 'Remote work counts as zero commute, not as missing data.',
       moreCompany: 'Company and context',
-      moreOriginal: 'Original listing'
+      moreOriginal: 'Original listing',
+      firstContactGuideTitle: 'How first contact with the company works',
+      firstContactGuideBody: isImported
+        ? 'This is where you first understand what the company is actually trying to solve. For imported roles, the question helps you decide better before you leave for the original site.'
+        : 'On JobShaman, you do not start with a blind CV. The company first sees a short response to a concrete situation, then optional context from your profile or resume.',
+      firstContactGuidePointOne: isImported
+        ? 'The question above is not sent to the company automatically. It prepares you before you open the original listing.'
+        : 'Your first signal is a short response: what your first step would be and what you would need to verify first.',
+      firstContactGuidePointTwo: isImported
+        ? 'If the role makes sense, you finish the response on the company or job board website.'
+        : 'Profile, CV, and richer context are the second layer. They help, but they should not override the first response.',
+      firstContactGuidePointThree: isImported
+        ? 'You can prepare additional context here so you do not go to the original site cold.'
+        : 'The more concrete your answer to the real problem, the higher the chance of a meaningful dialogue instead of a generic reaction.',
+      firstContactGuideDismiss: 'Understood',
+      firstContactGuideContext: 'Add context'
     }
   } as const)[language === 'at' ? 'de' : language];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (firstQualityActionAt) {
+      setShowFirstContactGuide(false);
+      return;
+    }
+    const dismissed = window.localStorage.getItem(firstContactGuideStorageKey) === 'true';
+    setShowFirstContactGuide(!dismissed);
+  }, [firstQualityActionAt]);
+
+  const dismissFirstContactGuide = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(firstContactGuideStorageKey, 'true');
+    }
+    setShowFirstContactGuide(false);
+  };
 
   useEffect(() => {
     if (!userProfile.isLoggedIn || ((!userProfile.address && !userProfile.coordinates) && !remoteRole)) {
@@ -649,6 +745,36 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
                 <NarrativeCard title={copy.risk} body={riskBody} />
                 <NarrativeCard title={copy.question} body={responsePrompt} tone="accent" />
               </div>
+
+              {showFirstContactGuide ? (
+                <SurfaceCard className="space-y-4 border-[var(--accent-soft)] bg-[linear-gradient(135deg,rgba(245,158,11,0.08),rgba(255,255,255,0.92))] dark:bg-[linear-gradient(135deg,rgba(245,158,11,0.14),rgba(17,24,39,0.92))]">
+                  <div className="space-y-2">
+                    <div className="app-eyebrow w-fit">
+                      <Sparkles size={12} />
+                      {copy.firstContactGuideTitle}
+                    </div>
+                    <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.firstContactGuideBody}</p>
+                  </div>
+                  <div className="grid gap-2.5 text-sm leading-6 text-[var(--text)]">
+                    {[copy.firstContactGuidePointOne, copy.firstContactGuidePointTwo, copy.firstContactGuidePointThree].map((point) => (
+                      <div key={point} className="flex items-start gap-2.5">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {!isImported ? (
+                      <button type="button" onClick={onOpenSupportingContext} className="app-button-secondary">
+                        {copy.firstContactGuideContext}
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={dismissFirstContactGuide} className="app-button-secondary">
+                      {copy.firstContactGuideDismiss}
+                    </button>
+                  </div>
+                </SurfaceCard>
+              ) : null}
 
               {isImported ? (
                 <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">

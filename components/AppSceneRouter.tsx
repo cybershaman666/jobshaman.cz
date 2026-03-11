@@ -454,6 +454,7 @@ export default function AppSceneRouter({
                         <ChallengeFocusView
                             job={selectedJob}
                             userProfile={userProfile}
+                            firstQualityActionAt={candidateActivationState?.first_quality_action_at ?? null}
                             onBack={() => onHandleJobSelect(null)}
                             onRequireAuth={() => onOpenAuth(userProfile.isLoggedIn ? 'login' : 'register')}
                             onOpenProfile={() => {
