@@ -1436,32 +1436,46 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 
       {setupSignals.length > 0 ? (
         <div id="challenge-why-roles">
-        <SurfaceCard className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-[var(--text-strong)]">
-                {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+          <SurfaceCard className="space-y-3 lg:rounded-b-none">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-[var(--text-strong)]">
+                  {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+                </div>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  {isCsLike
+                    ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
+                    : 'A quick summary of the signals shaping the feed right now.'}
+                </p>
               </div>
-              <p className="text-sm leading-6 text-[var(--text-muted)]">
-                {isCsLike
-                  ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
-                  : 'A quick summary of the signals shaping the feed right now.'}
-              </p>
+              {!hasManualIntent && inferredIntentAvailable ? (
+                <button type="button" className="app-button-secondary" onClick={onOpenProfile}>
+                  {copy.intentPromptCta}
+                </button>
+              ) : null}
             </div>
-            {!hasManualIntent && inferredIntentAvailable ? (
-              <button type="button" className="app-button-secondary" onClick={onOpenProfile}>
-                {copy.intentPromptCta}
-              </button>
-            ) : null}
+            <div className="flex flex-wrap gap-2 lg:hidden">
+              {setupSignals.map((signal) => (
+                <FilterChip key={`why-${signal}`} active className="justify-start">
+                  {signal}
+                </FilterChip>
+              ))}
+            </div>
+          </SurfaceCard>
+        </div>
+      ) : null}
+
+      {setupSignals.length > 0 ? (
+        <div className="hidden lg:sticky lg:top-[calc(var(--app-toolbar-offset)+6px)] lg:z-20 lg:block">
+          <div className="app-surface rounded-[var(--radius-md)] border p-3 shadow-[var(--shadow-soft)] lg:rounded-t-none lg:border-t-0 lg:bg-[rgba(255,255,255,0.94)] lg:backdrop-blur dark:lg:bg-[rgba(15,23,42,0.9)]">
+            <div className="flex flex-wrap gap-2">
+              {setupSignals.map((signal) => (
+                <FilterChip key={`why-sticky-${signal}`} active className="justify-start">
+                  {signal}
+                </FilterChip>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {setupSignals.map((signal) => (
-              <FilterChip key={`why-${signal}`} active className="justify-start">
-                {signal}
-              </FilterChip>
-            ))}
-          </div>
-        </SurfaceCard>
         </div>
       ) : null}
 
