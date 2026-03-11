@@ -1256,6 +1256,7 @@ export const fetchExternalOverlayJobs = async (options: {
     const safeSearchTerm = String(options.searchTerm || '').trim();
     const safeSeed = String(options.externalSeedTerm || '').trim();
     const filterCity = String(options.filterCity || '').trim();
+    const providerSearchTerm = buildExternalProviderQueryTerm(safeSearchTerm, safeSeed);
     const countryCodes = options.countryCodes;
     const excludeCountryCodes = options.excludeCountryCodes;
     const abortSignal = options.abortSignal;
@@ -1282,13 +1283,13 @@ export const fetchExternalOverlayJobs = async (options: {
         : (safeSearchTerm ? 1200 : 650);
     const cached = await withTimeout(
         fetchCachedExternalFeedJobs({
-            searchTerm: safeSearchTerm || undefined,
+            searchTerm: providerSearchTerm || safeSearchTerm || undefined,
             filterCity,
             countryCodes,
             excludeCountryCodes,
             abortSignal,
             page: 0,
-            pageSize: 18,
+            pageSize: mode === 'recovery' ? 30 : 24,
             includeJhi
         }),
         cachedBudgetMs,
@@ -1329,7 +1330,7 @@ export const fetchExternalOverlayJobs = async (options: {
         }
     }
 
-    const shouldLive = !!safeSearchTerm || !!filterCity;
+    const shouldLive = !!providerSearchTerm || !!filterCity;
     if (!shouldLive) {
         return filterJobsByQuality(cachedJobs);
     }
@@ -1342,7 +1343,7 @@ export const fetchExternalOverlayJobs = async (options: {
         : (safeSearchTerm ? 1500 : 1100);
     const jooblePagePromises: Promise<Job[]>[] = [
         fetchJoobleLiveJobs({
-            searchTerm: safeSearchTerm,
+            searchTerm: providerSearchTerm,
             filterCity,
             countryCodes,
             excludeCountryCodes,
@@ -1354,7 +1355,7 @@ export const fetchExternalOverlayJobs = async (options: {
     if (mode === 'recovery' && safeSearchTerm) {
         jooblePagePromises.push(
             fetchJoobleLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: providerSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -1364,12 +1365,24 @@ export const fetchExternalOverlayJobs = async (options: {
                 page: 2
             })
         );
+        jooblePagePromises.push(
+            fetchJoobleLiveJobs({
+                searchTerm: providerSearchTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi,
+                page: 3
+            })
+        );
     }
 
     const [wwr, jooblePages, arbeitnow] = await withTimeout(
         Promise.all([
             fetchWeWorkRemotelyLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: providerSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -1379,7 +1392,7 @@ export const fetchExternalOverlayJobs = async (options: {
             }),
             Promise.all(jooblePagePromises),
             fetchArbeitnowLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: providerSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -1392,12 +1405,28 @@ export const fetchExternalOverlayJobs = async (options: {
         [[], [[]], []] as [Job[], Job[][], Job[]]
     );
 
-    return filterJobsByQuality(dedupeJobsList([
+    let mergedJobs = filterJobsByQuality(dedupeJobsList([
         ...cachedJobs,
         ...wwr,
         ...jooblePages.flat(),
         ...arbeitnow
     ]));
+
+    if (safeSearchTerm) {
+        const matcher = buildSearchMatcher(safeSearchTerm);
+        if (matcher.queryTokens.length > 0) {
+            mergedJobs = mergedJobs.filter((job) => matchesSearchMatcher([
+                job.title || '',
+                job.company || '',
+                job.location || '',
+                job.description || '',
+                ...(job.tags || []),
+                ...(job.benefits || [])
+            ].join(' '), matcher));
+        }
+    }
+
+    return mergedJobs;
 };
 
 const normalizeTokenText = (input: string): string =>
@@ -1428,16 +1457,117 @@ const normalizeSearchMatchText = (input: string): string =>
 const ALLOWED_SHORT_SEARCH_TOKENS = new Set([
     'ai',
     'bi',
+    'cad',
+    'cnc',
+    'crm',
+    'erp',
+    'etl',
     'hr',
     'it',
     'ml',
+    'plc',
     'qa',
+    'sap',
+    'seo',
+    'sem',
+    'sql',
     'ui',
     'ux'
 ]);
 
 const dedupeSearchTokens = (tokens: string[]): string[] =>
     Array.from(new Set(tokens.map((token) => token.trim()).filter(Boolean)));
+
+const EXTERNAL_QUERY_STOP_TOKENS = new Set([
+    'and',
+    'for',
+    'mit',
+    'pro',
+    'sk',
+    'skup',
+    'skupina',
+    'group',
+]);
+
+const UNIVERSAL_QUALIFIER_TOKENS = new Set([
+    'junior',
+    'medior',
+    'senior',
+    'lead',
+    'intern',
+    'internship',
+    'trainee',
+    'entry',
+    'assistant',
+    'specialista',
+    'specialist',
+    'expert',
+    'sk',
+    'skup',
+    'skupina',
+    'group',
+    'prukaz',
+    'prukazy',
+    'ridicsky',
+    'ridicske',
+    'ridicak',
+    'opravneni',
+    'opravnenie',
+    'license',
+    'licence',
+    'certifikat',
+    'certifikace',
+    'certification',
+    'certified',
+    'permit',
+]);
+
+const DRIVER_ROLE_HINT_TOKENS = new Set([
+    'ridic',
+    'ridicsky',
+    'ridicske',
+    'driver',
+    'fahrer',
+    'kierowca',
+    'vodic',
+    'kuryr',
+    'kurier',
+]);
+
+const DRIVER_LICENSE_TOKENS = new Set([
+    'a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'be',
+    'ce',
+    'de',
+    'c1',
+    'c1e',
+    'd1',
+    'd1e',
+    'sk',
+    'skb',
+    'skc',
+    'skd',
+    'skupina',
+    'prukaz',
+    'prukazy',
+    'opr',
+    'opravneni',
+    'opravnenie',
+    'licence',
+    'license',
+]);
+
+const LOCATION_COUNTRY_HINTS: Array<{ code: string; hints: string[] }> = [
+    { code: 'cz', hints: ['czech', 'czechia', 'cesko', 'česko', 'praha', 'brno', 'ostrava', 'plzen', 'plzeň', 'olomouc', 'liberec', 'pardubice', 'hradec kralove', 'hradec králové', 'zlin', 'zlín'] },
+    { code: 'sk', hints: ['slovakia', 'slovensko', 'bratislava', 'kosice', 'košice', 'zilina', 'žilina', 'trnava', 'nitra'] },
+    { code: 'pl', hints: ['poland', 'polska', 'warsaw', 'warszawa', 'krakow', 'kraków', 'wroclaw', 'wrocław', 'poznan', 'poznań'] },
+    { code: 'de', hints: ['germany', 'deutschland', 'berlin', 'munich', 'muenchen', 'münchen', 'hamburg', 'leipzig', 'dresden'] },
+    { code: 'at', hints: ['austria', 'osterreich', 'österreich', 'vienna', 'wien', 'linz', 'graz', 'salzburg'] },
+];
 
 const buildSearchMatcher = (input: string): {
     normalizedQuery: string;
@@ -1456,6 +1586,72 @@ const buildSearchMatcher = (input: string): {
         optionalTokens,
         queryTokens
     };
+};
+
+const normalizeBackendSearchTerm = (input: string): string => {
+    const matcher = buildSearchMatcher(input);
+    if (!matcher.queryTokens.length) return '';
+
+    const hasDriverHint = matcher.queryTokens.some((token) => DRIVER_ROLE_HINT_TOKENS.has(token));
+    if (hasDriverHint) {
+        const strongDriverTokens = matcher.queryTokens.filter((token) =>
+            DRIVER_ROLE_HINT_TOKENS.has(token) ||
+            (!DRIVER_LICENSE_TOKENS.has(token) && (token.length >= 3 || ALLOWED_SHORT_SEARCH_TOKENS.has(token)))
+        );
+        const unique = dedupeSearchTokens(strongDriverTokens);
+        if (unique.length > 0) {
+            return unique.join(' ');
+        }
+    }
+
+    const strongTokens = matcher.queryTokens.filter((token) =>
+        token.length >= 3 && !UNIVERSAL_QUALIFIER_TOKENS.has(token)
+    );
+    const compactTokens = dedupeSearchTokens(
+        matcher.queryTokens.filter((token) => {
+            if (ALLOWED_SHORT_SEARCH_TOKENS.has(token)) return true;
+            if (UNIVERSAL_QUALIFIER_TOKENS.has(token)) return false;
+            if (strongTokens.length > 0 && token.length < 3) return false;
+            return token.length >= 3;
+        })
+    );
+
+    if (compactTokens.length > 0) {
+        return compactTokens.join(' ');
+    }
+
+    return input.trim();
+};
+
+const buildExternalProviderQueryTerm = (searchTerm: string, externalSeedTerm?: string): string => {
+    const candidates = [searchTerm, externalSeedTerm || ''];
+
+    for (const candidate of candidates) {
+        const matcher = buildSearchMatcher(candidate);
+        const compactTokens = dedupeSearchTokens([
+            ...matcher.requiredTokens,
+            ...matcher.queryTokens.filter((token) => ALLOWED_SHORT_SEARCH_TOKENS.has(token) || token.length >= 2)
+        ]).filter((token) => !EXTERNAL_QUERY_STOP_TOKENS.has(token));
+
+        if (compactTokens.length > 0) {
+            return compactTokens.slice(0, 3).join(' ');
+        }
+    }
+
+    return '';
+};
+
+const inferCountryCodeFromSearchText = (input: string): string => {
+    const normalized = normalizeSearchMatchText(input);
+    if (!normalized) return '';
+
+    for (const entry of LOCATION_COUNTRY_HINTS) {
+        if (entry.hints.some((hint) => normalized.includes(normalizeSearchMatchText(hint)))) {
+            return entry.code;
+        }
+    }
+
+    return '';
 };
 
 const matchesSearchMatcher = (
@@ -1932,8 +2128,10 @@ export const fetchJobsWithFilters = async (
         contractTypes: filterContractTypes
     } = deriveContractSearchOverrides(rawSearchTerm, rawFilterContractTypes);
 
-    const normalizedSearchTerm = (searchTerm || '').trim();
-    const safeSearchTerm = normalizedSearchTerm.length < 2 ? '' : normalizedSearchTerm;
+    const rawSearchTermNormalized = (searchTerm || '').trim();
+    const safeRawSearchTerm = rawSearchTermNormalized.length < 2 ? '' : rawSearchTermNormalized;
+    const normalizedSearchTerm = normalizeBackendSearchTerm(rawSearchTermNormalized);
+    const safeSearchTerm = normalizedSearchTerm.length < 2 ? safeRawSearchTerm : normalizedSearchTerm;
     const normalizedExternalSeed = String(externalSearchSeedTerm || '').trim();
     const safeExternalSeedTerm = normalizedExternalSeed.length < 2 ? '' : normalizedExternalSeed;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
@@ -1960,7 +2158,7 @@ export const fetchJobsWithFilters = async (
         !!(excludeCountryCodes && excludeCountryCodes.length > 0) ||
         !!(filterMinSalary && filterMinSalary > 0) ||
         filterDatePosted !== 'all' ||
-        effectiveSortMode !== 'default';
+        (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
     const hasSemanticIntent =
         compactSearchLength >= 2;
     const shouldUseHybridSearch = !!BACKEND_URL && (
@@ -1978,7 +2176,8 @@ export const fetchJobsWithFilters = async (
     const benefitFilterParts = splitBenefitFilters(filterBenefits || []);
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
-    const searchMatcher = buildSearchMatcher(safeSearchTerm);
+    const searchMatcher = buildSearchMatcher(safeRawSearchTerm || safeSearchTerm);
+    const externalProviderSearchTerm = buildExternalProviderQueryTerm(safeSearchTerm, safeExternalSeedTerm);
     const datePostedCutoffMs = getDatePostedCutoffMs(filterDatePosted);
     const hasStrictFilterConstraints =
         safeRadiusKm !== null ||
@@ -1989,7 +2188,7 @@ export const fetchJobsWithFilters = async (
         normalizedExcludedCountryCodes.length > 0 ||
         (filterMinSalary || 0) > 0 ||
         datePostedCutoffMs !== null ||
-        effectiveSortMode !== 'default';
+        (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
 
     const throwIfAborted = (): void => {
         if (abortSignal?.aborted) {
@@ -2052,7 +2251,14 @@ export const fetchJobsWithFilters = async (
 
     const applyStrictClientFilters = (jobs: Job[]): Job[] => {
         return jobs.filter((job) => {
-            const jobCountry = normalizeTokenText(job.country_code || '');
+            const jobCountry = normalizeTokenText(
+                job.country_code ||
+                inferCountryCodeFromSearchText([
+                    job.location || '',
+                    job.description || '',
+                    ...(job.tags || [])
+                ].join(' '))
+            );
             if (normalizedCountryCodes.length > 0 && !normalizedCountryCodes.includes(jobCountry)) {
                 return false;
             }
@@ -2413,7 +2619,7 @@ export const fetchJobsWithFilters = async (
         const liveBudgetMs = safeSearchTerm ? 1500 : 1100;
         const [wwrLiveJobs, joobleLiveJobs, arbeitnowLiveJobs] = await withTimeout(Promise.all([
             fetchWeWorkRemotelyLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: externalProviderSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -2421,17 +2627,29 @@ export const fetchJobsWithFilters = async (
                 limit: overlayLimit,
                 includeJhi
             }),
-            fetchJoobleLiveJobs({
-                searchTerm: safeSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            }),
+            Promise.all([
+                fetchJoobleLiveJobs({
+                    searchTerm: externalProviderSearchTerm,
+                    filterCity,
+                    countryCodes,
+                    excludeCountryCodes,
+                    abortSignal,
+                    limit: overlayLimit,
+                    includeJhi
+                }),
+                ...(externalProviderSearchTerm ? [fetchJoobleLiveJobs({
+                    searchTerm: externalProviderSearchTerm,
+                    filterCity,
+                    countryCodes,
+                    excludeCountryCodes,
+                    abortSignal,
+                    limit: overlayLimit,
+                    includeJhi,
+                    page: 2
+                })] : [])
+            ]).then((pages) => pages.flat()),
             fetchArbeitnowLiveJobs({
-                searchTerm: safeSearchTerm,
+                searchTerm: externalProviderSearchTerm,
                 filterCity,
                 countryCodes,
                 excludeCountryCodes,
@@ -2518,6 +2736,19 @@ export const fetchJobsWithFilters = async (
 
         const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
         const strictJobs = sortJobsForMode(applyStrictClientFilters(baseJobs), effectiveSortMode);
+        if (strictJobs.length === 0 && safeSearchTerm) {
+            const textFallbackResult = await fetchViaTextFallback();
+            if (textFallbackResult) {
+                recordRuntimeSignal('custom:search_strict_to_text_fallback', {
+                    reason,
+                    query: safeSearchTerm,
+                }, {
+                    dedupeKey: `${reason}:${safeSearchTerm}`,
+                    throttleMs: 20_000
+                });
+                return textFallbackResult;
+            }
+        }
         const start = page * safeRpcPageSize;
         const end = start + safeRpcPageSize;
         const pagedJobs = strictJobs.slice(start, end);

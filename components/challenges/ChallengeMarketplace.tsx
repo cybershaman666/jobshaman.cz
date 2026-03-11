@@ -1066,31 +1066,17 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   }, [jobs, lane, remoteOnly, hasNativeChallenges, usePersonalSetup]);
 
   const prioritizedJobsInLane = useMemo(
-    () =>
-      annotateJobsForCandidate(
+    () => {
+      if (!usePersonalSetup) {
+        return jobsInLane;
+      }
+
+      return annotateJobsForCandidate(
         jobsInLane,
-        usePersonalSetup
-          ? userProfile
-          : {
-              ...userProfile,
-              preferences: {
-                ...userProfile.preferences,
-                searchProfile: {
-                  ...createDefaultCandidateSearchProfile(),
-                  primaryDomain: null,
-                  secondaryDomains: [],
-                  targetRole: '',
-                  seniority: null,
-                  includeAdjacentDomains: false,
-                  inferredPrimaryDomain: null,
-                  inferredTargetRole: '',
-                  inferenceSource: 'none',
-                  inferenceConfidence: null,
-                },
-              },
-            },
+        userProfile,
         i18n.language
-      ),
+      );
+    },
     [i18n.language, jobsInLane, usePersonalSetup, userProfile]
   );
 
@@ -1166,8 +1152,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (userProfile.jhiPreferences?.hardConstraints.excludeShift) {
       signals.push(isCsLike ? 'Bez směn' : 'No shifts');
     }
-    if (filterMinSalary > 0 || userProfile.preferences.desired_salary_min) {
-      const salaryFloor = filterMinSalary || userProfile.preferences.desired_salary_min || 0;
+    const profileDesiredSalary = usePersonalSetup ? userProfile.preferences.desired_salary_min : 0;
+    if (filterMinSalary > 0 || profileDesiredSalary) {
+      const salaryFloor = filterMinSalary || profileDesiredSalary || 0;
       signals.push(`≥ ${Number(salaryFloor).toLocaleString(i18n.language)} ${(isCsLike ? 'CZK' : 'EUR')}`);
     }
     if (globalSearch) {
@@ -1198,6 +1185,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     searchTerm,
     userProfile.jhiPreferences?.hardConstraints.excludeShift,
     userProfile.preferences.desired_salary_min,
+    usePersonalSetup,
     resolvedSearchProfile,
     userProfile,
     i18n.language
@@ -1541,6 +1529,39 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         <div className="hidden xl:block xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
           <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem-6px)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
             <SurfaceCard className="space-y-5">
+              <FilterSection title={isCsLike ? 'Režim hledání' : 'Search mode'}>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <FilterChip
+                      active={usePersonalSetup}
+                      onClick={() => {
+                        setUsePersonalSetup(true);
+                        if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
+                          setCommuteEnabled(true);
+                          setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
+                        }
+                      }}
+                    >
+                      {copy.useSetup}
+                    </FilterChip>
+                    <FilterChip
+                      active={!usePersonalSetup}
+                      onClick={() => {
+                        setUsePersonalSetup(false);
+                        resetToManualDiscovery();
+                      }}
+                    >
+                      {copy.disableSetup}
+                    </FilterChip>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    {usePersonalSetup
+                      ? (isCsLike ? 'Feed bere v úvahu i tvůj profil, situaci a intent.' : 'The feed also uses your profile, context, and intent.')
+                      : (isCsLike ? 'Feed jede čistě podle hledání a ručních filtrů.' : 'The feed runs purely on search and manual filters.')}
+                  </p>
+                </div>
+              </FilterSection>
+
               <div id="challenge-commute-section">
               <FilterSection title={copy.commute}>
                 <div className="space-y-3">
@@ -1775,29 +1796,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   <div className="text-sm font-semibold text-[var(--text-strong)]">
                     {usePersonalSetup ? copy.mySetup : copy.manualSection}
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <FilterChip
-                    active={usePersonalSetup}
-                    onClick={() => {
-                      setUsePersonalSetup(true);
-                      if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
-                        setCommuteEnabled(true);
-                        setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
-                      }
-                    }}
-                  >
-                    {copy.useSetup}
-                  </FilterChip>
-                  <FilterChip
-                    active={!usePersonalSetup}
-                    onClick={() => {
-                      setUsePersonalSetup(false);
-                      resetToManualDiscovery();
-                    }}
-                  >
-                    {copy.disableSetup}
-                  </FilterChip>
                 </div>
               </div>
               {usePersonalSetup ? (

@@ -4,6 +4,7 @@ from backend.app.services.daily_digest import (
     _country_from_coordinates,
     _did_any_enabled_digest_channel_succeed,
     _digest_job_sort_key,
+    _extract_city_from_address,
     _is_remote_job,
     _pick_personalized_digest_jobs,
     _resolve_digest_country_code,
@@ -34,6 +35,14 @@ def test_country_from_coordinates_resolves_czechia():
 def test_country_from_address_detects_czechia():
     code = _country_from_address("Popice, Czechia")
     assert code == "CZ"
+
+
+def test_extract_city_from_address_skips_country_suffix():
+    assert _extract_city_from_address("Popice, Czechia") == "Popice"
+
+
+def test_extract_city_from_address_prefers_city_before_country_and_postcode():
+    assert _extract_city_from_address("U Sadu 12, 602 00 Brno, Czechia") == "Brno"
 
 
 def test_resolve_digest_country_prefers_explicit_profile_country():

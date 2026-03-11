@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional, cast
 import math
 import json
+import re
 import unicodedata
 
 from ..core.config import API_BASE_URL
@@ -533,10 +534,42 @@ def _extract_city_from_address(address: Optional[str]) -> Optional[str]:
     parts = [p.strip() for p in text.split(",") if p.strip()]
     if not parts:
         return None
-    # Prefer last segment; fallback to first token of last segment.
-    candidate = parts[-1]
-    token = candidate.split(" ")[0].strip()
-    return token if token else candidate
+
+    # Walk from the end, but skip country-only segments like "Czechia" or "Austria".
+    country_only_segments = {
+        "czech",
+        "czech republic",
+        "czechia",
+        "cesko",
+        "česko",
+        "slovakia",
+        "slovensko",
+        "poland",
+        "polska",
+        "germany",
+        "deutschland",
+        "austria",
+        "osterreich",
+        "österreich",
+    }
+    for segment in reversed(parts):
+        normalized_segment = _normalize_text(segment).strip()
+        if normalized_segment in country_only_segments:
+            continue
+        cleaned = re.sub(r"^\d{3}\s?\d{2}\s+", "", segment).strip()
+        cleaned = re.sub(r"^\d{4,5}\s+", "", cleaned).strip()
+        if not cleaned:
+            continue
+        tokenized = [token for token in cleaned.split() if token]
+        if not tokenized:
+            continue
+        # If the segment still starts with a street number, prefer the trailing city token.
+        if tokenized[0].isdigit() and len(tokenized) > 1:
+            return tokenized[-1]
+        return cleaned
+
+    fallback = parts[0].strip()
+    return fallback or None
 
 
 def _role_keywords(value: Optional[str]) -> List[str]:
