@@ -67,6 +67,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const sessionIdRef = useRef(`swipe_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const viewStartRef = useRef<number | null>(null);
     const lastImpressionJobIdRef = useRef<string | null>(null);
+    const hasInteractedThisSessionRef = useRef(false);
+    const previousRemainingJobsCountRef = useRef<number | null>(null);
     const processedJobIdsSet = new Set(processedJobIds);
     const swipeStateKey = `jobshaman_swipe_state:${swipeStateStorageKey}`;
 
@@ -232,6 +234,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
     const handleReject = () => {
         if (currentJob) {
+            hasInteractedThisSessionRef.current = true;
             const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
             const recMeta = currentRecommendationMeta();
             trackJobInteraction({
@@ -263,6 +266,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     };
 
     const handleSave = () => {
+        hasInteractedThisSessionRef.current = true;
         const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
         if (currentJob) {
             const recMeta = currentRecommendationMeta();
@@ -465,7 +469,20 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     // Load more when reaching the end
     useEffect(() => {
         const remainingJobsCount = Math.max(0, jobs.length - reviewedCount);
-        if (remainingJobsCount <= 3 && hasMore && !isLoadingMore) {
+        const previousRemaining = previousRemainingJobsCountRef.current;
+        previousRemainingJobsCountRef.current = remainingJobsCount;
+
+        const crossedIntoLoadThreshold =
+            previousRemaining !== null &&
+            previousRemaining > 3 &&
+            remainingJobsCount <= 3;
+
+        if (
+            hasInteractedThisSessionRef.current &&
+            crossedIntoLoadThreshold &&
+            hasMore &&
+            !isLoadingMore
+        ) {
             onLoadMore();
         }
     }, [jobs.length, reviewedCount, hasMore, isLoadingMore, onLoadMore]);

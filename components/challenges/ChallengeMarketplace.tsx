@@ -16,7 +16,7 @@ import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
-import { isRemoteJob } from '../../services/commuteService';
+import { calculateDistanceKm, isRemoteJob } from '../../services/commuteService';
 import { annotateJobsForCandidate, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import PremiumFeatureExplainModal, { PremiumFeatureExplainContent } from '../PremiumFeatureExplainModal';
@@ -175,6 +175,16 @@ const isRemoteListing = (job: Job): boolean => {
   return isRemoteJob(job);
 };
 
+const normalizeSupportedCountryCode = (value: string | null | undefined): SupportedCountryCode | null => {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized === 'CS' || normalized === 'CZ') return 'CZ';
+  if (normalized === 'SK') return 'SK';
+  if (normalized === 'PL') return 'PL';
+  if (normalized === 'DE') return 'DE';
+  if (normalized === 'AT') return 'AT';
+  return null;
+};
+
 const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
   const raw = String(job.work_model || (job as any).work_type || job.type || '').trim().toLowerCase();
   if (!raw) return 'all';
@@ -319,6 +329,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>(userProfile.isLoggedIn ? 'swipe' : 'list');
   const [mobileSwipeIntroDismissed, setMobileSwipeIntroDismissed] = useState(false);
+  const [isXlViewport, setIsXlViewport] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(min-width: 1280px)').matches;
+  });
   const [usePersonalSetup, setUsePersonalSetup] = useState(true);
   const [pendingSearchScroll, setPendingSearchScroll] = useState(false);
   const [selectedPremiumFeature, setSelectedPremiumFeature] = useState<PremiumFeatureExplainContent | null>(null);
@@ -1047,14 +1061,21 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     abroadOnly ? 'abroad' : globalSearch ? 'all' : 'domestic'
   );
   const homeCountryCode = useMemo<SupportedCountryCode | null>(() => {
-    const raw = String(userProfile.preferredCountryCode || userProfile.taxProfile?.countryCode || '').trim().toUpperCase();
-    if (raw === 'CZ' || raw === 'SK' || raw === 'PL' || raw === 'DE' || raw === 'AT') return raw;
-    return null;
+    return normalizeSupportedCountryCode(userProfile.preferredCountryCode || userProfile.taxProfile?.countryCode);
   }, [userProfile.preferredCountryCode, userProfile.taxProfile?.countryCode]);
   const borderCountryCodes = useMemo(() => {
     if (!homeCountryCode) return [] as SupportedCountryCode[];
     return [homeCountryCode, ...(BORDER_COUNTRY_MAP[homeCountryCode] || [])];
   }, [homeCountryCode]);
+  const effectiveCommuteEnabled = enableCommuteFilter || (
+    usePersonalSetup &&
+    !remoteOnly &&
+    workArrangementFilter !== 'remote' &&
+    resolvedSearchProfile.defaultEnableCommuteFilter
+  );
+  const effectiveCommuteRadiusKm = enableCommuteFilter
+    ? filterMaxDistance
+    : (resolvedSearchProfile.defaultMaxDistanceKm || 30);
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -1063,7 +1084,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filterBenefits.length > 0 ||
       filterContractType.length > 0 ||
       filterLanguageCodes.length > 0 ||
-      enableCommuteFilter ||
+      effectiveCommuteEnabled ||
       globalSearch ||
       abroadOnly ||
       remoteOnly ||
@@ -1170,6 +1191,15 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   }, [userProfile.isLoggedIn]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(min-width: 1280px)');
+    const syncViewport = () => setIsXlViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
+
+  useEffect(() => {
     if (personalSetupBootstrappedRef.current || !usePersonalSetup || hasActiveFilters || remoteOnly) return;
     personalSetupBootstrappedRef.current = true;
     applyDiscoveryDefaults({
@@ -1234,17 +1264,39 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       });
     const byGeographicScope = (items: Job[]) =>
       items.filter((job) => {
-        const countryCode = String(job.country_code || '').trim().toUpperCase();
+        const countryCode = normalizeSupportedCountryCode(job.country_code);
         if (!countryCode || !homeCountryCode) return true;
         if (geographicScopeFilter === 'all') return true;
         if (geographicScopeFilter === 'domestic') return countryCode === homeCountryCode;
         if (geographicScopeFilter === 'abroad') return countryCode !== homeCountryCode;
-        return borderCountryCodes.includes(countryCode as SupportedCountryCode);
+        return borderCountryCodes.includes(countryCode);
+      });
+    const byCommuteReality = (items: Job[]) =>
+      items.filter((job) => {
+        if (!effectiveCommuteEnabled || effectiveCommuteRadiusKm <= 0) return true;
+        if (isRemoteListing(job)) return true;
+        const userLat = userProfile.coordinates?.lat;
+        const userLon = userProfile.coordinates?.lon;
+        if (userLat == null || userLon == null) return true;
+        const explicitDistance = Number((job as any).distance_km ?? (job as any).distanceKm ?? job.distanceKm);
+        const computedDistance = (
+          typeof job.lat === 'number' &&
+          typeof job.lng === 'number'
+        ) ? calculateDistanceKm(userLat, userLon, job.lat, job.lng) : null;
+        const distanceKm = Number.isFinite(explicitDistance) && explicitDistance >= 0
+          ? explicitDistance
+          : computedDistance;
+        if (distanceKm == null || distanceKm > effectiveCommuteRadiusKm) {
+          return false;
+        }
+        (job as any).distance_km = distanceKm;
+        (job as any).distanceKm = distanceKm;
+        return true;
       });
     const nativeMatches = byWorkMode(nativeJobs);
     const importedMatches = byWorkMode(importedJobs);
-    const nativeScopedMatches = byGeographicScope(nativeMatches);
-    const importedScopedMatches = byGeographicScope(importedMatches);
+    const nativeScopedMatches = byCommuteReality(byGeographicScope(nativeMatches));
+    const importedScopedMatches = byCommuteReality(byGeographicScope(importedMatches));
     if (lane === 'imports') return importedScopedMatches;
 
     // Challenge lane should prefer native challenges, but avoid feeling empty when the pool is small.
@@ -1259,7 +1311,20 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       ];
     }
     return nativeScopedMatches;
-  }, [jobs, lane, workArrangementFilter, geographicScopeFilter, homeCountryCode, borderCountryCodes, hasNativeChallenges, usePersonalSetup]);
+  }, [
+    jobs,
+    lane,
+    workArrangementFilter,
+    geographicScopeFilter,
+    homeCountryCode,
+    borderCountryCodes,
+    hasNativeChallenges,
+    usePersonalSetup,
+    effectiveCommuteEnabled,
+    effectiveCommuteRadiusKm,
+    userProfile.coordinates?.lat,
+    userProfile.coordinates?.lon,
+  ]);
 
   const prioritizedJobsInLane = useMemo(
     () => {
@@ -1849,6 +1914,46 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     ];
   }, [isCsLike]);
 
+  const mobileSwipeStateStorageKey = useMemo(() => {
+    const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
+    const normalizedCity = String(filterCity || '').trim().toLowerCase();
+    const languageKey = [...filterLanguageCodes].sort().join(',');
+    const contractKey = [...filterContractType].sort().join(',');
+    const benefitsKey = [...filterBenefits].sort().join(',');
+    const experienceKey = [...filterExperience].sort().join(',');
+    return [
+      'marketplace-v2',
+      lane,
+      workArrangementFilter,
+      geographicScopeFilter,
+      normalizedSearch || 'no-search',
+      normalizedCity || 'no-city',
+      enableCommuteFilter ? `commute-${filterMaxDistance}` : 'no-commute',
+      filterMinSalary > 0 ? `salary-${filterMinSalary}` : 'no-salary',
+      filterDate || 'all',
+      languageKey || 'no-languages',
+      contractKey || 'no-contract',
+      benefitsKey || 'no-benefits',
+      experienceKey || 'no-experience',
+      usePersonalSetup ? 'setup-on' : 'setup-off',
+    ].join(':');
+  }, [
+    enableCommuteFilter,
+    filterBenefits,
+    filterCity,
+    filterContractType,
+    filterDate,
+    filterExperience,
+    filterLanguageCodes,
+    filterMaxDistance,
+    filterMinSalary,
+    geographicScopeFilter,
+    lane,
+    searchTerm,
+    usePersonalSetup,
+    workArrangementFilter,
+  ]);
+
   useEffect(() => {
     if (!pendingSearchScroll || loading) return;
     if (prioritizedJobsInLane.length === 0) return;
@@ -1890,11 +1995,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-[var(--text-strong)]">
-                    {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+                    {isCsLike ? 'Proč se Vám ukazují tyto role' : 'Why these roles show up'}
                   </div>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
                     {isCsLike
-                      ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
+                      ? 'Rychlý souhrn signálů, které právě teď nejvíc formují Váš feed.'
                       : 'A quick summary of the signals shaping the feed right now.'}
                   </p>
                 </div>
@@ -2016,7 +2121,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </div>
                   <p className="text-sm leading-6 text-[var(--text-muted)]">
                     {usePersonalSetup
-                      ? (isCsLike ? 'Feed bere v úvahu i tvůj profil, situaci a intent.' : 'The feed also uses your profile, context, and intent.')
+                      ? (isCsLike ? 'Feed bere v úvahu i Váš profil, situaci a intent.' : 'The feed also uses your profile, context, and intent.')
                       : (isCsLike ? 'Feed jede čistě podle hledání a ručních filtrů.' : 'The feed runs purely on search and manual filters.')}
                   </p>
                 </div>
@@ -2375,11 +2480,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           </SurfaceCard>
           )}
 
-          {mobileViewMode === 'swipe' ? (
+          {mobileViewMode === 'swipe' && !isXlViewport ? (
             <div id="challenge-feed-swipe" className="xl:hidden">
               <MobileSwipeJobBrowser
                 jobs={prioritizedJobsInLane}
-                swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
+                swipeStateStorageKey={mobileSwipeStateStorageKey}
                 savedJobIds={savedJobIds}
                 onToggleSave={handleToggleSave}
                 onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
