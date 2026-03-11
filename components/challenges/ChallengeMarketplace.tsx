@@ -342,7 +342,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       firstContactTitle: 'První kontakt místo slepého CV',
       firstContactBody: 'První krok není nahrání dokumentu, ale krátká odpověď na situaci, kterou tým skutečně řeší.',
       lifeFiltersTitle: 'Filtry podle reálného života',
-      lifeFiltersBody: 'Příhraničí, IČO, jazyky pro práci na dálku, dojíždění nebo kancelář vstřícná ke psům. Hledání se přizpůsobuje realitě.',
+      lifeFiltersBody: 'Příhraničí, IČO, jazyk nabídky, dojíždění nebo kancelář vstřícná ke psům. Hledání se přizpůsobuje realitě.',
       laneBadge: lane === 'imports' ? 'Importovaný přehled' : 'Hlavní přehled',
       laneBody:
           lane === 'imports'
@@ -400,6 +400,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteMode: 'Filtrovat podle vzdálenosti od bydliště',
       commuteEnabledLabel: 'Počítat dojezd',
       commuteDisabledLabel: 'Bez filtru dojezdu',
+      listingLanguageLabel: 'Jazyk nabídky:',
+      listingLanguageDisableTitle: 'Vypnout automatické omezení podle jazyka nabídky',
+      listingLanguageAutoDisabled: 'Omezení jazyka nabídky podle profilu je vypnuté.',
       anySalary: 'Bez minima',
       allDates: 'Kdykoliv',
       last3Days: 'Poslední 3 dny',
@@ -468,7 +471,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       firstContactTitle: 'Prvý kontakt namiesto slepého CV',
       firstContactBody: 'Prvým krokom nie je nahratie dokumentu, ale krátka odpoveď na situáciu, ktorú tím skutočne rieši.',
       lifeFiltersTitle: 'Filtre podľa reálneho života',
-      lifeFiltersBody: 'Pohraničie, IČO, jazyky pre prácu na diaľku, dochádzanie alebo kancelária priateľská k psom. Hľadanie sa prispôsobuje realite.',
+      lifeFiltersBody: 'Pohraničie, IČO, jazyk ponuky, dochádzanie alebo kancelária priateľská k psom. Hľadanie sa prispôsobuje realite.',
       laneBadge: lane === 'imports' ? 'Importovaný prehľad' : 'Hlavný prehľad',
       laneBody: lane === 'imports' ? 'Širší importovaný prehľad, stále čítaný cez to, čo bude treba zvládnuť.' : 'Vlastné výzvy doplnené importmi tam, kde trhu chýba podrobnejšie zadanie.',
       personalPresets: 'Nastavenie pre moju situáciu',
@@ -523,6 +526,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteMode: 'Filtrovať podľa vzdialenosti od bydliska',
       commuteEnabledLabel: 'Počítať dochádzanie',
       commuteDisabledLabel: 'Bez filtra dochádzania',
+      listingLanguageLabel: 'Jazyk ponuky:',
+      listingLanguageDisableTitle: 'Vypnúť automatické obmedzenie podľa jazyka ponuky',
+      listingLanguageAutoDisabled: 'Obmedzenie jazyka ponuky podľa profilu je vypnuté.',
       anySalary: 'Bez minima',
       allDates: 'Kedykoľvek',
       last3Days: 'Posledné 3 dni',
@@ -591,7 +597,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       firstContactTitle: 'Erstkontakt statt blindem CV',
       firstContactBody: 'Der erste Schritt ist nicht das Hochladen eines Dokuments, sondern eine kurze Antwort auf eine echte Situation des Teams.',
       lifeFiltersTitle: 'Filter nach echtem Alltag',
-      lifeFiltersBody: 'Grenzregion, IČO, Sprachen für Remote-Arbeit, Pendeln oder hundefreundliches Büro. Die Suche richtet sich nach der Realität.',
+      lifeFiltersBody: 'Grenzregion, IČO, Sprache der Anzeige, Pendeln oder hundefreundliches Büro. Die Suche richtet sich nach der Realität.',
       laneBadge: lane === 'imports' ? 'Importierte Rollen' : 'Eigene Aufgaben',
       laneBody: lane === 'imports' ? 'Breiter importierter Überblick, weiterhin gelesen über die eigentliche Aufgabe.' : 'Eigene Aufgaben mit importierten Ergänzungen dort, wo dem Markt klare Aufgabenbeschreibungen fehlen.',
       personalPresets: 'Einstellungen für meine Situation',
@@ -646,6 +652,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteMode: 'Nach Entfernung vom Wohnort filtern',
       commuteEnabledLabel: 'Pendeln einbeziehen',
       commuteDisabledLabel: 'Ohne Pendelfilter',
+      listingLanguageLabel: 'Anzeigesprache:',
+      listingLanguageDisableTitle: 'Automatische Einschränkung nach Anzeigesprache deaktivieren',
+      listingLanguageAutoDisabled: 'Die Einschränkung der Anzeigesprache anhand Ihres Profils ist deaktiviert.',
       anySalary: 'Kein Minimum',
       allDates: 'Jederzeit',
       last3Days: 'Letzte 3 Tage',
@@ -715,7 +724,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       firstContactTitle: 'Pierwszy kontakt zamiast ślepego CV',
       firstContactBody: 'Pierwszym krokiem nie jest wrzucenie dokumentu, ale krótka odpowiedź na sytuację, którą zespół naprawdę rozwiązuje.',
       lifeFiltersTitle: 'Filtry według realnego życia',
-      lifeFiltersBody: 'Pogranicze, IČO, języki do pracy zdalnej, dojazd albo biuro przyjazne psom. Wyszukiwanie dopasowuje się do rzeczywistości.',
+      lifeFiltersBody: 'Pogranicze, IČO, język ogłoszenia, dojazd albo biuro przyjazne psom. Wyszukiwanie dopasowuje się do rzeczywistości.',
       laneBadge: lane === 'imports' ? 'Importowane oferty' : 'Własne wyzwania',
       laneBody: lane === 'imports' ? 'Szerszy importowany przegląd, nadal czytany przez pryzmat tego, co naprawdę trzeba ogarnąć.' : 'Własne wyzwania uzupełnione importami tam, gdzie brakuje dokładniejszego opisu pracy.',
       personalPresets: 'Ustawienia dla mojej sytuacji',
@@ -770,6 +779,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteMode: 'Filtruj według odległości od domu',
       commuteEnabledLabel: 'Licz dojazd',
       commuteDisabledLabel: 'Bez filtra dojazdu',
+      listingLanguageLabel: 'Język ogłoszenia:',
+      listingLanguageDisableTitle: 'Wyłącz automatyczne zawężanie według języka ogłoszenia',
+      listingLanguageAutoDisabled: 'Zawężanie języka ogłoszenia na podstawie profilu jest wyłączone.',
       anySalary: 'Bez minimum',
       allDates: 'Dowolnie',
       last3Days: 'Ostatnie 3 dni',
@@ -838,7 +850,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         firstContactTitle: 'First contact instead of a blind CV',
         firstContactBody: 'The first step is not uploading a document, but a short reply to a situation the team is actually dealing with.',
         lifeFiltersTitle: 'Filters shaped by real life',
-        lifeFiltersBody: 'Cross-border search, contractor roles, remote languages, commute, or dog-friendly offices. Search adapts to real constraints.',
+        lifeFiltersBody: 'Cross-border search, contractor roles, listing language, commute, or dog-friendly offices. Search adapts to real constraints.',
         laneBadge: lane === 'imports' ? 'Imported view' : 'Main view',
         laneBody:
           lane === 'imports'
@@ -896,6 +908,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         commuteMode: 'Filter by distance from home',
         commuteEnabledLabel: 'Use commute distance',
         commuteDisabledLabel: 'No commute filter',
+        listingLanguageLabel: 'Listing language:',
+        listingLanguageDisableTitle: 'Disable automatic narrowing by listing language',
+        listingLanguageAutoDisabled: 'Listing language narrowing based on your profile is disabled.',
         anySalary: 'No minimum',
         allDates: 'Any time',
         last3Days: 'Last 3 days',
@@ -2115,7 +2130,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                         </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <FilterChip active className="justify-start">
-                          {isCsLike ? 'Jazyk nabídky:' : 'Listing language:'}{' '}
+                          {copy.listingLanguageLabel}{' '}
                           {implicitLanguageCodesApplied
                             .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
                             .join(' / ')}
@@ -2124,7 +2139,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                           type="button"
                           className="app-button-secondary !px-3 !py-2"
                           onClick={() => setEnableAutoLanguageGuard(false)}
-                          title={isCsLike ? 'Vypnout automatické omezení podle jazyka nabídky' : 'Disable automatic narrowing by listing language'}
+                          title={copy.listingLanguageDisableTitle}
                         >
                           {isCsLike ? 'Vypnout' : 'Disable'}
                         </button>
@@ -2137,7 +2152,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="text-sm text-[var(--text-muted)]">
-                          {isCsLike ? 'Omezení jazyka nabídky podle profilu je vypnuté.' : 'Listing language narrowing based on your profile is disabled.'}
+                          {copy.listingLanguageAutoDisabled}
                         </span>
                         <button
                           type="button"
