@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
-import { Job, JHI, JHIPreferences, JobHiringStage, TaxProfile } from '../types';
+import { Job, JHI, JHIPreferences, JobHiringStage, SearchDiagnosticsMeta, TaxProfile } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
@@ -14,7 +14,7 @@ import { estimateNoise } from '../utils/noise';
 import { deriveChallengeFields } from './challengeContentService';
 import { dedupeJobsList, getJobDedupKeys } from '../utils/jobDedupe';
 
-type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number };
+type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number; meta?: SearchDiagnosticsMeta };
 
 // Guard against accidental frontend polling loops that hammer the search backend.
 // If the same hybrid-search request is triggered repeatedly with identical filters,
@@ -951,6 +951,9 @@ export interface JobFilterOptions {
     // - 'async': return DB results fast; external overlays should be fetched separately.
     // - 'off': never include external overlays.
     externalOverlayMode?: 'sync' | 'async' | 'off';
+    // Profile hard constraints are too opaque for the main discovery feed.
+    // Keep them opt-in so manual search filters remain the single source of truth.
+    respectHardConstraints?: boolean;
 }
 
 const isSearchV2Enabled = (): boolean => {
@@ -1072,6 +1075,7 @@ const fetchJoobleLiveJobs = async (options: {
     abortSignal?: AbortSignal;
     limit?: number;
     includeJhi?: boolean;
+    page?: number;
 }): Promise<Job[]> => {
     const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
     if (!backendBase) return [];
@@ -1082,7 +1086,7 @@ const fetchJoobleLiveJobs = async (options: {
     const params = new URLSearchParams();
     params.set('search_term', searchTerm);
     params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
-    params.set('page', '1');
+    params.set('page', String(Math.max(1, Math.min(options.page || 1, 10))));
     if (options.filterCity && options.filterCity.trim()) {
         params.set('filter_city', options.filterCity.trim());
     }
@@ -1180,10 +1184,10 @@ const fetchCachedExternalFeedJobs = async (options: {
     page?: number;
     pageSize?: number;
     includeJhi?: boolean;
-}): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+}): Promise<JobsFetchResult> => {
     const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
     if (!backendBase) {
-        return { jobs: [], hasMore: false, totalCount: 0 };
+        return { jobs: [], hasMore: false, totalCount: 0, meta: { fallback_mode: 'internal_only', cache_hit: false, degraded_reasons: ['backend_unavailable'] } };
     }
 
     const params = new URLSearchParams();
@@ -1218,14 +1222,24 @@ const fetchCachedExternalFeedJobs = async (options: {
         return {
             jobs: filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true)),
             hasMore: Boolean(payload?.has_more),
-            totalCount: Number(payload?.total_count || 0)
+            totalCount: Number(payload?.total_count || 0),
+            meta: payload?.meta || undefined
         };
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
         }
         console.warn('External cached feed unavailable:', error);
-        return { jobs: [], hasMore: false, totalCount: 0 };
+        return {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                fallback_mode: 'degraded',
+                cache_hit: false,
+                degraded_reasons: ['cached_feed_unavailable']
+            }
+        };
     }
 };
 
@@ -1237,6 +1251,7 @@ export const fetchExternalOverlayJobs = async (options: {
     excludeCountryCodes?: string[];
     abortSignal?: AbortSignal;
     includeJhi?: boolean;
+    mode?: 'default' | 'recovery';
 }): Promise<Job[]> => {
     const safeSearchTerm = String(options.searchTerm || '').trim();
     const safeSeed = String(options.externalSeedTerm || '').trim();
@@ -1245,6 +1260,7 @@ export const fetchExternalOverlayJobs = async (options: {
     const excludeCountryCodes = options.excludeCountryCodes;
     const abortSignal = options.abortSignal;
     const includeJhi = options.includeJhi ?? false;
+    const mode = options.mode || 'default';
 
     const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
         if (!ms || ms <= 0) return promise;
@@ -1261,7 +1277,9 @@ export const fetchExternalOverlayJobs = async (options: {
         }
     };
 
-    const cachedBudgetMs = safeSearchTerm ? 1200 : 650;
+    const cachedBudgetMs = mode === 'recovery'
+        ? (safeSearchTerm ? 3200 : 1800)
+        : (safeSearchTerm ? 1200 : 650);
     const cached = await withTimeout(
         fetchCachedExternalFeedJobs({
             searchTerm: safeSearchTerm || undefined,
@@ -1274,8 +1292,27 @@ export const fetchExternalOverlayJobs = async (options: {
             includeJhi
         }),
         cachedBudgetMs,
-        { jobs: [], hasMore: false, totalCount: 0 }
+        {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                fallback_mode: 'degraded',
+                cache_hit: false,
+                degraded_reasons: ['cached_feed_timeout']
+            }
+        }
     );
+
+    if ((cached.meta?.degraded_reasons || []).length > 0) {
+        recordRuntimeSignal('custom:external_cached_feed_degraded', {
+            fallback_mode: cached.meta?.fallback_mode || null,
+            degraded_reasons: cached.meta?.degraded_reasons || [],
+        }, {
+            dedupeKey: `${cached.meta?.fallback_mode || 'unknown'}:${(cached.meta?.degraded_reasons || []).join(',') || 'none'}`,
+            throttleMs: 30_000,
+        });
+    }
 
     let cachedJobs = cached.jobs || [];
     if (!safeSearchTerm && safeSeed) {
@@ -1297,9 +1334,39 @@ export const fetchExternalOverlayJobs = async (options: {
         return filterJobsByQuality(cachedJobs);
     }
 
-    const overlayLimit = safeSearchTerm ? 8 : 6;
-    const liveBudgetMs = safeSearchTerm ? 1500 : 1100;
-    const [wwr, jooble, arbeitnow] = await withTimeout(
+    const overlayLimit = mode === 'recovery'
+        ? (safeSearchTerm ? 16 : 10)
+        : (safeSearchTerm ? 8 : 6);
+    const liveBudgetMs = mode === 'recovery'
+        ? (safeSearchTerm ? 5200 : 3200)
+        : (safeSearchTerm ? 1500 : 1100);
+    const jooblePagePromises: Promise<Job[]>[] = [
+        fetchJoobleLiveJobs({
+            searchTerm: safeSearchTerm,
+            filterCity,
+            countryCodes,
+            excludeCountryCodes,
+            abortSignal,
+            limit: overlayLimit,
+            includeJhi
+        })
+    ];
+    if (mode === 'recovery' && safeSearchTerm) {
+        jooblePagePromises.push(
+            fetchJoobleLiveJobs({
+                searchTerm: safeSearchTerm,
+                filterCity,
+                countryCodes,
+                excludeCountryCodes,
+                abortSignal,
+                limit: overlayLimit,
+                includeJhi,
+                page: 2
+            })
+        );
+    }
+
+    const [wwr, jooblePages, arbeitnow] = await withTimeout(
         Promise.all([
             fetchWeWorkRemotelyLiveJobs({
                 searchTerm: safeSearchTerm,
@@ -1310,15 +1377,7 @@ export const fetchExternalOverlayJobs = async (options: {
                 limit: overlayLimit,
                 includeJhi
             }),
-            fetchJoobleLiveJobs({
-                searchTerm: safeSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            }),
+            Promise.all(jooblePagePromises),
             fetchArbeitnowLiveJobs({
                 searchTerm: safeSearchTerm,
                 filterCity,
@@ -1330,10 +1389,15 @@ export const fetchExternalOverlayJobs = async (options: {
             })
         ]),
         liveBudgetMs,
-        [[], [], []] as [Job[], Job[], Job[]]
+        [[], [[]], []] as [Job[], Job[][], Job[]]
     );
 
-    return filterJobsByQuality(dedupeJobsList([...cachedJobs, ...wwr, ...jooble, ...arbeitnow]));
+    return filterJobsByQuality(dedupeJobsList([
+        ...cachedJobs,
+        ...wwr,
+        ...jooblePages.flat(),
+        ...arbeitnow
+    ]));
 };
 
 const normalizeTokenText = (input: string): string =>
@@ -1354,6 +1418,68 @@ const normalizeSearchForContracts = (input: string): string =>
 
 const normalizeBenefitText = (input: string): string =>
     normalizeTokenText(input).replace(/[^a-z0-9]+/g, ' ').trim();
+
+const normalizeSearchMatchText = (input: string): string =>
+    normalizeTokenText(input)
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const ALLOWED_SHORT_SEARCH_TOKENS = new Set([
+    'ai',
+    'bi',
+    'hr',
+    'it',
+    'ml',
+    'qa',
+    'ui',
+    'ux'
+]);
+
+const dedupeSearchTokens = (tokens: string[]): string[] =>
+    Array.from(new Set(tokens.map((token) => token.trim()).filter(Boolean)));
+
+const buildSearchMatcher = (input: string): {
+    normalizedQuery: string;
+    requiredTokens: string[];
+    optionalTokens: string[];
+    queryTokens: string[];
+} => {
+    const normalizedQuery = normalizeSearchMatchText(input);
+    const queryTokens = dedupeSearchTokens(normalizedQuery.split(' '));
+    const requiredTokens = queryTokens.filter((token) => token.length >= 3 || ALLOWED_SHORT_SEARCH_TOKENS.has(token));
+    const optionalTokens = queryTokens.filter((token) => !requiredTokens.includes(token));
+
+    return {
+        normalizedQuery,
+        requiredTokens,
+        optionalTokens,
+        queryTokens
+    };
+};
+
+const matchesSearchMatcher = (
+    haystack: string,
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    }
+): boolean => {
+    const searchable = normalizeSearchMatchText(haystack);
+    if (!searchable) return false;
+    if (matcher.normalizedQuery && searchable.includes(matcher.normalizedQuery)) {
+        return true;
+    }
+    if (matcher.requiredTokens.length > 0) {
+        return matcher.requiredTokens.every((token) => searchable.includes(token));
+    }
+    if (matcher.optionalTokens.length > 0) {
+        return matcher.optionalTokens.some((token) => containsWholeToken(searchable, token));
+    }
+    return matcher.queryTokens.length === 0;
+};
 
 const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
     home_office: [
@@ -1747,7 +1873,7 @@ const sortJobsForMode = (
  */
 export const fetchJobsWithFilters = async (
     options: JobFilterOptions
-): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+): Promise<JobsFetchResult> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
         return { jobs: [], hasMore: false, totalCount: 0 };
@@ -1775,7 +1901,8 @@ export const fetchJobsWithFilters = async (
         abortSignal,
         includeJhi = true,
         externalSearchSeedTerm,
-        externalOverlayMode = 'sync'
+        externalOverlayMode = 'sync',
+        respectHardConstraints = false
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
 
@@ -1851,9 +1978,7 @@ export const fetchJobsWithFilters = async (
     const benefitFilterParts = splitBenefitFilters(filterBenefits || []);
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
-    const normalizedSearchTokens = normalizeTokenText(safeSearchTerm)
-        .split(/\s+/)
-        .filter(Boolean);
+    const searchMatcher = buildSearchMatcher(safeSearchTerm);
     const datePostedCutoffMs = getDatePostedCutoffMs(filterDatePosted);
     const hasStrictFilterConstraints =
         safeRadiusKm !== null ||
@@ -2010,17 +2135,16 @@ export const fetchJobsWithFilters = async (
                 return false;
             }
 
-            if (normalizedSearchTokens.length > 0) {
-                const searchText = normalizeTokenText([
+            if (searchMatcher.queryTokens.length > 0) {
+                const searchText = [
                     job.title || '',
                     job.company || '',
                     job.location || '',
                     job.description || '',
                     ...(job.tags || []),
                     ...(job.benefits || [])
-                ].join(' '));
-                const matchesAllTokens = normalizedSearchTokens.every((token) => searchText.includes(token));
-                if (!matchesAllTokens) {
+                ].join(' ');
+                if (!matchesSearchMatcher(searchText, searchMatcher)) {
                     return false;
                 }
             }
@@ -2116,9 +2240,13 @@ export const fetchJobsWithFilters = async (
     const applyHardConstraintsWithNearFallback = (
         jobs: Job[],
         hasMore: boolean,
-        totalCount: number
-    ): { jobs: Job[]; hasMore: boolean; totalCount: number } => {
+        totalCount: number,
+        meta?: SearchDiagnosticsMeta
+    ): JobsFetchResult => {
         const constraints = jhiPreferences?.hardConstraints;
+        if (!respectHardConstraints) {
+            return { jobs, hasMore, totalCount, meta };
+        }
         const hasActiveConstraints = !!constraints && (
             !!constraints.mustRemote ||
             !!constraints.excludeShift ||
@@ -2127,7 +2255,7 @@ export const fetchJobsWithFilters = async (
             (constraints.minNetMonthly ?? 0) > 0
         );
         if (!hasActiveConstraints) {
-            return { jobs, hasMore, totalCount };
+            return { jobs, hasMore, totalCount, meta };
         }
 
         const evaluated = jobs.map((job, index) => {
@@ -2144,7 +2272,8 @@ export const fetchJobsWithFilters = async (
             return {
                 jobs: strictMatches,
                 hasMore,
-                totalCount: strictMatches.length
+                totalCount: strictMatches.length,
+                meta
             };
         }
 
@@ -2159,7 +2288,8 @@ export const fetchJobsWithFilters = async (
         return {
             jobs: nearMatches,
             hasMore: false,
-            totalCount: nearMatches.length
+            totalCount: nearMatches.length,
+            meta
         };
     };
 
@@ -2190,8 +2320,8 @@ export const fetchJobsWithFilters = async (
         page >= 0;
 
     const maybeMergeCachedExternalFeed = async (
-        result: { jobs: Job[]; hasMore: boolean; totalCount: number }
-    ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+        result: JobsFetchResult
+    ): Promise<JobsFetchResult> => {
         if (!shouldIncludeCachedExternalFeed) {
             return result;
         }
@@ -2208,9 +2338,30 @@ export const fetchJobsWithFilters = async (
             page,
             pageSize: Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6))),
             includeJhi
-        }), cachedBudgetMs, { jobs: [], hasMore: false, totalCount: 0 });
+        }), cachedBudgetMs, {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                fallback_mode: 'degraded',
+                cache_hit: false,
+                degraded_reasons: ['cached_feed_timeout'],
+            }
+        });
 
         if (!externalResult.jobs.length) {
+            if ((externalResult.meta?.degraded_reasons || []).length > 0) {
+                return {
+                    ...result,
+                    meta: {
+                        ...(result.meta || {}),
+                        provider_status: externalResult.meta?.provider_status || result.meta?.provider_status,
+                        fallback_mode: externalResult.meta?.fallback_mode || result.meta?.fallback_mode || 'internal_only',
+                        cache_hit: externalResult.meta?.cache_hit ?? result.meta?.cache_hit,
+                        degraded_reasons: Array.from(new Set([...(result.meta?.degraded_reasons || []), ...(externalResult.meta?.degraded_reasons || [])])),
+                    }
+                };
+            }
             return result;
         }
 
@@ -2240,13 +2391,20 @@ export const fetchJobsWithFilters = async (
         return {
             jobs: mergedJobs,
             hasMore: result.hasMore || externalResult.hasMore,
-            totalCount: Math.max(result.totalCount, mergedJobs.length, externalResult.totalCount)
+            totalCount: Math.max(result.totalCount, mergedJobs.length, externalResult.totalCount),
+            meta: {
+                ...(result.meta || {}),
+                provider_status: externalResult.meta?.provider_status || result.meta?.provider_status,
+                fallback_mode: externalResult.meta?.fallback_mode || result.meta?.fallback_mode || 'cache_only',
+                cache_hit: externalResult.meta?.cache_hit ?? result.meta?.cache_hit,
+                degraded_reasons: Array.from(new Set([...(result.meta?.degraded_reasons || []), ...(externalResult.meta?.degraded_reasons || [])])),
+            }
         };
     };
 
     const maybeOverlayLiveImportJobs = async (
-        result: { jobs: Job[]; hasMore: boolean; totalCount: number }
-    ): Promise<{ jobs: Job[]; hasMore: boolean; totalCount: number }> => {
+        result: JobsFetchResult
+    ): Promise<JobsFetchResult> => {
         if (!shouldOverlayLiveImports) {
             return result;
         }
@@ -2296,17 +2454,24 @@ export const fetchJobsWithFilters = async (
         return {
             jobs: mergedJobs,
             hasMore: result.hasMore,
-            totalCount: Math.max(result.totalCount, mergedJobs.length)
+            totalCount: Math.max(result.totalCount, mergedJobs.length),
+            meta: {
+                ...(result.meta || {}),
+                fallback_mode: 'async_overlay',
+                cache_hit: result.meta?.cache_hit ?? false,
+                degraded_reasons: result.meta?.degraded_reasons || [],
+            }
         };
     };
 
-    const finalizeResults = async (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) => {
+    const finalizeResults = async (result: JobsFetchResult) => {
         const withCachedExternalFeed = await maybeMergeCachedExternalFeed(result);
         const withLiveOverlay = await maybeOverlayLiveImportJobs(withCachedExternalFeed);
         return applyHardConstraintsWithNearFallback(
             withLiveOverlay.jobs,
             withLiveOverlay.hasMore,
-            withLiveOverlay.totalCount
+            withLiveOverlay.totalCount,
+            withLiveOverlay.meta
         );
     };
 
@@ -2314,10 +2479,13 @@ export const fetchJobsWithFilters = async (
         reason: string
     ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         throwIfAborted();
-        const fallbackWindow = Math.min(
-            STRICT_FALLBACK_MAX_WINDOW,
-            Math.max(safeRpcPageSize * STRICT_FALLBACK_MULTIPLIER, (page + 1) * safeRpcPageSize * 2)
+        const baseFallbackWindow = Math.max(
+            safeRpcPageSize * STRICT_FALLBACK_MULTIPLIER,
+            (page + 1) * safeRpcPageSize * 2
         );
+        const fallbackWindow = safeSearchTerm
+            ? Math.min(1200, Math.max(baseFallbackWindow, 900))
+            : Math.min(STRICT_FALLBACK_MAX_WINDOW, baseFallbackWindow);
         const strictSelect = includeJhi
             ? '*'
             : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
@@ -2387,17 +2555,31 @@ export const fetchJobsWithFilters = async (
         if (hasStrictFilterConstraints) return null;
         const sanitizedTerm = safeSearchTerm.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim();
         if (!sanitizedTerm) return null;
+        const fallbackMatcher = buildSearchMatcher(sanitizedTerm);
+        const fallbackQueryTokens = fallbackMatcher.requiredTokens.length > 0
+            ? fallbackMatcher.requiredTokens
+            : fallbackMatcher.queryTokens;
+        if (fallbackQueryTokens.length === 0) return null;
 
         const from = page * pageSize;
         const to = from + pageSize - 1;
         const textSelect = includeJhi
             ? '*'
             : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
+        const orFilters = dedupeSearchTokens([
+            fallbackMatcher.normalizedQuery,
+            ...fallbackQueryTokens
+        ]).flatMap((token) => ([
+            `title.ilike.%${token}%`,
+            `company.ilike.%${token}%`,
+            `location.ilike.%${token}%`,
+            `description.ilike.%${token}%`
+        ])).join(',');
         let query = supabase
             .from('jobs')
             .select(textSelect, { count: 'exact' })
             .eq('legality_status', 'legal')
-            .or(`title.ilike.%${sanitizedTerm}%,company.ilike.%${sanitizedTerm}%,location.ilike.%${sanitizedTerm}%,description.ilike.%${sanitizedTerm}%`)
+            .or(orFilters)
             .order('scraped_at', { ascending: false })
             .range(from, to);
 
@@ -2416,21 +2598,19 @@ export const fetchJobsWithFilters = async (
         }
 
         const processedJobs = mapJobs(data || [], undefined, undefined, includeJhi);
-        let fallbackJobs = filterJobsByQuality(processedJobs);
-        const normalizedFallbackTerm = normalizeTokenText(sanitizedTerm);
-        const isShortSingleTokenQuery = compactSearchLength <= 2 && !normalizedFallbackTerm.includes(' ');
-        if (isShortSingleTokenQuery) {
-            fallbackJobs = fallbackJobs.filter((job) => {
-                const searchable = normalizeTokenText([
-                    job.title || '',
-                    job.company || '',
-                    job.location || '',
-                    job.description || ''
-                ].join(' '));
-                return containsWholeToken(searchable, normalizedFallbackTerm);
-            });
-        }
+        let fallbackJobs = filterJobsByQuality(processedJobs).filter((job) => matchesSearchMatcher([
+            job.title || '',
+            job.company || '',
+            job.location || '',
+            job.description || '',
+            ...(job.tags || []),
+            ...(job.benefits || [])
+        ].join(' '), fallbackMatcher));
+        const isShortSingleTokenQuery = compactSearchLength <= 2 && fallbackMatcher.queryTokens.length === 1;
         fallbackJobs = sortJobsForMode(applyStrictClientFilters(fallbackJobs), effectiveSortMode);
+        if (fallbackJobs.length === 0) {
+            return null;
+        }
 
         const totalCountForResponse = fallbackJobs.length;
         return finalizeResults({

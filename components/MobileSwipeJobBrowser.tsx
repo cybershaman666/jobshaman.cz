@@ -20,6 +20,7 @@ interface MobileSwipeJobBrowserProps {
     hasMore: boolean;
     onLoadMore: () => void;
     theme: 'light' | 'dark';
+    fullscreen?: boolean;
 }
 
 interface SwipeState {
@@ -43,7 +44,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     isLoading = false,
     hasMore,
     onLoadMore,
-    theme
+    theme,
+    fullscreen = false
 }) => {
     const { t } = useTranslation();
     void theme;
@@ -520,7 +522,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         <div
             ref={containerRef}
             className={cn(
-                "app-surface relative flex min-h-[70dvh] w-full flex-col overflow-hidden rounded-[var(--radius-2xl)] border shadow-[var(--shadow-card)]",
+                "app-surface relative flex w-full flex-col overflow-hidden border shadow-[var(--shadow-card)]",
+                fullscreen
+                    ? "min-h-[calc(100dvh-var(--app-header-offset)-4rem)] rounded-[var(--radius-xl)]"
+                    : "min-h-[70dvh] rounded-[var(--radius-2xl)]",
                 swipeState.gesture === 'swipe' ? 'touch-none' : 'touch-pan-y'
             )}
             onTouchStart={handleTouchStart}

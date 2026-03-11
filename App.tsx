@@ -17,6 +17,7 @@ import CandidateActivationRail from './components/CandidateActivationRail';
 import ChallengeHomeSections from './components/challenges/ChallengeHomeSections';
 import ChallengeMarketplace from './components/challenges/ChallengeMarketplace';
 import ChallengeFocusView from './components/challenges/ChallengeFocusView';
+import GuestDiscoveryTourOverlay, { GuestDiscoveryTourStep } from './components/GuestDiscoveryTourOverlay';
 import PublicCompanyProfilePage from './components/challenges/PublicCompanyProfilePage';
 import BlogSection from './components/BlogSection';
 import { fetchJobById, fetchJobsByIds } from './services/jobService';
@@ -61,6 +62,8 @@ type PendingApplyFollowup = {
 const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
+const GUEST_DISCOVERY_TOUR_COMPLETED_KEY = 'guest_discovery_tour_completed';
+const GUEST_DISCOVERY_TOUR_SEEN_AT_KEY = 'guest_discovery_tour_seen_at';
 
 const normalizeSavedJobId = (jobId: string): string => {
     const raw = String(jobId || '').trim();
@@ -158,6 +161,8 @@ export default function App() {
 
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
+    const [pendingGuestDiscoveryTour, setPendingGuestDiscoveryTour] = useState(false);
+    const [showGuestDiscoveryTour, setShowGuestDiscoveryTour] = useState(false);
 
     const shouldBypassCookieBanner = () => {
         const params = new URLSearchParams(window.location.search);
@@ -172,6 +177,23 @@ export default function App() {
             return value === '1' || value === 'true' || value === 'on';
         }
         return false;
+    };
+
+    const hasCompletedGuestDiscoveryTour = () => {
+        try {
+            return localStorage.getItem(GUEST_DISCOVERY_TOUR_COMPLETED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    };
+
+    const markGuestDiscoveryTourCompleted = () => {
+        try {
+            localStorage.setItem(GUEST_DISCOVERY_TOUR_COMPLETED_KEY, 'true');
+            localStorage.setItem(GUEST_DISCOVERY_TOUR_SEEN_AT_KEY, new Date().toISOString());
+        } catch (error) {
+            console.warn('Failed to persist discovery tour completion:', error);
+        }
     };
 
     // Track if user intentionally clicked on LIST (to prevent NavRestore from auto-restoring dashboard)
@@ -230,6 +252,89 @@ export default function App() {
     const isAdminRoute = normalizedPath === '/admin';
     const usePageScrollLayout = !isImmersiveAssessmentRoute && (viewState === ViewState.PROFILE || viewState === ViewState.LIST || !!selectedCompanyId);
     const isHomeListView = !isImmersiveAssessmentRoute && viewState === ViewState.LIST && !selectedJobId && !selectedCompanyId;
+    const guestDiscoveryTourSteps = useMemo<GuestDiscoveryTourStep[]>(() => {
+        const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+        const isCsLike = locale === 'cs' || locale === 'sk';
+        return [
+            {
+                id: 'search',
+                selector: '#appheader-discovery-search, #challenge-discovery-search',
+                title: isCsLike ? '1. Vyhledávání je vstup do celé aplikace' : '1. Search is the main entry point',
+                body: isCsLike
+                    ? 'Začni jedním slovem, rolí nebo firmou. Tohle pole je nejrychlejší cesta, jak okamžitě dostat použitelný feed.'
+                    : 'Start with one keyword, role, or company. This field is the fastest way to get a usable feed immediately.'
+            },
+            {
+                id: 'setup',
+                selector: '#challenge-marketplace-setup-card, #challenge-why-roles',
+                title: isCsLike ? '2. Životní situace + JHI' : '2. Life context + JHI',
+                body: isCsLike
+                    ? 'Shaman neřadí nabídky jen obecně. Bere v úvahu i tvoji situaci, směr a osobní rozhodovací vrstvu, aby feed nebyl jen seznam bez priority.'
+                    : 'Shaman does not rank roles generically. It also uses your context, direction, and personal decision layer so the feed is more than an undifferentiated list.'
+            },
+            {
+                id: 'geography',
+                selector: '#challenge-location-scope-section, #challenge-commute-section',
+                title: isCsLike ? '3. Geografie a příhraničí' : '3. Geography and cross-border scope',
+                body: isCsLike
+                    ? 'Tady řídíš, kde má hledání sahat: jen domácí trh, i okolní trhy, nebo jen zahraničí. V kombinaci s dojížděním to dává smysl hlavně lidem u hranic.'
+                    : 'This controls where search should reach: only your home market, nearby markets too, or only abroad. Combined with commute, this is especially useful near borders.'
+            },
+            {
+                id: 'slots',
+                selector: '#challenge-slots-card',
+                title: isCsLike ? '4. Slotový systém' : '4. The slot system',
+                body: isCsLike
+                    ? 'Nejde o nekonečné rozesílání CV. Aktivní dialogy jsou omezené, aby ses soustředil na reálné konverzace s vyšší šancí na odpověď.'
+                    : 'This is not about endless CV spraying. Active dialogues are limited so you focus on real conversations with a higher chance of response.'
+            },
+            {
+                id: 'jcfpm',
+                selector: '#challenge-premium-feature-jcfpm',
+                title: isCsLike ? '5. JCFPM a hlubší kontext' : '5. JCFPM and deeper context',
+                body: isCsLike
+                    ? 'JCFPM a další podpůrné vrstvy pomáhají systému pochopit, jak funguješ a co je pro tebe dlouhodobě udržitelné, ne jen co umíš napsat do CV.'
+                    : 'JCFPM and the supporting layers help the system understand how you operate and what is sustainable for you long term, not only what you can list on a CV.'
+            }
+        ];
+    }, [i18n.language]);
+    const guestDiscoveryTourLabels = useMemo(() => {
+        const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+        if (locale === 'cs' || locale === 'sk') {
+            return {
+                skip: 'Přeskočit',
+                back: 'Zpět',
+                next: 'Další',
+                finish: 'Dokončit',
+                close: 'Zavřít průvodce'
+            };
+        }
+        if (locale === 'de' || locale === 'at') {
+            return {
+                skip: 'Überspringen',
+                back: 'Zurück',
+                next: 'Weiter',
+                finish: 'Fertig',
+                close: 'Tour schließen'
+            };
+        }
+        if (locale === 'pl') {
+            return {
+                skip: 'Pomiń',
+                back: 'Wstecz',
+                next: 'Dalej',
+                finish: 'Zakończ',
+                close: 'Zamknij przewodnik'
+            };
+        }
+        return {
+            skip: 'Skip',
+            back: 'Back',
+            next: 'Next',
+            finish: 'Finish',
+            close: 'Close tour'
+        };
+    }, [i18n.language]);
 
     useEffect(() => {
         if (viewState !== ViewState.LIST || selectedCompanyId || isBlogOpen || showCompanyLanding) {
@@ -571,7 +676,8 @@ export default function App() {
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
-        applyInteractionState
+        applyInteractionState,
+        applyDiscoveryDefaults
     } = usePaginatedJobs({ userProfile: effectiveUserProfile, enabled: !isAdminRoute });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
     useEffect(() => {
@@ -1248,13 +1354,13 @@ export default function App() {
     // Remote-only search and commute radius are mutually exclusive in practice.
     useEffect(() => {
         if (!challengeRemoteOnly || !enableCommuteFilter) return;
-        setEnableCommuteFilter(false);
+        setEnableCommuteFilter(false, 'default');
     }, [challengeRemoteOnly, enableCommuteFilter, setEnableCommuteFilter]);
 
     // Company profiles: if no coordinates, disable commute filter to avoid empty results
     useEffect(() => {
         if (isCompanyProfile && viewState === ViewState.LIST && !companyCoordinates && enableCommuteFilter) {
-            setEnableCommuteFilter(false);
+            setEnableCommuteFilter(false, 'default');
         }
     }, [isCompanyProfile, viewState, companyCoordinates?.lat, companyCoordinates?.lon, enableCommuteFilter]);
 
@@ -1494,6 +1600,31 @@ export default function App() {
             }
         }
     }, []);
+
+    useEffect(() => {
+        if (userProfile.isLoggedIn) {
+            setPendingGuestDiscoveryTour(false);
+            setShowGuestDiscoveryTour(false);
+        }
+    }, [userProfile.isLoggedIn]);
+
+    useEffect(() => {
+        if (!pendingGuestDiscoveryTour) return;
+        if (showCookieBanner) return;
+        if (userProfile.isLoggedIn) return;
+        if (!isHomeListView) return;
+        if (hasCompletedGuestDiscoveryTour()) {
+            setPendingGuestDiscoveryTour(false);
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setShowGuestDiscoveryTour(true);
+            setPendingGuestDiscoveryTour(false);
+        }, 280);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [isHomeListView, pendingGuestDiscoveryTour, showCookieBanner, userProfile.isLoggedIn]);
 
 
 
@@ -2094,7 +2225,7 @@ export default function App() {
                             />
                         ) : (
                             <>
-                                {!discoverySearchMode ? (
+                                {!discoverySearchMode && !userProfile.isLoggedIn ? (
                                     <div className="hidden md:block">
                                         <ChallengeHomeSections
                                             hasNativeChallenges={hasNativeChallenges}
@@ -2160,6 +2291,7 @@ export default function App() {
                                         enableAutoLanguageGuard={enableAutoLanguageGuard}
                                         setEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
                                         implicitLanguageCodesApplied={implicitLanguageCodesApplied}
+                                        applyDiscoveryDefaults={applyDiscoveryDefaults}
                                         handleJobSelect={handleJobSelect}
                                         handleToggleSave={handleToggleSave}
                                         onOpenProfile={() => setViewState(ViewState.PROFILE)}
@@ -2448,6 +2580,9 @@ export default function App() {
                     onAccept={(preferences: any) => {
                         console.log('Cookie preferences accepted:', preferences);
                         setShowCookieBanner(false);
+                        if (!userProfile.isLoggedIn && !hasCompletedGuestDiscoveryTour()) {
+                            setPendingGuestDiscoveryTour(true);
+                        }
                     }}
                     onCustomize={() => {
                         console.log('Customize cookie preferences');
@@ -2455,6 +2590,22 @@ export default function App() {
                     }}
                 />
             )}
+
+            <GuestDiscoveryTourOverlay
+                open={showGuestDiscoveryTour}
+                steps={guestDiscoveryTourSteps}
+                labels={guestDiscoveryTourLabels}
+                onSkip={() => {
+                    markGuestDiscoveryTourCompleted();
+                    setShowGuestDiscoveryTour(false);
+                    setPendingGuestDiscoveryTour(false);
+                }}
+                onComplete={() => {
+                    markGuestDiscoveryTourCompleted();
+                    setShowGuestDiscoveryTour(false);
+                    setPendingGuestDiscoveryTour(false);
+                }}
+            />
 
         </div>
     );

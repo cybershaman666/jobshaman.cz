@@ -12,15 +12,17 @@ import {
   TrainFront
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CandidateDialogueCapacity, Job, JobSearchFilters, SearchLanguageCode, UserProfile } from '../../types';
+import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { isRemoteJob } from '../../services/commuteService';
-import { annotateJobsForCandidate, getCandidateIntentDomainLabel, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
+import { annotateJobsForCandidate, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
+import PremiumFeatureExplainModal, { PremiumFeatureExplainContent } from '../PremiumFeatureExplainModal';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
+import { recordRuntimeSignal } from '../../services/runtimeSignals';
 
 interface ChallengeMarketplaceProps {
   hasNativeChallenges: boolean;
@@ -38,34 +40,34 @@ interface ChallengeMarketplaceProps {
   applyInteractionState: (jobId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
   theme: 'light' | 'dark';
   searchTerm: string;
-  setSearchTerm: (term: string) => void;
+  setSearchTerm: (term: string, source?: DiscoveryFilterSource) => void;
   performSearch: (term: string) => void;
   filterCity: string;
-  setFilterCity: (city: string) => void;
+  setFilterCity: (city: string, source?: DiscoveryFilterSource) => void;
   filterMinSalary: number;
-  setFilterMinSalary: (salary: number) => void;
+  setFilterMinSalary: (salary: number, source?: DiscoveryFilterSource) => void;
   filterBenefits: string[];
-  setFilterBenefits: (benefits: string[]) => void;
+  setFilterBenefits: (benefits: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
   toggleBenefitFilter: (benefit: string) => void;
   remoteOnly: boolean;
-  setRemoteOnly: (enabled: boolean) => void;
+  setRemoteOnly: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   globalSearch: boolean;
-  setGlobalSearch: (enabled: boolean) => void;
+  setGlobalSearch: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   abroadOnly: boolean;
-  setAbroadOnly: (enabled: boolean) => void;
+  setAbroadOnly: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   enableCommuteFilter: boolean;
-  setEnableCommuteFilter: (enabled: boolean) => void;
+  setEnableCommuteFilter: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   filterMaxDistance: number;
-  setFilterMaxDistance: (distance: number) => void;
+  setFilterMaxDistance: (distance: number, source?: DiscoveryFilterSource) => void;
   filterContractType: string[];
-  setFilterContractType: (types: string[]) => void;
+  setFilterContractType: (types: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
   toggleContractTypeFilter: (type: string) => void;
   filterDate: string;
-  setFilterDate: (date: string) => void;
+  setFilterDate: (date: string, source?: DiscoveryFilterSource) => void;
   filterExperience: string[];
-  setFilterExperience: (levels: string[]) => void;
+  setFilterExperience: (levels: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
   filterLanguageCodes: SearchLanguageCode[];
-  setFilterLanguageCodes: (codes: SearchLanguageCode[]) => void;
+  setFilterLanguageCodes: (codes: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
   enableAutoLanguageGuard: boolean;
   setEnableAutoLanguageGuard: (enabled: boolean) => void;
   implicitLanguageCodesApplied: string[];
@@ -74,6 +76,7 @@ interface ChallengeMarketplaceProps {
   onOpenPremium: (featureLabel: string) => void;
   onOpenProfile: () => void;
   onOpenAuth: () => void;
+  applyDiscoveryDefaults: (filters: JobSearchFilters) => void;
 }
 
 const ROLE_TYPES = [
@@ -244,7 +247,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   handleToggleSave,
   onOpenPremium,
   onOpenProfile,
-  onOpenAuth
+  onOpenAuth,
+  applyDiscoveryDefaults
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
@@ -252,9 +256,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const isCsLike = language === 'cs' || language === 'sk';
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
-  const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>('swipe');
+  const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>(userProfile.isLoggedIn ? 'swipe' : 'list');
   const [mobileSwipeIntroDismissed, setMobileSwipeIntroDismissed] = useState(false);
   const [usePersonalSetup, setUsePersonalSetup] = useState(true);
+  const [pendingSearchScroll, setPendingSearchScroll] = useState(false);
+  const [selectedPremiumFeature, setSelectedPremiumFeature] = useState<PremiumFeatureExplainContent | null>(null);
   const hasPremiumAccess = ['premium', 'pro', 'business'].includes(String(userProfile.subscription?.tier || 'free').toLowerCase());
 
   const copy = ({
@@ -272,6 +278,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filters: 'Filtry podle reality',
       cockpitTitle: 'Chytrý předvýběr',
       cockpitBody: 'Přednastavení převádí životní situaci do praktického hledání. Výsledkem není nekonečný seznam, ale použitelný výběr.',
+      firstContactTitle: 'První kontakt místo slepého CV',
+      firstContactBody: 'První krok není nahrání dokumentu, ale krátká odpověď na situaci, kterou tým skutečně řeší.',
+      lifeFiltersTitle: 'Filtry podle reálného života',
+      lifeFiltersBody: 'Příhraničí, IČO, jazyky pro práci na dálku, dojíždění nebo kancelář vstřícná ke psům. Hledání se přizpůsobuje realitě.',
       laneBadge: lane === 'imports' ? 'Importovaný přehled' : 'Hlavní přehled',
       laneBody:
           lane === 'imports'
@@ -304,7 +314,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteHint: 'Bez adresy zůstává výpočet dojezdu vypnutý, ale práce na dálku se pořád zobrazí správně.',
       commuteProfileCta: 'Doplnit adresu do profilu',
       commuteRegisterCta: 'Registrovat se a doplnit adresu',
-      scope: 'Záběr',
+      roleScope: 'Profesní záběr',
+      roleScopeOn: 'Moje nastavení rozšiřuje hledání i na příbuzné role ve stejném směru.',
+      roleScopeOff: 'Bez přednastavení se hledání drží hlavně vašich slov a ručních filtrů.',
+      locationScope: 'Kde hledat',
       roleType: 'Typ spolupráce',
       experience: 'Zkušenost',
       remoteLanguages: 'Jazyky pro práci na dálku',
@@ -312,9 +325,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       minSalary: 'Minimální mzda',
       date: 'Jak je nabídka čerstvá',
       saveSearches: 'Uložená hledání',
-      allMarkets: 'Široký záběr',
-      border: 'Příhraničí / zahraničí',
-      domestic: 'Jen tuzemsko',
+      allMarkets: 'I širší okolní trhy',
+      border: 'Pouze za hranicemi',
+      domestic: 'Jen domovský trh',
       remoteOnly: 'Jen práce z domu',
       allWorkModels: 'Všechny modely',
       anySalary: 'Bez minima',
@@ -382,6 +395,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filters: 'Filtre podľa reality',
       cockpitTitle: 'Múdry predvýber',
       cockpitBody: 'Prednastavenia prevádzajú životnú situáciu do praktického hľadania. Výsledkom nie je nekonečný zoznam, ale použiteľný výber.',
+      firstContactTitle: 'Prvý kontakt namiesto slepého CV',
+      firstContactBody: 'Prvým krokom nie je nahratie dokumentu, ale krátka odpoveď na situáciu, ktorú tím skutočne rieši.',
+      lifeFiltersTitle: 'Filtre podľa reálneho života',
+      lifeFiltersBody: 'Pohraničie, IČO, jazyky pre prácu na diaľku, dochádzanie alebo kancelária priateľská k psom. Hľadanie sa prispôsobuje realite.',
       laneBadge: lane === 'imports' ? 'Importovaný prehľad' : 'Hlavný prehľad',
       laneBody: lane === 'imports' ? 'Širší importovaný prehľad, stále čítaný cez to, čo bude treba zvládnuť.' : 'Vlastné výzvy doplnené importmi tam, kde trhu chýba podrobnejšie zadanie.',
       personalPresets: 'Nastavenie pre moju situáciu',
@@ -411,7 +428,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteHint: 'Bez adresy zostáva výpočet dochádzania vypnutý, ale práca na diaľku sa stále zobrazí správne.',
       commuteProfileCta: 'Doplniť adresu do profilu',
       commuteRegisterCta: 'Registrovať sa a doplniť adresu',
-      scope: 'Záber',
+      roleScope: 'Profesijný záber',
+      roleScopeOn: 'Moje nastavenie rozširuje hľadanie aj na príbuzné roly v rovnakom smere.',
+      roleScopeOff: 'Bez prednastavenia sa hľadanie drží hlavne vašich slov a ručných filtrov.',
+      locationScope: 'Kde hľadať',
       roleType: 'Typ spolupráce',
       experience: 'Skúsenosť',
       remoteLanguages: 'Jazyky pre prácu na diaľku',
@@ -419,8 +439,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       minSalary: 'Minimálna mzda',
       date: 'Ako je ponuka čerstvá',
       saveSearches: 'Uložené hľadania',
-      allMarkets: 'Široký záber',
-      border: 'Pohraničie / zahraničie',
+      allMarkets: 'Aj širšie okolité trhy',
+      border: 'Len za hranicami',
       domestic: 'Len domáci trh',
       remoteOnly: 'Len práca z domu',
       allWorkModels: 'Všetky modely',
@@ -489,6 +509,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filters: 'Filter für den Alltag',
       cockpitTitle: 'Kluge Vorauswahl',
       cockpitBody: 'Voreinstellungen übersetzen deine Lebenssituation in eine praktische Suche. Das Ergebnis ist kein endloser Feed, sondern eine brauchbare Auswahl.',
+      firstContactTitle: 'Erstkontakt statt blindem CV',
+      firstContactBody: 'Der erste Schritt ist nicht das Hochladen eines Dokuments, sondern eine kurze Antwort auf eine echte Situation des Teams.',
+      lifeFiltersTitle: 'Filter nach echtem Alltag',
+      lifeFiltersBody: 'Grenzregion, IČO, Sprachen für Remote-Arbeit, Pendeln oder hundefreundliches Büro. Die Suche richtet sich nach der Realität.',
       laneBadge: lane === 'imports' ? 'Importierte Rollen' : 'Eigene Aufgaben',
       laneBody: lane === 'imports' ? 'Breiter importierter Überblick, weiterhin gelesen über die eigentliche Aufgabe.' : 'Eigene Aufgaben mit importierten Ergänzungen dort, wo dem Markt klare Aufgabenbeschreibungen fehlen.',
       personalPresets: 'Einstellungen für meine Situation',
@@ -518,7 +542,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteHint: 'Ohne Adresse bleibt die Pendelberechnung aus, Remote-Rollen werden aber weiterhin korrekt angezeigt.',
       commuteProfileCta: 'Adresse im Profil ergänzen',
       commuteRegisterCta: 'Registrieren und Adresse ergänzen',
-      scope: 'Umfang',
+      roleScope: 'Beruflicher Fokus',
+      roleScopeOn: 'Meine Einstellungen erweitern die Suche auch auf verwandte Rollen in derselben Richtung.',
+      roleScopeOff: 'Ohne Voreinstellungen bleibt die Suche vor allem bei Ihren Begriffen und manuellen Filtern.',
+      locationScope: 'Wo suchen',
       roleType: 'Arbeitsform',
       experience: 'Erfahrung',
       remoteLanguages: 'Sprachen für Remote-Arbeit',
@@ -526,9 +553,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       minSalary: 'Mindestgehalt',
       date: 'Aktualität',
       saveSearches: 'Gespeicherte Suchen',
-      allMarkets: 'Breiter Fokus',
-      border: 'Grenzregion / Ausland',
-      domestic: 'Nur Inland',
+      allMarkets: 'Auch umliegende Märkte',
+      border: 'Nur außerhalb des Heimatmarkts',
+      domestic: 'Nur Heimatmarkt',
       remoteOnly: 'Nur Homeoffice',
       allWorkModels: 'Alle Modelle',
       anySalary: 'Kein Minimum',
@@ -597,6 +624,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filters: 'Filtry dopasowane do życia',
       cockpitTitle: 'Mądry wstępny wybór',
       cockpitBody: 'Ustawienia zamieniają twoją sytuację życiową w praktyczne wyszukiwanie. Efektem nie jest nieskończona lista, ale użyteczny wybór.',
+      firstContactTitle: 'Pierwszy kontakt zamiast ślepego CV',
+      firstContactBody: 'Pierwszym krokiem nie jest wrzucenie dokumentu, ale krótka odpowiedź na sytuację, którą zespół naprawdę rozwiązuje.',
+      lifeFiltersTitle: 'Filtry według realnego życia',
+      lifeFiltersBody: 'Pogranicze, IČO, języki do pracy zdalnej, dojazd albo biuro przyjazne psom. Wyszukiwanie dopasowuje się do rzeczywistości.',
       laneBadge: lane === 'imports' ? 'Importowane oferty' : 'Własne wyzwania',
       laneBody: lane === 'imports' ? 'Szerszy importowany przegląd, nadal czytany przez pryzmat tego, co naprawdę trzeba ogarnąć.' : 'Własne wyzwania uzupełnione importami tam, gdzie brakuje dokładniejszego opisu pracy.',
       personalPresets: 'Ustawienia dla mojej sytuacji',
@@ -626,7 +657,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       commuteHint: 'Bez adresu wyliczenie dojazdu pozostaje wyłączone, ale role zdalne nadal pokazują się poprawnie.',
       commuteProfileCta: 'Uzupełnij adres w profilu',
       commuteRegisterCta: 'Zarejestruj się i uzupełnij adres',
-      scope: 'Zakres',
+      roleScope: 'Zakres roli',
+      roleScopeOn: 'Moje ustawienia rozszerzają wyszukiwanie także na role pokrewne w tym samym kierunku.',
+      roleScopeOff: 'Bez ustawień wyszukiwanie trzyma się głównie twoich słów i ręcznych filtrów.',
+      locationScope: 'Gdzie szukać',
       roleType: 'Forma współpracy',
       experience: 'Doświadczenie',
       remoteLanguages: 'Języki do pracy zdalnej',
@@ -634,8 +668,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       minSalary: 'Minimalne wynagrodzenie',
       date: 'Aktualność',
       saveSearches: 'Zapisane wyszukiwania',
-      allMarkets: 'Szeroki zakres',
-      border: 'Pogranicze / zagranica',
+      allMarkets: 'Także pobliskie rynki',
+      border: 'Tylko poza rynkiem krajowym',
       domestic: 'Tylko kraj',
       remoteOnly: 'Tylko praca z domu',
       allWorkModels: 'Wszystkie modele',
@@ -704,6 +738,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         filters: 'Reality filters',
         cockpitTitle: 'Decision engine',
         cockpitBody: 'Presets translate real life into filterable scenarios. The output is not just a feed, but a shortlist with the highest chance of actual fit.',
+        firstContactTitle: 'First contact instead of a blind CV',
+        firstContactBody: 'The first step is not uploading a document, but a short reply to a situation the team is actually dealing with.',
+        lifeFiltersTitle: 'Filters shaped by real life',
+        lifeFiltersBody: 'Cross-border search, contractor roles, remote languages, commute, or dog-friendly offices. Search adapts to real constraints.',
         laneBadge: lane === 'imports' ? 'Imported view' : 'Main view',
         laneBody:
           lane === 'imports'
@@ -736,7 +774,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         commuteHint: 'Without an address commute heuristics stay off, but remote roles still render correctly.',
         commuteProfileCta: 'Add address to profile',
         commuteRegisterCta: 'Register and add address',
-        scope: 'Market scope',
+        roleScope: 'Role scope',
+        roleScopeOn: 'My setup also broadens the search to adjacent roles in the same direction.',
+        roleScopeOff: 'Without setup, search stays close to your query and manual filters.',
+        locationScope: 'Where to search',
         roleType: 'Role type',
         experience: 'Experience',
         remoteLanguages: 'Remote languages',
@@ -744,9 +785,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         minSalary: 'Minimum salary',
         date: 'Freshness',
         saveSearches: 'Saved searches',
-        allMarkets: 'Global scope',
-        border: 'Cross-border',
-        domestic: 'Domestic',
+        allMarkets: 'Nearby markets too',
+        border: 'Only outside home market',
+        domestic: 'Home market only',
         remoteOnly: 'Home office only',
         allWorkModels: 'All work models',
         anySalary: 'No minimum',
@@ -911,28 +952,71 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   };
 
   const setCommuteEnabled = (enabled: boolean) => {
-    setEnableCommuteFilter(enabled);
+    setEnableCommuteFilter(enabled, 'user_toggle');
     if (enabled) {
       // Commute radius and "remote only" are mutually exclusive modes.
-      setRemoteOnly(false);
+      if (remoteOnly) {
+        setRemoteOnly(false, 'default');
+        recordRuntimeSignal('custom:filter_conflict_auto_resolved', {
+          conflict: 'commute_vs_remote_only',
+          winner: 'commute',
+        }, {
+          dedupeKey: 'commute_vs_remote_only',
+          throttleMs: 20_000,
+        });
+      }
+    }
+  };
+
+  const setRemoteOnlyMode = (enabled: boolean) => {
+    setRemoteOnly(enabled, 'user_toggle');
+    if (enabled && enableCommuteFilter) {
+      setEnableCommuteFilter(false, 'default');
+      recordRuntimeSignal('custom:filter_conflict_auto_resolved', {
+        conflict: 'remote_only_vs_commute',
+        winner: 'remote_only',
+      }, {
+        dedupeKey: 'remote_only_vs_commute_marketplace',
+        throttleMs: 20_000,
+      });
     }
   };
 
   useEffect(() => {
+    if (!userProfile.isLoggedIn) return;
+    setMobileViewMode('swipe');
+  }, [userProfile.isLoggedIn]);
+
+  useEffect(() => {
     if (personalSetupBootstrappedRef.current || !usePersonalSetup || hasActiveFilters || remoteOnly) return;
     personalSetupBootstrappedRef.current = true;
-    if (resolvedSearchProfile.defaultEnableCommuteFilter) {
-      setCommuteEnabled(true);
-      setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
+    applyDiscoveryDefaults({
+      filterContractTypes: resolvedSearchProfile.wantsContractorRoles ? ['ico'] : [],
+      filterBenefits: Array.from(new Set(resolvedSearchProfile.preferredBenefitKeys || [])),
+      filterLanguageCodes: resolvedSearchProfile.wantsRemoteRoles ? resolvedSearchProfile.remoteLanguageCodes : [],
+      enableCommuteFilter: resolvedSearchProfile.defaultEnableCommuteFilter,
+      filterMaxDistance: resolvedSearchProfile.defaultEnableCommuteFilter ? (resolvedSearchProfile.defaultMaxDistanceKm || 50) : 50,
+      globalSearch: resolvedSearchProfile.nearBorder,
+      abroadOnly: false,
+    });
+    if (resolvedSearchProfile.wantsRemoteRoles) {
+      setRemoteOnly(true, 'default');
+      setEnableCommuteFilter(false, 'default');
     }
   }, [
+    applyDiscoveryDefaults,
     hasActiveFilters,
     remoteOnly,
     resolvedSearchProfile.defaultEnableCommuteFilter,
     resolvedSearchProfile.defaultMaxDistanceKm,
-    setCommuteEnabled,
-    setFilterMaxDistance,
     usePersonalSetup,
+    resolvedSearchProfile.nearBorder,
+    resolvedSearchProfile.preferredBenefitKeys,
+    resolvedSearchProfile.remoteLanguageCodes,
+    resolvedSearchProfile.wantsContractorRoles,
+    resolvedSearchProfile.wantsRemoteRoles,
+    setEnableCommuteFilter,
+    setRemoteOnly,
   ]);
 
   const applyFilterSnapshot = (filters: JobSearchFilters) => {
@@ -940,19 +1024,19 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const nextCommuteEnabled = nextRemoteOnly ? false : Boolean(filters.enableCommuteFilter);
     const nextGlobalSearch = Boolean(filters.globalSearch);
     const nextAbroadOnly = nextGlobalSearch ? false : Boolean(filters.abroadOnly);
-    setSearchTerm(filters.searchTerm || '');
-    setFilterCity(filters.filterCity || '');
-    setFilterMinSalary(filters.filterMinSalary || 0);
-    setFilterBenefits(uniqueStrings(filters.filterBenefits));
-    setFilterContractType(uniqueStrings(filters.filterContractTypes));
-    setFilterDate(filters.filterDatePosted || 'all');
-    setFilterExperience(uniqueStrings(filters.filterExperienceLevels));
-    setFilterLanguageCodes(uniqueStrings<SearchLanguageCode>(filters.filterLanguageCodes));
-    setCommuteEnabled(nextCommuteEnabled);
-    setFilterMaxDistance(filters.filterMaxDistance || 50);
-    setGlobalSearch(nextGlobalSearch);
-    setAbroadOnly(nextAbroadOnly);
-    setRemoteOnly(nextRemoteOnly);
+    setSearchTerm(filters.searchTerm || '', 'user_toggle');
+    setFilterCity(filters.filterCity || '', 'user_toggle');
+    setFilterMinSalary(filters.filterMinSalary || 0, 'user_toggle');
+    setFilterBenefits(uniqueStrings(filters.filterBenefits), 'user_toggle');
+    setFilterContractType(uniqueStrings(filters.filterContractTypes), 'user_toggle');
+    setFilterDate(filters.filterDatePosted || 'all', 'user_toggle');
+    setFilterExperience(uniqueStrings(filters.filterExperienceLevels), 'user_toggle');
+    setFilterLanguageCodes(uniqueStrings<SearchLanguageCode>(filters.filterLanguageCodes), 'user_toggle');
+    setEnableCommuteFilter(nextCommuteEnabled, 'user_toggle');
+    setFilterMaxDistance(filters.filterMaxDistance || 50, 'user_toggle');
+    setGlobalSearch(nextGlobalSearch, 'user_toggle');
+    setAbroadOnly(nextAbroadOnly, 'user_toggle');
+    setRemoteOnly(nextRemoteOnly, 'user_toggle');
   };
 
   const jobsInLane = useMemo(() => {
@@ -1182,13 +1266,151 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   ]);
 
   const toggleRemoteOnly = (enabled: boolean) => {
-    setRemoteOnly(enabled);
-    if (enabled) {
-      setEnableCommuteFilter(false);
-    }
+    setRemoteOnlyMode(enabled);
+  };
+
+  const scrollToFirstFeedItem = () => {
+    if (typeof window === 'undefined') return;
+
+    const targetId = mobileViewMode === 'swipe'
+      ? 'challenge-feed-swipe'
+      : (document.getElementById('challenge-feed-section-broader')
+        ? 'challenge-feed-section-broader'
+        : 'challenge-feed-first-item');
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    const parseCssLengthToPx = (rawValue: string, fallback: number) => {
+      const raw = String(rawValue || '').trim();
+      if (!raw) return fallback;
+      if (raw.endsWith('rem')) {
+        const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
+        const remValue = parseFloat(raw);
+        return Number.isFinite(remValue) ? remValue * rootFontSize : fallback;
+      }
+      if (raw.endsWith('px')) {
+        const pxValue = parseFloat(raw);
+        return Number.isFinite(pxValue) ? pxValue : fallback;
+      }
+      const numericValue = parseFloat(raw);
+      return Number.isFinite(numericValue) ? numericValue : fallback;
+    };
+
+    const headerOffset = parseCssLengthToPx(
+      getComputedStyle(document.documentElement).getPropertyValue('--app-header-offset'),
+      104
+    );
+    const targetY = Math.max(0, window.scrollY + target.getBoundingClientRect().top - headerOffset - 12);
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  };
+
+  const handleSearchSubmit = () => {
+    setPendingSearchScroll(true);
+    performSearch(searchTerm);
   };
 
   const showMobileSwipeIntro = mobileViewMode === 'swipe' && (!userProfile.isLoggedIn || !mobileSwipeIntroDismissed);
+  const premiumFeatures = useMemo<PremiumFeatureExplainContent[]>(() => {
+    if (isCsLike) {
+      return [
+        {
+          id: 'dialogue_slots',
+          label: 'Více dialogových slotů pro aktivní odpovědi',
+          title: 'Více dialogových slotů pro aktivní odpovědi',
+          summary: 'Sloty určují, kolik skutečně aktivních konverzací můžeš držet najednou bez rozpadnutí pozornosti do desítek slepých vláken.',
+          whyTitle: 'Proč to v Shamanovi existuje',
+          whyBody: 'Cíl není rozeslat co nejvíc CV, ale vést omezený počet kvalitních dialogů tam, kde je reálná šance na odpověď z obou stran.',
+          premiumTitle: 'Co se změní s premium',
+          premiumBody: 'Premium rozšíří kapacitu aktivních dialogů, takže můžeš držet víc kvalitních odpovědí najednou a nemusíš tak brzy prioritizovat jen jeden směr.'
+        },
+        {
+          id: 'ai_guide',
+          label: 'AI průvodce profilem a životní situací',
+          title: 'AI průvodce profilem a životní situací',
+          summary: 'Tahle vrstva pomáhá převést nejasné preference, životní omezení a kariérní směr do konkrétních nastavení a praktičtějšího feedu.',
+          whyTitle: 'Proč to v Shamanovi existuje',
+          whyBody: 'Lidé často nevědí, jak svůj životní kontext promítnout do filtrů. AI průvodce to překládá do použitelného discovery nastavení bez nutnosti všechno ručně vymýšlet.',
+          premiumTitle: 'Co se změní s premium',
+          premiumBody: 'Premium odemkne hlubší vedení profilem, životní situací a podpůrnými materiály, takže feed a doporučení budou přesnější a méně obecné.'
+        },
+        {
+          id: 'jhi',
+          label: 'Personalizovaný JHI index',
+          title: 'Personalizovaný JHI index',
+          summary: 'JHI není obecné skóre trhu. Je to osobní vrstva, která váží nabídky podle tvých priorit, reality a kompromisů, které dávají smysl právě tobě.',
+          whyTitle: 'Proč to v Shamanovi existuje',
+          whyBody: 'Dvě stejně dobré nabídky mohou být pro dva lidi úplně jinak vhodné. JHI se snaží rozhodování přiblížit realitě, ne jen obecným metrikám.',
+          premiumTitle: 'Co se změní s premium',
+          premiumBody: 'Premium aktivuje personalizovanější rozhodovací vrstvu, takže doporučení a priorita nabídek víc odrážejí tvoje skutečné preference a omezení.'
+        },
+        {
+          id: 'jcfpm',
+          label: 'Detailní report JCFPM testu',
+          title: 'Detailní report JCFPM testu',
+          summary: 'JCFPM report rozebírá osobnostní nastavení do větší hloubky a ukazuje, jak se promítá do stylu práce, rizik i doporučení v systému.',
+          whyTitle: 'Proč to v Shamanovi existuje',
+          whyBody: 'Nestačí vědět jen co umíš. Důležité je i jak funguješ pod tlakem, v nejistotě nebo v různých typech týmů. Tohle report zpřesňuje.',
+          premiumTitle: 'Co se změní s premium',
+          premiumBody: 'Premium zpřístupní plný report místo zkráceného výstupu, takže uvidíš detailnější interpretaci a proč systém určité role vyhodnocuje jako vhodnější.'
+        }
+      ];
+    }
+
+    return [
+      {
+        id: 'dialogue_slots',
+        label: 'More dialogue slots for active replies',
+        title: 'More dialogue slots for active replies',
+        summary: 'Slots define how many real conversations you can keep active at once without turning discovery into a chaotic pile of threads.',
+        whyTitle: 'Why this exists in Shaman',
+        whyBody: 'The goal is not to spray applications everywhere, but to keep a focused number of high-quality dialogues where both sides are likely to respond.',
+        premiumTitle: 'What changes with premium',
+        premiumBody: 'Premium expands active dialogue capacity so you can keep more meaningful conversations open at once without narrowing too early.'
+      },
+      {
+        id: 'ai_guide',
+        label: 'AI guide for profile and life context',
+        title: 'AI guide for profile and life context',
+        summary: 'This layer turns fuzzy preferences, life constraints, and career direction into concrete settings and a sharper discovery feed.',
+        whyTitle: 'Why this exists in Shaman',
+        whyBody: 'People often know their situation but not how to translate it into filters. The AI guide converts that context into practical discovery settings.',
+        premiumTitle: 'What changes with premium',
+        premiumBody: 'Premium unlocks deeper guidance for profile setup, life context, and supporting materials so the feed becomes more precise and less generic.'
+      },
+      {
+        id: 'jhi',
+        label: 'Personalized JHI score',
+        title: 'Personalized JHI score',
+        summary: 'JHI is not a generic market score. It is a personal decision layer that weighs roles through your own priorities, tradeoffs, and reality.',
+        whyTitle: 'Why this exists in Shaman',
+        whyBody: 'Two equally strong roles can be a very different fit for two different people. JHI tries to reflect real-life decision making, not only generic ranking.',
+        premiumTitle: 'What changes with premium',
+        premiumBody: 'Premium activates a stronger personalized decision layer, so prioritization reflects your actual constraints and preferences more closely.'
+      },
+      {
+        id: 'jcfpm',
+        label: 'Detailed JCFPM report',
+        title: 'Detailed JCFPM report',
+        summary: 'The JCFPM report goes deeper into personality setup and shows how it affects work style, risk patterns, and system recommendations.',
+        whyTitle: 'Why this exists in Shaman',
+        whyBody: 'It is not enough to know only what you can do. It also matters how you operate under pressure, uncertainty, and in different team environments.',
+        premiumTitle: 'What changes with premium',
+        premiumBody: 'Premium unlocks the full report instead of the shortened output, giving you a deeper interpretation and clearer reasoning behind recommendations.'
+      }
+    ];
+  }, [isCsLike]);
+
+  useEffect(() => {
+    if (!pendingSearchScroll || loading) return;
+    if (prioritizedJobsInLane.length === 0) return;
+
+    const rafId = window.requestAnimationFrame(() => {
+      scrollToFirstFeedItem();
+      setPendingSearchScroll(false);
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [loading, pendingSearchScroll, prioritizedJobsInLane.length, mobileViewMode]);
 
   return (
     <section className="space-y-5">
@@ -1212,6 +1434,37 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         />
       </div>
 
+      {setupSignals.length > 0 ? (
+        <div id="challenge-why-roles">
+        <SurfaceCard className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-[var(--text-strong)]">
+                {isCsLike ? 'Proč se ti ukazují tyto role' : 'Why these roles show up'}
+              </div>
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
+                {isCsLike
+                  ? 'Rychlý souhrn signálů, které právě teď nejvíc formují feed.'
+                  : 'A quick summary of the signals shaping the feed right now.'}
+              </p>
+            </div>
+            {!hasManualIntent && inferredIntentAvailable ? (
+              <button type="button" className="app-button-secondary" onClick={onOpenProfile}>
+                {copy.intentPromptCta}
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {setupSignals.map((signal) => (
+              <FilterChip key={`why-${signal}`} active className="justify-start">
+                {signal}
+              </FilterChip>
+            ))}
+          </div>
+        </SurfaceCard>
+        </div>
+      ) : null}
+
       {/* AppHeader already renders the discovery search on lg+; keep this one for mobile/tablet only. */}
       <Toolbar className="space-y-4 lg:hidden">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto]">
@@ -1222,7 +1475,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter') performSearch(searchTerm);
+                if (event.key === 'Enter') handleSearchSubmit();
               }}
               placeholder={copy.toolbarSearch}
               className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
@@ -1237,7 +1490,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
             />
           </div>
-          <button type="button" onClick={() => performSearch(searchTerm)} className="app-button-primary min-w-[130px]">
+          <button type="button" onClick={handleSearchSubmit} className="app-button-primary min-w-[130px]">
             <Search size={16} />
             {copy.search}
           </button>
@@ -1273,200 +1526,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="hidden xl:block xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4.75rem+6px)] xl:self-start">
           <div className="space-y-5 xl:max-h-[calc(100dvh-var(--app-toolbar-offset)-4.75rem-1.5rem-6px)] xl:overflow-y-auto xl:pr-2 xl:pb-4 [&_.app-filter-chip]:!rounded-[0.95rem]">
-            <SurfaceCard className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-[var(--accent)]" />
-                  <div className="text-sm font-semibold text-[var(--text-strong)]">
-                    {usePersonalSetup ? copy.mySetup : copy.manualSection}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <FilterChip
-                    active={usePersonalSetup}
-                    onClick={() => {
-                      setUsePersonalSetup(true);
-                      if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
-                        setCommuteEnabled(true);
-                        setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
-                      }
-                    }}
-                  >
-                    {copy.useSetup}
-                  </FilterChip>
-                  <FilterChip
-                    active={!usePersonalSetup}
-                    onClick={() => {
-                      setUsePersonalSetup(false);
-                      resetToManualDiscovery();
-                    }}
-                  >
-                    {copy.disableSetup}
-                  </FilterChip>
-                </div>
-              </div>
-              <p className="text-sm leading-7 text-[var(--text-muted)]">
-                {usePersonalSetup ? copy.mySetupBody : copy.mySetupOffBody}
-              </p>
-              {!hasManualIntent && inferredIntentAvailable ? (
-                <div className="rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-4 py-3">
-                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.intentPromptTitle}</div>
-                  <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{copy.intentPromptBody}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {candidateIntent.inferredPrimaryDomain ? (
-                      <FilterChip active>{getCandidateIntentDomainLabel(candidateIntent.inferredPrimaryDomain, i18n.language)}</FilterChip>
-                    ) : null}
-                    {candidateIntent.inferredTargetRole ? <FilterChip active>{candidateIntent.inferredTargetRole}</FilterChip> : null}
-                    {candidateIntent.seniority ? <FilterChip active>{candidateIntent.seniority}</FilterChip> : null}
-                  </div>
-                  <button type="button" className="mt-3 app-button-secondary" onClick={onOpenProfile}>
-                    {copy.intentPromptCta}
-                  </button>
-                </div>
-              ) : null}
-              {implicitLanguageCodesApplied.length > 0 ? (
-                <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                    {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <FilterChip active className="justify-start">
-                      {isCsLike ? 'Jazyk:' : 'Language:'}{' '}
-                      {implicitLanguageCodesApplied
-                        .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
-                        .join(' / ')}
-                    </FilterChip>
-                    <button
-                      type="button"
-                      className="app-button-secondary !px-3 !py-2"
-                      onClick={() => setEnableAutoLanguageGuard(false)}
-                      title={isCsLike ? 'Vypnout automatické omezení podle jazyka' : 'Disable auto language narrowing'}
-                    >
-                      {isCsLike ? 'Vypnout' : 'Disable'}
-                    </button>
-                  </div>
-                </div>
-              ) : (!enableAutoLanguageGuard && filterLanguageCodes.length === 0 && !globalSearch ? (
-                <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                    {isCsLike ? 'Automatika vypnuta' : 'Auto disabled'}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-sm text-[var(--text-muted)]">
-                      {isCsLike ? 'Omezení jazyka podle profilu je vypnuté.' : 'Language narrowing based on your profile is disabled.'}
-                    </span>
-                    <button
-                      type="button"
-                      className="app-button-secondary !px-3 !py-2"
-                      onClick={() => setEnableAutoLanguageGuard(true)}
-                    >
-                      {isCsLike ? 'Zapnout' : 'Enable'}
-                    </button>
-                  </div>
-                </div>
-              ) : null)}
-              {usePersonalSetup ? (
-                <>
-                  {setupSignals.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {setupSignals.map((signal) => (
-                        <FilterChip key={signal} active className="justify-start">
-                          {signal}
-                        </FilterChip>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.setupEmpty}</p>
-                  )}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
-                    <MetricTile
-                      label={copy.remoteSection}
-                      value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-                    {isCsLike
-                      ? 'Tip: Pokud je tohle moc široké, napiš jedno klíčové slovo (např. “product”, “hospitality”) nebo zapni Moje nastavení.'
-                      : 'Tip: If this is too broad, type one keyword (e.g. “product”, “hospitality”) or turn on My setup.'}
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <MetricTile label={copy.results} value={Math.max(0, totalCount)} tone="accent" />
-                    <MetricTile
-                      label={copy.filters}
-                      value={hasActiveFilters ? (isCsLike ? 'Zapnuté' : 'On') : (isCsLike ? 'Vypnuté' : 'Off')}
-                    />
-                  </div>
-                </>
-              )}
-              <SavedFiltersMenu onLoadFilter={applyFilterSnapshot} currentFilters={currentFilters} hasActiveFilters={hasActiveFilters} />
-            </SurfaceCard>
-
-            <SurfaceCard className="space-y-4">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal size={16} className="text-[var(--accent)]" />
-                <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.personalPresets}</div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {personalPresets.map((preset) => (
-                  <FilterChip key={preset.id} onClick={() => applyFilterSnapshot(preset.filters)} className="justify-start">
-                    {preset.name}
-                  </FilterChip>
-                ))}
-              </div>
-            </SurfaceCard>
-
             <SurfaceCard className="space-y-5">
-              <FilterSection title={copy.scope}>
-                <div className="flex flex-wrap gap-2">
-                  <FilterChip active={!globalSearch && !abroadOnly} onClick={() => { setGlobalSearch(false); setAbroadOnly(false); }}>
-                    {copy.domestic}
-                  </FilterChip>
-                  <FilterChip active={globalSearch && !abroadOnly} onClick={() => { setGlobalSearch(true); setAbroadOnly(false); }}>
-                    {copy.allMarkets}
-                  </FilterChip>
-                  <FilterChip active={abroadOnly} onClick={() => { setGlobalSearch(false); setAbroadOnly(true); }}>
-                    {copy.border}
-                  </FilterChip>
-                </div>
-              </FilterSection>
-
-              <FilterSection title={copy.remote}>
-                <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(true)}>
-                      {copy.remoteOnly}
-                    </FilterChip>
-                    <FilterChip active={!remoteOnly} onClick={() => toggleRemoteOnly(false)}>
-                      {copy.allWorkModels}
-                    </FilterChip>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {REMOTE_LANGUAGE_OPTIONS.map((option) => {
-                      const active = filterLanguageCodes.includes(option.key);
-                      return (
-                        <FilterChip
-                          key={option.key}
-                          active={active}
-                          onClick={() =>
-                            setFilterLanguageCodes(
-                              active
-                                ? filterLanguageCodes.filter((code) => code !== option.key)
-                                : [...filterLanguageCodes, option.key]
-                            )
-                          }
-                        >
-                          {option.labels[isCsLike ? 'cs' : 'en']}
-                        </FilterChip>
-                      );
-                    })}
-                  </div>
-                </div>
-              </FilterSection>
-
+              <div id="challenge-commute-section">
               <FilterSection title={copy.commute}>
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
@@ -1508,6 +1569,122 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   )}
                 </div>
               </FilterSection>
+              </div>
+
+              <div id="challenge-location-scope-section">
+              <FilterSection title={copy.locationScope}>
+                <div className="flex flex-wrap gap-2">
+                  <FilterChip active={!globalSearch && !abroadOnly} onClick={() => { setGlobalSearch(false); setAbroadOnly(false); }}>
+                    {copy.domestic}
+                  </FilterChip>
+                  <FilterChip
+                    active={globalSearch && !abroadOnly}
+                    onClick={() => { setGlobalSearch(true); setAbroadOnly(false); }}
+                    className="justify-start"
+                  >
+                    {copy.allMarkets}
+                  </FilterChip>
+                  <FilterChip
+                    active={abroadOnly}
+                    onClick={() => { setGlobalSearch(false); setAbroadOnly(true); }}
+                    className="justify-start"
+                  >
+                    {copy.border}
+                  </FilterChip>
+                </div>
+              </FilterSection>
+              </div>
+
+              <FilterSection title={copy.remoteLanguages}>
+                <div className="space-y-3">
+                  {implicitLanguageCodesApplied.length > 0 ? (
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                        {isCsLike ? 'Automaticky omezeno' : 'Auto constraints'}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <FilterChip active className="justify-start">
+                          {isCsLike ? 'Jazyk:' : 'Language:'}{' '}
+                          {implicitLanguageCodesApplied
+                            .map((code) => REMOTE_LANGUAGE_OPTIONS.find((opt) => opt.key === code)?.labels[isCsLike ? 'cs' : 'en'] || String(code).toUpperCase())
+                            .join(' / ')}
+                        </FilterChip>
+                        <button
+                          type="button"
+                          className="app-button-secondary !px-3 !py-2"
+                          onClick={() => setEnableAutoLanguageGuard(false)}
+                          title={isCsLike ? 'Vypnout automatické omezení podle jazyka' : 'Disable auto language narrowing'}
+                        >
+                          {isCsLike ? 'Vypnout' : 'Disable'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (!enableAutoLanguageGuard && filterLanguageCodes.length === 0 && !globalSearch ? (
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                        {isCsLike ? 'Automatika vypnuta' : 'Auto disabled'}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-[var(--text-muted)]">
+                          {isCsLike ? 'Omezení jazyka podle profilu je vypnuté.' : 'Language narrowing based on your profile is disabled.'}
+                        </span>
+                        <button
+                          type="button"
+                          className="app-button-secondary !px-3 !py-2"
+                          onClick={() => setEnableAutoLanguageGuard(true)}
+                        >
+                          {isCsLike ? 'Zapnout' : 'Enable'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null)}
+                  <div className="flex flex-wrap gap-2">
+                    {REMOTE_LANGUAGE_OPTIONS.map((option) => {
+                      const active = filterLanguageCodes.includes(option.key);
+                      return (
+                        <FilterChip
+                          key={option.key}
+                          active={active}
+                          onClick={() =>
+                            setFilterLanguageCodes(
+                              active
+                                ? filterLanguageCodes.filter((code) => code !== option.key)
+                                : [...filterLanguageCodes, option.key]
+                            )
+                          }
+                        >
+                          {option.labels[isCsLike ? 'cs' : 'en']}
+                        </FilterChip>
+                      );
+                    })}
+                  </div>
+                </div>
+              </FilterSection>
+
+              <FilterSection title={copy.roleType}>
+                <div className="flex flex-wrap gap-2">
+                  {ROLE_TYPES.map((type) => (
+                    <FilterChip
+                      key={type.key}
+                      active={filterContractType.includes(type.key)}
+                      onClick={() => toggleContractTypeFilter(type.key)}
+                    >
+                      {type.labels[isCsLike ? 'cs' : 'en']}
+                    </FilterChip>
+                  ))}
+                </div>
+              </FilterSection>
+
+              <FilterSection title={copy.remote}>
+                <div className="flex flex-wrap gap-2">
+                  <FilterChip active={remoteOnly} onClick={() => toggleRemoteOnly(true)}>
+                    {copy.remoteOnly}
+                  </FilterChip>
+                  <FilterChip active={!remoteOnly} onClick={() => toggleRemoteOnly(false)}>
+                    {copy.allWorkModels}
+                  </FilterChip>
+                </div>
+              </FilterSection>
 
               <FilterSection title={copy.minSalary}>
                 <label className="block space-y-2">
@@ -1524,20 +1701,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                     className="w-full accent-[var(--accent)]"
                   />
                 </label>
-              </FilterSection>
-
-              <FilterSection title={copy.roleType}>
-                <div className="flex flex-wrap gap-2">
-                  {ROLE_TYPES.map((type) => (
-                    <FilterChip
-                      key={type.key}
-                      active={filterContractType.includes(type.key)}
-                      onClick={() => toggleContractTypeFilter(type.key)}
-                    >
-                      {type.labels[isCsLike ? 'cs' : 'en']}
-                    </FilterChip>
-                  ))}
-                </div>
               </FilterSection>
 
               <FilterSection title={copy.experience}>
@@ -1589,10 +1752,94 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 </div>
               </FilterSection>
             </SurfaceCard>
+
+            <div id="challenge-marketplace-setup-card">
+            <SurfaceCard className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-[var(--accent)]" />
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">
+                    {usePersonalSetup ? copy.mySetup : copy.manualSection}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <FilterChip
+                    active={usePersonalSetup}
+                    onClick={() => {
+                      setUsePersonalSetup(true);
+                      if (!remoteOnly && resolvedSearchProfile.defaultEnableCommuteFilter) {
+                        setCommuteEnabled(true);
+                        setFilterMaxDistance(resolvedSearchProfile.defaultMaxDistanceKm || 50);
+                      }
+                    }}
+                  >
+                    {copy.useSetup}
+                  </FilterChip>
+                  <FilterChip
+                    active={!usePersonalSetup}
+                    onClick={() => {
+                      setUsePersonalSetup(false);
+                      resetToManualDiscovery();
+                    }}
+                  >
+                    {copy.disableSetup}
+                  </FilterChip>
+                </div>
+              </div>
+              {usePersonalSetup ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
+                  <MetricTile
+                    label={copy.remoteSection}
+                    value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
+                  />
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <MetricTile label={copy.results} value={Math.max(0, totalCount)} tone="accent" />
+                  <MetricTile
+                    label={copy.filters}
+                    value={hasActiveFilters ? (isCsLike ? 'Zapnuté' : 'On') : (isCsLike ? 'Vypnuté' : 'Off')}
+                  />
+                </div>
+              )}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal size={16} className="text-[var(--accent)]" />
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.personalPresets}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {personalPresets.map((preset) => (
+                    <FilterChip key={preset.id} onClick={() => applyFilterSnapshot(preset.filters)} className="justify-start">
+                      {preset.name}
+                    </FilterChip>
+                  ))}
+                </div>
+              </div>
+              <SavedFiltersMenu onLoadFilter={applyFilterSnapshot} currentFilters={currentFilters} hasActiveFilters={hasActiveFilters} />
+            </SurfaceCard>
+            </div>
           </div>
         </div>
 
         <div className="space-y-4">
+          {userProfile.isLoggedIn ? (
+          <Toolbar className="xl:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[var(--text-strong)]">
+                {copy.mobileSwipeTitle}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip active={mobileViewMode === 'swipe'} onClick={() => setMobileViewMode('swipe')}>
+                  {copy.mobileSwipe}
+                </FilterChip>
+                <FilterChip active={mobileViewMode === 'list'} onClick={() => setMobileViewMode('list')}>
+                  {copy.mobileList}
+                </FilterChip>
+              </div>
+            </div>
+          </Toolbar>
+          ) : (
           <SurfaceCard className="space-y-4 xl:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
@@ -1634,9 +1881,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </div>
             ) : null}
           </SurfaceCard>
+          )}
 
           {mobileViewMode === 'swipe' ? (
-            <div className="xl:hidden">
+            <div id="challenge-feed-swipe" className="xl:hidden">
               <MobileSwipeJobBrowser
                 jobs={prioritizedJobsInLane}
                 swipeStateStorageKey={`marketplace:${lane}:${remoteOnly ? 'remote' : 'all'}`}
@@ -1653,6 +1901,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 hasMore={hasMore}
                 onLoadMore={loadMoreJobs}
                 theme={theme}
+                fullscreen={userProfile.isLoggedIn}
               />
             </div>
           ) : null}
@@ -1674,13 +1923,16 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                     <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.premiumBody}</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {(copy.premiumBullets as string[]).map((item: string) => (
-                      <div
-                        key={item}
-                        className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2.5 text-sm font-medium text-[var(--text-strong)]"
+                    {premiumFeatures.map((feature) => (
+                      <button
+                        key={feature.id}
+                        type="button"
+                        id={feature.id === 'jcfpm' ? 'challenge-premium-feature-jcfpm' : undefined}
+                        onClick={() => setSelectedPremiumFeature(feature)}
+                        className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-2.5 text-left text-sm font-medium text-[var(--text-strong)] transition hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.24)] hover:bg-[var(--surface)]"
                       >
-                        {item}
-                      </div>
+                        {feature.label}
+                      </button>
                     ))}
                   </div>
                   <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
@@ -1704,7 +1956,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="rounded-[var(--radius-xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.96))] p-5 shadow-[var(--shadow-soft)] dark:bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.14),rgba(17,24,39,0.94))]">
+              <div id="challenge-slots-card" className="rounded-[var(--radius-xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.96))] p-5 shadow-[var(--shadow-soft)] dark:bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.14),rgba(17,24,39,0.94))]">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={16} className="text-[var(--accent)]" />
@@ -1788,7 +2040,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           ) : (
             <div className="space-y-4">
               {feedSections.map((section) => (
-                <SurfaceCard key={section.key} className="space-y-4">
+                <div key={section.key} id={section.key === 'broader' ? 'challenge-feed-section-broader' : undefined}>
+                <SurfaceCard className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1.5">
                       <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{section.title}</h3>
@@ -1806,6 +2059,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       return (
                         <article
                           key={job.id}
+                          id={section.key === feedSections[0]?.key && job.id === section.jobs[0]?.id ? 'challenge-feed-first-item' : undefined}
                           onClick={() => handleJobSelect(job.id)}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
@@ -1899,6 +2153,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                     })}
                   </div>
                 </SurfaceCard>
+                </div>
               ))}
               <div className="flex justify-center">
                 {hasMore ? (
@@ -1923,6 +2178,13 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           </div>
         </div>
       </div>
+      <PremiumFeatureExplainModal
+        open={selectedPremiumFeature !== null}
+        feature={selectedPremiumFeature}
+        userProfile={userProfile}
+        onClose={() => setSelectedPremiumFeature(null)}
+        onOpenPremium={onOpenPremium}
+      />
     </section>
   );
 };

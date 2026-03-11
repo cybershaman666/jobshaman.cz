@@ -83,11 +83,72 @@ _RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
 _INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 _EXTERNAL_LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
 _EXTERNAL_LIVE_SEARCH_CACHE_TTL_SECONDS = max(60, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
+_EXTERNAL_PROVIDER_FAILURE_THRESHOLD = max(2, int(os.getenv("EXTERNAL_PROVIDER_FAILURE_THRESHOLD") or "2"))
+_EXTERNAL_PROVIDER_COOLDOWN_SECONDS = max(60, int(os.getenv("EXTERNAL_PROVIDER_COOLDOWN_SECONDS") or "300"))
+_EXTERNAL_PROVIDER_HEALTH_LOCK = Lock()
+_EXTERNAL_PROVIDER_HEALTH: dict[str, dict[str, Any]] = {
+    "jooble": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
+    "weworkremotely": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
+    "arbeitnow": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
+}
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
     msg = str(exc).lower()
     return ("pgrst205" in msg and table_name.lower() in msg) or f"table '{table_name.lower()}'" in msg
+
+
+def _provider_health_snapshot() -> dict[str, dict[str, Any]]:
+    now = datetime.now(timezone.utc)
+    snapshot: dict[str, dict[str, Any]] = {}
+    with _EXTERNAL_PROVIDER_HEALTH_LOCK:
+        for provider, state in _EXTERNAL_PROVIDER_HEALTH.items():
+            cooldown_until = state.get("circuit_open_until")
+            is_open = isinstance(cooldown_until, datetime) and cooldown_until > now
+            failure_count = int(state.get("failures") or 0)
+            snapshot[provider] = {
+                "state": "open" if is_open else ("degraded" if failure_count > 0 else "healthy"),
+                "failure_count": failure_count,
+                "cooldown_until": cooldown_until.isoformat() if isinstance(cooldown_until, datetime) else None,
+                "last_error": state.get("last_error"),
+                "last_failure_at": state.get("last_failure_at"),
+                "last_success_at": state.get("last_success_at"),
+            }
+    return snapshot
+
+
+def _provider_circuit_open(provider: str) -> bool:
+    now = datetime.now(timezone.utc)
+    with _EXTERNAL_PROVIDER_HEALTH_LOCK:
+        state = _EXTERNAL_PROVIDER_HEALTH.setdefault(provider, {})
+        cooldown_until = state.get("circuit_open_until")
+        if isinstance(cooldown_until, datetime) and cooldown_until > now:
+            return True
+        if isinstance(cooldown_until, datetime) and cooldown_until <= now:
+            state["circuit_open_until"] = None
+    return False
+
+
+def _mark_provider_success(provider: str) -> None:
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with _EXTERNAL_PROVIDER_HEALTH_LOCK:
+        state = _EXTERNAL_PROVIDER_HEALTH.setdefault(provider, {})
+        state["failures"] = 0
+        state["circuit_open_until"] = None
+        state["last_error"] = None
+        state["last_success_at"] = now_iso
+
+
+def _mark_provider_failure(provider: str, error: Exception | str) -> None:
+    now = datetime.now(timezone.utc)
+    with _EXTERNAL_PROVIDER_HEALTH_LOCK:
+        state = _EXTERNAL_PROVIDER_HEALTH.setdefault(provider, {})
+        failures = int(state.get("failures") or 0) + 1
+        state["failures"] = failures
+        state["last_error"] = str(error)
+        state["last_failure_at"] = now.isoformat()
+        if failures >= _EXTERNAL_PROVIDER_FAILURE_THRESHOLD:
+            state["circuit_open_until"] = now + timedelta(seconds=_EXTERNAL_PROVIDER_COOLDOWN_SECONDS)
 
 
 def _try_get_optional_user_id(request: Request) -> str | None:
@@ -4804,6 +4865,9 @@ async def jobs_hybrid_search_v2(
                     meta = dict((response_copy.get("meta") or {}))
                     meta["cache_hit"] = True
                     meta["cache_age_ms"] = int(age_seconds * 1000)
+                    meta.setdefault("provider_status", {})
+                    meta.setdefault("fallback_mode", "internal_only")
+                    meta.setdefault("degraded_reasons", [])
                     response_copy["meta"] = meta
                     return response_copy
                 _HYBRID_SEARCH_V2_HTTP_CACHE.pop(cache_key, None)
@@ -4894,6 +4958,10 @@ async def jobs_hybrid_search_v2(
             "cooldown_until": meta.get("cooldown_until"),
             "result_count": len(jobs),
             "dismissed_filtered_count": removed_count,
+            "provider_status": meta.get("provider_status") or {},
+            "fallback_mode": meta.get("fallback_mode") or "internal_only",
+            "cache_hit": bool(meta.get("cache_hit")),
+            "degraded_reasons": meta.get("degraded_reasons") or [],
         },
     }
     if payload.debug:
@@ -5021,6 +5089,9 @@ async def get_cached_external_feed(
 ):
     parsed_country_codes = _parse_country_code_csv(country_codes)
     parsed_exclude_codes = _parse_country_code_csv(exclude_country_codes)
+    degraded_reasons: list[str] = []
+    fallback_mode = "empty"
+    cache_hit = False
 
     result = _read_cached_external_jobs(
         page=page,
@@ -5031,54 +5102,22 @@ async def get_cached_external_feed(
         exclude_country_codes=parsed_exclude_codes,
     )
     jobs = result.get("jobs") or []
+    if jobs:
+        cache_hit = True
+        fallback_mode = "cache_only"
 
     # Self-seed: cached feed is only useful if something has populated the cache table.
     # When it's empty (fresh deployments, cleared DB), fetch a small snapshot from
     # sources that don't require keywords (WWR RSS) and write via the live cache path.
     if not jobs:
         seeded: list[dict[str, Any]] = []
-        try:
-            seed_limit = max(12, min(40, int(page_size or 24)))
-            arbeitnow_jobs = search_arbeitnow_jobs_live(
-                limit=seed_limit,
-                page=1,
-                search_term=search_term,
-                filter_city=filter_city,
-                country_codes=parsed_country_codes,
-                exclude_country_codes=parsed_exclude_codes,
-            )
-            if isinstance(arbeitnow_jobs, list):
-                seeded.extend([item for item in arbeitnow_jobs if isinstance(item, dict)])
-            _write_external_cache_snapshot(
-                provider="arbeitnow",
-                jobs=arbeitnow_jobs or [],
-                search_term=search_term,
-                filter_city=filter_city,
-                country_codes=parsed_country_codes,
-                exclude_country_codes=parsed_exclude_codes,
-                page=1,
-            )
-            wwr_jobs = search_weworkremotely_jobs_live(
-                limit=seed_limit,
-                search_term=search_term,
-                filter_city=filter_city,
-                country_codes=parsed_country_codes,
-                exclude_country_codes=parsed_exclude_codes,
-            )
-            if isinstance(wwr_jobs, list):
-                seeded.extend([item for item in wwr_jobs if isinstance(item, dict)])
-            _write_external_cache_snapshot(
-                provider="weworkremotely",
-                jobs=wwr_jobs or [],
-                search_term=search_term,
-                filter_city=filter_city,
-                country_codes=parsed_country_codes,
-                exclude_country_codes=parsed_exclude_codes,
-                page=1,
-            )
-            if str(search_term or "").strip():
-                # Jooble live API requires keywords; only seed when user supplied them.
-                jooble_jobs = search_jooble_jobs_live(
+        seed_limit = max(12, min(40, int(page_size or 24)))
+
+        if _provider_circuit_open("arbeitnow"):
+            degraded_reasons.append("provider_circuit_open:arbeitnow")
+        else:
+            try:
+                arbeitnow_jobs = search_arbeitnow_jobs_live(
                     limit=seed_limit,
                     page=1,
                     search_term=search_term,
@@ -5086,19 +5125,82 @@ async def get_cached_external_feed(
                     country_codes=parsed_country_codes,
                     exclude_country_codes=parsed_exclude_codes,
                 )
-                if isinstance(jooble_jobs, list):
-                    seeded.extend([item for item in jooble_jobs if isinstance(item, dict)])
+                if isinstance(arbeitnow_jobs, list):
+                    seeded.extend([item for item in arbeitnow_jobs if isinstance(item, dict)])
                 _write_external_cache_snapshot(
-                    provider="jooble",
-                    jobs=jooble_jobs or [],
+                    provider="arbeitnow",
+                    jobs=arbeitnow_jobs or [],
                     search_term=search_term,
                     filter_city=filter_city,
                     country_codes=parsed_country_codes,
                     exclude_country_codes=parsed_exclude_codes,
                     page=1,
                 )
-        except Exception as exc:
-            print(f"⚠️ External cached feed seeding failed: {exc}")
+                _mark_provider_success("arbeitnow")
+            except Exception as exc:
+                _mark_provider_failure("arbeitnow", exc)
+                degraded_reasons.append(f"provider_error:arbeitnow:{type(exc).__name__}")
+                print(f"⚠️ External cached feed seeding failed for arbeitnow: {exc}")
+
+        if _provider_circuit_open("weworkremotely"):
+            degraded_reasons.append("provider_circuit_open:weworkremotely")
+        else:
+            try:
+                wwr_jobs = search_weworkremotely_jobs_live(
+                    limit=seed_limit,
+                    search_term=search_term,
+                    filter_city=filter_city,
+                    country_codes=parsed_country_codes,
+                    exclude_country_codes=parsed_exclude_codes,
+                )
+                if isinstance(wwr_jobs, list):
+                    seeded.extend([item for item in wwr_jobs if isinstance(item, dict)])
+                _write_external_cache_snapshot(
+                    provider="weworkremotely",
+                    jobs=wwr_jobs or [],
+                    search_term=search_term,
+                    filter_city=filter_city,
+                    country_codes=parsed_country_codes,
+                    exclude_country_codes=parsed_exclude_codes,
+                    page=1,
+                )
+                _mark_provider_success("weworkremotely")
+            except Exception as exc:
+                _mark_provider_failure("weworkremotely", exc)
+                degraded_reasons.append(f"provider_error:weworkremotely:{type(exc).__name__}")
+                print(f"⚠️ External cached feed seeding failed for weworkremotely: {exc}")
+
+        if str(search_term or "").strip():
+            if not str(os.getenv("JOOBLE_API_KEY") or "").strip():
+                degraded_reasons.append("provider_not_configured:jooble")
+            elif _provider_circuit_open("jooble"):
+                degraded_reasons.append("provider_circuit_open:jooble")
+            else:
+                try:
+                    jooble_jobs = search_jooble_jobs_live(
+                        limit=seed_limit,
+                        page=1,
+                        search_term=search_term,
+                        filter_city=filter_city,
+                        country_codes=parsed_country_codes,
+                        exclude_country_codes=parsed_exclude_codes,
+                    )
+                    if isinstance(jooble_jobs, list):
+                        seeded.extend([item for item in jooble_jobs if isinstance(item, dict)])
+                    _write_external_cache_snapshot(
+                        provider="jooble",
+                        jobs=jooble_jobs or [],
+                        search_term=search_term,
+                        filter_city=filter_city,
+                        country_codes=parsed_country_codes,
+                        exclude_country_codes=parsed_exclude_codes,
+                        page=1,
+                    )
+                    _mark_provider_success("jooble")
+                except Exception as exc:
+                    _mark_provider_failure("jooble", exc)
+                    degraded_reasons.append(f"provider_error:jooble:{type(exc).__name__}")
+                    print(f"⚠️ External cached feed seeding failed for jooble: {exc}")
 
         result = _read_cached_external_jobs(
             page=page,
@@ -5109,6 +5211,9 @@ async def get_cached_external_feed(
             exclude_country_codes=parsed_exclude_codes,
         )
         jobs = result.get("jobs") or []
+        if jobs:
+            cache_hit = True
+            fallback_mode = "cache_seeded" if seeded else "cache_only"
 
         # If DB cache is still empty/unavailable, return the live snapshot directly
         # so users can see external results even during cache failures.
@@ -5131,6 +5236,10 @@ async def get_cached_external_feed(
             end = start + max(1, page_size)
             jobs = deduped[start:end]
             result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
+            fallback_mode = "live_seeded"
+            cache_hit = False
+        elif not jobs and degraded_reasons:
+            fallback_mode = "degraded"
 
     _attach_job_dialogue_preview_metrics(jobs)
     return {
@@ -5138,6 +5247,12 @@ async def get_cached_external_feed(
         "has_more": bool(result.get("has_more")),
         "total_count": int(result.get("total_count") or 0),
         "source": "external_live_search_cache",
+        "meta": {
+            "provider_status": _provider_health_snapshot(),
+            "fallback_mode": fallback_mode,
+            "cache_hit": cache_hit,
+            "degraded_reasons": degraded_reasons,
+        },
     }
 
 @router.post("/jobs/analyze")

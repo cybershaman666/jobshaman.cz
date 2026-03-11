@@ -133,6 +133,41 @@ export interface JobSearchFilters {
   intentSeniority?: CandidateSeniority | null;
 }
 
+export type DiscoveryFilterSource = 'default' | 'user_toggle';
+
+export interface DiscoveryFilterSourceMap {
+  searchTerm?: DiscoveryFilterSource;
+  filterCity?: DiscoveryFilterSource;
+  filterContractTypes?: DiscoveryFilterSource;
+  filterBenefits?: DiscoveryFilterSource;
+  filterMinSalary?: DiscoveryFilterSource;
+  filterDatePosted?: DiscoveryFilterSource;
+  filterExperienceLevels?: DiscoveryFilterSource;
+  filterMaxDistance?: DiscoveryFilterSource;
+  enableCommuteFilter?: DiscoveryFilterSource;
+  filterLanguageCodes?: DiscoveryFilterSource;
+  globalSearch?: DiscoveryFilterSource;
+  abroadOnly?: DiscoveryFilterSource;
+  remoteOnly?: DiscoveryFilterSource;
+}
+
+export interface SearchProviderStatus {
+  state: 'healthy' | 'degraded' | 'open';
+  failure_count: number;
+  cooldown_until?: string | null;
+  last_error?: string | null;
+  last_failure_at?: string | null;
+  last_success_at?: string | null;
+}
+
+export interface SearchDiagnosticsMeta {
+  provider_status?: Partial<Record<'jooble' | 'weworkremotely' | 'arbeitnow', SearchProviderStatus>>;
+  fallback_mode?: 'none' | 'cache_only' | 'cache_seeded' | 'live_seeded' | 'degraded' | 'async_overlay' | 'empty' | 'internal_only';
+  cache_hit?: boolean;
+  degraded_reasons?: string[];
+  empty_result_cause?: string | null;
+}
+
 export interface NoiseMetrics {
   score: number; // 0-100, where 100 is pure fluff
   flags: string[]; // Keep flags for backward compatibility or alias to keywords
