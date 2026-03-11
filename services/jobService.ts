@@ -1677,6 +1677,89 @@ const matchesSearchMatcher = (
     return matcher.queryTokens.length === 0;
 };
 
+const scoreJobAgainstSearchMatcher = (
+    job: Job,
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    }
+): number => {
+    if (!matcher.queryTokens.length) return 0;
+
+    const title = normalizeSearchMatchText(job.title || '');
+    const company = normalizeSearchMatchText(job.company || '');
+    const location = normalizeSearchMatchText(job.location || '');
+    const description = normalizeSearchMatchText(job.description || '');
+    const tagText = normalizeSearchMatchText([...(job.tags || []), ...(job.benefits || [])].join(' '));
+    const fulltext = [title, company, location, description, tagText].filter(Boolean).join(' ');
+
+    let score = 0;
+    if (matcher.normalizedQuery && title.includes(matcher.normalizedQuery)) score += 140;
+    if (matcher.normalizedQuery && fulltext.includes(matcher.normalizedQuery)) score += 80;
+
+    for (const token of matcher.requiredTokens) {
+        if (containsWholeToken(title, token)) score += 45;
+        else if (title.includes(token)) score += 32;
+
+        if (containsWholeToken(company, token)) score += 16;
+        else if (company.includes(token)) score += 8;
+
+        if (containsWholeToken(location, token)) score += 12;
+        else if (location.includes(token)) score += 6;
+
+        if (containsWholeToken(description, token)) score += 14;
+        else if (description.includes(token)) score += 7;
+
+        if (containsWholeToken(tagText, token)) score += 10;
+        else if (tagText.includes(token)) score += 5;
+    }
+
+    for (const token of matcher.optionalTokens) {
+        if (containsWholeToken(title, token)) score += 10;
+        else if (fulltext.includes(token)) score += 4;
+    }
+
+    if (matcher.requiredTokens.length > 0) {
+        const titleCoverage = matcher.requiredTokens.filter((token) => title.includes(token)).length;
+        const fullCoverage = matcher.requiredTokens.filter((token) => fulltext.includes(token)).length;
+        score += titleCoverage * 10;
+        score += fullCoverage * 4;
+    }
+
+    return score;
+};
+
+const sortJobsWithSearchContext = (
+    jobs: Job[],
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    }
+): Job[] => {
+    if (!matcher.queryTokens.length) {
+        return sortJobsForMode(jobs, sortMode);
+    }
+
+    const relevanceSorted = [...jobs].sort((left, right) => {
+        const relevanceDiff = scoreJobAgainstSearchMatcher(right, matcher) - scoreJobAgainstSearchMatcher(left, matcher);
+        if (relevanceDiff !== 0) return relevanceDiff;
+        const freshnessDiff = parseTimestampMs(right.scrapedAt) - parseTimestampMs(left.scrapedAt);
+        if (freshnessDiff !== 0) return freshnessDiff;
+        return (Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0));
+    });
+
+    if (sortMode === 'distance' || sortMode === 'salary_desc' || sortMode === 'jhi_desc') {
+        return sortJobsForMode(relevanceSorted, sortMode);
+    }
+
+    return prioritizeNativeListings(relevanceSorted);
+};
+
 const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
     home_office: [
         /\bhome office\b/,
@@ -2589,9 +2672,10 @@ export const fetchJobsWithFilters = async (
         }
 
         const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...externalJobs]));
-        const mergedJobs = sortJobsForMode(
+        const mergedJobs = sortJobsWithSearchContext(
             applyStrictClientFilters(mergedUnique),
-            effectiveSortMode
+            effectiveSortMode,
+            searchMatcher
         );
 
         return {
@@ -2665,9 +2749,10 @@ export const fetchJobsWithFilters = async (
         }
 
         const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...liveJobs]));
-        const mergedJobs = sortJobsForMode(
+        const mergedJobs = sortJobsWithSearchContext(
             applyStrictClientFilters(mergedUnique),
-            effectiveSortMode
+            effectiveSortMode,
+            searchMatcher
         );
         return {
             jobs: mergedJobs,
@@ -2735,7 +2820,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
-        const strictJobs = sortJobsForMode(applyStrictClientFilters(baseJobs), effectiveSortMode);
+        const strictJobs = sortJobsWithSearchContext(applyStrictClientFilters(baseJobs), effectiveSortMode, searchMatcher);
         if (strictJobs.length === 0 && safeSearchTerm) {
             const textFallbackResult = await fetchViaTextFallback();
             if (textFallbackResult) {
@@ -2838,7 +2923,7 @@ export const fetchJobsWithFilters = async (
             ...(job.benefits || [])
         ].join(' '), fallbackMatcher));
         const isShortSingleTokenQuery = compactSearchLength <= 2 && fallbackMatcher.queryTokens.length === 1;
-        fallbackJobs = sortJobsForMode(applyStrictClientFilters(fallbackJobs), effectiveSortMode);
+        fallbackJobs = sortJobsWithSearchContext(applyStrictClientFilters(fallbackJobs), effectiveSortMode, fallbackMatcher);
         if (fallbackJobs.length === 0) {
             return null;
         }
