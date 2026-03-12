@@ -157,6 +157,25 @@ export async function getAdminCrmEntities(params: { q?: string; kind?: 'company'
   return response.json();
 }
 
+export async function getAdminCrmJobReactionsSummary(params: { q?: string; limit?: number; window_days?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.limit) search.set('limit', String(params.limit));
+  if (params.window_days) search.set('window_days', String(params.window_days));
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/job-reactions-summary?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load CRM job reaction summary');
+  }
+
+  return response.json();
+}
+
 export async function getAdminCrmLeads(params: { q?: string; status?: string; limit?: number; offset?: number } = {}) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);

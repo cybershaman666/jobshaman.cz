@@ -222,6 +222,49 @@ def normalize_jobs_country_code(country_code: Any) -> Optional[str]:
     return allowed.get(normalized)
 
 
+_COUNTRY_CENTROIDS: Dict[str, Dict[str, Any]] = {
+    "cz": {"lat": 49.8175, "lon": 15.4730, "country": "CZ", "source": "country_centroid"},
+    "sk": {"lat": 48.6690, "lon": 19.6990, "country": "SK", "source": "country_centroid"},
+    "pl": {"lat": 51.9194, "lon": 19.1451, "country": "PL", "source": "country_centroid"},
+    "de": {"lat": 51.1657, "lon": 10.4515, "country": "DE", "source": "country_centroid"},
+    "at": {"lat": 47.5162, "lon": 14.5501, "country": "AT", "source": "country_centroid"},
+}
+
+_COUNTRY_LOCATION_ALIASES: Dict[str, str] = {
+    "czech republic": "cz",
+    "ceska republika": "cz",
+    "czechia": "cz",
+    "cz": "cz",
+    "slovakia": "sk",
+    "slovensko": "sk",
+    "sk": "sk",
+    "poland": "pl",
+    "polska": "pl",
+    "pl": "pl",
+    "germany": "de",
+    "deutschland": "de",
+    "de": "de",
+    "austria": "at",
+    "osterreich": "at",
+    "österreich": "at",
+    "at": "at",
+}
+
+
+def get_country_centroid(country_code: Any = None, location: str = "") -> Optional[Dict[str, Any]]:
+    normalized_country = normalize_jobs_country_code(country_code)
+    if normalized_country and normalized_country in _COUNTRY_CENTROIDS:
+        return dict(_COUNTRY_CENTROIDS[normalized_country])
+
+    normalized_location = norm_text(location).lower()
+    if normalized_location:
+        mapped_country = _COUNTRY_LOCATION_ALIASES.get(normalized_location)
+        if mapped_country and mapped_country in _COUNTRY_CENTROIDS:
+            return dict(_COUNTRY_CENTROIDS[mapped_country])
+
+    return None
+
+
 # --- HTTP Session (reuse connections + more realistic headers) ---
 
 _SESSION = requests.Session()
@@ -921,10 +964,16 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         print(f"    🌍 Geocodování lokality: {location_str}")
         
         geo_result = geocode_location(location_str)
+        if not geo_result:
+            geo_result = get_country_centroid(job_data.get("country_code"), location_str)
         if geo_result:
             job_data["lat"] = geo_result["lat"]
             job_data["lng"] = geo_result["lon"]
             print(f"       ✅ Nalezeno: ({geo_result['lat']:.4f}, {geo_result['lon']:.4f}) [{geo_result['source']}]")
+            if not job_data.get("country_code"):
+                normalized_geo_country = normalize_jobs_country_code(geo_result.get("country"))
+                if normalized_geo_country:
+                    job_data["country_code"] = normalized_geo_country
         else:
             print(f"       ⚠️ Geolokace selhala, uložím bez souřadnic")
             job_data["lat"] = None

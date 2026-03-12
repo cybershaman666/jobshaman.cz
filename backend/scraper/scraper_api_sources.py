@@ -39,6 +39,7 @@ normalize_jobs_country_code = _scraper_base.normalize_jobs_country_code
 norm_text = _scraper_base.norm_text
 now_iso = _scraper_base.now_iso
 save_job_to_supabase = _scraper_base.save_job_to_supabase
+get_country_centroid = _scraper_base.get_country_centroid
 
 _geocoding = _import_first(["geocoding", "backend.geocoding"])
 geocode_location = _geocoding.geocode_location
@@ -980,6 +981,14 @@ def _location_precise_enough_for_geocoding(location: str) -> bool:
 def _attach_live_coordinates(job_data: Dict[str, Any]) -> None:
     location = norm_text(job_data.get("location") or "")
     if not _location_precise_enough_for_geocoding(location):
+        fallback = get_country_centroid(job_data.get("country_code"), location)
+        if fallback:
+            job_data["lat"] = float(fallback.get("lat"))
+            job_data["lng"] = float(fallback.get("lon"))
+            if not job_data.get("country_code"):
+                geocoded_country = normalize_country_code(fallback.get("country"))
+                if geocoded_country:
+                    job_data["country_code"] = geocoded_country
         return
     geo = _get_cached_live_geocode(location)
     if geo is None and location not in _LIVE_GEOCODE_CACHE:
@@ -991,6 +1000,14 @@ def _attach_live_coordinates(job_data: Dict[str, Any]) -> None:
             return
         _set_cached_live_geocode(location, geo)
     if not geo:
+        fallback = get_country_centroid(job_data.get("country_code"), location)
+        if fallback:
+            job_data["lat"] = float(fallback.get("lat"))
+            job_data["lng"] = float(fallback.get("lon"))
+            if not job_data.get("country_code"):
+                geocoded_country = normalize_country_code(fallback.get("country"))
+                if geocoded_country:
+                    job_data["country_code"] = geocoded_country
         return
     try:
         job_data["lat"] = float(geo.get("lat"))

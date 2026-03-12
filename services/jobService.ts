@@ -4,7 +4,7 @@ import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextu
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
 import { detectCurrency, detectCurrencyFromLocation, estimateNetSalaryByCountry } from './financialService';
-import { geocodeWithCaching } from './geocodingService';
+import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 import { isRemoteJob } from './commuteService';
 import i18n from '../src/i18n';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
@@ -181,6 +181,25 @@ const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: num
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const d = R * c; // Distance in km
     return Math.round(d * 10) / 10;
+};
+
+const resolveJobCoordinates = (
+    location: string | undefined,
+    lat: unknown,
+    lng: unknown
+): { lat?: number; lng?: number } => {
+    const parsedLat = lat != null ? parseFloat(String(lat)) : NaN;
+    const parsedLng = lng != null ? parseFloat(String(lng)) : NaN;
+    if (!Number.isNaN(parsedLat) && !Number.isNaN(parsedLng)) {
+        return { lat: parsedLat, lng: parsedLng };
+    }
+
+    const fallback = getStaticCoordinates(String(location || '').trim());
+    if (fallback) {
+        return { lat: fallback.lat, lng: fallback.lon };
+    }
+
+    return {};
 };
 
 const deg2rad = (deg: number): number => {
@@ -389,6 +408,8 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         })
         : EMPTY_JHI;
 
+    const resolvedCoords = resolveJobCoordinates(locationString, scrapedJob.lat, scrapedJob.lng);
+
     return {
         id: String(scrapedJob.id),
         company_id: scrapedJob.company_id ? String(scrapedJob.company_id) : undefined,
@@ -404,8 +425,8 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         scrapedAt: scrapedJob.scraped_at,
         source: scrapedJob.source || 'Scraper',
         url: scrapedJob.url,
-        lat: scrapedJob.lat ? parseFloat(String(scrapedJob.lat)) : undefined,
-        lng: scrapedJob.lng ? parseFloat(String(scrapedJob.lng)) : undefined,
+        lat: resolvedCoords.lat,
+        lng: resolvedCoords.lng,
         jhi: jhi,
         noiseMetrics: estimateNoise(fullDesc),
         transparency: {
@@ -3770,6 +3791,8 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 }
             }
 
+            const resolvedCoords = resolveJobCoordinates(locationString, scraped.lat, scraped.lng);
+
             return {
                 id: `db-${scraped.id}`,
                 company_id: scraped.company_id ? String(scraped.company_id) : undefined,
@@ -3784,8 +3807,8 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 scrapedAt: scraped.scraped_at,
                 source: scraped.source || 'Scraper',
                 url: scraped.url,
-                lat: scraped.lat ? parseFloat(String(scraped.lat)) : undefined,
-                lng: scraped.lng ? parseFloat(String(scraped.lng)) : undefined,
+                lat: resolvedCoords.lat,
+                lng: resolvedCoords.lng,
                 ...(distanceKm !== undefined && { distanceKm }),
                 jhi: includeJhi ? calculateJHI({
                     salary_from: salaryFrom ?? undefined,

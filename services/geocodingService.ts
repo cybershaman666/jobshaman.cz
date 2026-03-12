@@ -39,6 +39,26 @@ const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'dolni vltavice': { lat: 48.8978, lon: 14.2458 },
 };
 
+const COUNTRY_CENTROIDS: Record<string, { lat: number, lon: number }> = {
+    'czech republic': { lat: 49.8175, lon: 15.4730 },
+    'ceska republika': { lat: 49.8175, lon: 15.4730 },
+    'czechia': { lat: 49.8175, lon: 15.4730 },
+    'cz': { lat: 49.8175, lon: 15.4730 },
+    'slovakia': { lat: 48.6690, lon: 19.6990 },
+    'slovensko': { lat: 48.6690, lon: 19.6990 },
+    'sk': { lat: 48.6690, lon: 19.6990 },
+    'germany': { lat: 51.1657, lon: 10.4515 },
+    'deutschland': { lat: 51.1657, lon: 10.4515 },
+    'de': { lat: 51.1657, lon: 10.4515 },
+    'austria': { lat: 47.5162, lon: 14.5501 },
+    'osterreich': { lat: 47.5162, lon: 14.5501 },
+    'österreich': { lat: 47.5162, lon: 14.5501 },
+    'at': { lat: 47.5162, lon: 14.5501 },
+    'poland': { lat: 51.9194, lon: 19.1451 },
+    'polska': { lat: 51.9194, lon: 19.1451 },
+    'pl': { lat: 51.9194, lon: 19.1451 },
+};
+
 const CITY_COUNTRY_SUFFIXES = new Set([
     'cz', 'cr', 'czech', 'cesko', 'ceska', 'republika',
     'sk', 'slovensko', 'slovakia',
@@ -62,12 +82,23 @@ const isCityOnlyAddress = (address: string): boolean => {
     return false;
 };
 
+const isCountryOnlyAddress = (address: string): boolean => {
+    if (!address) return false;
+    const normalized = normalizeAddress(address);
+    if (!normalized) return false;
+    if (normalized.includes(',')) return false;
+    return Boolean(COUNTRY_CENTROIDS[normalized]);
+};
+
 /**
  * Synchronous lookup for major cities in the static cache.
  * Useful for filtering and sorting where async geocoding is impractical.
  */
 export const getStaticCoordinates = (address: string): { lat: number, lon: number } | null => {
     if (!address) return null;
+    if (isCountryOnlyAddress(address)) {
+        return COUNTRY_CENTROIDS[normalizeAddress(address)] || null;
+    }
     if (!isCityOnlyAddress(address)) return null;
     const normalized = normalizeAddress(address);
     if (EU_CITIES_CACHE[normalized]) return EU_CITIES_CACHE[normalized];
@@ -123,6 +154,11 @@ export const geocodeWithCaching = async (address: string): Promise<{ lat: number
 
     const normalized = normalizeAddress(address);
     const cityOnly = isCityOnlyAddress(address);
+    const countryOnly = isCountryOnlyAddress(address);
+
+    if (countryOnly && COUNTRY_CENTROIDS[normalized]) {
+        return COUNTRY_CENTROIDS[normalized];
+    }
 
     // 1. Check local static cache (instant)
     if (cityOnly && EU_CITIES_CACHE[normalized]) {

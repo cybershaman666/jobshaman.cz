@@ -776,6 +776,7 @@ async def admin_crm_entity_detail(
 
     now = datetime.now(timezone.utc)
     last_30_iso = (now - timedelta(days=30)).isoformat()
+    last_90_iso = (now - timedelta(days=90)).isoformat()
 
     def _safe_count(table_name: str, filters: List[tuple[str, str, Any]]) -> int:
         try:
@@ -851,6 +852,8 @@ async def admin_crm_entity_detail(
         detail: str = "",
         timestamp: Optional[str] = None,
         severity: str = "info",
+        job_id: Optional[str] = None,
+        job_title: str = "",
     ) -> None:
         if not timestamp:
             return
@@ -862,6 +865,8 @@ async def admin_crm_entity_detail(
             "detail": detail,
             "timestamp": timestamp,
             "severity": severity,
+            "job_id": job_id,
+            "job_title": job_title,
         })
 
     if kind == "lead":
@@ -1022,6 +1027,147 @@ async def admin_crm_entity_detail(
             except Exception:
                 continue
 
+        company_job_rows = []
+        for select_expr in [
+            "id,title,status,is_active,created_at,updated_at,location,company",
+            "id,title,status,created_at,updated_at,location,company",
+            "id,title,is_active,created_at,updated_at,location,company",
+            "id,title,created_at,updated_at,location,company",
+        ]:
+            try:
+                resp = (
+                    supabase.table("jobs")
+                    .select(select_expr)
+                    .eq("company_id", entity_id)
+                    .order("updated_at", desc=True)
+                    .limit(250)
+                    .execute()
+                )
+                company_job_rows = resp.data or []
+                break
+            except Exception:
+                continue
+
+        jobs_by_id: Dict[str, dict] = {}
+        for row in company_job_rows:
+            job_id = str(row.get("id") or "").strip()
+            if not job_id:
+                continue
+            jobs_by_id[job_id] = row
+
+        job_reaction_map: Dict[str, dict] = {}
+
+        def _ensure_job_breakdown(job_id: str) -> dict:
+            existing = job_reaction_map.get(job_id)
+            if existing is not None:
+                return existing
+            job_row = jobs_by_id.get(job_id) or {}
+            status_value = job_row.get("status")
+            if not status_value:
+                status_value = "active" if job_row.get("is_active") else "inactive"
+            breakdown = {
+                "job_id": job_id,
+                "job_title": job_row.get("title") or f"job #{job_id}",
+                "job_location": job_row.get("location") or "",
+                "job_status": status_value or "",
+                "interaction_total_90d": 0,
+                "unique_users_90d": 0,
+                "open_detail_90d": 0,
+                "apply_click_90d": 0,
+                "save_90d": 0,
+                "unsave_90d": 0,
+                "swipe_left_90d": 0,
+                "swipe_right_90d": 0,
+                "applications_total": 0,
+                "applications_recent_30d": 0,
+                "application_status_counts": {},
+            }
+            job_reaction_map[job_id] = breakdown
+            return breakdown
+
+        interaction_unique_users: Dict[str, set[str]] = {}
+        company_job_ids = list(jobs_by_id.keys())
+        if company_job_ids:
+            try:
+                interaction_rows = (
+                    supabase.table("job_interactions")
+                    .select("job_id,user_id,event_type,created_at")
+                    .in_("job_id", company_job_ids)
+                    .gte("created_at", last_90_iso)
+                    .order("created_at", desc=True)
+                    .limit(50000)
+                    .execute()
+                    .data
+                    or []
+                )
+            except Exception:
+                interaction_rows = []
+
+            for row in interaction_rows:
+                job_id = str(row.get("job_id") or "").strip()
+                event_type = str(row.get("event_type") or "").strip().lower()
+                if not job_id or not event_type:
+                    continue
+                breakdown = _ensure_job_breakdown(job_id)
+                breakdown["interaction_total_90d"] += 1
+                if event_type == "open_detail":
+                    breakdown["open_detail_90d"] += 1
+                elif event_type == "apply_click":
+                    breakdown["apply_click_90d"] += 1
+                elif event_type == "save":
+                    breakdown["save_90d"] += 1
+                elif event_type == "unsave":
+                    breakdown["unsave_90d"] += 1
+                elif event_type == "swipe_left":
+                    breakdown["swipe_left_90d"] += 1
+                elif event_type == "swipe_right":
+                    breakdown["swipe_right_90d"] += 1
+
+                user_id = str(row.get("user_id") or "").strip()
+                if user_id:
+                    interaction_unique_users.setdefault(job_id, set()).add(user_id)
+
+            try:
+                application_rows = (
+                    supabase.table("job_applications")
+                    .select("job_id,status,candidate_id,created_at,submitted_at")
+                    .eq("company_id", entity_id)
+                    .order("created_at", desc=True)
+                    .limit(20000)
+                    .execute()
+                    .data
+                    or []
+                )
+            except Exception:
+                application_rows = []
+
+            for row in application_rows:
+                job_id = str(row.get("job_id") or "").strip()
+                if not job_id:
+                    continue
+                breakdown = _ensure_job_breakdown(job_id)
+                breakdown["applications_total"] += 1
+                status_key = str(row.get("status") or "pending").strip().lower() or "pending"
+                status_counts = breakdown["application_status_counts"]
+                status_counts[status_key] = int(status_counts.get(status_key) or 0) + 1
+                created_at = row.get("submitted_at") or row.get("created_at")
+                created_dt = _parse_iso_datetime(created_at) if created_at else None
+                if created_dt and created_dt >= now - timedelta(days=30):
+                    breakdown["applications_recent_30d"] += 1
+
+        for job_id, unique_users in interaction_unique_users.items():
+            breakdown = _ensure_job_breakdown(job_id)
+            breakdown["unique_users_90d"] = len(unique_users)
+
+        job_reaction_breakdown = sorted(
+            job_reaction_map.values(),
+            key=lambda item: (
+                -int(item.get("applications_total") or 0),
+                -int(item.get("interaction_total_90d") or 0),
+                str(item.get("job_title") or "").lower(),
+            ),
+        )
+
         recent_applications = []
         for order_field, select_expr in [
             ("submitted_at", "id,job_id,status,submitted_at,created_at,candidate_id,source"),
@@ -1133,6 +1279,8 @@ async def admin_crm_entity_detail(
                 detail=f"job #{row.get('job_id') or '-'}",
                 timestamp=row.get("submitted_at") or row.get("created_at"),
                 severity=severity,
+                job_id=str(row.get("job_id") or "") or None,
+                job_title=(jobs_by_id.get(str(row.get("job_id") or "")) or {}).get("title") or "",
             )
 
         for row in recent_jobs:
@@ -1148,6 +1296,8 @@ async def admin_crm_entity_detail(
                 detail=str(row.get("title") or f"job #{row.get('id')}"),
                 timestamp=row.get("updated_at") or row.get("created_at"),
                 severity="info",
+                job_id=str(row.get("id") or "") or None,
+                job_title=str(row.get("title") or ""),
             )
 
         for row in recent_messages:
@@ -1187,6 +1337,7 @@ async def admin_crm_entity_detail(
             },
             "breakdowns": {
                 "application_status": application_status_counts,
+                "job_reactions": job_reaction_breakdown,
             },
             "recent": {
                 "jobs": recent_jobs,
@@ -1409,6 +1560,159 @@ async def admin_crm_entity_detail(
         "flags": {
             "subscription_audit_available": subscription_audit_available,
         },
+    }
+
+
+@router.get("/admin/crm/job-reactions-summary")
+async def admin_crm_job_reactions_summary(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    limit: int = Query(25, ge=1, le=100),
+    window_days: int = Query(90, ge=7, le=365),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    safe_q = _safe_query(q or "").lower()
+    since_iso = (datetime.now(timezone.utc) - timedelta(days=window_days)).isoformat()
+
+    try:
+        interaction_rows = (
+            supabase.table("job_interactions")
+            .select("job_id,user_id,event_type,created_at")
+            .gte("created_at", since_iso)
+            .limit(50000)
+            .execute()
+            .data
+            or []
+        )
+    except Exception as exc:
+        print(f"⚠️ Admin CRM job interaction summary failed: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to load CRM job reaction summary")
+
+    counts_by_job: Dict[str, dict] = {}
+    users_by_job: Dict[str, set[str]] = {}
+    for row in interaction_rows:
+        job_id = str(row.get("job_id") or "").strip()
+        event_type = str(row.get("event_type") or "").strip().lower()
+        if not job_id or not event_type:
+            continue
+        bucket = counts_by_job.setdefault(job_id, {
+            "interaction_total": 0,
+            "open_detail": 0,
+            "apply_click": 0,
+            "save": 0,
+            "unsave": 0,
+            "swipe_left": 0,
+            "swipe_right": 0,
+        })
+        bucket["interaction_total"] += 1
+        if event_type in bucket:
+            bucket[event_type] += 1
+        user_id = str(row.get("user_id") or "").strip()
+        if user_id:
+            users_by_job.setdefault(job_id, set()).add(user_id)
+
+    job_ids = list(counts_by_job.keys())
+    if not job_ids:
+        return {"items": [], "count": 0, "window_days": window_days}
+
+    job_rows: List[dict] = []
+    for i in range(0, len(job_ids), 200):
+        chunk = job_ids[i:i + 200]
+        try:
+            resp = (
+                supabase.table("jobs")
+                .select("id,title,company,company_id,status,is_active,location")
+                .in_("id", chunk)
+                .execute()
+            )
+            job_rows.extend(resp.data or [])
+        except Exception:
+            continue
+
+    jobs_by_id = {str(row.get("id")): row for row in job_rows if row.get("id") is not None}
+
+    application_counts_by_job: Dict[str, dict] = {}
+    for i in range(0, len(job_ids), 200):
+        chunk = job_ids[i:i + 200]
+        try:
+            resp = (
+                supabase.table("job_applications")
+                .select("job_id,status,created_at,submitted_at")
+                .in_("job_id", chunk)
+                .gte("created_at", since_iso)
+                .limit(20000)
+                .execute()
+            )
+            rows = resp.data or []
+        except Exception:
+            rows = []
+        for row in rows:
+            job_id = str(row.get("job_id") or "").strip()
+            if not job_id:
+                continue
+            bucket = application_counts_by_job.setdefault(job_id, {
+                "applications_total": 0,
+                "application_status_counts": {},
+            })
+            bucket["applications_total"] += 1
+            status_key = str(row.get("status") or "pending").strip().lower() or "pending"
+            status_counts = bucket["application_status_counts"]
+            status_counts[status_key] = int(status_counts.get(status_key) or 0) + 1
+
+    items: List[dict] = []
+    for job_id, bucket in counts_by_job.items():
+        job = jobs_by_id.get(job_id)
+        if not job:
+            continue
+        company = str(job.get("company") or "").strip()
+        title = str(job.get("title") or "").strip()
+        location = str(job.get("location") or "").strip()
+        haystack = f"{title} {company} {location}".lower()
+        if safe_q and safe_q not in haystack:
+            continue
+        status_value = job.get("status")
+        if not status_value:
+            status_value = "active" if job.get("is_active") else "inactive"
+        app_bucket = application_counts_by_job.get(job_id, {})
+        items.append({
+            "job_id": job_id,
+            "job_title": title or f"job #{job_id}",
+            "company": company or "Unknown company",
+            "company_id": str(job.get("company_id") or "") or None,
+            "job_status": status_value or "",
+            "location": location,
+            "unique_users": len(users_by_job.get(job_id, set())),
+            "interaction_total": int(bucket.get("interaction_total") or 0),
+            "open_detail": int(bucket.get("open_detail") or 0),
+            "apply_click": int(bucket.get("apply_click") or 0),
+            "save": int(bucket.get("save") or 0),
+            "unsave": int(bucket.get("unsave") or 0),
+            "swipe_left": int(bucket.get("swipe_left") or 0),
+            "swipe_right": int(bucket.get("swipe_right") or 0),
+            "applications_total": int(app_bucket.get("applications_total") or 0),
+            "application_status_counts": app_bucket.get("application_status_counts") or {},
+        })
+
+    items = sorted(
+        items,
+        key=lambda item: (
+            -int(item.get("applications_total") or 0),
+            -int(item.get("apply_click") or 0),
+            -int(item.get("open_detail") or 0),
+            -int(item.get("unique_users") or 0),
+            str(item.get("company") or "").lower(),
+            str(item.get("job_title") or "").lower(),
+        ),
+    )[:limit]
+
+    return {
+        "items": items,
+        "count": len(items),
+        "window_days": window_days,
     }
 
 

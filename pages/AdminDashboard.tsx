@@ -29,6 +29,7 @@ import {
   getAdminAiQuality,
   getAdminCrmEntities,
   getAdminCrmEntityDetail,
+  getAdminCrmJobReactionsSummary,
   getAdminCrmLeads,
   getAdminFounderBoard,
   getAdminJobRoles,
@@ -113,6 +114,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [crmKind, setCrmKind] = useState<'all' | CrmEntityKind>('all');
   const [crmLoading, setCrmLoading] = useState(false);
   const [crmRecords, setCrmRecords] = useState<CrmRecord[]>([]);
+  const [crmTopJobs, setCrmTopJobs] = useState<any[]>([]);
   const [selectedCrmKey, setSelectedCrmKey] = useState<string | null>(null);
   const [crmDraft, setCrmDraft] = useState({
     tier: 'free',
@@ -135,6 +137,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [crmDetailLoading, setCrmDetailLoading] = useState(false);
   const [crmEntityDetail, setCrmEntityDetail] = useState<any | null>(null);
   const [crmTimelineFilter, setCrmTimelineFilter] = useState<string>('all');
+  const [crmJobFilter, setCrmJobFilter] = useState<string>('all');
   const [crmLeadSaving, setCrmLeadSaving] = useState(false);
   const [crmLeadCreate, setCrmLeadCreate] = useState({
     company_name: '',
@@ -326,8 +329,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       const leadsPromise = crmKind === 'all' || crmKind === 'lead'
         ? getAdminCrmLeads({ q: normalizedQuery || undefined, limit: 120, offset: 0 })
         : Promise.resolve({ items: [] as any[] });
+      const topJobsPromise = getAdminCrmJobReactionsSummary({
+        q: normalizedQuery || undefined,
+        limit: 20,
+        window_days: 90,
+      });
 
-      const [entitiesData, leadsData] = await Promise.all([entitiesPromise, leadsPromise]);
+      const [entitiesData, leadsData, topJobsData] = await Promise.all([entitiesPromise, leadsPromise, topJobsPromise]);
       const entityRows: CrmRecord[] = (entitiesData?.items || []).map((item: any) => toCrmRecordFromEntity(item));
       const leadRows: CrmRecord[] = (leadsData?.items || []).map((lead: any) => toCrmRecordFromLead(lead));
       const entityToRecord = new Map<string, CrmRecord>();
@@ -347,10 +355,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       });
 
       setCrmRecords(records);
+      setCrmTopJobs(topJobsData?.items || []);
       setSelectedCrmKey((prev) => (prev && records.some((row) => row.key === prev) ? prev : records[0]?.key || null));
     } catch (err: any) {
       handleAuthError(err?.message || 'Failed to load CRM workspace');
       setCrmRecords([]);
+      setCrmTopJobs([]);
       setSelectedCrmKey(null);
     } finally {
       setCrmLoading(false);
@@ -396,6 +406,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
       const sub = selectedCrmRecord.subscription;
       setCrmTimelineFilter('all');
+      setCrmJobFilter('all');
       setCrmDraft({
         tier: sub?.tier || 'free',
         status: sub?.status || 'inactive',
@@ -579,12 +590,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     return items.map((item) => ({ ...item, value: Number(item.value) || 0 }));
   }, [crmEntityDetail, t]);
   const crmApplicationStatusBreakdown = useMemo(() => {
+    if (crmJobFilter !== 'all') {
+      const reactionRow = (crmEntityDetail?.breakdowns?.job_reactions || []).find((item: any) => String(item?.job_id) === crmJobFilter);
+      const statusCounts = reactionRow?.application_status_counts || {};
+      return Object.entries(statusCounts)
+        .map(([key, value]) => ({ key, value: Number(value) || 0 }))
+        .filter((row) => row.value > 0)
+        .sort((a, b) => b.value - a.value);
+    }
     const raw = crmEntityDetail?.breakdowns?.application_status || {};
     return Object.entries(raw)
       .map(([key, value]) => ({ key, value: Number(value) || 0 }))
       .filter((row) => row.value > 0)
       .sort((a, b) => b.value - a.value);
+  }, [crmEntityDetail, crmJobFilter]);
+  const crmJobReactionBreakdown = useMemo(() => {
+    const raw = crmEntityDetail?.breakdowns?.job_reactions || [];
+    const rows = Array.isArray(raw) ? raw.filter((item: any) => item && item.job_id) : [];
+    if (crmJobFilter === 'all') return rows;
+    return rows.filter((item: any) => String(item.job_id) === crmJobFilter);
+  }, [crmEntityDetail, crmJobFilter]);
+  const crmJobFilterOptions = useMemo(() => {
+    const raw = crmEntityDetail?.breakdowns?.job_reactions || [];
+    const rows = Array.isArray(raw) ? raw : [];
+    return rows.map((item: any) => ({
+      value: String(item.job_id),
+      label: String(item.job_title || `job #${item.job_id}`),
+    }));
   }, [crmEntityDetail]);
+  const crmSelectedJobReaction = useMemo(
+    () => crmJobReactionBreakdown[0] || null,
+    [crmJobReactionBreakdown]
+  );
   const crmTimelineCategories = useMemo(() => {
     const raw = crmEntityDetail?.timeline_categories || [];
     return Array.isArray(raw) ? raw.filter((value) => typeof value === 'string' && value.length > 0) : [];
@@ -592,9 +629,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const crmTimelineEntries = useMemo(() => {
     const raw = crmEntityDetail?.timeline || [];
     const entries = Array.isArray(raw) ? raw : [];
-    if (crmTimelineFilter === 'all') return entries;
-    return entries.filter((item: any) => item?.category === crmTimelineFilter);
-  }, [crmEntityDetail, crmTimelineFilter]);
+    const byCategory = crmTimelineFilter === 'all'
+      ? entries
+      : entries.filter((item: any) => item?.category === crmTimelineFilter);
+    if (crmJobFilter === 'all') return byCategory;
+    return byCategory.filter((item: any) => String(item?.job_id || '') === crmJobFilter);
+  }, [crmEntityDetail, crmTimelineFilter, crmJobFilter]);
+  const crmRecentJobs = useMemo(() => {
+    const rows = crmEntityDetail?.recent?.jobs || [];
+    if (crmJobFilter === 'all') return rows;
+    return rows.filter((job: any) => String(job?.id || '') === crmJobFilter);
+  }, [crmEntityDetail, crmJobFilter]);
+  const crmRecentApplications = useMemo(() => {
+    const rows = crmEntityDetail?.recent?.applications || [];
+    if (crmJobFilter === 'all') return rows;
+    return rows.filter((app: any) => String(app?.job_id || '') === crmJobFilter);
+  }, [crmEntityDetail, crmJobFilter]);
+  const crmRecentInteractions = useMemo(() => {
+    const rows = crmEntityDetail?.recent?.interactions || [];
+    if (crmJobFilter === 'all') return rows;
+    return rows.filter((evt: any) => String(evt?.job_id || '') === crmJobFilter);
+  }, [crmEntityDetail, crmJobFilter]);
 
   const founderBoardColumns = useMemo(() => {
     const grouped: Record<(typeof FOUNDER_BOARD_COLUMN_KEYS)[number], any[]> = {
@@ -1228,6 +1283,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               ))}
             </section>
 
+            <section className={panelClass}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {t('admin_dashboard.crm.top_positions', { defaultValue: 'Top pozice podle reakcí' })}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('admin_dashboard.crm.top_positions_hint', { defaultValue: 'Posledních 90 dní, napříč firmami. Vyhledávání vlevo filtruje i tento přehled.' })}
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {formatNumber(crmTopJobs.length)} {t('admin_dashboard.crm.positions', { defaultValue: 'pozic' })}
+                </div>
+              </div>
+              {crmLoading ? (
+                <p className="text-sm text-slate-500">{t('admin_dashboard.search.searching')}</p>
+              ) : crmTopJobs.length === 0 ? (
+                <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-slate-500 dark:text-slate-400">
+                        <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.position', { defaultValue: 'Pozice' })}</th>
+                        <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.entity.company', { defaultValue: 'Firma' })}</th>
+                        <th className="pb-2 pr-3 font-semibold">Open</th>
+                        <th className="pb-2 pr-3 font-semibold">Apply</th>
+                        <th className="pb-2 pr-3 font-semibold">Save</th>
+                        <th className="pb-2 pr-3 font-semibold">Dismiss</th>
+                        <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.people', { defaultValue: 'Lidé' })}</th>
+                        <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.handshakes', { defaultValue: 'Handshake' })}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {crmTopJobs.map((row: any) => (
+                        <tr key={`${row.job_id}-${row.company_id || row.company}`} className="border-t border-slate-200/70 align-top dark:border-slate-700/70">
+                          <td className="py-2 pr-3">
+                            <div className="font-semibold text-slate-800 dark:text-slate-100">{row.job_title || `job #${row.job_id}`}</div>
+                            <div className="text-slate-500">{row.job_status || '—'}{row.location ? ` • ${row.location}` : ''}</div>
+                          </td>
+                          <td className="py-2 pr-3">
+                            <div className="font-semibold text-slate-800 dark:text-slate-100">{row.company || 'Unknown company'}</div>
+                            <div className="text-slate-500">{row.company_id ? `#${String(row.company_id).slice(0, 8)}` : 'bez company_id'}</div>
+                          </td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.open_detail)}</td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.apply_click)}</td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.save)}</td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.swipe_left)}</td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.unique_users)}</td>
+                          <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.applications_total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
               <article className={`xl:col-span-5 ${panelClass}`}>
                 <div className={`${panelSoftClass} mb-3`}>
@@ -1439,6 +1552,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
                       ) : (
                         <>
+                          {selectedCrmRecord.entityKind === 'company' && crmJobFilterOptions.length > 0 && (
+                            <div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                {t('admin_dashboard.crm.position_filter', { defaultValue: 'Filtr pozice' })}
+                              </div>
+                              <select
+                                value={crmJobFilter}
+                                onChange={(e) => setCrmJobFilter(e.target.value)}
+                                className={`${inputClass} lg:max-w-md`}
+                              >
+                                <option value="all">{t('admin_dashboard.crm.position_filter_all', { defaultValue: 'Všechny pozice' })}</option>
+                                {crmJobFilterOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
                             {crmMetricCards.map((item) => (
                               <div key={item.label} className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
@@ -1447,6 +1577,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               </div>
                             ))}
                           </div>
+                          {selectedCrmRecord.entityKind === 'company' && crmSelectedJobReaction && crmJobFilter !== 'all' && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {[
+                                ['open', crmSelectedJobReaction.open_detail_90d],
+                                ['apply', crmSelectedJobReaction.apply_click_90d],
+                                ['save', crmSelectedJobReaction.save_90d],
+                                ['dismiss', crmSelectedJobReaction.swipe_left_90d],
+                                ['users', crmSelectedJobReaction.unique_users_90d],
+                                ['handshakes', crmSelectedJobReaction.applications_total],
+                              ].map(([label, value]) => (
+                                <span
+                                  key={label}
+                                  className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]"
+                                >
+                                  {label}: {formatNumber(Number(value) || 0)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {crmApplicationStatusBreakdown.length > 0 && (
                             <div className="mt-3">
                               <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -1464,14 +1613,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               </div>
                             </div>
                           )}
+                          {selectedCrmRecord.entityKind === 'company' && crmJobReactionBreakdown.length > 0 && (
+                            <div className="mt-3 rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                {t('admin_dashboard.crm.job_reaction_breakdown', { defaultValue: 'Reakce podle pozice' })}
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full text-xs">
+                                  <thead>
+                                    <tr className="text-left text-slate-500 dark:text-slate-400">
+                                      <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.position', { defaultValue: 'Pozice' })}</th>
+                                      <th className="pb-2 pr-3 font-semibold">Open</th>
+                                      <th className="pb-2 pr-3 font-semibold">Apply</th>
+                                      <th className="pb-2 pr-3 font-semibold">Save</th>
+                                      <th className="pb-2 pr-3 font-semibold">Dismiss</th>
+                                      <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.people', { defaultValue: 'Lidé' })}</th>
+                                      <th className="pb-2 pr-3 font-semibold">{t('admin_dashboard.crm.handshakes', { defaultValue: 'Handshake' })}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {crmJobReactionBreakdown.map((row: any) => (
+                                      <tr key={row.job_id} className="border-t border-slate-200/70 align-top dark:border-slate-700/70">
+                                        <td className="py-2 pr-3">
+                                          <div className="font-semibold text-slate-800 dark:text-slate-100">{row.job_title || `job #${row.job_id}`}</div>
+                                          <div className="text-slate-500">{row.job_status || '—'}{row.job_location ? ` • ${row.job_location}` : ''}</div>
+                                        </td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.open_detail_90d)}</td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.apply_click_90d)}</td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.save_90d)}</td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.swipe_left_90d)}</td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.unique_users_90d)}</td>
+                                        <td className="py-2 pr-3 text-slate-700 dark:text-slate-200">{formatNumber(row.applications_total)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                           <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
-                            {crmEntityDetail?.recent?.jobs?.length > 0 && (
+                            {crmRecentJobs?.length > 0 && (
                               <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
                                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                   {t('admin_dashboard.crm.recent_jobs', { defaultValue: 'Poslední role' })}
                                 </div>
                                 <div className="space-y-1.5">
-                                  {crmEntityDetail.recent.jobs.slice(0, 5).map((job: any) => (
+                                  {crmRecentJobs.slice(0, 5).map((job: any) => (
                                     <div key={job.id} className="text-xs">
                                       <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{job.title || `#${job.id}`}</div>
                                       <div className="text-slate-500">{job.status || (job.is_active ? 'active' : 'inactive')} • {formatDate(job.updated_at || job.created_at)}</div>
@@ -1480,13 +1667,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                                 </div>
                               </div>
                             )}
-                            {crmEntityDetail?.recent?.applications?.length > 0 && (
+                            {crmRecentApplications?.length > 0 && (
                               <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
                                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                   {t('admin_dashboard.crm.recent_applications', { defaultValue: 'Poslední handshaky' })}
                                 </div>
                                 <div className="space-y-1.5">
-                                  {crmEntityDetail.recent.applications.slice(0, 5).map((app: any) => (
+                                  {crmRecentApplications.slice(0, 5).map((app: any) => (
                                     <div key={app.id} className="text-xs">
                                       <div className="font-semibold text-slate-800 dark:text-slate-100">#{String(app.job_id || app.id).slice(0, 10)}</div>
                                       <div className="text-slate-500">{app.status || 'pending'} • {formatDate(app.submitted_at || app.created_at)}</div>
@@ -1495,13 +1682,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                                 </div>
                               </div>
                             )}
-                            {crmEntityDetail?.recent?.interactions?.length > 0 && (
+                            {crmRecentInteractions?.length > 0 && (
                               <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
                                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                   {t('admin_dashboard.crm.recent_interactions', { defaultValue: 'Poslední interakce' })}
                                 </div>
                                 <div className="space-y-1.5">
-                                  {crmEntityDetail.recent.interactions.slice(0, 5).map((evt: any) => (
+                                  {crmRecentInteractions.slice(0, 5).map((evt: any) => (
                                     <div key={evt.id || `${evt.job_id}-${evt.created_at}`} className="text-xs">
                                       <div className="font-semibold text-slate-800 dark:text-slate-100">{evt.event_type || 'event'}</div>
                                       <div className="text-slate-500">job #{evt.job_id || '—'} • {formatDate(evt.created_at)}</div>
