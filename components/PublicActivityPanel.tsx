@@ -33,7 +33,6 @@ const PublicActivityPanel: React.FC<PublicActivityPanelProps> = ({
   const { i18n } = useTranslation();
   const locale = i18n.language || 'en';
   const language = locale.toLowerCase().startsWith('de-at') ? 'at' : locale.split('-')[0].toLowerCase();
-  const isCsLike = language === 'cs' || language === 'sk';
   const [payload, setPayload] = useState<PublicActivityFeedPayload | null>(null);
 
   useEffect(() => {
@@ -56,35 +55,91 @@ const PublicActivityPanel: React.FC<PublicActivityPanelProps> = ({
     return null;
   }
 
-  const copy = isCsLike ? {
-    eyebrow: 'Co se právě děje',
-    title: mode === 'homepage' ? 'Platforma žije. Tohle se právě děje kolem výzev a spolupráce.' : 'Krátký přehled toho, co se právě děje na platformě.',
-    body: mode === 'homepage'
-      ? 'Ne lajky a komentáře, ale skutečné signály kolem výzev, odpovědí a dokončených mini spoluprací.'
-      : 'Nové role, reakce a dokončené mini výzvy bez sociálního šumu.',
-    browse: 'Projít výzvy',
-    stats: {
-      newChallenges: 'Nové výzvy dnes',
-      candidateReplies: 'Reakce dnes',
-      companyReplies: 'Odpovědi firem dnes',
-      completedMini: 'Mini výzvy hotové za 7 dní',
-    },
-    liveFeed: 'Poslední veřejná aktivita',
-  } : {
-    eyebrow: 'What is happening now',
-    title: mode === 'homepage' ? 'The platform is active. This is what is happening around real challenges.' : 'A quick pulse of what is happening on the platform.',
-    body: mode === 'homepage'
-      ? 'Not likes and comments, but real signals around openings, replies, and completed mini collaborations.'
-      : 'New roles, replies, and completed mini challenges without social noise.',
-    browse: 'Browse challenges',
-    stats: {
-      newChallenges: 'New challenges today',
-      candidateReplies: 'Replies today',
-      companyReplies: 'Company replies today',
-      completedMini: 'Mini challenges completed in 7 days',
-    },
-    liveFeed: 'Latest public activity',
-  };
+  const copy = (() => {
+    if (language === 'cs') {
+      return {
+        eyebrow: 'Co se právě děje',
+        title: mode === 'homepage' ? 'Platforma žije. Tohle se právě děje kolem výzev a spolupráce.' : 'Krátký přehled toho, co se právě děje na platformě.',
+        body: mode === 'homepage'
+          ? 'Ne lajky a komentáře, ale skutečné signály kolem výzev, odpovědí a dokončených mini spoluprací.'
+          : 'Nové role, reakce a dokončené mini výzvy bez sociálního šumu.',
+        browse: 'Projít výzvy',
+        stats: {
+          newChallenges: 'Nové výzvy dnes',
+          candidateReplies: 'Reakce dnes',
+          companyReplies: 'Odpovědi firem dnes',
+          completedMini: 'Mini výzvy hotové za 7 dní',
+        },
+        liveFeed: 'Poslední veřejná aktivita',
+      };
+    }
+    if (language === 'sk') {
+      return {
+        eyebrow: 'Čo sa práve deje',
+        title: mode === 'homepage' ? 'Platforma žije. Toto sa práve deje okolo výziev a spolupráce.' : 'Krátky prehľad toho, čo sa práve deje na platforme.',
+        body: mode === 'homepage'
+          ? 'Nie lajky a komentáre, ale skutočné signály okolo výziev, odpovedí a dokončených mini spoluprác.'
+          : 'Nové roly, reakcie a dokončené mini výzvy bez sociálneho šumu.',
+        browse: 'Prejsť výzvy',
+        stats: {
+          newChallenges: 'Nové výzvy dnes',
+          candidateReplies: 'Reakcie dnes',
+          companyReplies: 'Odpovede firiem dnes',
+          completedMini: 'Mini výzvy hotové za 7 dní',
+        },
+        liveFeed: 'Posledná verejná aktivita',
+      };
+    }
+    if (language === 'de' || language === 'at') {
+      return {
+        eyebrow: 'Was gerade passiert',
+        title: mode === 'homepage' ? 'Die Plattform lebt. Das passiert gerade rund um Rollen und Zusammenarbeit.' : 'Ein kurzer Überblick darüber, was gerade auf der Plattform passiert.',
+        body: mode === 'homepage'
+          ? 'Keine Likes und Kommentare, sondern echte Signale rund um Rollen, Antworten und abgeschlossene Mini-Zusammenarbeiten.'
+          : 'Neue Rollen, Antworten und abgeschlossene Mini-Aufgaben ohne sozialen Lärm.',
+        browse: 'Aufgaben ansehen',
+        stats: {
+          newChallenges: 'Neue Aufgaben heute',
+          candidateReplies: 'Reaktionen heute',
+          companyReplies: 'Antworten der Firmen heute',
+          completedMini: 'Mini-Aufgaben in 7 Tagen erledigt',
+        },
+        liveFeed: 'Letzte öffentliche Aktivität',
+      };
+    }
+    if (language === 'pl') {
+      return {
+        eyebrow: 'Co dzieje się teraz',
+        title: mode === 'homepage' ? 'Platforma żyje. To właśnie dzieje się wokół wyzwań i współpracy.' : 'Krótki przegląd tego, co dzieje się teraz na platformie.',
+        body: mode === 'homepage'
+          ? 'Nie lajki i komentarze, ale realne sygnały wokół ról, odpowiedzi i zakończonych mini współprac.'
+          : 'Nowe role, reakcje i ukończone mini wyzwania bez społecznego szumu.',
+        browse: 'Przejdź do wyzwań',
+        stats: {
+          newChallenges: 'Nowe wyzwania dziś',
+          candidateReplies: 'Reakcje dziś',
+          companyReplies: 'Odpowiedzi firm dziś',
+          completedMini: 'Mini wyzwania ukończone w 7 dni',
+        },
+        liveFeed: 'Ostatnia publiczna aktywność',
+      };
+    }
+    return {
+      eyebrow: 'What is happening now',
+      title: mode === 'homepage' ? 'The platform is active. This is what is happening around real challenges.' : 'A quick pulse of what is happening on the platform.',
+      body: mode === 'homepage'
+        ? 'Not likes and comments, but real signals around openings, replies, and completed mini collaborations.'
+        : 'New roles, replies, and completed mini challenges without social noise.',
+      browse: 'Browse challenges',
+      stats: {
+        newChallenges: 'New challenges today',
+        candidateReplies: 'Replies today',
+        companyReplies: 'Company replies today',
+        completedMini: 'Mini challenges completed in 7 days',
+      },
+      liveFeed: 'Latest public activity',
+    };
+  })();
 
   const stats = [
     { label: copy.stats.newChallenges, value: payload.stats.new_challenges_today, tone: 'accent' as const },

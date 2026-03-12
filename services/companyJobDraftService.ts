@@ -232,19 +232,6 @@ export const publishCompanyJobDraft = async (
     }
 };
 
-export const listCompanyRoles = listCompanyJobDrafts;
-export const getCompanyRole = getCompanyJobDraft;
-export const createCompanyRole = createCompanyJobDraft;
-export const updateCompanyRole = updateCompanyJobDraft;
-export const validateCompanyRole = validateCompanyJobDraft;
-export const publishCompanyRole = publishCompanyJobDraft;
-export const listCompanyRoleDrafts = listCompanyJobDrafts;
-export const getCompanyRoleDraft = getCompanyJobDraft;
-export const createCompanyRoleDraft = createCompanyJobDraft;
-export const updateCompanyRoleDraft = updateCompanyJobDraft;
-export const validateCompanyRoleDraft = validateCompanyJobDraft;
-export const publishCompanyRoleDraft = publishCompanyJobDraft;
-
 export const createEditDraftFromJob = async (jobId: string | number): Promise<JobDraft> => {
     if (jobDraftApiUnavailable) {
         throw new ApiRequestError(404, 'Job draft API unavailable');

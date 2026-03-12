@@ -87,7 +87,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const locale = (i18n.language || 'cs').split('-')[0].toLowerCase();
-    const isCsLike = locale === 'cs' || locale === 'sk';
+    const language = locale === 'at' ? 'de' : locale;
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
     const siteOrigin = useMemo(() => {
@@ -264,29 +264,131 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         return () => { isMounted = false; };
     }, [i18n.language]);
     const [copied, setCopied] = useState(false);
-    const copy = {
-        categoryLabel: t('blog.category_label', isCsLike ? 'Články a praktické poznámky' : 'Articles and practical notes'),
-        title: t('blog.title', isCsLike ? 'Články, které pomáhají rozhodnout se líp.' : 'Articles that help you make better career decisions.'),
-        subtitle: t('blog.subtitle', isCsLike ? 'Trendy, konkrétní signály z trhu práce a srozumitelný kontext k tomu, co v aplikaci vidíš u nabídek.' : 'Market signals, practical context, and clearer explanations for the data you see across the app.'),
-        backToList: isCsLike ? 'Zpět na přehled článků' : 'Back to articles',
-        latestArticles: isCsLike ? 'Nejnovější články' : 'Latest articles',
-        moreArticles: isCsLike ? 'Další články' : 'More articles',
-        compactTitle: isCsLike ? 'Vybrané články' : 'Selected articles',
-        compactBody: isCsLike ? 'Krátké poznámky a tipy k práci, hledání a rozhodování.' : 'Short notes and practical tips about work, search, and decision-making.',
-        readMore: t('blog.read_more', isCsLike ? 'Číst více' : 'Read more'),
-        closeArticle: isCsLike ? 'Zavřít článek' : 'Close article',
-        summaryLabel: isCsLike ? 'Stručné shrnutí' : 'Short summary',
-        faqLabel: isCsLike ? 'Klíčové body a časté otázky' : 'Key takeaways and frequent questions',
-        adminMode: isCsLike ? 'Admin režim' : 'Admin mode',
-        addArticle: isCsLike ? 'Přidat článek' : 'Add article',
-        copied: isCsLike ? 'Zkopírováno!' : 'Copied!',
-        exportDb: isCsLike ? 'Exportovat data' : 'Export data',
-        saveSession: isCsLike ? 'Uložit do relace' : 'Save to session',
-        cancel: isCsLike ? 'Zrušit' : 'Cancel',
-        sessionNote: isCsLike ? 'Změny se uloží jen do aktuální relace. Pro trvalou změnu je potřeba export.' : 'Changes stay only in the current session. Export them if you want to keep them.',
-        newArticle: isCsLike ? 'Nový článek' : 'New article',
-        editArticle: isCsLike ? 'Upravit článek' : 'Edit article'
-    };
+    const copy = (() => {
+        if (language === 'cs') {
+            return {
+                categoryLabel: t('blog.category_label', 'Články a praktické poznámky'),
+                title: t('blog.title', 'Články, které pomáhají rozhodnout se líp.'),
+                subtitle: t('blog.subtitle', 'Trendy, konkrétní signály z trhu práce a srozumitelný kontext k tomu, co v aplikaci vidíš u nabídek.'),
+                backToList: 'Zpět na přehled článků',
+                latestArticles: 'Nejnovější články',
+                moreArticles: 'Další články',
+                compactTitle: 'Vybrané články',
+                compactBody: 'Krátké poznámky a tipy k práci, hledání a rozhodování.',
+                readMore: t('blog.read_more', 'Číst více'),
+                closeArticle: 'Zavřít článek',
+                summaryLabel: 'Stručné shrnutí',
+                faqLabel: 'Klíčové body a časté otázky',
+                adminMode: 'Admin režim',
+                addArticle: 'Přidat článek',
+                copied: 'Zkopírováno!',
+                exportDb: 'Exportovat data',
+                saveSession: 'Uložit do relace',
+                cancel: 'Zrušit',
+                sessionNote: 'Změny se uloží jen do aktuální relace. Pro trvalou změnu je potřeba export.',
+                newArticle: 'Nový článek',
+                editArticle: 'Upravit článek'
+            };
+        }
+        if (language === 'sk') {
+            return {
+                categoryLabel: t('blog.category_label', 'Články a praktické poznámky'),
+                title: t('blog.title', 'Články, ktoré pomáhajú rozhodnúť sa lepšie.'),
+                subtitle: t('blog.subtitle', 'Trendy, konkrétne signály z trhu práce a zrozumiteľný kontext k tomu, čo v aplikácii vidíte pri ponukách.'),
+                backToList: 'Späť na prehľad článkov',
+                latestArticles: 'Najnovšie články',
+                moreArticles: 'Ďalšie články',
+                compactTitle: 'Vybrané články',
+                compactBody: 'Krátke poznámky a tipy k práci, hľadaniu a rozhodovaniu.',
+                readMore: t('blog.read_more', 'Čítať viac'),
+                closeArticle: 'Zavrieť článok',
+                summaryLabel: 'Stručné zhrnutie',
+                faqLabel: 'Kľúčové body a časté otázky',
+                adminMode: 'Admin režim',
+                addArticle: 'Pridať článok',
+                copied: 'Skopírované!',
+                exportDb: 'Exportovať dáta',
+                saveSession: 'Uložiť do relácie',
+                cancel: 'Zrušiť',
+                sessionNote: 'Zmeny sa uložia len do aktuálnej relácie. Pre trvalú zmenu je potrebný export.',
+                newArticle: 'Nový článok',
+                editArticle: 'Upraviť článok'
+            };
+        }
+        if (language === 'de') {
+            return {
+                categoryLabel: t('blog.category_label', 'Artikel und praktische Notizen'),
+                title: t('blog.title', 'Artikel, die helfen, bessere Karriereentscheidungen zu treffen.'),
+                subtitle: t('blog.subtitle', 'Marktsignale, praktischer Kontext und verständlichere Erklärungen zu dem, was Sie in der App bei Rollen sehen.'),
+                backToList: 'Zurück zur Artikelübersicht',
+                latestArticles: 'Neueste Artikel',
+                moreArticles: 'Weitere Artikel',
+                compactTitle: 'Ausgewählte Artikel',
+                compactBody: 'Kurze Notizen und praktische Tipps zu Arbeit, Suche und Entscheidungen.',
+                readMore: t('blog.read_more', 'Mehr lesen'),
+                closeArticle: 'Artikel schließen',
+                summaryLabel: 'Kurze Zusammenfassung',
+                faqLabel: 'Kernaussagen und häufige Fragen',
+                adminMode: 'Admin-Modus',
+                addArticle: 'Artikel hinzufügen',
+                copied: 'Kopiert!',
+                exportDb: 'Daten exportieren',
+                saveSession: 'In Sitzung speichern',
+                cancel: 'Abbrechen',
+                sessionNote: 'Änderungen bleiben nur in der aktuellen Sitzung. Exportieren Sie sie, wenn sie dauerhaft bleiben sollen.',
+                newArticle: 'Neuer Artikel',
+                editArticle: 'Artikel bearbeiten'
+            };
+        }
+        if (language === 'pl') {
+            return {
+                categoryLabel: t('blog.category_label', 'Artykuły i praktyczne notatki'),
+                title: t('blog.title', 'Artykuły, które pomagają podejmować lepsze decyzje zawodowe.'),
+                subtitle: t('blog.subtitle', 'Sygnały z rynku, praktyczny kontekst i jaśniejsze wyjaśnienia tego, co widzisz w aplikacji przy ofertach.'),
+                backToList: 'Wróć do listy artykułów',
+                latestArticles: 'Najnowsze artykuły',
+                moreArticles: 'Więcej artykułów',
+                compactTitle: 'Wybrane artykuły',
+                compactBody: 'Krótkie notatki i praktyczne wskazówki o pracy, szukaniu i podejmowaniu decyzji.',
+                readMore: t('blog.read_more', 'Czytaj więcej'),
+                closeArticle: 'Zamknij artykuł',
+                summaryLabel: 'Krótki skrót',
+                faqLabel: 'Najważniejsze punkty i częste pytania',
+                adminMode: 'Tryb admina',
+                addArticle: 'Dodaj artykuł',
+                copied: 'Skopiowano!',
+                exportDb: 'Eksportuj dane',
+                saveSession: 'Zapisz w sesji',
+                cancel: 'Anuluj',
+                sessionNote: 'Zmiany zostają tylko w bieżącej sesji. Jeśli chcesz je zachować, wyeksportuj je.',
+                newArticle: 'Nowy artykuł',
+                editArticle: 'Edytuj artykuł'
+            };
+        }
+        return {
+            categoryLabel: t('blog.category_label', 'Articles and practical notes'),
+            title: t('blog.title', 'Articles that help you make better career decisions.'),
+            subtitle: t('blog.subtitle', 'Market signals, practical context, and clearer explanations for the data you see across the app.'),
+            backToList: 'Back to articles',
+            latestArticles: 'Latest articles',
+            moreArticles: 'More articles',
+            compactTitle: 'Selected articles',
+            compactBody: 'Short notes and practical tips about work, search, and decision-making.',
+            readMore: t('blog.read_more', 'Read more'),
+            closeArticle: 'Close article',
+            summaryLabel: 'Short summary',
+            faqLabel: 'Key takeaways and frequent questions',
+            adminMode: 'Admin mode',
+            addArticle: 'Add article',
+            copied: 'Copied!',
+            exportDb: 'Export data',
+            saveSession: 'Save to session',
+            cancel: 'Cancel',
+            sessionNote: 'Changes stay only in the current session. Export them if you want to keep them.',
+            newArticle: 'New article',
+            editArticle: 'Edit article'
+        };
+    })();
 
     // Stats (can be derived or kept separate)
     const stats = [

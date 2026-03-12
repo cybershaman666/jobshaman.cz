@@ -35,7 +35,7 @@ interface PlanCard {
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-  const isCsLike = locale === 'cs' || locale === 'sk';
+  const language = locale === 'at' ? 'de' : locale;
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const hasTrackedView = useRef(false);
 
@@ -52,7 +52,9 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     trackEvent('company_landing_view', { section: 'handshake_landing' });
   }, []);
 
-  const copy = useMemo(() => (isCsLike ? {
+  const copy = useMemo(() => {
+    if (language === 'cs') {
+      return {
     badge: 'Handshake hiring pro firmy',
     title: 'Lepší první kontakt pro moderní hiring.',
     subtitle: 'JobShaman nahrazuje mrtvé CV a nekonečný funnel omezeným oboustranným dialogem. Firma nejdřív ukáže pravdu o roli a pak dostane odpověď, která ukáže způsob přemýšlení kandidáta.',
@@ -159,7 +161,343 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     finalBody: 'Místo dalšího CV funnelu otevřete prostředí, kde se dá dělat rychlý a férový první kontakt bez zbytečného tlaku.',
     finalPrimary: 'Začít s role canvas',
     finalSecondary: 'Přihlásit se do firmy'
-  } : {
+      };
+    }
+
+    if (language === 'sk') {
+      return {
+        badge: 'Handshake hiring pre firmy',
+        title: 'Lepší prvý kontakt pre moderný hiring.',
+        subtitle: 'JobShaman nahrádza mŕtve CV a nekonečný funnel obmedzeným obojstranným dialógom. Firma najprv ukáže pravdu o roli a potom dostane odpoveď, ktorá ukáže spôsob premýšľania kandidáta.',
+        primaryCta: 'Otvoriť firemný workspace',
+        secondaryCta: 'Vyskúšať demo',
+        login: 'Prihlásiť sa',
+        recommended: 'Odporúčané',
+        roleTruth: 'Pravda o roli',
+        asyncFirst: 'Async first',
+        valuePills: ['Role Canvas namiesto inzerátu', 'Dialogue Inbox namiesto tabuľky aplikácií', 'Sloty namiesto nekonečného funnelu'],
+        rolePreviewLabel: 'Ukážka Role Canvas',
+        rolePreviewTitle: 'Ešte pred otvorením roly firma otvorene popíše realitu tímu.',
+        rolePreviewItems: [
+          'Čo je na tejto roli skutočne ťažké?',
+          'Aký typ človeka tu zlyhá?',
+          'Ako spoznáme úspech po 6 mesiacoch?',
+          'Ktoré 2 situácie chceme otvoriť v handshake?'
+        ],
+        comparisonTitle: 'Čo sa mení v praxi',
+        comparisonOld: 'Starý hiring',
+        comparisonNew: 'Handshake hiring',
+        comparisonRows: [
+          ['Job post a CV screening', 'Role Canvas a krátky obojstranný dialóg'],
+          ['100+ uchádzačov v jednom funneli', 'Obmedzená kapacita a aktívne sloty'],
+          ['Video, pitch a sebaprezentácia', 'Text-first odpoveď, audio len voliteľne'],
+          ['Ghosting a nejasné stavy', 'Open, In Review, Shortlisted, Closed s dôvodom']
+        ],
+        systemTitle: 'Core systém platformy',
+        systemCards: [
+          {
+            title: 'Modul rolí',
+            body: 'Pozícia nie je len text. Je to štruktúrovaný objekt s kontextom tímu, hodnotami, realistickými situáciami a definíciou úspechu.'
+          },
+          {
+            title: 'Modul dialógu',
+            body: 'Namiesto zoznamu aplikácií pracujete s vláknami. Každé vlákno má jasný ťah, zhrnutie a stav.'
+          },
+          {
+            title: 'Kapacitné sloty',
+            body: 'Každá rola má limit otvorených dialógov. To drží kvalitu a chráni čas recruiterov.'
+          },
+          {
+            title: 'Transparentné uzavretie',
+            body: 'Každý uzavretý dialóg má dôvod. Platforma nemá priestor pre "seen" a pasívne ignorovanie.'
+          }
+        ],
+        pricingTitle: 'Monetizácia v súlade so správaním',
+        pricingLead: 'Začať môžete zadarmo. Neplatíte za CV databázu ani za počet zobrazení. Platíte až za kapacitu, ktorú naozaj používate.',
+        pricingPlans: [
+          {
+            name: 'Free',
+            price: 'Zdarma',
+            note: 'Na prvé vyskúšanie bez rizika',
+            features: ['1 otvorenie roly', '3 aktívne dialógové sloty', 'Bez AI funkcií'],
+            ctaLabel: 'Vyskúšať zadarmo'
+          },
+          {
+            name: 'Starter',
+            price: '249 EUR / mesiac',
+            note: 'Pre prvé hiring procesy',
+            features: ['3 otvorenia rolí mesačne', '12 aktívnych dialogue slotov', 'Role Canvas + Dialogue Inbox']
+          },
+          {
+            name: 'Growth',
+            price: '599 EUR / mesiac',
+            note: 'Pre aktívny hiring tím',
+            features: ['10 otvorení rolí mesačne', '40 aktívnych dialogue slotov', 'Prioritné SLA a workflow prehľad'],
+            highlighted: true
+          },
+          {
+            name: 'Professional',
+            price: '899 EUR / mesiac',
+            note: 'Pre viac recruiterov a vyšší throughput',
+            features: ['25 otvorení rolí mesačne', '100 aktívnych dialogue slotov', 'Rozšírené decision signály a billing kontrola']
+          },
+          {
+            name: 'Enterprise',
+            price: 'Custom',
+            note: 'Pre komplexný hiring workflow',
+            features: ['Custom limity', 'Success fee voliteľne', 'Integrácie a custom rollout'],
+            ctaMode: 'demo'
+          }
+        ] as PlanCard[],
+        faqTitle: 'Čo firmy riešia najčastejšie',
+        faqItems: [
+          {
+            q: 'Čo ak nechceme meniť celý hiring proces naraz?',
+            a: 'Nemusíte. Handshake môže fungovať ako prvá vrstva pred hlbšími assessmentmi. Meníme začiatok funnelu, nie nutne všetko ostatné hneď v prvej fáze.'
+          },
+          {
+            q: 'Prečo nie sú v centre CV a video?',
+            a: 'CV zostáva ako doplnok. Video zvyšuje stres, bias a performativitu. Core handshake má byť rýchly, súkromný a nízkostresový.'
+          },
+          {
+            q: 'Ako AI pomáha bez toho, aby rozhodovala?',
+            a: 'AI sumarizuje vlákna, vyťahuje signál a pripravuje explainable scorecard. Stav kandidáta stále mení človek.'
+          },
+          {
+            q: 'Prečo sú sloty také dôležité?',
+            a: 'Bez limitu sa z dialógu stane ďalší preťažený inbox. Sloty držia tempo, pozornosť a kvalitu odpovedí na oboch stranách.'
+          }
+        ],
+        finalTitle: 'Vráťte do výberu ľudí ľudský faktor a pravdu.',
+        finalBody: 'Namiesto ďalšieho CV funnelu otvorte prostredie, kde sa dá robiť rýchly a férový prvý kontakt bez zbytočného tlaku.',
+        finalPrimary: 'Začať s role canvas',
+        finalSecondary: 'Prihlásiť sa do firmy'
+      };
+    }
+
+    if (language === 'de') {
+      return {
+        badge: 'Handshake Hiring für Unternehmen',
+        title: 'Ein besserer Erstkontakt für modernes Hiring.',
+        subtitle: 'JobShaman ersetzt tote CV-Funnels durch einen begrenzten beidseitigen Dialog. Das Unternehmen zeigt zuerst die Wahrheit über die Rolle und erhält dann eine Antwort, die die Denkweise des Kandidaten sichtbar macht.',
+        primaryCta: 'Unternehmens-Workspace öffnen',
+        secondaryCta: 'Demo testen',
+        login: 'Anmelden',
+        recommended: 'Empfohlen',
+        roleTruth: 'Wahrheit über die Rolle',
+        asyncFirst: 'Async first',
+        valuePills: ['Role Canvas statt Anzeige', 'Dialogue Inbox statt Bewerbertabelle', 'Slots statt endlosem Funnel'],
+        rolePreviewLabel: 'Role-Canvas-Vorschau',
+        rolePreviewTitle: 'Noch vor dem Öffnen der Rolle beschreibt das Unternehmen offen die Teamrealität.',
+        rolePreviewItems: [
+          'Was ist an dieser Rolle wirklich schwer?',
+          'Welcher Typ Mensch scheitert hier?',
+          'Woran erkennen wir Erfolg nach 6 Monaten?',
+          'Welche 2 Situationen sollen den Handshake eröffnen?'
+        ],
+        comparisonTitle: 'Was sich in der Praxis ändert',
+        comparisonOld: 'Altes Hiring',
+        comparisonNew: 'Handshake Hiring',
+        comparisonRows: [
+          ['Jobanzeige und CV-Screening', 'Role Canvas und kurzer beidseitiger Dialog'],
+          ['100+ Kandidaten in einem Funnel', 'Begrenzte Kapazität mit aktiven Slots'],
+          ['Video, Pitch und Selbstdarstellung', 'Text-first Antwort, Audio nur optional'],
+          ['Ghosting und unklare Status', 'Open, In Review, Shortlisted, Closed mit Grund']
+        ],
+        systemTitle: 'Kernsystem der Plattform',
+        systemCards: [
+          {
+            title: 'Rollenmodul',
+            body: 'Eine Rolle ist nicht nur Text. Sie ist ein strukturiertes Objekt mit Teamkontext, Werten, realistischen Situationen und klarer Erfolgsdefinition.'
+          },
+          {
+            title: 'Dialogmodul',
+            body: 'Statt mit Bewerbungslisten arbeitet Ihr Team mit Threads. Jeder Thread hat klare Ownership, Zusammenfassung und Status.'
+          },
+          {
+            title: 'Kapazitäts-Slots',
+            body: 'Jede Rolle hat ein Limit offener Dialoge. Das schützt Qualität und die Zeit der Recruiter.'
+          },
+          {
+            title: 'Transparenter Abschluss',
+            body: 'Jeder geschlossene Dialog hat einen Grund. Es gibt keinen Produktplatz für "seen" oder passive Stille.'
+          }
+        ],
+        pricingTitle: 'Monetarisierung im Einklang mit dem Verhalten',
+        pricingLead: 'Sie können kostenlos starten. Sie zahlen weder für CV-Inventar noch für Impressionen. Bezahlt wird nur die Kapazität, die Sie wirklich nutzen.',
+        pricingPlans: [
+          {
+            name: 'Free',
+            price: 'Kostenlos',
+            note: 'Zum risikofreien ersten Test',
+            features: ['1 Rollenöffnung', '3 aktive Dialog-Slots', 'Keine AI-Funktionen'],
+            ctaLabel: 'Kostenlos testen'
+          },
+          {
+            name: 'Starter',
+            price: '249 EUR / Monat',
+            note: 'Für erste strukturierte Hiring-Loops',
+            features: ['3 Rollenöffnungen pro Monat', '12 aktive Dialogue-Slots', 'Role Canvas + Dialogue Inbox']
+          },
+          {
+            name: 'Growth',
+            price: '599 EUR / Monat',
+            note: 'Für aktive Hiring-Teams',
+            features: ['10 Rollenöffnungen pro Monat', '40 aktive Dialogue-Slots', 'Priorisierte SLA und Workflow-Überblick'],
+            highlighted: true
+          },
+          {
+            name: 'Professional',
+            price: '899 EUR / Monat',
+            note: 'Für mehrere Recruiter und höheren Throughput',
+            features: ['25 Rollenöffnungen pro Monat', '100 aktive Dialogue-Slots', 'Erweiterte Decision-Signale und Billing-Kontrolle']
+          },
+          {
+            name: 'Enterprise',
+            price: 'Custom',
+            note: 'Für komplexe Hiring-Operationen',
+            features: ['Custom-Limits', 'Optionales Success Fee', 'Integrationen und individuelles Rollout'],
+            ctaMode: 'demo'
+          }
+        ] as PlanCard[],
+        faqTitle: 'Was Unternehmen am häufigsten fragen',
+        faqItems: [
+          {
+            q: 'Was, wenn wir nicht den ganzen Hiring-Prozess auf einmal ändern wollen?',
+            a: 'Das müssen Sie nicht. Handshake kann als erste Schicht vor tieferen Interviews oder Assessments laufen. Wir verändern zuerst den Anfang des Funnels.'
+          },
+          {
+            q: 'Warum stehen CV und Video nicht mehr im Zentrum?',
+            a: 'Das CV bleibt als Kontext erhalten. Video erhöht Stress, Bias und Performance-Druck. Der Core Handshake soll schnell, privat und reibungsarm bleiben.'
+          },
+          {
+            q: 'Wie hilft AI, ohne zu entscheiden?',
+            a: 'AI fasst Threads zusammen, zieht Signal heraus und bereitet eine erklärbare Scorecard vor. Den Kandidatenstatus ändert weiterhin ein Mensch.'
+          },
+          {
+            q: 'Warum sind Slots so wichtig?',
+            a: 'Ohne Limits wird Dialog zum nächsten überladenen Inbox. Slots schützen Tempo, Aufmerksamkeit und Gegenseitigkeit auf beiden Seiten.'
+          }
+        ],
+        finalTitle: 'Bringen Sie Wahrheit und menschliches Signal zurück ins Hiring.',
+        finalBody: 'Ersetzen Sie den nächsten CV-Funnel durch ein System für schnellen, fairen und druckarmen Erstkontakt.',
+        finalPrimary: 'Mit Role Canvas starten',
+        finalSecondary: 'Als Unternehmen anmelden'
+      };
+    }
+
+    if (language === 'pl') {
+      return {
+        badge: 'Handshake hiring dla firm',
+        title: 'Lepszy pierwszy kontakt dla nowoczesnego hiringu.',
+        subtitle: 'JobShaman zastępuje martwe CV i nieskończony funnel ograniczonym, dwustronnym dialogiem. Firma najpierw pokazuje prawdę o roli, a potem dostaje odpowiedź, która odsłania sposób myślenia kandydata.',
+        primaryCta: 'Otwórz firmowy workspace',
+        secondaryCta: 'Wypróbuj demo',
+        login: 'Zaloguj się',
+        recommended: 'Polecane',
+        roleTruth: 'Prawda o roli',
+        asyncFirst: 'Async first',
+        valuePills: ['Role Canvas zamiast ogłoszenia', 'Dialogue Inbox zamiast tabeli aplikacji', 'Sloty zamiast nieskończonego funnelu'],
+        rolePreviewLabel: 'Podgląd Role Canvas',
+        rolePreviewTitle: 'Jeszcze przed otwarciem roli firma otwarcie opisuje realia zespołu.',
+        rolePreviewItems: [
+          'Co jest naprawdę trudne w tej roli?',
+          'Jaki typ osoby tutaj zawodzi?',
+          'Po czym poznamy sukces po 6 miesiącach?',
+          'Które 2 sytuacje mają otworzyć handshake?'
+        ],
+        comparisonTitle: 'Co zmienia się w praktyce',
+        comparisonOld: 'Stary hiring',
+        comparisonNew: 'Handshake hiring',
+        comparisonRows: [
+          ['Job post i screening CV', 'Role Canvas i krótki dwustronny dialog'],
+          ['100+ kandydatów w jednym funnelu', 'Ograniczona pojemność i aktywne sloty'],
+          ['Wideo, pitch i autoprezentacja', 'Odpowiedź text-first, audio tylko opcjonalnie'],
+          ['Ghosting i niejasne statusy', 'Open, In Review, Shortlisted, Closed z powodem']
+        ],
+        systemTitle: 'Core system platformy',
+        systemCards: [
+          {
+            title: 'Moduł ról',
+            body: 'Rola to nie tylko tekst. To uporządkowany obiekt z kontekstem zespołu, wartościami, realistycznymi sytuacjami i definicją sukcesu.'
+          },
+          {
+            title: 'Moduł dialogu',
+            body: 'Zamiast listy aplikacji zespół pracuje na wątkach. Każdy wątek ma jasny ruch, podsumowanie i status.'
+          },
+          {
+            title: 'Sloty pojemnościowe',
+            body: 'Każda rola ma limit otwartych dialogów. To chroni jakość i czas recruiterów.'
+          },
+          {
+            title: 'Transparentne zamknięcie',
+            body: 'Każdy zamknięty dialog ma powód. Platforma nie zostawia miejsca na "seen" i bierne milczenie.'
+          }
+        ],
+        pricingTitle: 'Monetyzacja zgodna z zachowaniem',
+        pricingLead: 'Możesz zacząć za darmo. Nie płacisz za bazę CV ani za wyświetlenia. Płacisz dopiero za pojemność, której naprawdę używasz.',
+        pricingPlans: [
+          {
+            name: 'Free',
+            price: 'Za darmo',
+            note: 'Bezpieczny pierwszy test bez ryzyka',
+            features: ['1 otwarcie roli', '3 aktywne sloty dialogowe', 'Bez funkcji AI'],
+            ctaLabel: 'Wypróbuj za darmo'
+          },
+          {
+            name: 'Starter',
+            price: '249 EUR / miesiąc',
+            note: 'Dla pierwszych procesów hiringowych',
+            features: ['3 otwarcia ról miesięcznie', '12 aktywnych dialogue slotów', 'Role Canvas + Dialogue Inbox']
+          },
+          {
+            name: 'Growth',
+            price: '599 EUR / miesiąc',
+            note: 'Dla aktywnego zespołu hiringowego',
+            features: ['10 otwarć ról miesięcznie', '40 aktywnych dialogue slotów', 'Priorytetowe SLA i przegląd workflow'],
+            highlighted: true
+          },
+          {
+            name: 'Professional',
+            price: '899 EUR / miesiąc',
+            note: 'Dla większej liczby recruiterów i większego throughputu',
+            features: ['25 otwarć ról miesięcznie', '100 aktywnych dialogue slotów', 'Rozszerzone sygnały decyzyjne i kontrola billingowa']
+          },
+          {
+            name: 'Enterprise',
+            price: 'Custom',
+            note: 'Dla złożonych operacji hiringowych',
+            features: ['Custom limity', 'Opcjonalne success fee', 'Integracje i indywidualny rollout'],
+            ctaMode: 'demo'
+          }
+        ] as PlanCard[],
+        faqTitle: 'O co firmy pytają najczęściej',
+        faqItems: [
+          {
+            q: 'Co jeśli nie chcemy zmieniać całego procesu hiringowego naraz?',
+            a: 'Nie musicie. Handshake może działać jako pierwsza warstwa przed głębszymi assessmentami. Zmieniamy początek funnelu, a nie od razu cały proces.'
+          },
+          {
+            q: 'Dlaczego CV i wideo nie są już w centrum?',
+            a: 'CV zostaje jako kontekst wspierający. Wideo podnosi stres, bias i presję performatywną. Core handshake ma pozostać szybki, prywatny i niskotarciowy.'
+          },
+          {
+            q: 'Jak AI pomaga, nie podejmując decyzji?',
+            a: 'AI podsumowuje wątki, wyciąga sygnał i przygotowuje explainable scorecard. Status kandydata nadal zmienia człowiek.'
+          },
+          {
+            q: 'Dlaczego sloty są tak ważne?',
+            a: 'Bez limitu dialog staje się kolejną przeładowaną skrzynką. Sloty chronią tempo, uwagę i wzajemność po obu stronach.'
+          }
+        ],
+        finalTitle: 'Przywróć do hiringu ludzki czynnik i prawdę.',
+        finalBody: 'Zamiast kolejnego funnelu CV otwórz system, w którym da się zrobić szybki, uczciwy i mało stresowy pierwszy kontakt.',
+        finalPrimary: 'Zacznij od Role Canvas',
+        finalSecondary: 'Zaloguj się jako firma'
+      };
+    }
+
+    return {
     badge: 'Handshake hiring for companies',
     title: 'Build modern hiring on a better first contact.',
     subtitle: 'JobShaman replaces dead CV funnels with limited two-way dialogue. The company shows the truth about the role first, then gets a response that reveals how the candidate actually thinks.',
@@ -266,7 +604,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     finalBody: 'Replace another CV funnel with a system built for fast, fair, low-pressure first contact.',
     finalPrimary: 'Start with Role Canvas',
     finalSecondary: 'Log in as company'
-  }), [isCsLike]);
+    };
+  }, [language]);
 
   const handleRegister = (section: string) => {
     trackEvent('company_landing_cta_register_click', { section });

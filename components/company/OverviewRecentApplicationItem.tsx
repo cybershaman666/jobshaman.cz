@@ -21,7 +21,18 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
   onOpenApplication,
   onOpenDialogue
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = (() => {
+    const normalized = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    return ['cs', 'sk', 'de', 'at', 'pl'].includes(normalized) ? (normalized === 'at' ? 'de' : normalized) : 'en';
+  })() as 'cs' | 'sk' | 'de' | 'pl' | 'en';
+  const copy = ({
+    cs: { candidate: 'Kandidát', coverLetter: 'Průvodní zpráva', openDialogue: 'Otevřít dialog' },
+    sk: { candidate: 'Kandidát', coverLetter: 'Sprievodná správa', openDialogue: 'Otvoriť dialóg' },
+    de: { candidate: 'Kandidat:in', coverLetter: 'Anschreiben', openDialogue: 'Dialog öffnen' },
+    pl: { candidate: 'Kandydat', coverLetter: 'Wiadomość wstępna', openDialogue: 'Otwórz dialog' },
+    en: { candidate: 'Candidate', coverLetter: 'Cover letter', openDialogue: 'Open dialogue' }
+  } as const)[language];
   const dialogue = dialogueProp || application;
   const handleOpenDialogue = onOpenDialogue || onOpenApplication;
   if (!dialogue) return null;
@@ -33,17 +44,17 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
           {dialogue.candidateAvatarUrl || dialogue.candidate_avatar_url ? (
             <img
               src={dialogue.candidateAvatarUrl || dialogue.candidate_avatar_url}
-              alt={dialogue.candidate_name || 'Candidate'}
+              alt={dialogue.candidate_name || copy.candidate}
               className="h-11 w-11 shrink-0 rounded-2xl object-cover"
             />
           ) : (
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-muted)] text-sm font-semibold text-[var(--text-muted)]">
-              {getAvatarInitials(dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }))}
+              {getAvatarInitials(dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: copy.candidate }))}
             </div>
           )}
           <div className="space-y-1 min-w-0">
             <div className="text-sm font-semibold text-[var(--text-strong)]">
-              {dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
+              {dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: copy.candidate })}
             </div>
             <div className="text-xs text-[var(--text-muted)]">
               {dialogue.job_title || t('company.dashboard.table.position')}
@@ -59,7 +70,7 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
           {dialogue.hasCv && <span className="company-pill-surface rounded-full border px-2 py-1 text-[11px] font-medium">CV</span>}
           {dialogue.hasCoverLetter && (
             <span className="company-pill-surface rounded-full border px-2 py-1 text-[11px] font-medium">
-              {t('company.workspace.labels.cover_letter', { defaultValue: 'Cover letter' })}
+              {t('company.workspace.labels.cover_letter', { defaultValue: copy.coverLetter })}
             </span>
           )}
           {dialogue.hasJcfpm && (
@@ -71,7 +82,7 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
             onClick={() => handleOpenDialogue?.(dialogue.id)}
             className="app-button-secondary rounded-full px-3 py-1.5 text-xs"
           >
-            {t('company.workspace.actions.open_dossier', { defaultValue: 'Open dialogue' })}
+            {t('company.workspace.actions.open_dossier', { defaultValue: copy.openDialogue })}
           </button>
         </div>
       </div>

@@ -53,7 +53,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
     const isLogin = mode === 'login';
     const isResetMode = mode === 'reset';
-    const isCsLike = ['cs', 'sk'].includes((i18n.language || 'cs').split('-')[0].toLowerCase());
+    const language = ((i18n.language || 'cs').split('-')[0].toLowerCase() === 'at' ? 'de' : (i18n.language || 'cs').split('-')[0].toLowerCase());
 
     useEffect(() => {
         if (isOpen) {
@@ -216,17 +216,61 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
     };
 
     const isBusy = loading || oauthLoading !== null;
-    const premiumBullets = isCsLike
-        ? [
-            'Více dialogových slotů pro odpovědi bez zbytečného limitu.',
-            'AI průvodce pro profil, životní situaci a podpůrné podklady.',
-            'Personalizovaný JHI a detailní JCFPM report místo jen základního náhledu.'
-        ]
-        : [
-            'More dialogue slots for real replies without tight limits.',
-            'An AI guide for profile setup, life context, and supporting materials.',
-            'Personalized JHI and a detailed JCFPM report instead of only the basic preview.'
-        ];
+    const authUiCopy = (() => {
+        if (language === 'cs') {
+            return {
+                kicker: 'Career OS vstup',
+                premiumTitle: 'Proč si premium rychle získá hodnotu',
+                premiumBullets: [
+                    'Více dialogových slotů pro odpovědi bez zbytečného limitu.',
+                    'AI průvodce pro profil, životní situaci a podpůrné podklady.',
+                    'Personalizovaný JHI a detailní JCFPM report místo jen základního náhledu.'
+                ]
+            };
+        }
+        if (language === 'sk') {
+            return {
+                kicker: 'Career OS vstup',
+                premiumTitle: 'Prečo si premium rýchlo získa hodnotu',
+                premiumBullets: [
+                    'Viac dialógových slotov pre odpovede bez zbytočného limitu.',
+                    'AI sprievodca pre profil, životnú situáciu a podporné podklady.',
+                    'Personalizovaný JHI a detailný JCFPM report namiesto len základného náhľadu.'
+                ]
+            };
+        }
+        if (language === 'de') {
+            return {
+                kicker: 'Career OS Zugang',
+                premiumTitle: 'Warum Premium schnell nützlich wird',
+                premiumBullets: [
+                    'Mehr Dialog-Slots für echte Antworten ohne unnötig enge Limits.',
+                    'Ein KI-Guide für Profil, Lebenskontext und unterstützende Unterlagen.',
+                    'Personalisierter JHI und ein detaillierter JCFPM-Bericht statt nur einer Basisvorschau.'
+                ]
+            };
+        }
+        if (language === 'pl') {
+            return {
+                kicker: 'Dostęp do Career OS',
+                premiumTitle: 'Dlaczego premium szybko zaczyna mieć wartość',
+                premiumBullets: [
+                    'Więcej slotów dialogowych na realne odpowiedzi bez zbyt ciasnych limitów.',
+                    'Przewodnik AI do ustawienia profilu, kontekstu życiowego i materiałów wspierających.',
+                    'Spersonalizowany JHI i szczegółowy raport JCFPM zamiast tylko podstawowego podglądu.'
+                ]
+            };
+        }
+        return {
+            kicker: 'Career OS access',
+            premiumTitle: 'Why premium becomes useful fast',
+            premiumBullets: [
+                'More dialogue slots for real replies without tight limits.',
+                'An AI guide for profile setup, life context, and supporting materials.',
+                'Personalized JHI and a detailed JCFPM report instead of only the basic preview.'
+            ]
+        };
+    })();
 
     return (
         <div className="app-modal-backdrop">
@@ -245,7 +289,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         <div className="space-y-6">
                             <div className="app-modal-kicker">
                                 <Sparkles size={12} />
-                                {isCsLike ? 'Career OS vstup' : 'Career OS access'}
+                                {authUiCopy.kicker}
                             </div>
                             <div className="space-y-3">
                                 <h2 className="text-3xl font-black tracking-[-0.04em] text-[var(--text-strong)]">
@@ -263,10 +307,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                 <div className="app-premium-note space-y-3">
                                     <div className="flex items-center gap-2 text-sm font-semibold">
                                         <Sparkles size={16} />
-                                        {isCsLike ? 'Proč si premium rychle získá hodnotu' : 'Why premium becomes useful fast'}
+                                        {authUiCopy.premiumTitle}
                                     </div>
                                     <div className="space-y-2">
-                                        {premiumBullets.map((item) => (
+                                        {authUiCopy.premiumBullets.map((item) => (
                                             <div key={item} className="flex items-start gap-2 text-sm leading-6">
                                                 <CheckCircle2 size={16} className="mt-1 shrink-0" />
                                                 <span>{item}</span>
@@ -282,7 +326,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         <div className="mb-5 space-y-2.5 lg:hidden">
                             <div className="app-modal-kicker w-fit">
                                 <Sparkles size={12} />
-                                {isCsLike ? 'Career OS vstup' : 'Career OS access'}
+                                {authUiCopy.kicker}
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-[var(--text-strong)]">

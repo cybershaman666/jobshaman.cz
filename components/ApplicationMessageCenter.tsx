@@ -212,7 +212,7 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   const isActiveDialogue = ['pending', 'reviewed', 'shortlisted'].includes(normalizedStatus);
   const canSend = isActiveDialogue;
   const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
-  const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
+  const language = languagePrefix === 'at' ? 'de' : languagePrefix;
   const isImmersive = visualVariant === 'immersive';
   const resolvedTimeoutHours = (() => {
     const value = Number(dialogueTimeoutHours);
@@ -224,18 +224,47 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   const responseSlaLabel =
     resolvedTimeoutHours % 24 === 0
       ? t('application.messages.sla_days', {
-          defaultValue: isCsLike ? 'do {{count}} dnů' : 'within {{count}} days',
+          defaultValue:
+            language === 'cs' ? 'do {{count}} dnů'
+              : language === 'sk' ? 'do {{count}} dní'
+              : language === 'de' ? 'innerhalb von {{count}} Tagen'
+              : language === 'pl' ? 'w ciągu {{count}} dni'
+              : 'within {{count}} days',
           count: Math.max(1, Math.round(resolvedTimeoutHours / 24))
         })
       : t('application.messages.sla_hours', {
-          defaultValue: isCsLike ? 'do {{count}} hodin' : 'within {{count}} hours',
+          defaultValue:
+            language === 'cs' ? 'do {{count}} hodin'
+              : language === 'sk' ? 'do {{count}} hodín'
+              : language === 'de' ? 'innerhalb von {{count}} Stunden'
+              : language === 'pl' ? 'w ciągu {{count}} godzin'
+              : 'within {{count}} hours',
           count: resolvedTimeoutHours
         });
   const responseOutcomeLabels = {
-    read: t('application.messages.guarantee_read', { defaultValue: isCsLike ? 'Přečteno' : 'Read' }),
-    continue: t('application.messages.guarantee_continue', { defaultValue: isCsLike ? 'Chceme pokračovat' : 'We want to continue' }),
+    read: t('application.messages.guarantee_read', {
+      defaultValue:
+        language === 'cs' ? 'Přečteno'
+          : language === 'sk' ? 'Prečítané'
+          : language === 'de' ? 'Gelesen'
+          : language === 'pl' ? 'Przeczytane'
+          : 'Read'
+    }),
+    continue: t('application.messages.guarantee_continue', {
+      defaultValue:
+        language === 'cs' ? 'Chceme pokračovat'
+          : language === 'sk' ? 'Chceme pokračovať'
+          : language === 'de' ? 'Wir wollen weitermachen'
+          : language === 'pl' ? 'Chcemy kontynuować'
+          : 'We want to continue'
+    }),
     declined: t('application.messages.guarantee_declined', {
-      defaultValue: isCsLike ? 'Děkujeme, ale hledáme jiný přístup' : 'Thanks, but we are choosing a different direction'
+      defaultValue:
+        language === 'cs' ? 'Děkujeme, ale hledáme jiný přístup'
+          : language === 'sk' ? 'Ďakujeme, ale hľadáme iný prístup'
+          : language === 'de' ? 'Danke, aber wir wählen eine andere Richtung'
+          : language === 'pl' ? 'Dziękujemy, ale wybieramy inny kierunek'
+          : 'Thanks, but we are choosing a different direction'
     })
   };
   const activeOutcomeKey: 'read' | 'continue' | 'declined' | null = (() => {
@@ -248,16 +277,51 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
     if (activeOutcomeKey) return responseOutcomeLabels[activeOutcomeKey];
     if (normalizedStatus === 'pending') {
       return viewerRole === 'candidate'
-        ? t('application.messages.awaiting_company', { defaultValue: isCsLike ? 'Čeká na první reakci firmy' : 'Waiting for the first company response' })
-        : t('application.messages.awaiting_recruiter', { defaultValue: isCsLike ? 'Čeká na vaši první reakci' : 'Waiting for your first response' });
+        ? t('application.messages.awaiting_company', {
+          defaultValue:
+            language === 'cs' ? 'Čeká na první reakci firmy'
+              : language === 'sk' ? 'Čaká na prvú reakciu firmy'
+              : language === 'de' ? 'Wartet auf die erste Reaktion des Unternehmens'
+              : language === 'pl' ? 'Czeka na pierwszą reakcję firmy'
+              : 'Waiting for the first company response'
+        })
+        : t('application.messages.awaiting_recruiter', {
+          defaultValue:
+            language === 'cs' ? 'Čeká na vaši první reakci'
+              : language === 'sk' ? 'Čaká na vašu prvú reakciu'
+              : language === 'de' ? 'Wartet auf Ihre erste Reaktion'
+              : language === 'pl' ? 'Czeka na twoją pierwszą reakcję'
+              : 'Waiting for your first response'
+        });
     }
     if (normalizedStatus === 'closed_timeout') {
-      return t('application.messages.auto_closed', { defaultValue: isCsLike ? 'Automaticky uzavřeno bez odpovědi' : 'Auto-closed without response' });
+      return t('application.messages.auto_closed', {
+        defaultValue:
+          language === 'cs' ? 'Automaticky uzavřeno bez odpovědi'
+            : language === 'sk' ? 'Automaticky uzavreté bez odpovede'
+            : language === 'de' ? 'Automatisch ohne Antwort geschlossen'
+            : language === 'pl' ? 'Automatycznie zamknięte bez odpowiedzi'
+            : 'Auto-closed without response'
+      });
     }
     if (!canSend) {
-      return t('application.messages.closed_simple', { defaultValue: isCsLike ? 'Dialog uzavřen' : 'Dialogue closed' });
+      return t('application.messages.closed_simple', {
+        defaultValue:
+          language === 'cs' ? 'Dialog uzavřen'
+            : language === 'sk' ? 'Dialóg uzavretý'
+            : language === 'de' ? 'Dialog geschlossen'
+            : language === 'pl' ? 'Dialog zamknięty'
+            : 'Dialogue closed'
+      });
     }
-    return t('application.messages.in_progress', { defaultValue: isCsLike ? 'Probíhá' : 'In progress' });
+    return t('application.messages.in_progress', {
+      defaultValue:
+        language === 'cs' ? 'Probíhá'
+          : language === 'sk' ? 'Prebieha'
+          : language === 'de' ? 'Läuft'
+          : language === 'pl' ? 'W toku'
+          : 'In progress'
+    });
   })();
 
   const getTimingMeta = (): { label: string; className: string } | null => {
@@ -368,7 +432,14 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
       <div className={guaranteeClassName}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-            {t('application.messages.reaction_guarantee_title', { defaultValue: isCsLike ? 'Garance reakce' : 'Reaction guarantee' })}
+            {t('application.messages.reaction_guarantee_title', {
+              defaultValue:
+                language === 'cs' ? 'Garance reakce'
+                  : language === 'sk' ? 'Garancia reakcie'
+                  : language === 'de' ? 'Reaktionsgarantie'
+                  : language === 'pl' ? 'Gwarancja reakcji'
+                  : 'Reaction guarantee'
+            })}
           </div>
           <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300">
             {responseStateLabel}
@@ -377,15 +448,21 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
         <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
           {viewerRole === 'candidate'
             ? t('application.messages.reaction_sla_candidate', {
-                defaultValue: isCsLike
-                  ? 'Firma odpovídá obvykle {{window}}.'
-                  : 'Companies usually respond {{window}}.',
+                defaultValue:
+                  language === 'cs' ? 'Firma odpovídá obvykle {{window}}.'
+                    : language === 'sk' ? 'Firma odpovedá zvyčajne {{window}}.'
+                    : language === 'de' ? 'Unternehmen antworten normalerweise {{window}}.'
+                    : language === 'pl' ? 'Firmy zwykle odpowiadają {{window}}.'
+                    : 'Companies usually respond {{window}}.',
                 window: responseSlaLabel
               })
             : t('application.messages.reaction_sla_recruiter', {
-                defaultValue: isCsLike
-                  ? 'Kandidát vidí očekávání odpovědi {{window}}.'
-                  : 'Candidates see response expectation {{window}}.',
+                defaultValue:
+                  language === 'cs' ? 'Kandidát vidí očekávání odpovědi {{window}}.'
+                    : language === 'sk' ? 'Kandidát vidí očakávanie odpovede {{window}}.'
+                    : language === 'de' ? 'Kandidaten sehen eine Antwort-Erwartung von {{window}}.'
+                    : language === 'pl' ? 'Kandydat widzi oczekiwany czas odpowiedzi {{window}}.'
+                    : 'Candidates see response expectation {{window}}.',
                 window: responseSlaLabel
               })}
         </p>

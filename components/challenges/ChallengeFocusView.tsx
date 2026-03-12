@@ -130,14 +130,14 @@ const getMicroJobLongTermPotentialLabel = (
   return labels[value]?.[locale as 'cs' | 'sk' | 'de' | 'pl' | 'en'] || labels[value]?.en || null;
 };
 
-const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
+const formatSalary = (job: Job, locale: string, fallbackLabel: string, fallbackCurrency: string): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
   const to = Number(job.salary_to || 0);
-  const currency = (job as any).salary_currency || (isCsLike ? 'CZK' : 'EUR');
+  const currency = (job as any).salary_currency || fallbackCurrency;
   if (from && to) return `${from.toLocaleString(locale)} - ${to.toLocaleString(locale)} ${currency}`;
   if (from || to) return `${(from || to).toLocaleString(locale)} ${currency}`;
-  return isCsLike ? 'Mzda neuvedena' : 'Salary not specified';
+  return fallbackLabel;
 };
 
 const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
@@ -238,7 +238,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       trustDialogues: 'Tým vedl za posledních 90 dní {{count}} dialogů.',
       trustResponse: 'Obvykle reaguje do {{hours}} hodin.',
       trustResponseUnderHour: 'Obvykle reaguje do 1 hodiny.',
-      humanContextFallbackRole: 'Tým'
+      humanContextFallbackRole: 'Tým',
+      currentLocation: 'Aktuální poloha',
+      salaryMissing: 'Mzda neuvedena',
+      locationMissing: 'Místo neuvedeno',
+      companyMissing: 'Firma neuvedena',
+      addAddress: 'Doplň adresu',
+      afterSignIn: 'Po přihlášení',
+      signInCreate: 'Přihlásit / vytvořit účet',
+      defaultCurrency: 'CZK'
     },
     sk: {
       back: 'Späť na zoznam',
@@ -311,7 +319,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       trustDialogues: 'Tím viedol za posledných 90 dní {{count}} dialógov.',
       trustResponse: 'Zvyčajne reaguje do {{hours}} hodín.',
       trustResponseUnderHour: 'Zvyčajne reaguje do 1 hodiny.',
-      humanContextFallbackRole: 'Tím'
+      humanContextFallbackRole: 'Tím',
+      currentLocation: 'Aktuálna poloha',
+      salaryMissing: 'Mzda neuvedená',
+      locationMissing: 'Miesto neuvedené',
+      companyMissing: 'Firma neuvedená',
+      addAddress: 'Doplň adresu',
+      afterSignIn: 'Po prihlásení',
+      signInCreate: 'Prihlásiť / vytvoriť účet',
+      defaultCurrency: 'CZK'
     },
     de: {
       back: 'Zurück zur Liste',
@@ -384,7 +400,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       trustDialogues: 'Das Team hat in den letzten 90 Tagen {{count}} Dialoge geführt.',
       trustResponse: 'Antwortet normalerweise innerhalb von {{hours}} Stunden.',
       trustResponseUnderHour: 'Antwortet normalerweise innerhalb von 1 Stunde.',
-      humanContextFallbackRole: 'Team'
+      humanContextFallbackRole: 'Team',
+      currentLocation: 'Aktueller Standort',
+      salaryMissing: 'Gehalt nicht angegeben',
+      locationMissing: 'Ort nicht angegeben',
+      companyMissing: 'Firma nicht angegeben',
+      addAddress: 'Adresse ergänzen',
+      afterSignIn: 'Nach dem Login',
+      signInCreate: 'Anmelden / Konto erstellen',
+      defaultCurrency: 'EUR'
     },
     at: {} as any,
     pl: {
@@ -458,7 +482,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       trustDialogues: 'Zespół prowadził w ostatnich 90 dniach {{count}} dialogów.',
       trustResponse: 'Zwykle odpowiada w ciągu {{hours}} godzin.',
       trustResponseUnderHour: 'Zwykle odpowiada w ciągu 1 godziny.',
-      humanContextFallbackRole: 'Zespół'
+      humanContextFallbackRole: 'Zespół',
+      currentLocation: 'Aktualna lokalizacja',
+      salaryMissing: 'Nie podano wynagrodzenia',
+      locationMissing: 'Nie podano lokalizacji',
+      companyMissing: 'Nie podano firmy',
+      addAddress: 'Dodaj adres',
+      afterSignIn: 'Po zalogowaniu',
+      signInCreate: 'Zaloguj się / utwórz konto',
+      defaultCurrency: 'EUR'
     },
     en: {
       back: 'Back to list',
@@ -531,7 +563,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       trustDialogues: 'The team ran {{count}} dialogues in the last 90 days.',
       trustResponse: 'Usually replies within {{hours}} hours.',
       trustResponseUnderHour: 'Usually replies within 1 hour.',
-      humanContextFallbackRole: 'Team'
+      humanContextFallbackRole: 'Team',
+      currentLocation: 'Current location',
+      salaryMissing: 'Salary not specified',
+      locationMissing: 'Location not specified',
+      companyMissing: 'Company not specified',
+      addAddress: 'Add address',
+      afterSignIn: 'After sign in',
+      signInCreate: 'Sign in / create account',
+      defaultCurrency: 'EUR'
     }
   } as const)[localizedLanguage];
   const microJobCopy = ({
@@ -614,7 +654,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? userProfile
         : {
             ...userProfile,
-            address: isCsLike ? 'Aktuální poloha' : 'Current location'
+            address: copy.currentLocation
           };
       setCommuteAnalysis(calculateCommuteReality(job, commuteProfile));
     } catch (error) {
@@ -683,9 +723,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   );
   const responsePrompt = job.firstStepPrompt || shorten(job.description, 180);
   const companySignal = shorten(job.companyPageSummary || job.aiAnalysis?.summary || job.description, 220);
-  const displayedSalary = formatSalary(job, i18n.language, isCsLike);
-  const locationValue = shorten(job.location, 72) || (isCsLike ? 'Místo neuvedeno' : 'Location not specified');
-  const companyValue = shorten(job.company, 72) || (isCsLike ? 'Firma neuvedena' : 'Company not specified');
+  const displayedSalary = formatSalary(job, i18n.language, copy.salaryMissing, copy.defaultCurrency);
+  const locationValue = shorten(job.location, 72) || copy.locationMissing;
+  const companyValue = shorten(job.company, 72) || copy.companyMissing;
   const microJobKindValue = getMicroJobKindLabel(job.micro_job_kind, language);
   const microJobCollaborationValue = getMicroJobCollaborationLabel(job.micro_job_collaboration_modes, language);
   const microJobLongTermPotentialValue = getMicroJobLongTermPotentialLabel(job.micro_job_long_term_potential, language);
@@ -698,8 +738,8 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     : commuteAnalysis
       ? `${commuteAnalysis.distanceKm} km`
       : userProfile.isLoggedIn
-        ? (isCsLike ? 'Doplň adresu' : 'Add address')
-        : (isCsLike ? 'Po přihlášení' : 'After sign in');
+        ? copy.addAddress
+        : copy.afterSignIn;
   const quickInsights = isMicroJobRole
     ? [
         { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
@@ -841,7 +881,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
           </div>
           <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.loginPrompt}</p>
           <button type="button" onClick={onRequireAuth} className="app-button-primary">
-            {isCsLike ? 'Přihlásit / vytvořit účet' : 'Sign in / create account'}
+            {copy.signInCreate}
           </button>
         </SurfaceCard>
       );

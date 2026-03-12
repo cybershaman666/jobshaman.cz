@@ -327,6 +327,332 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     help: 'Used for default market scope and daily digest targeting when your address is missing or approximate.',
     countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
   };
+  const profileUiCopy = ({
+    cs: {
+      premiumLifeContext: 'Premium odemyká životní situaci, dopravu, benefity a jemnější výchozí nastavení feedu.',
+      freePlanLine: 'Ve free verzi zůstává zdarma váš obor a cílová role. Premium přidává životní situaci, preferovanou dopravu, benefity a detailnější rozhodovací vrstvu.',
+      auditQuest1: 'Úkol 1 · Únik zdrojů',
+      auditQuest2: 'Úkol 2 · Zrcadlo příběhu',
+      auditQuest3: 'Úkol 3 · Kulturní severka',
+      pipeOn: 'Zapnuto',
+      pipeOff: 'Vypnuto',
+      disconnected: 'Odpojeno rour',
+      noConstellation: 'Zatím bez rozsvíceného souhvězdí.',
+      live3dOff: 'Živé 3D je vypnuté.',
+      fallback3d: '3D náhradní režim.',
+      orbitTitle: 'Orbit životní udržitelnosti',
+      anchorTitle: 'Kariérní kotva vs. drift',
+      mirrorTitle: 'Zrcadlo příběhu',
+      northstarTitle: 'Kulturní severka',
+      alignmentLabel: 'Kulturní sladění',
+      mismatchLabel: 'nesoulad',
+      timeRing: 'Časový okruh',
+      energyRing: 'Energetický okruh',
+      sustainability: 'Udržitelnost',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Orbit životní udržitelnosti + kariérní kotva vs. drift',
+      live3dOn: 'Živé 3D: zapnuto',
+      live3dOffButton: 'Živé 3D: vypnuto',
+      premiumRequired: 'Happiness audit je dostupný pouze v Premium.',
+      quest1Body: 'Když se podíváte na svůj měsíční výpis z účtu a odečtete čas strávený v kolonách, kolik energie vám reálně zbývá na věci, které vás definují?',
+      quest2Body: 'Kdybyste měli vymazat všechna formální buzzwordy ze svého životopisu, který moment vaší kariéry je ten, kdy jste byli nezastavitelní a dělali přesně to, co umíte nejlíp?',
+      quest3Body: 'Představte si, že váš šéf udělá zásadní chybu. Jaká reakce firmy je vám bližší: upřímná omluva, nebo tiché opravení procesu?',
+      commute: 'Dojíždění',
+      taxes: 'Daně',
+      fixedCosts: 'Fixní náklady',
+      storyPlaceholder: 'Nadiktujte svůj příběh...',
+      individualVsTeam: 'Individualismus ↔ Tým',
+      chaosVsStructure: 'Chaos ↔ Struktura',
+      companyOffNorth: 'Aktuální firma je mimo sever o {{value}} %.',
+      simulating: 'Simuluji...',
+      auditOutput: 'Výstup auditu',
+      advisoryDisclaimer: 'Jde jen o doporučení. Finální rozhodnutí zůstává na vás.',
+      monthlyGrossSalary: 'Hrubá měsíční mzda',
+      monthlyCommuteCost: 'Měsíční náklady na dojíždění',
+      homeOfficeDays: 'Dny práce z domova / týden',
+      commuteMinutes: 'Minuty dojíždění za den',
+      subjectiveEnergy: 'Subjektivní energie',
+      roleDrift: 'Ukazatel driftu role',
+      minutesPerDay: 'min/den',
+      pushActive: 'aktivní',
+      pushInactive: 'neaktivní',
+      newPassword: 'Nové heslo',
+      confirmNewPassword: 'Potvrzení hesla',
+      setNewPassword: 'Nastavit nové heslo',
+    },
+    sk: {
+      premiumLifeContext: 'Premium odomyká životnú situáciu, dopravu, benefity a jemnejšie predvolené nastavenie feedu.',
+      freePlanLine: 'Vo free verzii zostáva zdarma váš odbor a cieľová rola. Premium pridáva životnú situáciu, preferovanú dopravu, benefity a detailnejšiu rozhodovaciu vrstvu.',
+      auditQuest1: 'Úloha 1 · Únik zdrojov',
+      auditQuest2: 'Úloha 2 · Zrkadlo príbehu',
+      auditQuest3: 'Úloha 3 · Kultúrna severka',
+      pipeOn: 'Zapnuté',
+      pipeOff: 'Vypnuté',
+      disconnected: 'Odpojené rúry',
+      noConstellation: 'Zatiaľ bez rozsvieteného súhvezdia.',
+      live3dOff: 'Živé 3D je vypnuté.',
+      fallback3d: '3D náhradný režim.',
+      orbitTitle: 'Orbit životnej udržateľnosti',
+      anchorTitle: 'Kariérna kotva vs. drift',
+      mirrorTitle: 'Zrkadlo príbehu',
+      northstarTitle: 'Kultúrna severka',
+      alignmentLabel: 'Kultúrne zladenie',
+      mismatchLabel: 'nesúlad',
+      timeRing: 'Časový okruh',
+      energyRing: 'Energetický okruh',
+      sustainability: 'Udržateľnosť',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Orbit životnej udržateľnosti + kariérna kotva vs. drift',
+      live3dOn: 'Živé 3D: zapnuté',
+      live3dOffButton: 'Živé 3D: vypnuté',
+      premiumRequired: 'Happiness audit je dostupný iba v Premium.',
+      quest1Body: 'Keď sa pozriete na svoj mesačný výpis z účtu a odpočítate čas strávený v zápchach, koľko energie vám reálne zostáva na veci, ktoré vás definujú?',
+      quest2Body: 'Keby ste mali vymazať všetky formálne buzzwordy zo svojho životopisu, ktorý moment vašej kariéry bol ten, keď ste boli nezastaviteľní a robili presne to, čo viete najlepšie?',
+      quest3Body: 'Predstavte si, že váš šéf urobí zásadnú chybu. Ktorá reakcia firmy je vám bližšia: úprimné ospravedlnenie alebo tichá oprava procesu?',
+      commute: 'Dochádzanie',
+      taxes: 'Dane',
+      fixedCosts: 'Fixné náklady',
+      storyPlaceholder: 'Nadiktujte svoj príbeh...',
+      individualVsTeam: 'Individualizmus ↔ Tím',
+      chaosVsStructure: 'Chaos ↔ Štruktúra',
+      companyOffNorth: 'Aktuálna firma je mimo severu o {{value}} %.',
+      simulating: 'Simulujem...',
+      auditOutput: 'Výstup auditu',
+      advisoryDisclaimer: 'Ide len o odporúčanie. Konečné rozhodnutie zostáva na vás.',
+      monthlyGrossSalary: 'Hrubá mesačná mzda',
+      monthlyCommuteCost: 'Mesačné náklady na dochádzanie',
+      homeOfficeDays: 'Dni práce z domu / týždeň',
+      commuteMinutes: 'Minúty dochádzania za deň',
+      subjectiveEnergy: 'Subjektívna energia',
+      roleDrift: 'Ukazovateľ driftu roly',
+      minutesPerDay: 'min/deň',
+      pushActive: 'aktívne',
+      pushInactive: 'neaktívne',
+      newPassword: 'Nové heslo',
+      confirmNewPassword: 'Potvrdenie hesla',
+      setNewPassword: 'Nastaviť nové heslo',
+    },
+    de: {
+      premiumLifeContext: 'Premium schaltet Lebenskontext, Mobilität, Benefits und feinere Feed-Defaults frei.',
+      freePlanLine: 'Im Free-Tarif bleiben Bereich und Zielrolle kostenlos. Premium ergänzt Lebenskontext, bevorzugte Mobilität, Benefits und eine tiefere Entscheidungsebene.',
+      auditQuest1: 'Quest 1 · Das Leck der Ressourcen',
+      auditQuest2: 'Quest 2 · Der Spiegel der Erzählung',
+      auditQuest3: 'Quest 3 · Der kulturelle Nordstern',
+      pipeOn: 'Aktiv',
+      pipeOff: 'Aus',
+      disconnected: 'Getrennte Leitungen',
+      noConstellation: 'Noch kein aufleuchtendes Sternbild.',
+      live3dOff: 'Live-3D ist deaktiviert.',
+      fallback3d: '3D-Ersatzmodus.',
+      orbitTitle: 'Life-Sustainability Orbit',
+      anchorTitle: 'Career Anchor vs Drift',
+      mirrorTitle: 'The Narrative Mirror',
+      northstarTitle: 'The Cultural Northstar',
+      alignmentLabel: 'Kulturelle Passung',
+      mismatchLabel: 'Abweichung',
+      timeRing: 'Zeitring',
+      energyRing: 'Energiering',
+      sustainability: 'Nachhaltigkeit',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Life-Sustainability Orbit + Career Anchor vs Drift',
+      live3dOn: 'Live-3D: an',
+      live3dOffButton: 'Live-3D: aus',
+      premiumRequired: 'Der Happiness Audit ist nur in Premium verfügbar.',
+      quest1Body: 'Wenn Sie Ihren monatlichen Kontoauszug ansehen und die Zeit im Stau abziehen, wie viel Energie bleibt Ihnen real für die Dinge, die Sie ausmachen?',
+      quest2Body: 'Wenn Sie alle formellen Buzzwords aus Ihrem Lebenslauf löschen würden: Welcher Moment Ihrer Laufbahn war der, in dem Sie unaufhaltbar waren und genau das getan haben, was Sie am besten können?',
+      quest3Body: 'Stellen Sie sich vor, Ihre Führungskraft macht einen gravierenden Fehler. Welche Reaktion des Unternehmens passt eher zu Ihnen: eine ehrliche Entschuldigung oder eine stille Prozesskorrektur?',
+      commute: 'Pendeln',
+      taxes: 'Steuern',
+      fixedCosts: 'Fixkosten',
+      storyPlaceholder: 'Erzählen Sie Ihre Geschichte...',
+      individualVsTeam: 'Individualismus ↔ Team',
+      chaosVsStructure: 'Chaos ↔ Struktur',
+      companyOffNorth: 'Das aktuelle Unternehmen liegt um {{value}} % neben Ihrem Nordstern.',
+      simulating: 'Simulation läuft...',
+      auditOutput: 'Audit-Ergebnis',
+      advisoryDisclaimer: 'Dies ist nur Orientierung. Die finale Entscheidung bleibt bei Ihnen.',
+      monthlyGrossSalary: 'Monatliches Bruttogehalt',
+      monthlyCommuteCost: 'Monatliche Pendelkosten',
+      homeOfficeDays: 'Homeoffice-Tage / Woche',
+      commuteMinutes: 'Pendeln in Minuten pro Tag',
+      subjectiveEnergy: 'Subjektive Energie',
+      roleDrift: 'Rollen-Drift-Indikator',
+      minutesPerDay: 'Min./Tag',
+      pushActive: 'aktiv',
+      pushInactive: 'inaktiv',
+      newPassword: 'Neues Passwort',
+      confirmNewPassword: 'Passwort bestätigen',
+      setNewPassword: 'Neues Passwort setzen',
+    },
+    at: {
+      premiumLifeContext: 'Premium schaltet Lebenskontext, Mobilität, Benefits und feinere Feed-Defaults frei.',
+      freePlanLine: 'Im Free-Tarif bleiben Bereich und Zielrolle kostenlos. Premium ergänzt Lebenskontext, bevorzugte Mobilität, Benefits und eine tiefere Entscheidungsebene.',
+      auditQuest1: 'Quest 1 · Das Leck der Ressourcen',
+      auditQuest2: 'Quest 2 · Der Spiegel der Erzählung',
+      auditQuest3: 'Quest 3 · Der kulturelle Nordstern',
+      pipeOn: 'Aktiv',
+      pipeOff: 'Aus',
+      disconnected: 'Getrennte Leitungen',
+      noConstellation: 'Noch kein aufleuchtendes Sternbild.',
+      live3dOff: 'Live-3D ist deaktiviert.',
+      fallback3d: '3D-Ersatzmodus.',
+      orbitTitle: 'Life-Sustainability Orbit',
+      anchorTitle: 'Career Anchor vs Drift',
+      mirrorTitle: 'The Narrative Mirror',
+      northstarTitle: 'The Cultural Northstar',
+      alignmentLabel: 'Kulturelle Passung',
+      mismatchLabel: 'Abweichung',
+      timeRing: 'Zeitring',
+      energyRing: 'Energiering',
+      sustainability: 'Nachhaltigkeit',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Life-Sustainability Orbit + Career Anchor vs Drift',
+      live3dOn: 'Live-3D: an',
+      live3dOffButton: 'Live-3D: aus',
+      premiumRequired: 'Der Happiness Audit ist nur in Premium verfügbar.',
+      quest1Body: 'Wenn Sie Ihren monatlichen Kontoauszug ansehen und die Zeit im Stau abziehen, wie viel Energie bleibt Ihnen real für die Dinge, die Sie ausmachen?',
+      quest2Body: 'Wenn Sie alle formellen Buzzwords aus Ihrem Lebenslauf löschen würden: Welcher Moment Ihrer Laufbahn war der, in dem Sie unaufhaltbar waren und genau das getan haben, was Sie am besten können?',
+      quest3Body: 'Stellen Sie sich vor, Ihre Führungskraft macht einen gravierenden Fehler. Welche Reaktion des Unternehmens passt eher zu Ihnen: eine ehrliche Entschuldigung oder eine stille Prozesskorrektur?',
+      commute: 'Pendeln',
+      taxes: 'Steuern',
+      fixedCosts: 'Fixkosten',
+      storyPlaceholder: 'Erzählen Sie Ihre Geschichte...',
+      individualVsTeam: 'Individualismus ↔ Team',
+      chaosVsStructure: 'Chaos ↔ Struktur',
+      companyOffNorth: 'Das aktuelle Unternehmen liegt um {{value}} % neben Ihrem Nordstern.',
+      simulating: 'Simulation läuft...',
+      auditOutput: 'Audit-Ergebnis',
+      advisoryDisclaimer: 'Dies ist nur Orientierung. Die finale Entscheidung bleibt bei Ihnen.',
+      monthlyGrossSalary: 'Monatliches Bruttogehalt',
+      monthlyCommuteCost: 'Monatliche Pendelkosten',
+      homeOfficeDays: 'Homeoffice-Tage / Woche',
+      commuteMinutes: 'Pendeln in Minuten pro Tag',
+      subjectiveEnergy: 'Subjektive Energie',
+      roleDrift: 'Rollen-Drift-Indikator',
+      minutesPerDay: 'Min./Tag',
+      pushActive: 'aktiv',
+      pushInactive: 'inaktiv',
+      newPassword: 'Neues Passwort',
+      confirmNewPassword: 'Passwort bestätigen',
+      setNewPassword: 'Neues Passwort setzen',
+    },
+    pl: {
+      premiumLifeContext: 'Premium odblokowuje kontekst życiowy, transport, benefity i dokładniejsze ustawienia feedu.',
+      freePlanLine: 'W planie free bezpłatnie zostają Twoja branża i docelowa rola. Premium dodaje kontekst życiowy, preferowany transport, benefity i głębszą warstwę decyzyjną.',
+      auditQuest1: 'Quest 1 · Wyciek zasobów',
+      auditQuest2: 'Quest 2 · Lustro narracji',
+      auditQuest3: 'Quest 3 · Kulturowa północ',
+      pipeOn: 'Włączone',
+      pipeOff: 'Wyłączone',
+      disconnected: 'Odłączone rury',
+      noConstellation: 'Na razie bez rozświetlonego gwiazdozbioru.',
+      live3dOff: 'Live 3D jest wyłączone.',
+      fallback3d: 'Tryb zastępczy 3D.',
+      orbitTitle: 'Orbita życiowej trwałości',
+      anchorTitle: 'Career Anchor vs Drift',
+      mirrorTitle: 'Narrative Mirror',
+      northstarTitle: 'Cultural Northstar',
+      alignmentLabel: 'Dopasowanie kulturowe',
+      mismatchLabel: 'niedopasowanie',
+      timeRing: 'Pierścień czasu',
+      energyRing: 'Pierścień energii',
+      sustainability: 'Trwałość',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Orbita życiowej trwałości + kotwica kariery vs drift',
+      live3dOn: 'Live 3D: włączone',
+      live3dOffButton: 'Live 3D: wyłączone',
+      premiumRequired: 'Happiness audit jest dostępny tylko w Premium.',
+      quest1Body: 'Gdy spojrzysz na swój miesięczny wyciąg z konta i odejmiesz czas spędzony w korkach, ile energii realnie zostaje Ci na rzeczy, które Cię definiują?',
+      quest2Body: 'Gdyby usunąć wszystkie formalne buzzwordy z Twojego CV, który moment kariery był tym, w którym czułeś_aś się nie do zatrzymania i robiłeś_aś dokładnie to, co umiesz najlepiej?',
+      quest3Body: 'Wyobraź sobie, że Twój szef popełnia poważny błąd. Która reakcja firmy jest Ci bliższa: szczere przeprosiny czy cicha korekta procesu?',
+      commute: 'Dojazd',
+      taxes: 'Podatki',
+      fixedCosts: 'Koszty stałe',
+      storyPlaceholder: 'Opowiedz swoją historię...',
+      individualVsTeam: 'Indywidualizm ↔ Zespół',
+      chaosVsStructure: 'Chaos ↔ Struktura',
+      companyOffNorth: 'Obecna firma jest oddalona od północy o {{value}}%.',
+      simulating: 'Symulacja...',
+      auditOutput: 'Wynik audytu',
+      advisoryDisclaimer: 'To tylko wskazówka. Ostateczna decyzja należy do Ciebie.',
+      monthlyGrossSalary: 'Miesięczne wynagrodzenie brutto',
+      monthlyCommuteCost: 'Miesięczny koszt dojazdu',
+      homeOfficeDays: 'Dni home office / tydzień',
+      commuteMinutes: 'Minuty dojazdu dziennie',
+      subjectiveEnergy: 'Subiektywna energia',
+      roleDrift: 'Wskaźnik dryfu roli',
+      minutesPerDay: 'min/dzień',
+      pushActive: 'aktywne',
+      pushInactive: 'nieaktywne',
+      newPassword: 'Nowe hasło',
+      confirmNewPassword: 'Potwierdzenie hasła',
+      setNewPassword: 'Ustaw nowe hasło',
+    },
+    en: {
+      premiumLifeContext: 'Premium unlocks life-context setup, transport preferences, benefits and finer feed defaults.',
+      freePlanLine: 'The free plan keeps your domain and target role. Premium adds life-context setup, transport preferences, benefits and a deeper decision layer.',
+      auditQuest1: 'Quest 1 · The Resource Leak',
+      auditQuest2: 'Quest 2 · The Narrative Mirror',
+      auditQuest3: 'Quest 3 · The Cultural Northstar',
+      pipeOn: 'Pipe ON',
+      pipeOff: 'Pipe OFF',
+      disconnected: 'Disconnected pipes',
+      noConstellation: 'No illuminated constellation yet.',
+      live3dOff: 'Live 3D disabled.',
+      fallback3d: '3D fallback mode.',
+      orbitTitle: 'Life-Sustainability Orbit',
+      anchorTitle: 'Career Anchor vs Drift',
+      mirrorTitle: 'The Narrative Mirror',
+      northstarTitle: 'The Cultural Northstar',
+      alignmentLabel: 'Cultural alignment',
+      mismatchLabel: 'mismatch',
+      timeRing: 'Time ring',
+      energyRing: 'Energy ring',
+      sustainability: 'Sustainability',
+      drift: 'Drift',
+      premiumBadge: 'Premium',
+      happinessTitle: 'Personal Happiness Audit (Premium)',
+      happinessSubtitle: 'Life-Sustainability Orbit + Career Anchor vs Drift',
+      live3dOn: 'Live 3D: on',
+      live3dOffButton: 'Live 3D: off',
+      premiumRequired: 'The happiness audit is available in Premium only.',
+      quest1Body: 'When you look at your monthly bank statement and subtract the time spent in traffic, how much energy is actually left for the things that define you?',
+      quest2Body: 'If you removed all formal buzzwords from your resume, which moment in your career was the one where you felt unstoppable and were doing exactly what you do best?',
+      quest3Body: 'Imagine your manager makes a serious mistake. Which company reaction feels more right to you: an honest apology or a quiet process fix?',
+      commute: 'Commute',
+      taxes: 'Taxes',
+      fixedCosts: 'Fixed costs',
+      storyPlaceholder: 'Dictate your story...',
+      individualVsTeam: 'Individualism ↔ Team',
+      chaosVsStructure: 'Chaos ↔ Structure',
+      companyOffNorth: 'Your current company is {{value}}% off your north star.',
+      simulating: 'Simulating...',
+      auditOutput: 'Audit output',
+      advisoryDisclaimer: 'This is guidance only. The final decision remains yours.',
+      monthlyGrossSalary: 'Monthly gross salary',
+      monthlyCommuteCost: 'Monthly commute cost',
+      homeOfficeDays: 'Home office days / week',
+      commuteMinutes: 'Commute minutes per day',
+      subjectiveEnergy: 'Subjective energy',
+      roleDrift: 'Role drift indicator',
+      minutesPerDay: 'min/day',
+      pushActive: 'active',
+      pushInactive: 'inactive',
+      newPassword: 'New password',
+      confirmNewPassword: 'Confirm new password',
+      setNewPassword: 'Set new password',
+    }
+  } as const)[profileLocale];
   const searchProfileCopy = ({
     cs: {
       title: 'Výchozí nastavení hledání',
@@ -1477,9 +1803,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
               {isPremium
                 ? searchProfileCopy.intro
-                : (isCsLikeProfile
-                  ? 'Premium odemyká životní situaci, dopravu, benefity a jemnější výchozí nastavení feedu.'
-                  : 'Premium unlocks life-context setup, transport preferences, benefits and finer feed defaults.')}
+                : profileUiCopy.premiumLifeContext}
             </p>
           </div>
         </div>
@@ -1774,9 +2098,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 ))}
               </div>
               <p className="text-sm leading-6 text-[var(--text-muted)]">
-                {isCsLikeProfile
-                  ? 'Ve free verzi zůstává zdarma váš obor a cílová role. Premium přidává životní situaci, preferovanou dopravu, benefity a detailnější rozhodovací vrstvu.'
-                  : 'The free plan keeps your domain and target role. Premium adds life-context setup, transport preferences, benefits and a deeper decision layer.'}
+                {profileUiCopy.freePlanLine}
               </p>
             </div>
             <button
@@ -3656,15 +3978,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                        {t('happiness_audit_3d.title', { defaultValue: 'Personal Happiness Audit (Premium)' })}
+                        {t('happiness_audit_3d.title', { defaultValue: profileUiCopy.happinessTitle })}
                       </h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {t('happiness_audit_3d.subtitle', { defaultValue: 'Life-Sustainability Orbit + Career Anchor vs Drift' })}
+                        {t('happiness_audit_3d.subtitle', { defaultValue: profileUiCopy.happinessSubtitle })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                        Premium
+                        {profileUiCopy.premiumBadge}
                       </span>
                       <button
                         onClick={() => setEnableLive3D((prev) => !prev)}
@@ -3674,8 +3996,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         }`}
                       >
                         {enableLive3D
-                          ? t('happiness_audit_3d.live_on', { defaultValue: 'Enable live 3D: ON' })
-                          : t('happiness_audit_3d.live_off', { defaultValue: 'Enable live 3D: OFF' })}
+                          ? t('happiness_audit_3d.live_on', { defaultValue: profileUiCopy.live3dOn })
+                          : t('happiness_audit_3d.live_off', { defaultValue: profileUiCopy.live3dOffButton })}
                       </button>
                     </div>
                   </div>
@@ -3683,23 +4005,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <div className="p-6 space-y-4">
                   {!isPremium && (
                     <div className="text-sm text-amber-700 dark:text-amber-300">
-                      {t('happiness_audit_3d.premium_required', { defaultValue: 'Happiness audit is available in Premium.' })}
+                      {t('happiness_audit_3d.premium_required', { defaultValue: profileUiCopy.premiumRequired })}
                     </div>
                   )}
                   <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
                     <div className="space-y-4">
                       <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
                         <div className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                          {isCsLikeProfile ? 'Úkol 1 · Únik zdrojů' : 'Quest 1 · The Resource Leak'}
+                          {profileUiCopy.auditQuest1}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
-                          Když se podíváš na svůj měsíční výpis z účtu a odečteš čas strávený v kolonách (v tvém případě {monthlyCommuteHours} hodiny), kolik energie ti reálně zbývá na věci, které tě definují?
+                          {profileUiCopy.quest1Body} ({monthlyCommuteHours} h)
                         </p>
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
                           {([
-                            ['commute', 'Dojíždění'],
-                            ['taxes', 'Daně'],
-                            ['fixed', 'Fixní náklady'],
+                            ['commute', profileUiCopy.commute],
+                            ['taxes', profileUiCopy.taxes],
+                            ['fixed', profileUiCopy.fixedCosts],
                           ] as const).map(([key, label]) => (
                             <button
                               key={key}
@@ -3711,27 +4033,27 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                 }`}
                             >
                               {resourceLeakToggles[key]
-                                ? `${isCsLikeProfile ? 'Zapnuto' : 'Pipe ON'}: ${label}`
-                                : `${isCsLikeProfile ? 'Vypnuto' : 'Pipe OFF'}: ${label}`}
+                                ? `${profileUiCopy.pipeOn}: ${label}`
+                                : `${profileUiCopy.pipeOff}: ${label}`}
                             </button>
                           ))}
                         </div>
                         <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          Odpojeno rour: {disconnectedPipes} / 3
+                          {profileUiCopy.disconnected}: {disconnectedPipes} / 3
                         </div>
                       </div>
 
                       <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
                         <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
-                          {isCsLikeProfile ? 'Úkol 2 · Zrcadlo příběhu' : 'Quest 2 · The Narrative Mirror'}
+                          {profileUiCopy.auditQuest2}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
-                          Kdybys měl vymazat všechna formální "buzzwordy" ze svého životopisu, co je ten jeden moment v tvé kariéře, kdy jsi měl pocit, že jsi nezastavitelný a dělal jsi přesně to, co umíš nejlíp?
+                          {profileUiCopy.quest2Body}
                         </p>
                         <textarea
                           value={narrativeStory}
                           onChange={(e) => setNarrativeStory(e.target.value)}
-                          placeholder={isCsLikeProfile ? 'Nadiktuj svůj příběh...' : 'Dictate your story...'}
+                          placeholder={profileUiCopy.storyPlaceholder}
                           className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                         />
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -3740,21 +4062,21 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                               {skill}
                             </span>
                           )) : (
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Zatím bez rozsvíceného souhvězdí.</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{profileUiCopy.noConstellation}</span>
                           )}
                         </div>
                       </div>
 
                       <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20 p-4">
                         <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
-                          {isCsLikeProfile ? 'Úkol 3 · Kulturní severka' : 'Quest 3 · The Cultural Northstar'}
+                          {profileUiCopy.auditQuest3}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-200">
-                          Představ si, že tvůj šéf udělá zásadní chybu. Co je v tvém ideálním světě ta správná reakce firmy – upřímná omluva v tónu „přátelský profesionál“, nebo tiché opravení procesu?
+                          {profileUiCopy.quest3Body}
                         </p>
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                           <label className="text-xs text-slate-600 dark:text-slate-300">
-                            Individualismus ↔ Tým ({culturalCompass.individualVsTeam})
+                            {profileUiCopy.individualVsTeam} ({culturalCompass.individualVsTeam})
                             <input
                               type="range"
                               min={0}
@@ -3766,7 +4088,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                             />
                           </label>
                           <label className="text-xs text-slate-600 dark:text-slate-300">
-                            Chaos ↔ Struktura ({culturalCompass.chaosVsStructure})
+                            {profileUiCopy.chaosVsStructure} ({culturalCompass.chaosVsStructure})
                             <input
                               type="range"
                               min={0}
@@ -3779,13 +4101,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           </label>
                         </div>
                         <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          Aktuální firma je mimo sever o {culturalMismatch}%.
+                          {profileUiCopy.companyOffNorth.replace('{{value}}', String(culturalMismatch))}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.salary', { defaultValue: 'Monthly gross salary' })}
+                          {t('happiness_audit_3d.salary', { defaultValue: profileUiCopy.monthlyGrossSalary })}
                           <input
                             type="number"
                             min={0}
@@ -3795,7 +4117,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           />
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.commute_cost', { defaultValue: 'Monthly commute cost' })}
+                          {t('happiness_audit_3d.commute_cost', { defaultValue: profileUiCopy.monthlyCommuteCost })}
                           <input
                             type="number"
                             min={0}
@@ -3805,7 +4127,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           />
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.home_office_days', { defaultValue: 'Home office days / week' })}
+                          {t('happiness_audit_3d.home_office_days', { defaultValue: profileUiCopy.homeOfficeDays })}
                           <input
                             type="range"
                             min={0}
@@ -3818,7 +4140,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.home_office_days} / 5</div>
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.commute_minutes', { defaultValue: 'Commute minutes per day' })}
+                          {t('happiness_audit_3d.commute_minutes', { defaultValue: profileUiCopy.commuteMinutes })}
                           <input
                             type="range"
                             min={0}
@@ -3828,10 +4150,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                             onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_minutes_daily: Number(e.target.value) || 0 }))}
                             className="mt-2 w-full"
                           />
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} min/day</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} {profileUiCopy.minutesPerDay}</div>
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.energy', { defaultValue: 'Subjective energy' })}
+                          {t('happiness_audit_3d.energy', { defaultValue: profileUiCopy.subjectiveEnergy })}
                           <input
                             type="range"
                             min={0}
@@ -3844,7 +4166,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.subjective_energy}/100</div>
                         </label>
                         <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.role_shift', { defaultValue: 'Role drift indicator' })}
+                          {t('happiness_audit_3d.role_shift', { defaultValue: profileUiCopy.roleDrift })}
                           <input
                             type="range"
                             min={0}
@@ -3863,64 +4185,64 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
                       <div className="mb-2 text-xs uppercase tracking-wider text-[var(--accent)]">
-                        {isCsLikeProfile ? 'Orbit životní udržitelnosti' : 'Life-Sustainability Orbit'}
+                        {profileUiCopy.orbitTitle}
                       </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
                           enableControls
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
                         >
                           <LifeSustainabilityOrbit output={happinessAuditOutput} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
+                          {profileUiCopy.live3dOff}
                         </div>
                       )}
                     </div>
                     <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
                       <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
-                        {isCsLikeProfile ? 'Kariérní kotva vs. drift' : 'Career Anchor vs Drift'}
+                        {profileUiCopy.anchorTitle}
                       </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
                         >
                           <CareerAnchorDrift output={happinessAuditOutput} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
+                          {profileUiCopy.live3dOff}
                         </div>
                       )}
                     </div>
                     <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
                       <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
-                        {isCsLikeProfile ? 'Zrcadlo příběhu' : 'The Narrative Mirror'}
+                        {profileUiCopy.mirrorTitle}
                       </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
                         >
                           <NebulaOfPotential frame={narrativeFrame} />
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
+                          {profileUiCopy.live3dOff}
                         </div>
                       )}
                     </div>
                     <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
                       <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
-                        {isCsLikeProfile ? 'Kulturní severka' : 'The Cultural Northstar'}
+                        {profileUiCopy.northstarTitle}
                       </div>
                       {enableLive3D ? (
                         <SceneShell
                           capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{isCsLikeProfile ? '3D náhradní režim.' : '3D fallback mode.'}</div>}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
                         >
                           <CulturalNorthstarCompass
                             alignmentScore={culturalAlignment}
@@ -3930,13 +4252,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         </SceneShell>
                       ) : (
                         <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {isCsLikeProfile ? 'Živé 3D je vypnuté.' : 'Live 3D disabled.'}
+                          {profileUiCopy.live3dOff}
                         </div>
                       )}
                       <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                        {isCsLikeProfile
-                          ? `Kulturní sladění: ${culturalAlignment}% · nesoulad: ${culturalMismatch}%`
-                          : `Cultural alignment: ${culturalAlignment}% · mismatch: ${culturalMismatch}%`}
+                        {`${profileUiCopy.alignmentLabel}: ${culturalAlignment}% · ${profileUiCopy.mismatchLabel}: ${culturalMismatch}%`}
                       </div>
                     </div>
                   </div>
@@ -3944,14 +4264,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
                     <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
                       {isSimulatingAudit
-                        ? t('happiness_audit_3d.simulating', { defaultValue: 'Simulating...' })
-                        : t('happiness_audit_3d.results', { defaultValue: 'Audit output' })}
+                        ? t('happiness_audit_3d.simulating', { defaultValue: profileUiCopy.simulating })
+                        : t('happiness_audit_3d.results', { defaultValue: profileUiCopy.auditOutput })}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Časový okruh' : 'Time ring'}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Energetický okruh' : 'Energy ring'}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Udržitelnost' : 'Sustainability'}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{isCsLikeProfile ? 'Drift' : 'Drift'}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{profileUiCopy.timeRing}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{profileUiCopy.energyRing}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{profileUiCopy.sustainability}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">{profileUiCopy.drift}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
                     </div>
                     <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
                       {(happinessAuditOutput?.recommendations || []).map((item, index) => (
@@ -3959,7 +4279,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       ))}
                     </ul>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: 'This is guidance only. Final decision remains yours.' })}
+                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: profileUiCopy.advisoryDisclaimer })}
                     </div>
                   </div>
                 </div>
@@ -4272,7 +4592,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="text-xs text-slate-500">
                       {pushSupported
-                        ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
+                        ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? profileUiCopy.pushActive : profileUiCopy.pushInactive} (${pushPermission})`
                         : t('profile.push_unsupported', {
                           defaultValue: getProfileLocaleLabel({
                             cs: 'Push notifikace nejsou v tomto prohlížeči dostupné.',
@@ -4362,7 +4682,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('auth.new_password', { defaultValue: 'Nové heslo' })}
+                        {t('auth.new_password', { defaultValue: profileUiCopy.newPassword })}
                       </label>
                       <input
                         type="password"
@@ -4375,7 +4695,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('auth.confirm_new_password', { defaultValue: 'Potvrzení hesla' })}
+                        {t('auth.confirm_new_password', { defaultValue: profileUiCopy.confirmNewPassword })}
                       </label>
                       <input
                         type="password"
@@ -4396,7 +4716,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     >
                       {isChangingPassword
                         ? t('app.saving')
-                        : t('auth.set_new_password', { defaultValue: 'Nastavit nové heslo' })}
+                        : t('auth.set_new_password', { defaultValue: profileUiCopy.setNewPassword })}
                     </button>
                     {passwordFeedback && (
                       <div className={`text-sm font-medium flex items-center gap-2 ${passwordFeedback.type === 'success'

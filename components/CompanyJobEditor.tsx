@@ -17,19 +17,19 @@ import {
   MicroJobLongTermPotential
 } from '../types';
 import {
-  createCompanyRole as createCompanyJobDraft,
+  createCompanyJobDraft,
   createEditDraftFromRole,
   fetchCompanySchemaRolloutStatus,
   fetchCompanyHumanContextPeople,
   duplicateRoleIntoDraft,
   isMissingFeatureError,
-  listCompanyRoles as listCompanyJobDrafts,
+  listCompanyJobDrafts,
   listRoleVersions,
-  publishCompanyRole as publishCompanyJobDraft,
-  updateCompanyRole as updateCompanyJobDraft,
+  publishCompanyJobDraft,
+  updateCompanyJobDraft,
   updateCompanyRoleLifecycle,
   CompanySchemaRolloutStatus,
-  validateCompanyRole as validateCompanyJobDraft
+  validateCompanyJobDraft
 } from '../services/companyJobDraftService';
 import { optimizeJobDescription } from '../services/geminiService';
 import { supabase } from '../services/supabaseService';

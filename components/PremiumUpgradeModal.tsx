@@ -22,10 +22,20 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     const price = getPremiumPriceDisplay(i18n.language || 'cs');
     const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
     const isCsLike = locale === 'cs' || locale === 'sk';
+    const isGermanLike = locale === 'de' || locale === 'at';
+    const isPolish = locale === 'pl';
 
     if (!show.open) return null;
 
-    const featureName = show.feature || (isCsLike ? 'Premium funkce' : 'Premium feature');
+    const featureName = show.feature || (
+        isCsLike
+            ? 'Premium funkce'
+            : isGermanLike
+                ? 'Premium-Funktion'
+                : isPolish
+                    ? 'Funkcja premium'
+                    : 'Premium feature'
+    );
     const copy = isCsLike ? {
         kicker: 'Premium',
         title: 'Silnější podpora pro skutečný výběr práce',
@@ -33,6 +43,8 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
         primary: 'Odemknout premium',
         later: 'Možná později',
         note: 'Premium dává větší šanci, že z relevantní nabídky vznikne skutečný dialog, ne jen další odložená karta.',
+        priceLabel: 'Premium přidá navíc',
+        whyLabel: 'Proč to dává smysl',
         featureGroups: [
             {
                 icon: ShieldCheck,
@@ -55,6 +67,68 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                 body: 'Uvidíte plný rozbor osobnostního nastavení a to, jak upravil doporučení systému.'
             }
         ]
+    } : isGermanLike ? {
+        kicker: 'Premium',
+        title: 'Eine stärkere Ebene für echte Jobentscheidungen',
+        body: `Die Funktion „${featureName}“ gehört zur Premium-Ebene. Sie bringt mehr Raum für aktive Dialoge, präzisere Priorisierung und bessere Unterstützung bei Entscheidungen.`,
+        primary: 'Premium freischalten',
+        later: 'Vielleicht später',
+        note: 'Premium erhöht die Chance, dass aus einer relevanten Rolle ein echter Dialog wird und nicht nur eine weitere gemerkte Karte.',
+        priceLabel: 'Premium bringt zusätzlich',
+        whyLabel: 'Warum das sinnvoll ist',
+        featureGroups: [
+            {
+                icon: ShieldCheck,
+                title: 'Mehr Dialog-Slots',
+                body: 'Halten Sie mehr aktive Antworten gleichzeitig offen, statt zu früh am Basislimit zu landen.'
+            },
+            {
+                icon: Sparkles,
+                title: 'KI-Guide für Lebenskontext',
+                body: 'Hilft, Profil, unterstützenden Kontext und echte Prioritäten in der Suche zu schärfen.'
+            },
+            {
+                icon: Target,
+                title: 'Personalisierter JHI-Index',
+                body: 'Die Passung wird nach Ihren eigenen Prioritäten berechnet, nicht nur nach einem generischen Modell.'
+            },
+            {
+                icon: Brain,
+                title: 'Detaillierter JCFPM-Bericht',
+                body: 'Zeigt die vollständige Persönlichkeitsauswertung und wie sie die Systemempfehlungen verändert.'
+            }
+        ]
+    } : isPolish ? {
+        kicker: 'Premium',
+        title: 'Silniejsza warstwa do realnych decyzji zawodowych',
+        body: `Funkcja „${featureName}” jest częścią warstwy premium. Daje więcej miejsca na aktywne dialogi, trafniejsze priorytety i lepsze wsparcie przy podejmowaniu decyzji.`,
+        primary: 'Odblokuj premium',
+        later: 'Może później',
+        note: 'Premium zwiększa szansę, że z trafnej oferty powstanie prawdziwa rozmowa, a nie tylko kolejna zapisana karta.',
+        priceLabel: 'Premium dodaje',
+        whyLabel: 'Dlaczego to ma sens',
+        featureGroups: [
+            {
+                icon: ShieldCheck,
+                title: 'Więcej slotów dialogowych',
+                body: 'Możesz utrzymać więcej aktywnych odpowiedzi jednocześnie zamiast zbyt szybko dobijać do podstawowego limitu.'
+            },
+            {
+                icon: Sparkles,
+                title: 'Przewodnik AI po kontekście życiowym',
+                body: 'Pomaga dopracować profil, kontekst wspierający i to, co naprawdę powinno mieć priorytet w wyszukiwaniu.'
+            },
+            {
+                icon: Target,
+                title: 'Spersonalizowany indeks JHI',
+                body: 'Dopasowanie liczy się według Twoich priorytetów, a nie tylko według ogólnego modelu.'
+            },
+            {
+                icon: Brain,
+                title: 'Szczegółowy raport JCFPM',
+                body: 'Pokazuje pełny rozkład profilu osobowościowego i to, jak zmienia interpretację systemu.'
+            }
+        ]
     } : {
         kicker: 'Premium',
         title: 'A stronger layer for real job decisions',
@@ -62,6 +136,8 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
         primary: 'Unlock premium',
         later: 'Maybe later',
         note: 'Premium improves the chance that a relevant role becomes a real conversation instead of just another saved card.',
+        priceLabel: 'Premium adds',
+        whyLabel: 'Why it matters',
         featureGroups: [
             {
                 icon: ShieldCheck,
@@ -158,7 +234,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                                     {featureName}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-slate-600">{isCsLike ? 'Premium přidá navíc' : 'Premium adds'}</div>
+                                    <div className="text-sm font-medium text-slate-600">{copy.priceLabel}</div>
                                     <div className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
                                         {price.eurLabel}
                                         <span className="ml-2 text-base font-medium text-slate-600">{price.billingLabel}</span>
@@ -171,7 +247,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                                 <div className="rounded-[var(--radius-xl)] border border-amber-200/80 bg-white p-4">
                                     <div className="space-y-2">
                                         <div className="text-sm font-semibold text-slate-950">
-                                            {isCsLike ? 'Proč to dává smysl' : 'Why it matters'}
+                                            {copy.whyLabel}
                                         </div>
                                         <p className="text-sm leading-6 text-slate-700">
                                             {copy.note}

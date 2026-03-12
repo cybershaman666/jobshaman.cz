@@ -27,18 +27,30 @@ const WorkspaceSyncBadge: React.FC<WorkspaceSyncBadgeProps> = ({
   className = ''
 }) => {
   const { t, i18n } = useTranslation();
+  const language = (() => {
+    const normalized = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    return ['cs', 'sk', 'de', 'at', 'pl'].includes(normalized) ? (normalized === 'at' ? 'de' : normalized) : 'en';
+  })() as 'cs' | 'sk' | 'de' | 'pl' | 'en';
+  const timeLocale = language === 'cs' ? 'cs-CZ' : language === 'sk' ? 'sk-SK' : language === 'de' ? 'de-AT' : language === 'pl' ? 'pl-PL' : 'en-US';
+  const copy = ({
+    cs: { syncing: 'Synchronizuji live queue...', synced: 'Naposledy synchronizováno {{time}}', waiting: 'Čeká na první synchronizaci', refresh: 'Obnovit teď' },
+    sk: { syncing: 'Synchronizujem live queue...', synced: 'Naposledy synchronizované {{time}}', waiting: 'Čaká na prvú synchronizáciu', refresh: 'Obnoviť teraz' },
+    de: { syncing: 'Live-Queue wird synchronisiert...', synced: 'Zuletzt synchronisiert {{time}}', waiting: 'Warten auf erste Synchronisierung', refresh: 'Jetzt aktualisieren' },
+    pl: { syncing: 'Synchronizowanie live queue...', synced: 'Ostatnia synchronizacja {{time}}', waiting: 'Oczekiwanie na pierwszą synchronizację', refresh: 'Odśwież teraz' },
+    en: { syncing: 'Syncing live queue...', synced: 'Last synced {{time}}', waiting: 'Waiting for first sync', refresh: 'Refresh now' }
+  } as const)[language];
 
   const label = loading
-    ? t(loadingKey, { defaultValue: loadingDefault })
+    ? t(loadingKey, { defaultValue: loadingDefault === 'Syncing live queue...' ? copy.syncing : loadingDefault })
     : syncedAt
       ? t(syncedKey, {
-        defaultValue: syncedDefault,
-        time: new Date(syncedAt).toLocaleTimeString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US', {
+        defaultValue: syncedDefault === 'Last synced {{time}}' ? copy.synced : syncedDefault,
+        time: new Date(syncedAt).toLocaleTimeString(timeLocale, {
           hour: '2-digit',
           minute: '2-digit'
         })
       })
-      : t(waitingKey, { defaultValue: waitingDefault });
+      : t(waitingKey, { defaultValue: waitingDefault === 'Waiting for first sync' ? copy.waiting : waitingDefault });
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`.trim()}>
@@ -50,7 +62,7 @@ const WorkspaceSyncBadge: React.FC<WorkspaceSyncBadgeProps> = ({
           onClick={onRefresh}
           className="app-button-secondary rounded-full px-3 py-2 text-xs"
         >
-          {t('company.workspace.sync.refresh_now', { defaultValue: 'Refresh now' })}
+          {t('company.workspace.sync.refresh_now', { defaultValue: copy.refresh })}
         </button>
       )}
     </div>

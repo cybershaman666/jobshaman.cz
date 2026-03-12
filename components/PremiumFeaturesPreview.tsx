@@ -26,7 +26,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
   const { t, i18n } = useTranslation();
   const price = getPremiumPriceDisplay(i18n.language || 'cs');
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-  const isCsLike = locale === 'cs' || locale === 'sk';
+  const language = locale === 'at' ? 'de' : locale;
   const rawTier = String(userProfile.subscription?.tier || 'free').toLowerCase();
   const normalizedTier = rawTier !== 'premium' && rawTier.endsWith('_premium') ? 'premium' : rawTier;
   const isPremium = normalizedTier === 'premium';
@@ -34,27 +34,71 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
   // If user is not logged in or has no id, show a simpler version
   const isIncomplete = !userProfile.isLoggedIn || !userProfile.id;
 
-  const copy = isCsLike ? {
-    title: 'Odemkni premium handshake nastroje',
-    subtitle: 'Vic AI podpory pro podklady, follow-up zpravy a cistsi signal pred prvnim rozhovorem.',
-    liteFeatures: [
-      ['Drafy podpurnych podkladu', 'Pripravis si klidnejsi supporting context bez CV-first tonu.'],
-      ['AI prepis prvni odpovedi', 'Vyladis prvni reakci i navazujici zpravy do lidskeho tonu.'],
-      ['Chytre follow-upy', 'Pripomenes se bez spamu a s lepsim nacasovanim.']
-    ],
-    priceLine: 'Jednim tarifem odemknes celou premium vrstvu pro handshake workflow.',
-    whyUpgrade: 'Proc to dává smysl'
-  } : {
-    title: 'Unlock premium handshake tools',
-    subtitle: 'More AI help for supporting context, follow-up messages, and cleaner signal before the first interview.',
-    liteFeatures: [
-      ['Supporting context drafts', 'Prepare calmer supporting context without a CV-first tone.'],
-      ['AI first-reply rewrites', 'Refine your opening reply and follow-up messages in a more human tone.'],
-      ['Smarter follow-ups', 'Stay visible without spamming and with better timing.']
-    ],
-    priceLine: 'One plan unlocks the full premium layer for the handshake workflow.',
-    whyUpgrade: 'Why it is worth it'
-  };
+  const copy = (() => {
+    if (language === 'cs') {
+      return {
+        title: 'Odemkni premium handshake nástroje',
+        subtitle: 'Víc AI podpory pro podklady, follow-up zprávy a čistší signál před prvním rozhovorem.',
+        liteFeatures: [
+          ['Drafty podpůrných podkladů', 'Připravíš si klidnější supporting context bez CV-first tónu.'],
+          ['AI přepis první odpovědi', 'Vyladíš první reakci i navazující zprávy do lidštějšího tónu.'],
+          ['Chytré follow-upy', 'Připomeneš se bez spamu a s lepším načasováním.']
+        ],
+        priceLine: 'Jedním tarifem odemkneš celou premium vrstvu pro handshake workflow.',
+        whyUpgrade: 'Proč to dává smysl'
+      };
+    }
+    if (language === 'sk') {
+      return {
+        title: 'Odomkni premium handshake nástroje',
+        subtitle: 'Viac AI podpory pre podklady, follow-up správy a čistejší signál pred prvým rozhovorom.',
+        liteFeatures: [
+          ['Drafty podporných podkladov', 'Pripravíš si pokojnejší supporting context bez CV-first tónu.'],
+          ['AI prepis prvej odpovede', 'Vyladíš prvú reakciu aj nadväzujúce správy do ľudskejšieho tónu.'],
+          ['Chytré follow-upy', 'Pripomenieš sa bez spamu a s lepším načasovaním.']
+        ],
+        priceLine: 'Jedným tarifom odomkneš celú premium vrstvu pre handshake workflow.',
+        whyUpgrade: 'Prečo to dáva zmysel'
+      };
+    }
+    if (language === 'de') {
+      return {
+        title: 'Premium-Handshake-Tools freischalten',
+        subtitle: 'Mehr AI-Unterstützung für Unterlagen, Follow-up-Nachrichten und ein klareres Signal vor dem ersten Gespräch.',
+        liteFeatures: [
+          ['Entwürfe für unterstützende Unterlagen', 'Bereite ruhigeren Supporting Context ohne CV-first Ton vor.'],
+          ['AI-Umschreiben der ersten Antwort', 'Verfeinere deine erste Reaktion und Follow-ups in einem menschlicheren Ton.'],
+          ['Intelligentere Follow-ups', 'Bleib sichtbar ohne Spam und mit besserem Timing.']
+        ],
+        priceLine: 'Ein Tarif schaltet die gesamte Premium-Ebene für den Handshake-Workflow frei.',
+        whyUpgrade: 'Warum sich das lohnt'
+      };
+    }
+    if (language === 'pl') {
+      return {
+        title: 'Odblokuj narzędzia premium do handshake',
+        subtitle: 'Więcej wsparcia AI dla materiałów, follow-up wiadomości i czystszego sygnału przed pierwszą rozmową.',
+        liteFeatures: [
+          ['Drafty materiałów wspierających', 'Przygotujesz spokojniejszy supporting context bez tonu CV-first.'],
+          ['AI przepisanie pierwszej odpowiedzi', 'Dopracujesz pierwszą reakcję i kolejne wiadomości w bardziej ludzkim tonie.'],
+          ['Sprytniejsze follow-upy', 'Przypomnisz się bez spamu i z lepszym timingiem.']
+        ],
+        priceLine: 'Jeden plan odblokowuje całą warstwę premium dla handshake workflow.',
+        whyUpgrade: 'Dlaczego to ma sens'
+      };
+    }
+    return {
+      title: 'Unlock premium handshake tools',
+      subtitle: 'More AI help for supporting context, follow-up messages, and cleaner signal before the first interview.',
+      liteFeatures: [
+        ['Supporting context drafts', 'Prepare calmer supporting context without a CV-first tone.'],
+        ['AI first-reply rewrites', 'Refine your opening reply and follow-up messages in a more human tone.'],
+        ['Smarter follow-ups', 'Stay visible without spamming and with better timing.']
+      ],
+      priceLine: 'One plan unlocks the full premium layer for the handshake workflow.',
+      whyUpgrade: 'Why it is worth it'
+    };
+  })();
 
   const premiumFeatures = [
     {

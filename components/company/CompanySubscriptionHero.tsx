@@ -19,6 +19,18 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
   onManagePlan
 }) => {
   const { t, i18n } = useTranslation();
+  const language = (() => {
+    const normalized = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    return ['cs', 'sk', 'de', 'at', 'pl'].includes(normalized) ? (normalized === 'at' ? 'de' : normalized) : 'en';
+  })() as 'cs' | 'sk' | 'de' | 'pl' | 'en';
+  const dateLocale = language === 'cs' ? 'cs-CZ' : language === 'sk' ? 'sk-SK' : language === 'de' ? 'de-AT' : language === 'pl' ? 'pl-PL' : 'en-US';
+  const copy = ({
+    cs: { roleOpens: 'Otevřené role', usedThisPeriod: 'využito v tomto období', dialogueSlots: 'Dialogové sloty', occupiedNow: 'obsazeno právě teď' },
+    sk: { roleOpens: 'Otvorené roly', usedThisPeriod: 'využité v tomto období', dialogueSlots: 'Dialógové sloty', occupiedNow: 'obsadené práve teraz' },
+    de: { roleOpens: 'Geöffnete Rollen', usedThisPeriod: 'in diesem Zeitraum genutzt', dialogueSlots: 'Dialog-Slots', occupiedNow: 'aktuell belegt' },
+    pl: { roleOpens: 'Otwarte role', usedThisPeriod: 'wykorzystane w tym okresie', dialogueSlots: 'Sloty dialogowe', occupiedNow: 'zajęte teraz' },
+    en: { roleOpens: 'Open roles', usedThisPeriod: 'used this period', dialogueSlots: 'Dialogue slots', occupiedNow: 'occupied right now' }
+  } as const)[language];
   const normalizedTier = String(subscription?.tier || 'free').toLowerCase();
   const derivedRoleOpensAvailable = normalizedTier === 'enterprise'
     ? 999
@@ -59,7 +71,7 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
   const dialogueSlotsUsed = subscription?.dialogueSlotsUsed ?? companyProfile?.subscription?.usage?.activeDialogueSlotsUsed ?? 0;
   const dialogueSlotsAvailable = subscription?.dialogueSlotsAvailable ?? derivedDialogueSlotsAvailable;
   const nextPaymentLabel = subscription?.expiresAt && !isFreeLikeTier
-    ? new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')
+    ? new Date(subscription.expiresAt).toLocaleDateString(dateLocale)
     : null;
 
   return (
@@ -114,28 +126,28 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
           <div className="mb-1 flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-[var(--accent)]" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-              {t('company.subscription.role_opens', { defaultValue: 'Otevřené role' })}
+              {t('company.subscription.role_opens', { defaultValue: copy.roleOpens })}
             </span>
           </div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">
             {`${roleOpensUsed || 0} / ${(roleOpensAvailable === 999 || roleOpensAvailable === 9999) ? t('company.subscription.unlimited') : (roleOpensAvailable ?? 0)}`}
           </div>
           <div className="text-xs text-[var(--text-muted)]">
-            {t('company.subscription.used_this_period', { defaultValue: 'využito v tomto období' })}
+            {t('company.subscription.used_this_period', { defaultValue: copy.usedThisPeriod })}
           </div>
         </div>
         <div className="company-surface-subtle rounded-[var(--radius-md)] border p-2.5">
           <div className="mb-1 flex items-center gap-2">
             <Users className="h-4 w-4 text-[var(--accent)]" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-              {t('company.subscription.dialogue_slots', { defaultValue: 'Dialogové sloty' })}
+              {t('company.subscription.dialogue_slots', { defaultValue: copy.dialogueSlots })}
             </span>
           </div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">
             {`${dialogueSlotsUsed || 0} / ${(dialogueSlotsAvailable === 999 || dialogueSlotsAvailable === 9999) ? t('company.subscription.unlimited') : (dialogueSlotsAvailable ?? 0)}`}
           </div>
           <div className="text-xs text-[var(--text-muted)]">
-            {t('company.subscription.occupied_now', { defaultValue: 'obsazeno právě teď' })}
+            {t('company.subscription.occupied_now', { defaultValue: copy.occupiedNow })}
           </div>
         </div>
       </div>
