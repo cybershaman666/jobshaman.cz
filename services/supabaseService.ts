@@ -4,7 +4,7 @@ import { geocodeWithCaching, normalizeAddress } from './geocodingService';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from './profileDefaults';
 import { BACKEND_URL } from '../constants';
 export { supabase };
-import { ApplicationMessageAttachment, UserProfile, CompanyProfile, CVDocument } from '../types';
+import { ApplicationMessageAttachment, UserProfile, CompanyProfile, CVDocument, RecruiterMember } from '../types';
 import { uploadExternalAsset, uploadExternalCandidateDocument } from './externalAssetService';
 
 const SUPABASE_NETWORK_COOLDOWN_MS = 60_000;
@@ -47,6 +47,12 @@ const isLikelySupabaseNetworkError = (error: any): boolean => {
         code === '57014' ||
         status >= 500
     );
+};
+
+const isMissingColumnError = (error: any, columnName: string): boolean => {
+    const message = String(error?.message || error || '').toLowerCase();
+    const normalized = String(columnName || '').toLowerCase();
+    return Boolean(normalized) && message.includes(normalized) && message.includes('column');
 };
 
 export const isSupabaseNetworkCooldownActive = (): boolean => Date.now() < supabaseNetworkCooldownUntil;
@@ -110,6 +116,214 @@ const toSupportedCountryCode = (value?: string | null): 'CZ' | 'SK' | 'PL' | 'DE
         return normalized;
     }
     return 'CZ';
+};
+
+type CompanyTeamMemberProfileRecord = {
+    invited_email?: string;
+    company_role?: string;
+    relation_to_company?: string;
+    short_bio?: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, any> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const trimText = (value: unknown, limit = 240): string => String(value ?? '').trim().slice(0, limit);
+
+const normalizeCompanyTeamMemberProfiles = (value: unknown): Record<string, CompanyTeamMemberProfileRecord> => {
+    if (!isRecord(value)) return {};
+    return Object.entries(value).reduce<Record<string, CompanyTeamMemberProfileRecord>>((acc, [key, raw]) => {
+        if (!isRecord(raw)) return acc;
+        const normalizedKey = trimText(key, 160);
+        if (!normalizedKey) return acc;
+        acc[normalizedKey] = {
+            invited_email: trimText(raw.invited_email, 180) || undefined,
+            company_role: trimText(raw.company_role, 120) || undefined,
+            relation_to_company: trimText(raw.relation_to_company, 160) || undefined,
+            short_bio: trimText(raw.short_bio, 280) || undefined
+        };
+        return acc;
+    }, {});
+};
+
+const companyTeamMemberProfileKey = (memberId?: string | null, source: 'owner' | 'member' = 'member'): string => {
+    const normalizedId = trimText(memberId, 120);
+    if (!normalizedId) return '';
+    return `${source}:${normalizedId}`;
+};
+
+const memberProfileKeys = (member: Pick<RecruiterMember, 'id' | 'userId' | 'source'>): string[] => {
+    const keys: string[] = [];
+    const source = member.source === 'owner' ? 'owner' : 'member';
+    const primary = companyTeamMemberProfileKey(member.id, source);
+    if (primary) keys.push(primary);
+    if (member.userId) {
+        const ownerKey = companyTeamMemberProfileKey(member.userId, 'owner');
+        if (ownerKey && !keys.includes(ownerKey)) keys.push(ownerKey);
+    }
+    return keys;
+};
+
+const serializeCompanyTeamMembers = (members: RecruiterMember[] | null | undefined): Record<string, CompanyTeamMemberProfileRecord> => {
+    return (Array.isArray(members) ? members : []).reduce<Record<string, CompanyTeamMemberProfileRecord>>((acc, member) => {
+        const keys = memberProfileKeys(member);
+        if (keys.length === 0) return acc;
+        const payload: CompanyTeamMemberProfileRecord = {
+            invited_email: trimText(member.email, 180) || undefined,
+            company_role: trimText(member.companyRole, 120) || undefined,
+            relation_to_company: trimText(member.relationshipToCompany, 160) || undefined,
+            short_bio: trimText(member.teamBio, 280) || undefined
+        };
+        keys.forEach((key, index) => {
+            if (index > 0 && acc[key]) return;
+            acc[key] = payload;
+        });
+        return acc;
+    }, {});
+};
+
+const readMemberProfileMeta = (
+    teamProfiles: Record<string, CompanyTeamMemberProfileRecord>,
+    memberId?: string | null,
+    userId?: string | null,
+    source: 'owner' | 'member' = 'member'
+): CompanyTeamMemberProfileRecord => {
+    const keys = [
+        companyTeamMemberProfileKey(memberId, source),
+        userId ? companyTeamMemberProfileKey(userId, 'owner') : '',
+        memberId ? companyTeamMemberProfileKey(memberId, 'member') : '',
+    ].filter(Boolean);
+    for (const key of keys) {
+        const match = teamProfiles[key];
+        if (match) return match;
+    }
+    return {};
+};
+
+const normalizeRecruiterRole = (value: unknown): RecruiterMember['role'] => {
+    return String(value || '').toLowerCase() === 'admin' ? 'admin' : 'recruiter';
+};
+
+const buildRecruiterMember = (
+    row: Record<string, any>,
+    profile: Record<string, any> | undefined,
+    meta: CompanyTeamMemberProfileRecord,
+    source: 'owner' | 'member'
+): RecruiterMember => {
+    const hasLinkedProfile = Boolean(row.user_id && profile);
+    const email = trimText(profile?.email || meta.invited_email, 180);
+    const name = trimText(profile?.full_name || email || (source === 'owner' ? 'Company owner' : 'Team member'), 120);
+    return {
+        id: trimText(row.id, 120) || trimText(row.user_id, 120) || `${source}-${Math.random().toString(36).slice(2, 8)}`,
+        userId: trimText(row.user_id, 120) || null,
+        name,
+        email,
+        role: normalizeRecruiterRole(row.role || (source === 'owner' ? 'admin' : 'recruiter')),
+        avatar: trimText(profile?.avatar_url, 500) || null,
+        joinedAt: trimText(row.invited_at || row.created_at || new Date().toISOString(), 80) || new Date().toISOString(),
+        companyRole: trimText(meta.company_role, 120) || '',
+        relationshipToCompany: trimText(meta.relation_to_company, 160) || '',
+        teamBio: trimText(meta.short_bio, 280) || '',
+        linkedProfile: hasLinkedProfile,
+        status: row.user_id ? 'active' : 'invited',
+        source
+    };
+};
+
+const fetchProfilesMap = async (userIds: string[]): Promise<Map<string, Record<string, any>>> => {
+    const unique = Array.from(new Set(userIds.map((id) => trimText(id, 120)).filter(Boolean)));
+    if (!supabase || unique.length === 0) return new Map();
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id,full_name,email,avatar_url')
+        .in('id', unique);
+    if (error || !Array.isArray(data)) {
+        if (error) {
+            console.warn('Company team profile fetch error:', error);
+        }
+        return new Map();
+    }
+    return new Map(data.map((row: any) => [String(row.id), row]));
+};
+
+const fetchCompanyMemberRows = async (companyId: string): Promise<Record<string, any>[]> => {
+    if (!supabase || !companyId) return [];
+    try {
+        const { data, error } = await supabase
+            .from('company_members')
+            .select('id,user_id,role,invited_at,created_at,is_active')
+            .eq('company_id', companyId)
+            .order('invited_at', { ascending: true });
+        if (error) {
+            const missingIsActive = String(error?.message || '').toLowerCase().includes('is_active');
+            if (!missingIsActive) {
+                console.warn('Company members fetch error:', error);
+                return [];
+            }
+            const fallback = await supabase
+                .from('company_members')
+                .select('id,user_id,role,invited_at,created_at')
+                .eq('company_id', companyId)
+                .order('invited_at', { ascending: true });
+            if (fallback.error) {
+                console.warn('Company members fallback fetch error:', fallback.error);
+                return [];
+            }
+            return Array.isArray(fallback.data) ? fallback.data : [];
+        }
+        return Array.isArray(data) ? data.filter((row: any) => row?.is_active !== false) : [];
+    } catch (error) {
+        console.warn('Company members fetch failed:', error);
+        return [];
+    }
+};
+
+const hydrateCompanyMembers = async (company: Record<string, any>): Promise<RecruiterMember[]> => {
+    const companyId = trimText(company?.id, 120);
+    if (!companyId) return [];
+
+    const teamProfiles = normalizeCompanyTeamMemberProfiles(company?.team_member_profiles);
+    const ownerId = trimText(company?.owner_id || company?.created_by, 120) || null;
+    const memberRows = await fetchCompanyMemberRows(companyId);
+    const linkedIds = memberRows.map((row) => trimText(row.user_id, 120)).filter(Boolean);
+    if (ownerId && !linkedIds.includes(ownerId)) {
+        linkedIds.push(ownerId);
+    }
+    const profilesById = await fetchProfilesMap(linkedIds);
+    const members: RecruiterMember[] = [];
+    const seenUserIds = new Set<string>();
+
+    for (const row of memberRows) {
+        const userId = trimText(row.user_id, 120) || null;
+        const source: 'owner' | 'member' = ownerId && userId && userId === ownerId ? 'owner' : 'member';
+        const meta = readMemberProfileMeta(teamProfiles, trimText(row.id, 120), userId, source);
+        const member = buildRecruiterMember(row, userId ? profilesById.get(userId) : undefined, meta, source);
+        if (member.userId) {
+            seenUserIds.add(member.userId);
+        }
+        members.push(member);
+    }
+
+    if (ownerId && !seenUserIds.has(ownerId)) {
+        const ownerMeta = readMemberProfileMeta(teamProfiles, ownerId, ownerId, 'owner');
+        members.unshift(buildRecruiterMember({
+            id: ownerId,
+            user_id: ownerId,
+            role: 'admin',
+            invited_at: company?.created_at,
+            created_at: company?.created_at
+        }, profilesById.get(ownerId), ownerMeta, 'owner'));
+    }
+
+    return members
+        .sort((a, b) => {
+            if (a.source === 'owner' && b.source !== 'owner') return -1;
+            if (b.source === 'owner' && a.source !== 'owner') return 1;
+            if (a.role === 'admin' && b.role !== 'admin') return -1;
+            if (b.role === 'admin' && a.role !== 'admin') return 1;
+            if (a.status === 'active' && b.status !== 'active') return -1;
+            if (b.status === 'active' && a.status !== 'active') return 1;
+            return a.name.localeCompare(b.name);
+        });
 };
 
 /**
@@ -715,9 +929,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     if (!supabase) return null;
     if (isSupabaseNetworkCooldownActive()) return null;
 
-    const { data, error } = await supabase
-        .from('companies')
-        .select(`
+    const baseSelection = `
             id,
             name,
             ico,
@@ -741,9 +953,27 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             created_by,
             subscription_tier,
             usage_stats
-        `)
+        `;
+    let data: any = null;
+    let error: any = null;
+
+    const primary = await supabase
+        .from('companies')
+        .select(`${baseSelection}, team_member_profiles`)
         .eq('id', userId)
         .single();
+    data = primary.data;
+    error = primary.error;
+
+    if (error && isMissingColumnError(error, 'team_member_profiles')) {
+        const fallback = await supabase
+            .from('companies')
+            .select(baseSelection)
+            .eq('id', userId)
+            .single();
+        data = fallback.data;
+        error = fallback.error;
+    }
 
     if (error) {
         noteSupabaseNetworkFailure('getCompanyProfile', error);
@@ -752,9 +982,11 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
         return null;
     }
 
-    // Map to CompanyProfile with subscription object
+    const members = await hydrateCompanyMembers(data);
+
     return {
         ...data,
+        members,
         subscription: {
             tier: data.subscription_tier || 'starter',
             expiresAt: undefined, // Not stored in companies table
@@ -859,8 +1091,10 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
             }
         } : null;
 
+        const members = await hydrateCompanyMembers(company);
         return {
             ...company,
+            members,
             subscription
         };
     };
@@ -1586,20 +1820,22 @@ export const createCVDocument = async (documentData: any): Promise<string> => {
 
 
 // Missing functions from imports
-export const inviteRecruiter = async (companyId: string, email: string, invitedBy: string): Promise<boolean> => {
-    if (!supabase) return false;
+export const inviteRecruiter = async (companyId: string, email: string, invitedBy: string): Promise<RecruiterMember | null> => {
+    if (!supabase) return null;
 
     try {
-        // Check if user already exists
+        const normalizedEmail = trimText(email, 180).toLowerCase();
+        if (!normalizedEmail) return null;
+
         const { data: existingUser } = await supabase
             .from('profiles')
-            .select('id')
-            .eq('email', email)
-            .single();
+            .select('id,full_name,email,avatar_url')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
 
         const userId = existingUser?.id;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('company_members')
             .insert({
                 company_id: companyId,
@@ -1607,17 +1843,30 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
                 role: 'recruiter',
                 invited_by: invitedBy,
                 invited_at: new Date().toISOString()
-            });
-
+            })
+            .select('id,user_id,role,invited_at,created_at')
+            .single();
+            
         if (error) {
             console.error('Failed to invite recruiter:', error);
-            return false;
+            return null;
         }
 
-        return true;
+        const insertedRow = Array.isArray(data) ? data[0] : null;
+        if (!insertedRow) {
+            const fallbackMemberId = `pending-${Date.now()}`;
+            return buildRecruiterMember({
+                id: fallbackMemberId,
+                user_id: userId || null,
+                role: 'recruiter',
+                invited_at: new Date().toISOString()
+            }, existingUser || undefined, { invited_email: normalizedEmail }, 'member');
+        }
+
+        return buildRecruiterMember(insertedRow, existingUser || undefined, { invited_email: normalizedEmail }, 'member');
     } catch (error) {
         console.error('Invite recruiter error:', error);
-        return false;
+        return null;
     }
 };
 
@@ -1670,8 +1919,16 @@ export const uploadCompanyLogo = async (companyId: string, file: File): Promise<
 export const updateCompanyProfile = async (companyId: string, updates: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error("Supabase not configured");
 
-    const { members, subscription, subscriptions, ...rest } = updates as any;
+    const { members, subscription, subscriptions, team_member_profiles, ...rest } = updates as any;
     const payload: any = { ...rest };
+    const nextTeamProfiles = team_member_profiles
+        ? normalizeCompanyTeamMemberProfiles(team_member_profiles)
+        : Array.isArray(members)
+            ? serializeCompanyTeamMembers(members)
+            : undefined;
+    if (nextTeamProfiles !== undefined) {
+        payload.team_member_profiles = nextTeamProfiles;
+    }
 
     if (payload.address !== undefined) {
         const trimmed = typeof payload.address === 'string' ? payload.address.trim() : '';
@@ -1690,19 +1947,107 @@ export const updateCompanyProfile = async (companyId: string, updates: Partial<R
             }
         }
     }
-    const { data, error } = await supabase
-        .from('companies')
-        .update(payload)
-        .eq('id', companyId)
-        .select('*')
-        .single();
+    let data: any = null;
+    let error: any = null;
+
+    if (Object.keys(payload).length > 0) {
+        let response = await supabase
+            .from('companies')
+            .update(payload)
+            .eq('id', companyId)
+            .select('*')
+            .single();
+        if (response.error && payload.team_member_profiles !== undefined && isMissingColumnError(response.error, 'team_member_profiles')) {
+            const { team_member_profiles: _ignored, ...fallbackPayload } = payload;
+            if (Object.keys(fallbackPayload).length === 0) {
+                response = await supabase
+                    .from('companies')
+                    .select('*')
+                    .eq('id', companyId)
+                    .single();
+            } else {
+                response = await supabase
+                    .from('companies')
+                    .update(fallbackPayload)
+                    .eq('id', companyId)
+                    .select('*')
+                    .single();
+            }
+        }
+        data = response.data;
+        error = response.error;
+    } else {
+        const response = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', companyId)
+            .single();
+        data = response.data;
+        error = response.error;
+    }
 
     if (error) {
         console.error('Failed to update company profile:', error);
         throw error;
     }
 
-    return data;
+    const resolvedCompany = {
+        ...data,
+        team_member_profiles: nextTeamProfiles ?? data?.team_member_profiles ?? null
+    };
+    const hydratedMembers = Array.isArray(members) ? members : await hydrateCompanyMembers(resolvedCompany);
+
+    return {
+        ...resolvedCompany,
+        members: hydratedMembers,
+        subscription: {
+            tier: resolvedCompany.subscription_tier || subscription?.tier || 'starter',
+            expiresAt: undefined,
+            usage: resolvedCompany.usage_stats ? {
+                activeJobsCount: resolvedCompany.usage_stats.activeJobsCount || resolvedCompany.usage_stats.roleOpensUsed || 0,
+                activeDialogueSlotsUsed: resolvedCompany.usage_stats.activeDialogueSlotsUsed || 0,
+                roleOpensUsed: resolvedCompany.usage_stats.roleOpensUsed || 0,
+                aiAssessmentsUsed: resolvedCompany.usage_stats.aiAssessmentsUsed || 0,
+                adOptimizationsUsed: resolvedCompany.usage_stats.adOptimizationsUsed || 0
+            } : undefined
+        }
+    } as CompanyProfile;
+};
+
+export const removeRecruiterMember = async (companyId: string, member: RecruiterMember): Promise<boolean> => {
+    if (!supabase || !companyId || !member?.id || member.source === 'owner') return false;
+
+    try {
+        const response = await supabase
+            .from('company_members')
+            .update({ is_active: false })
+            .eq('company_id', companyId)
+            .eq('id', member.id)
+            .select('id')
+            .maybeSingle();
+
+        if (response.error) {
+            const missingIsActive = String(response.error?.message || '').toLowerCase().includes('is_active');
+            if (!missingIsActive) {
+                console.error('Failed to deactivate recruiter member:', response.error);
+                return false;
+            }
+            const fallback = await supabase
+                .from('company_members')
+                .delete()
+                .eq('company_id', companyId)
+                .eq('id', member.id);
+            if (fallback.error) {
+                console.error('Failed to remove recruiter member:', fallback.error);
+                return false;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Remove recruiter member error:', error);
+        return false;
+    }
 };
 
 export const getCompanyLogoUrl = async (companyId: string): Promise<string | null> => {

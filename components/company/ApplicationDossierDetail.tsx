@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DialogueDossier } from '../../types';
+import { CompanyDialogueSolutionSnapshotState, DialogueDossier, SolutionSnapshotUpsertPayload } from '../../types';
 import {
+    fetchCompanyDialogueSolutionSnapshotState,
     fetchCompanyDialogueMessages,
+    saveCompanyDialogueSolutionSnapshot,
     sendCompanyDialogueMessage
 } from '../../services/jobApplicationService';
 import ApplicationMessageCenter from '../ApplicationMessageCenter';
 import AssessmentResultsList from '../AssessmentResultsList';
 import SectionHeader from './SectionHeader';
+import SolutionSnapshotModal from './SolutionSnapshotModal';
+
+const getAvatarInitials = (value: string): string => {
+    const parts = String(value || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+    if (!parts.length) return 'JS';
+    return parts.map((part) => part[0]?.toUpperCase() || '').join('');
+};
 
 interface ApplicationDossierDetailProps {
     dossier: DialogueDossier;
@@ -34,6 +43,96 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
     const dialogue = dialogueProp || dossier;
     const handleCreateAssessment = onCreateAssessmentFromDialogue || onCreateAssessmentFromApplication;
     const handleInviteCandidate = onInviteCandidateFromDialogue || onInviteCandidateFromApplication;
+    const [solutionSnapshotState, setSolutionSnapshotState] = useState<CompanyDialogueSolutionSnapshotState | null>(null);
+    const [solutionSnapshotLoading, setSolutionSnapshotLoading] = useState(false);
+    const [solutionSnapshotSaving, setSolutionSnapshotSaving] = useState(false);
+    const [solutionSnapshotModalOpen, setSolutionSnapshotModalOpen] = useState(false);
+    const [solutionSnapshotError, setSolutionSnapshotError] = useState<string | null>(null);
+    const lastDialogueIdRef = useRef<string>('');
+    const lastStatusRef = useRef<string>('');
+    const autoPromptPendingRef = useRef(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadSolutionSnapshot = async () => {
+            if (!dialogue?.id) return;
+            setSolutionSnapshotLoading(true);
+            setSolutionSnapshotError(null);
+            try {
+                const state = await fetchCompanyDialogueSolutionSnapshotState(dialogue.id);
+                if (!cancelled) {
+                    setSolutionSnapshotState(state);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setSolutionSnapshotError(error instanceof Error ? error.message : null);
+                    setSolutionSnapshotState(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setSolutionSnapshotLoading(false);
+                }
+            }
+        };
+        void loadSolutionSnapshot();
+        return () => {
+            cancelled = true;
+        };
+    }, [dialogue?.id, dialogue?.status]);
+
+    useEffect(() => {
+        const currentId = String(dialogue?.id || '');
+        const currentStatus = String(dialogue?.status || 'pending');
+        if (lastDialogueIdRef.current !== currentId) {
+            lastDialogueIdRef.current = currentId;
+            lastStatusRef.current = currentStatus;
+            autoPromptPendingRef.current = false;
+            return;
+        }
+        if (lastStatusRef.current !== currentStatus && lastStatusRef.current !== 'hired' && currentStatus === 'hired') {
+            autoPromptPendingRef.current = true;
+        }
+        lastStatusRef.current = currentStatus;
+    }, [dialogue?.id, dialogue?.status]);
+
+    useEffect(() => {
+        if (
+            autoPromptPendingRef.current
+            && solutionSnapshotState?.eligible
+            && !solutionSnapshotState.snapshot
+        ) {
+            setSolutionSnapshotModalOpen(true);
+            autoPromptPendingRef.current = false;
+        }
+        if (solutionSnapshotState?.snapshot) {
+            autoPromptPendingRef.current = false;
+        }
+    }, [solutionSnapshotState?.eligible, solutionSnapshotState?.snapshot, dialogue?.id]);
+
+    const handleSaveSolutionSnapshot = async (payload: SolutionSnapshotUpsertPayload) => {
+        if (!dialogue?.id) return;
+        setSolutionSnapshotSaving(true);
+        setSolutionSnapshotError(null);
+        try {
+            const snapshot = await saveCompanyDialogueSolutionSnapshot(dialogue.id, payload);
+            setSolutionSnapshotState({
+                eligible: true,
+                reason: null,
+                snapshot,
+            });
+            setSolutionSnapshotModalOpen(false);
+        } catch (error) {
+            setSolutionSnapshotError(
+                error instanceof Error
+                    ? error.message
+                    : t('company.solution_snapshot.save_failed', {
+                        defaultValue: 'Failed to save the solution snapshot.'
+                    })
+            );
+        } finally {
+            setSolutionSnapshotSaving(false);
+        }
+    };
     if (!dialogue) return null;
 
     const getReadableStatus = (status: DialogueDossier['status']) => {
@@ -137,8 +236,16 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
 
     const timingMeta = getTimingMeta();
     const closeReasonMeta = getClosedReasonMeta();
+    const solutionSnapshot = solutionSnapshotState?.snapshot || null;
+    const shouldRenderSolutionSnapshotCard =
+        solutionSnapshotLoading
+        || Boolean(solutionSnapshot)
+        || Boolean(solutionSnapshotState?.eligible)
+        || solutionSnapshotState?.reason === 'awaiting_completion'
+        || Boolean(solutionSnapshotError);
 
     return (
+        <>
         <div className="space-y-4">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 bg-slate-50/80 dark:bg-slate-950/30">
@@ -191,11 +298,26 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-[22px] border border-slate-200/80 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-950/20 shadow-[0_16px_32px_-28px_rgba(15,23,42,0.38)]">
                     <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">{t('company.applications.detail.candidate', { defaultValue: 'Candidate' })}</div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {dossier.candidate_profile_snapshot?.name || dossier.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">
-                        {dossier.candidate_profile_snapshot?.email || dossier.candidate_email || t('company.applications.detail.no_email', { defaultValue: 'No email' })}
+                    <div className="flex items-start gap-3">
+                        {dossier.candidate_profile_snapshot?.avatar_url || dossier.candidateAvatarUrl || dossier.candidate_avatar_url ? (
+                            <img
+                                src={dossier.candidate_profile_snapshot?.avatar_url || dossier.candidateAvatarUrl || dossier.candidate_avatar_url}
+                                alt={dossier.candidate_profile_snapshot?.name || dossier.candidate_name || 'Candidate'}
+                                className="h-14 w-14 shrink-0 rounded-[1.1rem] object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] bg-slate-100 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                {getAvatarInitials(dossier.candidate_profile_snapshot?.name || dossier.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }))}
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {dossier.candidate_profile_snapshot?.name || dossier.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
+                            </div>
+                            <div className="text-sm text-slate-600 dark:text-slate-300">
+                                {dossier.candidate_profile_snapshot?.email || dossier.candidate_email || t('company.applications.detail.no_email', { defaultValue: 'No email' })}
+                            </div>
+                        </div>
                     </div>
                     {dossier.candidate_profile_snapshot?.phone && (
                         <div className="text-sm text-slate-600 dark:text-slate-300">
@@ -277,6 +399,126 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                     </div>
                 </div>
             </div>
+
+            {shouldRenderSolutionSnapshotCard ? (
+                <div className="rounded-[22px] border border-emerald-200/80 bg-emerald-50/70 p-4 shadow-[0_16px_32px_-28px_rgba(5,150,105,0.35)] dark:border-emerald-900/30 dark:bg-emerald-950/20">
+                    <SectionHeader
+                        title={t('company.solution_snapshot.title', { defaultValue: 'Solution snapshot' })}
+                        subtitle={
+                            solutionSnapshot
+                                ? t('company.solution_snapshot.subtitle_existing', {
+                                    defaultValue: 'A compact collaboration artifact the candidate can later surface on their profile.'
+                                })
+                                : solutionSnapshotState?.reason === 'awaiting_completion'
+                                    ? t('company.solution_snapshot.subtitle_locked', {
+                                        defaultValue: 'This unlocks after the micro job is marked as hired.'
+                                    })
+                                    : t('company.solution_snapshot.subtitle_empty', {
+                                        defaultValue: 'Once the micro job is complete, capture the concrete story of the solution here.'
+                                    })
+                        }
+                        aside={
+                            solutionSnapshotState?.eligible ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setSolutionSnapshotModalOpen(true)}
+                                    className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-800 dark:bg-slate-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                                >
+                                    {solutionSnapshot
+                                        ? t('company.solution_snapshot.edit', { defaultValue: 'Edit' })
+                                        : t('company.solution_snapshot.create', { defaultValue: 'Create snapshot' })}
+                                </button>
+                            ) : null
+                        }
+                        className="mb-3"
+                    />
+
+                    {solutionSnapshotError ? (
+                        <div className="mb-3 rounded-[0.95rem] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+                            {solutionSnapshotError}
+                        </div>
+                    ) : null}
+
+                    {solutionSnapshotLoading ? (
+                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                            {t('common.loading', { defaultValue: 'Loading...' })}
+                        </div>
+                    ) : solutionSnapshot ? (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                                <div className="rounded-[1rem] border border-white/70 bg-white/90 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                        {t('company.solution_snapshot.problem', { defaultValue: 'Problem' })}
+                                    </div>
+                                    <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                        {solutionSnapshot.problem}
+                                    </div>
+                                </div>
+                                <div className="rounded-[1rem] border border-white/70 bg-white/90 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                        {t('company.solution_snapshot.solution', { defaultValue: 'Solution' })}
+                                    </div>
+                                    <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                        {solutionSnapshot.solution}
+                                    </div>
+                                </div>
+                                <div className="rounded-[1rem] border border-white/70 bg-white/90 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                        {t('company.solution_snapshot.result', { defaultValue: 'Result' })}
+                                    </div>
+                                    <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                        {solutionSnapshot.result}
+                                    </div>
+                                </div>
+                            </div>
+                            {(solutionSnapshot.problem_tags.length || solutionSnapshot.solution_tags.length) ? (
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    {solutionSnapshot.problem_tags.length ? (
+                                        <div>
+                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                                {t('company.solution_snapshot.problem_tags', { defaultValue: 'Problem tags' })}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {solutionSnapshot.problem_tags.map((tag) => (
+                                                    <span key={`problem-${tag}`} className="rounded-full bg-white px-2.5 py-1 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    {solutionSnapshot.solution_tags.length ? (
+                                        <div>
+                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                                {t('company.solution_snapshot.solution_tags', { defaultValue: 'Solution tags' })}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {solutionSnapshot.solution_tags.map((tag) => (
+                                                    <span key={`solution-${tag}`} className="rounded-full bg-white px-2.5 py-1 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : solutionSnapshotState?.reason === 'awaiting_completion' ? (
+                        <div className="rounded-[1rem] border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-emerald-900/30 dark:bg-slate-950/30 dark:text-slate-300">
+                            {t('company.solution_snapshot.locked_hint', {
+                                defaultValue: 'Once you mark the collaboration as hired, you can create a short solution snapshot for the candidate profile.'
+                            })}
+                        </div>
+                    ) : (
+                        <div className="rounded-[1rem] border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-emerald-900/30 dark:bg-slate-950/30 dark:text-slate-300">
+                            {t('company.solution_snapshot.empty_hint', {
+                                defaultValue: 'Capture the concrete solution story here so the micro job becomes a shareable proof of work.'
+                            })}
+                        </div>
+                    )}
+                </div>
+            ) : null}
 
             {dossier.shared_jcfpm_payload ? (
                 <div className="rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 space-y-3 shadow-[var(--shadow-soft)]">
@@ -396,6 +638,17 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 sendMessage={sendCompanyDialogueMessage}
             />
         </div>
+        <SolutionSnapshotModal
+            open={solutionSnapshotModalOpen}
+            locale={locale}
+            jobTitle={dialogue.job_title || null}
+            candidateName={dialogue.candidate_profile_snapshot?.name || dialogue.candidate_name || null}
+            initialValue={solutionSnapshot}
+            saving={solutionSnapshotSaving}
+            onClose={() => setSolutionSnapshotModalOpen(false)}
+            onSave={handleSaveSolutionSnapshot}
+        />
+        </>
     );
 };
 

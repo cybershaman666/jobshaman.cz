@@ -65,6 +65,7 @@ type AppSceneRouterProps = {
     enableAutoLanguageGuard: boolean;
     implicitLanguageCodesApplied: string[];
     discoveryLane: 'challenges' | 'imports';
+    discoveryMode: 'all' | 'micro_jobs';
     candidateActivationState: any;
     activationNextStep: string;
     applyInteractionState: (jobId: string, state: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
@@ -153,6 +154,7 @@ export default function AppSceneRouter({
     enableAutoLanguageGuard,
     implicitLanguageCodesApplied,
     discoveryLane,
+    discoveryMode,
     candidateActivationState,
     activationNextStep,
     applyInteractionState,
@@ -489,6 +491,7 @@ export default function AppSceneRouter({
                                 savedJobIds={savedJobIds}
                                 userProfile={userProfile}
                                 lane={discoveryLane}
+                                microJobsOnly={discoveryMode === 'micro_jobs'}
                                 setLane={onSetDiscoveryLane}
                                 loading={isLoadingJobs}
                                 loadingMore={loadingMore}

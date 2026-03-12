@@ -123,6 +123,7 @@ export default function App() {
         return null;
     });
     const [discoveryLane, setDiscoveryLane] = useState<'challenges' | 'imports'>('challenges');
+    const [discoveryMode, setDiscoveryMode] = useState<'all' | 'micro_jobs'>('all');
     const [discoverySearchMode, setDiscoverySearchMode] = useState(false);
     const [challengeRemoteOnly, setChallengeRemoteOnly] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
@@ -183,6 +184,11 @@ export default function App() {
             setDiscoverySearchMode(false);
         }
     }, [isBlogOpen, selectedCompanyId, showCompanyLanding, viewState]);
+    useEffect(() => {
+        if (discoveryMode === 'micro_jobs' && discoveryLane !== 'challenges') {
+            setDiscoveryLane('challenges');
+        }
+    }, [discoveryLane, discoveryMode]);
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
@@ -537,7 +543,11 @@ export default function App() {
         pageSize,
         applyInteractionState,
         applyDiscoveryDefaults
-    } = usePaginatedJobs({ userProfile: effectiveUserProfile, enabled: !isAdminRoute });
+    } = usePaginatedJobs({
+        userProfile: effectiveUserProfile,
+        enabled: !isAdminRoute,
+        microJobsOnly: discoveryMode === 'micro_jobs'
+    });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
     useEffect(() => {
         if (viewState === ViewState.SAVED) {
@@ -594,8 +604,12 @@ export default function App() {
         });
         jhiCacheRef.current = nextCache;
 
+        const scopedJobs = discoveryMode === 'micro_jobs'
+            ? personalized.filter((job) => job.challenge_format === 'micro_job')
+            : personalized;
+
         if (sortBy === 'distance') {
-            return [...personalized].sort((a, b) => {
+            return [...scopedJobs].sort((a, b) => {
                 const da = (a as any)?.distanceKm ?? (a as any)?.distance_km ?? Number.POSITIVE_INFINITY;
                 const db = (b as any)?.distanceKm ?? (b as any)?.distance_km ?? Number.POSITIVE_INFINITY;
                 return da - db;
@@ -617,10 +631,10 @@ export default function App() {
                 if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
                 return salary;
             };
-            return [...personalized].sort((a, b) => toMonthly(b) - toMonthly(a));
+            return [...scopedJobs].sort((a, b) => toMonthly(b) - toMonthly(a));
         }
-        return personalized;
-    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey]);
+        return scopedJobs;
+    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey, discoveryMode]);
 
     const savedJobsCacheKey = useMemo(
         () => `${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`,
@@ -1759,6 +1773,8 @@ export default function App() {
                     onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
                     discoveryLane={discoveryLane}
                     setDiscoveryLane={setDiscoveryLane}
+                    discoveryMode={discoveryMode}
+                    setDiscoveryMode={setDiscoveryMode}
                     discoverySearchMode={discoverySearchMode}
                     onOpenInsights={handleInsightsOpen}
                     setDiscoverySearchMode={setDiscoverySearchMode}
@@ -1872,6 +1888,7 @@ export default function App() {
                             enableAutoLanguageGuard={enableAutoLanguageGuard}
                             implicitLanguageCodesApplied={implicitLanguageCodesApplied}
                             discoveryLane={discoveryLane}
+                            discoveryMode={discoveryMode}
                             candidateActivationState={candidateActivationState}
                             activationNextStep={activationNextStep}
                             applyInteractionState={applyInteractionState}

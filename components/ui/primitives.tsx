@@ -79,9 +79,10 @@ export const FilterChip: React.FC<{
 export const MetricTile: React.FC<{
   label: string;
   value: React.ReactNode;
+  helper?: React.ReactNode;
   tone?: 'default' | 'accent' | 'success' | 'warning';
   className?: string;
-}> = ({ label, value, tone = 'default', className }) => (
+}> = ({ label, value, helper, tone = 'default', className }) => (
   <div
     className={cn(
       'min-w-0 rounded-[var(--radius-lg)] border px-4 py-4',
@@ -94,6 +95,9 @@ export const MetricTile: React.FC<{
   >
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{label}</div>
     <div className="mt-2 break-words text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)] sm:text-lg">{value}</div>
+    {helper ? (
+      <div className="mt-1.5 text-xs leading-5 text-[var(--text-faint)]">{helper}</div>
+    ) : null}
   </div>
 );
 

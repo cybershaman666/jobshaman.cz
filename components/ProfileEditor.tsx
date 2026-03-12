@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
+import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1, SolutionSnapshot } from '../types';
 import {
   User,
   Upload,
@@ -56,6 +56,7 @@ import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
 import JcfpmReportPanel from './jcfpm/JcfpmReportPanel';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
+import { fetchMySolutionSnapshots } from '../services/jobApplicationService';
 
 import { useTranslation } from 'react-i18next';
 
@@ -607,6 +608,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('personal');
   const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
   const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
+  const [solutionSnapshots, setSolutionSnapshots] = useState<SolutionSnapshot[]>([]);
+  const [solutionSnapshotsLoading, setSolutionSnapshotsLoading] = useState(false);
   const [showAIGuide, setShowAIGuide] = useState(false);
   const [showIntentNudge, setShowIntentNudge] = useState(false);
   const [editableCvAiText, setEditableCvAiText] = useState(profile.cvAiText || '');
@@ -866,7 +869,46 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     };
   }, [activeTab, savedJobs, savedJobIds]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (activeTab !== 'personal') return;
+
+    (async () => {
+      setSolutionSnapshotsLoading(true);
+      try {
+        const rows = await fetchMySolutionSnapshots(12);
+        if (!cancelled) {
+          setSolutionSnapshots(rows);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Failed to hydrate solution snapshots in profile:', error);
+          setSolutionSnapshots([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSolutionSnapshotsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, profile.id]);
+
   const displaySavedJobs = savedJobs.length > 0 ? savedJobs : savedJobsFallback;
+  const showSolvedProblemsSection = solutionSnapshotsLoading || solutionSnapshots.length > 0;
+  const profileDateLocale =
+    localeBase === 'cs'
+      ? 'cs-CZ'
+      : localeBase === 'sk'
+        ? 'sk-SK'
+        : localeBase === 'de' || localeBase === 'at'
+          ? 'de-AT'
+          : localeBase === 'pl'
+            ? 'pl-PL'
+            : 'en-US';
   const profileTabs: Array<{
     key: ProfileTabKey;
     icon: React.ComponentType<{ className?: string }>;
@@ -4366,6 +4408,145 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {isPersonalTab && showSolvedProblemsSection && (
+              <div className={`${profileSurfaceClass} mt-8`}>
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className={profileAccentIconShellClass}>
+                      <Sparkles className={profileAccentIconClass} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                        {t('profile.solved_problems.title', {
+                          defaultValue: getProfileLocaleLabel({
+                            cs: 'Vyřešené situace',
+                            sk: 'Vyriešené situácie',
+                            de: 'Gelöste Probleme',
+                            at: 'Gelöste Probleme',
+                            pl: 'Rozwiązane problemy',
+                            en: 'Solved problems'
+                          }, profileLocale)
+                        })}
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {t('profile.solved_problems.subtitle', {
+                          defaultValue: getProfileLocaleLabel({
+                            cs: 'Krátké outcome artefakty z dokončených micro jobů. Ne CV, ale konkrétní historie vyřešených situací.',
+                            sk: 'Krátke outcome artefakty z dokončených micro jobov. Nie CV, ale konkrétna história vyriešených situácií.',
+                            de: 'Kurze Outcome-Artefakte aus abgeschlossenen Micro Jobs. Kein CV, sondern eine konkrete Geschichte gelöster Situationen.',
+                            at: 'Kurze Outcome-Artefakte aus abgeschlossenen Micro Jobs. Kein CV, sondern eine konkrete Geschichte gelöster Situationen.',
+                            pl: 'Krótkie artefakty outcome z zakończonych micro jobów. Nie CV, ale konkretna historia rozwiązanych sytuacji.',
+                            en: 'Short outcome artifacts from completed micro jobs. Not a CV, but a concrete history of solved situations.'
+                          }, profileLocale)
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  {solutionSnapshotsLoading ? (
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      {t('common.loading', { defaultValue: getProfileLocaleLabel({ cs: 'Načítám...', sk: 'Načítavam...', de: 'Lädt...', at: 'Lädt...', pl: 'Ładowanie...', en: 'Loading...' }, profileLocale) })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {solutionSnapshots.map((snapshot) => (
+                        <div
+                          key={snapshot.id}
+                          className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)]"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--text-strong)]">
+                                {snapshot.job_title || snapshot.company_name || t('company.dashboard.table.position', { defaultValue: 'Role' })}
+                              </div>
+                              <div className="mt-1 text-xs text-[var(--text-faint)]">
+                                {[snapshot.company_name, snapshot.created_at ? new Date(snapshot.created_at).toLocaleDateString(profileDateLocale) : null]
+                                  .filter(Boolean)
+                                  .join(' • ')}
+                              </div>
+                            </div>
+                            <span className={profileAccentBadgeClass}>
+                              {t('profile.solved_problems.badge', {
+                                defaultValue: getProfileLocaleLabel({
+                                  cs: 'Outcome z micro jobu',
+                                  sk: 'Outcome z micro jobu',
+                                  de: 'Micro Job Outcome',
+                                  at: 'Micro Job Outcome',
+                                  pl: 'Outcome micro jobu',
+                                  en: 'Micro job outcome'
+                                }, profileLocale)
+                              })}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                                {t('profile.solved_problems.problem', {
+                                  defaultValue: getProfileLocaleLabel({
+                                    cs: 'Problém',
+                                    sk: 'Problém',
+                                    de: 'Problem',
+                                    at: 'Problem',
+                                    pl: 'Problem',
+                                    en: 'Problem'
+                                  }, profileLocale)
+                                })}
+                              </div>
+                              <div className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                                {snapshot.problem}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                                {t('profile.solved_problems.solution', {
+                                  defaultValue: getProfileLocaleLabel({
+                                    cs: 'Řešení',
+                                    sk: 'Riešenie',
+                                    de: 'Lösung',
+                                    at: 'Lösung',
+                                    pl: 'Rozwiązanie',
+                                    en: 'Solution'
+                                  }, profileLocale)
+                                })}
+                              </div>
+                              <div className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                                {snapshot.solution}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                                {t('profile.solved_problems.result', { defaultValue: getProfileLocaleLabel({ cs: 'Výsledek', sk: 'Výsledok', de: 'Resultat', at: 'Resultat', pl: 'Rezultat', en: 'Result' }, profileLocale) })}
+                              </div>
+                              <div className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                                {snapshot.result}
+                              </div>
+                            </div>
+                            {(snapshot.problem_tags.length > 0 || snapshot.solution_tags.length > 0) ? (
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {snapshot.problem_tags.map((tag) => (
+                                  <span key={`${snapshot.id}-problem-${tag}`} className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
+                                    {tag}
+                                  </span>
+                                ))}
+                                {snapshot.solution_tags.map((tag) => (
+                                  <span key={`${snapshot.id}-solution-${tag}`} className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs text-[var(--accent)]">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

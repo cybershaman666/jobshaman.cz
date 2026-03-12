@@ -91,6 +91,7 @@ interface UsePaginatedJobsProps {
     userProfile: UserProfile;
     initialPageSize?: number;
     enabled?: boolean;
+    microJobsOnly?: boolean;
 }
 
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
@@ -204,7 +205,7 @@ const DEFAULT_FILTER_SOURCES: DiscoveryFilterSourceMap = {
     remoteOnly: 'default',
 };
 
-export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true }: UsePaginatedJobsProps) => {
+export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true, microJobsOnly = false }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
@@ -851,7 +852,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     50,
                     singleCountry,
                     effectiveLanguageCodes,
-                    false
+                    false,
+                    microJobsOnly
                 );
                 if (isStaleRequest()) return;
                 setBackendUnreachable(false);
@@ -952,6 +954,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
                 externalOverlayMode: 'async',
                 includeJhi: false,
+                microJobsOnly,
                 abortSignal: fetchController.signal
             });
             if (isStaleRequest()) return;
@@ -1126,7 +1129,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole
     ]);
 
 
@@ -1159,7 +1162,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly
+        filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, microJobsOnly
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Re-apply sorting when sort option changes

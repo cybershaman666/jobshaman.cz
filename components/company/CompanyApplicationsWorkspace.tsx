@@ -9,6 +9,12 @@ import WorkspaceHeader from './WorkspaceHeader';
 import WorkspacePanel from './WorkspacePanel';
 import WorkspaceSyncBadge from './WorkspaceSyncBadge';
 
+const getAvatarInitials = (value: string): string => {
+    const parts = String(value || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+    if (!parts.length) return 'JS';
+    return parts.map((part) => part[0]?.toUpperCase() || '').join('');
+};
+
 interface CompanyApplicationsWorkspaceProps {
     jobs: Job[];
     selectedJobId: string;
@@ -368,15 +374,28 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                 <div key={dialogue.id} className="rounded-[1rem] border border-slate-200/80 bg-white/85 px-3 py-3 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/30">
                                     <div className="flex flex-col gap-2.5">
                                         <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                                                    {dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
-                                                </div>
-                                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                                                    <div>{dialogue.job_title || t('company.dashboard.table.position')}</div>
-                                                    {dialogue.candidateHeadline && (
-                                                        <div className="text-[11px] text-slate-400">{dialogue.candidateHeadline}</div>
-                                                    )}
+                                            <div className="min-w-0 flex items-start gap-3">
+                                                {dialogue.candidateAvatarUrl || dialogue.candidate_avatar_url ? (
+                                                    <img
+                                                        src={dialogue.candidateAvatarUrl || dialogue.candidate_avatar_url}
+                                                        alt={dialogue.candidate_name || 'Candidate'}
+                                                        className="h-11 w-11 shrink-0 rounded-2xl object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                                                        {getAvatarInitials(dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' }))}
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                                                        {dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
+                                                    </div>
+                                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                                                        <div>{dialogue.job_title || t('company.dashboard.table.position')}</div>
+                                                        {dialogue.candidateHeadline && (
+                                                            <div className="text-[11px] text-slate-400">{dialogue.candidateHeadline}</div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             {isSelectableStatus(dialogue.status) ? (

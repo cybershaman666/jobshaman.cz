@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
-import { inviteRecruiter, uploadCompanyLogo, updateCompanyProfile } from '../services/supabaseService';
+import { inviteRecruiter, removeRecruiterMember, uploadCompanyLogo, updateCompanyProfile } from '../services/supabaseService';
 import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface CompanySettingsProps {
@@ -12,6 +12,14 @@ interface CompanySettingsProps {
     onDeleteAccount?: () => Promise<boolean>;
 }
 
+const getMemberInitials = (member: RecruiterMember): string => {
+    const source = String(member.name || member.email || '').trim();
+    if (!source) return 'TM';
+    const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+    if (parts.length === 0) return source.slice(0, 2).toUpperCase();
+    return parts.map((part) => part[0]?.toUpperCase() || '').join('');
+};
+
 const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDeleteAccount }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'dna' | 'team'>('dna');
@@ -19,15 +27,19 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const [isSaving, setIsSaving] = useState(false);
     const [newValue, setNewValue] = useState('');
     const [isInviting, setIsInviting] = useState(false);
+    const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [logoUploading, setLogoUploading] = useState(false);
 
     // Team Management State
     const [inviteEmail, setInviteEmail] = useState('');
-    const [members, setMembers] = useState<RecruiterMember[]>(profile.members || [
-        { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: new Date().toISOString() }
-    ]);
+    const [members, setMembers] = useState<RecruiterMember[]>(profile.members || []);
+
+    useEffect(() => {
+        setLocalProfile(profile);
+        setMembers(profile.members || []);
+    }, [profile]);
     const profileReadinessFields = [
         localProfile.name,
         localProfile.ico,
@@ -88,7 +100,8 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
             if (profile.id) {
                 const updated = await updateCompanyProfile(profile.id, { ...localProfile, members });
                 setLocalProfile(updated);
-                await onSave({ ...updated, members });
+                setMembers(updated.members || members);
+                await onSave({ ...updated, members: updated.members || members });
             } else {
                 await onSave({ ...localProfile, members });
             }
@@ -107,7 +120,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
             await onSave({ ...updated, members });
         } catch (err) {
             console.error('Logo upload failed:', err);
-            alert(t('company.settings.logo_error') || 'Nepodařilo se nahrát logo.');
+            alert(t('company.settings.logo_error', { defaultValue: 'Failed to upload the logo.' }));
         } finally {
             setLogoUploading(false);
         }
@@ -135,23 +148,29 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
 
         setIsInviting(true);
         try {
-            // For demo/simplified flow, we pass the company ID and target email
-            const result = await inviteRecruiter(profile.id, inviteEmail, (profile as any).created_by || 'system');
+            const result = await inviteRecruiter(profile.id, inviteEmail, profile.created_by || 'system');
 
-            if (result) {
-                alert(t('company.settings.invite_success', { email: inviteEmail }));
-                // For immediate feedback in demo, we'll manually add to local list if successful
-                const newMember: RecruiterMember = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    name: inviteEmail.split('@')[0],
-                    email: inviteEmail,
-                    role: 'recruiter',
-                    joinedAt: new Date().toISOString()
-                };
-                setMembers(prev => [...prev, newMember]);
-            } else {
+            if (!result) {
                 alert(t('company.settings.invite_failed'));
+                return;
             }
+
+            const nextMembers = [
+                ...members.filter((member) => member.id !== result.id && (!result.userId || member.userId !== result.userId)),
+                {
+                    ...result,
+                    email: result.email || inviteEmail.trim().toLowerCase()
+                }
+            ];
+            const updated = await updateCompanyProfile(profile.id, { members: nextMembers });
+            setMembers(updated.members || nextMembers);
+            setLocalProfile((prev) => ({
+                ...prev,
+                team_member_profiles: updated.team_member_profiles ?? prev.team_member_profiles ?? null,
+                members: updated.members || nextMembers
+            }));
+            await onSave({ ...localProfile, team_member_profiles: updated.team_member_profiles ?? localProfile.team_member_profiles ?? null, members: updated.members || nextMembers });
+            alert(t('company.settings.invite_success', { email: inviteEmail }));
             setInviteEmail('');
         } catch (e) {
             console.error(e);
@@ -160,8 +179,36 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
         }
     };
 
-    const removeMember = (id: string) => {
-        setMembers(prev => prev.filter(m => m.id !== id));
+    const handleMemberFieldChange = (memberId: string, field: 'companyRole' | 'relationshipToCompany' | 'teamBio', value: string) => {
+        setMembers((prev) => prev.map((member) => (
+            member.id === memberId
+                ? { ...member, [field]: value }
+                : member
+        )));
+    };
+
+    const removeMember = async (member: RecruiterMember) => {
+        if (!profile.id || member.source === 'owner') return;
+
+        setRemovingMemberId(member.id);
+        try {
+            const removed = await removeRecruiterMember(profile.id, member);
+            if (!removed) {
+                alert(t('company.settings.member_remove_failed', { defaultValue: 'Unable to remove this team member right now.' }));
+                return;
+            }
+            const nextMembers = members.filter((item) => item.id !== member.id);
+            const updated = await updateCompanyProfile(profile.id, { members: nextMembers });
+            setMembers(updated.members || nextMembers);
+            setLocalProfile((prev) => ({
+                ...prev,
+                team_member_profiles: updated.team_member_profiles ?? prev.team_member_profiles ?? null,
+                members: updated.members || nextMembers
+            }));
+            await onSave({ ...localProfile, team_member_profiles: updated.team_member_profiles ?? localProfile.team_member_profiles ?? null, members: updated.members || nextMembers });
+        } finally {
+            setRemovingMemberId(null);
+        }
     };
 
     return (
@@ -256,7 +303,9 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     </div>
                                     <div>
                                         <label className="app-button-secondary cursor-pointer rounded-[var(--radius-md)] px-4 py-2">
-                                            {logoUploading ? (t('company.settings.logo_uploading') || 'Nahrávám...') : (t('company.settings.logo_btn') || 'Nahrát logo')}
+                                            {logoUploading
+                                                ? t('company.settings.logo_uploading', { defaultValue: 'Uploading...' })
+                                                : t('company.settings.logo_btn', { defaultValue: 'Upload logo' })}
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -266,7 +315,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                             />
                                         </label>
                                         <div className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {t('company.settings.logo_hint') || 'Doporučeno: čtverec, min. 300×300 px'}
+                                            {t('company.settings.logo_hint', { defaultValue: 'Recommended: square, min. 300×300 px' })}
                                         </div>
                                     </div>
                                 </div>
@@ -531,33 +580,126 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     {t('company.settings.invite_btn')}
                                 </button>
                             </div>
+                            <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+                                {t('company.settings.invite_helper', {
+                                    defaultValue: 'After the invite is created, you can immediately set what this person does in the company and how they show up in hiring.'
+                                })}
+                            </div>
                         </div>
 
-                        {/* Members List */}
-                        <div className="space-y-2.5">
+                        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)]/60 p-3">
+                            <div className="text-sm font-semibold text-[var(--text-strong)]">
+                                {t('company.settings.team_profiles_title', { defaultValue: 'Team profiles and company context' })}
+                            </div>
+                            <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                                {t('company.settings.team_profiles_desc', {
+                                    defaultValue: 'Name, avatar and email are linked to the standard JobShaman profile when the member has an account. Here you only manage the company-specific context used in hiring.'
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {members.length === 0 ? (
+                                <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
+                                    {t('company.settings.team_empty', {
+                                        defaultValue: 'No team members are configured yet. Invite the first recruiter to give them access and define their role in the company.'
+                                    })}
+                                </div>
+                            ) : null}
+
                             {members.map(member => (
-                                <div key={member.id} className="group flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3 transition-colors hover:bg-[var(--surface-muted)]">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-muted)] font-bold text-[var(--text-muted)]">
-                                            {member.name.charAt(0)}
+                                <div key={member.id} className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 transition-colors hover:bg-[var(--surface-muted)]/40">
+                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                        <div className="flex min-w-0 items-start gap-3">
+                                            {member.avatar ? (
+                                                <img
+                                                    src={member.avatar}
+                                                    alt={member.name}
+                                                    className="h-11 w-11 rounded-full object-cover border border-[var(--border-subtle)]"
+                                                />
+                                            ) : (
+                                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-muted)] font-bold text-[var(--text-muted)]">
+                                                    {getMemberInitials(member)}
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2 font-semibold text-[var(--text-strong)]">
+                                                    <span className="truncate">{member.name}</span>
+                                                    {member.role === 'admin' && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+                                                            <Shield size={10} /> {t('company.settings.admin_label')}
+                                                        </span>
+                                                    )}
+                                                    <span className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+                                                        {member.linkedProfile
+                                                            ? t('company.settings.member_profile_linked', { defaultValue: 'Linked profile' })
+                                                            : t('company.settings.member_profile_pending', { defaultValue: 'Invite pending' })}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-[var(--text-muted)]">{member.email || t('company.settings.member_email_missing', { defaultValue: 'No email available yet' })}</div>
+                                                <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+                                                    {member.linkedProfile
+                                                        ? t('company.settings.member_profile_linked_hint', {
+                                                            defaultValue: 'Identity is synced from the user profile. Use the fields below for company role and hiring context only.'
+                                                        })
+                                                        : t('company.settings.member_profile_pending_hint', {
+                                                            defaultValue: 'This invite is not linked to a user account yet. We keep the email and company context here until the account is connected.'
+                                                        })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {member.source !== 'owner' && (
+                                            <button
+                                                onClick={() => void removeMember(member)}
+                                                disabled={removingMemberId === member.id}
+                                                className="self-start rounded-[var(--radius-sm)] p-2 text-[var(--text-faint)] transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                title={t('company.settings.remove_from_team')}
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label htmlFor={`member-company-role-${member.id}`} className="app-field-label">
+                                                <Briefcase size={16} /> {t('company.settings.member_company_role', { defaultValue: 'Role in the company' })}
+                                            </label>
+                                            <input
+                                                id={`member-company-role-${member.id}`}
+                                                type="text"
+                                                className="app-input-field"
+                                                value={member.companyRole || ''}
+                                                placeholder={t('company.settings.member_company_role_placeholder', { defaultValue: 'Head of Engineering, Founder, Recruiter...' })}
+                                                onChange={(e) => handleMemberFieldChange(member.id, 'companyRole', e.target.value)}
+                                            />
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2 font-semibold text-[var(--text-strong)]">
-                                                {member.name}
-                                                {member.role === 'admin' && <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"><Shield size={10} /> {t('company.settings.admin_label')}</span>}
-                                            </div>
-                                            <div className="text-xs text-[var(--text-muted)]">{member.email}</div>
+                                            <label htmlFor={`member-relationship-${member.id}`} className="app-field-label">
+                                                <Users size={16} /> {t('company.settings.member_relationship', { defaultValue: 'How is this person connected to the company?' })}
+                                            </label>
+                                            <input
+                                                id={`member-relationship-${member.id}`}
+                                                type="text"
+                                                className="app-input-field"
+                                                value={member.relationshipToCompany || ''}
+                                                placeholder={t('company.settings.member_relationship_placeholder', { defaultValue: 'Leads the product team, hiring manager for engineering, co-founder...' })}
+                                                onChange={(e) => handleMemberFieldChange(member.id, 'relationshipToCompany', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label htmlFor={`member-bio-${member.id}`} className="app-field-label">
+                                                <MessageSquare size={16} /> {t('company.settings.member_team_bio', { defaultValue: 'Short team / hiring context' })}
+                                            </label>
+                                            <textarea
+                                                id={`member-bio-${member.id}`}
+                                                className="app-input-field min-h-[96px]"
+                                                value={member.teamBio || ''}
+                                                placeholder={t('company.settings.member_team_bio_placeholder', { defaultValue: 'What this person owns, what project they work on, or why candidates may meet them.' })}
+                                                onChange={(e) => handleMemberFieldChange(member.id, 'teamBio', e.target.value)}
+                                            />
                                         </div>
                                     </div>
-                                    {member.role !== 'admin' && (
-                                        <button
-                                            onClick={() => removeMember(member.id)}
-                                            className="rounded-[var(--radius-sm)] p-2 text-[var(--text-faint)] opacity-0 transition-colors group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500"
-                                            title="Odebrat z týmu"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    )}
                                 </div>
                             ))}
                         </div>
@@ -579,23 +721,23 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6">
                     <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-rose-600">
                         <AlertCircle className="w-5 h-5" />
-                        {t('profile.danger_zone_title') || 'Nebezpečná zóna'}
+                        {t('profile.danger_zone_title', { defaultValue: 'Danger zone' })}
                     </h3>
                     <div className="rounded-[var(--radius-lg)] border border-rose-200 bg-rose-50 p-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
                                 <h4 className="mb-1 font-semibold text-[var(--text-strong)]">
-                                    {t('profile.delete_account_title') || 'Smazat účet'}
+                                    {t('profile.delete_account_title', { defaultValue: 'Delete account' })}
                                 </h4>
                                 <p className="text-sm text-[var(--text-muted)]">
-                                    {t('profile.delete_account_desc') || 'Trvale smaže váš účet a všechna přidružená data společnosti. Tuto akci nelze vrátit zpět.'}
+                                    {t('profile.delete_account_desc', { defaultValue: 'Permanently deletes your account and all associated company data. This action cannot be undone.' })}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
                                 className="whitespace-nowrap rounded-[var(--radius-md)] border border-rose-200 bg-white px-6 py-3 font-semibold text-rose-600 transition-all hover:bg-rose-50 active:scale-[0.98]"
                             >
-                                {t('profile.delete_account_btn') || 'Smazat můj účet'}
+                                {t('profile.delete_account_btn', { defaultValue: 'Delete my account' })}
                             </button>
                         </div>
                     </div>

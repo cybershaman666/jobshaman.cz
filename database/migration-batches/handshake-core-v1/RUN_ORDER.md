@@ -11,6 +11,9 @@ Spouštěj přesně v tomto pořadí:
 7. `database/migrations/20260303_application_message_storage.sql`
 8. `database/migrations/20260308_admin_founder_board.sql`
 9. `database/migrations/20260308_admin_founder_board_comments.sql`
+10. `database/migrations/20260312_job_public_people.sql`
+11. `database/migrations/20260312_company_team_member_profiles.sql`
+12. `database/migrations/20260312_job_solution_snapshots.sql`
 
 Poznámky:
 

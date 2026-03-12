@@ -315,6 +315,9 @@ export interface CompanyProfile {
   website?: string;
   description?: string;
   logo_url?: string;
+  owner_id?: string | null;
+  created_by?: string | null;
+  team_member_profiles?: Record<string, unknown> | null;
   members?: RecruiterMember[];
   subscription?: {
     tier: CompanyServiceTier;
@@ -335,11 +338,18 @@ export interface CompanyUsageStats {
 
 export interface RecruiterMember {
   id: string;
+  userId?: string | null;
   name: string;
   email: string;
   role: 'admin' | 'recruiter';
-  avatar?: string;
+  avatar?: string | null;
   joinedAt: string;
+  companyRole?: string;
+  relationshipToCompany?: string;
+  teamBio?: string;
+  linkedProfile?: boolean;
+  status?: 'active' | 'invited';
+  source?: 'owner' | 'member';
 }
 
 export interface SalaryEstimate {
@@ -354,6 +364,91 @@ export type JobHiringStage =
   | 'shortlisting'
   | 'final_interviews'
   | 'offer_stage';
+
+export type JobChallengeFormat = 'standard' | 'micro_job';
+export type MicroJobKind =
+  | 'one_off_task'
+  | 'short_project'
+  | 'audit_review'
+  | 'prototype'
+  | 'experiment';
+export type MicroJobCollaborationMode = 'remote' | 'async' | 'call';
+
+export type JobPublicPersonKind = 'publisher' | 'responder';
+
+export interface JobPublicPerson {
+  id?: string;
+  job_id?: string | number;
+  company_id?: string;
+  user_id?: string | null;
+  person_kind?: JobPublicPersonKind;
+  display_name: string;
+  display_role: string;
+  avatar_url?: string | null;
+  short_context?: string | null;
+  display_order?: number;
+}
+
+export interface JobHumanContextTrust {
+  dialogues_last_90d: number | null;
+  median_first_response_hours_last_90d: number | null;
+}
+
+export interface JobHumanContext {
+  publisher: JobPublicPerson | null;
+  responders: JobPublicPerson[];
+  trust: JobHumanContextTrust;
+}
+
+export interface SolutionSnapshot {
+  id: string;
+  dialogue_id: string;
+  job_id: string | number;
+  company_id: string;
+  candidate_id: string;
+  problem: string;
+  solution: string;
+  result: string;
+  problem_tags: string[];
+  solution_tags: string[];
+  is_public: boolean;
+  share_slug?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  job_title?: string | null;
+  company_name?: string | null;
+  candidate_name?: string | null;
+}
+
+export interface SolutionSnapshotUpsertPayload {
+  problem: string;
+  solution: string;
+  result: string;
+  problem_tags?: string[];
+  solution_tags?: string[];
+  is_public?: boolean;
+}
+
+export type CompanyDialogueSolutionSnapshotReason =
+  | 'not_micro_job'
+  | 'awaiting_completion'
+  | 'missing_job'
+  | null;
+
+export interface CompanyDialogueSolutionSnapshotState {
+  eligible: boolean;
+  reason: CompanyDialogueSolutionSnapshotReason;
+  snapshot: SolutionSnapshot | null;
+}
+
+export interface CompanyHumanContextPersonOption {
+  user_id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  email?: string | null;
+  display_role?: string | null;
+  short_context?: string | null;
+}
 
 export interface Job {
   id: string;
@@ -409,6 +504,10 @@ export interface Job {
   country_code?: string;
   language_code?: string;
   hiring_stage?: JobHiringStage | null;
+  challenge_format?: JobChallengeFormat;
+  micro_job_kind?: MicroJobKind | null;
+  micro_job_time_estimate?: string | null;
+  micro_job_collaboration_modes?: MicroJobCollaborationMode[];
   open_dialogues_count?: number;
   dialogue_capacity_limit?: number;
   reaction_window_hours?: number;
@@ -554,6 +653,8 @@ export interface CompanyApplicationRow {
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
+  candidate_avatar_url?: string;
+  candidateAvatarUrl?: string;
   hasCoverLetter?: boolean;
   hasCv?: boolean;
   jcfpmShareLevel?: ApplicationJcfpmShareLevel;
@@ -649,6 +750,7 @@ export interface DialogueDossier {
     email?: string;
     phone?: string;
     jobTitle?: string;
+    avatar_url?: string;
     linkedin?: string;
     skills?: string[];
     values?: string[];
@@ -660,6 +762,8 @@ export interface DialogueDossier {
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
+  candidate_avatar_url?: string;
+  candidateAvatarUrl?: string;
   assets?: ExternalAsset[];
   audio_transcript_status?: DialogueTranscriptStatus;
   ai_summary_status?: DialogueAISummaryStatus;

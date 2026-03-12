@@ -11,6 +11,9 @@ import {
     CompanyApplicationRow,
     ApplicationDraftSuggestion,
     ApplicationDraftTone,
+    CompanyDialogueSolutionSnapshotState,
+    SolutionSnapshot,
+    SolutionSnapshotUpsertPayload,
 } from '../types';
 let companyDialoguesApiUnavailable = false;
 
@@ -56,6 +59,7 @@ export interface OpenDialogueDetails {
         email?: string;
         phone?: string;
         jobTitle?: string;
+        avatar_url?: string;
         linkedin?: string;
         skills?: string[];
         values?: string[];
@@ -160,6 +164,38 @@ const mapDialogueSummary = (row: any): DialogueSummary => ({
     job_snapshot: row?.job_snapshot ?? undefined,
 });
 
+const mapStringArray = (value: unknown): string[] => (
+    Array.isArray(value)
+        ? value.map((item) => String(item || '').trim()).filter(Boolean)
+        : []
+);
+
+const mapSolutionSnapshot = (row: any): SolutionSnapshot => ({
+    id: String(row?.id || ''),
+    dialogue_id: String(row?.dialogue_id || row?.application_id || ''),
+    job_id: row?.job_id,
+    company_id: String(row?.company_id || ''),
+    candidate_id: String(row?.candidate_id || ''),
+    problem: String(row?.problem || ''),
+    solution: String(row?.solution || ''),
+    result: String(row?.result || ''),
+    problem_tags: mapStringArray(row?.problem_tags),
+    solution_tags: mapStringArray(row?.solution_tags),
+    is_public: Boolean(row?.is_public),
+    share_slug: row?.share_slug ?? null,
+    created_at: row?.created_at ?? null,
+    updated_at: row?.updated_at ?? null,
+    job_title: row?.job_title ?? row?.jobs?.title ?? null,
+    company_name: row?.company_name ?? row?.companies?.name ?? null,
+    candidate_name: row?.candidate_name ?? null,
+});
+
+const mapCompanyDialogueSolutionSnapshotState = (payload: any): CompanyDialogueSolutionSnapshotState => ({
+    eligible: Boolean(payload?.eligible),
+    reason: payload?.reason ?? null,
+    snapshot: payload?.snapshot ? mapSolutionSnapshot(payload.snapshot) : null,
+});
+
 export const openDialogue = async (
     jobId: string | number,
     source?: string,
@@ -260,6 +296,67 @@ export const fetchCompanyDialogueDetail = async (
     } catch {
         companyDialoguesApiUnavailable = true;
         return await fetchCompanyDialogueDetailFallback(dialogueId);
+    }
+};
+
+export const fetchCompanyDialogueSolutionSnapshotState = async (
+    dialogueId: string
+): Promise<CompanyDialogueSolutionSnapshotState | null> => {
+    if (!dialogueId) return null;
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/company/dialogues/${dialogueId}/solution-snapshot`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return null;
+        return mapCompanyDialogueSolutionSnapshotState(await response.json());
+    } catch {
+        return null;
+    }
+};
+
+export const saveCompanyDialogueSolutionSnapshot = async (
+    dialogueId: string,
+    payload: SolutionSnapshotUpsertPayload
+): Promise<SolutionSnapshot> => {
+    const response = await authenticatedFetch(
+        `${BACKEND_URL}/company/dialogues/${dialogueId}/solution-snapshot`,
+        {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                problem: payload.problem,
+                solution: payload.solution,
+                result: payload.result,
+                problem_tags: payload.problem_tags || [],
+                solution_tags: payload.solution_tags || [],
+                is_public: Boolean(payload.is_public),
+            }),
+        }
+    );
+    if (!response.ok) {
+        throw new Error(await parseErrorDetail(response, 'Nepodařilo se uložit solution snapshot.'));
+    }
+    const data = await response.json();
+    if (!data?.snapshot) {
+        throw new Error('Nepodařilo se uložit solution snapshot.');
+    }
+    return mapSolutionSnapshot(data.snapshot);
+};
+
+export const fetchMySolutionSnapshots = async (
+    limit: number = 12
+): Promise<SolutionSnapshot[]> => {
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/solution-snapshots/me?limit=${Math.max(1, Math.min(50, Math.floor(limit || 12)))}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return [];
+        const payload = await response.json();
+        return Array.isArray(payload?.snapshots) ? payload.snapshots.map(mapSolutionSnapshot) : [];
+    } catch {
+        return [];
     }
 };
 
@@ -530,6 +627,16 @@ const mapCompanyDialogueRow = (row: any): CompanyApplicationRow => ({
     id: row?.id ?? row?.dialogue_id ?? '',
     job_id: row?.job_id ?? row?.role_id ?? row?.jobId ?? row?.roleId ?? row?.job_id,
     job_title: row?.job_title ?? row?.role_title ?? row?.jobTitle ?? row?.roleTitle ?? row?.job_title,
+    candidate_avatar_url:
+        row?.candidate_avatar_url ??
+        row?.candidateAvatarUrl ??
+        row?.candidate_profile_snapshot?.avatar_url ??
+        undefined,
+    candidateAvatarUrl:
+        row?.candidateAvatarUrl ??
+        row?.candidate_avatar_url ??
+        row?.candidate_profile_snapshot?.avatar_url ??
+        undefined,
     hasCoverLetter: row?.has_cover_letter ?? row?.hasCoverLetter ?? false,
     hasCv: row?.has_cv ?? row?.hasCv ?? false,
     jcfpmShareLevel: row?.jcfpm_share_level ?? row?.jcfpmShareLevel ?? 'do_not_share',
@@ -547,12 +654,12 @@ const fetchLinkedJobs = async (jobIds: Array<string | number>): Promise<Map<stri
     return new Map(data.map((row: any) => [String(row.id), { title: row.title }]));
 };
 
-const fetchLinkedProfiles = async (profileIds: string[]): Promise<Map<string, { full_name?: string | null; email?: string | null }>> => {
+const fetchLinkedProfiles = async (profileIds: string[]): Promise<Map<string, { full_name?: string | null; email?: string | null; avatar_url?: string | null }>> => {
     const unique = Array.from(new Set(profileIds.map((id) => String(id || '').trim()).filter(Boolean)));
     if (!supabase || unique.length === 0) return new Map();
-    const { data, error } = await supabase.from('profiles').select('id,full_name,email').in('id', unique);
+    const { data, error } = await supabase.from('profiles').select('id,full_name,email,avatar_url').in('id', unique);
     if (error || !Array.isArray(data)) return new Map();
-    return new Map(data.map((row: any) => [String(row.id), { full_name: row.full_name, email: row.email }]));
+    return new Map(data.map((row: any) => [String(row.id), { full_name: row.full_name, email: row.email, avatar_url: row.avatar_url }]));
 };
 
 const fetchCompanyDialoguesFallback = async (
@@ -589,6 +696,11 @@ const fetchCompanyDialoguesFallback = async (
         candidate_email:
             row?.candidate_email ??
             profileMap.get(String(row.candidate_id || ''))?.email ??
+            null,
+        candidate_avatar_url:
+            row?.candidate_avatar_url ??
+            row?.candidate_profile_snapshot?.avatar_url ??
+            profileMap.get(String(row.candidate_id || ''))?.avatar_url ??
             null,
         has_cover_letter: Boolean(row?.cover_letter),
         has_cv: Boolean(row?.cv_document_id || row?.cv_snapshot?.fileUrl || row?.cv_snapshot?.originalName),
@@ -627,6 +739,11 @@ const fetchCompanyDialogueDetailFallback = async (dialogueId: string): Promise<D
             candidate_email:
                 profileMap.get(String(data.candidate_id || ''))?.email ??
                 data?.candidate_profile_snapshot?.email ??
+                null,
+            candidate_avatar_url:
+                data?.candidate_avatar_url ??
+                data?.candidate_profile_snapshot?.avatar_url ??
+                profileMap.get(String(data.candidate_id || ''))?.avatar_url ??
                 null,
             has_cover_letter: Boolean(data?.cover_letter),
             has_cv: Boolean(data?.cv_document_id || data?.cv_snapshot?.fileUrl || data?.cv_snapshot?.originalName),

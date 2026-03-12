@@ -166,6 +166,47 @@ class JobApplicationStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(pending|reviewed|shortlisted|rejected|hired)$")
 
 
+class DialogueSolutionSnapshotUpsertRequest(BaseModel):
+    problem: str = Field(..., min_length=1, max_length=2000)
+    solution: str = Field(..., min_length=1, max_length=3000)
+    result: str = Field(..., min_length=1, max_length=2000)
+    problem_tags: Optional[List[str]] = Field(default=None, max_length=8)
+    solution_tags: Optional[List[str]] = Field(default=None, max_length=8)
+    is_public: bool = False
+
+    @validator("problem", "solution", "result")
+    def sanitize_snapshot_text(cls, v):
+        cleaned = bleach.clean(str(v or "").strip(), tags=[], attributes={}, strip=True)
+        if not cleaned:
+            raise ValueError("Empty field")
+        return html.escape(cleaned)
+
+    @validator("problem_tags", "solution_tags", pre=True)
+    def normalize_tags(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            values = [part.strip() for part in v.split(",")]
+        elif isinstance(v, list):
+            values = [str(item or "").strip() for item in v]
+        else:
+            return []
+        normalized: List[str] = []
+        seen: set[str] = set()
+        for item in values:
+            cleaned = bleach.clean(item, tags=[], attributes={}, strip=True).strip()
+            if not cleaned:
+                continue
+            dedupe_key = cleaned.lower()
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            normalized.append(html.escape(cleaned[:60]))
+            if len(normalized) >= 8:
+                break
+        return normalized
+
+
 class ApplicationMessageCreateRequest(BaseModel):
     body: Optional[str] = Field(default=None, max_length=5000)
     attachments: Optional[List[dict]] = Field(default=None, max_length=5)

@@ -31,6 +31,12 @@ const extractMarkdownSection = (description: string, headings: string[]): string
     .trim();
 };
 
+const getSnapshotAvatarUrl = (value?: string | null): string | undefined => {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('data:')) return undefined;
+  return raw.length <= 500 ? raw : undefined;
+};
+
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
@@ -408,6 +414,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         email: formData.email || user.email || '',
         phone: formData.phone || user.phone || '',
         jobTitle: user.jobTitle || '',
+        avatar_url: getSnapshotAvatarUrl(user.photo),
         linkedin: formData.linkedin || user.preferences?.linkedIn || '',
         skills: Array.isArray(user.skills) ? user.skills.slice(0, 12) : [],
         values: Array.isArray(user.values) ? user.values.slice(0, 8) : [],

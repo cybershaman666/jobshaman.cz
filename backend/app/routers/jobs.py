@@ -3,6 +3,7 @@ import re
 import time
 import json
 import hashlib
+from statistics import median
 from typing import Any
 from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
@@ -11,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from threading import Lock
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, JobApplicationStatusUpdateRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, JobApplicationStatusUpdateRequest, DialogueSolutionSnapshotUpsertRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
 from ..models.responses import JobCheckResponse, JobApplicationDraftResponse
 from ..services.legality import check_legality_rules
 from ..services.asset_service import load_assets_metadata, serialize_asset_metadata
@@ -1262,6 +1263,663 @@ def _safe_string_list(value, limit: int = 12) -> list[str]:
     return out
 
 
+_NATIVE_JOB_SOURCE = "jobshaman.cz"
+_JOB_PUBLIC_PERSON_MAX_RESPONDERS = 3
+
+
+def _empty_job_human_context_trust() -> dict[str, Any]:
+    return {
+        "dialogues_last_90d": None,
+        "median_first_response_hours_last_90d": None,
+    }
+
+
+def _empty_job_human_context_payload() -> dict[str, Any]:
+    return {
+        "publisher": None,
+        "responders": [],
+        "trust": _empty_job_human_context_trust(),
+    }
+
+
+def _normalize_public_person_kind(value: Any) -> str | None:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"publisher", "responder"}:
+        return normalized
+    return None
+
+
+def _trimmed_text(value: Any, limit: int = 240) -> str:
+    return str(value or "").strip()[:limit]
+
+
+def _normalize_company_team_member_profiles(value: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        return {}
+    normalized: dict[str, dict[str, Any]] = {}
+    for raw_key, raw_value in value.items():
+        key = _trimmed_text(raw_key, 160)
+        if not key or not isinstance(raw_value, dict):
+            continue
+        normalized[key] = {
+            "invited_email": _trimmed_text(raw_value.get("invited_email"), 180) or None,
+            "company_role": _trimmed_text(raw_value.get("company_role"), 120) or None,
+            "relation_to_company": _trimmed_text(raw_value.get("relation_to_company"), 160) or None,
+            "short_bio": _trimmed_text(raw_value.get("short_bio"), 280) or None,
+        }
+    return normalized
+
+
+def _fetch_company_team_context(company_id: str) -> tuple[str | None, dict[str, dict[str, Any]]]:
+    if not supabase or not company_id:
+        return None, {}
+    try:
+        try:
+            resp = supabase.table("companies").select("owner_id,team_member_profiles").eq("id", company_id).maybe_single().execute()
+        except Exception as exc:
+            if not _is_missing_column_error(exc, "team_member_profiles"):
+                raise
+            resp = supabase.table("companies").select("owner_id").eq("id", company_id).maybe_single().execute()
+        row = resp.data or {}
+        owner_id = str(row.get("owner_id") or "").strip() or None
+        team_profiles = _normalize_company_team_member_profiles(row.get("team_member_profiles"))
+        return owner_id, team_profiles
+    except Exception:
+        return None, {}
+
+
+def _fetch_company_owner_id(company_id: str) -> str | None:
+    owner_id, _team_profiles = _fetch_company_team_context(company_id)
+    return owner_id
+
+
+def _fetch_company_member_rows(company_id: str) -> list[dict[str, Any]]:
+    if not supabase or not company_id:
+        return []
+    try:
+        try:
+            resp = (
+                supabase
+                .table("company_members")
+                .select("id,user_id,role,invited_at,created_at,is_active")
+                .eq("company_id", company_id)
+                .eq("is_active", True)
+                .limit(500)
+                .execute()
+            )
+        except Exception as exc:
+            if not _is_missing_column_error(exc, "is_active"):
+                raise
+            resp = (
+                supabase
+                .table("company_members")
+                .select("id,user_id,role,invited_at,created_at")
+                .eq("company_id", company_id)
+                .limit(500)
+                .execute()
+            )
+        return [row for row in (resp.data or []) if isinstance(row, dict)]
+    except Exception as exc:
+        if not _is_missing_table_error(exc, "company_members"):
+            print(f"⚠️ Failed to load company members for human context ({company_id}): {exc}")
+        return []
+
+
+def _read_company_team_member_profile(
+    team_profiles: dict[str, dict[str, Any]],
+    *,
+    member_id: str | None = None,
+    user_id: str | None = None,
+    source: str = "member",
+) -> dict[str, Any]:
+    keys = [
+        f"{source}:{_trimmed_text(member_id, 120)}" if member_id else "",
+        f"owner:{_trimmed_text(user_id, 120)}" if user_id else "",
+        f"member:{_trimmed_text(member_id, 120)}" if member_id else "",
+    ]
+    for key in keys:
+        if key and key in team_profiles:
+            return team_profiles[key]
+    return {}
+
+
+def _fetch_company_public_member_ids(company_id: str) -> set[str]:
+    if not supabase or not company_id:
+        return set()
+    user_ids: set[str] = set()
+    owner_id, _team_profiles = _fetch_company_team_context(company_id)
+    if owner_id:
+        user_ids.add(owner_id)
+    for row in _fetch_company_member_rows(company_id):
+        user_id = str((row or {}).get("user_id") or "").strip()
+        if user_id:
+            user_ids.add(user_id)
+    return user_ids
+
+
+def _fetch_profiles_map(user_ids: set[str]) -> dict[str, dict[str, Any]]:
+    if not supabase or not user_ids:
+        return {}
+    profiles_by_id: dict[str, dict[str, Any]] = {}
+    ids = [uid for uid in user_ids if uid]
+    batch_size = 200
+    for index in range(0, len(ids), batch_size):
+        chunk = ids[index:index + batch_size]
+        try:
+            resp = (
+                supabase
+                .table("profiles")
+                .select("id,full_name,email,avatar_url")
+                .in_("id", chunk)
+                .limit(len(chunk))
+                .execute()
+            )
+            for row in (resp.data or []):
+                row_id = str((row or {}).get("id") or "").strip()
+                if row_id:
+                    profiles_by_id[row_id] = row
+        except Exception as exc:
+            print(f"⚠️ Failed to load profile snapshots for human context: {exc}")
+            break
+    return profiles_by_id
+
+
+def _normalize_human_context_editor_state(editor_state: Any) -> dict[str, Any]:
+    human_context = _safe_dict(_safe_dict(editor_state).get("human_context"))
+    publisher = human_context.get("publisher")
+    responders = human_context.get("responders")
+    return {
+        "publisher": publisher if isinstance(publisher, dict) else None,
+        "responders": responders if isinstance(responders, list) else [],
+    }
+
+
+def _normalize_job_public_person_input(
+    value: Any,
+    *,
+    person_kind: str,
+    allowed_user_ids: set[str],
+    profiles_by_id: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    user_id = _trimmed_text(value.get("user_id") or value.get("person_id"), 120)
+    if not user_id or user_id not in allowed_user_ids:
+        return None
+
+    profile = profiles_by_id.get(user_id, {})
+    display_name = _trimmed_text(
+        value.get("display_name") or profile.get("full_name") or profile.get("email") or "Team member",
+        120,
+    )
+    display_role = _trimmed_text(value.get("display_role"), 120) or (
+        "Hiring manager" if person_kind == "publisher" else "Team member"
+    )
+    short_context = _trimmed_text(value.get("short_context"), 280) or None
+    avatar_url = _trimmed_text(value.get("avatar_url") or profile.get("avatar_url"), 500) or None
+
+    return {
+        "user_id": user_id,
+        "person_kind": person_kind,
+        "display_name": display_name,
+        "display_role": display_role,
+        "avatar_url": avatar_url,
+        "short_context": short_context,
+        "display_order": 0,
+        "is_visible": True,
+    }
+
+
+def _normalize_job_public_people_from_editor_state(editor_state: Any, company_id: str) -> list[dict[str, Any]]:
+    allowed_user_ids = _fetch_company_public_member_ids(company_id)
+    if not allowed_user_ids:
+        return []
+    profiles_by_id = _fetch_profiles_map(allowed_user_ids)
+    normalized_state = _normalize_human_context_editor_state(editor_state)
+    rows: list[dict[str, Any]] = []
+    used_user_ids: set[str] = set()
+
+    publisher = _normalize_job_public_person_input(
+        normalized_state.get("publisher"),
+        person_kind="publisher",
+        allowed_user_ids=allowed_user_ids,
+        profiles_by_id=profiles_by_id,
+    )
+    if publisher:
+        publisher["display_order"] = 0
+        rows.append(publisher)
+        used_user_ids.add(str(publisher.get("user_id") or ""))
+
+    for responder_source in normalized_state.get("responders") or []:
+        responder = _normalize_job_public_person_input(
+            responder_source,
+            person_kind="responder",
+            allowed_user_ids=allowed_user_ids,
+            profiles_by_id=profiles_by_id,
+        )
+        responder_user_id = str((responder or {}).get("user_id") or "")
+        if not responder or not responder_user_id or responder_user_id in used_user_ids:
+            continue
+        used_user_ids.add(responder_user_id)
+        responder["display_order"] = len(rows)
+        rows.append(responder)
+        if len(rows) >= _JOB_PUBLIC_PERSON_MAX_RESPONDERS + (1 if publisher else 0):
+            break
+    return rows
+
+
+def _sync_job_public_people(job_id: Any, company_id: str, editor_state: Any) -> None:
+    if not supabase or not company_id:
+        return
+    normalized_job_id = _normalize_job_id(job_id)
+    if not isinstance(normalized_job_id, int):
+        return
+    rows = _normalize_job_public_people_from_editor_state(editor_state, company_id)
+    try:
+        supabase.table("job_public_people").delete().eq("job_id", normalized_job_id).eq("company_id", company_id).execute()
+    except Exception as exc:
+        if _is_missing_table_error(exc, "job_public_people"):
+            print("⚠️ job_public_people table missing during publish sync.")
+            return
+        print(f"⚠️ Failed to clear job public people for job {normalized_job_id}: {exc}")
+        return
+
+    if not rows:
+        return
+
+    timestamp = now_iso()
+    insert_payload = [
+        {
+            "job_id": normalized_job_id,
+            "company_id": company_id,
+            "user_id": row.get("user_id"),
+            "person_kind": row.get("person_kind"),
+            "display_name": row.get("display_name"),
+            "display_role": row.get("display_role"),
+            "avatar_url": row.get("avatar_url"),
+            "short_context": row.get("short_context"),
+            "display_order": row.get("display_order") or 0,
+            "is_visible": True,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        }
+        for row in rows
+    ]
+    try:
+        supabase.table("job_public_people").insert(insert_payload).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to persist job public people for job {normalized_job_id}: {exc}")
+
+
+def _serialize_job_public_person(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row.get("id"),
+        "job_id": row.get("job_id"),
+        "company_id": row.get("company_id"),
+        "user_id": row.get("user_id"),
+        "person_kind": _normalize_public_person_kind(row.get("person_kind")),
+        "display_name": _trimmed_text(row.get("display_name"), 120),
+        "display_role": _trimmed_text(row.get("display_role"), 120),
+        "avatar_url": _trimmed_text(row.get("avatar_url"), 500) or None,
+        "short_context": _trimmed_text(row.get("short_context"), 280) or None,
+        "display_order": int(row.get("display_order") or 0),
+    }
+
+
+def _load_valid_job_public_people(job_id: Any, company_id: str) -> list[dict[str, Any]]:
+    if not supabase or not company_id:
+        return []
+    normalized_job_id = _normalize_job_id(job_id)
+    if not isinstance(normalized_job_id, int):
+        return []
+    try:
+        resp = (
+            supabase
+            .table("job_public_people")
+            .select("*")
+            .eq("job_id", normalized_job_id)
+            .eq("company_id", company_id)
+            .eq("is_visible", True)
+            .order("display_order")
+            .order("created_at")
+            .limit(12)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "job_public_people"):
+            return []
+        print(f"⚠️ Failed to load job public people for job {normalized_job_id}: {exc}")
+        return []
+
+    allowed_user_ids = _fetch_company_public_member_ids(company_id)
+    rows: list[dict[str, Any]] = []
+    for row in (resp.data or []):
+        kind = _normalize_public_person_kind((row or {}).get("person_kind"))
+        user_id = str((row or {}).get("user_id") or "").strip()
+        if not kind or not user_id or user_id not in allowed_user_ids:
+            continue
+        rows.append(row)
+    return rows
+
+
+def _build_job_human_context_editor_state(job_id: Any, company_id: str) -> dict[str, Any]:
+    rows = _load_valid_job_public_people(job_id, company_id)
+    publisher = None
+    responders: list[dict[str, Any]] = []
+    for row in rows:
+        serialized = _serialize_job_public_person(row)
+        if serialized.get("person_kind") == "publisher" and publisher is None:
+            publisher = serialized
+            continue
+        if serialized.get("person_kind") == "responder" and len(responders) < _JOB_PUBLIC_PERSON_MAX_RESPONDERS:
+            responders.append(serialized)
+    return {
+        "publisher": publisher,
+        "responders": responders,
+    }
+
+
+def _compute_company_human_context_trust(company_id: str) -> dict[str, Any]:
+    if not supabase or not company_id:
+        return _empty_job_human_context_trust()
+
+    since_dt = datetime.now(timezone.utc) - timedelta(days=90)
+    since_iso = since_dt.isoformat()
+    dialogues_count: int | None = 0
+    application_rows: list[dict[str, Any]] = []
+
+    try:
+        count_resp = (
+            supabase
+            .table("job_applications")
+            .select("id", count="exact")
+            .eq("company_id", company_id)
+            .gte("created_at", since_iso)
+            .limit(1)
+            .execute()
+        )
+        if count_resp.count is not None:
+            dialogues_count = int(count_resp.count)
+    except Exception as exc:
+        print(f"⚠️ Failed to count human-context dialogues for company {company_id}: {exc}")
+        dialogues_count = None
+
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,created_at,submitted_at,reviewed_at")
+            .eq("company_id", company_id)
+            .gte("created_at", since_iso)
+            .order("created_at", desc=True)
+            .limit(5000)
+            .execute()
+        )
+        application_rows = app_resp.data or []
+    except Exception as exc:
+        print(f"⚠️ Failed to load human-context dialogue rows for company {company_id}: {exc}")
+        application_rows = []
+
+    if dialogues_count is None:
+        dialogues_count = len(application_rows)
+
+    if not application_rows:
+        return {
+            "dialogues_last_90d": dialogues_count,
+            "median_first_response_hours_last_90d": None,
+        }
+
+    app_ids = [str((row or {}).get("id") or "").strip() for row in application_rows if str((row or {}).get("id") or "").strip()]
+    first_message_by_application: dict[str, datetime] = {}
+    batch_size = 200
+    for index in range(0, len(app_ids), batch_size):
+        chunk = app_ids[index:index + batch_size]
+        try:
+            message_resp = (
+                supabase
+                .table("application_messages")
+                .select("application_id,sender_role,created_at")
+                .in_("application_id", chunk)
+                .eq("sender_role", "recruiter")
+                .order("created_at")
+                .limit(5000)
+                .execute()
+            )
+        except Exception as exc:
+            if _is_missing_table_error(exc, "application_messages"):
+                break
+            print(f"⚠️ Failed to load human-context message rows for company {company_id}: {exc}")
+            continue
+        for row in (message_resp.data or []):
+            application_id = str((row or {}).get("application_id") or "").strip()
+            created_at = _parse_iso_datetime(str((row or {}).get("created_at") or ""))
+            if not application_id or created_at is None or application_id in first_message_by_application:
+                continue
+            first_message_by_application[application_id] = created_at
+
+    response_hours: list[float] = []
+    for row in application_rows:
+        application_id = str((row or {}).get("id") or "").strip()
+        created_at = _parse_iso_datetime(str((row or {}).get("created_at") or row.get("submitted_at") or ""))
+        if not application_id or created_at is None:
+            continue
+        first_response_at = first_message_by_application.get(application_id)
+        if first_response_at is None:
+            first_response_at = _parse_iso_datetime(str((row or {}).get("reviewed_at") or ""))
+        if first_response_at is None or first_response_at < created_at:
+            continue
+        delta_hours = (first_response_at - created_at).total_seconds() / 3600
+        if delta_hours < 0:
+            continue
+        response_hours.append(delta_hours)
+
+    return {
+        "dialogues_last_90d": dialogues_count,
+        "median_first_response_hours_last_90d": round(float(median(response_hours)), 1) if response_hours else None,
+    }
+
+
+def _normalize_solution_snapshot_tags(value: Any, limit: int = 8) -> list[str]:
+    values = value if isinstance(value, list) else str(value or "").split(",")
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        text = _trimmed_text(item, 60)
+        if not text:
+            continue
+        dedupe_key = text.lower()
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        normalized.append(text)
+        if len(normalized) >= limit:
+            break
+    return normalized
+
+
+def _serialize_solution_snapshot(row: dict | None) -> dict[str, Any] | None:
+    source = row or {}
+    if not source:
+        return None
+    job = _safe_dict(source.get("jobs"))
+    company = _safe_dict(source.get("companies"))
+    return {
+        "id": source.get("id"),
+        "dialogue_id": str(source.get("dialogue_id") or source.get("application_id") or ""),
+        "job_id": source.get("job_id"),
+        "company_id": source.get("company_id"),
+        "candidate_id": source.get("candidate_id"),
+        "problem": _trimmed_text(source.get("problem"), 2000),
+        "solution": _trimmed_text(source.get("solution"), 3000),
+        "result": _trimmed_text(source.get("result"), 2000),
+        "problem_tags": _normalize_solution_snapshot_tags(source.get("problem_tags")),
+        "solution_tags": _normalize_solution_snapshot_tags(source.get("solution_tags")),
+        "is_public": bool(source.get("is_public")),
+        "share_slug": _trimmed_text(source.get("share_slug"), 120) or None,
+        "created_at": source.get("created_at"),
+        "updated_at": source.get("updated_at"),
+        "job_title": _trimmed_text(source.get("job_title") or job.get("title"), 200) or None,
+        "company_name": _trimmed_text(source.get("company_name") or company.get("name"), 200) or None,
+        "candidate_name": _trimmed_text(source.get("candidate_name"), 160) or None,
+    }
+
+
+def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any] | None:
+    if not supabase or not dialogue_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,candidate_id,status,submitted_at,created_at,jobs(id,title,description),companies(id,name)")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+        row = resp.data if resp else None
+        return row if isinstance(row, dict) else None
+    except Exception as exc:
+        if not (
+            _is_missing_relationship_error(exc, "job_applications", "jobs")
+            or _is_missing_relationship_error(exc, "job_applications", "companies")
+        ):
+            raise
+
+    base_resp = (
+        supabase
+        .table("job_applications")
+        .select("id,job_id,company_id,candidate_id,status,submitted_at,created_at")
+        .eq("id", dialogue_id)
+        .maybe_single()
+        .execute()
+    )
+    row = base_resp.data if base_resp else None
+    if not isinstance(row, dict):
+        return None
+
+    normalized_job_id = _normalize_job_id(row.get("job_id"))
+    if isinstance(normalized_job_id, int):
+        try:
+            job_resp = (
+                supabase
+                .table("jobs")
+                .select("id,title,description")
+                .eq("id", normalized_job_id)
+                .maybe_single()
+                .execute()
+            )
+            row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
+        except Exception:
+            row["jobs"] = {}
+
+    company_id = str(row.get("company_id") or "").strip()
+    if company_id:
+        try:
+            company_resp = (
+                supabase
+                .table("companies")
+                .select("id,name")
+                .eq("id", company_id)
+                .maybe_single()
+                .execute()
+            )
+            row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
+        except Exception:
+            row["companies"] = {}
+    return row
+
+
+def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
+    if not supabase or not dialogue_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("job_solution_snapshots")
+            .select("*,jobs(id,title),companies(id,name)")
+            .eq("dialogue_id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+        row = resp.data if resp else None
+        return row if isinstance(row, dict) else None
+    except Exception as exc:
+        if _is_missing_table_error(exc, "job_solution_snapshots"):
+            return None
+        if not (
+            _is_missing_relationship_error(exc, "job_solution_snapshots", "jobs")
+            or _is_missing_relationship_error(exc, "job_solution_snapshots", "companies")
+        ):
+            raise
+
+    base_resp = (
+        supabase
+        .table("job_solution_snapshots")
+        .select("*")
+        .eq("dialogue_id", dialogue_id)
+        .maybe_single()
+        .execute()
+    )
+    row = base_resp.data if base_resp else None
+    if not isinstance(row, dict):
+        return None
+
+    normalized_job_id = _normalize_job_id(row.get("job_id"))
+    if isinstance(normalized_job_id, int):
+        try:
+            job_resp = (
+                supabase
+                .table("jobs")
+                .select("id,title")
+                .eq("id", normalized_job_id)
+                .maybe_single()
+                .execute()
+            )
+            row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
+        except Exception:
+            row["jobs"] = {}
+
+    company_id = str(row.get("company_id") or "").strip()
+    if company_id:
+        try:
+            company_resp = (
+                supabase
+                .table("companies")
+                .select("id,name")
+                .eq("id", company_id)
+                .maybe_single()
+                .execute()
+            )
+            row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
+        except Exception:
+            row["companies"] = {}
+    return row
+
+
+def _build_company_dialogue_solution_snapshot_state(dialogue_row: dict | None, snapshot_row: dict | None) -> dict[str, Any]:
+    job = _safe_dict((dialogue_row or {}).get("jobs"))
+    metadata, _cleaned = _extract_job_description_metadata(job.get("description"))
+    is_micro_job = metadata.get("challenge_format") == "micro_job"
+    status = str((dialogue_row or {}).get("status") or "").strip().lower()
+    reason: str | None = None
+    eligible = False
+
+    if not job:
+        reason = "missing_job"
+    elif not is_micro_job:
+        reason = "not_micro_job"
+    elif status != "hired":
+        reason = "awaiting_completion"
+    else:
+        eligible = True
+
+    return {
+        "eligible": eligible,
+        "reason": reason,
+        "snapshot": _serialize_solution_snapshot(snapshot_row),
+    }
+
+
 def _serialize_company_activity_event(row: dict | None) -> dict:
     source = row or {}
     payload = source.get("payload")
@@ -1824,6 +2482,7 @@ def _sanitize_candidate_profile_snapshot(raw) -> dict:
         "email": str(value.get("email") or "").strip() or None,
         "phone": str(value.get("phone") or "").strip() or None,
         "jobTitle": str(value.get("jobTitle") or "").strip() or None,
+        "avatar_url": _trimmed_text(value.get("avatar_url") or value.get("avatarUrl") or value.get("photo"), 500) or None,
         "linkedin": str(value.get("linkedin") or "").strip() or None,
         "skills": _safe_string_list(value.get("skills"), limit=12),
         "values": _safe_string_list(value.get("values"), limit=8),
@@ -1929,6 +2588,7 @@ def _serialize_company_dialogue_row(row: dict) -> dict:
         "job_title": job.get("title"),
         "candidate_name": profile.get("full_name") or candidate_snapshot.get("name") or profile.get("email") or "Candidate",
         "candidate_email": profile.get("email") or candidate_snapshot.get("email"),
+        "candidate_avatar_url": profile.get("avatar_url") or candidate_snapshot.get("avatar_url"),
         "has_cover_letter": bool(cover_letter),
         "has_cv": bool(cv_snapshot.get("fileUrl") or cv_snapshot.get("originalName") or row.get("cv_document_id")),
         "jcfpm_share_level": jcfpm_share_level,
@@ -2238,6 +2898,8 @@ def _draft_to_validation_report(draft: dict) -> dict:
     salary_to = draft.get("salary_to")
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=50)
     handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
+    micro_job = _get_draft_micro_job_state(draft)
+    is_micro_job = micro_job.get("challenge_format") == "micro_job"
     first_reply_prompt = str(draft.get("first_reply_prompt") or handshake.get("first_reply_prompt") or "").strip()
     company_truth_hard = str(draft.get("company_truth_hard") or handshake.get("company_truth_hard") or "").strip()
     company_truth_fail = str(draft.get("company_truth_fail") or handshake.get("company_truth_fail") or "").strip()
@@ -2248,37 +2910,45 @@ def _draft_to_validation_report(draft: dict) -> dict:
         blocking.append("Missing role summary.")
     if not responsibilities:
         blocking.append("Missing responsibilities.")
-    if not requirements:
+    if not is_micro_job and not requirements:
         blocking.append("Missing requirements.")
     if not location_public:
         blocking.append("Missing public location.")
     if not contact_email:
         blocking.append("Missing application contact email.")
-    if not company_truth_hard:
+    if not is_micro_job and not company_truth_hard:
         blocking.append("Missing the company truth: what is actually hard about this role.")
-    if not company_truth_fail:
+    if not is_micro_job and not company_truth_fail:
         blocking.append("Missing the company truth: who typically struggles in this role.")
+    if is_micro_job and not micro_job.get("kind"):
+        blocking.append("Missing micro job type.")
+    if is_micro_job and not micro_job.get("time_estimate"):
+        blocking.append("Missing micro job time estimate.")
+    if is_micro_job and not micro_job.get("collaboration_modes"):
+        blocking.append("Missing micro job collaboration type.")
 
-    if salary_from is None or salary_to is None:
+    if is_micro_job and salary_from is None and salary_to is None:
+        blocking.append("Missing micro job budget.")
+    elif salary_from is None or salary_to is None:
         warnings.append("Salary is not fully transparent.")
     elif float(salary_to or 0) < float(salary_from or 0):
         blocking.append("Salary max cannot be lower than salary min.")
 
-    if len(requirements) < 120:
+    if not is_micro_job and len(requirements) < 120:
         warnings.append("Requirements section is still very short.")
-    if len(benefits) < 2:
+    if not is_micro_job and len(benefits) < 2:
         warnings.append("Benefits are likely too vague or too thin.")
     if not first_reply_prompt:
         warnings.append("Add a first-reply prompt so candidates know how to start the handshake.")
-    if len(role_summary) < 80:
+    if len(role_summary) < (60 if is_micro_job else 80):
         suggestions.append("Expand the role summary to make the opportunity clearer.")
-    if len(responsibilities) < 180:
+    if not is_micro_job and len(responsibilities) < 180:
         suggestions.append("Add more concrete day-to-day responsibilities.")
-    if len(requirements) < 180:
+    if not is_micro_job and len(requirements) < 180:
         suggestions.append("Clarify must-have skills and expected experience.")
-    if company_truth_hard and len(company_truth_hard) < 60:
+    if not is_micro_job and company_truth_hard and len(company_truth_hard) < 60:
         suggestions.append("Make the 'what is hard' truth prompt more concrete.")
-    if company_truth_fail and len(company_truth_fail) < 60:
+    if not is_micro_job and company_truth_fail and len(company_truth_fail) < 60:
         suggestions.append("Clarify what type of person usually struggles here.")
 
     transparency_score = max(0, min(100, 100 - len(blocking) * 22 - len(warnings) * 8))
@@ -2294,14 +2964,21 @@ def _draft_to_validation_report(draft: dict) -> dict:
 
 def _compose_job_description_from_draft(draft: dict) -> str:
     sections: list[str] = []
-    for heading, key in [
+    micro_job = _get_draft_micro_job_state(draft)
+    is_micro_job = micro_job.get("challenge_format") == "micro_job"
+    section_definitions = [
+        ("Role Summary", "role_summary"),
+        ("Responsibilities", "responsibilities"),
+        ("How To Apply", "application_instructions"),
+    ] if is_micro_job else [
         ("Role Summary", "role_summary"),
         ("Team Intro", "team_intro"),
         ("Responsibilities", "responsibilities"),
         ("Requirements", "requirements"),
         ("Nice to Have", "nice_to_have"),
         ("How To Apply", "application_instructions"),
-    ]:
+    ]
+    for heading, key in section_definitions:
         value = str(draft.get(key) or "").strip()
         if value:
             sections.append(f"### {heading}\n{value}")
@@ -2311,17 +2988,30 @@ def _compose_job_description_from_draft(draft: dict) -> str:
     company_truth_fail = str(draft.get("company_truth_fail") or handshake.get("company_truth_fail") or "").strip()
     if first_reply_prompt:
         sections.append(f"### First Reply\n{first_reply_prompt}")
-    if company_truth_hard:
+    if not is_micro_job and company_truth_hard:
         sections.append(f"### Company Truth: What Is Actually Hard?\n{company_truth_hard}")
-    if company_truth_fail:
+    if not is_micro_job and company_truth_fail:
         sections.append(f"### Company Truth: Who Typically Struggles?\n{company_truth_fail}")
+    if is_micro_job:
+        micro_lines: list[str] = []
+        kind = micro_job.get("kind")
+        time_estimate = micro_job.get("time_estimate")
+        collaboration_modes = micro_job.get("collaboration_modes") or []
+        if kind:
+            micro_lines.append(f"- Type: {str(kind).replace('_', ' ').title()}")
+        if time_estimate:
+            micro_lines.append(f"- Time estimate: {time_estimate}")
+        if collaboration_modes:
+            micro_lines.append(f"- Collaboration: {', '.join([str(item).title() for item in collaboration_modes])}")
+        if micro_lines:
+            sections.append("### Micro Job Setup\n" + "\n".join(micro_lines))
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=20)
-    if benefits:
+    if not is_micro_job and benefits:
         sections.append("### Benefits\n" + "\n".join([f"- {item}" for item in benefits]))
-    return _prepend_hiring_stage_marker("\n\n".join(sections).strip(), draft)
+    return _prepend_job_description_markers("\n\n".join(sections).strip(), draft)
 
 
-_HIRING_STAGE_PATTERN = re.compile(r"^\s*<!--\s*jobshaman:hiring_stage=([a-z_]+)\s*-->\s*", re.IGNORECASE)
+_JOB_DESCRIPTION_METADATA_PATTERN = re.compile(r"^\s*<!--\s*jobshaman:([a-z_]+)=([^\n>]*)\s*-->\s*", re.IGNORECASE)
 _ALLOWED_HIRING_STAGES = {
     "collecting_cvs",
     "reviewing_first_10",
@@ -2329,6 +3019,15 @@ _ALLOWED_HIRING_STAGES = {
     "final_interviews",
     "offer_stage",
 }
+_ALLOWED_CHALLENGE_FORMATS = {"standard", "micro_job"}
+_ALLOWED_MICRO_JOB_KINDS = {
+    "one_off_task",
+    "short_project",
+    "audit_review",
+    "prototype",
+    "experiment",
+}
+_ALLOWED_MICRO_JOB_COLLABORATION = {"remote", "async", "call"}
 
 
 def _normalize_hiring_stage(raw: Any) -> str | None:
@@ -2340,14 +3039,93 @@ def _normalize_hiring_stage(raw: Any) -> str | None:
     return None
 
 
-def _extract_hiring_stage_from_description(raw_description: Any) -> tuple[str | None, str]:
+def _normalize_challenge_format(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    normalized = raw.strip().lower()
+    if normalized in _ALLOWED_CHALLENGE_FORMATS:
+        return normalized
+    return None
+
+
+def _normalize_micro_job_kind(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    normalized = raw.strip().lower()
+    if normalized in _ALLOWED_MICRO_JOB_KINDS:
+        return normalized
+    return None
+
+
+def _normalize_micro_job_time_estimate(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    normalized = re.sub(r"\s+", " ", raw).strip()
+    if not normalized:
+        return None
+    normalized = normalized.replace("--", "-").replace(">", "")
+    return normalized[:80]
+
+
+def _normalize_micro_job_collaboration_modes(raw: Any) -> list[str]:
+    values = raw if isinstance(raw, list) else str(raw or "").split(",")
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        mode = str(item or "").strip().lower()
+        if not mode or mode not in _ALLOWED_MICRO_JOB_COLLABORATION or mode in seen:
+            continue
+        seen.add(mode)
+        normalized.append(mode)
+    return normalized
+
+
+def _normalize_micro_job_editor_state(editor_state: Any) -> dict[str, Any]:
+    micro_job = _safe_dict(_safe_dict(editor_state).get("micro_job"))
+    challenge_format = _normalize_challenge_format(micro_job.get("challenge_format") or micro_job.get("format")) or "standard"
+    return {
+        "challenge_format": challenge_format,
+        "kind": _normalize_micro_job_kind(micro_job.get("kind")),
+        "time_estimate": _normalize_micro_job_time_estimate(micro_job.get("time_estimate")),
+        "collaboration_modes": _normalize_micro_job_collaboration_modes(micro_job.get("collaboration_modes")),
+    }
+
+
+def _extract_job_description_metadata(raw_description: Any) -> tuple[dict[str, Any], str]:
     description = str(raw_description or "")
-    match = _HIRING_STAGE_PATTERN.match(description)
-    if not match:
-        return None, description
-    stage = _normalize_hiring_stage(match.group(1))
-    cleaned = description[match.end():].lstrip()
-    return stage, cleaned
+    remaining = description
+    metadata = {
+        "hiring_stage": None,
+        "challenge_format": "standard",
+        "kind": None,
+        "time_estimate": None,
+        "collaboration_modes": [],
+    }
+
+    while remaining:
+        match = _JOB_DESCRIPTION_METADATA_PATTERN.match(remaining)
+        if not match:
+            break
+        key = str(match.group(1) or "").strip().lower()
+        value = str(match.group(2) or "").strip()
+        if key == "hiring_stage":
+            metadata["hiring_stage"] = _normalize_hiring_stage(value)
+        elif key == "challenge_format":
+            metadata["challenge_format"] = _normalize_challenge_format(value) or metadata["challenge_format"]
+        elif key == "micro_job_kind":
+            metadata["kind"] = _normalize_micro_job_kind(value)
+        elif key == "micro_time_estimate":
+            metadata["time_estimate"] = _normalize_micro_job_time_estimate(value)
+        elif key == "micro_collaboration":
+            metadata["collaboration_modes"] = _normalize_micro_job_collaboration_modes(value)
+        remaining = remaining[match.end():].lstrip()
+
+    return metadata, remaining
+
+
+def _extract_hiring_stage_from_description(raw_description: Any) -> tuple[str | None, str]:
+    metadata, cleaned = _extract_job_description_metadata(raw_description)
+    return metadata.get("hiring_stage"), cleaned
 
 
 def _get_draft_hiring_stage(draft: dict) -> str | None:
@@ -2359,14 +3137,30 @@ def _get_draft_hiring_stage(draft: dict) -> str | None:
     return _normalize_hiring_stage(draft.get("hiring_stage"))
 
 
-def _prepend_hiring_stage_marker(description: str, draft: dict) -> str:
+def _get_draft_micro_job_state(draft: dict) -> dict[str, Any]:
+    return _normalize_micro_job_editor_state(draft.get("editor_state"))
+
+
+def _prepend_job_description_markers(description: str, draft: dict) -> str:
+    markers: list[str] = []
     hiring_stage = _get_draft_hiring_stage(draft)
-    if not hiring_stage:
+    if hiring_stage:
+        markers.append(f"<!-- jobshaman:hiring_stage={hiring_stage} -->")
+    micro_job = _get_draft_micro_job_state(draft)
+    if micro_job.get("challenge_format") == "micro_job":
+        markers.append("<!-- jobshaman:challenge_format=micro_job -->")
+        if micro_job.get("kind"):
+            markers.append(f"<!-- jobshaman:micro_job_kind={micro_job['kind']} -->")
+        if micro_job.get("time_estimate"):
+            markers.append(f"<!-- jobshaman:micro_time_estimate={micro_job['time_estimate']} -->")
+        if micro_job.get("collaboration_modes"):
+            markers.append(f"<!-- jobshaman:micro_collaboration={','.join(micro_job['collaboration_modes'])} -->")
+    if not markers:
         return description
-    marker = f"<!-- jobshaman:hiring_stage={hiring_stage} -->"
+    prefix = "\n".join(markers)
     if not description:
-        return marker
-    return f"{marker}\n\n{description}"
+        return prefix
+    return f"{prefix}\n\n{description}"
 
 def _coerce_job_analysis_payload(raw: dict) -> dict:
     summary = str(raw.get("summary") or "").strip()
@@ -3536,7 +4330,7 @@ async def list_company_dialogues_legacy(
         query = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
             .eq("company_id", company_id)
             .order("submitted_at", desc=True)
             .limit(limit)
@@ -3583,7 +4377,7 @@ async def get_company_dialogue_detail_legacy(
         resp = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
             .eq("id", application_id)
             .maybe_single()
             .execute()
@@ -3969,6 +4763,108 @@ async def create_my_dialogue_message(
     return {"message": _serialize_dialogue_message(response.get("message"))}
 
 
+@router.get("/solution-snapshots/me")
+@limiter.limit("60/minute")
+async def list_my_solution_snapshots(
+    request: Request,
+    limit: int = Query(12, ge=1, le=50),
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    try:
+        resp = (
+            supabase
+            .table("job_solution_snapshots")
+            .select("*,jobs(id,title),companies(id,name)")
+            .eq("candidate_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    except Exception as exc:
+        if _is_missing_table_error(exc, "job_solution_snapshots"):
+            return {"snapshots": []}
+        if not (
+            _is_missing_relationship_error(exc, "job_solution_snapshots", "jobs")
+            or _is_missing_relationship_error(exc, "job_solution_snapshots", "companies")
+        ):
+            raise HTTPException(status_code=500, detail="Failed to load solution snapshots")
+
+        fallback_resp = (
+            supabase
+            .table("job_solution_snapshots")
+            .select("*")
+            .eq("candidate_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = [row for row in (fallback_resp.data or []) if isinstance(row, dict)]
+        job_ids = [int(jid) for jid in {_normalize_job_id(row.get("job_id")) for row in rows} if isinstance(jid, int)]
+        company_ids = [cid for cid in {str((row or {}).get("company_id") or "").strip() for row in rows} if cid]
+        jobs_by_id: dict[int, dict[str, Any]] = {}
+        companies_by_id: dict[str, dict[str, Any]] = {}
+
+        if job_ids:
+            try:
+                jobs_resp = (
+                    supabase
+                    .table("jobs")
+                    .select("id,title")
+                    .in_("id", job_ids)
+                    .limit(len(job_ids))
+                    .execute()
+                )
+                jobs_by_id = {
+                    int(row.get("id")): row
+                    for row in (jobs_resp.data or [])
+                    if isinstance(row, dict) and isinstance(row.get("id"), int)
+                }
+            except Exception:
+                jobs_by_id = {}
+
+        if company_ids:
+            try:
+                companies_resp = (
+                    supabase
+                    .table("companies")
+                    .select("id,name")
+                    .in_("id", company_ids)
+                    .limit(len(company_ids))
+                    .execute()
+                )
+                companies_by_id = {
+                    str(row.get("id") or ""): row
+                    for row in (companies_resp.data or [])
+                    if isinstance(row, dict)
+                }
+            except Exception:
+                companies_by_id = {}
+
+        for row in rows:
+            normalized_job_id = _normalize_job_id(row.get("job_id"))
+            if isinstance(normalized_job_id, int):
+                row["jobs"] = jobs_by_id.get(normalized_job_id, {})
+            company_id = str(row.get("company_id") or "").strip()
+            if company_id:
+                row["companies"] = companies_by_id.get(company_id, {})
+
+    return {
+        "snapshots": [
+            serialized
+            for serialized in (_serialize_solution_snapshot(row) for row in rows)
+            if serialized is not None
+        ]
+    }
+
+
 @router.get("/company/dialogues")
 @limiter.limit("60/minute")
 async def list_company_dialogues(
@@ -4047,6 +4943,121 @@ async def update_company_dialogue_status(
         request=request,
         user=user,
     )
+
+
+@router.get("/company/dialogues/{dialogue_id}/solution-snapshot")
+@limiter.limit("60/minute")
+async def get_company_dialogue_solution_snapshot(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    dialogue_row = _load_dialogue_solution_snapshot_context(dialogue_id)
+    if not dialogue_row:
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    require_company_access(user, str(dialogue_row.get("company_id") or ""))
+
+    snapshot_row = _load_dialogue_solution_snapshot(dialogue_id)
+    return _build_company_dialogue_solution_snapshot_state(dialogue_row, snapshot_row)
+
+
+@router.put("/company/dialogues/{dialogue_id}/solution-snapshot")
+@limiter.limit("30/minute")
+async def upsert_company_dialogue_solution_snapshot(
+    dialogue_id: str,
+    payload: DialogueSolutionSnapshotUpsertRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    dialogue_row = _load_dialogue_solution_snapshot_context(dialogue_id)
+    if not dialogue_row:
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    require_company_access(user, str(dialogue_row.get("company_id") or ""))
+
+    existing_snapshot = _load_dialogue_solution_snapshot(dialogue_id)
+    state = _build_company_dialogue_solution_snapshot_state(dialogue_row, existing_snapshot)
+    if state.get("reason") == "missing_job":
+        raise HTTPException(status_code=409, detail="This dialogue is missing a linked role.")
+    if state.get("reason") == "not_micro_job":
+        raise HTTPException(status_code=409, detail="Solution snapshots are available only for micro jobs.")
+    if state.get("reason") == "awaiting_completion":
+        raise HTTPException(status_code=409, detail="Mark the micro job as hired first to save a solution snapshot.")
+
+    timestamp = now_iso()
+    base_payload = {
+        "dialogue_id": dialogue_id,
+        "job_id": dialogue_row.get("job_id"),
+        "company_id": dialogue_row.get("company_id"),
+        "candidate_id": dialogue_row.get("candidate_id"),
+        "problem": _trimmed_text(payload.problem, 2000),
+        "solution": _trimmed_text(payload.solution, 3000),
+        "result": _trimmed_text(payload.result, 2000),
+        "problem_tags": _normalize_solution_snapshot_tags(payload.problem_tags),
+        "solution_tags": _normalize_solution_snapshot_tags(payload.solution_tags),
+        "is_public": bool(payload.is_public),
+        "share_slug": _trimmed_text((existing_snapshot or {}).get("share_slug"), 120) or uuid4().hex[:16],
+        "updated_at": timestamp,
+    }
+
+    try:
+        if existing_snapshot:
+            save_resp = (
+                supabase
+                .table("job_solution_snapshots")
+                .update(base_payload)
+                .eq("id", existing_snapshot.get("id"))
+                .select("*")
+                .single()
+                .execute()
+            )
+        else:
+            insert_payload = dict(base_payload)
+            insert_payload["created_at"] = timestamp
+            insert_payload["created_by"] = user.get("id") or user.get("auth_id")
+            save_resp = (
+                supabase
+                .table("job_solution_snapshots")
+                .insert(insert_payload)
+                .select("*")
+                .single()
+                .execute()
+            )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "job_solution_snapshots"):
+            raise HTTPException(status_code=409, detail="Solution snapshots unavailable")
+        print(f"⚠️ Failed to save solution snapshot for dialogue {dialogue_id}: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to save solution snapshot")
+
+    snapshot_row = save_resp.data if save_resp and isinstance(save_resp.data, dict) else None
+    if not snapshot_row:
+        raise HTTPException(status_code=500, detail="Failed to save solution snapshot")
+
+    snapshot_row["jobs"] = _safe_dict(dialogue_row.get("jobs"))
+    snapshot_row["companies"] = _safe_dict(dialogue_row.get("companies"))
+
+    _write_company_activity_log(
+        company_id=str(dialogue_row.get("company_id") or ""),
+        event_type="solution_snapshot_saved",
+        payload={
+            "dialogue_id": dialogue_id,
+            "job_id": dialogue_row.get("job_id"),
+            "candidate_id": dialogue_row.get("candidate_id"),
+            "job_title": _trimmed_text(_safe_dict(dialogue_row.get("jobs")).get("title"), 200) or None,
+        },
+        actor_user_id=user.get("id") or user.get("auth_id"),
+        subject_type="dialogue",
+        subject_id=dialogue_id,
+    )
+
+    return {"snapshot": _serialize_solution_snapshot(snapshot_row)}
 
 
 @router.post("/company/roles")
@@ -4239,6 +5250,60 @@ async def create_company_activity_log_event(
     return {"event": _serialize_company_activity_event(row)}
 
 
+@router.get("/company/human-context/people")
+@limiter.limit("60/minute")
+async def list_company_human_context_people(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    company_id = require_company_access(user, user.get("company_id"))
+    owner_id, team_profiles = _fetch_company_team_context(company_id)
+    member_rows = _fetch_company_member_rows(company_id)
+    user_ids = _fetch_company_public_member_ids(company_id)
+    profiles_by_id = _fetch_profiles_map(user_ids)
+
+    people: list[dict[str, Any]] = []
+    meta_by_user_id: dict[str, dict[str, Any]] = {}
+    if owner_id:
+        meta_by_user_id[owner_id] = _read_company_team_member_profile(
+            team_profiles,
+            member_id=owner_id,
+            user_id=owner_id,
+            source="owner",
+        )
+    for row in member_rows:
+        user_id = _trimmed_text((row or {}).get("user_id"), 120)
+        if not user_id:
+            continue
+        source = "owner" if owner_id and user_id == owner_id else "member"
+        meta_by_user_id[user_id] = _read_company_team_member_profile(
+            team_profiles,
+            member_id=_trimmed_text((row or {}).get("id"), 120),
+            user_id=user_id,
+            source=source,
+        )
+
+    for user_id in sorted(user_ids):
+        profile = profiles_by_id.get(user_id, {})
+        display_name = _trimmed_text(profile.get("full_name") or profile.get("email") or "Team member", 120)
+        if not display_name:
+            continue
+        meta = meta_by_user_id.get(user_id, {})
+        people.append({
+            "user_id": user_id,
+            "display_name": display_name,
+            "avatar_url": _trimmed_text(profile.get("avatar_url"), 500) or None,
+            "email": _trimmed_text(profile.get("email") or meta.get("invited_email"), 180) or None,
+            "display_role": _trimmed_text(meta.get("company_role"), 120) or None,
+            "short_context": _trimmed_text(meta.get("short_bio"), 280) or None,
+        })
+
+    people.sort(key=lambda row: (str(row.get("display_name") or "").lower(), str(row.get("email") or "").lower()))
+    return {"people": people}
+
+
 @router.post("/company/job-drafts")
 @limiter.limit("60/minute")
 async def create_company_job_draft(
@@ -4394,6 +5459,8 @@ async def publish_company_job_draft(
         company_name = str((company_resp.data or {}).get("name") or company_name)
     except Exception:
         pass
+    micro_job = _get_draft_micro_job_state(draft)
+    is_micro_job = micro_job.get("challenge_format") == "micro_job"
 
     job_payload = {
         "title": draft.get("title"),
@@ -4403,12 +5470,12 @@ async def publish_company_job_draft(
         "salary_from": draft.get("salary_from"),
         "salary_to": draft.get("salary_to"),
         "salary_currency": draft.get("salary_currency") or "CZK",
-        "salary_timeframe": draft.get("salary_timeframe") or "month",
-        "benefits": _safe_string_list(draft.get("benefits_structured"), limit=50),
+        "salary_timeframe": "project_total" if is_micro_job else (draft.get("salary_timeframe") or "month"),
+        "benefits": [] if is_micro_job else _safe_string_list(draft.get("benefits_structured"), limit=50),
         "contact_email": draft.get("contact_email"),
         "workplace_address": draft.get("workplace_address"),
         "company_id": company_id,
-        "contract_type": draft.get("contract_type"),
+        "contract_type": None if is_micro_job else draft.get("contract_type"),
         "work_type": draft.get("work_model"),
         "source": "jobshaman.cz",
         "scraped_at": now_iso(),
@@ -4457,6 +5524,10 @@ async def publish_company_job_draft(
         "contract_type": job_payload["contract_type"],
         "work_type": job_payload["work_type"],
         "benefits": job_payload["benefits"],
+        "challenge_format": micro_job.get("challenge_format"),
+        "micro_job_kind": micro_job.get("kind"),
+        "micro_job_time_estimate": micro_job.get("time_estimate"),
+        "micro_job_collaboration_modes": micro_job.get("collaboration_modes"),
         "source_draft_id": draft_id,
     }
 
@@ -4483,6 +5554,8 @@ async def publish_company_job_draft(
         }).eq("id", draft_id).execute()
     except Exception as exc:
         print(f"⚠️ Failed to update draft after publish: {exc}")
+
+    _sync_job_public_people(job_id=job_id, company_id=company_id, editor_state=draft.get("editor_state"))
 
     _write_company_activity_log(
         company_id=company_id,
@@ -4522,7 +5595,8 @@ async def create_edit_draft_from_job(
     source = source_resp.data if source_resp else None
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
-    extracted_hiring_stage, cleaned_description = _extract_hiring_stage_from_description(source.get("description"))
+    existing_human_context = _build_job_human_context_editor_state(job_id, company_id)
+    description_metadata, cleaned_description = _extract_job_description_metadata(source.get("description"))
     benefits = source.get("benefits")
     if not isinstance(benefits, list):
         benefits = []
@@ -4539,7 +5613,7 @@ async def create_edit_draft_from_job(
         "salary_from": source.get("salary_from"),
         "salary_to": source.get("salary_to"),
         "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
-        "salary_timeframe": source.get("salary_timeframe") or "month",
+        "salary_timeframe": source.get("salary_timeframe") or ("project_total" if description_metadata.get("challenge_format") == "micro_job" else "month"),
         "contract_type": source.get("contract_type"),
         "work_model": source.get("work_type") or source.get("work_model"),
         "workplace_address": source.get("workplace_address") or source.get("location"),
@@ -4547,7 +5621,14 @@ async def create_edit_draft_from_job(
         "contact_email": source.get("contact_email"),
         "editor_state": {
             "selected_section": "role_summary",
-            "hiring_stage": extracted_hiring_stage or "collecting_cvs",
+            "hiring_stage": description_metadata.get("hiring_stage") or "collecting_cvs",
+            "micro_job": {
+                "challenge_format": description_metadata.get("challenge_format") or "standard",
+                "kind": description_metadata.get("kind"),
+                "time_estimate": description_metadata.get("time_estimate"),
+                "collaboration_modes": description_metadata.get("collaboration_modes") or [],
+            },
+            "human_context": existing_human_context,
         },
         "created_by": user.get("id") or user.get("auth_id"),
         "updated_by": user.get("id") or user.get("auth_id"),
@@ -4601,7 +5682,8 @@ async def duplicate_job_into_draft(
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
     company_id = str(source.get("company_id") or "")
-    extracted_hiring_stage, cleaned_description = _extract_hiring_stage_from_description(source.get("description"))
+    existing_human_context = _build_job_human_context_editor_state(job_id, company_id)
+    description_metadata, cleaned_description = _extract_job_description_metadata(source.get("description"))
     benefits = source.get("benefits")
     if not isinstance(benefits, list):
         benefits = []
@@ -4617,7 +5699,7 @@ async def duplicate_job_into_draft(
         "salary_from": source.get("salary_from"),
         "salary_to": source.get("salary_to"),
         "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
-        "salary_timeframe": source.get("salary_timeframe") or "month",
+        "salary_timeframe": source.get("salary_timeframe") or ("project_total" if description_metadata.get("challenge_format") == "micro_job" else "month"),
         "contract_type": source.get("contract_type"),
         "work_model": source.get("work_type") or source.get("work_model"),
         "workplace_address": source.get("workplace_address") or source.get("location"),
@@ -4625,7 +5707,14 @@ async def duplicate_job_into_draft(
         "contact_email": source.get("contact_email"),
         "editor_state": {
             "selected_section": "role_summary",
-            "hiring_stage": extracted_hiring_stage or "collecting_cvs",
+            "hiring_stage": description_metadata.get("hiring_stage") or "collecting_cvs",
+            "micro_job": {
+                "challenge_format": description_metadata.get("challenge_format") or "standard",
+                "kind": description_metadata.get("kind"),
+                "time_estimate": description_metadata.get("time_estimate"),
+                "collaboration_modes": description_metadata.get("collaboration_modes") or [],
+            },
+            "human_context": existing_human_context,
         },
         "created_by": user.get("id") or user.get("auth_id"),
         "updated_by": user.get("id") or user.get("auth_id"),
@@ -4635,6 +5724,51 @@ async def duplicate_job_into_draft(
     draft = resp.data[0]
     draft["quality_report"] = _draft_to_validation_report(draft)
     return {"draft": draft}
+
+
+@router.get("/jobs/{job_id}/human-context")
+@limiter.limit("120/minute")
+async def get_job_human_context(
+    job_id: str,
+    request: Request,
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    normalized_job_id = _normalize_job_id(job_id)
+    job_resp = (
+        supabase
+        .table("jobs")
+        .select("id,company_id,source")
+        .eq("id", normalized_job_id)
+        .maybe_single()
+        .execute()
+    )
+    job_row = job_resp.data if job_resp else None
+    if not job_row:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    company_id = str(job_row.get("company_id") or "").strip()
+    source = str(job_row.get("source") or "").strip().lower()
+    if not company_id or source != _NATIVE_JOB_SOURCE:
+        return _empty_job_human_context_payload()
+
+    rows = _load_valid_job_public_people(job_id, company_id)
+    publisher = None
+    responders: list[dict[str, Any]] = []
+    for row in rows:
+        serialized = _serialize_job_public_person(row)
+        if serialized.get("person_kind") == "publisher" and publisher is None:
+            publisher = serialized
+            continue
+        if serialized.get("person_kind") == "responder" and len(responders) < _JOB_PUBLIC_PERSON_MAX_RESPONDERS:
+            responders.append(serialized)
+
+    return {
+        "publisher": publisher,
+        "responders": responders,
+        "trust": _compute_company_human_context_trust(company_id),
+    }
 
 
 @router.patch("/company/roles/{job_id}/lifecycle")

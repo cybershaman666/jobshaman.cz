@@ -19,6 +19,12 @@ interface ChallengeComposerProps {
   onOpenSupportingContext: () => void;
 }
 
+const getSnapshotAvatarUrl = (value?: string | null): string | undefined => {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('data:')) return undefined;
+  return raw.length <= 500 ? raw : undefined;
+};
+
 const normalizeJobId = (jobId: string | number): string => {
   const raw = String(jobId || '').trim();
   return raw.startsWith('db-') ? raw.slice(3) : raw;
@@ -180,6 +186,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
             email: userProfile.email,
             phone: userProfile.phone,
             jobTitle: userProfile.jobTitle,
+            avatar_url: getSnapshotAvatarUrl(userProfile.photo),
             skills: Array.isArray(userProfile.skills) ? userProfile.skills.slice(0, 12) : [],
             values: Array.isArray(userProfile.values) ? userProfile.values.slice(0, 8) : [],
             preferredCountryCode: userProfile.preferredCountryCode

@@ -12,7 +12,7 @@ import {
   TrainFront
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
+import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, MicroJobCollaborationMode, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
@@ -34,6 +34,7 @@ interface ChallengeMarketplaceProps {
   savedJobIds: string[];
   userProfile: UserProfile;
   lane: 'challenges' | 'imports';
+  microJobsOnly: boolean;
   setLane: (lane: 'challenges' | 'imports') => void;
   loading: boolean;
   loadingMore: boolean;
@@ -138,7 +139,7 @@ const BORDER_COUNTRY_MAP: Record<SupportedCountryCode, SupportedCountryCode[]> =
 type WorkArrangementFilter = 'all' | 'remote' | 'hybrid' | 'onsite';
 type GeographicScopeFilter = 'domestic' | 'border' | 'abroad' | 'all';
 
-const MIN_NATIVE_CHALLENGE_POOL = 12;
+const MIN_NATIVE_CHALLENGE_POOL = 20;
 
 const simplifyDescription = (value: string | null | undefined): string => {
   const plain = String(value || '')
@@ -246,6 +247,100 @@ const getWorkModel = (job: Job, isCsLike: boolean): string => {
   return raw;
 };
 
+const isMicroJob = (job: Job): boolean => job.challenge_format === 'micro_job';
+
+const getMicroJobBadge = (language: MarketplaceLanguage): string => ({
+  cs: 'MINI VYZVA',
+  sk: 'MINI VYZVA',
+  de: 'MINI-AUFGABE',
+  at: 'MINI-AUFGABE',
+  pl: 'MINI WYZWANIE',
+  en: 'MINI CHALLENGE'
+}[language]);
+
+const getMicroJobKindLabel = (kind: Job['micro_job_kind'], language: MarketplaceLanguage): string | null => {
+  if (!kind) return null;
+  const labels: Record<NonNullable<Job['micro_job_kind']>, Record<MarketplaceLanguage, string>> = {
+    one_off_task: {
+      cs: 'Jednorázový task',
+      sk: 'Jednorazový task',
+      de: 'Einmalige Aufgabe',
+      at: 'Einmalige Aufgabe',
+      pl: 'Jednorazowe zadanie',
+      en: 'One-off task'
+    },
+    short_project: {
+      cs: 'Krátký projekt',
+      sk: 'Krátky projekt',
+      de: 'Kurzprojekt',
+      at: 'Kurzprojekt',
+      pl: 'Krótki projekt',
+      en: 'Short project'
+    },
+    audit_review: {
+      cs: 'Audit / review',
+      sk: 'Audit / review',
+      de: 'Audit / Review',
+      at: 'Audit / Review',
+      pl: 'Audyt / review',
+      en: 'Audit / review'
+    },
+    prototype: {
+      cs: 'Prototyp',
+      sk: 'Prototyp',
+      de: 'Prototyp',
+      at: 'Prototyp',
+      pl: 'Prototyp',
+      en: 'Prototype'
+    },
+    experiment: {
+      cs: 'Experiment',
+      sk: 'Experiment',
+      de: 'Experiment',
+      at: 'Experiment',
+      pl: 'Eksperyment',
+      en: 'Experiment'
+    }
+  };
+  return labels[kind]?.[language] || labels[kind]?.en || null;
+};
+
+const getMicroJobCollaborationLabel = (
+  modes: Job['micro_job_collaboration_modes'],
+  language: MarketplaceLanguage
+): string | null => {
+  if (!Array.isArray(modes) || modes.length === 0) return null;
+  const labelMap: Record<MicroJobCollaborationMode, Record<MarketplaceLanguage, string>> = {
+    remote: {
+      cs: 'Remote',
+      sk: 'Remote',
+      de: 'Remote',
+      at: 'Remote',
+      pl: 'Remote',
+      en: 'Remote'
+    },
+    async: {
+      cs: 'Asynchronně',
+      sk: 'Asynchrónne',
+      de: 'Asynchron',
+      at: 'Asynchron',
+      pl: 'Asynchronicznie',
+      en: 'Async'
+    },
+    call: {
+      cs: 'Call',
+      sk: 'Call',
+      de: 'Call',
+      at: 'Call',
+      pl: 'Call',
+      en: 'Call'
+    }
+  };
+  return modes
+    .map((mode) => labelMap[mode]?.[language] || labelMap[mode]?.en || mode)
+    .join(' • ');
+};
+
 const getExperienceLabel = (job: Job, isCsLike: boolean): string | null => {
   const source = `${(job as any).seniority || ''} ${(job as any).experience_level || ''} ${job.title || ''}`.toLowerCase();
   if (!source) return null;
@@ -303,6 +398,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   savedJobIds,
   userProfile,
   lane,
+  microJobsOnly,
   setLane,
   loading,
   loadingMore,
@@ -1012,6 +1108,65 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
         mobileSwipeSkip: 'Prefer classic list'
       }
   } as const)[language === 'at' ? 'de' : language];
+
+  const microJobDiscoveryCopy = {
+    heroEyebrow: getLocaleLabel({
+      cs: 'Mini výzvy',
+      sk: 'Mini výzvy',
+      de: 'Mini-Aufgaben',
+      at: 'Mini-Aufgaben',
+      pl: 'Mini wyzwania',
+      en: 'Mini challenges'
+    }, language),
+    heroTitle: getLocaleLabel({
+      cs: 'Krátké spolupráce a rychlé výpomoci',
+      sk: 'Krátke spolupráce a rýchle výpomoci',
+      de: 'Kurze Zusammenarbeit und schnelle Einsätze',
+      at: 'Kurze Zusammenarbeit und schnelle Einsätze',
+      pl: 'Krótkie współpráce i szybkie projekty',
+      en: 'Short collaborations and fast-turn projects'
+    }, language),
+    heroBody: getLocaleLabel({
+      cs: 'Jednorázové tasky, krátké projekty, audity a prototypy s jasným časem, rozpočtem a způsobem spolupráce.',
+      sk: 'Jednorazové tasky, krátke projekty, audity a prototypy s jasným časom, rozpočtom a spôsobom spolupráce.',
+      de: 'Einmalige Tasks, kurze Projekte, Audits und Prototypen mit klarem Zeitrahmen, Budget und Arbeitsmodus.',
+      at: 'Einmalige Tasks, kurze Projekte, Audits und Prototypen mit klarem Zeitrahmen, Budget und Arbeitsmodus.',
+      pl: 'Jednorazowe zadania, krótkie projekty, audyty i prototypy z jasnym czasem, budżetem i trybem współpracy.',
+      en: 'One-off tasks, short projects, audits, and prototypes with clear time, budget, and collaboration mode.'
+    }, language),
+    laneBadge: getLocaleLabel({
+      cs: 'Přehled mini výzev',
+      sk: 'Prehľad mini výziev',
+      de: 'Mini-Aufgaben-Feed',
+      at: 'Mini-Aufgaben-Feed',
+      pl: 'Przegląd mini wyzwań',
+      en: 'Mini challenge feed'
+    }, language),
+    laneTitle: getLocaleLabel({
+      cs: 'Mini výzvy',
+      sk: 'Mini výzvy',
+      de: 'Mini-Aufgaben',
+      at: 'Mini-Aufgaben',
+      pl: 'Mini wyzwania',
+      en: 'Mini challenges'
+    }, language),
+    laneBody: getLocaleLabel({
+      cs: 'Rychlé spolupráce s menším závazkem. Vidíte jen role s krátkým rozsahem, rozpočtem a jasným výstupem.',
+      sk: 'Rýchle spolupráce s menším záväzkom. Vidíte len roly s krátkym rozsahom, rozpočtom a jasným výstupom.',
+      de: 'Schnelle Zusammenarbeit mit kleinerem Commitment. Sie sehen nur Rollen mit klarem Umfang, Budget und Output.',
+      at: 'Schnelle Zusammenarbeit mit kleinerem Commitment. Sie sehen nur Rollen mit klarem Umfang, Budget und Output.',
+      pl: 'Szybka współpraca z mniejszym zobowiązaniem. Widać tu tylko role z krótkim zakresem, budżetem i jasnym efektem.',
+      en: 'Fast-turn collaboration with lighter commitment. This view shows only roles with short scope, budget, and a clear outcome.'
+    }, language),
+    laneReadMode: getLocaleLabel({
+      cs: 'Krátká spolupráce, ne klasický full-time nábor',
+      sk: 'Krátka spolupráca, nie klasický full-time nábor',
+      de: 'Kurzprojekt statt klassischem Fulltime-Hiring',
+      at: 'Kurzprojekt statt klassischem Fulltime-Hiring',
+      pl: 'Krótka współpraca, nie klasyczny rekrutacyjny etat',
+      en: 'Short collaboration, not classic full-time hiring'
+    }, language),
+  };
 
   const guestOnboardingContent = ({
     cs: {
@@ -1820,6 +1975,44 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   ]);
 
   const totalPages = Math.max(1, Math.ceil(Math.max(0, totalCount) / Math.max(1, pageSize)));
+  const backendResultsCount = Math.max(0, totalCount);
+  const hasClientSideResultRefinement = (
+    workArrangementFilter !== 'all' ||
+    geographicScopeFilter === 'border' ||
+    (effectiveCommuteEnabled && !enableCommuteFilter) ||
+    lane === 'imports' ||
+    (lane === 'challenges' && usePersonalSetup && hasNativeChallenges)
+  );
+  const displayedResultsCount = hasClientSideResultRefinement
+    ? prioritizedJobsInLane.length
+    : backendResultsCount;
+  const resultsMetricHelper = hasClientSideResultRefinement
+    ? getLocaleLabel({
+      cs: 'Viditelné teď v tomto feedu',
+      sk: 'Viditeľné teraz v tomto feede',
+      de: 'Jetzt im Feed sichtbar',
+      at: 'Jetzt im Feed sichtbar',
+      pl: 'Widoczne teraz w feedzie',
+      en: 'Visible now in this feed'
+    }, language)
+    : undefined;
+  const paginationSummary = hasClientSideResultRefinement
+    ? getLocaleLabel({
+      cs: `Backend strana ${currentPage + 1} z ${totalPages}`,
+      sk: `Backend strana ${currentPage + 1} z ${totalPages}`,
+      de: `Backend-Seite ${currentPage + 1} von ${totalPages}`,
+      at: `Backend-Seite ${currentPage + 1} von ${totalPages}`,
+      pl: `Strona backendu ${currentPage + 1} z ${totalPages}`,
+      en: `Backend page ${currentPage + 1} of ${totalPages}`
+    }, language)
+    : getLocaleLabel({
+      cs: `Strana ${currentPage + 1} z ${totalPages}`,
+      sk: `Strana ${currentPage + 1} z ${totalPages}`,
+      de: `Seite ${currentPage + 1} von ${totalPages}`,
+      at: `Seite ${currentPage + 1} von ${totalPages}`,
+      pl: `Strona ${currentPage + 1} z ${totalPages}`,
+      en: `Page ${currentPage + 1} of ${totalPages}`
+    }, language);
   const paginationWindow = useMemo(() => {
     const pages = new Set<number>([0, totalPages - 1, currentPage - 1, currentPage, currentPage + 1]);
     return Array.from(pages)
@@ -2270,9 +2463,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       {!userProfile.isLoggedIn ? (
       <div className="hidden md:block">
         <PageHeader
-          eyebrow={copy.eyebrow}
-          title={copy.title}
-          body={copy.body}
+          eyebrow={microJobsOnly ? microJobDiscoveryCopy.heroEyebrow : copy.eyebrow}
+          title={microJobsOnly ? microJobDiscoveryCopy.heroTitle : copy.title}
+          body={microJobsOnly ? microJobDiscoveryCopy.heroBody : copy.body}
           className="p-4 sm:p-5 md:p-6"
         >
           {!userProfile.isLoggedIn ? (
@@ -2345,7 +2538,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div className="flex min-h-[280px] min-w-[160px] flex-col gap-2.5">
                 <MetricTile
                   label={copy.results}
-                  value={Math.max(0, totalCount)}
+                  value={displayedResultsCount}
+                  helper={resultsMetricHelper}
                   className="border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
                 />
                 <SurfaceCard className="space-y-2 border-[rgba(var(--accent-rgb),0.14)] bg-white/84 p-3 dark:bg-[rgba(15,23,42,0.78)]">
@@ -2452,12 +2646,16 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       {/* Quick toggles are useful on smaller screens; on XL they duplicate the left filter column. */}
       <Toolbar sticky className="xl:hidden">
         <div className="flex flex-wrap items-center gap-2">
-          <FilterChip active={lane === 'challenges'} onClick={() => setLane('challenges')}>
-            {copy.laneChallenges}
-          </FilterChip>
-          <FilterChip active={lane === 'imports'} onClick={() => setLane('imports')}>
-            {copy.laneImports}
-          </FilterChip>
+          {!microJobsOnly ? (
+            <>
+              <FilterChip active={lane === 'challenges'} onClick={() => setLane('challenges')}>
+                {copy.laneChallenges}
+              </FilterChip>
+              <FilterChip active={lane === 'imports'} onClick={() => setLane('imports')}>
+                {copy.laneImports}
+              </FilterChip>
+            </>
+          ) : null}
           <FilterChip active={workArrangementFilter === 'remote'} onClick={() => handleWorkArrangementFilterChange(workArrangementFilter === 'remote' ? 'all' : 'remote')}>
             {copy.remoteOnly}
           </FilterChip>
@@ -2814,7 +3012,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricTile label={copy.results} value={Math.max(0, totalCount)} tone="accent" />
+                  <MetricTile
+                    label={copy.results}
+                    value={displayedResultsCount}
+                    helper={resultsMetricHelper}
+                    tone="accent"
+                  />
                   <MetricTile
                     label={copy.filters}
                     value={hasActiveFilters ? (isCsLike ? 'Zapnuté' : 'On') : (isCsLike ? 'Vypnuté' : 'Off')}
@@ -3023,20 +3226,25 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               <div className="space-y-2">
                 <div className="app-eyebrow w-fit !bg-[rgba(var(--accent-rgb),0.12)] !text-[var(--accent)]">
                   <Briefcase size={12} />
-                  {copy.laneBadge}
+                  {microJobsOnly ? microJobDiscoveryCopy.laneBadge : copy.laneBadge}
                 </div>
                 <h2 className="text-2xl font-semibold tracking-[-0.035em] text-[var(--text-strong)]">
-                  {lane === 'imports' ? copy.laneImports : copy.laneChallenges}
+                  {microJobsOnly ? microJobDiscoveryCopy.laneTitle : (lane === 'imports' ? copy.laneImports : copy.laneChallenges)}
                 </h2>
-                <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.laneBody}</p>
+                <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
+                  {microJobsOnly ? microJobDiscoveryCopy.laneBody : copy.laneBody}
+                </p>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/78 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)] dark:bg-[rgba(15,23,42,0.72)]">
-                  {isCsLike ? 'Čteno jako výzvy, ne jen seznam pozic' : 'Read as challenges, not just listings'}
+                  {microJobsOnly
+                    ? microJobDiscoveryCopy.laneReadMode
+                    : (isCsLike ? 'Čteno jako výzvy, ne jen seznam pozic' : 'Read as challenges, not just listings')}
                 </div>
               </div>
               <div className="flex min-w-[160px] flex-col gap-3">
                 <MetricTile
                   label={copy.results}
-                  value={`${prioritizedJobsInLane.length}`}
+                  value={`${displayedResultsCount}`}
+                  helper={resultsMetricHelper}
                   className="border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
                 />
                 {hasPremiumAccess && resolvedDialogueCapacity ? (
@@ -3108,6 +3316,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       const experienceLabel = getExperienceLabel(job, isCsLike);
                       const ageLabel = getJobAgeLabel(job, i18n.language);
                       const sourceBadge = job.listingKind === 'imported' ? copy.sourceImported : copy.sourceNative;
+                      const microJobBadge = isMicroJob(job) ? getMicroJobBadge(language) : null;
+                      const microJobKind = isMicroJob(job) ? getMicroJobKindLabel(job.micro_job_kind, language) : null;
+                      const microJobCollaboration = isMicroJob(job)
+                        ? getMicroJobCollaborationLabel(job.micro_job_collaboration_modes, language)
+                        : null;
                       return (
                         <article
                           key={job.id}
@@ -3137,6 +3350,11 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                               </div>
                               <div className="flex flex-wrap items-center justify-end gap-2">
                                 <span className="app-eyebrow !py-1">{sourceBadge}</span>
+                                {microJobBadge ? (
+                                  <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                                    {microJobBadge}
+                                  </span>
+                                ) : null}
                                 {isSelected ? (
                                   <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
                                     {copy.selected}
@@ -3169,6 +3387,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                             <div className="flex flex-wrap gap-2">
                               <MetaBadge>{job.location || (isCsLike ? 'Lokalita TBD' : 'Location TBD')}</MetaBadge>
                               <MetaBadge>{formatSalary(job, i18n.language, isCsLike)}</MetaBadge>
+                              {job.micro_job_time_estimate ? <MetaBadge tone="accent">{job.micro_job_time_estimate}</MetaBadge> : null}
+                              {microJobKind ? <MetaBadge tone="accent">{microJobKind}</MetaBadge> : null}
+                              {microJobCollaboration ? <MetaBadge>{microJobCollaboration}</MetaBadge> : null}
                               {ageLabel ? <MetaBadge>{ageLabel}</MetaBadge> : null}
                               <MetaBadge tone="accent">{copy.fit} {Math.round(job.jhi?.score || 0)}</MetaBadge>
                               <MetaBadge>{getWorkModel(job, isCsLike)}</MetaBadge>
@@ -3265,14 +3486,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   }, language)}
                 </button>
                 <div className="w-full text-center text-sm text-[var(--text-faint)]">
-                  {getLocaleLabel({
-                    cs: `Strana ${currentPage + 1} z ${totalPages}`,
-                    sk: `Strana ${currentPage + 1} z ${totalPages}`,
-                    de: `Seite ${currentPage + 1} von ${totalPages}`,
-                    at: `Seite ${currentPage + 1} von ${totalPages}`,
-                    pl: `Strona ${currentPage + 1} z ${totalPages}`,
-                    en: `Page ${currentPage + 1} of ${totalPages}`
-                  }, language)}
+                  {paginationSummary}
                 </div>
               </div>
             </div>

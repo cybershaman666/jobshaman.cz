@@ -8,14 +8,16 @@ import {
   Compass,
   Route,
   Sparkles,
+  Users,
   Wallet
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FEATURE_SALARY_BENCHMARKS } from '../../constants';
 import { fetchSalaryBenchmark } from '../../services/benchmarkService';
 import { calculateCommuteReality, isRemoteJob } from '../../services/commuteService';
+import { fetchJobHumanContext } from '../../services/jobService';
 import { formatJobDescription } from '../../utils/formatters';
-import { CommuteAnalysis, Job, SalaryBenchmarkResolved, UserProfile } from '../../types';
+import { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, MicroJobCollaborationMode, SalaryBenchmarkResolved, UserProfile } from '../../types';
 import ChallengeComposer from './ChallengeComposer';
 import { MetricTile, PageHeader, SurfaceCard, cn } from '../ui/primitives';
 
@@ -79,6 +81,41 @@ const normalizeBenefitChips = (benefits: string[] | null | undefined): string[] 
   return normalized.slice(0, 8);
 };
 
+const getInitials = (value: string): string => {
+  const parts = value.trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  if (!parts.length) return 'JS';
+  return parts.map((part) => part[0]?.toUpperCase() || '').join('');
+};
+
+const isMicroJob = (job: Job): boolean => job.challenge_format === 'micro_job';
+
+const getMicroJobKindLabel = (kind: Job['micro_job_kind'], language: string): string | null => {
+  if (!kind) return null;
+  const locale = language === 'at' ? 'de' : language;
+  const labels: Record<NonNullable<Job['micro_job_kind']>, Record<'cs' | 'sk' | 'de' | 'pl' | 'en', string>> = {
+    one_off_task: { cs: 'Jednorázový task', sk: 'Jednorazový task', de: 'Einmalige Aufgabe', pl: 'Jednorazowe zadanie', en: 'One-off task' },
+    short_project: { cs: 'Krátký projekt', sk: 'Krátky projekt', de: 'Kurzprojekt', pl: 'Krótki projekt', en: 'Short project' },
+    audit_review: { cs: 'Audit / review', sk: 'Audit / review', de: 'Audit / Review', pl: 'Audyt / review', en: 'Audit / review' },
+    prototype: { cs: 'Prototyp', sk: 'Prototyp', de: 'Prototyp', pl: 'Prototyp', en: 'Prototype' },
+    experiment: { cs: 'Experiment', sk: 'Experiment', de: 'Experiment', pl: 'Eksperyment', en: 'Experiment' }
+  };
+  return labels[kind]?.[locale as 'cs' | 'sk' | 'de' | 'pl' | 'en'] || labels[kind]?.en || null;
+};
+
+const getMicroJobCollaborationLabel = (
+  modes: Job['micro_job_collaboration_modes'],
+  language: string
+): string | null => {
+  if (!Array.isArray(modes) || modes.length === 0) return null;
+  const locale = language === 'at' ? 'de' : language;
+  const labels: Record<MicroJobCollaborationMode, Record<'cs' | 'sk' | 'de' | 'pl' | 'en', string>> = {
+    remote: { cs: 'Remote', sk: 'Remote', de: 'Remote', pl: 'Remote', en: 'Remote' },
+    async: { cs: 'Asynchronně', sk: 'Asynchrónne', de: 'Asynchron', pl: 'Asynchronicznie', en: 'Async' },
+    call: { cs: 'Call', sk: 'Call', de: 'Call', pl: 'Call', en: 'Call' }
+  };
+  return modes.map((mode) => labels[mode]?.[locale as 'cs' | 'sk' | 'de' | 'pl' | 'en'] || labels[mode]?.en || mode).join(' • ');
+};
+
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -103,11 +140,15 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const { i18n } = useTranslation();
   const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
   const [salaryBenchmark, setSalaryBenchmark] = useState<SalaryBenchmarkResolved | null>(null);
+  const [humanContext, setHumanContext] = useState<JobHumanContext | null>(null);
   const [showFirstContactGuide, setShowFirstContactGuide] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const language = ['cs', 'sk', 'de', 'at', 'pl'].includes(locale) ? locale : 'en';
+  const localizedLanguage = (language === 'at' ? 'de' : language) as 'cs' | 'sk' | 'de' | 'pl' | 'en';
   const isCsLike = language === 'cs' || language === 'sk';
   const isImported = job.listingKind === 'imported';
+  const isMicroJobRole = isMicroJob(job);
+  const isNativeChallenge = !isImported && Boolean(job.company_id) && String(job.source || '').trim().toLowerCase() === 'jobshaman.cz';
   const remoteRole = isRemoteJob(job);
   const firstContactGuideStorageKey = 'jobshaman_first_contact_guide_dismissed';
 
@@ -176,7 +217,14 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? 'Doplňující kontext si můžeš připravit tady, ať nejdeš na původní web bez rozmyšlení.'
         : 'Čím konkrétnější odpověď na skutečný problém, tím vyšší šance na smysluplný dialog místo generické reakce.',
       firstContactGuideDismiss: 'Rozumím',
-      firstContactGuideContext: 'Doplnit kontext'
+      firstContactGuideContext: 'Doplnit kontext',
+      publisherLabel: 'Tuto výzvu publikoval',
+      respondersLabel: 'Kdo bude pravděpodobně reagovat',
+      teamTrustLabel: 'Jak tento tým vede dialog',
+      trustDialogues: 'Tým vedl za posledních 90 dní {{count}} dialogů.',
+      trustResponse: 'Obvykle reaguje do {{hours}} hodin.',
+      trustResponseUnderHour: 'Obvykle reaguje do 1 hodiny.',
+      humanContextFallbackRole: 'Tým'
     },
     sk: {
       back: 'Späť na zoznam',
@@ -242,7 +290,14 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? 'Doplňujúci kontext si môžeš pripraviť tu, aby si na pôvodný web nešiel bez rozmyslenia.'
         : 'Čím konkrétnejšia odpoveď na skutočný problém, tým vyššia šanca na zmysluplný dialóg namiesto generickej reakcie.',
       firstContactGuideDismiss: 'Rozumiem',
-      firstContactGuideContext: 'Doplniť kontext'
+      firstContactGuideContext: 'Doplniť kontext',
+      publisherLabel: 'Túto výzvu publikoval',
+      respondersLabel: 'Kto bude pravdepodobne reagovať',
+      teamTrustLabel: 'Ako tento tím vedie dialóg',
+      trustDialogues: 'Tím viedol za posledných 90 dní {{count}} dialógov.',
+      trustResponse: 'Zvyčajne reaguje do {{hours}} hodín.',
+      trustResponseUnderHour: 'Zvyčajne reaguje do 1 hodiny.',
+      humanContextFallbackRole: 'Tím'
     },
     de: {
       back: 'Zurück zur Liste',
@@ -308,7 +363,14 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? 'Zusätzlichen Kontext kannst du hier vorbereiten, damit du nicht unvorbereitet auf die Originalseite gehst.'
         : 'Je konkreter deine Antwort auf das echte Problem ist, desto höher die Chance auf einen sinnvollen Dialog statt einer generischen Reaktion.',
       firstContactGuideDismiss: 'Verstanden',
-      firstContactGuideContext: 'Kontext ergänzen'
+      firstContactGuideContext: 'Kontext ergänzen',
+      publisherLabel: 'Diese Aufgabe wurde veröffentlicht von',
+      respondersLabel: 'Wer voraussichtlich antwortet',
+      teamTrustLabel: 'Wie dieses Team Dialoge führt',
+      trustDialogues: 'Das Team hat in den letzten 90 Tagen {{count}} Dialoge geführt.',
+      trustResponse: 'Antwortet normalerweise innerhalb von {{hours}} Stunden.',
+      trustResponseUnderHour: 'Antwortet normalerweise innerhalb von 1 Stunde.',
+      humanContextFallbackRole: 'Team'
     },
     at: {} as any,
     pl: {
@@ -375,7 +437,14 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? 'Dodatkowy kontekst możesz przygotować tutaj, żeby nie iść na oryginalną stronę bez przemyślenia.'
         : 'Im bardziej konkretna odpowiedź na realny problem, tym większa szansa na sensowny dialog zamiast generycznej reakcji.',
       firstContactGuideDismiss: 'Rozumiem',
-      firstContactGuideContext: 'Dodaj kontekst'
+      firstContactGuideContext: 'Dodaj kontekst',
+      publisherLabel: 'To wyzwanie opublikował(a)',
+      respondersLabel: 'Kto prawdopodobnie odpowie',
+      teamTrustLabel: 'Jak ten zespół prowadzi dialog',
+      trustDialogues: 'Zespół prowadził w ostatnich 90 dniach {{count}} dialogów.',
+      trustResponse: 'Zwykle odpowiada w ciągu {{hours}} godzin.',
+      trustResponseUnderHour: 'Zwykle odpowiada w ciągu 1 godziny.',
+      humanContextFallbackRole: 'Zespół'
     },
     en: {
       back: 'Back to list',
@@ -441,9 +510,63 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         ? 'You can prepare additional context here so you do not go to the original site cold.'
         : 'The more concrete your answer to the real problem, the higher the chance of a meaningful dialogue instead of a generic reaction.',
       firstContactGuideDismiss: 'Understood',
-      firstContactGuideContext: 'Add context'
+      firstContactGuideContext: 'Add context',
+      publisherLabel: 'This challenge was published by',
+      respondersLabel: 'Who will likely reply',
+      teamTrustLabel: 'How this team runs dialogue',
+      trustDialogues: 'The team ran {{count}} dialogues in the last 90 days.',
+      trustResponse: 'Usually replies within {{hours}} hours.',
+      trustResponseUnderHour: 'Usually replies within 1 hour.',
+      humanContextFallbackRole: 'Team'
     }
-  } as const)[language === 'at' ? 'de' : language];
+  } as const)[localizedLanguage];
+  const microJobCopy = ({
+    cs: {
+      badge: 'MINI VYZVA',
+      budget: 'Rozpočet',
+      type: 'Typ mini výzvy',
+      timeEstimate: 'Odhad času',
+      collaboration: 'Typ spolupráce',
+      financialNoteTitle: 'Rychlá spolupráce místo měsíční mzdy',
+      financialNoteBody: 'U mini výzvy ukazujeme rozpočet, časový odhad a způsob spolupráce. Měsíční salary benchmark a čistý příjem zde nedávají smysl.'
+    },
+    sk: {
+      badge: 'MINI VYZVA',
+      budget: 'Rozpočet',
+      type: 'Typ mini výzvy',
+      timeEstimate: 'Odhad času',
+      collaboration: 'Typ spolupráce',
+      financialNoteTitle: 'Rýchla spolupráca namiesto mesačnej mzdy',
+      financialNoteBody: 'Pri mini výzve ukazujeme rozpočet, odhad času a spôsob spolupráce. Mesačný salary benchmark a čistý príjem tu nedávajú zmysel.'
+    },
+    de: {
+      badge: 'MINI-AUFGABE',
+      budget: 'Budget',
+      type: 'Typ',
+      timeEstimate: 'Zeitaufwand',
+      collaboration: 'Zusammenarbeit',
+      financialNoteTitle: 'Schnelle Zusammenarbeit statt Monatsgehalt',
+      financialNoteBody: 'Bei einer Mini-Aufgabe zeigen wir Budget, Zeitaufwand und die Form der Zusammenarbeit. Monatliche Gehaltsbenchmarks und Nettoeinkommen sind hier nicht sinnvoll.'
+    },
+    pl: {
+      badge: 'MINI WYZWANIE',
+      budget: 'Budżet',
+      type: 'Typ',
+      timeEstimate: 'Szacowany czas',
+      collaboration: 'Typ współpracy',
+      financialNoteTitle: 'Szybka współpraca zamiast miesięcznej pensji',
+      financialNoteBody: 'Przy mini wyzwaniu pokazujemy budżet, czas i sposób współpracy. Miesięczny benchmark wynagrodzenia i dochód netto nie mają tu sensu.'
+    },
+    en: {
+      badge: 'MINI CHALLENGE',
+      budget: 'Budget',
+      type: 'Type',
+      timeEstimate: 'Time estimate',
+      collaboration: 'Collaboration',
+      financialNoteTitle: 'Quick collaboration instead of monthly salary',
+      financialNoteBody: 'For a mini challenge, we show budget, time estimate, and collaboration mode. Monthly salary benchmarks and net income do not make sense here.'
+    }
+  } as const)[localizedLanguage];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -485,7 +608,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     let cancelled = false;
 
     const loadBenchmark = async () => {
-      if (!FEATURE_SALARY_BENCHMARKS) {
+      if (!FEATURE_SALARY_BENCHMARKS || isMicroJobRole) {
         setSalaryBenchmark(null);
         return;
       }
@@ -502,7 +625,32 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [job.id]);
+  }, [isMicroJobRole, job.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHumanContext = async () => {
+      if (!isNativeChallenge) {
+        setHumanContext(null);
+        return;
+      }
+      try {
+        const payload = await fetchJobHumanContext(job.id);
+        if (!cancelled) {
+          setHumanContext(payload);
+        }
+      } catch (error) {
+        console.warn('Human context fetch failed:', error);
+        if (!cancelled) setHumanContext(null);
+      }
+    };
+
+    void loadHumanContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [isNativeChallenge, job.id]);
 
   const formattedDescription = useMemo(() => formatJobDescription(job.description || ''), [job.description]);
 
@@ -519,6 +667,8 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const displayedSalary = formatSalary(job, i18n.language, isCsLike);
   const locationValue = shorten(job.location, 72) || (isCsLike ? 'Místo neuvedeno' : 'Location not specified');
   const companyValue = shorten(job.company, 72) || (isCsLike ? 'Firma neuvedena' : 'Company not specified');
+  const microJobKindValue = getMicroJobKindLabel(job.micro_job_kind, language);
+  const microJobCollaborationValue = getMicroJobCollaborationLabel(job.micro_job_collaboration_modes, language);
   const benefitChips = useMemo(() => normalizeBenefitChips(job.benefits), [job.benefits]);
   const realIncomeValue = commuteAnalysis
     ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} ${commuteAnalysis.financialReality.currency}`
@@ -530,28 +680,136 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       : userProfile.isLoggedIn
         ? (isCsLike ? 'Doplň adresu' : 'Add address')
         : (isCsLike ? 'Po přihlášení' : 'After sign in');
-  const quickInsights = [
-    { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
-    { label: copy.location, value: locationValue },
-    { label: copy.realIncome, value: realIncomeValue },
-    { label: copy.commuteDistance, value: commuteValue },
-    { label: copy.workModel, value: job.work_model || job.type || '—' },
-    { label: copy.source, value: job.source || '—' }
-  ];
-  const mobilePrimaryInsights = [
-    { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
-    { label: copy.salary, value: displayedSalary },
-    { label: copy.workModel, value: job.work_model || job.type || '—' },
-    { label: copy.location, value: locationValue }
-  ];
-  const mobileSecondaryInsights = [
-    { label: copy.realIncome, value: realIncomeValue },
-    { label: copy.commuteDistance, value: commuteValue },
-    { label: copy.company, value: companyValue },
-    { label: copy.source, value: job.source || '—' }
-  ];
+  const quickInsights = isMicroJobRole
+    ? [
+        { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+        { label: microJobCopy.budget, value: displayedSalary },
+        ...(job.micro_job_time_estimate ? [{ label: microJobCopy.timeEstimate, value: job.micro_job_time_estimate }] : []),
+        ...(microJobCollaborationValue ? [{ label: microJobCopy.collaboration, value: microJobCollaborationValue }] : []),
+        ...(microJobKindValue ? [{ label: microJobCopy.type, value: microJobKindValue }] : []),
+        { label: copy.location, value: locationValue },
+        { label: copy.workModel, value: job.work_model || job.type || '—' },
+        { label: copy.source, value: job.source || '—' }
+      ]
+    : [
+        { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+        { label: copy.location, value: locationValue },
+        { label: copy.realIncome, value: realIncomeValue },
+        { label: copy.commuteDistance, value: commuteValue },
+        { label: copy.workModel, value: job.work_model || job.type || '—' },
+        { label: copy.source, value: job.source || '—' }
+      ];
+  const mobilePrimaryInsights = isMicroJobRole
+    ? [
+        { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+        { label: microJobCopy.budget, value: displayedSalary },
+        { label: copy.workModel, value: job.work_model || job.type || '—' },
+        { label: copy.location, value: locationValue }
+      ]
+    : [
+        { label: copy.compatibility, value: `${Math.round(job.jhi?.score || 0)}/100`, tone: 'accent' as const },
+        { label: copy.salary, value: displayedSalary },
+        { label: copy.workModel, value: job.work_model || job.type || '—' },
+        { label: copy.location, value: locationValue }
+      ];
+  const mobileSecondaryInsights = isMicroJobRole
+    ? [
+        ...(job.micro_job_time_estimate ? [{ label: microJobCopy.timeEstimate, value: job.micro_job_time_estimate }] : []),
+        ...(microJobCollaborationValue ? [{ label: microJobCopy.collaboration, value: microJobCollaborationValue }] : []),
+        ...(microJobKindValue ? [{ label: microJobCopy.type, value: microJobKindValue }] : []),
+        { label: copy.company, value: companyValue },
+        { label: copy.source, value: job.source || '—' }
+      ]
+    : [
+        { label: copy.realIncome, value: realIncomeValue },
+        { label: copy.commuteDistance, value: commuteValue },
+        { label: copy.company, value: companyValue },
+        { label: copy.source, value: job.source || '—' }
+      ];
+  const trustDialoguesCount = humanContext?.trust?.dialogues_last_90d ?? null;
+  const trustResponseHours = humanContext?.trust?.median_first_response_hours_last_90d ?? null;
+  const hasHumanContextContent = Boolean(
+    humanContext?.publisher ||
+    (humanContext?.responders?.length || 0) > 0 ||
+    (typeof trustDialoguesCount === 'number' && trustDialoguesCount > 0) ||
+    trustResponseHours != null
+  );
+
+  const formatTrustResponseLabel = () => {
+    if (trustResponseHours == null) return null;
+    if (trustResponseHours < 1) return copy.trustResponseUnderHour;
+    const normalizedHours = Number.isInteger(trustResponseHours)
+      ? String(Math.round(trustResponseHours))
+      : trustResponseHours.toLocaleString(i18n.language, { maximumFractionDigits: 1 });
+    return copy.trustResponse.replace('{{hours}}', normalizedHours);
+  };
+
+  const renderHumanContextSection = () => {
+    if (!hasHumanContextContent) return null;
+    const trustLabels = [
+      typeof trustDialoguesCount === 'number' && trustDialoguesCount > 0
+        ? copy.trustDialogues.replace('{{count}}', trustDialoguesCount.toLocaleString(i18n.language))
+        : null,
+      formatTrustResponseLabel()
+    ].filter(Boolean) as string[];
+
+    return (
+      <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+        {humanContext?.publisher ? (
+          <div className="space-y-2">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.publisherLabel}</div>
+            <HumanContextPersonCard person={humanContext.publisher} fallbackRole={copy.humanContextFallbackRole} />
+          </div>
+        ) : null}
+
+        {humanContext?.responders?.length ? (
+          <div className="space-y-2">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.respondersLabel}</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {humanContext.responders.map((person, index) => (
+                <HumanContextPersonCard
+                  key={`${person.user_id || person.id || 'responder'}-${index}`}
+                  person={person}
+                  fallbackRole={copy.humanContextFallbackRole}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {trustLabels.length > 0 ? (
+          <div className="space-y-2">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.teamTrustLabel}</div>
+            <div className="flex flex-wrap gap-2">
+              {trustLabels.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.12)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]"
+                >
+                  <Users size={13} className="text-[var(--accent)]" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   const renderFinancialSection = () => {
+    if (isMicroJobRole) {
+      return (
+        <SurfaceCard className="space-y-4">
+          <div className="app-eyebrow w-fit">
+            <Wallet size={12} />
+            {microJobCopy.financialNoteTitle}
+          </div>
+          <p className="text-sm leading-7 text-[var(--text-muted)]">{microJobCopy.financialNoteBody}</p>
+        </SurfaceCard>
+      );
+    }
+
     if (!userProfile.isLoggedIn) {
       return (
         <SurfaceCard className="space-y-4">
@@ -668,7 +926,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       </button>
 
       <PageHeader
-        eyebrow={copy.eyebrow}
+        eyebrow={isMicroJobRole ? `${microJobCopy.badge} • ${copy.eyebrow}` : copy.eyebrow}
         title={job.title}
         body={copy.body}
         actions={
@@ -676,8 +934,12 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             <MetricTile label={copy.fit} value={`${Math.round(job.jhi?.score || 0)}/100`} tone="accent" className="min-w-[150px]" />
             <MetricTile label={copy.company} value={companyValue} className="min-w-[200px]" />
             <MetricTile label={copy.location} value={locationValue} className="min-w-[170px]" />
-            <MetricTile label={copy.salary} value={displayedSalary} className="min-w-[150px]" />
-            <MetricTile label={copy.workModel} value={job.work_model || job.type || '—'} className="min-w-[150px]" />
+            <MetricTile label={isMicroJobRole ? microJobCopy.budget : copy.salary} value={displayedSalary} className="min-w-[150px]" />
+            <MetricTile
+              label={isMicroJobRole ? microJobCopy.timeEstimate : copy.workModel}
+              value={isMicroJobRole ? (job.micro_job_time_estimate || '—') : (job.work_model || job.type || '—')}
+              className="min-w-[150px]"
+            />
           </div>
         }
       />
@@ -810,24 +1072,27 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             <SectionTitle title={copy.company} />
             <div className="space-y-4">
               <NarrativeCard title={copy.companySignal} body={companySignal} />
-              <div className="space-y-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
-                <div className="flex flex-wrap items-start gap-2">
-                {benefitChips.length > 0 ? (
-                  benefitChips.map((benefit) => (
-                    <span
-                      key={benefit}
-                      title={benefit}
-                      className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
-                    >
-                      <span className="block max-w-[280px] truncate">{benefit}</span>
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-[var(--text-faint)]">—</span>
-                )}
+              {renderHumanContextSection()}
+              {!isMicroJobRole ? (
+                <div className="space-y-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
+                  <div className="flex flex-wrap items-start gap-2">
+                  {benefitChips.length > 0 ? (
+                    benefitChips.map((benefit) => (
+                      <span
+                        key={benefit}
+                        title={benefit}
+                        className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
+                      >
+                        <span className="block max-w-[280px] truncate">{benefit}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[var(--text-faint)]">—</span>
+                  )}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </SurfaceCard>
 
@@ -838,24 +1103,27 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             </summary>
             <div className="mt-4 space-y-4">
               <NarrativeCard title={copy.companySignal} body={companySignal} />
-              <div className="space-y-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
-                <div className="flex flex-wrap items-start gap-2">
-                  {benefitChips.length > 0 ? (
-                    benefitChips.map((benefit) => (
-                      <span
-                        key={`mobile-${benefit}`}
-                        title={benefit}
-                        className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
-                      >
-                        <span className="block max-w-[280px] truncate">{benefit}</span>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-[var(--text-faint)]">—</span>
-                  )}
+              {renderHumanContextSection()}
+              {!isMicroJobRole ? (
+                <div className="space-y-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
+                  <div className="flex flex-wrap items-start gap-2">
+                    {benefitChips.length > 0 ? (
+                      benefitChips.map((benefit) => (
+                        <span
+                          key={`mobile-${benefit}`}
+                          title={benefit}
+                          className="max-w-full rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
+                        >
+                          <span className="block max-w-[280px] truncate">{benefit}</span>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-[var(--text-faint)]">—</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </details>
 
@@ -963,6 +1231,37 @@ const NarrativeCard: React.FC<{ title: string; body: string; tone?: 'default' | 
   >
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{title}</div>
     <p className="mt-3 text-sm leading-7 text-[var(--text)]">{body || '—'}</p>
+  </div>
+);
+
+const HumanContextPersonCard: React.FC<{
+  person: JobPublicPerson;
+  fallbackRole: string;
+}> = ({
+  person,
+  fallbackRole
+}) => (
+  <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
+    <div className="flex items-start gap-3">
+      {person.avatar_url ? (
+        <img
+          src={person.avatar_url}
+          alt={person.display_name}
+          className="h-12 w-12 rounded-2xl object-cover"
+        />
+      ) : (
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">
+          {getInitials(person.display_name)}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-[var(--text-strong)]">{person.display_name}</div>
+        <div className="mt-1 text-xs leading-5 text-[var(--text-faint)]">{person.display_role || fallbackRole}</div>
+      </div>
+    </div>
+    {person.short_context ? (
+      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{person.short_context}</p>
+    ) : null}
   </div>
 );
 

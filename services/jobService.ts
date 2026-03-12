@@ -1,5 +1,16 @@
 import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
-import { Job, JHI, JHIPreferences, JobHiringStage, SearchDiagnosticsMeta, TaxProfile } from '../types';
+import {
+    Job,
+    JobChallengeFormat,
+    JobHumanContext,
+    JobHiringStage,
+    JHI,
+    JHIPreferences,
+    MicroJobCollaborationMode,
+    MicroJobKind,
+    SearchDiagnosticsMeta,
+    TaxProfile
+} from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
@@ -138,9 +149,14 @@ const safeParseInt = (value: any): number | undefined => {
     return isNaN(parsed) ? undefined : parsed;
 };
 
+const isProjectBudgetTimeframe = (salaryTimeframe: unknown): boolean => {
+    const timeframe = String(salaryTimeframe || '').trim().toLowerCase();
+    return timeframe === 'project' || timeframe === 'project_total' || timeframe === 'fixed_project';
+};
+
 const hasShortSalaryTimeframe = (salaryTimeframe: unknown, contextText: string): boolean => {
     const timeframe = String(salaryTimeframe || '').toLowerCase();
-    if (timeframe === 'hour' || timeframe === 'day' || timeframe === 'week') return true;
+    if (timeframe === 'hour' || timeframe === 'day' || timeframe === 'week' || isProjectBudgetTimeframe(timeframe)) return true;
 
     const context = (contextText || '').toLowerCase();
     return (
@@ -297,7 +313,16 @@ const formatDescription = (desc?: string): string => {
     return desc.replace(/<[^>]*>/g, '').trim();
 };
 
-const HIRING_STAGE_PATTERN = /^\s*<!--\s*jobshaman:hiring_stage=([a-z_]+)\s*-->\s*/i;
+const JOB_DESCRIPTION_METADATA_PATTERN = /^\s*<!--\s*jobshaman:([a-z_]+)=([^\n>]*)\s*-->\s*/i;
+
+type JobDescriptionMetadata = {
+    description: string;
+    hiringStage?: JobHiringStage;
+    challengeFormat?: JobChallengeFormat;
+    microJobKind?: MicroJobKind;
+    microJobTimeEstimate?: string;
+    microJobCollaborationModes: MicroJobCollaborationMode[];
+};
 
 const normalizeJobHiringStage = (raw: unknown): JobHiringStage | undefined => {
     if (typeof raw !== 'string') return undefined;
@@ -314,16 +339,99 @@ const normalizeJobHiringStage = (raw: unknown): JobHiringStage | undefined => {
     return undefined;
 };
 
-const extractHiringStageMetadata = (desc?: string): { description: string; hiringStage?: JobHiringStage } => {
-    const source = desc || '';
-    const match = HIRING_STAGE_PATTERN.exec(source);
-    if (!match) {
-        return { description: source };
+const normalizeChallengeFormat = (raw: unknown): JobChallengeFormat | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === 'standard' || normalized === 'micro_job') {
+        return normalized as JobChallengeFormat;
     }
-    const hiringStage = normalizeJobHiringStage(match[1]);
+    return undefined;
+};
+
+const normalizeMicroJobKind = (raw: unknown): MicroJobKind | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const normalized = raw.trim().toLowerCase();
+    if (
+        normalized === 'one_off_task' ||
+        normalized === 'short_project' ||
+        normalized === 'audit_review' ||
+        normalized === 'prototype' ||
+        normalized === 'experiment'
+    ) {
+        return normalized as MicroJobKind;
+    }
+    return undefined;
+};
+
+const normalizeMicroJobTimeEstimate = (raw: unknown): string | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const normalized = raw.trim();
+    if (!normalized) return undefined;
+    return normalized.slice(0, 80);
+};
+
+const normalizeMicroJobCollaborationModes = (raw: unknown): MicroJobCollaborationMode[] => {
+    const values = Array.isArray(raw)
+        ? raw
+        : typeof raw === 'string'
+            ? raw.split(',')
+            : [];
+
+    const seen = new Set<MicroJobCollaborationMode>();
+    const normalized: MicroJobCollaborationMode[] = [];
+
+    values.forEach((value) => {
+        const next = String(value || '').trim().toLowerCase();
+        if (next === 'remote' || next === 'async' || next === 'call') {
+            const mode = next as MicroJobCollaborationMode;
+            if (!seen.has(mode)) {
+                seen.add(mode);
+                normalized.push(mode);
+            }
+        }
+    });
+
+    return normalized;
+};
+
+const extractJobDescriptionMetadata = (desc?: string): JobDescriptionMetadata => {
+    const source = desc || '';
+    let remaining = source;
+    let hiringStage: JobHiringStage | undefined;
+    let challengeFormat: JobChallengeFormat | undefined;
+    let microJobKind: MicroJobKind | undefined;
+    let microJobTimeEstimate: string | undefined;
+    let microJobCollaborationModes: MicroJobCollaborationMode[] = [];
+
+    while (remaining) {
+        const match = JOB_DESCRIPTION_METADATA_PATTERN.exec(remaining);
+        if (!match) break;
+
+        const key = String(match[1] || '').trim().toLowerCase();
+        const value = String(match[2] || '').trim();
+
+        if (key === 'hiring_stage') {
+            hiringStage = normalizeJobHiringStage(value) || hiringStage;
+        } else if (key === 'challenge_format') {
+            challengeFormat = normalizeChallengeFormat(value) || challengeFormat;
+        } else if (key === 'micro_job_kind') {
+            microJobKind = normalizeMicroJobKind(value) || microJobKind;
+        } else if (key === 'micro_time_estimate') {
+            microJobTimeEstimate = normalizeMicroJobTimeEstimate(value) || microJobTimeEstimate;
+        } else if (key === 'micro_collaboration') {
+            microJobCollaborationModes = normalizeMicroJobCollaborationModes(value);
+        }
+
+        remaining = remaining.slice(match[0].length).trimStart();
+    }
+
     return {
-        description: source.slice(match[0].length).trimStart(),
-        hiringStage
+        description: remaining,
+        hiringStage,
+        challengeFormat,
+        microJobKind,
+        microJobTimeEstimate,
+        microJobCollaborationModes
     };
 };
 
@@ -350,16 +458,21 @@ const BENEFIT_PATTERNS = [
 
 // Job transformation helper
 const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
-    const salaryContext = `${scrapedJob.title || ''} ${scrapedJob.description || ''}`;
+    const extractedDescription = extractJobDescriptionMetadata(scrapedJob.description);
+    const challengeFormat = extractedDescription.challengeFormat || 'standard';
+    const isMicroJob = challengeFormat === 'micro_job';
+    const fullDesc = extractedDescription.description || 'Popis pozice není k dispozici.';
+    const salaryTimeframe = scrapedJob.salary_timeframe || (isMicroJob ? 'project_total' : undefined);
+    const salaryContext = `${scrapedJob.title || ''} ${fullDesc}`;
     const salaryFrom = normalizeSalaryAmount(
         safeParseInt(scrapedJob.salary_from),
-        scrapedJob.salary_timeframe,
+        salaryTimeframe,
         salaryContext,
         scrapedJob.salary_currency || scrapedJob.currency
     );
     const salaryTo = normalizeSalaryAmount(
         safeParseInt(scrapedJob.salary_to),
-        scrapedJob.salary_timeframe,
+        salaryTimeframe,
         salaryContext,
         scrapedJob.salary_currency || scrapedJob.currency
     );
@@ -379,10 +492,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     const uniqueTags = benefits.length > 0 ? [...benefits] : [];
     if (scrapedJob.work_type) uniqueTags.push(scrapedJob.work_type);
     if (scrapedJob.education_level) uniqueTags.push(scrapedJob.education_level);
-
-    const extractedDescription = extractHiringStageMetadata(scrapedJob.description);
     const hiringStage = normalizeJobHiringStage((scrapedJob as any)?.hiring_stage) || extractedDescription.hiringStage;
-    const fullDesc = extractedDescription.description || 'Popis pozice není k dispozici.';
     const challengeFields = deriveChallengeFields({
         title: scrapedJob.title,
         description: fullDesc,
@@ -399,8 +509,8 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
 
     const jhi = includeJhi
         ? calculateJHI({
-            salary_from: salaryFrom ?? undefined,
-            salary_to: salaryTo ?? undefined,
+            salary_from: isMicroJob ? undefined : salaryFrom ?? undefined,
+            salary_to: isMicroJob ? undefined : salaryTo ?? undefined,
             type: scrapedJob.work_type as any,
             benefits: benefits,
             description: fullDesc,
@@ -421,6 +531,10 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         salaryRange,
         description: fullDesc,
         hiring_stage: hiringStage,
+        challenge_format: challengeFormat,
+        micro_job_kind: extractedDescription.microJobKind || null,
+        micro_job_time_estimate: extractedDescription.microJobTimeEstimate || null,
+        micro_job_collaboration_modes: extractedDescription.microJobCollaborationModes,
         postedAt: getRelativeTime(scrapedJob.scraped_at),
         scrapedAt: scrapedJob.scraped_at,
         source: scrapedJob.source || 'Scraper',
@@ -451,7 +565,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         companyPageSummary: challengeFields.companyPageSummary,
         salary_from: salaryFrom || undefined,
         salary_to: salaryTo || undefined,
-        salary_timeframe: scrapedJob.salary_timeframe,
+        salary_timeframe: salaryTimeframe,
         country_code: scrapedJob.country_code,
         language_code: scrapedJob.language_code,
         // Map cached AI analysis if present
@@ -623,7 +737,8 @@ export const fetchJobsPaginated = async (
     radiusKm: number = 50,
     countryCode?: string,
     languageCodes?: string[],
-    includeJhi: boolean = true
+    includeJhi: boolean = true,
+    microJobsOnly: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
@@ -632,7 +747,7 @@ export const fetchJobsPaginated = async (
 
     try {
         // If user coordinates provided AND both lat/lng are defined, use spatial query
-        if (userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
+        if (!microJobsOnly && userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
             console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km, country: ${countryCode || 'all'}`);
 
             const { data, error } = await supabase
@@ -648,7 +763,7 @@ export const fetchJobsPaginated = async (
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, languageCodes, includeJhi);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, languageCodes, includeJhi, microJobsOnly);
             }
 
             if (!data || data.length === 0) {
@@ -710,7 +825,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, languageCodes, includeJhi);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, languageCodes, includeJhi, microJobsOnly);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
@@ -727,11 +842,39 @@ const fetchJobsPaginatedFallback = async (
     _radiusKm?: number, // Not used in fallback
     countryCode?: string,
     languageCodes?: string[],
-    includeJhi: boolean = true
+    includeJhi: boolean = true,
+    microJobsOnly: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
-        // Get total count first
-        const totalCount = await getJobCount();
+        const buildBaseListQuery = (query: any) => {
+            let nextQuery = query.eq('legality_status', 'legal');
+
+            if (countryCode) {
+                nextQuery = nextQuery.eq('country_code', countryCode);
+            }
+            if (languageCodes && languageCodes.length > 0) {
+                nextQuery = nextQuery.in('language_code', languageCodes);
+            }
+            if (microJobsOnly) {
+                nextQuery = nextQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
+            }
+
+            return nextQuery;
+        };
+
+        let totalCount = 0;
+        if (microJobsOnly || countryCode || (languageCodes && languageCodes.length > 0)) {
+            const { count, error: countError } = await buildBaseListQuery(
+                supabase.from('jobs').select('id', { count: 'exact', head: true })
+            );
+            if (countError) {
+                console.warn('Failed to count paginated jobs with scoped filters:', countError);
+            } else {
+                totalCount = Number(count || 0);
+            }
+        } else {
+            totalCount = await getJobCount();
+        }
 
         const from = page * pageSize;
         const to = from + pageSize - 1;
@@ -739,18 +882,10 @@ const fetchJobsPaginatedFallback = async (
         const listSelect = includeJhi
             ? '*'
             : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
-        let query = supabase
+        const query = buildBaseListQuery(supabase
             .from('jobs')
             .select(listSelect)
-            .eq('legality_status', 'legal');
-
-        // Apply country code filter if provided
-        if (countryCode) {
-            query = query.eq('country_code', countryCode);
-        }
-        if (languageCodes && languageCodes.length > 0) {
-            query = query.in('language_code', languageCodes);
-        }
+        );
 
         const { data, error } = await query
             .range(from, to)
@@ -972,10 +1107,13 @@ export interface JobFilterOptions {
     // - 'async': return DB results fast; external overlays should be fetched separately.
     // - 'off': never include external overlays.
     externalOverlayMode?: 'sync' | 'async' | 'off';
+    microJobsOnly?: boolean;
     // Profile hard constraints are too opaque for the main discovery feed.
     // Keep them opt-in so manual search filters remain the single source of truth.
     respectHardConstraints?: boolean;
 }
+
+const MICRO_JOB_DESCRIPTION_MARKER = 'jobshaman:challenge_format=micro_job';
 
 const isSearchV2Enabled = (): boolean => {
     const flag = String(import.meta.env.VITE_SEARCH_V2_ENABLED ?? 'true').toLowerCase();
@@ -2155,6 +2293,7 @@ const sortJobsForMode = (
             }
             if (!salary) return 0;
             const tf = String((job as any).salary_timeframe || '').toLowerCase();
+            if (isProjectBudgetTimeframe(tf)) return 0;
             if (tf === 'hour' || tf === 'hourly') return Math.round(salary * 22 * 8);
             if (tf === 'day' || tf === 'daily') return Math.round(salary * 22);
             if (tf === 'week' || tf === 'weekly') return Math.round(salary * 4.345);
@@ -2202,6 +2341,7 @@ export const fetchJobsWithFilters = async (
         includeJhi = true,
         externalSearchSeedTerm,
         externalOverlayMode = 'sync',
+        microJobsOnly = false,
         respectHardConstraints = false
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
@@ -2265,7 +2405,7 @@ export const fetchJobsWithFilters = async (
         (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
     const hasSemanticIntent =
         compactSearchLength >= 2;
-    const shouldUseHybridSearch = !!BACKEND_URL && (
+    const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL && (
         hasSemanticIntent ||
         // Dedicated search runtime can handle heavy filter combinations well.
         // Without dedicated runtime, prefer Supabase RPC for filter-only queries
@@ -2316,6 +2456,11 @@ export const fetchJobsWithFilters = async (
         return null;
     };
 
+    const matchesRequestedChallengeFormat = (job: Job): boolean => {
+        if (!microJobsOnly) return true;
+        return job.challenge_format === 'micro_job';
+    };
+
     const matchesContractFilters = (job: Job): boolean => {
         if (normalizedContractFilters.length === 0) return true;
         const searchableContractText = normalizeTokenText(job.type || '');
@@ -2355,6 +2500,9 @@ export const fetchJobsWithFilters = async (
 
     const applyStrictClientFilters = (jobs: Job[]): Job[] => {
         return jobs.filter((job) => {
+            if (!matchesRequestedChallengeFormat(job)) {
+                return false;
+            }
             const jobCountry = normalizeTokenText(
                 job.country_code ||
                 inferCountryCodeFromSearchText([
@@ -2473,6 +2621,7 @@ export const fetchJobsWithFilters = async (
         if (!salary) return 0;
 
         const tf = String(job.salary_timeframe || '').toLowerCase();
+        if (isProjectBudgetTimeframe(tf)) return 0;
         if (tf === 'hour' || tf === 'hourly') return Math.round(salary * 22 * 8);
         if (tf === 'day' || tf === 'daily') return Math.round(salary * 22);
         if (tf === 'week' || tf === 'weekly') return Math.round(salary * 4.345);
@@ -2826,6 +2975,9 @@ export const fetchJobsWithFilters = async (
         if (filterLanguageCodes && filterLanguageCodes.length > 0) {
             fallbackQuery = fallbackQuery.in('language_code', filterLanguageCodes);
         }
+        if (microJobsOnly) {
+            fallbackQuery = fallbackQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
+        }
         if (filterCity && filterCity.trim()) {
             fallbackQuery = fallbackQuery.ilike('location', `%${filterCity.trim()}%`);
         }
@@ -2925,6 +3077,9 @@ export const fetchJobsWithFilters = async (
         }
         if (filterLanguageCodes && filterLanguageCodes.length > 0) {
             query = query.in('language_code', filterLanguageCodes);
+        }
+        if (microJobsOnly) {
+            query = query.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
         }
 
         const { data, error, count } = await query;
@@ -3235,8 +3390,13 @@ export const fetchJobsWithFilters = async (
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
             searchTerm: safeSearchTerm || 'none',
+            microJobsOnly,
             effectiveSortMode
         });
+
+        if (microJobsOnly) {
+            return await fetchViaStrictClientFallback('micro_job_filter');
+        }
 
         // Hybrid semantic search (backend) for text queries.
         if (shouldUseHybridSearch) {
@@ -3506,6 +3666,21 @@ export const fetchJobById = async (jobId: string): Promise<Job | null> => {
     }
 };
 
+export const fetchJobHumanContext = async (jobId: string | number): Promise<JobHumanContext | null> => {
+    try {
+        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/${jobId}/human-context`, {
+            method: 'GET'
+        });
+        if (!response.ok) {
+            return null;
+        }
+        return await response.json() as JobHumanContext;
+    } catch (error) {
+        console.warn('Failed to fetch job human context:', error);
+        return null;
+    }
+};
+
 export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
     if (!isSupabaseConfigured() || !supabase || !Array.isArray(jobIds) || jobIds.length === 0) {
         return [];
@@ -3658,7 +3833,10 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
             const scraped = item as ScrapedJob;
 
             // 1. Description Processing
-            const fullDesc = formatDescription(scraped.description);
+            const extractedDescription = extractJobDescriptionMetadata(scraped.description);
+            const challengeFormat = extractedDescription.challengeFormat || 'standard';
+            const isMicroJob = challengeFormat === 'micro_job';
+            const fullDesc = formatDescription(extractedDescription.description);
             const challengeFields = deriveChallengeFields({
                 title: scraped.title,
                 description: fullDesc,
@@ -3676,18 +3854,19 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
             // 2. Salary Processing
             let salaryFrom = safeParseInt(scraped.salary_from);
             let salaryTo = safeParseInt(scraped.salary_to);
+            const salaryTimeframe = scraped.salary_timeframe || (isMicroJob ? 'project_total' : undefined);
             const salaryContext = `${scraped.title || ''} ${fullDesc}`;
 
             // Fix for salaries stored as thousands (e.g., 38 should be 38,000)
             salaryFrom = normalizeSalaryAmount(
                 salaryFrom,
-                scraped.salary_timeframe,
+                salaryTimeframe,
                 salaryContext,
                 scraped.salary_currency || scraped.currency
             );
             salaryTo = normalizeSalaryAmount(
                 salaryTo,
-                scraped.salary_timeframe,
+                salaryTimeframe,
                 salaryContext,
                 scraped.salary_currency || scraped.currency
             );
@@ -3803,6 +3982,11 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 work_model: scraped.work_model,
                 salaryRange: salaryRange,
                 description: fullDesc,
+                hiring_stage: extractedDescription.hiringStage,
+                challenge_format: challengeFormat,
+                micro_job_kind: extractedDescription.microJobKind || null,
+                micro_job_time_estimate: extractedDescription.microJobTimeEstimate || null,
+                micro_job_collaboration_modes: extractedDescription.microJobCollaborationModes,
                 postedAt: getRelativeTime(scraped.scraped_at),
                 scrapedAt: scraped.scraped_at,
                 source: scraped.source || 'Scraper',
@@ -3811,8 +3995,8 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 lng: resolvedCoords.lng,
                 ...(distanceKm !== undefined && { distanceKm }),
                 jhi: includeJhi ? calculateJHI({
-                    salary_from: salaryFrom ?? undefined,
-                    salary_to: salaryTo ?? undefined,
+                    salary_from: isMicroJob ? undefined : salaryFrom ?? undefined,
+                    salary_to: isMicroJob ? undefined : salaryTo ?? undefined,
                     type: jobType,
                     benefits: benefits,
                     description: fullDesc,
@@ -3843,7 +4027,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 companyPageSummary: challengeFields.companyPageSummary,
                 salary_from: salaryFrom || undefined,
                 salary_to: salaryTo || undefined,
-                salary_timeframe: scraped.salary_timeframe,
+                salary_timeframe: salaryTimeframe,
                 legality_status: scraped.legality_status,
                 legality_reasons: scraped.verification_notes ? scraped.verification_notes.split(',').map((s: string) => s.trim()) : [],
                 ...(safeParseInt((scraped as any).open_dialogues_count) !== undefined

@@ -36,6 +36,8 @@ interface AppHeaderProps {
   onIntentionalListClick?: () => void;
   discoveryLane?: 'challenges' | 'imports';
   setDiscoveryLane?: (lane: 'challenges' | 'imports') => void;
+  discoveryMode?: 'all' | 'micro_jobs';
+  setDiscoveryMode?: (mode: 'all' | 'micro_jobs') => void;
   discoverySearchMode?: boolean;
   onOpenInsights?: () => void;
   onOpenDiscoverySearch?: () => void;
@@ -66,6 +68,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onIntentionalListClick,
   discoveryLane = 'challenges',
   setDiscoveryLane,
+  discoveryMode = 'all',
+  setDiscoveryMode,
   discoverySearchMode = false,
   onOpenInsights,
   onOpenDiscoverySearch,
@@ -124,6 +128,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setIsOnboardingCompany(false);
     setSelectedJobId(null);
     setDiscoveryLane?.('challenges');
+    setDiscoveryMode?.('all');
     setDiscoverySearchMode?.(false);
     setViewState(ViewState.LIST);
     window.setTimeout(() => {
@@ -145,6 +150,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setSelectedJobId(null);
     setViewState(ViewState.LIST);
     setDiscoveryLane?.(lane);
+    setDiscoveryMode?.('all');
     setDiscoverySearchMode?.(focusSearch);
     if (focusSearch) {
       onOpenDiscoverySearch?.();
@@ -153,18 +159,43 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     scrollToElement('challenge-discovery');
   };
 
+  const openMicroJobs = () => {
+    if (leaveDemoHandshakeRoute()) return;
+    if (isAdminRoute()) {
+      window.location.assign(`${getLocalePrefix()}/`);
+      return;
+    }
+    onIntentionalListClick?.();
+    setIsBlogOpen?.(false);
+    setSelectedBlogPostSlug?.(null);
+    setShowCompanyLanding(false);
+    setIsOnboardingCompany(false);
+    setSelectedJobId(null);
+    setViewState(ViewState.LIST);
+    setDiscoveryLane?.('challenges');
+    setDiscoveryMode?.('micro_jobs');
+    setDiscoverySearchMode?.(false);
+    scrollToElement('challenge-discovery');
+  };
+
   const navItems = [
     {
       key: 'overview',
       label: headerLabel({ cs: 'Úvod', sk: 'Úvod', de: 'Übersicht', at: 'Übersicht', pl: 'Przegląd', en: 'Overview' }),
-      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && !discoverySearchMode,
+      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && !discoverySearchMode,
       onClick: openHomeOverview
     },
     {
       key: 'search',
       label: headerLabel({ cs: 'Hledání a filtry', sk: 'Hľadanie a filtre', de: 'Suche und Filter', at: 'Suche und Filter', pl: 'Szukaj i filtry', en: 'Search and filters' }),
-      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoverySearchMode,
+      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && discoverySearchMode,
       onClick: () => openDiscoveryLane('challenges', true)
+    },
+    {
+      key: 'micro_jobs',
+      label: headerLabel({ cs: 'Mini výzvy', sk: 'Mini výzvy', de: 'Mini-Aufgaben', at: 'Mini-Aufgaben', pl: 'Mini wyzwania', en: 'Mini challenges' }),
+      active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'micro_jobs',
+      onClick: openMicroJobs
     },
     {
       key: 'saved',
@@ -175,6 +206,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         setShowCompanyLanding(false);
         setIsOnboardingCompany(false);
         setIsBlogOpen?.(false);
+        setDiscoveryMode?.('all');
         setDiscoverySearchMode?.(false);
         setViewState(ViewState.SAVED);
         setSelectedJobId(null);
@@ -234,6 +266,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
     onIntentionalListClick?.();
     setDiscoveryLane?.('challenges');
+    setDiscoveryMode?.('all');
     setDiscoverySearchMode?.(false);
     setIsBlogOpen?.(false);
     setViewState(ViewState.LIST);

@@ -1,5 +1,5 @@
 import { BACKEND_URL } from '../constants';
-import { JobDraft, JobValidationReport, JobVersion } from '../types';
+import { CompanyHumanContextPersonOption, JobDraft, JobValidationReport, JobVersion } from '../types';
 import { authenticatedFetch } from './csrfService';
 
 export class ApiRequestError extends Error {
@@ -327,6 +327,15 @@ export const createEditDraftFromRole = createEditDraftFromJob;
 export const duplicateRoleIntoDraft = duplicateJobIntoDraft;
 export const listRoleVersions = listJobVersions;
 export const updateCompanyRoleLifecycle = updateCompanyJobLifecycle;
+
+export const fetchCompanyHumanContextPeople = async (): Promise<CompanyHumanContextPersonOption[]> => {
+    const response = await authenticatedFetch(`${BACKEND_URL}/company/human-context/people`, {
+        method: 'GET',
+        headers: jsonHeaders
+    });
+    const payload = await toJson<{ people?: CompanyHumanContextPersonOption[] }>(response);
+    return Array.isArray(payload?.people) ? payload.people : [];
+};
 
 export const fetchCompanySchemaRolloutStatus = async (): Promise<CompanySchemaRolloutStatus | null> => {
     if (rolloutSchemaApiUnavailable || jobDraftApiUnavailable) return null;
