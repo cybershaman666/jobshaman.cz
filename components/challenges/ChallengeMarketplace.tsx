@@ -2267,6 +2267,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 
   return (
     <section className="space-y-5">
+      {!userProfile.isLoggedIn ? (
       <div className="hidden md:block">
         <PageHeader
           eyebrow={copy.eyebrow}
@@ -2358,6 +2359,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           ) : null}
         </PageHeader>
       </div>
+      ) : null}
 
       {setupSignals.length > 0 ? (
         <>
