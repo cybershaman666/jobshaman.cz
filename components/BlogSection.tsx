@@ -128,17 +128,25 @@ const BlogSection: React.FC<BlogSectionProps> = ({
             }
             el.setAttribute('content', value);
         };
+        const removeMeta = (attr: 'name' | 'property', key: string) => {
+            document.querySelectorAll(`meta[${attr}="${key}"]`).forEach((node) => node.parentNode?.removeChild(node));
+        };
 
         if (!selectedPost) return;
 
         const previousTitle = document.title;
         const previousDescription = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+        const previousKeywords = document.querySelector('meta[name="keywords"]')?.getAttribute('content') || '';
         const title = `${selectedPost.title} | JobShaman`;
         const description = selectedPost.excerpt || 'JobShaman Blog';
         const articleUrl = `${siteOrigin}/blog/${selectedPost.slug}`;
+        const keywords = Array.isArray(selectedPost.keywords) ? selectedPost.keywords.join(', ') : '';
 
         document.title = title;
         setMeta('name', 'description', description);
+        if (keywords) {
+            setMeta('name', 'keywords', keywords);
+        }
         setMeta('property', 'og:title', title);
         setMeta('property', 'og:description', description);
         setMeta('property', 'og:type', 'article');
@@ -146,6 +154,10 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         if (selectedPost.image) {
             setMeta('property', 'og:image', selectedPost.image);
         }
+        removeMeta('property', 'article:tag');
+        selectedPost.keywords.forEach((keyword) => {
+            setMeta('property', 'article:tag', keyword);
+        });
         setMeta('name', 'twitter:card', 'summary_large_image');
         setMeta('name', 'twitter:title', title);
         setMeta('name', 'twitter:description', description);
@@ -153,6 +165,12 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         return () => {
             document.title = previousTitle;
             setMeta('name', 'description', previousDescription);
+            if (previousKeywords) {
+                setMeta('name', 'keywords', previousKeywords);
+            } else {
+                removeMeta('name', 'keywords');
+            }
+            removeMeta('property', 'article:tag');
         };
     }, [selectedPost, siteOrigin]);
 

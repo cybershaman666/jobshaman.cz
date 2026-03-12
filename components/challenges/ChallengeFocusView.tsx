@@ -17,7 +17,7 @@ import { fetchSalaryBenchmark } from '../../services/benchmarkService';
 import { calculateCommuteReality, isRemoteJob } from '../../services/commuteService';
 import { fetchJobHumanContext } from '../../services/jobService';
 import { formatJobDescription } from '../../utils/formatters';
-import { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, MicroJobCollaborationMode, SalaryBenchmarkResolved, UserProfile } from '../../types';
+import { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, MicroJobCollaborationMode, MicroJobLongTermPotential, SalaryBenchmarkResolved, UserProfile } from '../../types';
 import ChallengeComposer from './ChallengeComposer';
 import { MetricTile, PageHeader, SurfaceCard, cn } from '../ui/primitives';
 
@@ -114,6 +114,20 @@ const getMicroJobCollaborationLabel = (
     call: { cs: 'Call', sk: 'Call', de: 'Call', pl: 'Call', en: 'Call' }
   };
   return modes.map((mode) => labels[mode]?.[locale as 'cs' | 'sk' | 'de' | 'pl' | 'en'] || labels[mode]?.en || mode).join(' • ');
+};
+
+const getMicroJobLongTermPotentialLabel = (
+  value: Job['micro_job_long_term_potential'],
+  language: string
+): string | null => {
+  if (!value) return null;
+  const locale = language === 'at' ? 'de' : language;
+  const labels: Record<MicroJobLongTermPotential, Record<'cs' | 'sk' | 'de' | 'pl' | 'en', string>> = {
+    yes: { cs: 'Ano', sk: 'Áno', de: 'Ja', pl: 'Tak', en: 'Yes' },
+    maybe: { cs: 'Možná', sk: 'Možno', de: 'Vielleicht', pl: 'Możliwe', en: 'Maybe' },
+    no: { cs: 'Ne', sk: 'Nie', de: 'Nein', pl: 'Nie', en: 'No' }
+  };
+  return labels[value]?.[locale as 'cs' | 'sk' | 'de' | 'pl' | 'en'] || labels[value]?.en || null;
 };
 
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
@@ -527,6 +541,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       type: 'Typ mini výzvy',
       timeEstimate: 'Odhad času',
       collaboration: 'Typ spolupráce',
+      longTermPotential: 'Další spolupráce',
       financialNoteTitle: 'Rychlá spolupráce místo měsíční mzdy',
       financialNoteBody: 'U mini výzvy ukazujeme rozpočet, časový odhad a způsob spolupráce. Měsíční salary benchmark a čistý příjem zde nedávají smysl.'
     },
@@ -536,6 +551,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       type: 'Typ mini výzvy',
       timeEstimate: 'Odhad času',
       collaboration: 'Typ spolupráce',
+      longTermPotential: 'Ďalšia spolupráca',
       financialNoteTitle: 'Rýchla spolupráca namiesto mesačnej mzdy',
       financialNoteBody: 'Pri mini výzve ukazujeme rozpočet, odhad času a spôsob spolupráce. Mesačný salary benchmark a čistý príjem tu nedávajú zmysel.'
     },
@@ -545,6 +561,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       type: 'Typ',
       timeEstimate: 'Zeitaufwand',
       collaboration: 'Zusammenarbeit',
+      longTermPotential: 'Weitere Zusammenarbeit',
       financialNoteTitle: 'Schnelle Zusammenarbeit statt Monatsgehalt',
       financialNoteBody: 'Bei einer Mini-Aufgabe zeigen wir Budget, Zeitaufwand und die Form der Zusammenarbeit. Monatliche Gehaltsbenchmarks und Nettoeinkommen sind hier nicht sinnvoll.'
     },
@@ -554,6 +571,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       type: 'Typ',
       timeEstimate: 'Szacowany czas',
       collaboration: 'Typ współpracy',
+      longTermPotential: 'Dalsza współpraca',
       financialNoteTitle: 'Szybka współpraca zamiast miesięcznej pensji',
       financialNoteBody: 'Przy mini wyzwaniu pokazujemy budżet, czas i sposób współpracy. Miesięczny benchmark wynagrodzenia i dochód netto nie mają tu sensu.'
     },
@@ -563,6 +581,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       type: 'Type',
       timeEstimate: 'Time estimate',
       collaboration: 'Collaboration',
+      longTermPotential: 'Long-term potential',
       financialNoteTitle: 'Quick collaboration instead of monthly salary',
       financialNoteBody: 'For a mini challenge, we show budget, time estimate, and collaboration mode. Monthly salary benchmarks and net income do not make sense here.'
     }
@@ -669,6 +688,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
   const companyValue = shorten(job.company, 72) || (isCsLike ? 'Firma neuvedena' : 'Company not specified');
   const microJobKindValue = getMicroJobKindLabel(job.micro_job_kind, language);
   const microJobCollaborationValue = getMicroJobCollaborationLabel(job.micro_job_collaboration_modes, language);
+  const microJobLongTermPotentialValue = getMicroJobLongTermPotentialLabel(job.micro_job_long_term_potential, language);
   const benefitChips = useMemo(() => normalizeBenefitChips(job.benefits), [job.benefits]);
   const realIncomeValue = commuteAnalysis
     ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} ${commuteAnalysis.financialReality.currency}`
@@ -686,6 +706,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         { label: microJobCopy.budget, value: displayedSalary },
         ...(job.micro_job_time_estimate ? [{ label: microJobCopy.timeEstimate, value: job.micro_job_time_estimate }] : []),
         ...(microJobCollaborationValue ? [{ label: microJobCopy.collaboration, value: microJobCollaborationValue }] : []),
+        ...(microJobLongTermPotentialValue ? [{ label: microJobCopy.longTermPotential, value: microJobLongTermPotentialValue }] : []),
         ...(microJobKindValue ? [{ label: microJobCopy.type, value: microJobKindValue }] : []),
         { label: copy.location, value: locationValue },
         { label: copy.workModel, value: job.work_model || job.type || '—' },
@@ -716,6 +737,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     ? [
         ...(job.micro_job_time_estimate ? [{ label: microJobCopy.timeEstimate, value: job.micro_job_time_estimate }] : []),
         ...(microJobCollaborationValue ? [{ label: microJobCopy.collaboration, value: microJobCollaborationValue }] : []),
+        ...(microJobLongTermPotentialValue ? [{ label: microJobCopy.longTermPotential, value: microJobLongTermPotentialValue }] : []),
         ...(microJobKindValue ? [{ label: microJobCopy.type, value: microJobKindValue }] : []),
         { label: copy.company, value: companyValue },
         { label: copy.source, value: job.source || '—' }

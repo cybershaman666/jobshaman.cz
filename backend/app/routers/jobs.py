@@ -2072,6 +2072,454 @@ def _write_company_activity_log(
         print(f"⚠️ Failed to write company activity log: {exc}")
 
 
+_PUBLIC_ACTIVITY_ALLOWED_EVENT_TYPES: set[str] = {
+    "job_published",
+    "job_updated",
+    "application_message_from_candidate",
+    "application_message_from_company",
+    "application_status_changed",
+    "solution_snapshot_saved",
+}
+_PUBLIC_ACTIVITY_COUNTRY_LABELS: dict[str, dict[str, str]] = {
+    "CZ": {"cs": "Česka", "sk": "Česka", "de": "Tschechien", "at": "Tschechien", "pl": "Czech", "en": "Czechia"},
+    "SK": {"cs": "Slovenska", "sk": "Slovenska", "de": "der Slowakei", "at": "der Slowakei", "pl": "Słowacji", "en": "Slovakia"},
+    "PL": {"cs": "Polska", "sk": "Poľska", "de": "Polen", "at": "Polen", "pl": "Polski", "en": "Poland"},
+    "DE": {"cs": "Německa", "sk": "Nemecka", "de": "Deutschland", "at": "Deutschland", "pl": "Niemiec", "en": "Germany"},
+    "AT": {"cs": "Rakouska", "sk": "Rakúska", "de": "Österreich", "at": "Österreich", "pl": "Austrii", "en": "Austria"},
+}
+_PUBLIC_ACTIVITY_CITY_PREFIXES: dict[str, tuple[str, str]] = {
+    "cs": ("Firma z", "Kandidát z"),
+    "sk": ("Firma z", "Kandidát z"),
+    "de": ("Team aus", "Person aus"),
+    "at": ("Team aus", "Person aus"),
+    "pl": ("Firma z", "Kandydat z"),
+    "en": ("Team in", "Candidate in"),
+}
+
+
+def _public_activity_language(value: Any) -> str:
+    normalized = str(value or "en").strip().lower()
+    if normalized.startswith("de-at") or normalized == "at":
+        return "at"
+    base = normalized.split("-", 1)[0]
+    if base in {"cs", "sk", "de", "pl", "en"}:
+        return base
+    return "en"
+
+
+def _safe_int(value: Any) -> int | None:
+    try:
+        if value is None or value == "":
+            return None
+        return int(value)
+    except Exception:
+        return None
+
+
+def _fetch_rows_by_ids(table: str, columns: str, ids: list[Any]) -> list[dict[str, Any]]:
+    if not supabase or not ids:
+        return []
+    unique_ids = list(dict.fromkeys([item for item in ids if item not in (None, "")]))
+    if not unique_ids:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    chunk_size = 100
+    for index in range(0, len(unique_ids), chunk_size):
+        chunk = unique_ids[index:index + chunk_size]
+        try:
+            resp = supabase.table(table).select(columns).in_("id", chunk).limit(len(chunk)).execute()
+            for row in resp.data or []:
+                if isinstance(row, dict):
+                    rows.append(row)
+        except Exception:
+            continue
+    return rows
+
+
+def _extract_address_fragments(value: Any) -> tuple[str | None, str | None]:
+    raw = str(value or "").strip()
+    if not raw:
+        return (None, None)
+    parts = [part.strip() for part in re.split(r"[,\n;/]+", raw) if str(part or "").strip()]
+    if not parts:
+        return (None, None)
+
+    country_aliases = {
+        "cz": "CZ", "czech republic": "CZ", "czechia": "CZ", "česko": "CZ", "česká republika": "CZ",
+        "sk": "SK", "slovakia": "SK", "slovensko": "SK",
+        "pl": "PL", "poland": "PL", "polsko": "PL",
+        "de": "DE", "germany": "DE", "deutschland": "DE",
+        "at": "AT", "austria": "AT", "österreich": "AT", "osterreich": "AT",
+    }
+
+    country_code: str | None = None
+    city_label: str | None = None
+    for part in reversed(parts):
+        normalized = re.sub(r"\s+", " ", part).strip().lower()
+        if not normalized:
+            continue
+        if normalized in country_aliases:
+            country_code = country_aliases[normalized]
+            continue
+        if re.fullmatch(r"[A-Z]{2}", part.strip()):
+            country_code = part.strip().upper()
+            continue
+        if not city_label:
+            city_label = re.sub(r"\s+", " ", part).strip()
+    return (city_label or None, country_code)
+
+
+def _public_activity_place_label(city_label: str | None, country_code: str | None, language: str) -> str | None:
+    normalized_language = _public_activity_language(language)
+    city = str(city_label or "").strip()
+    if city:
+        return city
+    code = str(country_code or "").strip().upper()
+    if not code:
+        return None
+    return (_PUBLIC_ACTIVITY_COUNTRY_LABELS.get(code) or {}).get(normalized_language) or (_PUBLIC_ACTIVITY_COUNTRY_LABELS.get(code) or {}).get("en")
+
+
+def _public_activity_actor_label(kind: str, city_label: str | None, country_code: str | None, language: str) -> str | None:
+    place_label = _public_activity_place_label(city_label, country_code, language)
+    if not place_label:
+        return None
+    normalized_language = _public_activity_language(language)
+    company_prefix, candidate_prefix = _PUBLIC_ACTIVITY_CITY_PREFIXES.get(normalized_language, _PUBLIC_ACTIVITY_CITY_PREFIXES["en"])
+    prefix = company_prefix if kind == "company" else candidate_prefix
+    return f"{prefix} {place_label}"
+
+
+def _public_activity_is_micro_job(job_row: dict[str, Any] | None, payload: dict[str, Any] | None) -> bool:
+    metadata, _cleaned = _extract_job_description_metadata((job_row or {}).get("description"))
+    if metadata.get("challenge_format") == "micro_job":
+        return True
+    return str(_safe_dict(payload).get("challenge_format") or "").strip().lower() == "micro_job"
+
+
+def _public_activity_job_title(job_row: dict[str, Any] | None, payload: dict[str, Any] | None) -> str:
+    return str((job_row or {}).get("title") or _safe_dict(payload).get("job_title") or "").strip()
+
+
+def _public_activity_job_location(job_row: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    if not isinstance(job_row, dict):
+        return (None, None)
+    city_label, country_code = _extract_address_fragments(job_row.get("location"))
+    if country_code:
+        return (city_label, country_code)
+    return (city_label, str(job_row.get("country_code") or "").strip().upper() or None)
+
+
+def _public_activity_company_location(company_row: dict[str, Any] | None, job_row: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    company_city, company_country = _extract_address_fragments((company_row or {}).get("address"))
+    if company_city or company_country:
+        return (company_city, company_country)
+    return _public_activity_job_location(job_row)
+
+
+def _public_activity_candidate_location(candidate_row: dict[str, Any] | None, application_row: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    candidate_city, candidate_country = _extract_address_fragments((candidate_row or {}).get("address"))
+    if candidate_city or candidate_country:
+        return (candidate_city, candidate_country)
+
+    profile_snapshot = _safe_dict((application_row or {}).get("candidate_profile_snapshot"))
+    snapshot_city, snapshot_country = _extract_address_fragments(profile_snapshot.get("address"))
+    if snapshot_city or snapshot_country:
+        return (snapshot_city, snapshot_country)
+    preferred_country = str(profile_snapshot.get("preferredCountryCode") or "").strip().upper() or None
+    return (None, preferred_country)
+
+
+def _public_activity_status_is_visible(payload: dict[str, Any]) -> bool:
+    normalized_status = str(payload.get("status") or "").strip().lower()
+    normalized_reason = _normalize_dialogue_close_reason(payload.get("close_reason") or normalized_status)
+    return normalized_reason in {"hired", "role_filled", "closed"}
+
+
+def _public_activity_job_update_is_visible(payload: dict[str, Any]) -> bool:
+    next_status = _normalize_role_status(payload.get("next_status") or payload.get("role_status"))
+    previous_status = _normalize_role_status(payload.get("previous_status"))
+    return bool(next_status and next_status != previous_status and next_status in {"active", "paused", "closed", "archived"})
+
+
+def _public_activity_build_copy(
+    row: dict[str, Any],
+    *,
+    language: str,
+    job_row: dict[str, Any] | None,
+    company_row: dict[str, Any] | None,
+    application_row: dict[str, Any] | None,
+    candidate_row: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    normalized_language = _public_activity_language(language)
+    event_type = str(row.get("event_type") or "").strip().lower()
+    payload = _safe_dict(row.get("payload"))
+    job_title = _public_activity_job_title(job_row, payload)
+    if not job_title and event_type != "application_status_changed":
+        return None
+
+    is_micro_job = _public_activity_is_micro_job(job_row, payload)
+    challenge_format = "micro_job" if is_micro_job else "standard"
+    company_city, company_country = _public_activity_company_location(company_row, job_row)
+    candidate_city, candidate_country = _public_activity_candidate_location(candidate_row, application_row)
+    company_label = _public_activity_actor_label("company", company_city, company_country, normalized_language)
+    candidate_label = _public_activity_actor_label("candidate", candidate_city, candidate_country, normalized_language)
+    primary_city = company_city or candidate_city
+    primary_country = company_country or candidate_country
+
+    copy_map: dict[str, tuple[str, str]] = {}
+    if normalized_language in {"cs", "sk"}:
+        copy_map = {
+            "job_published_micro": (f"{company_label} otevřel(a) mini výzvu „{job_title}“", "Nová krátká spolupráce je právě otevřená."),
+            "job_published_standard": (f"{company_label} otevřel(a) výzvu „{job_title}“", "Na platformě přibyla nová role s jasně popsaným kontextem."),
+            "job_updated_micro": (f"Mini výzva „{job_title}“ změnila stav", f"{company_label} upravil(a) stav mini výzvy."),
+            "job_updated_standard": (f"Výzva „{job_title}“ změnila stav", f"{company_label} upravil(a) stav role."),
+            "candidate_message_micro": (f"{candidate_label} reagoval(a) na mini výzvu „{job_title}“", "Na krátkou spolupráci přišla nová reakce."),
+            "candidate_message_standard": (f"{candidate_label} reagoval(a) na výzvu „{job_title}“", "Ve feedu přibyla nová kandidátská odpověď."),
+            "company_message_micro": (f"{company_label} odpověděl(a) na mini výzvu „{job_title}“", "Tým navázal na první reakci kandidáta."),
+            "company_message_standard": (f"{company_label} odpověděl(a) u role „{job_title}“", "Firma pokračuje v prvním kontaktu s kandidátem."),
+            "status_changed_micro": (f"Mini výzva „{job_title}“ byla uzavřena jako spolupráce", "Krátká spolupráce došla do konkrétního výsledku."),
+            "status_changed_standard": (f"Role „{job_title}“ byla uzavřena", "Tým posunul výběr do uzavřeného stavu."),
+            "solution_snapshot_saved": (f"Mini výzva „{job_title}“ byla dokončena", "Vznikl konkrétní příběh vyřešeného problému."),
+        }
+    elif normalized_language in {"de", "at"}:
+        copy_map = {
+            "job_published_micro": (f"{company_label} hat die Mini-Aufgabe „{job_title}“ geöffnet", "Eine neue kurze Zusammenarbeit ist live."),
+            "job_published_standard": (f"{company_label} hat die Rolle „{job_title}“ geöffnet", "Eine neue Rolle mit klarem Teamkontext ist live."),
+            "job_updated_micro": (f"Mini-Aufgabe „{job_title}“ hat den Status geändert", f"{company_label} hat den Status aktualisiert."),
+            "job_updated_standard": (f"Rolle „{job_title}“ hat den Status geändert", f"{company_label} hat den Rollenstatus aktualisiert."),
+            "candidate_message_micro": (f"{candidate_label} hat auf die Mini-Aufgabe „{job_title}“ reagiert", "Eine neue Reaktion auf eine kurze Zusammenarbeit ist eingegangen."),
+            "candidate_message_standard": (f"{candidate_label} hat auf die Rolle „{job_title}“ reagiert", "Eine neue Kandidatenreaktion ist eingegangen."),
+            "company_message_micro": (f"{company_label} hat auf die Mini-Aufgabe „{job_title}“ geantwortet", "Das Team setzt den ersten Dialog fort."),
+            "company_message_standard": (f"{company_label} hat bei „{job_title}“ geantwortet", "Das Unternehmen führt den ersten Kontakt fort."),
+            "status_changed_micro": (f"Mini-Aufgabe „{job_title}“ wurde abgeschlossen", "Eine kurze Zusammenarbeit wurde erfolgreich beendet."),
+            "status_changed_standard": (f"Rolle „{job_title}“ wurde geschlossen", "Das Team hat die Rolle abgeschlossen."),
+            "solution_snapshot_saved": (f"Mini-Aufgabe „{job_title}“ wurde abgeschlossen", "Ein konkreter Lösungsnachweis wurde gespeichert."),
+        }
+    elif normalized_language == "pl":
+        copy_map = {
+            "job_published_micro": (f"{company_label} otworzyła mini wyzwanie „{job_title}”", "Na platformie pojawiła się nowa krótka współpraca."),
+            "job_published_standard": (f"{company_label} otworzyła rolę „{job_title}”", "Pojawiła się nowa rola z konkretnym kontekstem zespołu."),
+            "job_updated_micro": (f"Mini wyzwanie „{job_title}” zmieniło status", f"{company_label} zaktualizowała status mini wyzwania."),
+            "job_updated_standard": (f"Rola „{job_title}” zmieniła status", f"{company_label} zaktualizowała status roli."),
+            "candidate_message_micro": (f"{candidate_label} odpowiedział(a) na mini wyzwanie „{job_title}”", "Pojawiła się nowa reakcja na krótką współpracę."),
+            "candidate_message_standard": (f"{candidate_label} odpowiedział(a) na rolę „{job_title}”", "Do feedu trafiła nowa odpowiedź kandydata."),
+            "company_message_micro": (f"{company_label} odpowiedziała na mini wyzwanie „{job_title}”", "Zespół kontynuuje pierwszy dialog."),
+            "company_message_standard": (f"{company_label} odpowiedziała przy roli „{job_title}”", "Firma kontynuuje pierwszy kontakt z kandydatem."),
+            "status_changed_micro": (f"Mini wyzwanie „{job_title}” zostało zakończone", "Krótka współpraca doszła do konkretnego wyniku."),
+            "status_changed_standard": (f"Rola „{job_title}” została zamknięta", "Zespół zamknął proces dla tej roli."),
+            "solution_snapshot_saved": (f"Mini wyzwanie „{job_title}” zostało ukończone", "Powstała konkretna historia rozwiązania problemu."),
+        }
+    else:
+        copy_map = {
+            "job_published_micro": (f"{company_label} opened the mini challenge “{job_title}”", "A new short collaboration just went live."),
+            "job_published_standard": (f"{company_label} opened the role “{job_title}”", "A new role with clear team context just went live."),
+            "job_updated_micro": (f"Mini challenge “{job_title}” changed status", f"{company_label} updated the mini challenge status."),
+            "job_updated_standard": (f"Role “{job_title}” changed status", f"{company_label} updated the role status."),
+            "candidate_message_micro": (f"{candidate_label} replied to the mini challenge “{job_title}”", "A new response landed on a short project."),
+            "candidate_message_standard": (f"{candidate_label} replied to the role “{job_title}”", "A new candidate response landed in the feed."),
+            "company_message_micro": (f"{company_label} replied on the mini challenge “{job_title}”", "The team continued the first contact."),
+            "company_message_standard": (f"{company_label} replied on the role “{job_title}”", "The company continued the first contact with a candidate."),
+            "status_changed_micro": (f"Mini challenge “{job_title}” was completed", "A short collaboration reached a concrete outcome."),
+            "status_changed_standard": (f"Role “{job_title}” was closed", "The team moved this role into a closed state."),
+            "solution_snapshot_saved": (f"Mini challenge “{job_title}” was completed", "A concrete solution story was captured."),
+        }
+
+    copy_key: str | None = None
+    if event_type == "job_published":
+        if not company_label:
+            return None
+        copy_key = "job_published_micro" if is_micro_job else "job_published_standard"
+    elif event_type == "job_updated":
+        if not company_label or not _public_activity_job_update_is_visible(payload):
+            return None
+        copy_key = "job_updated_micro" if is_micro_job else "job_updated_standard"
+    elif event_type == "application_message_from_candidate":
+        if not candidate_label:
+            return None
+        copy_key = "candidate_message_micro" if is_micro_job else "candidate_message_standard"
+    elif event_type == "application_message_from_company":
+        if not company_label:
+            return None
+        copy_key = "company_message_micro" if is_micro_job else "company_message_standard"
+    elif event_type == "application_status_changed":
+        if not _public_activity_status_is_visible(payload):
+            return None
+        copy_key = "status_changed_micro" if is_micro_job else "status_changed_standard"
+    elif event_type == "solution_snapshot_saved":
+        if not is_micro_job:
+            return None
+        copy_key = "solution_snapshot_saved"
+
+    if not copy_key or copy_key not in copy_map:
+        return None
+
+    title, body = copy_map[copy_key]
+    return {
+        "id": str(row.get("id") or ""),
+        "kind": event_type,
+        "timestamp": row.get("created_at"),
+        "title": title,
+        "body": body,
+        "city_label": primary_city,
+        "country_code": primary_country,
+        "job_title": job_title,
+        "challenge_format": challenge_format,
+        "is_micro_job": is_micro_job,
+    }
+
+
+def _build_public_activity_payload(language: str, limit: int = 5) -> dict[str, Any]:
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    normalized_language = _public_activity_language(language)
+    now = datetime.now(timezone.utc)
+    day_ago = (now - timedelta(hours=24)).isoformat()
+    week_ago = (now - timedelta(days=7)).isoformat()
+
+    try:
+        resp = (
+            supabase
+            .table("company_activity_log")
+            .select("*")
+            .in_("event_type", list(_PUBLIC_ACTIVITY_ALLOWED_EVENT_TYPES))
+            .gte("created_at", week_ago)
+            .order("created_at", desc=True)
+            .limit(max(60, limit * 8))
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "company_activity_log"):
+            return {"stats": {}, "events": [], "meta": {"generated_at": now.isoformat(), "window_hours": 168}}
+        raise HTTPException(status_code=500, detail="Failed to load public activity")
+
+    raw_rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    if not raw_rows:
+        return {"stats": {}, "events": [], "meta": {"generated_at": now.isoformat(), "window_hours": 168}}
+
+    job_ids: list[int] = []
+    company_ids: list[str] = []
+    application_ids: list[str] = []
+    candidate_ids: list[str] = []
+    for row in raw_rows:
+        payload = _safe_dict(row.get("payload"))
+        subject_type = str(row.get("subject_type") or "").strip().lower()
+        subject_id = str(row.get("subject_id") or "").strip()
+        normalized_job_id = _normalize_job_id(payload.get("job_id") or (subject_id if subject_type == "job" else None))
+        if isinstance(normalized_job_id, int):
+            job_ids.append(normalized_job_id)
+        company_id = str(row.get("company_id") or payload.get("company_id") or "").strip()
+        if company_id:
+            company_ids.append(company_id)
+        application_id = str(payload.get("application_id") or payload.get("dialogue_id") or (subject_id if subject_type == "application" else "")).strip()
+        if application_id:
+            application_ids.append(application_id)
+        candidate_id = str(payload.get("candidate_id") or "").strip()
+        if candidate_id:
+            candidate_ids.append(candidate_id)
+
+    jobs_by_id = {
+        int(row.get("id")): row
+        for row in _fetch_rows_by_ids("jobs", "id,title,location,country_code,description", job_ids)
+        if _safe_int(row.get("id")) is not None
+    }
+    companies_by_id = {
+        str(row.get("id") or ""): row
+        for row in _fetch_rows_by_ids("companies", "id,address", company_ids)
+        if str(row.get("id") or "").strip()
+    }
+    applications_by_id = {
+        str(row.get("id") or ""): row
+        for row in _fetch_rows_by_ids("job_applications", "id,job_id,candidate_id,candidate_profile_snapshot,status", application_ids)
+        if str(row.get("id") or "").strip()
+    }
+
+    for application_row in applications_by_id.values():
+        normalized_job_id = _normalize_job_id(application_row.get("job_id"))
+        if isinstance(normalized_job_id, int) and normalized_job_id not in jobs_by_id:
+            job_ids.append(normalized_job_id)
+        candidate_id = str(application_row.get("candidate_id") or "").strip()
+        if candidate_id:
+            candidate_ids.append(candidate_id)
+
+    if job_ids:
+        jobs_by_id.update({
+            int(row.get("id")): row
+            for row in _fetch_rows_by_ids("jobs", "id,title,location,country_code,description", job_ids)
+            if _safe_int(row.get("id")) is not None
+        })
+    candidate_by_id = {
+        str(row.get("id") or ""): row
+        for row in _fetch_rows_by_ids("candidate_profiles", "id,address", candidate_ids)
+        if str(row.get("id") or "").strip()
+    }
+
+    public_events: list[dict[str, Any]] = []
+    new_challenges_today = 0
+    candidate_replies_today = 0
+    company_replies_today = 0
+    completed_mini_projects_7d = 0
+
+    for row in raw_rows:
+        payload = _safe_dict(row.get("payload"))
+        event_type = str(row.get("event_type") or "").strip().lower()
+        created_at = str(row.get("created_at") or "").strip()
+        is_last_day = created_at >= day_ago
+
+        subject_type = str(row.get("subject_type") or "").strip().lower()
+        subject_id = str(row.get("subject_id") or "").strip()
+        normalized_job_id = _normalize_job_id(payload.get("job_id") or (subject_id if subject_type == "job" else None))
+        application_id = str(payload.get("application_id") or payload.get("dialogue_id") or (subject_id if subject_type == "application" else "")).strip()
+        application_row = applications_by_id.get(application_id) if application_id else None
+        if not isinstance(normalized_job_id, int) and isinstance(application_row, dict):
+            normalized_job_id = _normalize_job_id(application_row.get("job_id"))
+        job_row = jobs_by_id.get(normalized_job_id) if isinstance(normalized_job_id, int) else None
+        company_id = str(row.get("company_id") or payload.get("company_id") or "").strip()
+        company_row = companies_by_id.get(company_id) if company_id else None
+        candidate_id = str(payload.get("candidate_id") or (application_row or {}).get("candidate_id") or "").strip()
+        candidate_row = candidate_by_id.get(candidate_id) if candidate_id else None
+
+        public_item = _public_activity_build_copy(
+            row,
+            language=normalized_language,
+            job_row=job_row,
+            company_row=company_row,
+            application_row=application_row,
+            candidate_row=candidate_row,
+        )
+        if not public_item:
+            continue
+
+        public_events.append(public_item)
+        if event_type == "job_published" and is_last_day:
+            new_challenges_today += 1
+        elif event_type == "application_message_from_candidate" and is_last_day:
+            candidate_replies_today += 1
+        elif event_type == "application_message_from_company" and is_last_day:
+            company_replies_today += 1
+        elif event_type == "solution_snapshot_saved":
+            completed_mini_projects_7d += 1
+
+        if len(public_events) >= limit:
+            continue
+
+    return {
+        "stats": {
+            "new_challenges_today": new_challenges_today,
+            "candidate_replies_today": candidate_replies_today,
+            "company_replies_today": company_replies_today,
+            "completed_mini_projects_7d": completed_mini_projects_7d,
+        },
+        "events": public_events[:limit],
+        "meta": {
+            "generated_at": now.isoformat(),
+            "window_hours": 168,
+        },
+    }
+
+
 def _write_analytics_event(
     event_type: str,
     user_id: str | None = None,
@@ -2997,12 +3445,15 @@ def _compose_job_description_from_draft(draft: dict) -> str:
         kind = micro_job.get("kind")
         time_estimate = micro_job.get("time_estimate")
         collaboration_modes = micro_job.get("collaboration_modes") or []
+        long_term_potential = micro_job.get("long_term_potential")
         if kind:
             micro_lines.append(f"- Type: {str(kind).replace('_', ' ').title()}")
         if time_estimate:
             micro_lines.append(f"- Time estimate: {time_estimate}")
         if collaboration_modes:
             micro_lines.append(f"- Collaboration: {', '.join([str(item).title() for item in collaboration_modes])}")
+        if long_term_potential:
+            micro_lines.append(f"- Long-term potential: {str(long_term_potential).title()}")
         if micro_lines:
             sections.append("### Micro Job Setup\n" + "\n".join(micro_lines))
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=20)
@@ -3028,6 +3479,7 @@ _ALLOWED_MICRO_JOB_KINDS = {
     "experiment",
 }
 _ALLOWED_MICRO_JOB_COLLABORATION = {"remote", "async", "call"}
+_ALLOWED_MICRO_JOB_LONG_TERM_POTENTIAL = {"yes", "maybe", "no"}
 
 
 def _normalize_hiring_stage(raw: Any) -> str | None:
@@ -3080,6 +3532,15 @@ def _normalize_micro_job_collaboration_modes(raw: Any) -> list[str]:
     return normalized
 
 
+def _normalize_micro_job_long_term_potential(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    normalized = raw.strip().lower()
+    if normalized in _ALLOWED_MICRO_JOB_LONG_TERM_POTENTIAL:
+        return normalized
+    return None
+
+
 def _normalize_micro_job_editor_state(editor_state: Any) -> dict[str, Any]:
     micro_job = _safe_dict(_safe_dict(editor_state).get("micro_job"))
     challenge_format = _normalize_challenge_format(micro_job.get("challenge_format") or micro_job.get("format")) or "standard"
@@ -3088,6 +3549,7 @@ def _normalize_micro_job_editor_state(editor_state: Any) -> dict[str, Any]:
         "kind": _normalize_micro_job_kind(micro_job.get("kind")),
         "time_estimate": _normalize_micro_job_time_estimate(micro_job.get("time_estimate")),
         "collaboration_modes": _normalize_micro_job_collaboration_modes(micro_job.get("collaboration_modes")),
+        "long_term_potential": _normalize_micro_job_long_term_potential(micro_job.get("long_term_potential")),
     }
 
 
@@ -3100,6 +3562,7 @@ def _extract_job_description_metadata(raw_description: Any) -> tuple[dict[str, A
         "kind": None,
         "time_estimate": None,
         "collaboration_modes": [],
+        "long_term_potential": None,
     }
 
     while remaining:
@@ -3118,6 +3581,8 @@ def _extract_job_description_metadata(raw_description: Any) -> tuple[dict[str, A
             metadata["time_estimate"] = _normalize_micro_job_time_estimate(value)
         elif key == "micro_collaboration":
             metadata["collaboration_modes"] = _normalize_micro_job_collaboration_modes(value)
+        elif key == "micro_long_term":
+            metadata["long_term_potential"] = _normalize_micro_job_long_term_potential(value)
         remaining = remaining[match.end():].lstrip()
 
     return metadata, remaining
@@ -3155,6 +3620,8 @@ def _prepend_job_description_markers(description: str, draft: dict) -> str:
             markers.append(f"<!-- jobshaman:micro_time_estimate={micro_job['time_estimate']} -->")
         if micro_job.get("collaboration_modes"):
             markers.append(f"<!-- jobshaman:micro_collaboration={','.join(micro_job['collaboration_modes'])} -->")
+        if micro_job.get("long_term_potential"):
+            markers.append(f"<!-- jobshaman:micro_long_term={micro_job['long_term_potential']} -->")
     if not markers:
         return description
     prefix = "\n".join(markers)
@@ -5198,6 +5665,16 @@ async def list_company_activity_log(
     }
 
 
+@router.get("/activity/public")
+@limiter.limit("120/minute")
+async def get_public_activity_feed(
+    request: Request,
+    limit: int = Query(5, ge=1, le=10),
+    lang: str = Query("en"),
+):
+    return _build_public_activity_payload(lang, limit=limit)
+
+
 @router.post("/company/activity-log")
 @limiter.limit("60/minute")
 async def create_company_activity_log_event(
@@ -5528,6 +6005,7 @@ async def publish_company_job_draft(
         "micro_job_kind": micro_job.get("kind"),
         "micro_job_time_estimate": micro_job.get("time_estimate"),
         "micro_job_collaboration_modes": micro_job.get("collaboration_modes"),
+        "micro_job_long_term_potential": micro_job.get("long_term_potential"),
         "source_draft_id": draft_id,
     }
 
@@ -5627,6 +6105,7 @@ async def create_edit_draft_from_job(
                 "kind": description_metadata.get("kind"),
                 "time_estimate": description_metadata.get("time_estimate"),
                 "collaboration_modes": description_metadata.get("collaboration_modes") or [],
+                "long_term_potential": description_metadata.get("long_term_potential"),
             },
             "human_context": existing_human_context,
         },
@@ -5713,6 +6192,7 @@ async def duplicate_job_into_draft(
                 "kind": description_metadata.get("kind"),
                 "time_estimate": description_metadata.get("time_estimate"),
                 "collaboration_modes": description_metadata.get("collaboration_modes") or [],
+                "long_term_potential": description_metadata.get("long_term_potential"),
             },
             "human_context": existing_human_context,
         },

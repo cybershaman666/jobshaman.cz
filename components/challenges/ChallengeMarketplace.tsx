@@ -12,7 +12,7 @@ import {
   TrainFront
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, MicroJobCollaborationMode, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
+import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, MicroJobCollaborationMode, MicroJobLongTermPotential, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
@@ -20,6 +20,7 @@ import { calculateDistanceKm, isRemoteJob } from '../../services/commuteService'
 import { annotateJobsForCandidate, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import PremiumFeatureExplainModal, { PremiumFeatureExplainContent } from '../PremiumFeatureExplainModal';
+import PublicActivityPanel from '../PublicActivityPanel';
 import { SavedFiltersMenu } from '../SavedFiltersMenu';
 import { EmptyState, FilterChip, MetricTile, PageHeader, SurfaceCard, Toolbar, cn } from '../ui/primitives';
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
@@ -341,6 +342,40 @@ const getMicroJobCollaborationLabel = (
     .join(' • ');
 };
 
+const getMicroJobLongTermPotentialLabel = (
+  value: Job['micro_job_long_term_potential'],
+  language: MarketplaceLanguage
+): string | null => {
+  if (!value) return null;
+  const labelMap: Record<MicroJobLongTermPotential, Record<MarketplaceLanguage, string>> = {
+    yes: {
+      cs: 'Další spolupráce: Ano',
+      sk: 'Ďalšia spolupráca: Áno',
+      de: 'Weitere Zusammenarbeit: Ja',
+      at: 'Weitere Zusammenarbeit: Ja',
+      pl: 'Dalsza współpraca: Tak',
+      en: 'Long-term potential: Yes'
+    },
+    maybe: {
+      cs: 'Další spolupráce: Možná',
+      sk: 'Ďalšia spolupráca: Možno',
+      de: 'Weitere Zusammenarbeit: Vielleicht',
+      at: 'Weitere Zusammenarbeit: Vielleicht',
+      pl: 'Dalsza współpraca: Możliwe',
+      en: 'Long-term potential: Maybe'
+    },
+    no: {
+      cs: 'Další spolupráce: Ne',
+      sk: 'Ďalšia spolupráca: Nie',
+      de: 'Weitere Zusammenarbeit: Nein',
+      at: 'Weitere Zusammenarbeit: Nein',
+      pl: 'Dalsza współpraca: Nie',
+      en: 'Long-term potential: No'
+    }
+  };
+  return labelMap[value]?.[language] || labelMap[value]?.en || null;
+};
+
 const getExperienceLabel = (job: Job, isCsLike: boolean): string | null => {
   const source = `${(job as any).seniority || ''} ${(job as any).experience_level || ''} ${job.title || ''}`.toLowerCase();
   if (!source) return null;
@@ -561,7 +596,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       fit: 'Shoda podle JHI',
       workModel: 'Způsob práce',
       emptyTitle: 'Teď nic dobře nesedí',
-      emptyBody: 'Rozšiř záběr, vypni část filtrů nebo zkus jiné nastavení. Přehled má vracet použitelný výběr, ne prázdno.',
+      emptyBody: 'Rozšiřte záběr, vypněte část filtrů nebo zkuste jiné nastavení. Přehled má vracet použitelný výběr, ne prázdno.',
       loadingTitle: 'Načítáme nabídky podle zadaných filtrů',
       loadingBody: 'Chvíli to může trvat. Připravujeme nový přehled podle vašeho hledání a aktuálního nastavení.',
       noNative: 'Vlastních výzev je zatím málo, proto se doplňují importovanými nabídkami.',
@@ -1409,7 +1444,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (userProfile.isLoggedIn || guestOnboardingSlides.length <= 1) return;
     const intervalId = window.setInterval(() => {
       setGuestDiscoverySlide((current) => (current + 1) % guestOnboardingSlides.length);
-    }, 5000);
+    }, 15000);
     return () => window.clearInterval(intervalId);
   }, [guestOnboardingSlides.length, userProfile.isLoggedIn]);
 
@@ -2612,6 +2647,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       ) : null}
 
       {/* AppHeader already renders the discovery search on lg+; keep this one for mobile/tablet only. */}
+      <PublicActivityPanel mode="discovery" className="border-[rgba(var(--accent-rgb),0.12)]" />
+
+      {/* AppHeader already renders the discovery search on lg+; keep this one for mobile/tablet only. */}
       <Toolbar className="space-y-4 lg:hidden">
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_auto]">
           <div className="app-command-field">
@@ -3321,6 +3359,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                       const microJobCollaboration = isMicroJob(job)
                         ? getMicroJobCollaborationLabel(job.micro_job_collaboration_modes, language)
                         : null;
+                      const microJobLongTermPotential = isMicroJob(job)
+                        ? getMicroJobLongTermPotentialLabel(job.micro_job_long_term_potential, language)
+                        : null;
                       return (
                         <article
                           key={job.id}
@@ -3390,6 +3431,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                               {job.micro_job_time_estimate ? <MetaBadge tone="accent">{job.micro_job_time_estimate}</MetaBadge> : null}
                               {microJobKind ? <MetaBadge tone="accent">{microJobKind}</MetaBadge> : null}
                               {microJobCollaboration ? <MetaBadge>{microJobCollaboration}</MetaBadge> : null}
+                              {microJobLongTermPotential ? <MetaBadge tone="accent">{microJobLongTermPotential}</MetaBadge> : null}
                               {ageLabel ? <MetaBadge>{ageLabel}</MetaBadge> : null}
                               <MetaBadge tone="accent">{copy.fit} {Math.round(job.jhi?.score || 0)}</MetaBadge>
                               <MetaBadge>{getWorkModel(job, isCsLike)}</MetaBadge>

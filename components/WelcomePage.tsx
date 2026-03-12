@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Brain, CheckCircle2, MessageSquare, Shield, Sparkles, TimerReset } from 'lucide-react';
 import BlogSection from './BlogSection';
+import PublicActivityPanel from './PublicActivityPanel';
 
 interface WelcomePageProps {
   compact?: boolean;
@@ -705,6 +706,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-8">
+        <PublicActivityPanel mode="homepage" onPrimaryAction={onBrowseOffers} />
       </section>
 
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-16">

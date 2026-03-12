@@ -13,7 +13,8 @@ import {
   JobValidationReport,
   JobVersion,
   MicroJobCollaborationMode,
-  MicroJobKind
+  MicroJobKind,
+  MicroJobLongTermPotential
 } from '../types';
 import {
   createCompanyRole as createCompanyJobDraft,
@@ -52,6 +53,7 @@ type MicroJobEditorState = {
   kind: MicroJobKind | null;
   time_estimate: string;
   collaboration_modes: MicroJobCollaborationMode[];
+  long_term_potential: MicroJobLongTermPotential | null;
 };
 
 interface CompanyJobEditorProps {
@@ -264,6 +266,15 @@ const normalizeMicroJobCollaborationModes = (value: unknown): MicroJobCollaborat
   return normalized;
 };
 
+const normalizeMicroJobLongTermPotential = (value: unknown): MicroJobLongTermPotential | null => {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'yes' || normalized === 'maybe' || normalized === 'no') {
+    return normalized as MicroJobLongTermPotential;
+  }
+  return null;
+};
+
 const trimText = (value: unknown, limit = 240): string => String(value ?? '').trim().slice(0, limit);
 
 const normalizeMicroJobState = (value: unknown): MicroJobEditorState => {
@@ -272,7 +283,8 @@ const normalizeMicroJobState = (value: unknown): MicroJobEditorState => {
     challenge_format: normalizeChallengeFormat(source.challenge_format),
     kind: normalizeMicroJobKind(source.kind),
     time_estimate: trimText(source.time_estimate, 80),
-    collaboration_modes: normalizeMicroJobCollaborationModes(source.collaboration_modes)
+    collaboration_modes: normalizeMicroJobCollaborationModes(source.collaboration_modes),
+    long_term_potential: normalizeMicroJobLongTermPotential(source.long_term_potential)
   };
 };
 
@@ -280,7 +292,8 @@ const createEmptyMicroJobState = (): MicroJobEditorState => ({
   challenge_format: 'standard',
   kind: null,
   time_estimate: '',
-  collaboration_modes: []
+  collaboration_modes: [],
+  long_term_potential: null
 });
 
 const normalizeHumanContextPerson = (
@@ -430,6 +443,9 @@ const attachDraftDescriptionMetadata = (
     if (microJobState.collaboration_modes.length) {
       markers.push(`<!-- jobshaman:micro_collaboration=${microJobState.collaboration_modes.join(',')} -->`);
     }
+    if (microJobState.long_term_potential) {
+      markers.push(`<!-- jobshaman:micro_long_term=${microJobState.long_term_potential} -->`);
+    }
   }
   const trimmedDescription = description.trim();
   const prefix = markers.join('\n');
@@ -487,6 +503,7 @@ const composePreviewMarkdown = (
     microJobType: string;
     microJobTimeEstimate: string;
     microJobCollaboration: string;
+    microJobLongTermPotential: string;
     location: string;
     workSetup: string;
     contract: string;
@@ -508,6 +525,7 @@ const composePreviewMarkdown = (
     workSetupRemote: string;
     microJobKindValues: Record<MicroJobKind, string>;
     microJobCollaborationValues: Record<MicroJobCollaborationMode, string>;
+    microJobLongTermPotentialValues: Record<MicroJobLongTermPotential, string>;
   }
 ): string => {
   const handshake = extractHandshakeFields(draft);
@@ -519,6 +537,9 @@ const composePreviewMarkdown = (
   const microJobCollaboration = microJob.collaboration_modes
     .map((mode) => labels.microJobCollaborationValues[mode] || mode)
     .join(', ');
+  const microJobLongTermPotential = microJob.long_term_potential
+    ? (labels.microJobLongTermPotentialValues[microJob.long_term_potential] || microJob.long_term_potential)
+    : '';
   const normalizedWorkModel = String(draft.work_model || '').trim().toLowerCase();
   const localizedWorkModel =
     normalizedWorkModel === 'on-site' || normalizedWorkModel === 'onsite' || normalizedWorkModel === 'on site'
@@ -541,6 +562,7 @@ const composePreviewMarkdown = (
     microJob.challenge_format === 'micro_job' && microJob.kind ? `**${labels.microJobType}:** ${labels.microJobKindValues[microJob.kind] || microJob.kind.replace(/_/g, ' ')}` : '',
     microJob.challenge_format === 'micro_job' && microJob.time_estimate ? `**${labels.microJobTimeEstimate}:** ${microJob.time_estimate}` : '',
     microJob.challenge_format === 'micro_job' && microJobCollaboration ? `**${labels.microJobCollaboration}:** ${microJobCollaboration}` : '',
+    microJob.challenge_format === 'micro_job' && microJobLongTermPotential ? `**${labels.microJobLongTermPotential}:** ${microJobLongTermPotential}` : '',
     draft.role_summary ? `## ${labels.roleSummary}\n${draft.role_summary}` : '',
     !isMicroJob && draft.team_intro ? `## ${labels.teamIntro}\n${draft.team_intro}` : '',
     draft.responsibilities ? `## ${labels.responsibilities}\n${compactLines(draft.responsibilities).map((line) => `- ${line}`).join('\n')}` : '',
@@ -744,7 +766,8 @@ const createLocalDraftFromJob = (
       challenge_format: job.challenge_format || 'standard',
       kind: job.micro_job_kind || null,
       time_estimate: job.micro_job_time_estimate || '',
-      collaboration_modes: job.micro_job_collaboration_modes || []
+      collaboration_modes: job.micro_job_collaboration_modes || [],
+      long_term_potential: job.micro_job_long_term_potential || null
     },
     human_context: createEmptyHumanContext()
   }
@@ -1614,6 +1637,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     microJobType: t('company.job_editor.preview_labels.micro_job_type', { defaultValue: 'Mini challenge type' }),
     microJobTimeEstimate: t('company.job_editor.preview_labels.micro_job_time', { defaultValue: 'Time estimate' }),
     microJobCollaboration: t('company.job_editor.preview_labels.micro_job_collaboration', { defaultValue: 'Collaboration' }),
+    microJobLongTermPotential: t('company.job_editor.preview_labels.micro_job_long_term', { defaultValue: 'Long-term potential' }),
     location: t('company.job_editor.preview_labels.location', { defaultValue: 'Location' }),
     workSetup: t('company.job_editor.preview_labels.work_setup', { defaultValue: 'Work setup' }),
     contract: t('company.job_editor.preview_labels.contract', { defaultValue: 'Contract' }),
@@ -1644,6 +1668,11 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
       remote: t('company.job_editor.micro_job_collaboration_options.remote', { defaultValue: 'Remote' }),
       async: t('company.job_editor.micro_job_collaboration_options.async', { defaultValue: 'Async' }),
       call: t('company.job_editor.micro_job_collaboration_options.call', { defaultValue: 'Call' })
+    },
+    microJobLongTermPotentialValues: {
+      yes: t('company.job_editor.micro_job_long_term_options.yes', { defaultValue: 'Yes' }),
+      maybe: t('company.job_editor.micro_job_long_term_options.maybe', { defaultValue: 'Maybe' }),
+      no: t('company.job_editor.micro_job_long_term_options.no', { defaultValue: 'No' })
     }
   }), [t]);
 
@@ -1879,7 +1908,8 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                       challenge_format: normalizeChallengeFormat(e.target.value),
                       kind: normalizeChallengeFormat(e.target.value) === 'micro_job' ? microJobState.kind : null,
                       time_estimate: normalizeChallengeFormat(e.target.value) === 'micro_job' ? microJobState.time_estimate : '',
-                      collaboration_modes: normalizeChallengeFormat(e.target.value) === 'micro_job' ? microJobState.collaboration_modes : []
+                      collaboration_modes: normalizeChallengeFormat(e.target.value) === 'micro_job' ? microJobState.collaboration_modes : [],
+                      long_term_potential: normalizeChallengeFormat(e.target.value) === 'micro_job' ? microJobState.long_term_potential : null
                     })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
                   >
@@ -1996,6 +2026,33 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                         <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">
                           {t('company.job_editor.micro_job_collaboration_help', {
                             defaultValue: 'Explain whether the work happens fully remote, mostly async, or depends on a quick call with the team.'
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                          {t('company.job_editor.micro_job_long_term_label', { defaultValue: 'Can this turn into a longer collaboration?' })}
+                        </label>
+                        <select
+                          value={microJobState.long_term_potential || ''}
+                          onChange={(e) => patchMicroJobState({ long_term_potential: normalizeMicroJobLongTermPotential(e.target.value) })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
+                        >
+                          <option value="">
+                            {t('company.job_editor.micro_job_long_term_placeholder', { defaultValue: 'Choose an option' })}
+                          </option>
+                          {(['yes', 'maybe', 'no'] as MicroJobLongTermPotential[]).map((option) => (
+                            <option key={option} value={option}>
+                              {t(`company.job_editor.micro_job_long_term_options.${option}`, {
+                                defaultValue: option === 'yes' ? 'Yes' : option === 'maybe' ? 'Maybe' : 'No'
+                              })}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                          {t('company.job_editor.micro_job_long_term_help', {
+                            defaultValue: 'Use this to signal whether the mini challenge can realistically grow into a longer working relationship.'
                           })}
                         </div>
                       </div>

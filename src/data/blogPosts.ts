@@ -356,5 +356,217 @@ AI shoda a AI doporučené řazení spolu souvisí, ale nejsou to identické met
                 answer: 'Ano. Je to rychlý indikátor fitu konkrétní nabídky. Pro finální pořadí ale model bere i další faktory, například čerstvost.'
             }
         ]
+    },
+    {
+        id: 7,
+        slug: 'product-update-mini-vyzvy-a-osobnejsi-prvni-kontakt',
+        title: 'Product Update: Mini výzvy, osobnější první kontakt a méně anonymní nábor',
+        excerpt: 'Dnešní release přidává mini výzvy pro krátké spolupráce, lidský kontext u nativních výzev a nový základ pro důvěryhodnější první kontakt mezi kandidátem a firmou.',
+        content: `
+# Product Update: Mini výzvy a osobnější první kontakt
+
+V JobShamanu jsme dnes udělali krok, který je pro nás strategicky důležitý. Nejde jen o další job board feature. Jde o posun od anonymních inzerátů směrem k **konkrétnějším problémům, konkrétním lidem a konkrétnějšímu prvnímu kontaktu**.
+
+Release se točí kolem dvou hlavních linií:
+
+- **Mini výzvy** jako nový formát krátké spolupráce
+- **Lidský kontext výzvy** a osobnější handshake mezi firmou a kandidátem
+
+## 1) Mini výzvy: nový typ spolupráce, ne jen další filtr
+
+Na většině pracovních portálů chybí prostor pro malé, rychlé a jasně ohraničené spolupráce. Přitom firmy často nepotřebují hned full-time hire. Potřebují:
+
+- jednorázový task,
+- krátký projekt,
+- audit nebo review,
+- prototyp,
+- experiment.
+
+Proto jsme do JobShamana přidali **Mini výzvy** jako samostatný formát.
+
+Nejde o „zmenšený inzerát“. Je to jiný typ poptávky s jinou logikou:
+
+- menší závazek,
+- rychlejší rozhodnutí,
+- jasnější scope,
+- praktičtější první kontakt.
+
+### Co dnes mini výzva umí
+
+Firma teď může u mini výzvy vyplnit:
+
+- typ mini výzvy,
+- odhad času,
+- budget range,
+- typ spolupráce,
+- a nově také informaci, **jestli z ní může vzniknout dlouhodobější spolupráce**.
+
+Právě poslední bod je důležitý. Pro kandidáta je rozdíl, jestli jde o čistě uzavřený task, nebo o malý vstup do delšího vztahu.
+
+Proto jsme přidali jednoduchý signál:
+
+- ano,
+- možná,
+- ne.
+
+Tohle je malá věc v UI, ale silný decision signal v praxi.
+
+## 2) Samostatná záložka Mini výzvy a jednodušší feed
+
+Mini výzvy jsme nechtěli schovat jako jeden další chip mezi filtry. To by zaniklo.
+
+Proto mají nově:
+
+- vlastní záložku v headeru,
+- vlastní discovery režim,
+- vlastní badge ve feedu,
+- vlastní, jednodušší strukturu v detailu.
+
+Když uživatel otevře Mini výzvy, nevidí klasický hiring feed převlečený za „micro jobs“. Vidí kratší spolupráce se strukturou, která dává smysl právě pro tento use case.
+
+Zároveň jsme mini výzvám zjednodušili company editor. Zmizela řada polí, která pro rychlou výpomoc nedávají moc smysl, například velká benefitní vrstva nebo dlouhé standardní hiring sekce.
+
+## 3) Lidský kontext výzvy: kdo to publikoval a kdo pravděpodobně odpoví
+
+Druhá velká změna míří na něco, co klasickým job boardům často chybí: **kontext lidí kolem role**.
+
+U nativních JobShaman výzev teď umíme zobrazit:
+
+- kdo výzvu publikoval,
+- kdo z týmu bude pravděpodobně reagovat,
+- základní trust signály z předchozích dialogů.
+
+To je důležité, protože anonymní inzerát vytváří obrovské tření. Kandidát často neví:
+
+- s kým bude mluvit,
+- kdo první odpoví,
+- jestli je to founder, hiring manager nebo recruiter,
+- jestli tým vůbec komunikuje jako lidé.
+
+Nově se u výzvy může objevit konkrétní člověk s:
+
+- jménem,
+- rolí,
+- fotkou,
+- krátkým veřejným kontextem.
+
+To výrazně mění pocit z nabídky. Role přestává být anonymní položka v databázi a začíná působit jako **pozvánka do konkrétního dialogu**.
+
+## 4) Osobnější první kontakt: handshake jako reálný začátek spolupráce
+
+Na JobShamanu dlouhodobě stavíme hiring na modelu **challenge -> response -> dialogue**. Dnešní změny tenhle princip posouvají dál.
+
+První kontakt už není jen „klik na apply“. Je čitelnější:
+
+- kandidát ví, kdo může být na druhé straně,
+- firma může výzvu rámovat osobněji,
+- u mini výzev je opening brief kratší a praktičtější.
+
+To je důležité i pro firmy. Když je první kontakt konkrétnější a méně formální, snižuje se šance, že odpověď skončí jako sterilní CV drop bez relevance.
+
+## 5) Human context je opt-in, ne automatické zveřejnění
+
+Důležitá věc: tohle jsme neudělali jako agresivní social layer.
+
+Veřejné zobrazení lidí u výzvy je:
+
+- jen pro **native JobShaman výzvy**,
+- jen přes **explicitní opt-in**,
+- jen pro aktivní členy firmy,
+- a firma si sama určuje, kdo je publisher a kdo responder.
+
+To znamená, že firmy dostanou lidský kontext, ale bez chaosu a bez nechtěného odhalování interních lidí.
+
+## 6) Změny pro firmu: provázání s týmovým profilem
+
+S tím souvisí i další vrstva, kterou jsme dnes dotáhli na company straně.
+
+V company dashboardu už není tým jen jako seznam e-mailů a pozvánek. Nově je možné spravovat:
+
+- roli člověka ve firmě,
+- vazbu na firmu,
+- krátký veřejný kontext,
+- napojení na běžný uživatelský profil.
+
+Díky tomu se lidský kontext u výzvy neopírá o ručně hacknutý text někde bokem, ale o skutečné členy firmy a jejich firemní profil.
+
+## 7) Proč je to důležité strategicky
+
+Tohle není jen UX polish. Je to změna směru.
+
+Klasický job board funguje často jako:
+
+inzerát -> CV -> ticho
+
+JobShaman chceme posouvat spíš k tomu:
+
+výzva -> konkrétní odpověď -> dialog -> spolupráce
+
+Mini výzvy jsou ideální vstupní bod, protože mají jasný začátek i konec. A lidský kontext kolem výzvy snižuje anonymitu, která jinak brzdí reakce na obou stranách.
+
+Prakticky to znamená:
+
+- kandidát se snáz odhodlá reagovat,
+- firma dostane kvalitnější první odpovědi,
+- a z malé spolupráce může vzniknout větší vztah.
+
+## 8) Co bude následovat dál
+
+Tímhle to nekončí. Dnešní release nám připravil půdu pro další vrstvy:
+
+- solution snapshots po dokončení mini výzvy,
+- solved problems na profilu kandidáta,
+- veřejné sdílení malých příběhů spolupráce,
+- a časem i hlubší problem graph nad tím, jaké typy lidí řeší jaké typy problémů.
+
+Jinými slovy: nechceme jen ukazovat, **kdo hledá práci**. Chceme ukazovat, **kdo umí řešit konkrétní situace** a s kým dává smysl vést dialog.
+
+## Závěr
+
+Dnešní release přidává do JobShamana tři důležité věci:
+
+- nový formát krátké spolupráce přes Mini výzvy,
+- silnější signály o tom, jestli z mini výzvy může vzniknout něco dlouhodobějšího,
+- a lidský kontext, který dělá první kontakt mezi kandidátem a firmou osobnější a důvěryhodnější.
+
+Pro nás je to důležitý posun od anonymního hiring feedu k tržišti konkrétních problémů a konkrétních lidí.
+    `,
+        date: '12. března 2026',
+        modifiedDate: '12. března 2026',
+        readTime: '8 min čtení',
+        category: 'Product Update',
+        image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&q=80&w=1200',
+        author: 'Tým JobShaman',
+        keywords: [
+            'mini výzvy',
+            'micro jobs',
+            'krátká spolupráce',
+            'osobnější první kontakt',
+            'human context',
+            'hiring manager',
+            'JobShaman product update',
+            'challenge based hiring',
+            'handshake',
+            'native challenges'
+        ],
+        shamanSummary: 'Do JobShamana jsme přidali Mini výzvy jako nový formát krátké spolupráce, včetně času, budgetu, typu spolupráce a signálu, zda z nich může vzniknout dlouhodobější vztah. Zároveň jsme u nativních výzev spustili lidský kontext: kdo výzvu publikoval, kdo pravděpodobně odpoví a jak udělat první kontakt méně anonymní a důvěryhodnější.',
+        qa: [
+            {
+                question: 'Co jsou Mini výzvy v JobShamanu?',
+                answer: 'Mini výzvy jsou nový typ krátké spolupráce pro jednorázové tasky, krátké projekty, audity, prototypy nebo experimenty. Mají jednodušší strukturu než klasická výzva a jsou určené pro rychlejší rozhodování.'
+            },
+            {
+                question: 'Jaké nové informace u Mini výzev firma vyplňuje?',
+                answer: 'Firma vyplňuje typ mini výzvy, odhad času, budget range, typ spolupráce a nově i to, zda z mini výzvy může vzniknout dlouhodobější spolupráce.'
+            },
+            {
+                question: 'Co znamená lidský kontext u výzvy?',
+                answer: 'U nativních JobShaman výzev se může zobrazit konkrétní člověk, který výzvu publikoval, a další lidé z týmu, kteří pravděpodobně povedou první dialog. Kandidát tak ví, s kým bude mluvit.'
+            },
+            {
+                question: 'Zobrazují se lidé u výzvy automaticky?',
+                answer: 'Ne. Veřejné zobrazení je opt-in. Firma sama vybírá, kdo se u nativní výzvy ukáže veřejně, a importované nabídky zůstávají anonymní.'
+            }
+        ]
     }
 ];

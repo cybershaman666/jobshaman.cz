@@ -8,6 +8,7 @@ import {
     JHIPreferences,
     MicroJobCollaborationMode,
     MicroJobKind,
+    MicroJobLongTermPotential,
     SearchDiagnosticsMeta,
     TaxProfile
 } from '../types';
@@ -322,6 +323,7 @@ type JobDescriptionMetadata = {
     microJobKind?: MicroJobKind;
     microJobTimeEstimate?: string;
     microJobCollaborationModes: MicroJobCollaborationMode[];
+    microJobLongTermPotential?: MicroJobLongTermPotential;
 };
 
 const normalizeJobHiringStage = (raw: unknown): JobHiringStage | undefined => {
@@ -394,6 +396,15 @@ const normalizeMicroJobCollaborationModes = (raw: unknown): MicroJobCollaboratio
     return normalized;
 };
 
+const normalizeMicroJobLongTermPotential = (raw: unknown): MicroJobLongTermPotential | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === 'yes' || normalized === 'maybe' || normalized === 'no') {
+        return normalized as MicroJobLongTermPotential;
+    }
+    return undefined;
+};
+
 const extractJobDescriptionMetadata = (desc?: string): JobDescriptionMetadata => {
     const source = desc || '';
     let remaining = source;
@@ -402,6 +413,7 @@ const extractJobDescriptionMetadata = (desc?: string): JobDescriptionMetadata =>
     let microJobKind: MicroJobKind | undefined;
     let microJobTimeEstimate: string | undefined;
     let microJobCollaborationModes: MicroJobCollaborationMode[] = [];
+    let microJobLongTermPotential: MicroJobLongTermPotential | undefined;
 
     while (remaining) {
         const match = JOB_DESCRIPTION_METADATA_PATTERN.exec(remaining);
@@ -420,6 +432,8 @@ const extractJobDescriptionMetadata = (desc?: string): JobDescriptionMetadata =>
             microJobTimeEstimate = normalizeMicroJobTimeEstimate(value) || microJobTimeEstimate;
         } else if (key === 'micro_collaboration') {
             microJobCollaborationModes = normalizeMicroJobCollaborationModes(value);
+        } else if (key === 'micro_long_term') {
+            microJobLongTermPotential = normalizeMicroJobLongTermPotential(value) || microJobLongTermPotential;
         }
 
         remaining = remaining.slice(match[0].length).trimStart();
@@ -431,7 +445,8 @@ const extractJobDescriptionMetadata = (desc?: string): JobDescriptionMetadata =>
         challengeFormat,
         microJobKind,
         microJobTimeEstimate,
-        microJobCollaborationModes
+        microJobCollaborationModes,
+        microJobLongTermPotential
     };
 };
 
@@ -535,6 +550,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         micro_job_kind: extractedDescription.microJobKind || null,
         micro_job_time_estimate: extractedDescription.microJobTimeEstimate || null,
         micro_job_collaboration_modes: extractedDescription.microJobCollaborationModes,
+        micro_job_long_term_potential: extractedDescription.microJobLongTermPotential || null,
         postedAt: getRelativeTime(scrapedJob.scraped_at),
         scrapedAt: scrapedJob.scraped_at,
         source: scrapedJob.source || 'Scraper',
@@ -3987,6 +4003,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 micro_job_kind: extractedDescription.microJobKind || null,
                 micro_job_time_estimate: extractedDescription.microJobTimeEstimate || null,
                 micro_job_collaboration_modes: extractedDescription.microJobCollaborationModes,
+                micro_job_long_term_potential: extractedDescription.microJobLongTermPotential || null,
                 postedAt: getRelativeTime(scraped.scraped_at),
                 scrapedAt: scraped.scraped_at,
                 source: scraped.source || 'Scraper',

@@ -116,7 +116,7 @@
 
   <url>
     <loc>https://jobshaman.cz/blog</loc>
-    <lastmod>2026-02-21</lastmod>
+    <lastmod>2026-03-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/blog" />
@@ -150,6 +150,12 @@
   <url>
     <loc>https://jobshaman.cz/blog/product-update-unor-2026-ai-metriky-jhi-mzdy</loc>
     <lastmod>2026-02-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://jobshaman.cz/blog/product-update-mini-vyzvy-a-osobnejsi-prvni-kontakt</loc>
+    <lastmod>2026-03-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>

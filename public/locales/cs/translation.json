@@ -1400,7 +1400,8 @@
         "challenge_format": "Typ výzvy",
         "micro_job_type": "Typ mini výzvy",
         "micro_job_time": "Odhad času",
-        "micro_job_collaboration": "Typ spolupráce"
+        "micro_job_collaboration": "Typ spolupráce",
+        "micro_job_long_term": "Potenciál další spolupráce"
       },
       "duplicate": "Duplikovat",
       "pause": "Pozastavit",
@@ -1450,6 +1451,14 @@
         "call": "Call"
       },
       "micro_job_collaboration_help": "Upřesněte, jestli se práce odehraje plně remote, převážně asynchronně, nebo vyžaduje rychlý call s týmem.",
+      "micro_job_long_term_label": "Může z toho vzniknout dlouhodobá spolupráce?",
+      "micro_job_long_term_placeholder": "Vyberte možnost",
+      "micro_job_long_term_options": {
+        "yes": "Ano",
+        "maybe": "Možná",
+        "no": "Ne"
+      },
+      "micro_job_long_term_help": "Naznačte, jestli může mini výzva realisticky přerůst v delší spolupráci.",
       "budget_from": "Rozpočet od",
       "budget_to": "Rozpočet do",
       "budget_from_placeholder": "5000",

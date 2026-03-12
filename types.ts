@@ -373,6 +373,7 @@ export type MicroJobKind =
   | 'prototype'
   | 'experiment';
 export type MicroJobCollaborationMode = 'remote' | 'async' | 'call';
+export type MicroJobLongTermPotential = 'yes' | 'maybe' | 'no';
 
 export type JobPublicPersonKind = 'publisher' | 'responder';
 
@@ -398,6 +399,35 @@ export interface JobHumanContext {
   publisher: JobPublicPerson | null;
   responders: JobPublicPerson[];
   trust: JobHumanContextTrust;
+}
+
+export interface PublicActivityStats {
+  new_challenges_today: number;
+  candidate_replies_today: number;
+  company_replies_today: number;
+  completed_mini_projects_7d: number;
+}
+
+export interface PublicActivityEvent {
+  id: string;
+  kind: string;
+  timestamp: string;
+  title: string;
+  body: string;
+  city_label?: string | null;
+  country_code?: string | null;
+  job_title?: string | null;
+  challenge_format?: JobChallengeFormat | 'standard';
+  is_micro_job: boolean;
+}
+
+export interface PublicActivityFeedPayload {
+  stats: PublicActivityStats;
+  events: PublicActivityEvent[];
+  meta: {
+    generated_at: string;
+    window_hours: number;
+  };
 }
 
 export interface SolutionSnapshot {
@@ -508,6 +538,7 @@ export interface Job {
   micro_job_kind?: MicroJobKind | null;
   micro_job_time_estimate?: string | null;
   micro_job_collaboration_modes?: MicroJobCollaborationMode[];
+  micro_job_long_term_potential?: MicroJobLongTermPotential | null;
   open_dialogues_count?: number;
   dialogue_capacity_limit?: number;
   reaction_window_hours?: number;

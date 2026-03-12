@@ -1545,7 +1545,8 @@
         "challenge_format": "Format wyzwania",
         "micro_job_type": "Typ mini wyzwania",
         "micro_job_time": "Szacowany czas",
-        "micro_job_collaboration": "Typ wspolpracy"
+        "micro_job_collaboration": "Typ wspolpracy",
+        "micro_job_long_term": "Potencjal dalszej wspolpracy"
       },
       "duplicate": "Duplikuj",
       "pause": "Wstrzymaj",
@@ -1595,6 +1596,14 @@
         "call": "Call"
       },
       "micro_job_collaboration_help": "Wyjasnij, czy praca odbywa sie w pelni zdalnie, glownie asynchronicznie, czy wymaga szybkiego calla z zespołem.",
+      "micro_job_long_term_label": "Czy moze z tego powstac dluzsza wspolpraca?",
+      "micro_job_long_term_placeholder": "Wybierz opcje",
+      "micro_job_long_term_options": {
+        "yes": "Tak",
+        "maybe": "Mozliwe",
+        "no": "Nie"
+      },
+      "micro_job_long_term_help": "Zaznacz, czy mini wyzwanie moze realistycznie przerodzic sie w dluzsza wspolprace.",
       "budget_from": "Budzet od",
       "budget_to": "Budzet do",
       "budget_from_placeholder": "5000",

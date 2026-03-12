@@ -1587,7 +1587,8 @@
         "challenge_format": "Format der Challenge",
         "micro_job_type": "Micro-Job-Typ",
         "micro_job_time": "Zeitaufwand",
-        "micro_job_collaboration": "Zusammenarbeit"
+        "micro_job_collaboration": "Zusammenarbeit",
+        "micro_job_long_term": "Potenzial fuer weitere Zusammenarbeit"
       },
       "duplicate": "Duplizieren",
       "pause": "Pausieren",
@@ -1637,6 +1638,14 @@
         "call": "Call"
       },
       "micro_job_collaboration_help": "Erklaeren Sie, ob die Arbeit vollstaendig remote, ueberwiegend asynchron oder mit einem kurzen Call mit dem Team stattfindet.",
+      "micro_job_long_term_label": "Kann daraus eine laengerfristige Zusammenarbeit entstehen?",
+      "micro_job_long_term_placeholder": "Option auswaehlen",
+      "micro_job_long_term_options": {
+        "yes": "Ja",
+        "maybe": "Vielleicht",
+        "no": "Nein"
+      },
+      "micro_job_long_term_help": "Zeigen Sie hier an, ob die Mini-Aufgabe realistisch in eine laengere Zusammenarbeit uebergehen kann.",
       "budget_from": "Budget von",
       "budget_to": "Budget bis",
       "budget_from_placeholder": "5000",

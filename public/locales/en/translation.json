@@ -1346,7 +1346,8 @@
         "challenge_format": "Challenge format",
         "micro_job_type": "Mini challenge type",
         "micro_job_time": "Time estimate",
-        "micro_job_collaboration": "Collaboration"
+        "micro_job_collaboration": "Collaboration",
+        "micro_job_long_term": "Long-term potential"
       },
       "duplicate": "Duplicate",
       "pause": "Pause",
@@ -1396,6 +1397,14 @@
         "call": "Call"
       },
       "micro_job_collaboration_help": "Explain whether the work happens fully remote, mostly async, or depends on a quick call with the team.",
+      "micro_job_long_term_label": "Can this turn into a longer collaboration?",
+      "micro_job_long_term_placeholder": "Choose an option",
+      "micro_job_long_term_options": {
+        "yes": "Yes",
+        "maybe": "Maybe",
+        "no": "No"
+      },
+      "micro_job_long_term_help": "Use this to signal whether the mini challenge can realistically grow into a longer working relationship.",
       "budget_from": "Budget from",
       "budget_to": "Budget to",
       "budget_from_placeholder": "5000",
