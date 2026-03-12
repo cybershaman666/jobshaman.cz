@@ -127,7 +127,7 @@ const COMMUTE_CORRIDORS: CommuteCorridor[] = [
 
 export const isRemoteJob = (job: Pick<Job, 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
     const remoteSignals = `${job.type || ''} ${job.work_model || ''} ${job.location || ''} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase();
-    return /(^|\b)(remote|remote first|anywhere|work from home|distributed|home office)\b/.test(remoteSignals);
+    return /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|anywhere|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce z domu|prace z domu|práce na dálku|prace na dalku|na dálku|na dalku|z domova|z domu|praca zdalna|zdalnie|homeoffice möglich|von zuhause|mobiles arbeiten|telecommut(?:e|ing))\b/.test(remoteSignals);
 };
 
 const containsAny = (text: string, aliases: string[]): boolean => aliases.some(alias => text.includes(alias));

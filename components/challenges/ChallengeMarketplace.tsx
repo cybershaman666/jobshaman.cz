@@ -195,9 +195,22 @@ const normalizeSupportedCountryCode = (value: string | null | undefined): Suppor
 };
 
 const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
-  const raw = String(job.work_model || (job as any).work_type || job.type || '').trim().toLowerCase();
+  if (isRemoteListing(job)) return 'remote';
+
+  const raw = [
+    job.work_model,
+    (job as any).work_type,
+    job.type,
+    job.location,
+    job.description,
+    ...(job.tags || []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+    .toLowerCase();
+
   if (!raw) return 'all';
-  if (raw.includes('remote') || raw.includes('home office') || raw.includes('homeoffice')) return 'remote';
   if (raw.includes('hybrid')) return 'hybrid';
   if (raw.includes('onsite') || raw.includes('on-site') || raw.includes('office') || raw.includes('field')) return 'onsite';
   return 'all';
@@ -218,7 +231,11 @@ const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
 };
 
 const getWorkModel = (job: Job, isCsLike: boolean): string => {
-  const raw = String(job.work_model || job.type || '').trim();
+  if (isRemoteListing(job)) {
+    return isCsLike ? 'Práce z domu' : 'Home office';
+  }
+
+  const raw = String(job.work_model || (job as any).work_type || job.type || '').trim();
   if (!raw) return isCsLike ? 'Model neuveden' : 'Work model TBD';
   if (/remote/i.test(raw)) {
     return isCsLike ? 'Práce z domu' : 'Home office';
