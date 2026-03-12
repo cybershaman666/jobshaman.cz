@@ -135,6 +135,8 @@ const BORDER_COUNTRY_MAP: Record<SupportedCountryCode, SupportedCountryCode[]> =
 type WorkArrangementFilter = 'all' | 'remote' | 'hybrid' | 'onsite';
 type GeographicScopeFilter = 'domestic' | 'border' | 'abroad' | 'all';
 
+const MIN_NATIVE_CHALLENGE_POOL = 12;
+
 const simplifyDescription = (value: string | null | undefined): string => {
   const plain = String(value || '')
     .replace(/[#>*_`~[\]()!-]+/g, ' ')
@@ -1309,9 +1311,16 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (lane === 'imports') return importedScopedMatches;
 
     // Challenge lane should prefer native challenges, but avoid feeling empty when the pool is small.
-    // When personal setup is disabled (manual filters/keywords), mixing in imported listings is the
-    // expected behavior: the user is asking for a broader market list, not only handcrafted challenges.
+    // If only a handful of native items survive the current filters, mix in imports too so paging
+    // still exposes the broader result set the backend already returned.
     if (nativeScopedMatches.length === 0 || !hasNativeChallenges) return importedScopedMatches;
+    if (nativeScopedMatches.length < MIN_NATIVE_CHALLENGE_POOL) {
+      const seen = new Set(nativeScopedMatches.map((job) => job.id));
+      return [
+        ...nativeScopedMatches,
+        ...importedScopedMatches.filter((job) => !seen.has(job.id)),
+      ];
+    }
     if (!usePersonalSetup) {
       const seen = new Set(nativeScopedMatches.map((job) => job.id));
       return [
