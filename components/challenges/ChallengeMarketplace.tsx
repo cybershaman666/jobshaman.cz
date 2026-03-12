@@ -2618,6 +2618,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             </div>
           ) : null}
 
+          {!hasPremiumAccess ? (
           <SurfaceCard className="hidden overflow-hidden border-[rgba(var(--accent-rgb),0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(249,250,251,0.96))] shadow-[0_30px_70px_-52px_rgba(15,23,42,0.35)] lg:block dark:bg-[linear-gradient(145deg,rgba(17,24,39,0.96),rgba(15,23,42,0.94))]">
             <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.2fr)_360px] lg:p-5">
               <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)]">
@@ -2708,6 +2709,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </div>
             </div>
           </SurfaceCard>
+          ) : null}
 
           <div className={cn(mobileViewMode === 'swipe' && 'hidden xl:block')}>
           <SurfaceCard className="space-y-4 border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(135deg,rgba(255,252,245,0.98),rgba(255,255,255,0.98)_46%,rgba(245,250,255,0.98))] shadow-[0_24px_70px_-52px_rgba(15,23,42,0.3)] dark:bg-[linear-gradient(135deg,rgba(41,30,8,0.34),rgba(15,23,42,0.96)_48%,rgba(17,24,39,0.98))]">
@@ -2725,12 +2727,31 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   {isCsLike ? 'Čteno jako výzvy, ne jen seznam pozic' : 'Read as challenges, not just listings'}
                 </div>
               </div>
-              <MetricTile
-                label={copy.results}
-                value={`${prioritizedJobsInLane.length}`}
-                className="min-w-[140px] border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
-              />
+              <div className="flex min-w-[160px] flex-col gap-3">
+                <MetricTile
+                  label={copy.results}
+                  value={`${prioritizedJobsInLane.length}`}
+                  className="border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
+                />
+                {hasPremiumAccess && resolvedDialogueCapacity ? (
+                  <MetricTile
+                    label={copy.slotsTitle}
+                    value={copy.slotsValue
+                      .replace('{{active}}', String(resolvedDialogueCapacity.active))
+                      .replace('{{limit}}', String(resolvedDialogueCapacity.limit))}
+                    className="border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
+                  />
+                ) : null}
+              </div>
             </div>
+            {hasPremiumAccess && resolvedDialogueCapacity ? (
+              <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/78 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)] dark:bg-[rgba(15,23,42,0.72)]">
+                  <ShieldCheck size={12} />
+                  {copy.slotsRemaining.replace('{{remaining}}', String(resolvedDialogueCapacity.remaining))}
+                </div>
+              </div>
+            ) : null}
           </SurfaceCard>
 
           {loading && prioritizedJobsInLane.length === 0 ? (

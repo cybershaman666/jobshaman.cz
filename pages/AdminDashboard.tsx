@@ -115,6 +115,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [crmLoading, setCrmLoading] = useState(false);
   const [crmRecords, setCrmRecords] = useState<CrmRecord[]>([]);
   const [crmTopJobs, setCrmTopJobs] = useState<any[]>([]);
+  const [crmTopJobsCollapsed, setCrmTopJobsCollapsed] = useState(false);
+  const [crmTopJobsCompanyFilter, setCrmTopJobsCompanyFilter] = useState('');
+  const [crmTopJobsPositionFilter, setCrmTopJobsPositionFilter] = useState('');
   const [selectedCrmKey, setSelectedCrmKey] = useState<string | null>(null);
   const [crmDraft, setCrmDraft] = useState({
     tier: 'free',
@@ -557,6 +560,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       trialing,
     };
   }, [crmRecords]);
+  const crmFilteredTopJobs = useMemo(() => {
+    const companyNeedle = crmTopJobsCompanyFilter.trim().toLowerCase();
+    const positionNeedle = crmTopJobsPositionFilter.trim().toLowerCase();
+    return crmTopJobs.filter((row: any) => {
+      const companyHaystack = String(row?.company || '').toLowerCase();
+      const positionHaystack = String(row?.job_title || '').toLowerCase();
+      if (companyNeedle && !companyHaystack.includes(companyNeedle)) return false;
+      if (positionNeedle && !positionHaystack.includes(positionNeedle)) return false;
+      return true;
+    });
+  }, [crmTopJobs, crmTopJobsCompanyFilter, crmTopJobsPositionFilter]);
   const crmMetricCards = useMemo(() => {
     const metrics = crmEntityDetail?.metrics || {};
     const isCompany = crmEntityDetail?.kind === 'company';
@@ -720,6 +734,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     csvLink.click();
     document.body.removeChild(csvLink);
     URL.revokeObjectURL(csvUrl);
+  };
+
+  const exportCrmTopJobs = () => {
+    const rows = [
+      ['job_id', 'job_title', 'company', 'company_id', 'job_status', 'location', 'open_detail', 'apply_click', 'save', 'unsave', 'swipe_left', 'swipe_right', 'unique_users', 'applications_total'],
+      ...crmFilteredTopJobs.map((row: any) => [
+        row.job_id || '',
+        row.job_title || '',
+        row.company || '',
+        row.company_id || '',
+        row.job_status || '',
+        row.location || '',
+        num(row.open_detail),
+        num(row.apply_click),
+        num(row.save),
+        num(row.unsave),
+        num(row.swipe_left),
+        num(row.swipe_right),
+        num(row.unique_users),
+        num(row.applications_total),
+      ]),
+    ];
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `jobshaman_crm_top_positions_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleCrmSaveSubscription = async () => {
@@ -1293,13 +1339,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     {t('admin_dashboard.crm.top_positions_hint', { defaultValue: 'Posledních 90 dní, napříč firmami. Vyhledávání vlevo filtruje i tento přehled.' })}
                   </div>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  {formatNumber(crmTopJobs.length)} {t('admin_dashboard.crm.positions', { defaultValue: 'pozic' })}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {formatNumber(crmFilteredTopJobs.length)} {t('admin_dashboard.crm.positions', { defaultValue: 'pozic' })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={exportCrmTopJobs}
+                    disabled={crmFilteredTopJobs.length === 0}
+                    className="app-button-secondary !rounded-[0.75rem] !px-3 !py-1.5 text-xs disabled:opacity-60"
+                  >
+                    <Download size={12} />
+                    {t('admin_dashboard.export', { defaultValue: 'Export' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCrmTopJobsCollapsed((prev) => !prev)}
+                    className="app-button-secondary !rounded-[0.75rem] !px-3 !py-1.5 text-xs"
+                  >
+                    {crmTopJobsCollapsed
+                      ? t('admin_dashboard.crm.expand', { defaultValue: 'Rozbalit' })
+                      : t('admin_dashboard.crm.collapse', { defaultValue: 'Sbalit' })}
+                  </button>
                 </div>
               </div>
-              {crmLoading ? (
+              {!crmTopJobsCollapsed && (
+                <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input
+                    value={crmTopJobsCompanyFilter}
+                    onChange={(e) => setCrmTopJobsCompanyFilter(e.target.value)}
+                    placeholder={t('admin_dashboard.crm.filter_company', { defaultValue: 'Filtrovat podle firmy…' })}
+                    className={inputClass}
+                  />
+                  <input
+                    value={crmTopJobsPositionFilter}
+                    onChange={(e) => setCrmTopJobsPositionFilter(e.target.value)}
+                    placeholder={t('admin_dashboard.crm.filter_position', { defaultValue: 'Filtrovat podle pozice…' })}
+                    className={inputClass}
+                  />
+                </div>
+              )}
+              {crmTopJobsCollapsed ? (
+                <p className="text-sm text-slate-500">{t('admin_dashboard.crm.top_positions_collapsed', { defaultValue: 'Sekce je sbalená.' })}</p>
+              ) : crmLoading ? (
                 <p className="text-sm text-slate-500">{t('admin_dashboard.search.searching')}</p>
-              ) : crmTopJobs.length === 0 ? (
+              ) : crmFilteredTopJobs.length === 0 ? (
                 <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -1317,7 +1401,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {crmTopJobs.map((row: any) => (
+                      {crmFilteredTopJobs.map((row: any) => (
                         <tr key={`${row.job_id}-${row.company_id || row.company}`} className="border-t border-slate-200/70 align-top dark:border-slate-700/70">
                           <td className="py-2 pr-3">
                             <div className="font-semibold text-slate-800 dark:text-slate-100">{row.job_title || `job #${row.job_id}`}</div>
