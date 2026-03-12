@@ -39,7 +39,10 @@ interface ChallengeMarketplaceProps {
   loadingMore: boolean;
   hasMore: boolean;
   totalCount: number;
+  currentPage: number;
+  pageSize: number;
   loadMoreJobs: () => void;
+  goToPage: (page: number) => void;
   applyInteractionState: (jobId: string, eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
   theme: 'light' | 'dark';
   searchTerm: string;
@@ -305,7 +308,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   loadingMore,
   hasMore,
   totalCount,
+  currentPage,
+  pageSize,
   loadMoreJobs,
+  goToPage,
   applyInteractionState,
   theme,
   searchTerm,
@@ -357,6 +363,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   const [isDialogueCapacityLoading, setIsDialogueCapacityLoading] = useState(false);
   const [mobileViewMode, setMobileViewMode] = useState<'swipe' | 'list'>(userProfile.isLoggedIn ? 'swipe' : 'list');
   const [mobileSwipeIntroDismissed, setMobileSwipeIntroDismissed] = useState(false);
+  const [guestDiscoverySlide, setGuestDiscoverySlide] = useState(0);
   const [isXlViewport, setIsXlViewport] = useState<boolean>(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(min-width: 1280px)').matches;
@@ -1006,6 +1013,211 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       }
   } as const)[language === 'at' ? 'de' : language];
 
+  const guestOnboardingContent = ({
+    cs: {
+      readFeed: 'Jak ten feed číst',
+      back: 'Zpět',
+      next: 'Další',
+      showSlide: 'Zobrazit slide',
+      slides: [
+        {
+          icon: ShieldCheck,
+          kicker: 'Dialogové sloty',
+          title: 'Sloty drží odpovědi v reálné kapacitě',
+          body: 'Každý aktivní dialog zabírá slot. Díky tomu nejde o nekonečné rozesílání reakcí bez návratu, ale o řízený počet otevřených konverzací.',
+          detail: 'Po přihlášení uvidíš, kolik slotů máš volných, kolik už běží a kdy má smysl otevřít další kontakt.',
+          chips: ['omezená kapacita', 'lepší follow-up', 'méně slepých reakcí'],
+        },
+        {
+          icon: Sparkles,
+          kicker: 'JHI a finance',
+          title: 'JHI a finanční kalkulačka dávají výsledkům kontext',
+          body: 'JHI pomáhá řadit role podle toho, co ti sedí profesně i lidsky. Finanční kalkulačka dopočítá, co nabídka znamená v čistém dopadu na rozpočet a dojíždění.',
+          detail: 'Nejde jen o titul pozice. Systém skládá dohromady fit, peníze, režim práce a praktický dopad na každodenní život.',
+          chips: ['prioritizace', 'čistý dopad', 'lepší rozhodování'],
+        },
+        {
+          icon: SlidersHorizontal,
+          kicker: 'Životní situace',
+          title: 'Nejen hledání, ale nastavení reality kolem práce',
+          body: 'Do výběru vstupuje životní situace: dojíždění, hranice, jazyk, režim práce, rodinná logistika nebo ochota měnit tempo a typ úvazku.',
+          detail: 'Proto feed není jen fulltext nad tabulkou nabídek. Je to filtr nad tím, co je pro tebe opravdu průchozí právě teď.',
+          chips: ['dojíždění', 'jazyk', 'tempo života'],
+        },
+        {
+          icon: ArrowRight,
+          kicker: 'Handshake',
+          title: 'První kontakt probíhá jako dialog, ne slepé CV',
+          body: 'Místo okamžitého posílání životopisu začíná kontakt krátkou odpovědí na konkrétní situaci nebo výzvu. Tým tak hned vidí způsob uvažování a motivaci.',
+          detail: 'Handshake pomáhá odlišit relevantní kandidáty od masových reakcí a dává oběma stranám lepší první signál, jestli má smysl pokračovat.',
+          chips: ['první odpověď', 'lepší signál', 'méně šumu'],
+        },
+      ],
+    },
+    sk: {
+      readFeed: 'Ako čítať tento feed',
+      back: 'Späť',
+      next: 'Ďalej',
+      showSlide: 'Zobraziť slide',
+      slides: [
+        {
+          icon: ShieldCheck,
+          kicker: 'Dialógové sloty',
+          title: 'Sloty držia odpovede v reálnej kapacite',
+          body: 'Každý aktívny dialóg zaberá slot. Vďaka tomu nejde o nekonečné rozosielanie reakcií bez návratu, ale o riadený počet otvorených konverzácií.',
+          detail: 'Po prihlásení uvidíš, koľko slotov máš voľných, koľko ich už beží a kedy má zmysel otvoriť ďalší kontakt.',
+          chips: ['obmedzená kapacita', 'lepší follow-up', 'menej slepých reakcií'],
+        },
+        {
+          icon: Sparkles,
+          kicker: 'JHI a financie',
+          title: 'JHI a finančná kalkulačka dávajú výsledkom kontext',
+          body: 'JHI pomáha radiť roly podľa toho, čo ti sedí profesijne aj ľudsky. Finančná kalkulačka dopočíta, čo ponuka znamená v čistom dopade na rozpočet a dochádzanie.',
+          detail: 'Nejde len o názov pozície. Systém skladá dohromady fit, peniaze, režim práce a praktický dopad na každodenný život.',
+          chips: ['prioritizácia', 'čistý dopad', 'lepšie rozhodovanie'],
+        },
+        {
+          icon: SlidersHorizontal,
+          kicker: 'Životná situácia',
+          title: 'Nielen hľadanie, ale nastavenie reality okolo práce',
+          body: 'Do výberu vstupuje životná situácia: dochádzanie, hranice, jazyk, režim práce, rodinná logistika alebo ochota meniť tempo a typ úväzku.',
+          detail: 'Preto feed nie je len fulltext nad tabuľkou ponúk. Je to filter nad tým, čo je pre teba naozaj priechodné práve teraz.',
+          chips: ['dochádzanie', 'jazyk', 'tempo života'],
+        },
+        {
+          icon: ArrowRight,
+          kicker: 'Handshake',
+          title: 'Prvý kontakt prebieha ako dialóg, nie slepé CV',
+          body: 'Namiesto okamžitého posielania životopisu začína kontakt krátkou odpoveďou na konkrétnu situáciu alebo výzvu. Tím tak hneď vidí spôsob uvažovania a motiváciu.',
+          detail: 'Handshake pomáha odlíšiť relevantných kandidátov od masových reakcií a dáva obom stranám lepší prvý signál, či má zmysel pokračovať.',
+          chips: ['prvá odpoveď', 'lepší signál', 'menej šumu'],
+        },
+      ],
+    },
+    de: {
+      readFeed: 'So liest du diesen Feed',
+      back: 'Zurück',
+      next: 'Weiter',
+      showSlide: 'Slide anzeigen',
+      slides: [
+        {
+          icon: ShieldCheck,
+          kicker: 'Dialog-Slots',
+          title: 'Slots halten Antworten in echter Kapazität',
+          body: 'Jeder aktive Dialog belegt einen Slot. So entsteht keine endlose Flut von Reaktionen ohne Rückmeldung, sondern eine gesteuerte Zahl offener Gespräche.',
+          detail: 'Nach dem Login siehst du, wie viele Slots frei sind, wie viele bereits laufen und wann ein weiterer Kontakt sinnvoll ist.',
+          chips: ['begrenzte Kapazität', 'besseres Follow-up', 'weniger Blindreaktionen'],
+        },
+        {
+          icon: Sparkles,
+          kicker: 'JHI und Finanzen',
+          title: 'JHI und der Finanzrechner geben Ergebnissen Kontext',
+          body: 'JHI hilft dabei, Rollen nach beruflicher und menschlicher Passung zu priorisieren. Der Finanzrechner zeigt, was ein Angebot netto für Budget und Pendeln bedeutet.',
+          detail: 'Es geht nicht nur um den Jobtitel. Das System kombiniert Fit, Geld, Arbeitsmodell und Alltagswirkung zu einer Entscheidungsebene.',
+          chips: ['Priorisierung', 'Nettoeffekt', 'bessere Entscheidungen'],
+        },
+        {
+          icon: SlidersHorizontal,
+          kicker: 'Lebenssituation',
+          title: 'Nicht nur Suche, sondern die Realität rund um Arbeit',
+          body: 'In die Auswahl fließen Pendeln, Grenzregionen, Sprache, Arbeitsmodell, Familienlogistik und die Bereitschaft ein, Tempo oder Vertragsart zu verändern.',
+          detail: 'Darum ist der Feed nicht nur Volltext über Joblisten, sondern ein Filter über Rollen, die jetzt tatsächlich machbar sind.',
+          chips: ['Pendeln', 'Sprache', 'Lebensrealität'],
+        },
+        {
+          icon: ArrowRight,
+          kicker: 'Handshake',
+          title: 'Der Erstkontakt läuft als Dialog, nicht als blindes CV',
+          body: 'Statt sofort einen Lebenslauf zu senden, beginnt der Kontakt mit einer kurzen Antwort auf eine konkrete Situation oder Aufgabe. Das Team sieht so sofort Denkweise und Motivation.',
+          detail: 'Der Handshake trennt relevante Kandidaten besser von Massenreaktionen und gibt beiden Seiten früher ein stärkeres Signal, ob es weitergehen sollte.',
+          chips: ['erste Antwort', 'stärkeres Signal', 'weniger Rauschen'],
+        },
+      ],
+    },
+    pl: {
+      readFeed: 'Jak czytać ten feed',
+      back: 'Wstecz',
+      next: 'Dalej',
+      showSlide: 'Pokaż slajd',
+      slides: [
+        {
+          icon: ShieldCheck,
+          kicker: 'Sloty dialogowe',
+          title: 'Sloty utrzymują odpowiedzi w realnej pojemności',
+          body: 'Każdy aktywny dialog zajmuje slot. Dzięki temu nie chodzi o nieskończone wysyłanie reakcji bez odpowiedzi, ale o kontrolowaną liczbę otwartych rozmów.',
+          detail: 'Po zalogowaniu zobaczysz, ile slotów masz wolnych, ile jest już aktywnych i kiedy warto otworzyć kolejny kontakt.',
+          chips: ['ograniczona pojemność', 'lepszy follow-up', 'mniej ślepych reakcji'],
+        },
+        {
+          icon: Sparkles,
+          kicker: 'JHI i finanse',
+          title: 'JHI i kalkulator finansowy nadają wynikom kontekst',
+          body: 'JHI pomaga układać role według dopasowania zawodowego i ludzkiego. Kalkulator finansowy pokazuje, co oferta oznacza netto dla budżetu i dojazdów.',
+          detail: 'To nie jest tylko dopasowanie po nazwie stanowiska. System łączy fit, pieniądze, tryb pracy i wpływ na codzienne życie.',
+          chips: ['priorytetyzacja', 'wpływ netto', 'lepsze decyzje'],
+        },
+        {
+          icon: SlidersHorizontal,
+          kicker: 'Sytuacja życiowa',
+          title: 'To nie tylko wyszukiwanie, ale ustawienie realiów pracy',
+          body: 'Na wybór wpływają dojazdy, regiony przygraniczne, język, tryb pracy, logistyka rodzinna i gotowość do zmiany tempa lub typu współpracy.',
+          detail: 'Dlatego feed nie jest zwykłym fulltextem nad tabelą ofert, ale filtrem tego, co jest dla ciebie realnie wykonalne teraz.',
+          chips: ['dojazdy', 'język', 'codzienna rzeczywistość'],
+        },
+        {
+          icon: ArrowRight,
+          kicker: 'Handshake',
+          title: 'Pierwszy kontakt działa jak dialog, nie ślepe CV',
+          body: 'Zamiast od razu wysyłać CV, kontakt zaczyna się od krótkiej odpowiedzi na konkretną sytuację lub wyzwanie. Zespół od razu widzi sposób myślenia i motywację.',
+          detail: 'Handshake pomaga odróżnić trafnych kandydatów od masowych reakcji i daje obu stronom lepszy pierwszy sygnał, czy warto iść dalej.',
+          chips: ['pierwsza odpowiedź', 'lepszy sygnał', 'mniej szumu'],
+        },
+      ],
+    },
+    en: {
+      readFeed: 'How to read this feed',
+      back: 'Back',
+      next: 'Next',
+      showSlide: 'Show slide',
+      slides: [
+        {
+          icon: ShieldCheck,
+          kicker: 'Dialogue slots',
+          title: 'Slots keep replies within real capacity',
+          body: 'Each active dialogue takes one slot, so the system favors a manageable number of live conversations instead of endless low-signal applications.',
+          detail: 'After sign-in you can see how many slots remain, how many are active, and when it makes sense to open another conversation.',
+          chips: ['limited capacity', 'better follow-up', 'less noise'],
+        },
+        {
+          icon: Sparkles,
+          kicker: 'JHI and finance',
+          title: 'JHI and the financial calculator add decision context',
+          body: 'JHI helps rank roles by professional and human fit. The financial calculator shows what an offer means after commute, work mode, and practical budget impact.',
+          detail: 'This is not just title matching. The system combines fit, money, work setup, and daily-life tradeoffs into one decision layer.',
+          chips: ['prioritization', 'net impact', 'better decisions'],
+        },
+        {
+          icon: SlidersHorizontal,
+          kicker: 'Life setup',
+          title: 'This is life-setup filtering, not just search',
+          body: 'The feed reacts to commuting tolerance, cross-border options, language, work mode, family logistics, and how much change is realistic right now.',
+          detail: 'That is why the result is not plain full-text search over listings, but a filtered view of roles that are actually viable.',
+          chips: ['commute', 'language', 'daily reality'],
+        },
+        {
+          icon: ArrowRight,
+          kicker: 'Handshake',
+          title: 'First contact starts as a dialogue, not a blind CV drop',
+          body: 'Instead of sending a resume first, the opening step is a short response to a specific situation or challenge so the team sees thinking and intent immediately.',
+          detail: 'The handshake creates a stronger first signal and helps both sides decide faster whether the conversation should continue.',
+          chips: ['first reply', 'stronger signal', 'less noise'],
+        },
+      ],
+    },
+  } as const)[language === 'at' ? 'de' : language];
+  const guestOnboardingSlides = guestOnboardingContent.slides;
+  const activeGuestOnboardingSlide = guestOnboardingSlides[guestDiscoverySlide] || guestOnboardingSlides[0];
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1033,6 +1245,18 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       cancelled = true;
     };
   }, [userProfile.id, userProfile.isLoggedIn]);
+
+  useEffect(() => {
+    setGuestDiscoverySlide(0);
+  }, [language, userProfile.isLoggedIn]);
+
+  useEffect(() => {
+    if (userProfile.isLoggedIn || guestOnboardingSlides.length <= 1) return;
+    const intervalId = window.setInterval(() => {
+      setGuestDiscoverySlide((current) => (current + 1) % guestOnboardingSlides.length);
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [guestOnboardingSlides.length, userProfile.isLoggedIn]);
 
   const personalPresets = useMemo(
     () => buildCandidateSearchPresets(userProfile, locale),
@@ -1595,6 +1819,14 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     usePersonalSetup
   ]);
 
+  const totalPages = Math.max(1, Math.ceil(Math.max(0, totalCount) / Math.max(1, pageSize)));
+  const paginationWindow = useMemo(() => {
+    const pages = new Set<number>([0, totalPages - 1, currentPage - 1, currentPage, currentPage + 1]);
+    return Array.from(pages)
+      .filter((page) => page >= 0 && page < totalPages)
+      .sort((a, b) => a - b);
+  }, [currentPage, totalPages]);
+
   const scrollToFirstFeedItem = () => {
     if (typeof window === 'undefined') return;
 
@@ -2040,19 +2272,91 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
           eyebrow={copy.eyebrow}
           title={copy.title}
           body={copy.body}
-          actions={
-            <>
-              <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
-                <Sparkles size={12} />
-                {Math.max(0, totalCount)} {copy.results}
+          className="p-4 sm:p-5 md:p-6"
+        >
+          {!userProfile.isLoggedIn ? (
+            <div className="flex min-h-[360px] flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
+                <div className="min-h-[210px] space-y-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(var(--accent-rgb),0.2)] bg-white/84 text-[var(--accent)] shadow-[0_18px_36px_-28px_rgba(15,23,42,0.4)] dark:bg-[rgba(15,23,42,0.82)]">
+                      {React.createElement(activeGuestOnboardingSlide.icon, { size: 16 })}
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                        {activeGuestOnboardingSlide.kicker}
+                      </div>
+                      <h2 className="text-xl font-semibold tracking-[-0.035em] text-[var(--text-strong)] sm:text-[1.4rem]">
+                        {activeGuestOnboardingSlide.title}
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="max-w-3xl text-sm leading-5 text-[var(--text-muted)]">{activeGuestOnboardingSlide.body}</p>
+                  <p className="max-w-3xl text-sm leading-5 text-[var(--text-muted)]">{activeGuestOnboardingSlide.detail}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeGuestOnboardingSlide.chips.map((chip) => (
+                    <div
+                      key={chip}
+                      className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/78 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)] dark:bg-[rgba(15,23,42,0.72)]"
+                    >
+                      {chip}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    {guestOnboardingSlides.map((slide, index) => (
+                      <button
+                        key={slide.title}
+                        type="button"
+                        onClick={() => setGuestDiscoverySlide(index)}
+                        className={cn(
+                          'h-2.5 rounded-full transition',
+                          guestDiscoverySlide === index
+                            ? 'w-8 bg-[var(--accent)]'
+                            : 'w-2.5 bg-[rgba(var(--accent-rgb),0.24)] hover:bg-[rgba(var(--accent-rgb),0.4)]'
+                        )}
+                        aria-label={`${guestOnboardingContent.showSlide} ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGuestDiscoverySlide((current) => (current === 0 ? guestOnboardingSlides.length - 1 : current - 1))}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-white/70 px-2.5 py-1.5 text-sm font-medium text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <ArrowRight size={14} className="rotate-180" />
+                      {guestOnboardingContent.back}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGuestDiscoverySlide((current) => (current + 1) % guestOnboardingSlides.length)}
+                      className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] px-2.5 py-1.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--accent-rgb),0.16)]"
+                    >
+                      {guestOnboardingContent.next}
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="app-eyebrow !bg-white/72 !text-[var(--text-muted)] dark:!bg-white/5">
-                <ShieldCheck size={12} />
-                {copy.fitNote}
+              <div className="flex min-h-[280px] min-w-[160px] flex-col gap-2.5">
+                <MetricTile
+                  label={copy.results}
+                  value={Math.max(0, totalCount)}
+                  className="border-[rgba(var(--accent-rgb),0.14)] bg-white/84 dark:bg-[rgba(15,23,42,0.78)]"
+                />
+                <SurfaceCard className="space-y-2 border-[rgba(var(--accent-rgb),0.14)] bg-white/84 p-3 dark:bg-[rgba(15,23,42,0.78)]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                    {guestOnboardingContent.readFeed}
+                  </div>
+                  <p className="text-sm leading-5 text-[var(--text-muted)]">{copy.fitNote}</p>
+                </SurfaceCard>
               </div>
-            </>
-          }
-        />
+            </div>
+          ) : null}
+        </PageHeader>
       </div>
 
       {setupSignals.length > 0 ? (
@@ -2902,23 +3206,72 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 </SurfaceCard>
                 </div>
               ))}
-              <div className="flex justify-center">
-                {hasMore ? (
-                  <button
-                    type="button"
-                    className="app-button-secondary"
-                    disabled={loadingMore || loading}
-                    onClick={loadMoreJobs}
-                  >
-                    {loadingMore
-                      ? (isCsLike ? 'Načítám další…' : 'Loading more…')
-                      : (isCsLike ? 'Načíst další nabídky' : 'Load more roles')}
-                  </button>
-                ) : (
-                  <div className="text-sm text-[var(--text-faint)]">
-                    {isCsLike ? 'Tohle je zatím vše.' : "That's all for now."}
-                  </div>
-                )}
+              <div className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--border-subtle)] pt-4">
+                <button
+                  type="button"
+                  className="app-button-secondary"
+                  disabled={loading || currentPage === 0}
+                  onClick={() => goToPage(currentPage - 1)}
+                >
+                  {getLocaleLabel({
+                    cs: 'Předchozí',
+                    sk: 'Predošlá',
+                    de: 'Zurück',
+                    at: 'Zurück',
+                    pl: 'Poprzednia',
+                    en: 'Previous'
+                  }, language)}
+                </button>
+                {paginationWindow.map((page, index) => {
+                  const prevPage = paginationWindow[index - 1];
+                  const needsGap = index > 0 && prevPage != null && page - prevPage > 1;
+                  return (
+                    <React.Fragment key={`page-fragment-${page}`}>
+                      {needsGap ? (
+                        <div className="px-1 text-sm text-[var(--text-faint)]">…</div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => goToPage(page)}
+                        disabled={loading && page === currentPage}
+                        className={cn(
+                          'inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-3 text-sm font-medium transition',
+                          page === currentPage
+                            ? 'border-[rgba(var(--accent-rgb),0.3)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--text-strong)]'
+                            : 'border-[var(--border-subtle)] bg-white/70 text-[var(--text)] hover:bg-white dark:bg-white/5 dark:hover:bg-white/10'
+                        )}
+                        aria-current={page === currentPage ? 'page' : undefined}
+                      >
+                        {page + 1}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+                <button
+                  type="button"
+                  className="app-button-secondary"
+                  disabled={loading || currentPage >= totalPages - 1 || (!hasMore && currentPage >= totalPages - 1)}
+                  onClick={() => goToPage(currentPage + 1)}
+                >
+                  {getLocaleLabel({
+                    cs: 'Další',
+                    sk: 'Ďalšia',
+                    de: 'Weiter',
+                    at: 'Weiter',
+                    pl: 'Następna',
+                    en: 'Next'
+                  }, language)}
+                </button>
+                <div className="w-full text-center text-sm text-[var(--text-faint)]">
+                  {getLocaleLabel({
+                    cs: `Strana ${currentPage + 1} z ${totalPages}`,
+                    sk: `Strana ${currentPage + 1} z ${totalPages}`,
+                    de: `Seite ${currentPage + 1} von ${totalPages}`,
+                    at: `Seite ${currentPage + 1} von ${totalPages}`,
+                    pl: `Strona ${currentPage + 1} z ${totalPages}`,
+                    en: `Page ${currentPage + 1} of ${totalPages}`
+                  }, language)}
+                </div>
               </div>
             </div>
           )}

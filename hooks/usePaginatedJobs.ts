@@ -46,7 +46,9 @@ const getCountryCodeFromJobSource = (job: Job): string | null => {
 // Infer country code from language (best-effort)
 const getCountryCodeFromLanguage = (lng?: string): string | null => {
     if (!lng) return null;
-    const code = lng.split('-')[0].toLowerCase();
+    const normalized = String(lng || '').trim().toLowerCase().replace(/_/g, '-');
+    if (normalized === 'at' || normalized.endsWith('-at')) return 'AT';
+    const code = normalized.split('-')[0];
     if (code === 'cs') return 'CZ';
     if (code === 'sk') return 'SK';
     if (code === 'de') return 'DE';
@@ -322,6 +324,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         globalSearch,
         searchTerm,
         sortBy,
+    ]);
+
+    useEffect(() => {
+        if (!enableAutoLanguageGuard) return;
+        if (filterSources.filterLanguageCodes === 'user_toggle') return;
+        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
+    }, [
+        defaultLanguageCodes,
+        enableAutoLanguageGuard,
+        filterSources.filterLanguageCodes,
     ]);
 
     const updateFilterSource = useCallback((field: DiscoveryFilterField, source: DiscoveryFilterSource) => {
@@ -801,7 +813,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
             const hasCountryFilter = !globalSearch && normalizedCountryCodes.length > 0;
-            const hasManualOrInferredIntent = Boolean(candidateIntent.primaryDomain || candidateIntent.targetRole);
             const hasAnyFilters =
                 !!searchTerm ||
                 !!filterCity ||
@@ -814,20 +825,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 sortBy !== 'newest' ||
                 filterLanguageCodes.length > 0 ||
                 abroadOnly;
-            const shouldUseExpandedPersonalizedPool =
-                page === 0 &&
-                hasManualOrInferredIntent &&
-                !hasAnyFilters &&
-                sortBy === 'newest';
             const implicitLanguageCodes = !globalSearch && !hasAnyFilters && defaultLanguageCodes.length > 0
                 ? defaultLanguageCodes
                 : [];
             const effectiveLanguageCodes = filterLanguageCodes.length > 0
                 ? filterLanguageCodes
                 : (enableAutoLanguageGuard ? implicitLanguageCodes : []);
-            const requestedPageSize = shouldUseExpandedPersonalizedPool
-                ? Math.max(initialPageSize, 120)
-                : initialPageSize;
+            const requestedPageSize = initialPageSize;
 
             // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
             // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
@@ -1188,6 +1192,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
     }, [loadingMore, hasMore, currentPage, fetchFilteredJobs]);
 
+    const goToPage = useCallback((page: number) => {
+        const normalizedPage = Math.max(0, Number(page) || 0);
+        if (normalizedPage === currentPage && jobs.length > 0) return;
+        setCurrentPage(normalizedPage);
+        void fetchFilteredJobs(normalizedPage, false);
+    }, [currentPage, fetchFilteredJobs, jobs.length]);
+
     // Initial load
     const loadInitialJobs = useCallback(() => {
         setCurrentPage(0);
@@ -1195,12 +1206,26 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [fetchFilteredJobs]);
 
     useEffect(() => {
-        if (globalSearch || abroadOnly) return;
+        if (filterSources.globalSearch !== 'user_toggle') {
+            setGlobalSearch(defaultCountryCodes.length === 0);
+        }
+        if (filterSources.abroadOnly !== 'user_toggle') {
+            setAbroadOnly(false);
+        }
         if (defaultCountryCodes.length === 0) return;
+        if (globalSearch || abroadOnly) return;
         if (!sameCountryCodeSet(countryCodes, defaultCountryCodes)) {
             setCountryCodesSafe(defaultCountryCodes);
         }
-    }, [defaultCountryCodes, countryCodes, globalSearch, abroadOnly, setCountryCodesSafe]);
+    }, [
+        defaultCountryCodes,
+        countryCodes,
+        globalSearch,
+        abroadOnly,
+        filterSources.globalSearch,
+        filterSources.abroadOnly,
+        setCountryCodesSafe,
+    ]);
 
     useEffect(() => {
         if (abroadOnly && globalSearch) {
@@ -1336,10 +1361,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         abroadOnly,
         countryCodes,
         sortBy,
+        currentPage,
+        pageSize: initialPageSize,
         filterSources,
 
         loadInitialJobs,
         loadMoreJobs,
+        goToPage,
         performSearch,
         setSearchTerm: setSearchTermTracked,
         setFilterCity: setFilterCityTracked,

@@ -500,6 +500,7 @@ export default function App() {
         backendUnreachable,
         loadInitialJobs,
         loadMoreJobs,
+        goToPage,
         performSearch,
         filterCity,
         filterMaxDistance,
@@ -532,6 +533,8 @@ export default function App() {
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
+        currentPage,
+        pageSize,
         applyInteractionState,
         applyDiscoveryDefaults
     } = usePaginatedJobs({ userProfile: effectiveUserProfile, enabled: !isAdminRoute });
@@ -1851,6 +1854,8 @@ export default function App() {
                             loadingMore={loadingMore}
                             hasMore={hasMore}
                             totalCount={totalCount}
+                            currentPage={currentPage}
+                            pageSize={pageSize}
                             searchTerm={searchTerm}
                             filterCity={filterCity}
                             filterMinSalary={filterMinSalary}
@@ -1892,6 +1897,7 @@ export default function App() {
                             onHandleCompanyPageSelect={handleCompanyPageSelect}
                             onHandleJobSelect={handleJobSelect}
                             onLoadMoreJobs={loadMoreJobs}
+                            onGoToJobsPage={goToPage}
                             onSetDiscoveryLane={setDiscoveryLane}
                             onSetSearchTerm={setSearchTerm}
                             onPerformSearch={performSearch}

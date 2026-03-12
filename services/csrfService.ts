@@ -27,6 +27,13 @@ let authTokenCache: AuthTokenCache = { token: null, expMs: 0, checkedAtMs: 0 };
 const AUTH_TOKEN_RECHECK_MS = 60_000;
 const AUTH_TOKEN_EXPIRY_SAFETY_MS = 30_000;
 
+const clearCachedAuthToken = (): void => {
+    authTokenCache = { token: null, expMs: 0, checkedAtMs: 0 };
+    try {
+        localStorage.removeItem('auth_token');
+    } catch {}
+};
+
 const isLikelyNetworkError = (error: unknown): boolean => {
     const msg = String((error as any)?.message || error || '').toLowerCase();
     return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
@@ -184,6 +191,12 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
                     if (attempt < maxRetries) {
                         const delay = Math.pow(2, attempt) * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                } else if (status === 401 && attempt < maxRetries) {
+                    const freshToken = await getFreshAuthToken();
+                    if (freshToken) {
+                        authToken = freshToken;
                         continue;
                     }
                 } else {
@@ -398,6 +411,39 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
     }
 };
 
+const getFreshAuthToken = async (): Promise<string | null> => {
+    try {
+        clearCachedAuthToken();
+        if (!supabase) {
+            return null;
+        }
+
+        try {
+            const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+            const refreshedToken = refreshed?.session?.access_token || null;
+            if (!refreshError && refreshedToken) {
+                const expMs = (refreshed.session?.expires_at ? Number(refreshed.session.expires_at) * 1000 : decodeJwtExpMs(refreshedToken));
+                authTokenCache = { token: refreshedToken, expMs, checkedAtMs: Date.now() };
+                try { localStorage.setItem('auth_token', refreshedToken); } catch {}
+                return refreshedToken;
+            }
+        } catch {}
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session?.access_token) {
+            return null;
+        }
+
+        const token = session.access_token;
+        const expMs = (session.expires_at ? Number(session.expires_at) * 1000 : decodeJwtExpMs(token));
+        authTokenCache = { token, expMs, checkedAtMs: Date.now() };
+        try { localStorage.setItem('auth_token', token); } catch {}
+        return token;
+    } catch {
+        return null;
+    }
+};
+
 /**
  * Silent variant for endpoints that allow anonymous access.
  */
@@ -467,7 +513,7 @@ export const authenticatedFetch = async (
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
 
     const authOptional = isAuthOptionalRequest(url);
-    const resolvedAuthToken = authToken
+    let resolvedAuthToken = authToken
         || (authOptional ? await getCurrentAuthTokenSilently() : await getCurrentAuthToken())
         || localStorage.getItem('auth_token')
         || null;
@@ -573,6 +619,16 @@ export const authenticatedFetch = async (
             console.warn(`⚠️ CSRF rejected for ${method} ${url}. Refreshing token and retrying once.`);
             clearCsrfToken();
             response = await performRequest(true);
+        }
+    }
+
+    if (response.status === 401 && !authOptional) {
+        console.warn(`⚠️ Received 401 Unauthorized from ${url}. Retrying once with a fresh session token.`);
+        clearCsrfToken();
+        const freshToken = await getFreshAuthToken();
+        if (freshToken && freshToken !== resolvedAuthToken) {
+            resolvedAuthToken = freshToken;
+            response = await performRequest(false);
         }
     }
 

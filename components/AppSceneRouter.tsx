@@ -47,6 +47,8 @@ type AppSceneRouterProps = {
     loadingMore: boolean;
     hasMore: boolean;
     totalCount: number;
+    currentPage: number;
+    pageSize: number;
     searchTerm: string;
     filterCity: string;
     filterMinSalary: number;
@@ -88,6 +90,7 @@ type AppSceneRouterProps = {
     onHandleCompanyPageSelect: (companyId: string | null) => void;
     onHandleJobSelect: (jobId: string | null) => void;
     onLoadMoreJobs: () => void;
+    onGoToJobsPage: (page: number) => void;
     onSetDiscoveryLane: (lane: 'challenges' | 'imports') => void;
     onSetSearchTerm: (value: string, source?: DiscoveryFilterSource) => void;
     onPerformSearch: (term: string) => void;
@@ -132,6 +135,8 @@ export default function AppSceneRouter({
     loadingMore,
     hasMore,
     totalCount,
+    currentPage,
+    pageSize,
     searchTerm,
     filterCity,
     filterMinSalary,
@@ -173,6 +178,7 @@ export default function AppSceneRouter({
     onHandleCompanyPageSelect,
     onHandleJobSelect,
     onLoadMoreJobs,
+    onGoToJobsPage,
     onSetDiscoveryLane,
     onSetSearchTerm,
     onPerformSearch,
@@ -488,7 +494,10 @@ export default function AppSceneRouter({
                                 loadingMore={loadingMore}
                                 hasMore={hasMore}
                                 totalCount={totalCount}
+                                currentPage={currentPage}
+                                pageSize={pageSize}
                                 loadMoreJobs={onLoadMoreJobs}
+                                goToPage={onGoToJobsPage}
                                 applyInteractionState={applyInteractionState}
                                 theme={theme}
                                 searchTerm={searchTerm}

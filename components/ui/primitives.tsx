@@ -42,8 +42,9 @@ export const PageHeader: React.FC<{
   title: string;
   body?: string;
   actions?: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
-}> = ({ eyebrow, title, body, actions, className }) => (
+}> = ({ eyebrow, title, body, actions, children, className }) => (
   <div className={cn('app-page-header gap-4 rounded-[var(--radius-2xl)] border p-4 sm:p-6 md:p-8', className)}>
     <div className="space-y-3">
       {eyebrow ? <div className="app-eyebrow">{eyebrow}</div> : null}
@@ -55,6 +56,7 @@ export const PageHeader: React.FC<{
       </div>
     </div>
     {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+    {children ? <div className="border-t border-[var(--border-subtle)] pt-4">{children}</div> : null}
   </div>
 );
 
