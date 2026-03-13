@@ -345,7 +345,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
     const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
-    const [globalSearch, setGlobalSearch] = useState(true); // Baseline browse should not hide results behind implicit country scope
+    const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0);
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
     const [filterSources, setFilterSources] = useState<DiscoveryFilterSourceMap>(DEFAULT_FILTER_SOURCES);
@@ -1416,7 +1416,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
     useEffect(() => {
         if (filterSources.globalSearch !== 'user_toggle') {
-            setGlobalSearch(true);
+            setGlobalSearch(defaultCountryCodes.length === 0);
         }
         if (filterSources.abroadOnly !== 'user_toggle') {
             setAbroadOnly(false);
