@@ -202,6 +202,17 @@ const normalizeSupportedCountryCode = (value: string | null | undefined): Suppor
   return null;
 };
 
+const getSupportedCountryCodeFromLocale = (locale: string | null | undefined): SupportedCountryCode | null => {
+  const normalized = String(locale || '').trim().toLowerCase();
+  if (normalized.endsWith('-at')) return 'AT';
+  if (normalized === 'cs' || normalized.startsWith('cs-')) return 'CZ';
+  if (normalized === 'sk' || normalized.startsWith('sk-')) return 'SK';
+  if (normalized === 'pl' || normalized.startsWith('pl-')) return 'PL';
+  if (normalized === 'de' || normalized.startsWith('de-')) return 'DE';
+  if (normalized === 'at' || normalized.startsWith('at-')) return 'AT';
+  return null;
+};
+
 const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
   if (isRemoteListing(job)) return 'remote';
 
@@ -222,6 +233,22 @@ const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
   if (raw.includes('hybrid')) return 'hybrid';
   if (raw.includes('onsite') || raw.includes('on-site') || raw.includes('office') || raw.includes('field')) return 'onsite';
   return 'all';
+};
+
+const getMarketplaceCountryCode = (job: Job): SupportedCountryCode | null => {
+  const explicit = normalizeSupportedCountryCode(job.country_code);
+  if (explicit) return explicit;
+
+  const locationHaystack = `${job.location || ''} ${job.source || ''} ${job.url || ''}`.toLowerCase();
+  if (!locationHaystack.trim()) return null;
+
+  if (locationHaystack.includes('österreich') || locationHaystack.includes('austria') || locationHaystack.includes('wien') || locationHaystack.includes('vienna')) return 'AT';
+  if (locationHaystack.includes('deutschland') || locationHaystack.includes('germany') || locationHaystack.includes('berlin') || locationHaystack.includes('münchen') || locationHaystack.includes('hamburg')) return 'DE';
+  if (locationHaystack.includes('česko') || locationHaystack.includes('czech') || locationHaystack.includes('praha') || locationHaystack.includes('brno') || locationHaystack.includes('šumperk') || locationHaystack.includes('sumperk')) return 'CZ';
+  if (locationHaystack.includes('slovensko') || locationHaystack.includes('slovakia') || locationHaystack.includes('bratislava') || locationHaystack.includes('košice') || locationHaystack.includes('kosice')) return 'SK';
+  if (locationHaystack.includes('polska') || locationHaystack.includes('poland') || locationHaystack.includes('warszawa') || locationHaystack.includes('kraków') || locationHaystack.includes('krakow')) return 'PL';
+
+  return null;
 };
 
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
@@ -1517,8 +1544,16 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     abroadOnly ? 'abroad' : globalSearch ? 'all' : 'domestic'
   );
   const homeCountryCode = useMemo<SupportedCountryCode | null>(() => {
-    return normalizeSupportedCountryCode(userProfile.preferredCountryCode || userProfile.taxProfile?.countryCode);
-  }, [userProfile.preferredCountryCode, userProfile.taxProfile?.countryCode]);
+    const preferredCountry = normalizeSupportedCountryCode(userProfile.preferredCountryCode);
+    if (preferredCountry) return preferredCountry;
+
+    if (userProfile.isLoggedIn) {
+      const taxCountry = normalizeSupportedCountryCode(userProfile.taxProfile?.countryCode);
+      if (taxCountry) return taxCountry;
+    }
+
+    return getSupportedCountryCodeFromLocale(i18n.language);
+  }, [i18n.language, userProfile.isLoggedIn, userProfile.preferredCountryCode, userProfile.taxProfile?.countryCode]);
   const borderCountryCodes = useMemo(() => {
     if (!homeCountryCode) return [] as SupportedCountryCode[];
     return [homeCountryCode, ...(BORDER_COUNTRY_MAP[homeCountryCode] || [])];
@@ -1746,9 +1781,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       });
     const byGeographicScope = (items: Job[]) =>
       items.filter((job) => {
-        const countryCode = normalizeSupportedCountryCode(job.country_code);
-        if (!countryCode || !homeCountryCode) return true;
+        const countryCode = getMarketplaceCountryCode(job);
         if (geographicScopeFilter === 'all') return true;
+        if (!countryCode || !homeCountryCode) return false;
         if (geographicScopeFilter === 'domestic') return countryCode === homeCountryCode;
         if (geographicScopeFilter === 'abroad') return countryCode !== homeCountryCode;
         return borderCountryCodes.includes(countryCode);

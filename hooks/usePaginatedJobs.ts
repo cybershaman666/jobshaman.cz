@@ -639,12 +639,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             !abroadOnly &&
             isDefaultCountrySelection;
 
-        const hasExplicitGeographicFilter =
-            filterSources.globalSearch === 'user_toggle' ||
-            filterSources.abroadOnly === 'user_toggle' ||
-            !isDefaultCountrySelection;
-
-        const allowedCountryCodes = (!globalSearch && hasExplicitGeographicFilter && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
+        const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
             ? new Set(normalizedCountryCodes)
             : null;
         const allowedLanguageCodes = filterLanguageCodes.length > 0
@@ -670,7 +665,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             return true;
         });
-        if (safeguarded.length === 0 && list.length > 0 && !hasExplicitLanguageFilter) {
+        if (safeguarded.length === 0 && list.length > 0 && !hasExplicitLanguageFilter && !allowedCountryCodes) {
             recordRuntimeSignal('custom:domestic_safeguard_fail_open', {
                 original_count: list.length,
                 allowed_country_codes: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
@@ -989,7 +984,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     undefined,
                     undefined,
                     50,
-                    undefined,
+                    hasCountryFilter ? normalizedCountryCodes : undefined,
                     retrievalLanguageCodes,
                     false,
                     microJobsOnly,

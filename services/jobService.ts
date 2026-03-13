@@ -875,6 +875,15 @@ const fetchJobsPaginatedFallback = async (
         const normalizedCountryCodes = Array.isArray(countryCode)
             ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
             : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
+        const countryCodeVariants = Array.from(new Set(
+            normalizedCountryCodes.flatMap((code) => {
+                const variants = [code, code.toLowerCase()];
+                if (code === 'CZ' || code === 'CS') {
+                    variants.push('CZ', 'cz', 'CS', 'cs');
+                }
+                return variants;
+            })
+        ));
         const shouldSkipCount =
             skipCount ||
             (!microJobsOnly &&
@@ -883,10 +892,10 @@ const fetchJobsPaginatedFallback = async (
         const buildBaseListQuery = (query: any) => {
             let nextQuery = query.eq('legality_status', 'legal');
 
-            if (normalizedCountryCodes.length === 1) {
-                nextQuery = nextQuery.eq('country_code', normalizedCountryCodes[0]);
-            } else if (normalizedCountryCodes.length > 1) {
-                nextQuery = nextQuery.in('country_code', normalizedCountryCodes);
+            if (countryCodeVariants.length === 1) {
+                nextQuery = nextQuery.eq('country_code', countryCodeVariants[0]);
+            } else if (countryCodeVariants.length > 1) {
+                nextQuery = nextQuery.in('country_code', countryCodeVariants);
             }
             if (languageCodes && languageCodes.length > 0) {
                 nextQuery = nextQuery.in('language_code', languageCodes);
@@ -928,6 +937,14 @@ const fetchJobsPaginatedFallback = async (
             .order('scraped_at', { ascending: false });
 
         if (error) {
+            const message = String((error as any)?.message || error || '').toLowerCase();
+            const isAbort =
+                (error as any)?.name === 'AbortError' ||
+                message.includes('operation was aborted') ||
+                message.includes('aborted');
+            if (isAbort) {
+                return { jobs: [], hasMore: false, totalCount };
+            }
             console.error(`Error fetching page ${page}:`, error);
             return { jobs: [], hasMore: false, totalCount };
         }
