@@ -379,6 +379,14 @@ const getMicroJobLongTermPotentialLabel = (
   return labelMap[value]?.[language] || labelMap[value]?.en || null;
 };
 
+const sameStringSet = (left: string[], right: string[]): boolean => {
+  const normalize = (values: string[]) => (values || []).map((value) => String(value || '').trim()).filter(Boolean);
+  const a = normalize(left);
+  const b = normalize(right);
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+};
+
 const getExperienceLabel = (job: Job, isCsLike: boolean): string | null => {
   const source = `${(job as any).seniority || ''} ${(job as any).experience_level || ''} ${job.title || ''}`.toLowerCase();
   if (!source) return null;
@@ -1517,7 +1525,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   }, [homeCountryCode]);
   const defaultGeographicScope: GeographicScopeFilter = globalSearch ? 'all' : (homeCountryCode ? 'domestic' : 'all');
   const syncGeographicScope = (nextScope: GeographicScopeFilter, source: DiscoveryFilterSource = 'user_toggle') => {
-    setGeographicScopeFilter(nextScope);
+    setGeographicScopeFilter((current) => (current === nextScope ? current : nextScope));
     if (nextScope === 'domestic') {
       setGlobalSearch(false, source);
       setAbroadOnly(false, source);
@@ -1652,7 +1660,10 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       setCountryCodes(borderCountryCodes);
       return;
     }
-    setCountryCodes(homeCountryCode ? [homeCountryCode] : countryCodes);
+    const nextCountryCodes = homeCountryCode ? [homeCountryCode] : countryCodes;
+    if (!sameStringSet(nextCountryCodes, countryCodes)) {
+      setCountryCodes(nextCountryCodes);
+    }
   }, [abroadOnly, borderCountryCodes, countryCodes, defaultGeographicScope, globalSearch, geographicScopeFilter, homeCountryCode, setCountryCodes]);
 
   useEffect(() => {

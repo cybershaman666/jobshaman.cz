@@ -88,6 +88,15 @@ const sameCountryCodeSet = (left: string[], right: string[]): boolean => {
     return a.every((code, idx) => code === b[idx]);
 };
 
+const sameStringArray = (left: string[], right: string[]): boolean => {
+    const normalize = (values: string[]) =>
+        (values || []).map((value) => String(value || '').trim()).filter(Boolean);
+    const a = normalize(left);
+    const b = normalize(right);
+    if (a.length !== b.length) return false;
+    return a.every((value, index) => value === b[index]);
+};
+
 const getLogicalCountryCount = (codes: string[]): number => {
     const canonical = new Set(
         normalizeCountryCodes(codes).map((code) => (code === 'CS' ? 'CZ' : code))
@@ -451,62 +460,74 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, []);
 
     const setSearchTermTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setSearchTerm(value);
+        setSearchTerm((prev) => (prev === value ? prev : value));
         updateFilterSource('searchTerm', source);
     }, [updateFilterSource]);
 
     const setFilterCityTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterCity(value);
+        setFilterCity((prev) => (prev === value ? prev : value));
         updateFilterSource('filterCity', source);
     }, [updateFilterSource]);
 
     const setFilterMaxDistanceTracked = useCallback((value: number, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterMaxDistance(value);
+        setFilterMaxDistance((prev) => (prev === value ? prev : value));
         updateFilterSource('filterMaxDistance', source);
     }, [updateFilterSource]);
 
     const setEnableCommuteFilterTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setEnableCommuteFilter(value);
+        setEnableCommuteFilter((prev) => (prev === value ? prev : value));
         updateFilterSource('enableCommuteFilter', source);
     }, [updateFilterSource]);
 
     const setFilterBenefitsTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterBenefits(value);
+        setFilterBenefits((prev) => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return sameStringArray(prev, next) ? prev : next;
+        });
         updateFilterSource('filterBenefits', source);
     }, [updateFilterSource]);
 
     const setFilterContractTypeTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterContractType(value);
+        setFilterContractType((prev) => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return sameStringArray(prev, next) ? prev : next;
+        });
         updateFilterSource('filterContractTypes', source);
     }, [updateFilterSource]);
 
     const setFilterDateTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterDate(value);
+        setFilterDate((prev) => (prev === value ? prev : value));
         updateFilterSource('filterDatePosted', source);
     }, [updateFilterSource]);
 
     const setFilterMinSalaryTracked = useCallback((value: number, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterMinSalary(value);
+        setFilterMinSalary((prev) => (prev === value ? prev : value));
         updateFilterSource('filterMinSalary', source);
     }, [updateFilterSource]);
 
     const setFilterExperienceTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterExperience(value);
+        setFilterExperience((prev) => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return sameStringArray(prev, next) ? prev : next;
+        });
         updateFilterSource('filterExperienceLevels', source);
     }, [updateFilterSource]);
 
     const setFilterLanguageCodesTracked = useCallback((value: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterLanguageCodes(value);
+        setFilterLanguageCodes((prev) => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return sameStringArray(prev, next) ? prev : next;
+        });
         updateFilterSource('filterLanguageCodes', source);
     }, [updateFilterSource]);
 
     const setGlobalSearchTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setGlobalSearch(value);
+        setGlobalSearch((prev) => (prev === value ? prev : value));
         updateFilterSource('globalSearch', source);
     }, [updateFilterSource]);
 
     const setAbroadOnlyTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setAbroadOnly(value);
+        setAbroadOnly((prev) => (prev === value ? prev : value));
         updateFilterSource('abroadOnly', source);
     }, [updateFilterSource]);
 
