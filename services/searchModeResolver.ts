@@ -56,7 +56,10 @@ export const resolveSearchMode = ({
     return 'manual_query';
   }
 
-  const hasCountryOverride = !sameCountryCodeSet(countryCodes, defaultCountryCodes);
+  const hasCountryOverride =
+    !globalSearch &&
+    !abroadOnly &&
+    !sameCountryCodeSet(countryCodes, defaultCountryCodes);
   const hasManualFilters =
     remoteOnly ||
     hasCountryOverride ||

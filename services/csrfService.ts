@@ -89,7 +89,8 @@ const isAuthOptionalRequest = (url: string): boolean => {
         const path = parsed.pathname || '';
         return (
             path === '/jobs/hybrid-search' ||
-            path === '/jobs/hybrid-search-v2'
+            path === '/jobs/hybrid-search-v2' ||
+            path === '/jobs/external/cached-feed'
         );
     } catch {
         return false;
