@@ -525,7 +525,18 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const filterDismissedJobs = useCallback((list: Job[]) => {
         const dismissed = dismissedJobIdsRef.current;
         if (!dismissed.size || !list.length) return list;
-        return list.filter((job) => !dismissed.has(job.id));
+        const filtered = list.filter((job) => !dismissed.has(job.id));
+        if (filtered.length === 0 && list.length > 0) {
+            recordRuntimeSignal('custom:dismissed_feed_fail_open', {
+                original_count: list.length,
+                dismissed_count: dismissed.size,
+            }, {
+                dedupeKey: `dismissed-feed-fail-open:${list.length}:${dismissed.size}`,
+                throttleMs: 30_000,
+            });
+            return list;
+        }
+        return filtered;
     }, []);
 
     const applyDomesticCountrySafeguard = useCallback((list: Job[]) => {
@@ -569,7 +580,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 ? new Set(defaultLanguageCodes.map((code) => String(code).trim().toLowerCase()))
                 : null;
 
-        return list.filter((job) => {
+        const safeguarded = list.filter((job) => {
             if (allowedCountryCodes) {
                 const inferredCountry = inferJobCountryCode(job);
                 if (!inferredCountry || !allowedCountryCodes.has(inferredCountry)) {
@@ -586,6 +597,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             return true;
         });
+        if (safeguarded.length === 0 && list.length > 0) {
+            recordRuntimeSignal('custom:domestic_safeguard_fail_open', {
+                original_count: list.length,
+                allowed_country_codes: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
+                allowed_language_codes: allowedLanguageCodes ? Array.from(allowedLanguageCodes) : [],
+            }, {
+                dedupeKey: JSON.stringify({
+                    originalCount: list.length,
+                    countries: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
+                    languages: allowedLanguageCodes ? Array.from(allowedLanguageCodes) : [],
+                }),
+                throttleMs: 30_000,
+            });
+            return list;
+        }
+        return safeguarded;
     }, [
         abroadOnly,
         countryCodes,
@@ -868,12 +895,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 abroadOnly ||
                 remoteOnly ||
                 hasCountryOverride;
-            const implicitLanguageCodes = !globalSearch && !hasAnyFilters && defaultLanguageCodes.length > 0
-                ? defaultLanguageCodes
-                : [];
-            const effectiveLanguageCodes = filterLanguageCodes.length > 0
+            const retrievalLanguageCodes = filterLanguageCodes.length > 0
                 ? filterLanguageCodes
-                : (enableAutoLanguageGuard ? implicitLanguageCodes : []);
+                : undefined;
             const requestedPageSize = initialPageSize;
 
             // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
@@ -891,7 +915,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     undefined,
                     50,
                     hasCountryFilter ? normalizedCountryCodes : undefined,
-                    effectiveLanguageCodes,
+                    retrievalLanguageCodes,
                     false,
                     microJobsOnly,
                     true
@@ -900,6 +924,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 setBackendUnreachable(false);
 
                 const visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(basicResult.jobs)));
+                console.log('📦 Simple pagination result:', {
+                    raw: basicResult.jobs.length,
+                    visible: visibleJobs.length,
+                    hasMore: basicResult.hasMore,
+                    totalCount: basicResult.totalCount,
+                    countryCodes: hasCountryFilter ? normalizedCountryCodes : [],
+                    retrievalLanguageCodes: retrievalLanguageCodes || [],
+                });
                 setSearchDiagnostics({
                     search_mode: searchMode,
                     base_result_count: basicResult.jobs.length,
@@ -947,9 +979,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                         return false;
                     }
                 }
-                if (effectiveLanguageCodes.length > 0) {
+                if (retrievalLanguageCodes && retrievalLanguageCodes.length > 0) {
                     const jobLanguage = String(job.language_code || '').trim().toLowerCase();
-                    if (!jobLanguage || !effectiveLanguageCodes.includes(jobLanguage as SearchLanguageCode)) {
+                    if (!jobLanguage || !retrievalLanguageCodes.includes(jobLanguage as SearchLanguageCode)) {
                         return false;
                     }
                 }
@@ -1000,7 +1032,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 userLng: lon,
                 countryCodes: effectiveCountryCodes,
                 excludeCountryCodes,
-                filterLanguageCodes: effectiveLanguageCodes.length > 0 ? effectiveLanguageCodes : undefined,
+                filterLanguageCodes: retrievalLanguageCodes,
                 remoteOnly,
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
@@ -1014,6 +1046,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             setBackendUnreachable(false);
 
             let visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs)));
+            console.log('📦 Filtered fetch result:', {
+                raw: result.jobs.length,
+                visible: visibleJobs.length,
+                hasMore: result.hasMore,
+                totalCount: result.totalCount,
+                searchMode,
+            });
             const nextDiagnostics: SearchDiagnosticsMeta = {
                 ...(result.meta || {}),
                 search_mode: result.meta?.search_mode || searchMode,

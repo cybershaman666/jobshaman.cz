@@ -4480,6 +4480,12 @@ export const filterJobsByQuality = (jobs: Job[]): Job[] => {
     // Then remove duplicates - keep first occurrence
     const uniqueJobs = dedupeJobsList(validJobs);
 
+    if (uniqueJobs.length === 0 && jobs.length > 0) {
+        const failOpenJobs = dedupeJobsList(jobs);
+        console.warn(`⚠️ Quality filter fail-open: all ${jobs.length} jobs were filtered out, returning ${failOpenJobs.length} raw jobs instead.`);
+        return failOpenJobs;
+    }
+
     const filtered = jobs.length - uniqueJobs.length;
     if (filtered > 0) {
         console.log(`🧹 Quality filter: Removed ${filtered} low-quality/duplicate jobs. ${uniqueJobs.length} valid jobs remain.`);
