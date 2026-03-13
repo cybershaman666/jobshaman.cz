@@ -276,6 +276,10 @@ const getSourceMixCounts = (jobs: Job[]): NonNullable<SearchDiagnosticsMeta['sou
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true, microJobsOnly = false, remoteOnly = false }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
+    const localeBase = useMemo(
+        () => String(i18n.resolvedLanguage || i18n.language || 'en').split('-')[0].toLowerCase(),
+        [i18n.language, i18n.resolvedLanguage]
+    );
     const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
     const externalSearchSeedTerm = useMemo(() => {
         const explicitRole = getCandidateIntentRoleSeedKeyword(candidateIntent.targetRole);
@@ -291,6 +295,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const lastExternalOverlaySignatureRef = useRef<string>('');
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
+    const previousLocaleBaseRef = useRef<string | null>(null);
     const hasHandledInitialSortFetchRef = useRef(false);
     const hasRunFilterEffectRef = useRef(false);
     const pendingHardRefreshRef = useRef(false);
@@ -451,6 +456,24 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         enableAutoLanguageGuard,
         filterSources.filterLanguageCodes,
     ]);
+
+    useEffect(() => {
+        if (previousLocaleBaseRef.current === null) {
+            previousLocaleBaseRef.current = localeBase;
+            return;
+        }
+        if (previousLocaleBaseRef.current === localeBase) {
+            return;
+        }
+
+        previousLocaleBaseRef.current = localeBase;
+        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
+        setEnableAutoLanguageGuard(true);
+        setFilterSources((prev) => {
+            if (prev.filterLanguageCodes === 'default') return prev;
+            return { ...prev, filterLanguageCodes: 'default' };
+        });
+    }, [localeBase]);
 
     const updateFilterSource = useCallback((field: DiscoveryFilterField, source: DiscoveryFilterSource) => {
         setFilterSources((prev) => {
