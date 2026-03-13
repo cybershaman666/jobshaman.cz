@@ -1843,6 +1843,27 @@ const matchesSearchMatcher = (
     if (matcher.normalizedQuery && searchable.includes(matcher.normalizedQuery)) {
         return true;
     }
+    const driverRoleTokens = matcher.queryTokens.filter((token) => DRIVER_ROLE_HINT_TOKENS.has(token));
+    if (driverRoleTokens.length > 0) {
+        const hasDriverRoleMatch = driverRoleTokens.some((token) => containsWholeToken(searchable, token));
+        if (!hasDriverRoleMatch) {
+            return false;
+        }
+
+        const nonDriverRequiredTokens = matcher.requiredTokens.filter((token) =>
+            !DRIVER_ROLE_HINT_TOKENS.has(token) && !DRIVER_LICENSE_TOKENS.has(token)
+        );
+        if (nonDriverRequiredTokens.length > 0 && !nonDriverRequiredTokens.every((token) => searchable.includes(token))) {
+            return false;
+        }
+
+        const driverLicenseTokens = matcher.queryTokens.filter((token) => DRIVER_LICENSE_TOKENS.has(token));
+        if (driverLicenseTokens.length > 0) {
+            return driverLicenseTokens.every((token) => containsDriverLicenseReference(searchable, token));
+        }
+
+        return true;
+    }
     if (matcher.requiredTokens.length > 0) {
         return matcher.requiredTokens.every((token) => searchable.includes(token));
     }
@@ -2220,6 +2241,16 @@ const containsWholeToken = (haystack: string, token: string): boolean => {
     if (!token) return false;
     const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegex(token)}([^\\p{L}\\p{N}]|$)`, 'u');
     return pattern.test(haystack);
+};
+
+const containsDriverLicenseReference = (haystack: string, token: string): boolean => {
+    if (!token || !containsWholeToken(haystack, token)) return false;
+    const escapedToken = escapeRegex(token);
+    const patterns = [
+        new RegExp(`(^|[^\\p{L}\\p{N}])(sk|skup|skupina|ridicsk[\\p{L}]*|prukaz[\\p{L}]*|opravneni|opravnenie|licence|license|permit)\\s*[:.,/+ -]*\\s*${escapedToken}([^\\p{L}\\p{N}]|$)`, 'u'),
+        new RegExp(`(^|[^\\p{L}\\p{N}])${escapedToken}\\s*[:.,/+ -]*\\s*(sk|skup|skupina|ridicsk[\\p{L}]*|prukaz[\\p{L}]*|opravneni|opravnenie|licence|license|permit)([^\\p{L}\\p{N}]|$)`, 'u')
+    ];
+    return patterns.some((pattern) => pattern.test(haystack));
 };
 
 const warnHybridFallbackThrottled = (error: unknown): void => {
