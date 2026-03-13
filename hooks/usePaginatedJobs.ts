@@ -146,13 +146,73 @@ const inferJobCountryCode = (job: Job): string | null => {
 
 const inferJobLanguageCode = (job: Job): string | null => {
     const explicit = String(job.language_code || '').trim().toLowerCase();
-    if (explicit) return explicit;
+    const scores = new Map<string, number>();
+    const addScore = (code: string, score: number) => {
+        if (!code || score <= 0) return;
+        scores.set(code, (scores.get(code) || 0) + score);
+    };
+
+    if (explicit) {
+        addScore(explicit, 1);
+    }
 
     const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
-    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) return 'cs';
-    if (haystack.includes('profesia.sk')) return 'sk';
-    if (haystack.includes('pracuj.pl')) return 'pl';
-    if (haystack.includes('karriere.at') || haystack.includes('stepstone.de') || haystack.includes('germantechjobs')) return 'de';
+    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) addScore('cs', 4);
+    if (haystack.includes('profesia.sk')) addScore('sk', 4);
+    if (haystack.includes('pracuj.pl')) addScore('pl', 4);
+    if (haystack.includes('karriere.at') || haystack.includes('stepstone.de') || haystack.includes('germantechjobs')) addScore('de', 4);
+
+    const inferredCountry = inferJobCountryCode(job);
+    if (inferredCountry === 'CZ') addScore('cs', 1);
+    if (inferredCountry === 'SK') addScore('sk', 1);
+    if (inferredCountry === 'PL') addScore('pl', 1);
+    if (inferredCountry === 'DE' || inferredCountry === 'AT') addScore('de', 1);
+    if (inferredCountry === 'US' || inferredCountry === 'GB') addScore('en', 1);
+
+    const textHaystack = `${job.title || ''} ${job.description || ''} ${job.location || ''}`.toLowerCase();
+    const scoreLanguage = (patterns: RegExp[]): number =>
+        patterns.reduce((score, pattern) => score + (pattern.test(textHaystack) ? 1 : 0), 0);
+
+    const csScore = scoreLanguage([
+        /\b(práce|pozice|nástup|nabízíme|požadujeme|benefity|mzda|úvazek|praxe|kancelář|domova)\b/i,
+        /[ěščřžýáíéúůťďň]/i,
+        /\b(brno|praha|ostrava|plzeň|olomouc|pardubice|hradec králové|české budějovice)\b/i,
+    ]);
+    const skScore = scoreLanguage([
+        /\b(práca|pozícia|nástup|ponúkame|požadujeme|benefity|mzda|úväzok|prax|kancelária|domu)\b/i,
+        /\b(bratislava|košice|žilina|trnava|nitra|prešov|banská bystrica)\b/i,
+    ]);
+    const plScore = scoreLanguage([
+        /\b(praca|stanowisko|oferujemy|wymagamy|benefity|wynagrodzenie|etat|biuro)\b/i,
+        /[ąćęłńóśźż]/i,
+        /\b(warszawa|kraków|wrocław|gdańsk|poznań|łódź)\b/i,
+    ]);
+    const deScore = scoreLanguage([
+        /\b(stelle|wir bieten|anforderungen|gehalt|vollzeit|teilzeit|büro|homeoffice)\b/i,
+        /[äöüß]/i,
+        /\b(wien|vienna|berlin|münchen|hamburg|graz|linz|salzburg)\b/i,
+    ]);
+    const enScore = scoreLanguage([
+        /\b(we offer|requirements|salary|benefits|full-time|part-time|remote|office)\b/i,
+        /\b(london|new york|united states|united kingdom|usa|uk)\b/i,
+    ]);
+
+    addScore('cs', csScore);
+    addScore('sk', skScore);
+    addScore('pl', plScore);
+    addScore('de', deScore);
+    addScore('en', enScore);
+
+    const ranked = Array.from(scores.entries())
+        .map(([code, score]) => ({ code, score }))
+        .sort((left, right) => right.score - left.score);
+
+    if (ranked[0]?.score && ranked[0].score >= 2) {
+        if (ranked[1] && ranked[0].score === ranked[1].score) {
+            return null;
+        }
+        return ranked[0].code;
+    }
 
     return null;
 };
@@ -276,7 +336,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
     const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
-    const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0); // Toggle for searching entire database
+    const [globalSearch, setGlobalSearch] = useState(true); // Baseline browse should not hide results behind implicit country scope
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
     const [filterSources, setFilterSources] = useState<DiscoveryFilterSourceMap>(DEFAULT_FILTER_SOURCES);
@@ -558,27 +618,18 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             !abroadOnly &&
             isDefaultCountrySelection;
 
-        const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
+        const hasExplicitGeographicFilter =
+            filterSources.globalSearch === 'user_toggle' ||
+            filterSources.abroadOnly === 'user_toggle' ||
+            !isDefaultCountrySelection;
+
+        const allowedCountryCodes = (!globalSearch && hasExplicitGeographicFilter && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
             ? new Set(normalizedCountryCodes)
             : null;
         const allowedLanguageCodes = filterLanguageCodes.length > 0
             ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
-            : (
-                enableAutoLanguageGuard &&
-                !globalSearch &&
-                defaultLanguageCodes.length > 0 &&
-                !searchTerm &&
-                !filterCity &&
-                filterContractType.length === 0 &&
-                filterBenefits.length === 0 &&
-                !filterMinSalary &&
-                filterDate === 'all' &&
-                filterExperience.length === 0 &&
-                !enableCommuteFilter &&
-                !abroadOnly
-            )
-                ? new Set(defaultLanguageCodes.map((code) => String(code).trim().toLowerCase()))
-                : null;
+            : null;
+        const hasExplicitLanguageFilter = allowedLanguageCodes !== null;
 
         const safeguarded = list.filter((job) => {
             if (allowedCountryCodes) {
@@ -589,15 +640,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             }
 
             if (allowedLanguageCodes) {
-                const inferredLanguage = inferJobLanguageCode(job);
-                if (inferredLanguage && !allowedLanguageCodes.has(inferredLanguage)) {
+                const explicitLanguage = String(job.language_code || '').trim().toLowerCase();
+                const resolvedLanguage = explicitLanguage || inferJobLanguageCode(job);
+                if (!resolvedLanguage || !allowedLanguageCodes.has(resolvedLanguage)) {
                     return false;
                 }
             }
 
             return true;
         });
-        if (safeguarded.length === 0 && list.length > 0) {
+        if (safeguarded.length === 0 && list.length > 0 && !hasExplicitLanguageFilter) {
             recordRuntimeSignal('custom:domestic_safeguard_fail_open', {
                 original_count: list.length,
                 allowed_country_codes: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
@@ -620,6 +672,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         defaultLanguageCodes,
         enableAutoLanguageGuard,
         enableCommuteFilter,
+        filterSources.abroadOnly,
+        filterSources.globalSearch,
         filterBenefits,
         filterCity,
         filterContractType,
@@ -980,7 +1034,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     }
                 }
                 if (retrievalLanguageCodes && retrievalLanguageCodes.length > 0) {
-                    const jobLanguage = String(job.language_code || '').trim().toLowerCase();
+                    const explicitLanguage = String(job.language_code || '').trim().toLowerCase();
+                    const jobLanguage = explicitLanguage || inferJobLanguageCode(job);
                     if (!jobLanguage || !retrievalLanguageCodes.includes(jobLanguage as SearchLanguageCode)) {
                         return false;
                     }
@@ -1340,7 +1395,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
     useEffect(() => {
         if (filterSources.globalSearch !== 'user_toggle') {
-            setGlobalSearch(defaultCountryCodes.length === 0);
+            setGlobalSearch(true);
         }
         if (filterSources.abroadOnly !== 'user_toggle') {
             setAbroadOnly(false);
@@ -1456,8 +1511,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setEnableAutoLanguageGuard(true);
         setEnableCommuteFilterTracked(false, 'default');
         setAbroadOnlyTracked(false, 'default');
-        setCountryCodesSafe(defaultCountryCodes);
-        setGlobalSearchTracked(defaultCountryCodes.length === 0, 'default');
+        setCountryCodesSafe([]);
+        setGlobalSearchTracked(true, 'default');
         setFilterSources(DEFAULT_FILTER_SOURCES);
         setSearchDiagnostics(null);
         // Reset page

@@ -1515,7 +1515,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (!homeCountryCode) return [] as SupportedCountryCode[];
     return [homeCountryCode, ...(BORDER_COUNTRY_MAP[homeCountryCode] || [])];
   }, [homeCountryCode]);
-  const defaultGeographicScope = homeCountryCode ? 'domestic' : 'all';
+  const defaultGeographicScope: GeographicScopeFilter = globalSearch ? 'all' : (homeCountryCode ? 'domestic' : 'all');
   const syncGeographicScope = (nextScope: GeographicScopeFilter, source: DiscoveryFilterSource = 'user_toggle') => {
     setGeographicScopeFilter(nextScope);
     if (nextScope === 'domestic') {
@@ -1678,8 +1678,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
       filterLanguageCodes: resolvedSearchProfile.wantsRemoteRoles ? resolvedSearchProfile.remoteLanguageCodes : [],
       enableCommuteFilter: resolvedSearchProfile.defaultEnableCommuteFilter,
       filterMaxDistance: resolvedSearchProfile.defaultEnableCommuteFilter ? (resolvedSearchProfile.defaultMaxDistanceKm || 50) : 50,
-      globalSearch: resolvedSearchProfile.nearBorder,
-      abroadOnly: false,
+      ...(resolvedSearchProfile.nearBorder ? { globalSearch: true } : {}),
     });
     if (resolvedSearchProfile.wantsRemoteRoles) {
       setRemoteOnly(true, 'default');

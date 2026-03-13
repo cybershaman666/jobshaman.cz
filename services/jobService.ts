@@ -3847,6 +3847,7 @@ export const fetchJobsWithFilters = async (
                 lat: row.lat,
                 lng: row.lng,
                 country_code: row.country_code,
+                language_code: row.language_code,
                 legality_status: row.legality_status,
                 verification_notes: row.verification_notes
             }, includeJhi);
