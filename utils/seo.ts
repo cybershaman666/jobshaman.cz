@@ -9,9 +9,23 @@ export interface SEOMetadata {
   structuredData?: Record<string, any>;
 }
 
+const resolveI18nValue = (
+  t: any,
+  keys: string[],
+  options?: Record<string, any>,
+  fallback = ''
+) => {
+  for (const key of keys) {
+    const value = t(key, { ...(options || {}), defaultValue: '' });
+    if (value) return value;
+  }
+  return fallback;
+};
+
 // Dynamic SEO metadata based on page content
 export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetadata => {
-  const baseTitle = t('seo.base_title');
+  const baseTitle = resolveI18nValue(t, ['seo.base_title', 'footer.seo.base_title'], undefined, 'JobShaman');
+  const homeDescription = resolveI18nValue(t, ['seo.home_description', 'footer.seo.home_description'], undefined, baseTitle);
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz";
 
   switch (page) {
@@ -27,14 +41,14 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
 
     case 'job-detail':
       return {
-        title: `${data?.title || t('marketplace.detail')} | ${data?.company || ''} - ${t('seo.job_detail_suffix')}`,
-        description: t('seo.job_detail_description', {
+        title: `${data?.title || resolveI18nValue(t, ['job.details', 'admin_dashboard.table.detail'], undefined, 'Detail')} | ${data?.company || ''} - ${resolveI18nValue(t, ['seo.job_detail_suffix', 'footer.seo.job_detail_suffix'], undefined, 'JobShaman')}`,
+        description: resolveI18nValue(t, ['seo.job_detail_description', 'footer.seo.job_detail_description'], {
           title: data?.title,
           company: data?.company,
           salary: data?.salary || (t('financial.gross_monthly') + ' ' + t('common.unknown')),
           location: data?.location || t('common.unknown'),
           benefits: data?.benefits?.join(', ') || t('common.none')
-        }),
+        }, homeDescription),
         keywords: [data?.title, data?.company, data?.location, 'práce', 'nabídka', 'volné místo'],
         canonical: `${baseUrl}/jobs/${data?.id}`,
         ogImage: data?.logo || `${baseUrl}/og-image.jpg`,
@@ -51,8 +65,8 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
 
     case 'marketplace':
       return {
-        title: t('seo.marketplace_title'),
-        description: t('seo.marketplace_description'),
+        title: baseTitle,
+        description: homeDescription,
         keywords: ["career os", "AI profil", "skryté dovednosti", "kariéra", "pracovní nabídky"],
         canonical: baseUrl
       };
@@ -102,7 +116,7 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
     default:
       return {
         title: baseTitle,
-        description: t('seo.home_description'),
+        description: homeDescription,
         canonical: baseUrl
       };
   }
@@ -221,42 +235,42 @@ export const generateFAQStructuredData = (t: any) => {
     "mainEntity": [
       {
         "@type": "Question",
-        "name": t('welcome.faq.q1'),
+        "name": resolveI18nValue(t, ['company_landing.faq.q1'], undefined, ''),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": t('welcome.faq.a1')
+          "text": resolveI18nValue(t, ['company_landing.faq.a1'], undefined, '')
         }
       },
       {
         "@type": "Question",
-        "name": t('welcome.faq.q2'),
+        "name": resolveI18nValue(t, ['company_landing.faq.q2'], undefined, ''),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": t('welcome.faq.a2')
+          "text": resolveI18nValue(t, ['company_landing.faq.a2'], undefined, '')
         }
       },
       {
         "@type": "Question",
-        "name": t('welcome.faq.q3'),
+        "name": resolveI18nValue(t, ['company_landing.faq.q3'], undefined, ''),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": t('welcome.faq.a3')
+          "text": resolveI18nValue(t, ['company_landing.faq.a3'], undefined, '')
         }
       },
       {
         "@type": "Question",
-        "name": t('welcome.faq.q4'),
+        "name": resolveI18nValue(t, ['company_landing.faq.q4'], undefined, ''),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": t('welcome.faq.a4')
+          "text": resolveI18nValue(t, ['company_landing.faq.a4'], undefined, '')
         }
       },
       {
         "@type": "Question",
-        "name": t('welcome.faq.q5'),
+        "name": resolveI18nValue(t, ['company_landing.faq.q5'], undefined, ''),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": t('welcome.faq.a5')
+          "text": resolveI18nValue(t, ['company_landing.faq.a5'], undefined, '')
         }
       }
     ]

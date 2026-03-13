@@ -331,6 +331,14 @@ export const annotateJobsForCandidate = (
   profile: UserProfile,
   locale?: string
 ): Job[] => {
+  return sortJobsForDiscovery(computeCandidateAnnotations(jobs, profile, locale));
+};
+
+export const computeCandidateAnnotations = (
+  jobs: Job[],
+  profile: UserProfile,
+  locale?: string
+): Job[] => {
   const intent = resolveCandidateIntentProfile(profile);
   const localizedDomain = intent.primaryDomain ? getCandidateIntentDomainLabel(intent.primaryDomain, locale) : '';
 
@@ -407,18 +415,29 @@ export const annotateJobsForCandidate = (
         matchedDomains: jobDomains,
         inferredDomain: primaryJobDomain,
         inferredSeniority,
+        searchDiagnostics: {
+          source: job.searchDiagnostics?.source || (job.listingKind === 'imported' ? 'cached_external' : 'native'),
+          ...(job.searchDiagnostics?.titleMatchScore !== undefined ? { titleMatchScore: job.searchDiagnostics.titleMatchScore } : {}),
+          ...(job.searchDiagnostics?.backendScore !== undefined ? { backendScore: job.searchDiagnostics.backendScore } : {}),
+          profileBoost: priorityScore,
+          external: Boolean(job.searchDiagnostics?.external ?? job.listingKind === 'imported'),
+          ...(job.searchDiagnostics?.filteredOutBy ? { filteredOutBy: job.searchDiagnostics.filteredOutBy } : {})
+        }
       };
-    })
-    .sort((left, right) => {
-      const bucketRank = (bucket: CandidateMatchBucket | undefined) => (bucket === 'best_fit' ? 3 : bucket === 'adjacent' ? 2 : 1);
-      const bucketDiff = bucketRank(right.matchBucket) - bucketRank(left.matchBucket);
-      if (bucketDiff !== 0) return bucketDiff;
-      const scoreDiff = Number(right.priorityScore || 0) - Number(left.priorityScore || 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      const jhiDiff = Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
-      if (jhiDiff !== 0) return jhiDiff;
-      return 0;
     });
+};
+
+export const sortJobsForDiscovery = <T extends Job>(jobs: T[]): T[] => {
+  return [...jobs].sort((left, right) => {
+    const bucketRank = (bucket: CandidateMatchBucket | undefined) => (bucket === 'best_fit' ? 3 : bucket === 'adjacent' ? 2 : 1);
+    const bucketDiff = bucketRank(right.matchBucket) - bucketRank(left.matchBucket);
+    if (bucketDiff !== 0) return bucketDiff;
+    const scoreDiff = Number(right.priorityScore || 0) - Number(left.priorityScore || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const jhiDiff = Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
+    if (jhiDiff !== 0) return jhiDiff;
+    return 0;
+  });
 };
 
 export const getCandidateIntentSignals = (profile: UserProfile, locale?: string): string[] => {

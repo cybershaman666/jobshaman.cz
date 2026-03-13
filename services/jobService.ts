@@ -4,12 +4,15 @@ import {
     JobChallengeFormat,
     JobHumanContext,
     JobHiringStage,
+    JobWorkArrangementFilter,
     JHI,
     JHIPreferences,
     MicroJobCollaborationMode,
     MicroJobKind,
     MicroJobLongTermPotential,
+    SearchMode,
     SearchDiagnosticsMeta,
+    SearchResultSource,
     TaxProfile
 } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
@@ -751,10 +754,11 @@ export const fetchJobsPaginated = async (
     userLat?: number,
     userLng?: number,
     radiusKm: number = 50,
-    countryCode?: string,
+    countryCode?: string | string[],
     languageCodes?: string[],
     includeJhi: boolean = true,
-    microJobsOnly: boolean = false
+    microJobsOnly: boolean = false,
+    skipCount: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
@@ -763,8 +767,13 @@ export const fetchJobsPaginated = async (
 
     try {
         // If user coordinates provided AND both lat/lng are defined, use spatial query
+        const normalizedCountryCodes = Array.isArray(countryCode)
+            ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
+            : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
+        const singleCountryCode = normalizedCountryCodes.length === 1 ? normalizedCountryCodes[0] : undefined;
+
         if (!microJobsOnly && userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
-            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km, country: ${countryCode || 'all'}`);
+            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km, country: ${singleCountryCode || normalizedCountryCodes.join(',') || 'all'}`);
 
             const { data, error } = await supabase
                 .rpc('search_jobs_minimal', {
@@ -773,13 +782,13 @@ export const fetchJobsPaginated = async (
                     radius_km: radiusKm,
                     limit_count: pageSize,
                     offset_val: page * pageSize,
-                    filter_country_code: countryCode
+                    filter_country_code: singleCountryCode
                 });
 
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, languageCodes, includeJhi, microJobsOnly);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, normalizedCountryCodes, languageCodes, includeJhi, microJobsOnly, skipCount);
             }
 
             if (!data || data.length === 0) {
@@ -822,7 +831,7 @@ export const fetchJobsPaginated = async (
 
             // Filter by country code if provided
             const countryFilteredJobs = countryCode
-                ? processedJobs.filter((job: Job) => job.country_code === countryCode)
+                ? processedJobs.filter((job: Job) => normalizedCountryCodes.includes(String(job.country_code || '').trim().toUpperCase()))
                 : processedJobs;
 
             // Filter by quality standards and remove duplicates
@@ -841,7 +850,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, languageCodes, includeJhi, microJobsOnly);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, normalizedCountryCodes, languageCodes, includeJhi, microJobsOnly, skipCount);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
@@ -856,17 +865,28 @@ const fetchJobsPaginatedFallback = async (
     userLat?: number,
     userLng?: number,
     _radiusKm?: number, // Not used in fallback
-    countryCode?: string,
+    countryCode?: string | string[],
     languageCodes?: string[],
     includeJhi: boolean = true,
-    microJobsOnly: boolean = false
+    microJobsOnly: boolean = false,
+    skipCount: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
+        const normalizedCountryCodes = Array.isArray(countryCode)
+            ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
+            : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
+        const shouldSkipCount =
+            skipCount ||
+            (!microJobsOnly &&
+                normalizedCountryCodes.length === 0 &&
+                (!languageCodes || languageCodes.length === 0));
         const buildBaseListQuery = (query: any) => {
             let nextQuery = query.eq('legality_status', 'legal');
 
-            if (countryCode) {
-                nextQuery = nextQuery.eq('country_code', countryCode);
+            if (normalizedCountryCodes.length === 1) {
+                nextQuery = nextQuery.eq('country_code', normalizedCountryCodes[0]);
+            } else if (normalizedCountryCodes.length > 1) {
+                nextQuery = nextQuery.in('country_code', normalizedCountryCodes);
             }
             if (languageCodes && languageCodes.length > 0) {
                 nextQuery = nextQuery.in('language_code', languageCodes);
@@ -879,7 +899,7 @@ const fetchJobsPaginatedFallback = async (
         };
 
         let totalCount = 0;
-        if (microJobsOnly || countryCode || (languageCodes && languageCodes.length > 0)) {
+        if (!shouldSkipCount && (microJobsOnly || normalizedCountryCodes.length > 0 || (languageCodes && languageCodes.length > 0))) {
             const { count, error: countError } = await buildBaseListQuery(
                 supabase.from('jobs').select('id', { count: 'exact', head: true })
             );
@@ -888,7 +908,7 @@ const fetchJobsPaginatedFallback = async (
             } else {
                 totalCount = Number(count || 0);
             }
-        } else {
+        } else if (!shouldSkipCount) {
             totalCount = await getJobCount();
         }
 
@@ -916,7 +936,7 @@ const fetchJobsPaginatedFallback = async (
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount}, country: ${countryCode || 'all'})`);
+        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount}, country: ${normalizedCountryCodes.join(',') || 'all'})`);
 
         const processedJobs = data.map((job: any) => {
             const transformed = transformJob(job, includeJhi);
@@ -932,11 +952,17 @@ const fetchJobsPaginatedFallback = async (
 
         // Filter by quality standards and remove duplicates
         const filteredJobs = filterJobsByQuality(processedJobs);
+        const hasMore = shouldSkipCount
+            ? filteredJobs.length === pageSize
+            : (page + 1) * pageSize < totalCount;
+        const resolvedTotalCount = shouldSkipCount
+            ? page * pageSize + filteredJobs.length + (hasMore ? pageSize : 0)
+            : totalCount;
 
         return {
             jobs: filteredJobs,
-            hasMore: (page + 1) * pageSize < totalCount,
-            totalCount
+            hasMore,
+            totalCount: resolvedTotalCount
         };
 
     } catch (e) {
@@ -1111,6 +1137,9 @@ export interface JobFilterOptions {
     filterLanguageCodes?: string[];
     searchTerm?: string;
     sortMode?: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc';
+    searchMode?: SearchMode;
+    remoteOnly?: boolean;
+    filterWorkArrangement?: JobWorkArrangementFilter;
     jhiPreferences?: JHIPreferences;
     userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
@@ -1232,7 +1261,7 @@ const fetchWeWorkRemotelyLiveJobs = async (options: {
 
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1287,7 +1316,7 @@ const fetchJoobleLiveJobs = async (options: {
 
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1340,7 +1369,7 @@ const fetchArbeitnowLiveJobs = async (options: {
         }
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1395,7 +1424,7 @@ const fetchCachedExternalFeedJobs = async (options: {
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
         return {
-            jobs: filterJobsByQuality(mapJobs(rows, undefined, undefined, options.includeJhi ?? true)),
+            jobs: filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'cached_external')),
             hasMore: Boolean(payload?.has_more),
             totalCount: Number(payload?.total_count || 0),
             meta: payload?.meta || undefined
@@ -1481,12 +1510,17 @@ export const fetchExternalOverlayJobs = async (options: {
     );
 
     if ((cached.meta?.degraded_reasons || []).length > 0) {
+        const degradedReasons = cached.meta?.degraded_reasons || [];
+        const isExpectedCachedFeedFallback = degradedReasons.every((reason) =>
+            reason === 'cached_feed_timeout' || reason === 'cached_feed_unavailable'
+        );
         recordRuntimeSignal('custom:external_cached_feed_degraded', {
             fallback_mode: cached.meta?.fallback_mode || null,
-            degraded_reasons: cached.meta?.degraded_reasons || [],
+            degraded_reasons: degradedReasons,
         }, {
-            dedupeKey: `${cached.meta?.fallback_mode || 'unknown'}:${(cached.meta?.degraded_reasons || []).join(',') || 'none'}`,
+            dedupeKey: `${cached.meta?.fallback_mode || 'unknown'}:${degradedReasons.join(',') || 'none'}`,
             throttleMs: 30_000,
+            emitConsole: !isExpectedCachedFeedFallback,
         });
     }
 
@@ -1927,35 +1961,6 @@ const scoreJobAgainstSearchMatcher = (
     return score;
 };
 
-const sortJobsWithSearchContext = (
-    jobs: Job[],
-    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
-    matcher: {
-        normalizedQuery: string;
-        requiredTokens: string[];
-        optionalTokens: string[];
-        queryTokens: string[];
-    }
-): Job[] => {
-    if (!matcher.queryTokens.length) {
-        return sortJobsForMode(jobs, sortMode);
-    }
-
-    const relevanceSorted = [...jobs].sort((left, right) => {
-        const relevanceDiff = scoreJobAgainstSearchMatcher(right, matcher) - scoreJobAgainstSearchMatcher(left, matcher);
-        if (relevanceDiff !== 0) return relevanceDiff;
-        const freshnessDiff = parseTimestampMs(right.scrapedAt) - parseTimestampMs(left.scrapedAt);
-        if (freshnessDiff !== 0) return freshnessDiff;
-        return (Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0));
-    });
-
-    if (sortMode === 'distance' || sortMode === 'salary_desc' || sortMode === 'jhi_desc') {
-        return sortJobsForMode(relevanceSorted, sortMode);
-    }
-
-    return prioritizeNativeListings(relevanceSorted);
-};
-
 const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
     home_office: [
         /\bhome office\b/,
@@ -2253,6 +2258,140 @@ const containsDriverLicenseReference = (haystack: string, token: string): boolea
     return patterns.some((pattern) => pattern.test(haystack));
 };
 
+const getJobSearchSource = (job: Job): SearchResultSource => {
+    return job.searchDiagnostics?.source || (job.listingKind === 'imported' ? 'cached_external' : 'native');
+};
+
+const isExternalSearchSource = (source: SearchResultSource): boolean => source !== 'native';
+
+const attachSearchSource = (jobs: Job[], source: SearchResultSource): Job[] =>
+    jobs.map((job) => ({
+        ...job,
+        searchDiagnostics: {
+            ...(job.searchDiagnostics || {}),
+            source,
+            external: isExternalSearchSource(source),
+        }
+    }));
+
+const getNormalizedWorkArrangement = (job: Job): JobWorkArrangementFilter => {
+    if (isRemoteJob(job)) return 'remote';
+    const normalizedWorkModel = normalizeTokenText(String(job.work_model || ''));
+    const normalizedType = normalizeTokenText(String(job.type || ''));
+    const normalizedDescription = normalizeTokenText(String(job.description || ''));
+    const haystack = `${normalizedWorkModel} ${normalizedType} ${normalizedDescription}`.trim();
+    if (haystack.includes('hybrid')) return 'hybrid';
+    if (haystack.includes('onsite') || haystack.includes('on site') || haystack.includes('on-site')) return 'onsite';
+    return 'onsite';
+};
+
+const matchesWorkArrangementFilter = (job: Job, filterWorkArrangement?: JobWorkArrangementFilter, remoteOnly?: boolean): boolean => {
+    if (remoteOnly) {
+        return isRemoteJob(job);
+    }
+    if (!filterWorkArrangement || filterWorkArrangement === 'all') {
+        return true;
+    }
+    return getNormalizedWorkArrangement(job) === filterWorkArrangement;
+};
+
+export const scoreJobForManualQuery = (
+    job: Job,
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    }
+): {
+    titleMatchScore: number;
+    fulltextScore: number;
+    backendScore: number;
+    freshnessScore: number;
+    totalScore: number;
+} => {
+    const title = normalizeSearchMatchText(job.title || '');
+    const company = normalizeSearchMatchText(job.company || '');
+    const location = normalizeSearchMatchText(job.location || '');
+    const description = normalizeSearchMatchText(job.description || '');
+    const tagText = normalizeSearchMatchText([...(job.tags || []), ...(job.benefits || [])].join(' '));
+    const fulltext = [title, company, location, description, tagText].filter(Boolean).join(' ');
+    const backendScore = Number((job as any).hybrid_score ?? (job as any).searchScore ?? 0);
+    const freshnessScore = Math.round(parseTimestampMs(job.scrapedAt) / 1000);
+
+    if (!matcher.queryTokens.length) {
+        return {
+            titleMatchScore: 0,
+            fulltextScore: 0,
+            backendScore,
+            freshnessScore,
+            totalScore: backendScore
+        };
+    }
+
+    let titleMatchScore = 0;
+    let fulltextScore = 0;
+
+    if (matcher.normalizedQuery && title.includes(matcher.normalizedQuery)) {
+        titleMatchScore += title === matcher.normalizedQuery ? 240 : 190;
+    }
+
+    const titleTokenHits = matcher.requiredTokens.filter((token) => containsWholeToken(title, token) || title.includes(token)).length;
+    const exactWholeTokenHits = matcher.requiredTokens.filter((token) => containsWholeToken(title, token)).length;
+    const fullTokenHits = matcher.requiredTokens.filter((token) => containsWholeToken(fulltext, token) || fulltext.includes(token)).length;
+    titleMatchScore += exactWholeTokenHits * 44;
+    titleMatchScore += (titleTokenHits - exactWholeTokenHits) * 22;
+    fulltextScore += fullTokenHits * 12;
+
+    if (matcher.normalizedQuery && fulltext.includes(matcher.normalizedQuery)) {
+        fulltextScore += 40;
+    }
+    for (const token of matcher.optionalTokens) {
+        if (containsWholeToken(title, token)) titleMatchScore += 10;
+        else if (containsWholeToken(fulltext, token)) fulltextScore += 4;
+    }
+
+    const sourcePenalty = isExternalSearchSource(getJobSearchSource(job)) ? -8 : 0;
+    const totalScore =
+        titleMatchScore * 1000 +
+        fulltextScore * 100 +
+        backendScore * 10 +
+        freshnessScore +
+        sourcePenalty;
+
+    return {
+        titleMatchScore,
+        fulltextScore,
+        backendScore,
+        freshnessScore,
+        totalScore
+    };
+};
+
+export const applyExternalTopCap = (jobs: Job[], topWindow: number = 8, maxExternal: number = 2): Job[] => {
+    if (jobs.length <= 1) return jobs;
+    const top: Job[] = [];
+    const deferred: Job[] = [];
+    let externalCount = 0;
+
+    for (const job of jobs) {
+        const source = getJobSearchSource(job);
+        const isExternal = isExternalSearchSource(source);
+        if (top.length < topWindow) {
+            if (isExternal && externalCount >= maxExternal) {
+                deferred.push(job);
+                continue;
+            }
+            top.push(job);
+            if (isExternal) externalCount += 1;
+            continue;
+        }
+        deferred.push(job);
+    }
+
+    return [...top, ...deferred];
+};
+
 const warnHybridFallbackThrottled = (error: unknown): void => {
     if (isAbortFetchError(error)) {
         return;
@@ -2352,6 +2491,75 @@ const sortJobsForMode = (
     return prioritizeNativeListings(jobs);
 };
 
+const finalizeSearchDiagnostics = (
+    jobs: Job[],
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    },
+    searchMode: SearchMode
+): Job[] => {
+    return jobs.map((job) => {
+        const manualQueryScore = searchMode === 'manual_query'
+            ? scoreJobForManualQuery(job, matcher)
+            : null;
+        return {
+            ...job,
+            searchDiagnostics: {
+                source: getJobSearchSource(job),
+                external: isExternalSearchSource(getJobSearchSource(job)),
+                ...(job.searchDiagnostics?.profileBoost !== undefined ? { profileBoost: job.searchDiagnostics.profileBoost } : {}),
+                ...(manualQueryScore ? { titleMatchScore: manualQueryScore.titleMatchScore } : {}),
+                backendScore: Number((job as any).hybrid_score ?? (job as any).searchScore ?? job.searchDiagnostics?.backendScore ?? 0),
+                ...(job.searchDiagnostics?.filteredOutBy ? { filteredOutBy: job.searchDiagnostics.filteredOutBy } : {})
+            }
+        };
+    });
+};
+
+export const rankJobsForSearchMode = (
+    jobs: Job[],
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
+    searchMode: SearchMode,
+    matcher: {
+        normalizedQuery: string;
+        requiredTokens: string[];
+        optionalTokens: string[];
+        queryTokens: string[];
+    }
+): Job[] => {
+    if (!jobs.length) return jobs;
+
+    if (searchMode === 'manual_query' && matcher.queryTokens.length > 0) {
+        const ranked = [...jobs].sort((left, right) => {
+            const rightScore = scoreJobForManualQuery(right, matcher);
+            const leftScore = scoreJobForManualQuery(left, matcher);
+            const totalDiff = rightScore.totalScore - leftScore.totalScore;
+            if (totalDiff !== 0) return totalDiff;
+            const backendDiff = rightScore.backendScore - leftScore.backendScore;
+            if (backendDiff !== 0) return backendDiff;
+            return Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
+        });
+        const sorted = sortJobsForMode(ranked, sortMode);
+        const capped = applyExternalTopCap(sorted);
+        return finalizeSearchDiagnostics(capped, matcher, searchMode);
+    }
+
+    const sorted = matcher.queryTokens.length > 0
+        ? [...jobs].sort((left, right) => {
+            const relevanceDiff = scoreJobAgainstSearchMatcher(right, matcher) - scoreJobAgainstSearchMatcher(left, matcher);
+            if (relevanceDiff !== 0) return relevanceDiff;
+            const freshnessDiff = parseTimestampMs(right.scrapedAt) - parseTimestampMs(left.scrapedAt);
+            if (freshnessDiff !== 0) return freshnessDiff;
+            return (Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0));
+        })
+        : [...jobs];
+
+    return finalizeSearchDiagnostics(sortJobsForMode(sorted, sortMode), matcher, searchMode);
+};
+
 /**
  * Comprehensive job filtering function that supports all filter types
  * Uses database-level filtering via RPC for optimal performance
@@ -2382,6 +2590,9 @@ export const fetchJobsWithFilters = async (
         filterLanguageCodes,
         searchTerm: rawSearchTerm,
         sortMode = 'default',
+        searchMode = 'discovery_default',
+        remoteOnly = false,
+        filterWorkArrangement = 'all',
         jhiPreferences,
         userTaxProfile,
         abortSignal,
@@ -2391,7 +2602,7 @@ export const fetchJobsWithFilters = async (
         microJobsOnly = false,
         respectHardConstraints = false
     } = options;
-    const effectiveSortMode = sortMode === 'recommended' ? 'newest' : sortMode;
+    const effectiveSortMode = sortMode === 'recommended' ? 'default' : sortMode;
 
     const HYBRID_SEARCH_TIMEOUT_MS = 4500;
     const createTimeoutError = (label: string) => {
@@ -2445,6 +2656,8 @@ export const fetchJobsWithFilters = async (
         !!(filterBenefits && filterBenefits.length > 0) ||
         !!(filterExperienceLevels && filterExperienceLevels.length > 0) ||
         !!(filterLanguageCodes && filterLanguageCodes.length > 0) ||
+        remoteOnly ||
+        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
         !!(countryCodes && countryCodes.length > 0) ||
         !!(excludeCountryCodes && excludeCountryCodes.length > 0) ||
         !!(filterMinSalary && filterMinSalary > 0) ||
@@ -2473,6 +2686,8 @@ export const fetchJobsWithFilters = async (
     const hasStrictFilterConstraints =
         safeRadiusKm !== null ||
         !!normalizedFilterCity ||
+        remoteOnly ||
+        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
         normalizedContractFilters.length > 0 ||
         normalizedBenefitFilters.length > 0 ||
         normalizedExperienceFilters.length > 0 ||
@@ -2548,6 +2763,9 @@ export const fetchJobsWithFilters = async (
     const applyStrictClientFilters = (jobs: Job[]): Job[] => {
         return jobs.filter((job) => {
             if (!matchesRequestedChallengeFormat(job)) {
+                return false;
+            }
+            if (!matchesWorkArrangementFilter(job, filterWorkArrangement, remoteOnly)) {
                 return false;
             }
             const jobCountry = normalizeTokenText(
@@ -2825,6 +3043,14 @@ export const fetchJobsWithFilters = async (
         externalOverlayMode === 'sync' &&
         page >= 0;
 
+    const getSourceMixCounts = (jobs: Job[]): Partial<Record<SearchResultSource, number>> => {
+        return jobs.reduce<Partial<Record<SearchResultSource, number>>>((acc, job) => {
+            const source = getJobSearchSource(job);
+            acc[source] = (acc[source] || 0) + 1;
+            return acc;
+        }, {});
+    };
+
     const maybeMergeCachedExternalFeed = async (
         result: JobsFetchResult
     ): Promise<JobsFetchResult> => {
@@ -2889,9 +3115,10 @@ export const fetchJobsWithFilters = async (
         }
 
         const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...externalJobs]));
-        const mergedJobs = sortJobsWithSearchContext(
+        const mergedJobs = rankJobsForSearchMode(
             applyStrictClientFilters(mergedUnique),
             effectiveSortMode,
+            searchMode,
             searchMatcher
         );
 
@@ -2905,6 +3132,7 @@ export const fetchJobsWithFilters = async (
                 fallback_mode: externalResult.meta?.fallback_mode || result.meta?.fallback_mode || 'cache_only',
                 cache_hit: externalResult.meta?.cache_hit ?? result.meta?.cache_hit,
                 degraded_reasons: Array.from(new Set([...(result.meta?.degraded_reasons || []), ...(externalResult.meta?.degraded_reasons || [])])),
+                source_mix: getSourceMixCounts(mergedJobs),
             }
         };
     };
@@ -2966,9 +3194,10 @@ export const fetchJobsWithFilters = async (
         }
 
         const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...liveJobs]));
-        const mergedJobs = sortJobsWithSearchContext(
+        const mergedJobs = rankJobsForSearchMode(
             applyStrictClientFilters(mergedUnique),
             effectiveSortMode,
+            searchMode,
             searchMatcher
         );
         return {
@@ -2980,19 +3209,54 @@ export const fetchJobsWithFilters = async (
                 fallback_mode: 'async_overlay',
                 cache_hit: result.meta?.cache_hit ?? false,
                 degraded_reasons: result.meta?.degraded_reasons || [],
+                source_mix: getSourceMixCounts(mergedJobs),
             }
         };
     };
 
     const finalizeResults = async (result: JobsFetchResult) => {
-        const withCachedExternalFeed = await maybeMergeCachedExternalFeed(result);
+        const baseResultCount = result.jobs.length;
+        const rankedBaseResult: JobsFetchResult = {
+            ...result,
+            jobs: rankJobsForSearchMode(
+                applyStrictClientFilters(result.jobs),
+                effectiveSortMode,
+                searchMode,
+                searchMatcher
+            ),
+            meta: {
+                ...(result.meta || {}),
+                search_mode: searchMode,
+                source_mix: getSourceMixCounts(result.jobs),
+                reordered_by_profile: false,
+            }
+        };
+        const withCachedExternalFeed = await maybeMergeCachedExternalFeed(rankedBaseResult);
         const withLiveOverlay = await maybeOverlayLiveImportJobs(withCachedExternalFeed);
-        return applyHardConstraintsWithNearFallback(
+        const finalized = applyHardConstraintsWithNearFallback(
             withLiveOverlay.jobs,
             withLiveOverlay.hasMore,
             withLiveOverlay.totalCount,
-            withLiveOverlay.meta
+            {
+                ...(withLiveOverlay.meta || {}),
+                search_mode: searchMode,
+                base_result_count: baseResultCount,
+                post_filter_count: withLiveOverlay.jobs.length,
+                source_mix: getSourceMixCounts(withLiveOverlay.jobs),
+                reordered_by_profile: false,
+            }
         );
+        return {
+            ...finalized,
+            meta: {
+                ...(finalized.meta || {}),
+                search_mode: searchMode,
+                base_result_count: baseResultCount,
+                post_filter_count: finalized.jobs.length,
+                source_mix: getSourceMixCounts(finalized.jobs),
+                reordered_by_profile: false,
+            }
+        };
     };
 
     const fetchViaStrictClientFallback = async (
@@ -3040,7 +3304,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
-        const strictJobs = sortJobsWithSearchContext(applyStrictClientFilters(baseJobs), effectiveSortMode, searchMatcher);
+        const strictJobs = rankJobsForSearchMode(applyStrictClientFilters(baseJobs), effectiveSortMode, searchMode, searchMatcher);
         if (strictJobs.length === 0 && safeSearchTerm) {
             const textFallbackResult = await fetchViaTextFallback();
             if (textFallbackResult) {
@@ -3146,7 +3410,7 @@ export const fetchJobsWithFilters = async (
             ...(job.benefits || [])
         ].join(' '), fallbackMatcher));
         const isShortSingleTokenQuery = compactSearchLength <= 2 && fallbackMatcher.queryTokens.length === 1;
-        fallbackJobs = sortJobsWithSearchContext(applyStrictClientFilters(fallbackJobs), effectiveSortMode, fallbackMatcher);
+        fallbackJobs = rankJobsForSearchMode(applyStrictClientFilters(fallbackJobs), effectiveSortMode, searchMode, fallbackMatcher);
         if (fallbackJobs.length === 0) {
             return null;
         }
@@ -3230,6 +3494,11 @@ export const fetchJobsWithFilters = async (
                 (job as any).searchScore = row.hybrid_score;
                 (job as any).rankPosition = row.rank_position;
                 (job as any).requestId = hybridPayload.request_id;
+                job.searchDiagnostics = {
+                    source: 'native',
+                    external: false,
+                    backendScore: Number(row.hybrid_score || 0),
+                };
                 return job;
             });
         };
@@ -3270,6 +3539,11 @@ export const fetchJobsWithFilters = async (
                     reaction_window_days: row.reaction_window_days
                 }, includeJhi);
                 (job as any).distance_km = row.distance_km;
+                job.searchDiagnostics = {
+                    source: 'native',
+                    external: false,
+                    backendScore: Number((row as any).hybrid_score || 0),
+                };
                 return job;
             });
         };
@@ -3582,6 +3856,11 @@ export const fetchJobsWithFilters = async (
             if (row.tags) {
                 job.tags = [...job.tags, ...row.tags];
             }
+            job.searchDiagnostics = {
+                source: 'native',
+                external: false,
+                backendScore: Number((row as any).hybrid_score || 0),
+            };
 
             return job;
         });

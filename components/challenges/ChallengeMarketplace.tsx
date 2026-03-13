@@ -12,12 +12,12 @@ import {
   TrainFront
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, MicroJobCollaborationMode, MicroJobLongTermPotential, SearchLanguageCode, SupportedCountryCode, UserProfile } from '../../types';
+import { CandidateDialogueCapacity, DiscoveryFilterSource, Job, JobSearchFilters, MicroJobCollaborationMode, MicroJobLongTermPotential, SearchLanguageCode, SearchMode, SupportedCountryCode, UserProfile } from '../../types';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { fetchMyDialogueCapacity } from '../../services/jobApplicationService';
 import { calculateDistanceKm, isRemoteJob } from '../../services/commuteService';
-import { annotateJobsForCandidate, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
+import { computeCandidateAnnotations, getCandidateIntentRoleSeedKeyword, getCandidateIntentSignals, resolveCandidateIntentProfile, sortJobsForDiscovery } from '../../services/candidateIntentService';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
 import PremiumFeatureExplainModal, { PremiumFeatureExplainContent } from '../PremiumFeatureExplainModal';
 import PublicActivityPanel from '../PublicActivityPanel';
@@ -63,6 +63,8 @@ interface ChallengeMarketplaceProps {
   setGlobalSearch: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   abroadOnly: boolean;
   setAbroadOnly: (enabled: boolean, source?: DiscoveryFilterSource) => void;
+  countryCodes: string[];
+  setCountryCodes: (codes: string[] | ((prev: string[]) => string[])) => void;
   enableCommuteFilter: boolean;
   setEnableCommuteFilter: (enabled: boolean, source?: DiscoveryFilterSource) => void;
   filterMaxDistance: number;
@@ -85,6 +87,7 @@ interface ChallengeMarketplaceProps {
   onOpenProfile: () => void;
   onOpenAuth: () => void;
   applyDiscoveryDefaults: (filters: JobSearchFilters) => void;
+  searchMode: SearchMode;
 }
 
 const getLocaleLabel = (labels: LocaleLabels, language: MarketplaceLanguage): string => {
@@ -461,6 +464,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   setGlobalSearch,
   abroadOnly,
   setAbroadOnly,
+  countryCodes,
+  setCountryCodes,
   enableCommuteFilter,
   setEnableCommuteFilter,
   filterMaxDistance,
@@ -482,7 +487,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   onOpenPremium,
   onOpenProfile,
   onOpenAuth,
-  applyDiscoveryDefaults
+  applyDiscoveryDefaults,
+  searchMode
 }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
@@ -1509,6 +1515,31 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (!homeCountryCode) return [] as SupportedCountryCode[];
     return [homeCountryCode, ...(BORDER_COUNTRY_MAP[homeCountryCode] || [])];
   }, [homeCountryCode]);
+  const defaultGeographicScope = homeCountryCode ? 'domestic' : 'all';
+  const syncGeographicScope = (nextScope: GeographicScopeFilter, source: DiscoveryFilterSource = 'user_toggle') => {
+    setGeographicScopeFilter(nextScope);
+    if (nextScope === 'domestic') {
+      setGlobalSearch(false, source);
+      setAbroadOnly(false, source);
+      setCountryCodes(homeCountryCode ? [homeCountryCode] : []);
+      return;
+    }
+    if (nextScope === 'border') {
+      setGlobalSearch(false, source);
+      setAbroadOnly(false, source);
+      setCountryCodes(borderCountryCodes);
+      return;
+    }
+    if (nextScope === 'abroad') {
+      setGlobalSearch(false, source);
+      setAbroadOnly(true, source);
+      setCountryCodes([]);
+      return;
+    }
+    setGlobalSearch(true, source);
+    setAbroadOnly(false, source);
+    setCountryCodes([]);
+  };
   const effectiveCommuteEnabled = enableCommuteFilter || (
     usePersonalSetup &&
     !remoteOnly &&
@@ -1588,24 +1619,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   };
 
   const handleGeographicScopeChange = (nextScope: GeographicScopeFilter) => {
-    setGeographicScopeFilter(nextScope);
-    if (nextScope === 'domestic') {
-      setGlobalSearch(false, 'user_toggle');
-      setAbroadOnly(false, 'user_toggle');
-      return;
-    }
-    if (nextScope === 'border') {
-      setGlobalSearch(true, 'user_toggle');
-      setAbroadOnly(false, 'user_toggle');
-      return;
-    }
-    if (nextScope === 'abroad') {
-      setGlobalSearch(false, 'user_toggle');
-      setAbroadOnly(true, 'user_toggle');
-      return;
-    }
-    setGlobalSearch(true, 'user_toggle');
-    setAbroadOnly(false, 'user_toggle');
+    syncGeographicScope(nextScope, 'user_toggle');
   };
 
   useEffect(() => {
@@ -1618,14 +1632,28 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
 
   useEffect(() => {
     if (abroadOnly) {
-      setGeographicScopeFilter('abroad');
+      if (geographicScopeFilter !== 'abroad') {
+        setGeographicScopeFilter('abroad');
+      }
+      setCountryCodes([]);
       return;
     }
+    const nextScope = globalSearch ? 'all' : defaultGeographicScope;
+    const syncedScope = geographicScopeFilter === 'border' ? 'border' : nextScope;
     setGeographicScopeFilter((current) => {
-      if (current === 'border' || current === 'all') return current;
-      return globalSearch ? 'all' : 'domestic';
+      if (current === 'border') return current;
+      return nextScope;
     });
-  }, [abroadOnly, globalSearch]);
+    if (syncedScope === 'all') {
+      setCountryCodes([]);
+      return;
+    }
+    if (syncedScope === 'border') {
+      setCountryCodes(borderCountryCodes);
+      return;
+    }
+    setCountryCodes(homeCountryCode ? [homeCountryCode] : countryCodes);
+  }, [abroadOnly, borderCountryCodes, countryCodes, defaultGeographicScope, globalSearch, geographicScopeFilter, homeCountryCode, setCountryCodes]);
 
   useEffect(() => {
     if (!userProfile.isLoggedIn) return;
@@ -1678,8 +1706,12 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     const nextCommuteEnabled = nextRemoteOnly ? false : Boolean(filters.enableCommuteFilter);
     const nextGlobalSearch = Boolean(filters.globalSearch);
     const nextAbroadOnly = nextGlobalSearch ? false : Boolean(filters.abroadOnly);
-    setWorkArrangementFilter(nextRemoteOnly ? 'remote' : 'all');
-    setGeographicScopeFilter(nextAbroadOnly ? 'abroad' : nextGlobalSearch ? 'all' : 'domestic');
+    const nextWorkArrangement = nextRemoteOnly
+      ? 'remote'
+      : (filters.filterWorkArrangement || 'all');
+    const nextGeographicScope = filters.geographicScope || (nextAbroadOnly ? 'abroad' : nextGlobalSearch ? 'all' : defaultGeographicScope);
+    setWorkArrangementFilter(nextWorkArrangement);
+    syncGeographicScope(nextGeographicScope, 'user_toggle');
     setSearchTerm(filters.searchTerm || '', 'user_toggle');
     setFilterCity(filters.filterCity || '', 'user_toggle');
     setFilterMinSalary(filters.filterMinSalary || 0, 'user_toggle');
@@ -1690,8 +1722,6 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     setFilterLanguageCodes(uniqueStrings<SearchLanguageCode>(filters.filterLanguageCodes), 'user_toggle');
     setEnableCommuteFilter(nextCommuteEnabled, 'user_toggle');
     setFilterMaxDistance(filters.filterMaxDistance || 50, 'user_toggle');
-    setGlobalSearch(nextGlobalSearch, 'user_toggle');
-    setAbroadOnly(nextAbroadOnly, 'user_toggle');
     setRemoteOnly(nextRemoteOnly, 'user_toggle');
   };
 
@@ -1775,20 +1805,59 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     userProfile.coordinates?.lon,
   ]);
 
-  const prioritizedJobsInLane = useMemo(
-    () => {
-      if (!usePersonalSetup) {
-        return jobsInLane;
-      }
+  const effectiveSearchMode = useMemo<SearchMode>(() => {
+    if (searchMode === 'manual_query') {
+      return 'manual_query';
+    }
+    if (workArrangementFilter !== 'all' || geographicScopeFilter !== defaultGeographicScope) {
+      return 'manual_filters';
+    }
+    return searchMode;
+  }, [defaultGeographicScope, geographicScopeFilter, searchMode, workArrangementFilter]);
 
-      return annotateJobsForCandidate(
-        jobsInLane,
-        userProfile,
-        i18n.language
-      );
-    },
-    [i18n.language, jobsInLane, usePersonalSetup, userProfile]
-  );
+  const prioritizedJobsInLane = useMemo(() => {
+    if (!usePersonalSetup) {
+      return jobsInLane;
+    }
+
+    const annotatedJobs = computeCandidateAnnotations(
+      jobsInLane,
+      userProfile,
+      i18n.language
+    );
+
+    if (effectiveSearchMode === 'discovery_default') {
+      return sortJobsForDiscovery(annotatedJobs);
+    }
+
+    return annotatedJobs;
+  }, [effectiveSearchMode, i18n.language, jobsInLane, usePersonalSetup, userProfile]);
+
+  const fallbackJobsInLane = useMemo(() => {
+    const nativeJobs = jobs.filter((job) => job.listingKind !== 'imported');
+    const importedJobs = jobs.filter((job) => job.listingKind === 'imported');
+
+    if (lane === 'imports') {
+      return importedJobs.length > 0 ? importedJobs : jobs;
+    }
+
+    if (nativeJobs.length === 0 || !hasNativeChallenges) {
+      return importedJobs.length > 0 ? importedJobs : jobs;
+    }
+
+    if (nativeJobs.length < MIN_NATIVE_CHALLENGE_POOL) {
+      const seen = new Set(nativeJobs.map((job) => job.id));
+      return [
+        ...nativeJobs,
+        ...importedJobs.filter((job) => !seen.has(job.id)),
+      ];
+    }
+
+    return nativeJobs;
+  }, [hasNativeChallenges, jobs, lane]);
+
+  const feedJobs = prioritizedJobsInLane.length > 0 ? prioritizedJobsInLane : fallbackJobsInLane;
+  const feedFallbackActive = prioritizedJobsInLane.length === 0 && fallbackJobsInLane.length > 0;
 
   const hasCommuteProfile = Boolean(userProfile.address || userProfile.coordinates?.lat);
 
@@ -1806,6 +1875,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     globalSearch,
     abroadOnly,
     remoteOnly,
+    filterWorkArrangement: workArrangementFilter,
+    geographicScope: geographicScopeFilter,
     intentPrimaryDomain: usePersonalSetup ? effectiveCandidateIntent.primaryDomain : null,
     intentTargetRole: usePersonalSetup ? (getCandidateIntentRoleSeedKeyword(effectiveCandidateIntent.targetRole) || undefined) : undefined,
     intentSeniority: usePersonalSetup ? effectiveCandidateIntent.seniority : null
@@ -1959,28 +2030,26 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     setEnableCommuteFilter(false);
     setFilterMaxDistance(50);
     setRemoteOnly(false);
-    setAbroadOnly(false);
-    setGlobalSearch(true);
     setWorkArrangementFilter('all');
-    setGeographicScopeFilter('all');
+    syncGeographicScope(defaultGeographicScope, 'default');
   };
 
   const feedSections = useMemo(() => {
     const sections: Array<{ key: string; title: string; body: string; jobs: Job[] }> = [];
-    if (!usePersonalSetup) {
-      if (prioritizedJobsInLane.length > 0) {
+    if (!usePersonalSetup || effectiveSearchMode !== 'discovery_default') {
+      if (feedJobs.length > 0) {
         sections.push({
-          key: 'manual-search',
+          key: feedFallbackActive ? 'manual-fallback' : 'manual-search',
           title: copy.manualSection,
           body: copy.manualSectionBody,
-          jobs: prioritizedJobsInLane,
+          jobs: feedJobs,
         });
       }
       return sections;
     }
-    const bestFitJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'best_fit');
-    const adjacentJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent');
-    const broaderJobs = prioritizedJobsInLane.filter((job) => job.matchBucket === 'broader');
+    const bestFitJobs = feedJobs.filter((job) => job.matchBucket === 'best_fit');
+    const adjacentJobs = feedJobs.filter((job) => job.matchBucket === 'adjacent');
+    const broaderJobs = feedJobs.filter((job) => job.matchBucket === 'broader');
 
     if (bestFitJobs.length > 0) {
       sections.push({ key: 'setup', title: copy.setupSection, body: copy.setupSectionBody, jobs: bestFitJobs });
@@ -1991,8 +2060,8 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     if (broaderJobs.length > 0) {
       sections.push({ key: 'broader', title: copy.moreSection, body: copy.moreSectionBody, jobs: broaderJobs });
     }
-    if (sections.length === 0 && prioritizedJobsInLane.length > 0) {
-      sections.push({ key: 'fallback', title: copy.setupSection, body: copy.setupSectionBody, jobs: prioritizedJobsInLane });
+    if (sections.length === 0 && feedJobs.length > 0) {
+      sections.push({ key: 'fallback', title: copy.setupSection, body: copy.setupSectionBody, jobs: feedJobs });
     }
 
     return sections;
@@ -2005,7 +2074,9 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     copy.remoteSectionBody,
     copy.setupSection,
     copy.setupSectionBody,
-    prioritizedJobsInLane,
+    effectiveSearchMode,
+    feedFallbackActive,
+    feedJobs,
     usePersonalSetup
   ]);
 
@@ -2019,7 +2090,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     (lane === 'challenges' && usePersonalSetup && hasNativeChallenges)
   );
   const displayedResultsCount = hasClientSideResultRefinement
-    ? prioritizedJobsInLane.length
+    ? feedJobs.length
     : backendResultsCount;
   const resultsMetricHelper = hasClientSideResultRefinement
     ? getLocaleLabel({
@@ -3042,7 +3113,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
               </div>
               {usePersonalSetup ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricTile label={copy.matchesNow} value={prioritizedJobsInLane.length} tone="accent" />
+                <MetricTile label={copy.matchesNow} value={feedJobs.length} tone="accent" />
                   <MetricTile
                     label={copy.remoteSection}
                     value={prioritizedJobsInLane.filter((job) => job.matchBucket === 'adjacent').length}
@@ -3306,7 +3377,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
             ) : null}
           </SurfaceCard>
 
-          {loading && prioritizedJobsInLane.length === 0 ? (
+          {loading && feedJobs.length === 0 ? (
             <SurfaceCard className="space-y-4">
               <div className="space-y-2">
                 <div className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{copy.loadingTitle}</div>
@@ -3332,7 +3403,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                 ))}
               </div>
             </SurfaceCard>
-          ) : prioritizedJobsInLane.length === 0 ? (
+          ) : feedJobs.length === 0 ? (
             <EmptyState title={copy.emptyTitle} body={copy.emptyBody} />
           ) : (
             <div className="space-y-4">

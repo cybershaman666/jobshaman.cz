@@ -224,6 +224,11 @@ const personalityPulseItems: PersonalityPulseItem[] = [
   { id: 'jp_2', axis: 'JP', prompt: 'Tempo realizace volím…', leftLabel: 'Postupně a strukturovaně', rightLabel: 'Adaptivně podle situace', leftTrait: 'J', rightTrait: 'P' },
 ];
 
+type PracticalOrderId = 'stabilize' | 'align' | 'iterate';
+type StrategyOptionId = 'calm' | 'plan' | 'people' | 'validate';
+type SignalOptionId = 'priorities' | 'communication' | 'response' | 'quality' | 'trust';
+type SequenceOptionId = 'clarify' | 'stakeholders' | 'verify' | 'plan';
+
 const AssessmentJourneyFlow: React.FC<Props> = ({
   assessment,
   invitationId,
@@ -320,23 +325,23 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
   const [phaseTwoStep, setPhaseTwoStep] = useState<'question' | 'task'>('question');
   const [streakCount, setStreakCount] = useState(0);
   const [microReward, setMicroReward] = useState<string>('');
-  const [practicalOrder, setPracticalOrder] = useState<string[]>([
-    'Stabilizovat situaci',
-    'Zarovnat stakeholdery',
-    'Definovat další iteraci',
+  const [practicalOrder, setPracticalOrder] = useState<PracticalOrderId[]>([
+    'stabilize',
+    'align',
+    'iterate',
   ]);
   const [placementZone, setPlacementZone] = useState<'focus' | 'collab' | 'speed' | 'quality'>('focus');
   const [qualityCheckpoints, setQualityCheckpoints] = useState<ResponseQualityCheckpoint[]>([]);
-  const [strategyChoice, setStrategyChoice] = useState<string>('');
-  const [signalChoices, setSignalChoices] = useState<string[]>([]);
+  const [strategyChoice, setStrategyChoice] = useState<StrategyOptionId | ''>('');
+  const [signalChoices, setSignalChoices] = useState<SignalOptionId[]>([]);
   const [taskNote, setTaskNote] = useState<string>('');
   const [resourceSplit, setResourceSplit] = useState<{ stability: number; speed: number; quality: number }>({
     stability: 4,
     speed: 3,
     quality: 3,
   });
-  const [firstMove, setFirstMove] = useState<string>('');
-  const [secondMove, setSecondMove] = useState<string>('');
+  const [firstMove, setFirstMove] = useState<SequenceOptionId | ''>('');
+  const [secondMove, setSecondMove] = useState<SequenceOptionId | ''>('');
   const [personalityPulseAnswers, setPersonalityPulseAnswers] = useState<Record<string, PersonalityPulseChoice>>({});
 
   const questions = assessment.questions;
@@ -513,6 +518,35 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
           : taskVariant === 3
             ? resourceSplit.stability + resourceSplit.speed + resourceSplit.quality === 10
             : Boolean(firstMove && secondMove && firstMove !== secondMove);
+  const practicalOrderLabels = useMemo<Record<PracticalOrderId, string>>(() => ({
+    stabilize: t('assessment_journey.order_item_stabilize', { defaultValue: 'Stabilizovat situaci' }),
+    align: t('assessment_journey.order_item_align', { defaultValue: 'Zarovnat stakeholdery' }),
+    iterate: t('assessment_journey.order_item_iterate', { defaultValue: 'Definovat další iteraci' }),
+  }), [t]);
+  const strategyOptions = useMemo<Array<{ id: StrategyOptionId; label: string }>>(() => ([
+    { id: 'calm', label: t('assessment_journey.strategy_option_calm', { defaultValue: 'Nejdřív uklidnit situaci' }) },
+    { id: 'plan', label: t('assessment_journey.strategy_option_plan', { defaultValue: 'Postavit jasný plán' }) },
+    { id: 'people', label: t('assessment_journey.strategy_option_people', { defaultValue: 'Zapojit klíčové lidi' }) },
+    { id: 'validate', label: t('assessment_journey.strategy_option_validate', { defaultValue: 'Rychle ověřit první krok' }) },
+  ]), [t]);
+  const signalOptions = useMemo<Array<{ id: SignalOptionId; label: string }>>(() => ([
+    { id: 'priorities', label: t('assessment_journey.signal_option_priorities', { defaultValue: 'Jasné priority' }) },
+    { id: 'communication', label: t('assessment_journey.signal_option_communication', { defaultValue: 'Klidná komunikace' }) },
+    { id: 'response', label: t('assessment_journey.signal_option_response', { defaultValue: 'Rychlá reakce' }) },
+    { id: 'quality', label: t('assessment_journey.signal_option_quality', { defaultValue: 'Kvalita výstupu' }) },
+    { id: 'trust', label: t('assessment_journey.signal_option_trust', { defaultValue: 'Důvěra v týmu' }) },
+  ]), [t]);
+  const resourceLabels = useMemo<Record<'stability' | 'speed' | 'quality', string>>(() => ({
+    stability: t('assessment_journey.resource_label_stability', { defaultValue: 'Stabilita' }),
+    speed: t('assessment_journey.resource_label_speed', { defaultValue: 'Rychlost' }),
+    quality: t('assessment_journey.resource_label_quality', { defaultValue: 'Kvalita' }),
+  }), [t]);
+  const sequenceOptions = useMemo<Array<{ id: SequenceOptionId; label: string }>>(() => ([
+    { id: 'clarify', label: t('assessment_journey.sequence_option_clarify', { defaultValue: 'Vyjasnit očekávání' }) },
+    { id: 'stakeholders', label: t('assessment_journey.sequence_option_stakeholders', { defaultValue: 'Zapojit stakeholdery' }) },
+    { id: 'verify', label: t('assessment_journey.sequence_option_verify', { defaultValue: 'Rychle ověřit hypotézu' }) },
+    { id: 'plan', label: t('assessment_journey.sequence_option_plan', { defaultValue: 'Sepsat krátký plán' }) },
+  ]), [t]);
   const energySnapshotLabel =
     energyBalance.monthly_energy_hours_left >= 90
       ? t('assessment_journey.energy_snapshot_high', { defaultValue: 'Vaše energie působí dlouhodobě stabilně.' })
@@ -766,15 +800,15 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     if (taskVariant === 4 && (!firstMove || !secondMove || firstMove === secondMove)) return;
     let nextZone: 'focus' | 'collab' | 'speed' | 'quality' = placementZone;
     if (taskVariant === 1) {
-      if (strategyChoice.includes('lidi')) nextZone = 'collab';
-      else if (strategyChoice.includes('Rychle')) nextZone = 'speed';
-      else if (strategyChoice.includes('plán')) nextZone = 'quality';
+      if (strategyChoice === 'people') nextZone = 'collab';
+      else if (strategyChoice === 'validate') nextZone = 'speed';
+      else if (strategyChoice === 'plan') nextZone = 'quality';
       else nextZone = 'focus';
     }
     if (taskVariant === 2) {
-      if (signalChoices.some((x) => x.includes('komunikace') || x.includes('Důvěra'))) nextZone = 'collab';
-      else if (signalChoices.some((x) => x.includes('Rychlá'))) nextZone = 'speed';
-      else if (signalChoices.some((x) => x.includes('Kvalita'))) nextZone = 'quality';
+      if (signalChoices.some((x) => x === 'communication' || x === 'trust')) nextZone = 'collab';
+      else if (signalChoices.some((x) => x === 'response')) nextZone = 'speed';
+      else if (signalChoices.some((x) => x === 'quality')) nextZone = 'quality';
       else nextZone = 'focus';
     }
     if (taskVariant === 3) {
@@ -783,8 +817,8 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
       else nextZone = 'focus';
     }
     if (taskVariant === 4) {
-      if (firstMove.includes('Zapojit') || secondMove.includes('Zapojit')) nextZone = 'collab';
-      else if (firstMove.includes('ověřit') || secondMove.includes('ověřit')) nextZone = 'speed';
+      if (firstMove === 'stakeholders' || secondMove === 'stakeholders') nextZone = 'collab';
+      else if (firstMove === 'verify' || secondMove === 'verify') nextZone = 'speed';
       else nextZone = 'focus';
     }
     await completeCurrentStep(nextZone);
@@ -1219,7 +1253,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               <div className="mt-4 space-y-2">
                 {practicalOrder.map((item, itemIndex) => (
                   <div key={item} className="flex items-center justify-between rounded-lg border border-white/20 bg-black/20 px-2 py-1.5 text-sm text-white">
-                    <span>{item}</span>
+                    <span>{practicalOrderLabels[item]}</span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => movePracticalItem(itemIndex, -1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">↑</button>
                       <button onClick={() => movePracticalItem(itemIndex, 1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">↓</button>
@@ -1230,32 +1264,32 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
             )}
             {taskVariant === 1 && (
               <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                {['Nejdřív uklidnit situaci', 'Postavit jasný plán', 'Zapojit klíčové lidi', 'Rychle ověřit první krok'].map((opt) => (
+                {strategyOptions.map((opt) => (
                   <button
-                    key={opt}
-                    onClick={() => setStrategyChoice(opt)}
+                    key={opt.id}
+                    onClick={() => setStrategyChoice(opt.id)}
                     className={`rounded-lg border px-3 py-2 text-left ${
-                      strategyChoice === opt ? 'border-cyan-300/60 bg-cyan-500/20 text-white' : 'border-white/20 bg-black/20 text-cyan-50/90'
+                      strategyChoice === opt.id ? 'border-cyan-300/60 bg-cyan-500/20 text-white' : 'border-white/20 bg-black/20 text-cyan-50/90'
                     }`}
                   >
-                    {opt}
+                    {opt.label}
                   </button>
                 ))}
               </div>
             )}
             {taskVariant === 2 && (
               <div className="mt-2 flex flex-wrap gap-2 text-sm">
-                {['Jasné priority', 'Klidná komunikace', 'Rychlá reakce', 'Kvalita výstupu', 'Důvěra v týmu'].map((opt) => {
-                  const active = signalChoices.includes(opt);
+                {signalOptions.map((opt) => {
+                  const active = signalChoices.includes(opt.id);
                   return (
                     <button
-                      key={opt}
-                      onClick={() => setSignalChoices((prev) => active ? prev.filter((x) => x !== opt) : [...prev, opt].slice(-2))}
+                      key={opt.id}
+                      onClick={() => setSignalChoices((prev) => active ? prev.filter((x) => x !== opt.id) : [...prev, opt.id].slice(-2))}
                       className={`rounded-full border px-3 py-1.5 ${
                         active ? 'border-cyan-300/60 bg-cyan-500/20 text-white' : 'border-white/20 bg-black/20 text-cyan-50/90'
                       }`}
                     >
-                      {opt}
+                      {opt.label}
                     </button>
                   );
                 })}
@@ -1263,16 +1297,12 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
             )}
             {taskVariant === 3 && (
               <div className="mt-3 space-y-2">
-                {[
-                  ['stability', 'Stabilita'],
-                  ['speed', 'Rychlost'],
-                  ['quality', 'Kvalita'],
-                ].map(([key, label]) => {
+                {(['stability', 'speed', 'quality'] as const).map((key) => {
                   const value = resourceSplit[key as 'stability' | 'speed' | 'quality'];
                   return (
                     <div key={key} className="rounded-lg border border-white/20 bg-black/20 px-3 py-2">
                       <div className="flex items-center justify-between text-sm text-white">
-                        <span>{label}</span>
+                        <span>{resourceLabels[key]}</span>
                         <div className="flex items-center gap-2">
                           <button onClick={() => adjustResource(key as 'stability' | 'speed' | 'quality', -1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">-</button>
                           <span className="w-6 text-center font-semibold">{value}</span>
@@ -1286,26 +1316,26 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
             )}
             {taskVariant === 4 && (
               <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                {['Vyjasnit očekávání', 'Zapojit stakeholdery', 'Rychle ověřit hypotézu', 'Sepsat krátký plán'].map((opt) => (
+                {sequenceOptions.map((opt) => (
                   <button
-                    key={opt}
+                    key={opt.id}
                     onClick={() => {
-                      if (!firstMove || firstMove === opt) {
-                        setFirstMove(opt);
-                        if (secondMove === opt) setSecondMove('');
+                      if (!firstMove || firstMove === opt.id) {
+                        setFirstMove(opt.id);
+                        if (secondMove === opt.id) setSecondMove('');
                         return;
                       }
-                      setSecondMove(opt);
+                      setSecondMove(opt.id);
                     }}
                     className={`rounded-lg border px-3 py-2 text-left ${
-                      firstMove === opt || secondMove === opt
+                      firstMove === opt.id || secondMove === opt.id
                         ? 'border-cyan-300/60 bg-cyan-500/20 text-white'
                         : 'border-white/20 bg-black/20 text-cyan-50/90'
                     }`}
                   >
-                    <div className="font-medium">{opt}</div>
+                    <div className="font-medium">{opt.label}</div>
                     <div className="text-xs text-cyan-100/80">
-                      {firstMove === opt ? t('assessment_journey.first_move', { defaultValue: '1. krok' }) : secondMove === opt ? t('assessment_journey.second_move', { defaultValue: '2. krok' }) : '\u00A0'}
+                      {firstMove === opt.id ? t('assessment_journey.first_move', { defaultValue: '1. krok' }) : secondMove === opt.id ? t('assessment_journey.second_move', { defaultValue: '2. krok' }) : '\u00A0'}
                     </div>
                   </button>
                 ))}
@@ -1642,7 +1672,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                       <div className="mt-4 space-y-2">
                         {practicalOrder.map((item, itemIndex) => (
                           <div key={item} className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-sm">
-                            <span>{item}</span>
+                            <span>{practicalOrderLabels[item]}</span>
                             <div className="flex items-center gap-1">
                               <button onClick={() => movePracticalItem(itemIndex, -1)} className="w-7 h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100">↑</button>
                               <button onClick={() => movePracticalItem(itemIndex, 1)} className="w-7 h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100">↓</button>
@@ -1656,13 +1686,13 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                     <>
                       <div className="mt-4 text-xs text-slate-500 dark:text-slate-300">{t('assessment_journey.task_variant_strategy', { defaultValue: 'Vyberte přístup, který je vám nejbližší:' })}</div>
                       <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {['Nejdřív uklidnit situaci', 'Postavit jasný plán', 'Zapojit klíčové lidi', 'Rychle ověřit první krok'].map((opt) => (
+                        {strategyOptions.map((opt) => (
                           <button
-                            key={opt}
-                            onClick={() => setStrategyChoice(opt)}
-                            className={`rounded-lg border px-3 py-2 text-left ${strategyChoice === opt ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100'}`}
+                            key={opt.id}
+                            onClick={() => setStrategyChoice(opt.id)}
+                            className={`rounded-lg border px-3 py-2 text-left ${strategyChoice === opt.id ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100'}`}
                           >
-                            {opt}
+                            {opt.label}
                           </button>
                         ))}
                       </div>
@@ -1672,15 +1702,15 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                     <>
                       <div className="mt-4 text-xs text-slate-500 dark:text-slate-300">{t('assessment_journey.task_variant_signals', { defaultValue: 'Které 1-2 signály jsou teď nejdůležitější?' })}</div>
                       <div className="mt-2 flex flex-wrap gap-2 text-sm">
-                        {['Jasné priority', 'Klidná komunikace', 'Rychlá reakce', 'Kvalita výstupu', 'Důvěra v týmu'].map((opt) => {
-                          const active = signalChoices.includes(opt);
+                        {signalOptions.map((opt) => {
+                          const active = signalChoices.includes(opt.id);
                           return (
                             <button
-                              key={opt}
-                              onClick={() => setSignalChoices((prev) => active ? prev.filter((x) => x !== opt) : [...prev, opt].slice(-2))}
+                              key={opt.id}
+                              onClick={() => setSignalChoices((prev) => active ? prev.filter((x) => x !== opt.id) : [...prev, opt.id].slice(-2))}
                               className={`rounded-full border px-3 py-1.5 ${active ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100'}`}
                             >
-                              {opt}
+                              {opt.label}
                             </button>
                           );
                         })}
@@ -1696,16 +1726,12 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                         </span>
                       </div>
                       <div className="mt-2 space-y-2">
-                        {[
-                          ['stability', 'Stabilita'],
-                          ['speed', 'Rychlost'],
-                          ['quality', 'Kvalita'],
-                        ].map(([key, label]) => {
+                        {(['stability', 'speed', 'quality'] as const).map((key) => {
                           const value = resourceSplit[key as 'stability' | 'speed' | 'quality'];
                           return (
                             <div key={key} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2">
                               <div className="flex items-center justify-between text-sm">
-                                <span>{label}</span>
+                                <span>{resourceLabels[key]}</span>
                                 <div className="flex items-center gap-2">
                                   <button onClick={() => adjustResource(key as 'stability' | 'speed' | 'quality', -1)} className="w-7 h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">-</button>
                                   <span className="w-6 text-center font-semibold">{value}</span>
@@ -1725,28 +1751,28 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                     <>
                       <div className="mt-4 text-xs text-slate-500 dark:text-slate-300">{t('assessment_journey.task_variant_sequence', { defaultValue: 'Vyberte první a druhý krok:' })}</div>
                       <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {['Vyjasnit očekávání', 'Zapojit stakeholdery', 'Rychle ověřit hypotézu', 'Sepsat krátký plán'].map((opt) => (
+                        {sequenceOptions.map((opt) => (
                           <button
-                            key={opt}
+                            key={opt.id}
                             onClick={() => {
-                              if (!firstMove || firstMove === opt) {
-                                setFirstMove(opt);
-                                if (secondMove === opt) setSecondMove('');
+                              if (!firstMove || firstMove === opt.id) {
+                                setFirstMove(opt.id);
+                                if (secondMove === opt.id) setSecondMove('');
                                 return;
                               }
-                              setSecondMove(opt);
+                              setSecondMove(opt.id);
                             }}
                             className={`rounded-lg border px-3 py-2 text-left ${
-                              firstMove === opt
+                              firstMove === opt.id
                                 ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
-                                : secondMove === opt
+                                : secondMove === opt.id
                                   ? 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800'
                                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
                             }`}
                           >
-                            <div className="font-medium">{opt}</div>
+                            <div className="font-medium">{opt.label}</div>
                             <div className="text-xs text-slate-500 dark:text-slate-300">
-                              {firstMove === opt ? t('assessment_journey.first_move', { defaultValue: '1. krok' }) : secondMove === opt ? t('assessment_journey.second_move', { defaultValue: '2. krok' }) : '\u00A0'}
+                              {firstMove === opt.id ? t('assessment_journey.first_move', { defaultValue: '1. krok' }) : secondMove === opt.id ? t('assessment_journey.second_move', { defaultValue: '2. krok' }) : '\u00A0'}
                             </div>
                           </button>
                         ))}

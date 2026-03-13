@@ -34,6 +34,10 @@ export type CandidateDomainKey =
 export type CandidateSeniority = 'entry' | 'junior' | 'medior' | 'senior' | 'lead';
 export type CandidateInferenceSource = 'manual' | 'profile' | 'cv' | 'history' | 'skills' | 'mixed' | 'none';
 export type CandidateMatchBucket = 'best_fit' | 'adjacent' | 'broader';
+export type SearchMode = 'manual_query' | 'manual_filters' | 'discovery_default';
+export type SearchResultSource = 'native' | 'cached_external' | 'live_external';
+export type JobWorkArrangementFilter = 'all' | 'remote' | 'hybrid' | 'onsite';
+export type JobGeographicScope = 'domestic' | 'border' | 'abroad' | 'all';
 
 export interface TaxProfile {
   countryCode: SupportedCountryCode;
@@ -128,6 +132,8 @@ export interface JobSearchFilters {
   globalSearch?: boolean;
   abroadOnly?: boolean;
   remoteOnly?: boolean;
+  filterWorkArrangement?: JobWorkArrangementFilter;
+  geographicScope?: JobGeographicScope;
   intentPrimaryDomain?: CandidateDomainKey | null;
   intentTargetRole?: string;
   intentSeniority?: CandidateSeniority | null;
@@ -166,6 +172,11 @@ export interface SearchDiagnosticsMeta {
   cache_hit?: boolean;
   degraded_reasons?: string[];
   empty_result_cause?: string | null;
+  search_mode?: SearchMode;
+  base_result_count?: number;
+  post_filter_count?: number;
+  source_mix?: Partial<Record<SearchResultSource, number>>;
+  reordered_by_profile?: boolean;
 }
 
 export interface NoiseMetrics {
@@ -549,6 +560,14 @@ export interface Job {
   matchedDomains?: CandidateDomainKey[];
   inferredDomain?: CandidateDomainKey | null;
   inferredSeniority?: CandidateSeniority | null;
+  searchDiagnostics?: {
+    source: SearchResultSource;
+    titleMatchScore?: number;
+    backendScore?: number;
+    profileBoost?: number;
+    external?: boolean;
+    filteredOutBy?: string[];
+  };
 }
 
 export interface JobRecommendationBreakdown {

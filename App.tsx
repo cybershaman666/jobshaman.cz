@@ -57,6 +57,7 @@ type PendingApplyFollowup = {
 const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
+let initialSessionCheckPromise: Promise<void> | null = null;
 
 const normalizeSavedJobId = (jobId: string): string => {
     const raw = String(jobId || '').trim();
@@ -536,17 +537,21 @@ export default function App() {
         toggleContractTypeFilter,
         globalSearch,
         abroadOnly,
+        countryCodes,
+        setCountryCodes,
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
         currentPage,
         pageSize,
         applyInteractionState,
-        applyDiscoveryDefaults
+        applyDiscoveryDefaults,
+        searchMode,
     } = usePaginatedJobs({
         userProfile: effectiveUserProfile,
         enabled: !isAdminRoute,
-        microJobsOnly: discoveryMode === 'micro_jobs'
+        microJobsOnly: discoveryMode === 'micro_jobs',
+        remoteOnly: challengeRemoteOnly,
     });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
     useEffect(() => {
@@ -885,17 +890,29 @@ export default function App() {
         if (supabase) {
             // Initial session check
             const initSession = async () => {
+                if (!initialSessionCheckPromise) {
+                    initialSessionCheckPromise = (async () => {
+                        try {
+                            console.log('🏁 [App] Running initial session check...');
+                            const { isValid, session } = await verifyAuthSession('AppInit');
+                            if (isValid && session) {
+                                console.log('✅ [App] Initial session verified for:', session.user.id);
+                                await handleSessionRestoration(session.user.id);
+                            } else {
+                                console.log('ℹ️ [App] No initial valid session found.');
+                            }
+                        } finally {
+                            // keep the resolved promise so StrictMode remounts do not rerun the same init check
+                        }
+                    })();
+                }
                 try {
-                    console.log('🏁 [App] Running initial session check...');
-                    const { isValid, session } = await verifyAuthSession('AppInit');
-                    if (isValid && session) {
-                        console.log('✅ [App] Initial session verified for:', session.user.id);
-                        await handleSessionRestoration(session.user.id);
-                    } else {
-                        console.log('ℹ️ [App] No initial valid session found.');
-                    }
+                    await initialSessionCheckPromise;
                 } finally {
                     setSessionCheckComplete(true);
+                    if (!userProfileRef.current.isLoggedIn) {
+                        initialSessionCheckPromise = null;
+                    }
                 }
             };
             initSession();
@@ -1879,6 +1896,7 @@ export default function App() {
                             remoteOnly={challengeRemoteOnly}
                             globalSearch={globalSearch}
                             abroadOnly={abroadOnly}
+                            countryCodes={countryCodes}
                             enableCommuteFilter={enableCommuteFilter}
                             filterMaxDistance={filterMaxDistance}
                             filterContractType={filterContractType}
@@ -1925,6 +1943,7 @@ export default function App() {
                             onSetRemoteOnly={setChallengeRemoteOnly}
                             onSetGlobalSearch={setGlobalSearch}
                             onSetAbroadOnly={setAbroadOnly}
+                            onSetCountryCodes={setCountryCodes}
                             onSetEnableCommuteFilter={setEnableCommuteFilter}
                             onSetFilterMaxDistance={setFilterMaxDistance}
                             onSetFilterContractType={setFilterContractType}
@@ -1934,6 +1953,7 @@ export default function App() {
                             onSetFilterLanguageCodes={setFilterLanguageCodes}
                             onSetEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
                             onApplyDiscoveryDefaults={applyDiscoveryDefaults}
+                            searchMode={searchMode}
                             getLocalePrefix={getLocalePrefix}
                             onboardingDismissedRef={onboardingDismissedRef}
                         />

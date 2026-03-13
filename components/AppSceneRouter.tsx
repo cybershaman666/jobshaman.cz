@@ -1,7 +1,7 @@
 import { lazy, Suspense, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
-import { CompanyProfile, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, UserProfile, ViewState } from '../types';
+import { CompanyProfile, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
 import PodminkyUziti from '../pages/PodminkyUziti';
 import OchranaSoukromi from '../pages/OchranaSoukromi';
 import EnterpriseSignup from './EnterpriseSignup';
@@ -56,6 +56,7 @@ type AppSceneRouterProps = {
     remoteOnly: boolean;
     globalSearch: boolean;
     abroadOnly: boolean;
+    countryCodes: string[];
     enableCommuteFilter: boolean;
     filterMaxDistance: number;
     filterContractType: string[];
@@ -102,6 +103,7 @@ type AppSceneRouterProps = {
     onSetRemoteOnly: (value: boolean) => void;
     onSetGlobalSearch: (value: boolean) => void;
     onSetAbroadOnly: (value: boolean) => void;
+    onSetCountryCodes: (value: string[] | ((prev: string[]) => string[])) => void;
     onSetEnableCommuteFilter: (value: boolean) => void;
     onSetFilterMaxDistance: (value: number, source?: DiscoveryFilterSource) => void;
     onSetFilterContractType: (types: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
@@ -111,6 +113,7 @@ type AppSceneRouterProps = {
     onSetFilterLanguageCodes: (values: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
     onSetEnableAutoLanguageGuard: (value: boolean) => void;
     onApplyDiscoveryDefaults: (filters: JobSearchFilters) => void;
+    searchMode: SearchMode;
     getLocalePrefix: () => string;
     onboardingDismissedRef: MutableRefObject<boolean>;
 };
@@ -145,6 +148,7 @@ export default function AppSceneRouter({
     remoteOnly,
     globalSearch,
     abroadOnly,
+    countryCodes,
     enableCommuteFilter,
     filterMaxDistance,
     filterContractType,
@@ -191,6 +195,7 @@ export default function AppSceneRouter({
     onSetRemoteOnly,
     onSetGlobalSearch,
     onSetAbroadOnly,
+    onSetCountryCodes,
     onSetEnableCommuteFilter,
     onSetFilterMaxDistance,
     onSetFilterContractType,
@@ -200,6 +205,7 @@ export default function AppSceneRouter({
     onSetFilterLanguageCodes,
     onSetEnableAutoLanguageGuard,
     onApplyDiscoveryDefaults,
+    searchMode,
     getLocalePrefix,
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
@@ -519,6 +525,8 @@ export default function AppSceneRouter({
                                 setGlobalSearch={onSetGlobalSearch}
                                 abroadOnly={abroadOnly}
                                 setAbroadOnly={onSetAbroadOnly}
+                                countryCodes={countryCodes}
+                                setCountryCodes={onSetCountryCodes}
                                 enableCommuteFilter={enableCommuteFilter}
                                 setEnableCommuteFilter={onSetEnableCommuteFilter}
                                 filterMaxDistance={filterMaxDistance}
@@ -536,6 +544,7 @@ export default function AppSceneRouter({
                                 setEnableAutoLanguageGuard={onSetEnableAutoLanguageGuard}
                                 implicitLanguageCodesApplied={implicitLanguageCodesApplied}
                                 applyDiscoveryDefaults={onApplyDiscoveryDefaults}
+                                searchMode={searchMode}
                                 handleJobSelect={onHandleJobSelect}
                                 handleToggleSave={onToggleSave}
                                 onOpenProfile={() => onSetViewState(ViewState.PROFILE)}

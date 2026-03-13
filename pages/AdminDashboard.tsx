@@ -1034,11 +1034,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div>
               <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                 <Layers size={14} />
-                {t('admin_dashboard.cockpit')}
+                {t('admin_dashboard.header.control')}
               </div>
-              <h1 className="text-2xl font-black text-[var(--text-strong)] sm:text-3xl">{t('admin_dashboard.title')}</h1>
+              <h1 className="text-2xl font-black text-[var(--text-strong)] sm:text-3xl">{t('admin_dashboard.header.title')}</h1>
               <p className="mt-1 text-sm text-[var(--text-muted)]">
-                {t('admin_dashboard.description')}
+                {t('admin_dashboard.header.subtitle')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1046,13 +1046,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 onClick={loadOverview}
                 className="app-button-secondary !rounded-xl !px-4 !py-2 text-sm"
               >
-                <RefreshCcw size={15} /> {t('admin_dashboard.refresh')}
+                <RefreshCcw size={15} /> {t('admin_dashboard.actions.refresh')}
               </button>
               <button
                 onClick={exportInvestorPack}
                 className="app-button-primary !rounded-xl !px-4 !py-2 text-sm"
               >
-                <Download size={15} /> {t('admin_dashboard.export_pack')}
+                <Download size={15} /> {t('admin_dashboard.actions.export_csv')}
               </button>
               <button
                 onClick={async () => {
@@ -1064,7 +1064,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 }}
                 className="app-button-secondary !rounded-xl !px-4 !py-2 text-sm"
               >
-                <Activity size={15} /> {t('admin_dashboard.backend_ping')}
+                <Activity size={15} /> {t('admin_dashboard.actions.wake_backend')}
               </button>
             </div>
           </div>
@@ -1424,7 +1424,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     className="app-button-primary !rounded-[0.82rem] !px-3 !py-2 text-sm"
                   >
                     <RefreshCcw size={14} />
-                    {t('admin_dashboard.refresh')}
+                    {t('admin_dashboard.actions.refresh')}
                   </button>
                 </div>
 
@@ -1523,7 +1523,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         className="app-button-secondary !rounded-[0.85rem] !px-3 !py-2 text-sm hover:!text-[var(--accent)]"
                       >
                         <RefreshCcw size={14} />
-                        {t('admin_dashboard.refresh')}
+                        {t('admin_dashboard.actions.refresh')}
                       </button>
                     </div>
 
@@ -1803,7 +1803,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <textarea value={crmLeadEdit.notes} onChange={(e) => setCrmLeadEdit((prev) => ({ ...prev, notes: e.target.value }))} placeholder={t('admin_dashboard.crm.notes', { defaultValue: 'Poznámka k leadu' })} className={`${inputClass} mt-2 min-h-[120px] resize-y`} />
                         <div className="mt-3">
                           <button onClick={handleUpdateLead} disabled={crmLeadSaving || !crmLeadEdit.company_name.trim()} className="app-button-primary !rounded-[0.85rem] !px-4 !py-2 text-sm disabled:opacity-60">
-                            {crmLeadSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                            {crmLeadSaving ? t('app.saving') : t('admin_dashboard.common.save')}
                           </button>
                         </div>
                       </div>
@@ -1833,7 +1833,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <input
                           value={crmDraft.set_trial_days}
                           onChange={(e) => setCrmDraft((prev) => ({ ...prev, set_trial_days: e.target.value }))}
-                          placeholder={t('admin_dashboard.operations.trial_days')}
+                          placeholder={t('admin_dashboard.create_subscription.trial_days')}
                           className={inputClass}
                         />
                         <input
@@ -1849,7 +1849,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           disabled={crmSaving}
                           className="inline-flex items-center gap-2 rounded-[0.85rem] bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
                         >
-                          {crmSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                          {crmSaving ? t('app.saving') : t('admin_dashboard.common.save')}
                         </button>
                         <span className="text-xs text-slate-500 dark:text-slate-400">
                           {selectedCrmRecord.subscription?.current_period_end
@@ -1908,7 +1908,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                                 disabled={crmDigestSaving}
                                 className="app-button-primary !rounded-[0.85rem] !px-4 !py-2 text-sm disabled:opacity-60"
                               >
-                                {crmDigestSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                                {crmDigestSaving ? t('app.saving') : t('admin_dashboard.common.save')}
                               </button>
                             </div>
                           </>
@@ -2116,7 +2116,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   </select>
                   <button onClick={loadFounderBoard} className="app-button-secondary !rounded-[0.82rem] !px-3 !py-2 text-sm">
                     <RefreshCcw size={14} />
-                    {t('admin_dashboard.refresh')}
+                    {t('admin_dashboard.actions.refresh')}
                   </button>
                 </div>
 
