@@ -70,6 +70,41 @@ const _normalizeKeyArray = (value: unknown): string[] | null => {
     return value.map((v) => String(v)).filter(Boolean).sort();
 };
 
+const getCountryFallbackMatchers = (countryCode: string): { locationTerms: string[]; sourceTerms: string[] } => {
+    const normalized = String(countryCode || '').trim().toUpperCase();
+    if (normalized === 'AT') {
+        return {
+            locationTerms: ['Austria', 'Osterreich', 'Österreich', 'Wien', 'Vienna', 'Graz', 'Linz', 'Salzburg'],
+            sourceTerms: ['karriere.at', 'stepstone.at'],
+        };
+    }
+    if (normalized === 'DE') {
+        return {
+            locationTerms: ['Germany', 'Deutschland', 'Berlin', 'München', 'Munich', 'Hamburg', 'Passau'],
+            sourceTerms: ['stepstone.de', 'germantechjobs'],
+        };
+    }
+    if (normalized === 'CZ') {
+        return {
+            locationTerms: ['Czech', 'Česko', 'Praha', 'Brno', 'Ostrava', 'Šumperk', 'Sumperk'],
+            sourceTerms: ['jobs.cz', 'prace.cz'],
+        };
+    }
+    if (normalized === 'SK') {
+        return {
+            locationTerms: ['Slovakia', 'Slovensko', 'Bratislava', 'Košice', 'Kosice'],
+            sourceTerms: ['profesia.sk'],
+        };
+    }
+    if (normalized === 'PL') {
+        return {
+            locationTerms: ['Poland', 'Polska', 'Warszawa', 'Kraków', 'Krakow'],
+            sourceTerms: ['pracuj.pl'],
+        };
+    }
+    return { locationTerms: [], sourceTerms: [] };
+};
+
 const _hybridSearchRecentCacheKey = (bases: string[], v2Enabled: boolean, payload: Record<string, unknown>) => {
     const stable = {
         v2: v2Enabled ? 1 : 0,
@@ -875,6 +910,12 @@ const fetchJobsPaginatedFallback = async (
         const normalizedCountryCodes = Array.isArray(countryCode)
             ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
             : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
+        const primaryCountryCode = normalizedCountryCodes.length === 1 ? normalizedCountryCodes[0] : null;
+        const useBroadBrowseLegality =
+            Boolean(primaryCountryCode) &&
+            skipCount &&
+            !microJobsOnly &&
+            (!languageCodes || languageCodes.length === 0);
         const countryCodeVariants = Array.from(new Set(
             normalizedCountryCodes.flatMap((code) => {
                 const variants = [code, code.toLowerCase()];
@@ -885,12 +926,12 @@ const fetchJobsPaginatedFallback = async (
             })
         ));
         const shouldSkipCount =
-            skipCount ||
-            (!microJobsOnly &&
-                normalizedCountryCodes.length === 0 &&
-                (!languageCodes || languageCodes.length === 0));
+            (skipCount && normalizedCountryCodes.length === 0 && (!languageCodes || languageCodes.length === 0) && !microJobsOnly) ||
+            false;
         const buildBaseListQuery = (query: any) => {
-            let nextQuery = query.eq('legality_status', 'legal');
+            let nextQuery = useBroadBrowseLegality
+                ? query.in('legality_status', ['legal', 'review', 'pending'])
+                : query.eq('legality_status', 'legal');
 
             if (countryCodeVariants.length === 1) {
                 nextQuery = nextQuery.eq('country_code', countryCodeVariants[0]);
@@ -923,6 +964,11 @@ const fetchJobsPaginatedFallback = async (
 
         const from = page * pageSize;
         const to = from + pageSize - 1;
+        const countryScopedBrowseWindow = primaryCountryCode
+            ? Math.max((page + 1) * pageSize * 4, 200)
+            : pageSize;
+        const queryFrom = primaryCountryCode ? 0 : from;
+        const queryTo = primaryCountryCode ? countryScopedBrowseWindow - 1 : to;
 
         const listSelect = includeJhi
             ? '*'
@@ -933,7 +979,7 @@ const fetchJobsPaginatedFallback = async (
         );
 
         const { data, error } = await query
-            .range(from, to)
+            .range(queryFrom, queryTo)
             .order('scraped_at', { ascending: false });
 
         if (error) {
@@ -949,13 +995,66 @@ const fetchJobsPaginatedFallback = async (
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        if (!data || data.length === 0) {
+        let mergedData = Array.isArray(data) ? [...data] : [];
+        if (primaryCountryCode && mergedData.length < countryScopedBrowseWindow) {
+            const { locationTerms, sourceTerms } = getCountryFallbackMatchers(primaryCountryCode);
+            const topUpLimit = Math.max(countryScopedBrowseWindow - mergedData.length, pageSize);
+            const locationFilters = locationTerms.map((term) => `location.ilike.%${term}%`);
+            const sourceFilters = sourceTerms.flatMap((term) => [
+                `source.ilike.%${term}%`,
+                `url.ilike.%${term}%`,
+            ]);
+            const fallbackFilters = [...locationFilters, ...sourceFilters];
+
+            if (fallbackFilters.length > 0) {
+                const fallbackBatches: any[] = [];
+                for (const emptyCountryMode of ['null', 'empty'] as const) {
+                    let fallbackQuery = supabase
+                        .from('jobs')
+                        .select(listSelect)
+                        .eq('legality_status', 'legal')
+                        .order('scraped_at', { ascending: false })
+                        .limit(topUpLimit * 2)
+                        .or(fallbackFilters.join(','));
+
+                    fallbackQuery = emptyCountryMode === 'null'
+                        ? fallbackQuery.is('country_code', null)
+                        : fallbackQuery.eq('country_code', '');
+
+                    if (languageCodes && languageCodes.length > 0) {
+                        fallbackQuery = fallbackQuery.in('language_code', languageCodes);
+                    }
+                    if (microJobsOnly) {
+                        fallbackQuery = fallbackQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
+                    }
+
+                    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+                    if (!fallbackError && Array.isArray(fallbackData) && fallbackData.length > 0) {
+                        fallbackBatches.push(...fallbackData);
+                    }
+                }
+
+                if (fallbackBatches.length > 0) {
+                    const existingIds = new Set(mergedData.map((row: any) => String(row.id)));
+                    const dedupedFallback = fallbackBatches.filter((row: any) => !existingIds.has(String(row.id)));
+                    mergedData = [...mergedData, ...dedupedFallback];
+                }
+            }
+        }
+
+        if (!mergedData || mergedData.length === 0) {
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount}, country: ${normalizedCountryCodes.join(',') || 'all'})`);
+        mergedData.sort((left: any, right: any) => {
+            const leftTime = new Date(left?.scraped_at || 0).getTime();
+            const rightTime = new Date(right?.scraped_at || 0).getTime();
+            return rightTime - leftTime;
+        });
 
-        const processedJobs = data.map((job: any) => {
+        console.log(`📋 Fallback: Fetched ${mergedData.length} jobs (page ${page}, total: ${totalCount}, country: ${normalizedCountryCodes.join(',') || 'all'})`);
+
+        const processedJobs = mergedData.map((job: any) => {
             const transformed = transformJob(job, includeJhi);
             // Calculate distance if coordinates provided
             if (userLat && userLng && job.lat && job.lng) {
@@ -968,16 +1067,23 @@ const fetchJobsPaginatedFallback = async (
         });
 
         // Filter by quality standards and remove duplicates
-        const filteredJobs = filterJobsByQuality(processedJobs);
-        const hasMore = shouldSkipCount
-            ? filteredJobs.length === pageSize
-            : (page + 1) * pageSize < totalCount;
-        const resolvedTotalCount = shouldSkipCount
-            ? page * pageSize + filteredJobs.length + (hasMore ? pageSize : 0)
-            : totalCount;
+        const filteredPool = filterJobsByQuality(processedJobs);
+        const pagedJobs = primaryCountryCode
+            ? filteredPool.slice(from, to + 1)
+            : filteredPool;
+        const resolvedTotalCount = primaryCountryCode
+            ? Math.max(totalCount, filteredPool.length)
+            : (shouldSkipCount
+                ? page * pageSize + pagedJobs.length + (pagedJobs.length === pageSize ? pageSize : 0)
+                : totalCount);
+        const hasMore = primaryCountryCode
+            ? filteredPool.length > to + 1
+            : (shouldSkipCount
+                ? pagedJobs.length === pageSize
+                : (page + 1) * pageSize < totalCount);
 
         return {
-            jobs: filteredJobs,
+            jobs: pagedJobs,
             hasMore,
             totalCount: resolvedTotalCount
         };

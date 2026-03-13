@@ -517,6 +517,7 @@ export default function App() {
         filterDate,
         filterExperience,
         filterLanguageCodes,
+        hasExplicitLanguageFilter,
         enableAutoLanguageGuard,
         setEnableAutoLanguageGuard,
         implicitLanguageCodesApplied,
@@ -1903,6 +1904,7 @@ export default function App() {
                             filterDate={filterDate}
                             filterExperience={filterExperience}
                             filterLanguageCodes={filterLanguageCodes}
+                            hasExplicitLanguageFilter={hasExplicitLanguageFilter}
                             enableAutoLanguageGuard={enableAutoLanguageGuard}
                             implicitLanguageCodesApplied={implicitLanguageCodesApplied}
                             discoveryLane={discoveryLane}

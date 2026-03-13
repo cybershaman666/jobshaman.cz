@@ -63,6 +63,7 @@ type AppSceneRouterProps = {
     filterDate: string;
     filterExperience: string[];
     filterLanguageCodes: SearchLanguageCode[];
+    hasExplicitLanguageFilter: boolean;
     enableAutoLanguageGuard: boolean;
     implicitLanguageCodesApplied: string[];
     discoveryLane: 'challenges' | 'imports';
@@ -155,6 +156,7 @@ export default function AppSceneRouter({
     filterDate,
     filterExperience,
     filterLanguageCodes,
+    hasExplicitLanguageFilter,
     enableAutoLanguageGuard,
     implicitLanguageCodesApplied,
     discoveryLane,
@@ -539,6 +541,7 @@ export default function AppSceneRouter({
                                 filterExperience={filterExperience}
                                 setFilterExperience={onSetFilterExperience}
                                 filterLanguageCodes={filterLanguageCodes}
+                                hasExplicitLanguageFilter={hasExplicitLanguageFilter}
                                 setFilterLanguageCodes={onSetFilterLanguageCodes}
                                 enableAutoLanguageGuard={enableAutoLanguageGuard}
                                 setEnableAutoLanguageGuard={onSetEnableAutoLanguageGuard}

@@ -77,6 +77,7 @@ interface ChallengeMarketplaceProps {
   filterExperience: string[];
   setFilterExperience: (levels: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
   filterLanguageCodes: SearchLanguageCode[];
+  hasExplicitLanguageFilter: boolean;
   setFilterLanguageCodes: (codes: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
   enableAutoLanguageGuard: boolean;
   setEnableAutoLanguageGuard: (enabled: boolean) => void;
@@ -237,18 +238,21 @@ const getNormalizedWorkArrangement = (job: Job): WorkArrangementFilter => {
 
 const getMarketplaceCountryCode = (job: Job): SupportedCountryCode | null => {
   const explicit = normalizeSupportedCountryCode(job.country_code);
-  if (explicit) return explicit;
-
   const locationHaystack = `${job.location || ''} ${job.source || ''} ${job.url || ''}`.toLowerCase();
+  let inferred: SupportedCountryCode | null = null;
+
+  if (locationHaystack.trim()) {
+    if (locationHaystack.includes('österreich') || locationHaystack.includes('austria') || locationHaystack.includes('wien') || locationHaystack.includes('vienna') || locationHaystack.includes('linz') || locationHaystack.includes('graz') || locationHaystack.includes('salzburg')) inferred = 'AT';
+    else if (locationHaystack.includes('deutschland') || locationHaystack.includes('germany') || locationHaystack.includes('berlin') || locationHaystack.includes('münchen') || locationHaystack.includes('munich') || locationHaystack.includes('hamburg') || locationHaystack.includes('passau')) inferred = 'DE';
+    else if (locationHaystack.includes('česko') || locationHaystack.includes('czech') || locationHaystack.includes('praha') || locationHaystack.includes('brno') || locationHaystack.includes('šumperk') || locationHaystack.includes('sumperk')) inferred = 'CZ';
+    else if (locationHaystack.includes('slovensko') || locationHaystack.includes('slovakia') || locationHaystack.includes('bratislava') || locationHaystack.includes('košice') || locationHaystack.includes('kosice')) inferred = 'SK';
+    else if (locationHaystack.includes('polska') || locationHaystack.includes('poland') || locationHaystack.includes('warszawa') || locationHaystack.includes('kraków') || locationHaystack.includes('krakow')) inferred = 'PL';
+  }
+
+  if (explicit && inferred && inferred !== explicit) return inferred;
+  if (explicit) return explicit;
   if (!locationHaystack.trim()) return null;
-
-  if (locationHaystack.includes('österreich') || locationHaystack.includes('austria') || locationHaystack.includes('wien') || locationHaystack.includes('vienna')) return 'AT';
-  if (locationHaystack.includes('deutschland') || locationHaystack.includes('germany') || locationHaystack.includes('berlin') || locationHaystack.includes('münchen') || locationHaystack.includes('hamburg')) return 'DE';
-  if (locationHaystack.includes('česko') || locationHaystack.includes('czech') || locationHaystack.includes('praha') || locationHaystack.includes('brno') || locationHaystack.includes('šumperk') || locationHaystack.includes('sumperk')) return 'CZ';
-  if (locationHaystack.includes('slovensko') || locationHaystack.includes('slovakia') || locationHaystack.includes('bratislava') || locationHaystack.includes('košice') || locationHaystack.includes('kosice')) return 'SK';
-  if (locationHaystack.includes('polska') || locationHaystack.includes('poland') || locationHaystack.includes('warszawa') || locationHaystack.includes('kraków') || locationHaystack.includes('krakow')) return 'PL';
-
-  return null;
+  return inferred;
 };
 
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
@@ -513,6 +517,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
   filterExperience,
   setFilterExperience,
   filterLanguageCodes,
+  hasExplicitLanguageFilter,
   setFilterLanguageCodes,
   enableAutoLanguageGuard,
   setEnableAutoLanguageGuard,
@@ -3044,7 +3049,7 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
                   ) : null)}
                   <div className="flex flex-wrap gap-2">
                     {REMOTE_LANGUAGE_OPTIONS.map((option) => {
-                      const active = filterLanguageCodes.includes(option.key);
+                      const active = hasExplicitLanguageFilter && filterLanguageCodes.includes(option.key);
                       return (
                         <FilterChip
                           key={option.key}
