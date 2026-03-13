@@ -914,7 +914,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     undefined,
                     undefined,
                     50,
-                    hasCountryFilter ? normalizedCountryCodes : undefined,
+                    undefined,
                     retrievalLanguageCodes,
                     false,
                     microJobsOnly,
