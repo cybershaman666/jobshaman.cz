@@ -211,7 +211,7 @@ export const runFilteredFetchPipeline = async ({
         jhiPreferences: userProfile.jhiPreferences,
         userTaxProfile: userProfile.taxProfile,
         externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
-        externalOverlayMode: 'async',
+        externalOverlayMode: page === 0 ? 'sync' : 'off',
         includeJhi: false,
         microJobsOnly,
         abortSignal,

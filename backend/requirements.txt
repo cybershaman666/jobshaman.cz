@@ -4,6 +4,7 @@ gunicorn
 resend
 supabase
 pymongo
+dnspython
 python-dotenv
 beautifulsoup4
 requests

@@ -490,25 +490,30 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // Async external overlay: never block the main feed. Fetch extras in the background
             // and merge them into the already-rendered list (page 0 only).
             if (!isLoadMore && page === 0) {
-                externalOverlayControllerRef.current?.abort();
-                runAsyncExternalOverlay({
-                    searchTerm,
-                    filterCity,
-                    externalSearchSeedTerm,
-                    effectiveCountryCodes,
-                    excludeCountryCodes,
-                    applyExternalRecoveryFilters,
-                    lastSignature: lastExternalOverlaySignatureRef.current,
-                    onSignatureChange: (signature) => {
-                        lastExternalOverlaySignatureRef.current = signature;
-                    },
-                    replaceController: (controller) => {
-                        externalOverlayControllerRef.current = controller;
-                    },
-                    setJobs: (updater) => {
-                        setJobs(updater);
-                    },
-                });
+                const hasExternalInPrimaryFeed = filteredResult.visibleJobs.some(
+                    (job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external)
+                );
+                if (!hasExternalInPrimaryFeed) {
+                    externalOverlayControllerRef.current?.abort();
+                    runAsyncExternalOverlay({
+                        searchTerm,
+                        filterCity,
+                        externalSearchSeedTerm,
+                        effectiveCountryCodes,
+                        excludeCountryCodes,
+                        applyExternalRecoveryFilters,
+                        lastSignature: lastExternalOverlaySignatureRef.current,
+                        onSignatureChange: (signature) => {
+                            lastExternalOverlaySignatureRef.current = signature;
+                        },
+                        replaceController: (controller) => {
+                            externalOverlayControllerRef.current = controller;
+                        },
+                        setJobs: (updater) => {
+                            setJobs(updater);
+                        },
+                    });
+                }
             }
 
             // Track analytics

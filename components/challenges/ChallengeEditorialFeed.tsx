@@ -773,6 +773,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     const pool = Array.isArray(jobs) ? jobs.slice() : [];
     const sorted = sortJobsForDiscovery(pool);
     const used = new Set<string>();
+    const isImportedListing = (job: Job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external);
 
     const take = (candidates: Job[], count: number) => {
       const out: Job[] = [];
@@ -798,7 +799,15 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
         const scoreB = Number(b.priorityScore || 0) + Number(b.jhi?.score || 0) + salaryAnchor(b) / 1000 - Number(b.distanceKm || 0) / 8;
         return scoreB - scoreA;
       });
-    const spotlight = take(spotlightCandidates, 3);
+    const spotlight: Job[] = [];
+    const hasImportedCandidates = spotlightCandidates.some((job) => isImportedListing(job));
+    spotlight.push(...take(spotlightCandidates.filter((job) => !isImportedListing(job)), hasImportedCandidates ? 2 : 3));
+    if (hasImportedCandidates) {
+      spotlight.push(...take(spotlightCandidates.filter((job) => isImportedListing(job)), 1));
+    }
+    if (spotlight.length < 3) {
+      spotlight.push(...take(spotlightCandidates, 3 - spotlight.length));
+    }
 
     const remoteCandidates = standardSorted
       .filter((job) => {
