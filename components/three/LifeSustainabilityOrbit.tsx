@@ -29,4 +29,3 @@ const LifeSustainabilityOrbit: React.FC<Props> = ({ output }) => {
 };
 
 export default LifeSustainabilityOrbit;
-

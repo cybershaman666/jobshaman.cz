@@ -46,7 +46,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
 
     return (
         <aside className={cn(
-            "fixed left-4 top-1/2 z-[90] hidden -translate-y-1/2 flex-col rounded-[1.6rem] border border-transparent bg-gradient-to-b from-cyan-600 to-cyan-700 p-2 shadow-xl shadow-cyan-900/20 backdrop-blur-xl lg:flex dark:from-cyan-700 dark:to-cyan-800",
+            "fixed left-4 top-1/2 z-[90] hidden -translate-y-1/2 flex-col rounded-[1.6rem] border border-[rgba(var(--accent-rgb),0.22)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.94),rgba(var(--accent-green-rgb),0.96))] p-2 shadow-xl shadow-[rgba(var(--accent-rgb),0.24)] backdrop-blur-xl dark:border-[rgba(var(--accent-rgb),0.14)] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(17,24,39,0.96))] dark:shadow-[0_18px_42px_rgba(2,6,23,0.42)] lg:flex",
             className
         )}>
             <nav className="flex flex-1 flex-col items-center justify-center gap-3 py-2">
@@ -85,10 +85,10 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                         className={cn(
                             "group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
                             (item.id === 'micro'
-                                    ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs')
+                                ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs')
                                     : viewState === item.id)
-                                ? "bg-white/25 text-white shadow-lg shadow-cyan-300/30"
-                                : "text-cyan-100 hover:bg-white/15 hover:text-white"
+                                ? "bg-white/22 text-white shadow-lg shadow-[rgba(var(--accent-rgb),0.22)]"
+                                : "text-white/80 hover:bg-white/15 hover:text-white"
                         )}
                         title={item.label}
                     >
@@ -98,7 +98,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                         )} />
 
                         {/* Tooltip-like label on hover */}
-                        <span className="absolute left-14 hidden rounded-lg bg-cyan-950 px-2 py-1 text-xs font-medium text-white group-hover:block">
+                        <span className="absolute left-14 hidden rounded-lg bg-[rgba(16,33,24,0.94)] px-2 py-1 text-xs font-medium text-white group-hover:block">
                             {item.label}
                         </span>
 
@@ -117,7 +117,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     type="button"
                 >
                     <SlidersHorizontal size={20} className="transition-transform group-hover:scale-110" />
-                    <span className="absolute left-14 hidden rounded-lg bg-cyan-950 px-2 py-1 text-xs font-medium text-white group-hover:block">
+                    <span className="absolute left-14 hidden rounded-lg bg-[rgba(16,33,24,0.94)] px-2 py-1 text-xs font-medium text-white group-hover:block">
                         Filters
                     </span>
                 </button>

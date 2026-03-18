@@ -39,4 +39,3 @@ const NebulaOfPotential: React.FC<Props> = ({ frame }) => {
 };
 
 export default NebulaOfPotential;
-

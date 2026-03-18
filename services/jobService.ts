@@ -1665,10 +1665,15 @@ export const fetchExternalOverlayJobs = async (options: {
         }
     };
 
+    const browseWithoutExplicitQuery = !safeSearchTerm && !filterCity;
+    const shouldWidenBrowseWindow =
+        browseWithoutExplicitQuery && (
+            (countryCodes && countryCodes.length > 0) ||
+            (excludeCountryCodes && excludeCountryCodes.length > 0)
+        );
     const cachedBudgetMs = mode === 'recovery'
         ? (safeSearchTerm ? 3200 : 1800)
-        : (safeSearchTerm ? 1200 : 650);
-    const browseWithoutExplicitQuery = !safeSearchTerm && !filterCity;
+        : (safeSearchTerm ? 1200 : (shouldWidenBrowseWindow ? 1200 : 650));
     const cached = await withTimeout(
         fetchCachedExternalFeedJobs({
             searchTerm: browseWithoutExplicitQuery ? undefined : (providerSearchTerm || safeSearchTerm || undefined),
@@ -1677,7 +1682,7 @@ export const fetchExternalOverlayJobs = async (options: {
             excludeCountryCodes,
             abortSignal,
             page: 0,
-            pageSize: mode === 'recovery' ? 30 : 24,
+            pageSize: mode === 'recovery' ? 30 : (shouldWidenBrowseWindow ? 80 : 24),
             includeJhi
         }),
         cachedBudgetMs,
@@ -2981,6 +2986,11 @@ export const fetchJobsWithFilters = async (
         });
     };
 
+    const isExternalImportedJobWithoutCoords = (job: Job): boolean => {
+        const searchSource = getJobSearchSource(job);
+        return isExternalSearchSource(searchSource) && typeof job.lat !== 'number' && typeof job.lng !== 'number';
+    };
+
     const applyStrictClientFilters = (jobs: Job[]): Job[] => {
         return jobs.filter((job) => {
             if (!matchesRequestedChallengeFormat(job)) {
@@ -3025,10 +3035,13 @@ export const fetchJobsWithFilters = async (
                 }
                 const distanceKm = resolveJobDistanceKm(job);
                 if (distanceKm === null || distanceKm > safeRadiusKm) {
-                    return false;
+                    if (!(distanceKm === null && isExternalImportedJobWithoutCoords(job))) {
+                        return false;
+                    }
+                } else {
+                    (job as any).distance_km = distanceKm;
+                    (job as any).distanceKm = distanceKm;
                 }
-                (job as any).distance_km = distanceKm;
-                (job as any).distanceKm = distanceKm;
             }
 
             if ((filterMinSalary || 0) > 0) {
@@ -3264,6 +3277,15 @@ export const fetchJobsWithFilters = async (
         externalOverlayMode === 'sync' &&
         page >= 0;
 
+    const shouldWidenExternalBrowseWindow =
+        page === 0 && (
+            safeRadiusKm !== null ||
+            !!normalizedFilterCity ||
+            normalizedCountryCodes.length > 0 ||
+            normalizedExcludedCountryCodes.length > 0 ||
+            (filterMinSalary || 0) > 0
+        );
+
     const getSourceMixCounts = (jobs: Job[]): Partial<Record<SearchResultSource, number>> => {
         return jobs.reduce<Partial<Record<SearchResultSource, number>>>((acc, job) => {
             const source = getJobSearchSource(job);
@@ -3279,7 +3301,10 @@ export const fetchJobsWithFilters = async (
             return result;
         }
 
-        const cachedBudgetMs = safeSearchTerm ? 1200 : 650;
+        const cachedBudgetMs = safeSearchTerm ? 1200 : (shouldWidenExternalBrowseWindow ? 1200 : 650);
+        const cachedExternalPageSize = shouldWidenExternalBrowseWindow
+            ? 80
+            : Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6)));
         const externalResult = await withTimeout(fetchCachedExternalFeedJobs({
             // Avoid triggering expensive keyword-based providers (Jooble) when the user didn't
             // explicitly type a query. We'll locally filter broad cache snapshots by seed term.
@@ -3289,7 +3314,7 @@ export const fetchJobsWithFilters = async (
             excludeCountryCodes,
             abortSignal,
             page,
-            pageSize: Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6))),
+            pageSize: cachedExternalPageSize,
             includeJhi
         }), cachedBudgetMs, {
             jobs: [],

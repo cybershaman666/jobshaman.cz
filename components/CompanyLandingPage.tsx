@@ -626,20 +626,39 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     onLogin?.();
   };
 
+  const landingSectionClass =
+    'rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none lg:p-8';
+  const landingHeroSectionClass =
+    'rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none lg:p-8';
+  const landingCardClass =
+    'rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-none';
+  const landingSoftCardClass =
+    'rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 dark:border-slate-800 dark:bg-slate-900';
+  const landingEyebrowClass =
+    'inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] dark:border-[rgba(var(--accent-rgb),0.16)] dark:bg-[rgba(var(--accent-rgb),0.08)]';
+  const landingChipClass =
+    'inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300';
+  const landingPrimaryButtonClass =
+    'app-button-primary rounded-[var(--radius-md)] px-6 py-3.5 shadow-none dark:border dark:border-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white';
+  const landingSecondaryButtonClass =
+    'app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
+  const landingTopbarButtonClass =
+    'app-button-secondary rounded-full px-4 py-2 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
+
   return (
     <div className="mx-auto w-full max-w-[1680px] px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
       <div className="app-aurora-shell mx-auto flex w-full max-w-[1480px] flex-col gap-6 lg:gap-7">
         <div className="flex justify-end">
-          <button onClick={() => handleLogin('topbar')} className="app-button-secondary rounded-full px-4 py-2">
+          <button onClick={() => handleLogin('topbar')} className={landingTopbarButtonClass}>
             <LogIn size={16} />
             {copy.login}
           </button>
         </div>
 
-        <section className="app-page-header app-organic-shell rounded-[var(--radius-2xl)] border p-6 lg:p-8">
+        <section className={landingHeroSectionClass}>
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div>
-              <div className="app-eyebrow">
+              <div className={landingEyebrowClass}>
                 <Sparkles size={14} />
                 {copy.badge}
               </div>
@@ -651,11 +670,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <button onClick={() => handleRegister('hero')} className="app-button-primary rounded-[var(--radius-md)] px-6 py-3.5">
+                <button onClick={() => handleRegister('hero')} className={landingPrimaryButtonClass}>
                   <Building size={18} />
                   {copy.primaryCta}
                 </button>
-                <button onClick={() => handleDemo('hero')} className="app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5">
+                <button onClick={() => handleDemo('hero')} className={landingSecondaryButtonClass}>
                   {copy.secondaryCta}
                   <ArrowRight size={18} />
                 </button>
@@ -663,14 +682,14 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {copy.valuePills.map((pill) => (
-                  <div key={pill} className="app-filter-chip cursor-default">
+                  <div key={pill} className={landingChipClass}>
                     {pill}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="company-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-card)]">
+            <div className={landingCardClass}>
               <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
                 {copy.rolePreviewLabel}
               </div>
@@ -684,7 +703,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 </div>
                 <div className="mt-4 space-y-3">
                   {copy.rolePreviewItems.map((item) => (
-                    <div key={item} className="company-surface rounded-[var(--radius-md)] border px-4 py-3 text-sm leading-6 text-[var(--text)] shadow-[var(--shadow-soft)]">
+                    <div key={item} className={`${landingSoftCardClass} text-sm leading-6 text-[var(--text)] shadow-none`}>
                       {item}
                     </div>
                   ))}
@@ -694,7 +713,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
-        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-soft)] lg:p-8">
+        <section className={landingSectionClass}>
           <div className="mb-5 flex items-center gap-3">
             <Target className="text-[var(--accent)]" size={20} />
             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.comparisonTitle}</h2>
@@ -708,10 +727,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
             {copy.comparisonRows.map(([legacy, next]) => (
               <React.Fragment key={`${legacy}-${next}`}>
-                <div className="company-surface-soft rounded-[var(--radius-md)] border px-4 py-3 text-[var(--text-muted)]">
+                <div className={`${landingSoftCardClass} text-[var(--text-muted)]`}>
                   {legacy}
                 </div>
-                <div className="company-surface rounded-[var(--radius-md)] border px-4 py-3 font-medium text-[var(--text-strong)]">
+                <div className={`${landingSoftCardClass} font-medium text-[var(--text-strong)] dark:bg-slate-950`}>
                   {next}
                 </div>
               </React.Fragment>
@@ -723,7 +742,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           {copy.systemCards.map((card, index) => {
             const Icon = [Layers3, MessageSquare, Clock3, CheckCircle][index] || Layers3;
             return (
-              <div key={card.title} className="company-surface rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-soft)]">
+              <div key={card.title} className={landingCardClass}>
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)]">
                   <Icon size={20} />
                 </div>
@@ -734,10 +753,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           })}
         </section>
 
-        <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#0b2f38)] p-6 shadow-[0_36px_90px_-56px_rgba(8,23,37,0.72)] lg:p-8">
+        <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#102235)] p-6 shadow-[0_30px_72px_-54px_rgba(8,23,37,0.62)] dark:bg-[linear-gradient(145deg,rgba(8,12,20,0.98),rgba(15,23,42,0.96)_56%,rgba(12,22,34,0.98))] dark:shadow-[0_24px_56px_-44px_rgba(2,6,23,0.72)] lg:p-8">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.22),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(var(--accent-sky-rgb),0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.16),transparent_26%),radial-gradient(circle_at_85%_10%,rgba(var(--accent-sky-rgb),0.1),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.03),transparent_20%)] dark:bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.1),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%)]"
           />
           <div className="relative z-10">
             <div className="mb-3 flex items-center gap-3">
@@ -750,24 +769,30 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               {copy.pricingPlans.map((plan) => (
                 <div
                   key={plan.name}
-                  className={`rounded-[var(--radius-xl)] border p-5 backdrop-blur-xl ${
+                  className={`rounded-[var(--radius-xl)] border p-5 backdrop-blur-md ${
                     plan.highlighted
-                      ? 'border-[rgba(var(--accent-rgb),0.42)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.22),rgba(255,255,255,0.08))] shadow-[0_28px_56px_-32px_rgba(var(--accent-rgb),0.42)]'
-                      : 'border-white/10 bg-white/6 shadow-[0_20px_40px_-32px_rgba(2,6,23,0.7)]'
+                      ? 'relative -translate-y-1 border-[rgba(var(--accent-rgb),0.32)] bg-[rgba(8,18,30,0.96)] shadow-[0_22px_44px_-28px_rgba(2,6,23,0.74)]'
+                      : 'border-white/10 bg-white/5 shadow-[0_16px_32px_-26px_rgba(2,6,23,0.62)]'
                   }`}
                 >
                   {plan.highlighted && (
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.18)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-5 top-0 h-[2px] rounded-full bg-[linear-gradient(90deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.9),rgba(var(--accent-rgb),0.12))]"
+                    />
+                  )}
+                  {plan.highlighted && (
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] shadow-none">
                       <Sparkles size={12} />
                       {copy.recommended}
                     </div>
                   )}
                   <div className="mt-3 text-lg font-semibold text-white">{plan.name}</div>
-                  <div className={`mt-2 text-2xl font-black ${plan.highlighted ? 'text-[var(--accent)]' : 'text-slate-50'}`}>{plan.price}</div>
-                  <p className="mt-2 text-xs leading-5 text-slate-300">{plan.note}</p>
+                  <div className={`mt-2 text-2xl font-black ${plan.highlighted ? 'text-white' : 'text-slate-50'}`}>{plan.price}</div>
+                  <p className={`mt-2 text-xs leading-5 ${plan.highlighted ? 'text-slate-200' : 'text-slate-300'}`}>{plan.note}</p>
                   <div className="mt-4 space-y-2">
                     {plan.features.map((feature) => (
-                      <div key={feature} className="flex items-start gap-2 text-sm text-slate-100">
+                      <div key={feature} className={`flex items-start gap-2 text-sm ${plan.highlighted ? 'text-white' : 'text-slate-100'}`}>
                         <CheckCircle size={16} className={`mt-0.5 shrink-0 ${plan.highlighted ? 'text-[var(--accent)]' : 'text-slate-300'}`} />
                         <span>{feature}</span>
                       </div>
@@ -777,8 +802,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     onClick={() => (plan.ctaMode === 'demo' ? handleDemo('pricing') : handleRegister('pricing'))}
                     className={
                       plan.highlighted
-                        ? 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.5)] transition hover:brightness-110'
-                        : 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/12'
+                        ? 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-3 text-sm font-bold text-slate-950 shadow-none transition hover:-translate-y-[1px] hover:brightness-110'
+                        : 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10'
                     }
                   >
                     {plan.ctaLabel || (plan.ctaMode === 'demo' ? copy.secondaryCta : copy.primaryCta)}
@@ -789,7 +814,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
-        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-soft)] lg:p-8">
+        <section className={landingSectionClass}>
           <div className="mb-5 flex items-center gap-3">
             <MessageSquare className="text-[var(--accent)]" size={20} />
             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.faqTitle}</h2>
@@ -798,7 +823,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             {copy.faqItems.map((item, index) => {
               const isOpen = openFaqIndex === index;
               return (
-                <div key={item.q} className="company-surface-soft rounded-[var(--radius-lg)] border">
+                <div key={item.q} className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] dark:border-slate-800 dark:bg-slate-900">
                   <button
                     onClick={() => {
                       const nextIndex = isOpen ? null : index;
@@ -823,10 +848,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
-        <section className="app-page-header app-organic-shell rounded-[var(--radius-xl)] border p-6 lg:p-8">
+        <section className={landingSectionClass}>
           <div className="grid items-center gap-6 lg:grid-cols-2">
             <div>
-              <div className="app-eyebrow">
+              <div className={landingEyebrowClass}>
                 <Shield size={14} />
                 {copy.asyncFirst}
               </div>
@@ -838,11 +863,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-              <button onClick={() => handleRegister('final_cta')} className="app-button-primary rounded-[var(--radius-md)] px-6 py-3.5">
+              <button onClick={() => handleRegister('final_cta')} className={landingPrimaryButtonClass}>
                 {copy.finalPrimary}
                 <ArrowRight size={18} />
               </button>
-              <button onClick={() => handleLogin('final_cta')} className="app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5">
+              <button onClick={() => handleLogin('final_cta')} className={landingSecondaryButtonClass}>
                 <LogIn size={18} />
                 {copy.finalSecondary}
               </button>

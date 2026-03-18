@@ -202,7 +202,7 @@ export default function AppSceneRouter({
 
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
-                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>}>
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div></div>}>
                     <JcfpmFlow
                         userId={userProfile.id || 'guest'}
                         isPremium={userProfile.subscription?.tier === 'premium'}

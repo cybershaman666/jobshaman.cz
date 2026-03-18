@@ -238,6 +238,30 @@ def _build_geocode_candidates(
     return candidates
 
 
+def _resolve_job_location_query(
+    *,
+    row: dict[str, Any],
+    city: str,
+    state: str,
+    country: str,
+    fallback_query: str,
+) -> str:
+    raw_location = _safe_str(
+        row.get("location")
+        or row.get("job_location")
+        or row.get("location_name")
+        or row.get("job_geo")
+    )
+    if raw_location:
+        return raw_location
+
+    composed_location = ", ".join([part for part in [city, state, country] if part])
+    if composed_location:
+        return composed_location
+
+    return _safe_str(fallback_query)
+
+
 def _resolve_job_geocode(
     *,
     city: str,
@@ -295,7 +319,14 @@ def _build_job_document(
     state = _safe_str(row.get("state"))
     country = _safe_str(row.get("country") or country_indeed)
     country_code = _normalize_country_code(country or country_indeed)
-    location_label = ", ".join([part for part in [city, state, country] if part])
+    location_query = _resolve_job_location_query(
+        row=row,
+        city=city,
+        state=state,
+        country=country,
+        fallback_query=location,
+    )
+    location_label = location_query or ", ".join([part for part in [city, state, country] if part])
     job_url = _safe_str(row.get("job_url") or row.get("url") or row.get("job_url_direct"))
     description = _safe_str(row.get("description"))
     remote_flag = bool(row.get("is_remote")) or is_remote
@@ -303,7 +334,7 @@ def _build_job_document(
         city=city,
         state=state,
         country=country,
-        location_query=location,
+        location_query=location_query,
         is_remote=remote_flag,
     )
     dedupe_input = "|".join(
@@ -351,7 +382,8 @@ def _build_job_document(
         "geocode_source": geocode_source,
         "search_term": _safe_str(search_term) or None,
         "google_search_term": _safe_str(google_search_term) or None,
-        "location_query": _safe_str(location) or None,
+        "location_query": location_query or None,
+        "search_location_query": _safe_str(location) or None,
         "queried_sites": sites,
         "hours_old": hours_old,
         "query_hash": hashlib.sha1(
@@ -549,6 +581,7 @@ def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) ->
                 "_id": 1,
                 "city": 1,
                 "state": 1,
+                "location": 1,
                 "country": 1,
                 "country_code": 1,
                 "location_query": 1,
@@ -568,7 +601,7 @@ def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) ->
             city=_safe_str(row.get("city")),
             state=_safe_str(row.get("state")),
             country=_safe_str(row.get("country")),
-            location_query=_safe_str(row.get("location_query")),
+            location_query=_safe_str(row.get("location_query") or row.get("location")),
             is_remote=bool(row.get("is_remote")),
         )
         if lat is None or lng is None:

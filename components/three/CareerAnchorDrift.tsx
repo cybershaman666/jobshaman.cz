@@ -25,4 +25,3 @@ const CareerAnchorDrift: React.FC<Props> = ({ output }) => {
 };
 
 export default CareerAnchorDrift;
-

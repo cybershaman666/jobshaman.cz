@@ -1691,7 +1691,7 @@ export default function App() {
         <Suspense
             fallback={
                 <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
                 </div>
             }
         >

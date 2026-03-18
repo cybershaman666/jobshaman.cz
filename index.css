@@ -85,11 +85,8 @@
 
 .dark {
   --accent: #22d3ee;
-  /* Cyan-400 (lighter for dark mode) */
   --accent-green: #14b8a6;
-  /* Teal-500 */
   --accent-sky: #0d9488;
-  /* Teal-600 */
   --accent-rgb: 34, 211, 238;
   --accent-green-rgb: 20, 184, 166;
   --accent-sky-rgb: 13, 148, 136;
@@ -116,7 +113,7 @@
   --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
   --shadow-overlay: 0 20px 48px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 24px rgba(45, 212, 191, 0.18), 0 0 8px rgba(45, 212, 191, 0.10);
+  --shadow-glow: 0 0 24px rgba(var(--accent-rgb), 0.18), 0 0 8px rgba(var(--accent-rgb), 0.10);
   --shadow-cosmic: 0 26px 62px rgba(2, 6, 23, 0.42), 0 10px 28px rgba(2, 6, 23, 0.22);
   --aurora-primary: radial-gradient(circle at 15% 18%, rgba(45, 212, 191, 0.10), transparent 24%), radial-gradient(circle at 82% 16%, rgba(168, 85, 247, 0.12), transparent 22%), radial-gradient(circle at 76% 72%, rgba(56, 189, 248, 0.10), transparent 22%);
   --hero-gradient: linear-gradient(135deg, rgba(5, 10, 20, 0.98), rgba(13, 24, 42, 0.96) 34%, rgba(8, 48, 52, 0.92) 68%, rgba(4, 8, 18, 0.99));
