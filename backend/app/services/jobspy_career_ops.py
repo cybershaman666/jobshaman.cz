@@ -68,6 +68,48 @@ def _serialize_datetime(value: datetime | None) -> str | None:
     return value.isoformat()
 
 
+def _build_mongo_client_kwargs(*, use_certifi_ca: bool) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "serverSelectionTimeoutMS": 5000,
+        "connectTimeoutMS": 10000,
+        "socketTimeoutMS": 10000,
+        "retryWrites": True,
+        "tls": True,
+    }
+    if use_certifi_ca and _CA_FILE:
+        kwargs["tlsCAFile"] = _CA_FILE
+    return kwargs
+
+
+def _create_verified_client() -> MongoClient:
+    if not config.MONGODB_URI:
+        raise RuntimeError("MONGODB_URI missing")
+
+    attempts: list[tuple[str, dict[str, Any]]] = [("certifi", _build_mongo_client_kwargs(use_certifi_ca=True))]
+    if _CA_FILE:
+        attempts.append(("system", _build_mongo_client_kwargs(use_certifi_ca=False)))
+
+    last_error: Exception | None = None
+    for label, kwargs in attempts:
+        client = MongoClient(config.MONGODB_URI, **kwargs)
+        try:
+            client.admin.command("ping")
+            if label == "system":
+                print("ℹ️ JobSpy career-ops Mongo connected using system CA trust store fallback")
+            return client
+        except Exception as exc:
+            last_error = exc
+            try:
+                client.close()
+            except Exception:
+                pass
+            if label == "certifi":
+                print(f"⚠️ JobSpy career-ops Mongo certifi TLS bootstrap failed, retrying with system CA store: {exc}")
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Failed to initialize MongoDB client")
+
+
 def _tokenize(value: Any) -> list[str]:
     normalized = _normalize_text(value)
     if not normalized:
@@ -188,16 +230,7 @@ def _excerpt(value: str, limit: int = 260) -> str:
 def _get_client() -> MongoClient:
     global _mongo_client
     if _mongo_client is None:
-        if not config.MONGODB_URI:
-            raise RuntimeError("MONGODB_URI missing")
-        kwargs = {
-            "serverSelectionTimeoutMS": 5000,
-            "connectTimeoutMS": 10000,
-            "retryWrites": True,
-        }
-        if _CA_FILE:
-            kwargs["tlsCAFile"] = _CA_FILE
-        _mongo_client = MongoClient(config.MONGODB_URI, **kwargs)
+        _mongo_client = _create_verified_client()
     return _mongo_client
 
 
