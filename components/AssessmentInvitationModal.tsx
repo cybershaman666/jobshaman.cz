@@ -124,59 +124,134 @@ const AssessmentInvitationModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">{t('assessment_invitation_modal.title')}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-700">{t('app.close')}</button>
-        </div>
+    <div className="app-modal-backdrop">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="app-modal-panel max-w-xl">
+        <div className="app-modal-topline" />
 
-        <div className="grid grid-cols-1 gap-3">
-          {assessmentOptions.length > 0 && (
-            <>
-              <label className="text-sm text-slate-500">{t('assessment_invitation_modal.saved_assessments', { defaultValue: 'Saved assessments' })}</label>
-              <select
-                className="input dark:[color-scheme:dark]"
+        <div className="app-modal-surface p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-[var(--text-strong)] tracking-tight">
+              {t('assessment_invitation_modal.title')}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors text-sm font-medium"
+            >
+              {t('app.close')}
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {assessmentOptions.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                  {t('assessment_invitation_modal.saved_assessments', { defaultValue: 'Saved assessments' })}
+                </label>
+                <select
+                  className="input app-modal-input w-full"
+                  value={assessmentId}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setAssessmentId(nextId);
+                    const picked = assessmentOptions.find((item) => item.id === nextId);
+                    if (picked && !assessmentName) {
+                      setAssessmentName(picked.title);
+                    }
+                  }}
+                >
+                  <option value="">{loadingOptions ? t('common.loading', { defaultValue: 'Loading...' }) : t('assessment_invitation_modal.select_saved', { defaultValue: 'Select a saved assessment' })}</option>
+                  {assessmentOptions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}{item.role ? ` • ${item.role}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                {t('assessment_invitation_modal.assessment_id')}
+              </label>
+              <input
+                className="input app-modal-input w-full"
                 value={assessmentId}
-                onChange={(e) => {
-                  const nextId = e.target.value;
-                  setAssessmentId(nextId);
-                  const picked = assessmentOptions.find((item) => item.id === nextId);
-                  if (picked && !assessmentName) {
-                    setAssessmentName(picked.title);
-                  }
-                }}
+                onChange={e => setAssessmentId(e.target.value)}
+                placeholder={t('assessment_invitation_modal.assessment_id_placeholder')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                {t('assessment_invitation_modal.candidate_email')}
+              </label>
+              <input
+                className="input app-modal-input w-full"
+                value={candidateEmail}
+                onChange={e => setCandidateEmail(e.target.value)}
+                placeholder="kandidat@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                {t('assessment_invitation_modal.job_title_optional')}
+              </label>
+              <input
+                className="input app-modal-input w-full"
+                value={jobTitle}
+                onChange={e => setJobTitle(e.target.value)}
+                placeholder="Senior Backend Developer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                {t('assessment_invitation_modal.assessment_name_optional')}
+              </label>
+              <input
+                className="input app-modal-input w-full"
+                value={assessmentName}
+                onChange={e => setAssessmentName(e.target.value)}
+                placeholder="Technical Screening"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                {t('assessment_invitation_modal.expires_days')}
+              </label>
+              <input
+                type="number"
+                className="input app-modal-input w-full"
+                value={expiresInDays}
+                onChange={e => setExpiresInDays(parseInt(e.target.value || '30'))}
+                min={1}
+              />
+            </div>
+
+            {error && (
+              <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 rounded-lg text-sm font-medium">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-4">
+              <button
+                onClick={onClose}
+                className="app-button-secondary !px-6"
               >
-                <option value="">{loadingOptions ? t('common.loading', { defaultValue: 'Loading...' }) : t('assessment_invitation_modal.select_saved', { defaultValue: 'Select a saved assessment' })}</option>
-                {assessmentOptions.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title}{item.role ? ` • ${item.role}` : ''}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          <label className="text-sm text-slate-500">{t('assessment_invitation_modal.assessment_id')}</label>
-          <input className="input dark:[color-scheme:dark]" value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder={t('assessment_invitation_modal.assessment_id_placeholder')} />
-
-          <label className="text-sm text-slate-500">{t('assessment_invitation_modal.candidate_email')}</label>
-          <input className="input dark:[color-scheme:dark]" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="kandidat@example.com" />
-
-          <label className="text-sm text-slate-500">{t('assessment_invitation_modal.job_title_optional')}</label>
-          <input className="input dark:[color-scheme:dark]" value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Senior Backend Developer" />
-
-          <label className="text-sm text-slate-500">{t('assessment_invitation_modal.assessment_name_optional')}</label>
-          <input className="input dark:[color-scheme:dark]" value={assessmentName} onChange={e => setAssessmentName(e.target.value)} placeholder="Technical Screening" />
-
-          <label className="text-sm text-slate-500">{t('assessment_invitation_modal.expires_days')}</label>
-          <input type="number" className="input dark:[color-scheme:dark]" value={expiresInDays} onChange={e => setExpiresInDays(parseInt(e.target.value || '30'))} min={1} />
-
-          {error && <div className="text-sm text-rose-600">{error}</div>}
-
-          <div className="flex gap-2 justify-end mt-2">
-            <button onClick={onClose} className="app-button-secondary !rounded-md !px-4 !py-2">{t('app.cancel')}</button>
-            <button onClick={handleSend} disabled={loading} className="app-button-primary !rounded-md !px-4 !py-2">{loading ? t('assessment_invitation_modal.sending') : t('assessment_invitation_modal.send_button')}</button>
+                {t('app.cancel')}
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={loading}
+                className="app-button-primary !px-6"
+              >
+                {loading ? t('assessment_invitation_modal.sending') : t('assessment_invitation_modal.send_button')}
+              </button>
+            </div>
           </div>
         </div>
       </div>

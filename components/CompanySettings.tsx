@@ -5,6 +5,8 @@ import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
 import { inviteRecruiter, removeRecruiterMember, uploadCompanyLogo, updateCompanyProfile } from '../services/supabaseService';
 import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2, AlertCircle, Trash2 } from 'lucide-react';
+import { STOCK_COMPANY_AVATARS, isStockCompanyAvatarUrl } from '../utils/companyStockAvatars';
+import { cn } from './ui/primitives';
 
 interface CompanySettingsProps {
     profile: CompanyProfile;
@@ -121,6 +123,42 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
         } catch (err) {
             console.error('Logo upload failed:', err);
             alert(t('company.settings.logo_error', { defaultValue: 'Failed to upload the logo.' }));
+        } finally {
+            setLogoUploading(false);
+        }
+    };
+
+    const handlePickStockLogo = async (logoUrl: string) => {
+        if (!profile.id) {
+            setLocalProfile((prev) => ({ ...prev, logo_url: logoUrl }));
+            return;
+        }
+        try {
+            setLogoUploading(true);
+            const updated = await updateCompanyProfile(profile.id, { logo_url: logoUrl });
+            setLocalProfile(updated);
+            await onSave({ ...updated, members });
+        } catch (err) {
+            console.error('Stock logo set failed:', err);
+            alert(t('company.settings.logo_error', { defaultValue: 'Failed to update the logo.' }));
+        } finally {
+            setLogoUploading(false);
+        }
+    };
+
+    const handleClearLogo = async () => {
+        if (!profile.id) {
+            setLocalProfile((prev) => ({ ...prev, logo_url: undefined }));
+            return;
+        }
+        try {
+            setLogoUploading(true);
+            const updated = await updateCompanyProfile(profile.id, { logo_url: null });
+            setLocalProfile(updated);
+            await onSave({ ...updated, members });
+        } catch (err) {
+            console.error('Logo clear failed:', err);
+            alert(t('company.settings.logo_error', { defaultValue: 'Failed to update the logo.' }));
         } finally {
             setLogoUploading(false);
         }
@@ -314,9 +352,67 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                                 onChange={(e) => handleLogoUpload(e.target.files?.[0] || null)}
                                             />
                                         </label>
+                                        {localProfile.logo_url ? (
+                                            <button
+                                                type="button"
+                                                className="ml-2 inline-flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[rgba(var(--accent-rgb),0.08)] transition"
+                                                onClick={handleClearLogo}
+                                                disabled={logoUploading}
+                                                title={t('company.settings.logo_remove', { defaultValue: 'Remove logo' })}
+                                            >
+                                                <Trash2 size={16} />
+                                                {t('company.settings.logo_remove', { defaultValue: 'Remove' })}
+                                            </button>
+                                        ) : null}
                                         <div className="mt-1 text-xs text-[var(--text-muted)]">
                                             {t('company.settings.logo_hint', { defaultValue: 'Recommended: square, min. 300×300 px' })}
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[rgba(var(--accent-rgb),0.04)] p-4">
+                                    <div className="text-sm font-semibold text-[var(--text-strong)]">
+                                        {t('company.settings.stock_avatars_title', { defaultValue: 'Or pick a stock avatar' })}
+                                    </div>
+                                    <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                                        {t('company.settings.stock_avatars_body', { defaultValue: 'Useful while you’re setting up — you can switch to your real logo anytime.' })}
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                        {STOCK_COMPANY_AVATARS.map((avatar) => {
+                                            const selected = String(localProfile.logo_url || '').trim() === avatar.url;
+                                            return (
+                                                <button
+                                                    key={avatar.key}
+                                                    type="button"
+                                                    className={cn(
+                                                        "group flex items-center gap-2 rounded-[var(--radius-md)] border p-2 text-left transition",
+                                                        selected
+                                                            ? "border-[rgba(var(--accent-rgb),0.40)] bg-white shadow-[var(--shadow-soft)]"
+                                                            : "border-[var(--border-subtle)] bg-white/70 hover:border-[rgba(var(--accent-rgb),0.28)] hover:bg-white"
+                                                    )}
+                                                    onClick={() => handlePickStockLogo(avatar.url)}
+                                                    disabled={logoUploading}
+                                                    title={avatar.label}
+                                                >
+                                                    <img
+                                                        src={avatar.url}
+                                                        alt={avatar.label}
+                                                        className="h-10 w-10 rounded-[var(--radius-md)] object-cover"
+                                                        loading="lazy"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <div className="truncate text-xs font-semibold text-[var(--text-strong)]">{avatar.label}</div>
+                                                        <div className="truncate text-[11px] text-[var(--text-faint)]">
+                                                            {selected
+                                                                ? t('company.settings.stock_avatars_selected', { defaultValue: 'Selected' })
+                                                                : isStockCompanyAvatarUrl(localProfile.logo_url) && !selected
+                                                                    ? t('company.settings.stock_avatars_pick', { defaultValue: 'Pick' })
+                                                                    : t('company.settings.stock_avatars_pick', { defaultValue: 'Pick' })}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -543,7 +639,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     {t('company.settings.plan_label')} {profile.subscription?.tier === 'professional' ? t('company.subscription.tiers.professional', { defaultValue: 'Professional' }) : profile.subscription?.tier === 'growth' ? t('company.subscription.tiers.growth', { defaultValue: 'Growth' }) : profile.subscription?.tier === 'starter' ? t('company.subscription.tiers.starter', { defaultValue: 'Starter' }) : profile.subscription?.tier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' }) : t('company.subscription.tiers.free')}
                                 </span>
                                 {profile.subscription?.expiresAt && (
-                                    <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                                    <div className="text-xs text-amber-600 dark:text-amber-400">
                                         {t('company.settings.active_until')} {new Date(profile.subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}
                                     </div>
                                 )}

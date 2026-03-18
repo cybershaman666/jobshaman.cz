@@ -2282,7 +2282,24 @@
     "language": "Jazyk",
     "more": "Více",
     "switch_to_candidate": "Přepnout na uchazeče",
-    "open_profile": "Otevřít profil"
+    "open_profile": "Otevřít profil",
+    "shell": {
+      "overview": "Co je teď ve hře",
+      "browse_feed": "Projít feed",
+      "quick_gigs": "Fušky",
+      "search_label": "Projít feed",
+      "search_placeholder": "Zkus role, firmy, obory nebo signály, co tě fakt berou",
+      "location_placeholder": "Město, region, práce na dálku",
+      "search_submit": "Hledat",
+      "companies": "Pro firmy",
+      "remote_only": "Jen remote",
+      "commute_max": "Dojezd max {{km}} km",
+      "at_least": "Od",
+      "ai_line": "AI čte kontext, přepisuje dotaz a třídí feed podle reality.",
+      "ai_badge": "AI discovery",
+      "light_mode": "Světlý režim",
+      "dark_mode": "Tmavý režim"
+    }
   },
   "assessment": {
     "taker": {
@@ -4434,5 +4451,36 @@
     "completed_primary": "Založit firemní účet",
     "completed_secondary": "Zpět na landing pro firmy",
     "completed_restart": "Spustit demo znovu"
+  },
+  "workspace": {
+    "feed": {
+      "post_lead": "Chcete zadat výzvu? To lze výhradně z",
+      "profile": "profilu",
+      "post_tail": "nebo firemního dashboardu.",
+      "swipe": "Swipe",
+      "feed": "Feed",
+      "swipe_title": "Nejrychlejší způsob, jak tu procházet nabídky",
+      "swipe_body": "Na mobilu začněte swipem. Klepnutí otevře detail, tah vlevo nebo vpravo rychle třídí role.",
+      "ai_title": "AI čte kontext za scénou",
+      "ai_body": "Nejde jen o fulltext. AI čte profil, dojezd, pracovní směr a vysvětluje, proč se role dostala nahoru.",
+      "ai_bullets": [
+        "čte cíl a senioritu",
+        "ukazuje proč to vidíš",
+        "čistí nerelevantní směry"
+      ],
+      "auth_body": "Po registraci si aplikace pamatuje uložené i odmítnuté role a doporučení se časem zpřesňují.",
+      "address_title": "Doplňte adresu pro smysluplný swipe",
+      "address_body": "Bez adresy nevíme dobře odfiltrovat okolí a dojezd. S adresou dostanete mnohem lepší role z jižní Moravy a okolí.",
+      "auth_cta": "Registrovat se",
+      "address_cta": "Doplnit adresu",
+      "later": "Teď ne"
+    },
+    "toolbar": {
+      "ai_badge": "AI řídí pořadí feedu",
+      "taxonomy": "Blízké světy",
+      "hierarchy": "Velký obrázek",
+      "helper": "Pořadí řídí kontext, záměr a signály shody.",
+      "filters": "Filtry"
+    }
   }
 }

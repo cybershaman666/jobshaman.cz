@@ -42,6 +42,39 @@ const normalizeText = (value: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const parseTimestampMs = (value: unknown): number => {
+  const raw = String(value || '').trim();
+  if (!raw) return 0;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getFreshnessPriorityBoost = (job: Job): number => {
+  const timestampMs = parseTimestampMs((job as any).scrapedAt || (job as any).postedAt);
+  if (!timestampMs) return 0;
+  const ageHours = Math.max(0, (Date.now() - timestampMs) / 3_600_000);
+  if (ageHours <= 24) return 18;
+  if (ageHours <= 72) return 10;
+  if (ageHours <= 168) return 4;
+  return 0;
+};
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const STATIC_CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  praha: { lat: 50.0755, lon: 14.4378 },
+  prague: { lat: 50.0755, lon: 14.4378 },
+  brno: { lat: 49.1951, lon: 16.6068 },
+  ostrava: { lat: 49.8209, lon: 18.2625 },
+  olomouc: { lat: 49.5938, lon: 17.2509 },
+  breclav: { lat: 48.7590, lon: 16.8820 },
+  znojmo: { lat: 48.8560, lon: 16.0488 },
+  jihlava: { lat: 49.3961, lon: 15.5912 },
+  bratislava: { lat: 48.1486, lon: 17.1077 },
+  wien: { lat: 48.2082, lon: 16.3738 },
+  vienna: { lat: 48.2082, lon: 16.3738 },
+};
+
 const pushIfPresent = (items: string[], value: unknown) => {
   const text = String(value || '').trim();
   if (text) items.push(text);
@@ -113,34 +146,38 @@ const collectCandidateTextChunks = (profile: UserProfile): string[] => {
   return chunks;
 };
 
-const collectJobTextChunks = (job: Job): string[] => {
-  const chunks: string[] = [];
-  pushIfPresent(chunks, job.title);
-  pushIfPresent(chunks, job.description);
-  pushIfPresent(chunks, job.challenge);
-  pushIfPresent(chunks, job.risk);
-  pushIfPresent(chunks, job.company);
-  pushIfPresent(chunks, job.location);
-  (job.tags || []).forEach((item) => pushIfPresent(chunks, item));
-  (job.benefits || []).forEach((item) => pushIfPresent(chunks, item));
-  return chunks;
-};
-
 const scoreDomains = (chunks: string[]): Array<{ domain: CandidateDomainKey; score: number }> => {
   const normalizedChunks = chunks.map(normalizeText).filter(Boolean);
   if (normalizedChunks.length === 0) return [];
 
   const joined = normalizedChunks.join(' \n ');
+  const hasWholeWord = (text: string, token: string): boolean => {
+    if (!token) return false;
+    if (token.length < 3) return false;
+    const escaped = escapeRegExp(token);
+    return new RegExp(`\\b${escaped}\\b`).test(text);
+  };
+  const hasPhrase = (text: string, phrase: string): boolean => {
+    if (!phrase) return false;
+    const escaped = escapeRegExp(phrase);
+    return new RegExp(`(^|\\s)${escaped}(\\s|$)`).test(text);
+  };
+
   const scores = DOMAIN_KEYS.map((domain) => {
     const definition = TAXONOMY_DOMAINS[domain];
     const score = definition.keywords.reduce((acc, keyword) => {
       const normalizedKeyword = normalizeText(keyword);
       if (!normalizedKeyword) return acc;
-      if (joined.includes(normalizedKeyword)) return acc + 3;
       const keywordParts = normalizedKeyword.split(' ').filter(Boolean);
-      if (keywordParts.length > 1 && keywordParts.every((part) => joined.includes(part))) {
-        return acc + 1.5;
+      if (keywordParts.length > 1) {
+        if (hasPhrase(joined, normalizedKeyword)) return acc + 3.5;
+        const meaningfulParts = keywordParts.filter((part) => part.length >= 3);
+        if (meaningfulParts.length >= 2 && meaningfulParts.every((part) => hasWholeWord(joined, part))) {
+          return acc + 2;
+        }
+        return acc;
       }
+      if (hasWholeWord(joined, normalizedKeyword)) return acc + 3;
       return acc;
     }, 0);
     return { domain, score };
@@ -246,6 +283,7 @@ export const resolveCandidateIntentProfile = (profile: UserProfile): CandidateIn
 
   const manualPrimaryDomain = searchProfile.primaryDomain || null;
   const manualSecondaryDomains = uniqueDomains(searchProfile.secondaryDomains || []);
+  const manualAvoidDomains = uniqueDomains(searchProfile.avoidDomains || []);
   const manualSeniority = searchProfile.seniority || null;
   const includeAdjacentDomains = searchProfile.includeAdjacentDomains ?? true;
 
@@ -271,6 +309,7 @@ export const resolveCandidateIntentProfile = (profile: UserProfile): CandidateIn
   return {
     primaryDomain: activePrimaryDomain,
     secondaryDomains: activeSecondaryDomains,
+    avoidDomains: manualAvoidDomains.filter((domain) => domain !== activePrimaryDomain && !activeSecondaryDomains.includes(domain)).slice(0, 3),
     targetRole: normalizeTargetRole(searchProfile.targetRole) || inferredRole,
     seniority: manualSeniority || inferredSeniority,
     includeAdjacentDomains,
@@ -291,6 +330,7 @@ export const enrichSearchProfileWithInference = (profile: UserProfile): Candidat
     ...existing,
     includeAdjacentDomains: existing.includeAdjacentDomains ?? true,
     secondaryDomains: uniqueDomains(existing.secondaryDomains || []),
+    avoidDomains: uniqueDomains(existing.avoidDomains || []).slice(0, 3),
     inferredPrimaryDomain: resolved.inferredPrimaryDomain,
     inferredTargetRole: resolved.inferredTargetRole,
     inferenceSource: resolved.inferenceSource,
@@ -303,9 +343,105 @@ const getRelatedDomains = (domain: CandidateDomainKey | null): CandidateDomainKe
   return TAXONOMY_DOMAINS[domain].related || [];
 };
 
-const resolveJobDomains = (job: Job): CandidateDomainKey[] => {
-  const scores = scoreDomains(collectJobTextChunks(job));
-  return uniqueDomains(scores.slice(0, 3).map((item) => item.domain));
+const resolveDomainOverrideFromTitle = (title: string): CandidateDomainKey | null => {
+  const text = normalizeText(title);
+  if (!text) return null;
+  if (/\b(kuryr|kurier|ridic sk b|ridic|rozvoz|rozvozce|delivery driver|delivery courier|courier)\b/.test(text)) return 'logistics';
+  if (/\b(zdravotni sestra|prakticka sestra|zdravotni bratr|sestra|sanitar|zachranar|paramedik)\b/.test(text)) return 'healthcare';
+  if (/\b(auto mechanik|automechanik|mechanik vozidel|mechanik|technik udrzby|udrzbar|udrzba|servisni technik)\b/.test(text)) return 'engineering';
+  if (/\b(ucetni|mzdova ucetni|accountant|bookkeeper|controller|controlling|payroll)\b/.test(text)) return 'finance';
+  if (/\b(product manager|product owner|produktovy manager|produkt manager|produkt owner)\b/.test(text)) return 'product_management';
+  if (/\b(project manager|projektovy manazer|projektovy manager|manazer projektu|stavbyvedouci)\b/.test(text)) return 'operations';
+  if (/\b(barista|cisnik|kuchar|recepcni|receptionist|housekeeping|concierge)\b/.test(text)) return 'hospitality';
+  // Manufacturing overrides (strong domain signal)
+  if (/\b(cnc|serizovac|operator vyrob|linek operator|machine operator|lisovac|soustruh)\b/.test(text)) return 'manufacturing';
+  return null;
+};
+
+const scoreDomainsForJob = (job: Job): Array<{ domain: CandidateDomainKey; score: number }> => {
+  const title = normalizeText(job.title || '');
+  const context = normalizeText([job.challenge, job.risk, ...(job.tags || [])].filter(Boolean).join(' '));
+  const description = normalizeText(job.description || '');
+  const company = normalizeText(job.company || '');
+  const benefits = normalizeText((job.benefits || []).join(' '));
+
+  const sources: Array<{ text: string; weight: number }> = [
+    { text: title, weight: 8 },
+    { text: context, weight: 4 },
+    { text: description, weight: 2 },
+    { text: company, weight: 1 },
+    { text: benefits, weight: 1 },
+  ].filter((item) => item.text);
+
+  if (!sources.length) return [];
+
+  const matchStrength = (text: string, keyword: string): number => {
+    const normalizedKeyword = normalizeText(keyword);
+    if (!normalizedKeyword) return 0;
+    const parts = normalizedKeyword.split(' ').filter(Boolean);
+    if (parts.length > 1) {
+      if (new RegExp(`(^|\\s)${escapeRegExp(normalizedKeyword)}(\\s|$)`).test(text)) return 1;
+      const meaningful = parts.filter((part) => part.length >= 3);
+      if (meaningful.length >= 2 && meaningful.every((part) => new RegExp(`\\b${escapeRegExp(part)}\\b`).test(text))) return 0.6;
+      return 0;
+    }
+    if (normalizedKeyword.length < 3) return 0;
+    return new RegExp(`\\b${escapeRegExp(normalizedKeyword)}\\b`).test(text) ? 1 : 0;
+  };
+
+  const scores = DOMAIN_KEYS.map((domain) => {
+    const definition = TAXONOMY_DOMAINS[domain];
+    const score = (definition.keywords || []).reduce((acc, keyword) => {
+      const keywordScore = sources.reduce((sum, source) => sum + source.weight * matchStrength(source.text, keyword), 0);
+      return acc + keywordScore;
+    }, 0);
+    return { domain, score };
+  }).filter((item) => item.score > 0);
+
+  return scores.sort((a, b) => b.score - a.score);
+};
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
+const resolveJobDomains = (job: Job): {
+  domains: CandidateDomainKey[];
+  primaryDomain: CandidateDomainKey | null;
+  topScore: number;
+  secondScore: number;
+  scoreGap: number;
+  confidence: number;
+  source: 'title_override' | 'taxonomy';
+} => {
+  const override = resolveDomainOverrideFromTitle(job.title || '');
+  if (override) {
+    const domains = uniqueDomains([override, ...getRelatedDomains(override)].slice(0, 3));
+    return {
+      domains,
+      primaryDomain: domains[0] || override,
+      topScore: 1,
+      secondScore: 0,
+      scoreGap: 1,
+      confidence: 1,
+      source: 'title_override',
+    };
+  }
+  const scores = scoreDomainsForJob(job);
+  const topScore = Number(scores[0]?.score || 0);
+  const secondScore = Number(scores[1]?.score || 0);
+  const scoreGap = Math.max(0, topScore - secondScore);
+  // Confidence is driven primarily by how far ahead the winner is compared to runner-up.
+  // If runner-up is close, we prefer a neutral UI over a wrong domain accent.
+  const confidence = topScore <= 0 ? 0 : clamp01(scoreGap / Math.max(8, secondScore + 2));
+  const domains = uniqueDomains(scores.slice(0, 3).map((item) => item.domain));
+  return {
+    domains,
+    primaryDomain: domains[0] || null,
+    topScore,
+    secondScore,
+    scoreGap,
+    confidence,
+    source: 'taxonomy',
+  };
 };
 
 const roleSignalScore = (jobTitle: string, targetRole: string): number => {
@@ -326,6 +462,129 @@ const seniorityDistance = (left: CandidateSeniority | null, right: CandidateSeni
   return Math.abs(order.indexOf(left) - order.indexOf(right));
 };
 
+const getStaticCoords = (value: string): { lat: number; lon: number } | null => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  const entries = Object.entries(STATIC_CITY_COORDS).sort((left, right) => right[0].length - left[0].length);
+  for (const [key, coords] of entries) {
+    if (normalized.includes(key)) return coords;
+  }
+  return null;
+};
+
+const calculateAirDistanceKm = (
+  left: { lat: number; lon: number },
+  right: { lat: number; lon: number },
+): number => {
+  const toRad = (deg: number) => deg * (Math.PI / 180);
+  const earthRadiusKm = 6371;
+  const dLat = toRad(right.lat - left.lat);
+  const dLon = toRad(right.lon - left.lon);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(left.lat)) * Math.cos(toRad(right.lat)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+};
+
+const inferTargetRoleDomain = (targetRole: string): CandidateDomainKey | null => {
+  const override = resolveDomainOverrideFromTitle(targetRole);
+  if (override) return override;
+  const inferred = scoreDomains([targetRole])[0]?.domain || null;
+  return inferred;
+};
+
+const isIncompatibleDomainPair = (
+  expected: CandidateDomainKey | null,
+  actual: CandidateDomainKey | null,
+): boolean => {
+  if (!expected || !actual) return false;
+  if (expected === actual) return false;
+  return !getRelatedDomains(expected).includes(actual);
+};
+
+const isFrontlineHospitalityRole = (job: Job): boolean => {
+  const text = normalizeText([job.title, job.description, job.challenge].filter(Boolean).join(' '));
+  if (!text) return false;
+  return /\b(cisnik|čašnik|casnik|waiter|server|barista|receptionist|recepcni|housekeeping|concierge|kuchar|cook)\b/.test(text);
+};
+
+const isManualIndustrialRole = (job: Job): boolean => {
+  const text = normalizeText([job.title, job.description, job.challenge, ...(job.tags || [])].filter(Boolean).join(' '));
+  if (!text) return false;
+  return /\b(montazni|montaz|delnik|de lnik|operator vyrob|operator výroby|vyroba|výroba|assembly|assembler|production operator|factory worker|manual worker|obalovac|skladnik|picker|packer|expedient)\b/.test(text);
+};
+
+const collectCandidateQualificationText = (profile: UserProfile): string => normalizeText([
+  profile.preferences?.desired_role,
+  profile.jobTitle,
+  profile.cvText,
+  profile.cvAiText,
+  profile.story,
+  ...(profile.skills || []),
+  ...(profile.inferredSkills || []),
+  ...(profile.workHistory || []).flatMap((item) => [item.role, item.description, item.company]),
+  ...(profile.education || []).flatMap((item) => [item.degree, item.field, item.school]),
+].filter(Boolean).join(' '));
+
+const missingDriverQualification = (profileText: string, jobText: string): boolean => {
+  const normalized = normalizeText(jobText);
+  if (!/\b(ridic|řidič|driver|truck driver|delivery driver|kuryr|kurýr)\b/.test(normalized)) return false;
+
+  const hasHeavyLicenseRequirement =
+    /\b(c\+e|ce|c1|skupin[ay] c|skupin[ay] d|ridicsk[yae]* opravneni c|ridicsk[yae]* opravneni d|license c|license d|group c|group d|cdl)\b/.test(normalized);
+  if (!hasHeavyLicenseRequirement) return false;
+
+  const hasCandidateLicense =
+    /\b(c\+e|ce|c1|skupin[ay] c|skupin[ay] d|cdl|ridicsk[yae]* opravneni c|ridicsk[yae]* opravneni d|license c|license d|group c|group d)\b/.test(profileText);
+  return !hasCandidateLicense;
+};
+
+const missingRoleSpecificQualification = (profile: UserProfile, job: Job, targetRole: string): boolean => {
+  const profileText = collectCandidateQualificationText(profile);
+  const jobText = normalizeText([job.title, job.description, job.challenge, ...(job.tags || []), ...(job.required_skills || [])].filter(Boolean).join(' '));
+  if (!jobText) return false;
+
+  if (missingDriverQualification(profileText, jobText)) return true;
+
+  const knowledgeTarget = isKnowledgeRoleTarget(targetRole);
+  const candidateHasCulinaryBackground = /\b(kuchar|kuchař|chef|cook|gastronom|restaurant|kitchen|kuchyne|kuchyň)\b/.test(profileText);
+  const jobIsCulinary = /\b(kuchar|kuchař|chef|cook|sous chef|pizza[rř]|kitchen)\b/.test(jobText);
+  if (knowledgeTarget && jobIsCulinary && !candidateHasCulinaryBackground) return true;
+
+  const candidateHasFrontlineHospitalityBackground = /\b(cisnik|čašnik|casnik|waiter|server|barista|receptionist|recepcni|housekeeping|concierge|hostes|hostess)\b/.test(profileText);
+  const jobIsFrontlineHospitality = /\b(cisnik|čašnik|casnik|waiter|server|barista|receptionist|recepcni|housekeeping|concierge|hostes|hostess)\b/.test(jobText);
+  if (knowledgeTarget && jobIsFrontlineHospitality && !candidateHasFrontlineHospitalityBackground) return true;
+
+  const candidateHasHealthcareQualification = /\b(sestra|nurse|paramedic|zdravotn|sanitar|sanit[aá]r|physio|lekar|lékař)\b/.test(profileText);
+  const jobNeedsHealthcareQualification = /\b(zdravotni sestra|nurse|paramedic|sanitar|prakticka sestra|registered nurse)\b/.test(jobText);
+  if (knowledgeTarget && jobNeedsHealthcareQualification && !candidateHasHealthcareQualification) return true;
+
+  return false;
+};
+
+const isKnowledgeRoleTarget = (targetRole: string): boolean => {
+  const text = normalizeText(targetRole);
+  if (!text) return false;
+  return /\b(product|manager|architect|architekt|operations|strategy|system|ai|owner|consultant|lead|director|engineer|designer|analyst)\b/.test(text);
+};
+
+const getFallbackDistancePenalty = (profile: UserProfile, job: Job, isRemote: boolean): number => {
+  if (isRemote) return 0;
+  if (Number.isFinite(Number(job.distanceKm))) return 0;
+
+  const userCoords = profile.coordinates || getStaticCoords(profile.address || '');
+  const jobCoords = getStaticCoords(job.location || '');
+  if (!userCoords || !jobCoords) return 0;
+
+  const fallbackDistanceKm = calculateAirDistanceKm(userCoords, jobCoords);
+  if (fallbackDistanceKm > 150) return -42;
+  if (fallbackDistanceKm > 80) return -24;
+  if (fallbackDistanceKm > 40) return -12;
+  return 0;
+};
+
 export const annotateJobsForCandidate = (
   jobs: Job[],
   profile: UserProfile,
@@ -341,11 +600,20 @@ export const computeCandidateAnnotations = (
 ): Job[] => {
   const intent = resolveCandidateIntentProfile(profile);
   const localizedDomain = intent.primaryDomain ? getCandidateIntentDomainLabel(intent.primaryDomain, locale) : '';
+  const targetRoleDomain = inferTargetRoleDomain(intent.targetRole);
+  const roleDirectedMode = Boolean(intent.targetRole);
+  const explicitRoleMode = Boolean(intent.usedManualRole && intent.targetRole);
+  const dominantIntentDomain =
+    roleDirectedMode && targetRoleDomain
+      ? targetRoleDomain
+      : intent.primaryDomain;
+  const localizedDominantDomain = dominantIntentDomain ? getCandidateIntentDomainLabel(dominantIntentDomain, locale) : '';
 
   return jobs
     .map((job, index) => {
-      const jobDomains = resolveJobDomains(job);
-      const primaryJobDomain = jobDomains[0] || null;
+      const jobDomainInference = resolveJobDomains(job);
+      const jobDomains = jobDomainInference.domains;
+      const primaryJobDomain = jobDomainInference.primaryDomain;
       const inferredSeniority = inferSeniorityFromText(job.title, job.description, job.challenge, job.risk);
       const reasons: string[] = [];
       let priorityScore = 0;
@@ -360,9 +628,22 @@ export const computeCandidateAnnotations = (
         reasons.push(intent.targetRole);
       }
 
-      if (intent.primaryDomain && primaryJobDomain === intent.primaryDomain) {
+      if (targetRoleDomain && primaryJobDomain === targetRoleDomain) {
+        priorityScore += 36;
+        if (localizedDominantDomain) reasons.push(localizedDominantDomain);
+      }
+
+      if (dominantIntentDomain && primaryJobDomain === dominantIntentDomain) {
         priorityScore += 34;
         matchBucket = 'best_fit';
+        if (localizedDominantDomain) reasons.push(localizedDominantDomain);
+      } else if (
+        intent.primaryDomain &&
+        primaryJobDomain === intent.primaryDomain &&
+        dominantIntentDomain !== intent.primaryDomain &&
+        !roleDirectedMode
+      ) {
+        priorityScore += 8;
         if (localizedDomain) reasons.push(localizedDomain);
       } else if (intent.secondaryDomains.includes(primaryJobDomain as CandidateDomainKey)) {
         priorityScore += 20;
@@ -389,13 +670,94 @@ export const computeCandidateAnnotations = (
         }
       }
 
-      priorityScore += Math.min(12, Math.round((job.jhi?.score || 0) / 10));
+      const hasTargetRoleDomainMismatch = isIncompatibleDomainPair(targetRoleDomain, primaryJobDomain);
+      const hasQualificationMismatch = missingRoleSpecificQualification(profile, job, intent.targetRole);
+      if (explicitRoleMode && roleScore < 0.34) {
+        priorityScore -= 26;
+      }
+      if (explicitRoleMode && roleScore === 0 && hasTargetRoleDomainMismatch) {
+        priorityScore -= 38;
+      }
+      if (
+        explicitRoleMode &&
+        intent.seniority &&
+        (intent.seniority === 'senior' || intent.seniority === 'lead') &&
+        isKnowledgeRoleTarget(intent.targetRole) &&
+        isFrontlineHospitalityRole(job)
+      ) {
+        priorityScore -= 34;
+      }
+      if (
+        explicitRoleMode &&
+        isKnowledgeRoleTarget(intent.targetRole) &&
+        isManualIndustrialRole(job)
+      ) {
+        priorityScore -= 36;
+      }
+      if (
+        explicitRoleMode &&
+        targetRoleDomain &&
+        primaryJobDomain &&
+        primaryJobDomain !== targetRoleDomain &&
+        !getRelatedDomains(targetRoleDomain).includes(primaryJobDomain)
+      ) {
+        priorityScore -= 22;
+      }
+      if (hasQualificationMismatch) {
+        priorityScore -= 48;
+      }
+      if (primaryJobDomain && intent.avoidDomains.includes(primaryJobDomain)) {
+        priorityScore -= 46;
+      }
 
-      if (matchBucket === 'broader' && roleScore >= 0.5) {
+      priorityScore += Math.min(12, Math.round((job.jhi?.score || 0) / 10));
+      priorityScore += getFreshnessPriorityBoost(job);
+
+      // Heavily penalize jobs that are simply too far, unless they are remote
+      const isRemote = String(job.type || '').toLowerCase() === 'remote' || String(job.location || '').toLowerCase() === 'remote';
+      if (!isRemote && Number.isFinite(Number(job.distanceKm))) {
+        const dist = Number(job.distanceKm);
+        if (dist > 40) priorityScore -= 15;
+        if (dist > 80) priorityScore -= 30;
+        if (dist > 150) priorityScore -= 60;
+      }
+      priorityScore += getFallbackDistancePenalty(profile, job, isRemote);
+
+      // ENHANCED: Prevent false-positive role matches across incompatible domains
+      // If user has explicit primary domain (e.g., Product Manager = operations domain),
+      // and job is completely different domain (e.g., manufacturing),
+      // do NOT upgrade to adjacent/best_fit based on partial word matches.
+      const hasIncompatibleDomain =
+        dominantIntentDomain &&
+        primaryJobDomain &&
+        primaryJobDomain !== dominantIntentDomain &&
+        !intent.secondaryDomains.includes(primaryJobDomain as CandidateDomainKey) &&
+        !getRelatedDomains(dominantIntentDomain).includes(primaryJobDomain as CandidateDomainKey);
+
+      const hasExplicitRoleMismatch =
+        explicitRoleMode &&
+        roleScore < 0.34 &&
+        hasTargetRoleDomainMismatch;
+
+      if (matchBucket === 'broader' && roleScore >= 0.5 && !hasIncompatibleDomain && !hasExplicitRoleMismatch) {
         matchBucket = 'adjacent';
       }
       if (matchBucket === 'adjacent' && roleScore >= 1 && intent.primaryDomain && primaryJobDomain === intent.primaryDomain) {
         matchBucket = 'best_fit';
+      }
+      if (hasQualificationMismatch) {
+        matchBucket = 'broader';
+      }
+      if (primaryJobDomain && intent.avoidDomains.includes(primaryJobDomain)) {
+        matchBucket = 'broader';
+      }
+      if (
+        explicitRoleMode &&
+        isKnowledgeRoleTarget(intent.targetRole) &&
+        isFrontlineHospitalityRole(job) &&
+        roleScore < 0.5
+      ) {
+        matchBucket = 'broader';
       }
 
       if (!intent.primaryDomain && !intent.targetRole) {
@@ -407,13 +769,29 @@ export const computeCandidateAnnotations = (
         priorityScore,
         matchBucket,
         matchReasons: uniqueStrings(
-          uniqueDomains(jobDomains)
-            .slice(0, 2)
-            .map((domain) => getCandidateIntentDomainLabel(domain, locale))
-            .concat(reasons)
-        ).slice(0, 3),
+          reasons.concat(
+            (
+              explicitRoleMode && hasExplicitRoleMismatch
+                ? []
+                : uniqueDomains(jobDomains)
+                    .filter((domain) => {
+                      if (!dominantIntentDomain) return !roleDirectedMode;
+                      if (domain === dominantIntentDomain) return true;
+                      if (intent.secondaryDomains.includes(domain)) return true;
+                      return getRelatedDomains(dominantIntentDomain).includes(domain);
+                    })
+                    .slice(0, 2)
+                    .map((domain) => getCandidateIntentDomainLabel(domain, locale))
+            )
+          )
+        )
+          .filter((reason) => !(hasQualificationMismatch && reason === getCandidateIntentDomainLabel(primaryJobDomain, locale)))
+          .slice(0, 3),
         matchedDomains: jobDomains,
         inferredDomain: primaryJobDomain,
+        inferredDomainConfidence: jobDomainInference.confidence,
+        inferredDomainScoreGap: jobDomainInference.scoreGap,
+        inferredDomainSource: jobDomainInference.source,
         inferredSeniority,
         searchDiagnostics: {
           source: job.searchDiagnostics?.source || (job.listingKind === 'imported' ? 'cached_external' : 'native'),
@@ -434,6 +812,8 @@ export const sortJobsForDiscovery = <T extends Job>(jobs: T[]): T[] => {
     if (bucketDiff !== 0) return bucketDiff;
     const scoreDiff = Number(right.priorityScore || 0) - Number(left.priorityScore || 0);
     if (scoreDiff !== 0) return scoreDiff;
+    const freshnessDiff = parseTimestampMs((right as any).scrapedAt || (right as any).postedAt) - parseTimestampMs((left as any).scrapedAt || (left as any).postedAt);
+    if (freshnessDiff !== 0) return freshnessDiff;
     const jhiDiff = Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
     if (jhiDiff !== 0) return jhiDiff;
     return 0;
@@ -446,5 +826,8 @@ export const getCandidateIntentSignals = (profile: UserProfile, locale?: string)
   if (intent.primaryDomain) signals.push(getCandidateIntentDomainLabel(intent.primaryDomain, locale));
   if (intent.targetRole) signals.push(intent.targetRole);
   if (intent.seniority) signals.push(intent.seniority);
+  if (intent.avoidDomains.length > 0) {
+    signals.push(...intent.avoidDomains.map((domain) => `${locale === 'cs' ? 'Vyhnout se' : locale === 'sk' ? 'Vyhnúť sa' : locale === 'de' ? 'Meiden' : locale === 'pl' ? 'Unikaj' : 'Avoid'} ${getCandidateIntentDomainLabel(domain, locale)}`));
+  }
   return signals.filter(Boolean);
 };

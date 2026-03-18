@@ -4,6 +4,7 @@ import {
     JobChallengeFormat,
     JobHumanContext,
     JobHiringStage,
+    JobRelatedChallenge,
     JobWorkArrangementFilter,
     JHI,
     JHIPreferences,
@@ -578,6 +579,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         company_id: scrapedJob.company_id ? String(scrapedJob.company_id) : undefined,
         title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
         company: scrapedJob.company || 'Neznámá společnost',
+        companyGoal: (scrapedJob as any).company_goal ?? (scrapedJob as any).companyGoal ?? null,
         location: locationString,
         type: jobType,
         work_model: scrapedJob.work_model,
@@ -1384,7 +1386,7 @@ const fetchWeWorkRemotelyLiveJobs = async (options: {
 
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1439,7 +1441,7 @@ const fetchJoobleLiveJobs = async (options: {
 
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1492,7 +1494,7 @@ const fetchArbeitnowLiveJobs = async (options: {
         }
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'live_external'));
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
     } catch (error) {
         if (isAbortFetchError(error)) {
             throw error;
@@ -1547,7 +1549,7 @@ const fetchCachedExternalFeedJobs = async (options: {
         const payload = await response.json();
         const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
         return {
-            jobs: filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true), 'cached_external')),
+            jobs: filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'cached_external')),
             hasMore: Boolean(payload?.has_more),
             totalCount: Number(payload?.total_count || 0),
             meta: payload?.meta || undefined
@@ -1567,6 +1569,64 @@ const fetchCachedExternalFeedJobs = async (options: {
                 degraded_reasons: ['cached_feed_unavailable']
             }
         };
+    }
+};
+
+const fetchJobSpyExternalJobs = async (options: {
+    searchTerm?: string;
+    filterCity?: string;
+    countryCodes?: string[];
+    excludeCountryCodes?: string[];
+    abortSignal?: AbortSignal;
+    page?: number;
+    pageSize?: number;
+    includeJhi?: boolean;
+}): Promise<Job[]> => {
+    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!backendBase) return [];
+
+    const params = new URLSearchParams();
+    params.set('page', String(Math.max(0, options.page || 0)));
+    params.set('page_size', String(Math.max(1, Math.min(options.pageSize || 24, 100))));
+    if ((options.searchTerm || '').trim()) {
+        params.set('search_term', String(options.searchTerm).trim());
+    }
+    if ((options.filterCity || '').trim()) {
+        params.set('location', String(options.filterCity).trim());
+    }
+    if (options.countryCodes && options.countryCodes.length > 0) {
+        params.set('country_codes', options.countryCodes.join(','));
+    }
+    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
+        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
+    }
+
+    try {
+        const response = await authenticatedFetch(
+            `${backendBase}/jobs/external/jobspy/search?${params.toString()}`,
+            {
+                method: 'GET',
+                signal: options.abortSignal
+            }
+        );
+        if (response.status === 404) {
+            return [];
+        }
+        if (!response.ok) {
+            throw new Error(`JobSpy external search failed: ${response.status}`);
+        }
+        const payload = await response.json();
+        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'cached_external'));
+    } catch (error) {
+        if (isAbortFetchError(error)) {
+            throw error;
+        }
+        if (String((error as any)?.message || '').includes('404')) {
+            return [];
+        }
+        console.warn('JobSpy external cache unavailable:', error);
+        return [];
     }
 };
 
@@ -1608,9 +1668,10 @@ export const fetchExternalOverlayJobs = async (options: {
     const cachedBudgetMs = mode === 'recovery'
         ? (safeSearchTerm ? 3200 : 1800)
         : (safeSearchTerm ? 1200 : 650);
+    const browseWithoutExplicitQuery = !safeSearchTerm && !filterCity;
     const cached = await withTimeout(
         fetchCachedExternalFeedJobs({
-            searchTerm: providerSearchTerm || safeSearchTerm || undefined,
+            searchTerm: browseWithoutExplicitQuery ? undefined : (providerSearchTerm || safeSearchTerm || undefined),
             filterCity,
             countryCodes,
             excludeCountryCodes,
@@ -1647,8 +1708,23 @@ export const fetchExternalOverlayJobs = async (options: {
         });
     }
 
-    let cachedJobs = cached.jobs || [];
-    if (!safeSearchTerm && safeSeed) {
+    const directJobSpyJobs = await withTimeout(
+        fetchJobSpyExternalJobs({
+            searchTerm: browseWithoutExplicitQuery ? undefined : (providerSearchTerm || safeSearchTerm || undefined),
+            filterCity,
+            countryCodes,
+            excludeCountryCodes,
+            abortSignal,
+            page: 0,
+            pageSize: mode === 'recovery' ? 40 : 32,
+            includeJhi
+        }),
+        mode === 'recovery' ? 2200 : 1200,
+        []
+    );
+
+    let cachedJobs = filterJobsByQuality(dedupeJobsList([...(cached.jobs || []), ...directJobSpyJobs]));
+    if (!safeSearchTerm && safeSeed && !browseWithoutExplicitQuery) {
         const tokens = safeSeed
             .toLowerCase()
             .split(/\s+/g)
@@ -1901,7 +1977,7 @@ const LOCATION_COUNTRY_HINTS: Array<{ code: string; hints: string[] }> = [
     { code: 'at', hints: ['austria', 'osterreich', 'österreich', 'vienna', 'wien', 'linz', 'graz', 'salzburg'] },
 ];
 
-const buildSearchMatcher = (input: string): {
+export const buildSearchMatcher = (input: string): {
     normalizedQuery: string;
     requiredTokens: string[];
     optionalTokens: string[];
@@ -1986,7 +2062,7 @@ const inferCountryCodeFromSearchText = (input: string): string => {
     return '';
 };
 
-const matchesSearchMatcher = (
+export const matchesSearchMatcher = (
     haystack: string,
     matcher: {
         normalizedQuery: string;
@@ -2016,7 +2092,18 @@ const matchesSearchMatcher = (
 
         const driverLicenseTokens = matcher.queryTokens.filter((token) => DRIVER_LICENSE_TOKENS.has(token));
         if (driverLicenseTokens.length > 0) {
-            return driverLicenseTokens.every((token) => containsDriverLicenseReference(searchable, token));
+            const hasStrictLicenseReference = driverLicenseTokens.every((token) =>
+                containsDriverLicenseReference(searchable, token)
+            );
+            if (hasStrictLicenseReference) {
+                return true;
+            }
+
+            // Real listings often mention the role clearly but format the licence loosely
+            // ("Ridic B", "Ridic RP B", "Ridic dodavky B+E"). In those cases, keep a
+            // driver-role query alive as long as the licence token still appears as a
+            // standalone token somewhere in the searchable text.
+            return driverLicenseTokens.every((token) => containsWholeToken(searchable, token));
         }
 
         return true;
@@ -2572,21 +2659,27 @@ const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
 
 const sortJobsForMode = (
     jobs: Job[],
-    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc'
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
+    options?: {
+        preferNative?: boolean;
+    }
 ): Job[] => {
+    const preferNative = options?.preferNative ?? true;
+    const maybePrioritizeNative = (items: Job[]) => (preferNative ? prioritizeNativeListings(items) : items);
+
     if (!jobs.length || sortMode === 'default' || sortMode === 'recommended') {
-        return prioritizeNativeListings(jobs);
+        return maybePrioritizeNative(jobs);
     }
 
     const sorted = [...jobs];
     if (sortMode === 'newest') {
-        return prioritizeNativeListings(sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt)));
+        return maybePrioritizeNative(sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt)));
     }
     if (sortMode === 'jhi_desc') {
-        return prioritizeNativeListings(sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0)));
+        return maybePrioritizeNative(sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0)));
     }
     if (sortMode === 'distance') {
-        return prioritizeNativeListings(sorted.sort((a, b) => {
+        return maybePrioritizeNative(sorted.sort((a, b) => {
             const da = (a as any)?.distance_km ?? (a as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             const db = (b as any)?.distance_km ?? (b as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             return da - db;
@@ -2609,9 +2702,9 @@ const sortJobsForMode = (
             if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
             return salary;
         };
-        return prioritizeNativeListings(sorted.sort((a, b) => toMonthly(b) - toMonthly(a)));
+        return maybePrioritizeNative(sorted.sort((a, b) => toMonthly(b) - toMonthly(a)));
     }
-    return prioritizeNativeListings(jobs);
+    return maybePrioritizeNative(jobs);
 };
 
 const finalizeSearchDiagnostics = (
@@ -2654,6 +2747,7 @@ export const rankJobsForSearchMode = (
     }
 ): Job[] => {
     if (!jobs.length) return jobs;
+    const preferNativeBias = !(searchMode === 'manual_query' || matcher.queryTokens.length > 0);
 
     if (searchMode === 'manual_query' && matcher.queryTokens.length > 0) {
         const ranked = [...jobs].sort((left, right) => {
@@ -2665,7 +2759,7 @@ export const rankJobsForSearchMode = (
             if (backendDiff !== 0) return backendDiff;
             return Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
         });
-        const sorted = sortJobsForMode(ranked, sortMode);
+        const sorted = sortJobsForMode(ranked, sortMode, { preferNative: preferNativeBias });
         const capped = applyExternalTopCap(sorted);
         return finalizeSearchDiagnostics(capped, matcher, searchMode);
     }
@@ -2680,7 +2774,11 @@ export const rankJobsForSearchMode = (
         })
         : [...jobs];
 
-    return finalizeSearchDiagnostics(sortJobsForMode(sorted, sortMode), matcher, searchMode);
+    return finalizeSearchDiagnostics(
+        sortJobsForMode(sorted, sortMode, { preferNative: preferNativeBias }),
+        matcher,
+        searchMode
+    );
 };
 
 /**
@@ -4131,6 +4229,22 @@ export const fetchJobHumanContext = async (jobId: string | number): Promise<JobH
     }
 };
 
+export const fetchJobRelatedChallenges = async (jobId: string | number): Promise<JobRelatedChallenge[]> => {
+    try {
+        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/${jobId}/related`, {
+            method: 'GET'
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const payload = await response.json() as { items?: JobRelatedChallenge[] };
+        return Array.isArray(payload?.items) ? payload.items : [];
+    } catch (error) {
+        console.warn('Failed to fetch related challenges:', error);
+        return [];
+    }
+};
+
 export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
     if (!isSupabaseConfigured() || !supabase || !Array.isArray(jobIds) || jobIds.length === 0) {
         return [];
@@ -4442,6 +4556,8 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                 scrapedAt: scraped.scraped_at,
                 source: scraped.source || 'Scraper',
                 url: scraped.url,
+                country_code: scraped.country_code,
+                language_code: (scraped as any).language_code,
                 lat: resolvedCoords.lat,
                 lng: resolvedCoords.lng,
                 ...(distanceKm !== undefined && { distanceKm }),

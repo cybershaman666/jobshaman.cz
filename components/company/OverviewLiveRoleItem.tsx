@@ -54,32 +54,32 @@ const OverviewLiveRoleItem: React.FC<OverviewLiveRoleItemProps> = ({
       default:
         return {
           label: t('company.dashboard.role_status.active', { defaultValue: 'Active' }),
-          className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/30'
+          className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/30'
         };
     }
   })();
 
   return (
-    <div className="company-surface-subtle rounded-[var(--radius-md)] border p-4 shadow-[var(--shadow-soft)]">
+    <div className="company-surface-subtle app-organic-panel-soft rounded-[var(--radius-md)] border p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">{job.title}</div>
           <div className="mt-1 text-xs text-[var(--text-muted)]">{job.location}</div>
         </div>
-        <span className={`company-pill-surface rounded-full px-2.5 py-1 text-[11px] font-medium border ${roleStatusMeta.className}`}>
+        <span className={`company-pill-surface app-organic-pill rounded-full px-2.5 py-1 text-[11px] font-medium border ${roleStatusMeta.className}`}>
           {roleStatusMeta.label}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="company-surface-soft rounded-[0.95rem] border p-2">
+        <div className="company-surface-soft app-organic-panel-soft rounded-[0.95rem] border p-2">
           <div className="text-[11px] text-[var(--text-faint)]">{t('company.dashboard.table.views_count')}</div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">{stats.views}</div>
         </div>
-        <div className="company-surface-soft rounded-[0.95rem] border p-2">
+        <div className="company-surface-soft app-organic-panel-soft rounded-[0.95rem] border p-2">
           <div className="text-[11px] text-[var(--text-faint)]">{t('company.workspace.labels.applications', { defaultValue: 'Dialogues' })}</div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">{stats.applicants}</div>
         </div>
-        <div className="company-surface-soft rounded-[0.95rem] border p-2">
+        <div className="company-surface-soft app-organic-panel-soft rounded-[0.95rem] border p-2">
           <div className="text-[11px] text-[var(--text-faint)]">{t('company.dashboard.table.conv_rate')}</div>
           <div className="text-sm font-semibold text-[var(--text-strong)]">
             {stats.views > 0 ? `${((stats.applicants / stats.views) * 100).toFixed(1)}%` : '0.0%'}
@@ -87,7 +87,7 @@ const OverviewLiveRoleItem: React.FC<OverviewLiveRoleItemProps> = ({
         </div>
       </div>
       {(firstReply || companyTruthHard) && (
-        <div className="mt-3 space-y-2 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-2.5">
+        <div className="company-surface-soft app-organic-panel-soft mt-3 space-y-2 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-2.5">
           {firstReply && (
             <div className="text-[11px] leading-relaxed text-[var(--text)]">
               <span className="font-semibold text-[var(--accent)]">
@@ -107,10 +107,10 @@ const OverviewLiveRoleItem: React.FC<OverviewLiveRoleItemProps> = ({
         </div>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        <button onClick={() => onEditJob(job.id)} className="app-button-secondary rounded-full px-3 py-1.5 text-xs">
+        <button onClick={() => onEditJob(job.id)} className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-xs">
           {t('company.dashboard.actions.edit')}
         </button>
-        <button onClick={() => onOpenJobApplications(job.id)} className="app-button-secondary rounded-full px-3 py-1.5 text-xs">
+        <button onClick={() => onOpenJobApplications(job.id)} className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-xs">
           {t('company.jobs.open_applications', { defaultValue: 'Open dialogues' })}
         </button>
       </div>

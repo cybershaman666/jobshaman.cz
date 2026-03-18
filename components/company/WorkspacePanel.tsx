@@ -20,7 +20,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({
   const hasHeader = Boolean(title || subtitle || action);
 
   return (
-    <div className={`company-surface rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)] ${className}`.trim()}>
+    <div className={`company-surface app-organic-panel rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)] ${className}`.trim()}>
       {hasHeader && (
         <div className="mb-3.5 flex items-start justify-between gap-3">
           <div>

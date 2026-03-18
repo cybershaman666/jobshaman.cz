@@ -14,6 +14,7 @@ import {
   hasRequiredAnswers,
   isStepTransitionAllowed,
 } from '../services/demoHandshakeFlow';
+import { SolarpunkProgressFlow } from '../components/ui/primitives';
 
 interface DemoHandshakePageProps {
   onRegister?: () => void;
@@ -294,13 +295,13 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
 
   return (
     <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar px-1">
-      <section className="mx-auto w-full max-w-5xl rounded-[1.4rem] border border-slate-200/80 dark:border-slate-800 bg-white/86 dark:bg-slate-900/70 p-5 lg:p-7 shadow-[0_22px_50px_-40px_rgba(15,23,42,0.38)]">
+      <section className="app-organic-shell mx-auto w-full max-w-5xl rounded-[1.4rem] border border-slate-200/80 dark:border-slate-800 bg-white/86 dark:bg-slate-900/70 p-5 lg:p-7 shadow-[0_22px_50px_-40px_rgba(15,23,42,0.38)]">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/70 dark:border-cyan-800 bg-cyan-50/80 dark:bg-cyan-900/25 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
+          <div className="app-organic-pill inline-flex items-center gap-2 rounded-full border border-cyan-300/70 dark:border-cyan-800 bg-cyan-50/80 dark:bg-cyan-900/25 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
             <Sparkles size={12} />
             {t('demo_handshake.badge')}
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/70 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+          <div className="app-organic-pill inline-flex items-center gap-2 rounded-full border border-slate-300/70 dark:border-slate-700 bg-white/70 dark:bg-slate-950/40 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
             <Clock3 size={12} />
             {t('demo_handshake.reaction_window_value')}
           </div>
@@ -313,7 +314,19 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
           {t('demo_handshake.subtitle')}
         </p>
 
-        <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="app-organic-panel-soft mt-6 py-4 px-4 rounded-lg bg-slate-50/40 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800/50">
+          <SolarpunkProgressFlow 
+            steps={[
+              { label: t('demo_handshake.step_company_truth'), completed: step !== 'company_truth' && stepIndex > 0 },
+              { label: t('demo_handshake.step_candidate_reply'), completed: step !== 'candidate_reply' && stepIndex > 1 },
+              { label: t('demo_handshake.step_first_reply'), completed: step !== 'first_company_reply' && stepIndex > 2 },
+              { label: t('demo_handshake.step_complete'), completed: step === 'completed' }
+            ]}
+            currentStep={stepIndex}
+          />
+        </div>
+
+        <div className="mt-5 hidden grid-cols-2 gap-2 md:grid md:grid-cols-4">
           {[
             ['company_truth', t('demo_handshake.step_company_truth')],
             ['candidate_reply', t('demo_handshake.step_candidate_reply')],
@@ -326,7 +339,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
                 key={key}
                 className={`rounded-lg border px-2.5 py-2 text-xs font-semibold ${
                   reached
-                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                    ? 'border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300'
                     : 'border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400'
                 }`}
               >
@@ -338,9 +351,9 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
       </section>
 
       {step === 'company_truth' && (
-        <section className="mx-auto mt-4 w-full max-w-5xl rounded-[1.2rem] border border-slate-200/80 dark:border-slate-800 bg-white/88 dark:bg-slate-900/66 p-5 lg:p-6">
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/80 dark:bg-cyan-950/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-700 dark:text-cyan-300">
+        <section className="app-organic-panel mx-auto mt-4 w-full max-w-5xl rounded-[1.2rem] border border-slate-200/80 dark:border-slate-800 bg-white/88 dark:bg-slate-900/66 p-5 lg:p-6">
+          <div className="app-organic-panel-soft rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-4">
+            <div className="app-organic-pill inline-flex items-center gap-2 rounded-full border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/80 dark:bg-cyan-950/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-700 dark:text-cyan-300">
               {t('demo_handshake.demo_listing_badge')}
             </div>
             <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{t('demo_handshake.demo_listing_title')}</h3>
@@ -405,7 +418,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
           <button
             type="button"
             onClick={handleMoveToCandidateReply}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-400 transition-colors"
+            className="app-button-primary app-organic-cta mt-4 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold"
           >
             {t('demo_handshake.continue_to_reply')}
             <ArrowRight size={16} />
@@ -414,18 +427,18 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
       )}
 
       {step === 'candidate_reply' && (
-        <section className="mx-auto mt-4 w-full max-w-5xl rounded-[1.2rem] border border-slate-200/80 dark:border-slate-800 bg-white/88 dark:bg-slate-900/66 p-5 lg:p-6">
+        <section className="app-organic-panel mx-auto mt-4 w-full max-w-5xl rounded-[1.2rem] border border-slate-200/80 dark:border-slate-800 bg-white/88 dark:bg-slate-900/66 p-5 lg:p-6">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
             <MessageSquare size={14} />
             {t('demo_handshake.prompts_title')}
           </div>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t('demo_handshake.prompt_hint')}</p>
-          <div className="mt-2 inline-flex rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50/75 dark:bg-cyan-950/25 px-2.5 py-1.5 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+          <div className="app-organic-pill mt-2 inline-flex rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50/75 dark:bg-cyan-950/25 px-2.5 py-1.5 text-xs font-medium text-cyan-700 dark:text-cyan-300">
             {t('demo_handshake.prefilled_notice')}
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/35 p-4">
+            <div className="app-organic-panel-soft rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/35 p-4">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">{t('demo_handshake.prompt_one')}</div>
               <textarea
                 value={answers.scenarioOne}
@@ -435,7 +448,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
               />
             </div>
 
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/35 p-4">
+            <div className="app-organic-panel-soft rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/35 p-4">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">{t('demo_handshake.prompt_two')}</div>
               <textarea
                 value={answers.scenarioTwo}
@@ -446,7 +459,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-950/30 p-4">
+          <div className="app-organic-panel-soft mt-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-950/30 p-4">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">{t('demo_handshake.supporting_context_title')}</div>
             <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">{t('demo_handshake.supporting_context_desc')}</p>
 
@@ -513,7 +526,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
           <button
             type="button"
             onClick={handleSubmitReplies}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-400 transition-colors"
+            className="app-button-primary app-organic-cta mt-4 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold"
           >
             {t('demo_handshake.submit_reply')}
             <ArrowRight size={16} />
@@ -551,13 +564,13 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
                     <div key={item.key} className="flex items-start gap-2">
                       <CheckCircle2
                         size={15}
-                        className={item.done ? 'mt-0.5 text-emerald-600 dark:text-emerald-300' : 'mt-0.5 text-slate-400 dark:text-slate-500'}
+                        className={item.done ? 'mt-0.5 text-amber-600 dark:text-amber-300' : 'mt-0.5 text-slate-400 dark:text-slate-500'}
                       />
                       <div>
                         <div className={`text-sm ${item.done ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-300'}`}>
                           {item.title}
                         </div>
-                      <div className={`text-[11px] ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <div className={`text-[11px] ${item.done ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'}`}>
                           {item.done
                             ? t('demo_handshake.progress_done', { defaultValue: 'Hotovo' })
                             : t('demo_handshake.progress_pending', { defaultValue: 'Čeká' })}
@@ -604,7 +617,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${
                       includeDocuments
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                     }`}>
                       {t('demo_handshake.include_documents_label')} · {includeDocuments
@@ -613,7 +626,7 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
                     </span>
                     <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${
                       includeJcfpm
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                     }`}>
                       {t('demo_handshake.include_jcfpm_label')} · {includeJcfpm
@@ -694,8 +707,8 @@ const DemoHandshakePage: React.FC<DemoHandshakePageProps> = ({ onRegister, onBro
       )}
 
       {step === 'completed' && (
-        <section className="mx-auto mt-4 mb-2 w-full max-w-5xl rounded-[1.2rem] border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/70 dark:bg-emerald-950/20 p-5 lg:p-6">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/35 text-emerald-700 dark:text-emerald-300">
+        <section className="mx-auto mt-4 mb-2 w-full max-w-5xl rounded-[1.2rem] border border-amber-200 dark:border-amber-900/40 bg-amber-50/70 dark:bg-amber-950/20 p-5 lg:p-6">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/35 text-amber-700 dark:text-amber-300">
             <CheckCircle2 size={20} />
           </div>
           <h2 className="mt-3 text-xl font-bold text-slate-900 dark:text-white">{t('demo_handshake.completed_title')}</h2>

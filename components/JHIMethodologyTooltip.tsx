@@ -20,7 +20,7 @@ const JHIMethodologyTooltip: React.FC<JHIMethodologyTooltipProps> = () => {
         },
         {
             id: 'time',
-            icon: <Clock className="text-emerald-600 dark:text-emerald-400" size={18} />,
+            icon: <Clock className="text-amber-600 dark:text-amber-400" size={18} />,
             weight: '20%',
             title: t('jhi.methodology.time_title', 'Časová Dotace'),
             desc: t('jhi.methodology.time_desc', 'Typ úvazku, remote, hybrid a čas ztracený dojížděním.')

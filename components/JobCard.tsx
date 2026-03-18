@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Job, UserProfile } from '../types';
-import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, MessageCircle } from 'lucide-react';
+import { MapPin, Briefcase, Banknote, Bookmark, Sparkles, Car, Clock } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
@@ -50,7 +50,16 @@ interface JobCardProps {
   displayMode?: 'standard' | 'progressive_teaser';
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile, emphasis = 'standard', displayMode = 'standard' }) => {
+const JobCard: React.FC<JobCardProps> = ({
+  job,
+  onClick,
+  isSelected,
+  isSaved,
+  onToggleSave,
+  userProfile,
+  emphasis = 'standard',
+  displayMode = 'standard'
+}) => {
   const { t, i18n } = useTranslation();
   const localeBase = (i18n.language || 'en').split('-')[0];
   const isCs = localeBase === 'cs';
@@ -58,7 +67,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
-  const aiMatchScore = null;
 
   const formatJobTypeLabel = (raw: string) => {
     if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';
@@ -138,25 +146,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     return rtf.format(-Math.floor(diffSeconds / 604800), 'week');
   };
 
-  const getHiringStageLabel = (stage?: Job['hiring_stage'] | null): string | null => {
-    switch (stage) {
-      case 'collecting_cvs':
-        return t('job.hiring_stage.collecting_supporting_context', { defaultValue: 'Collecting supporting context' });
-      case 'reviewing_first_10':
-        return t('job.hiring_stage.reviewing_first_10', { defaultValue: 'Reviewing first 10 candidates' });
-      case 'shortlisting':
-        return t('job.hiring_stage.shortlisting', { defaultValue: 'Shortlisting' });
-      case 'final_interviews':
-        return t('job.hiring_stage.final_interviews', { defaultValue: 'Final interviews' });
-      case 'offer_stage':
-        return t('job.hiring_stage.offer_stage', { defaultValue: 'Offer stage' });
-      default:
-        return null;
-    }
-  };
-
-  const hiringStageLabel = getHiringStageLabel(job.hiring_stage);
   const relativePostedAt = formatRelativePostedAt();
+  const postedAtLabel = relativePostedAt
+    ? `${isCs ? 'Před' : isSk ? 'Pred' : ''} ${relativePostedAt}`.trim()
+    : '';
 
   const getChallengePreview = (): string | null => {
     const raw = String(job.description || '').trim();
@@ -166,173 +159,66 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       .replace(/\s+/g, ' ')
       .trim();
     if (!normalized) return null;
-    const firstSentence = normalized.split(/(?<=[.!?])\s+/)[0]?.trim() || normalized;
-    const preview = firstSentence.length > 140 ? `${firstSentence.slice(0, 137).trim()}...` : firstSentence;
+    const firstSent = normalized.split(/(?<=[.!?])\s+/)[0]?.trim() || normalized;
+    const preview = firstSent.length > 140 ? `${firstSent.slice(0, 137).trim()}...` : firstSent;
     return preview || null;
   };
 
   const challengePreview = getChallengePreview();
-  const parsedFirstReply = extractMarkdownSection(job.description || '', ['First Reply']);
-  const parsedRoleTruthHard = extractMarkdownSection(job.description || '', ['Company Truth: What Is Actually Hard?']);
-  const parsedRoleTruthFail = extractMarkdownSection(job.description || '', ['Company Truth: Who Typically Struggles?']);
+  const parsedFirstReply = extractMarkdownSection(job.description || '', ['First Reply', 'První odpověď']);
+  const parsedRoleTruthHard = extractMarkdownSection(job.description || '', ['Reality Check', 'Role Truth', 'Pravda o roli']);
+  const parsedRoleTruthFail = extractMarkdownSection(job.description || '', ['The Catch', 'Rizika', 'Kdo neuspěje']);
+
   const hasStructuredHandshakeSignal = Boolean(parsedFirstReply || parsedRoleTruthHard || parsedRoleTruthFail);
-  const roleTruthPreview = clampPreview(
-    parsedRoleTruthHard || parsedRoleTruthFail || challengePreview || t('job.card.role_truth_body', { defaultValue: 'The team wants to see your first practical step before anything else.' }),
-    emphasis === 'hero' ? 180 : 96
-  );
-  const roleTruthMismatchPreview = clampPreview(parsedRoleTruthFail, emphasis === 'hero' ? 150 : 88);
-  const firstReplyPreview = clampPreview(
-    parsedFirstReply || t('job.card.response_prompt_body', { defaultValue: 'Open the handshake and outline your first step, the trade-off, and how you would verify it.' }),
-    emphasis === 'hero' ? 160 : 110
-  );
-
-  const openDialoguesCount = typeof job.open_dialogues_count === 'number' && Number.isFinite(job.open_dialogues_count)
-    ? Math.max(0, Math.round(job.open_dialogues_count))
-    : null;
-  const dialogueCapacityLimit = typeof job.dialogue_capacity_limit === 'number' && Number.isFinite(job.dialogue_capacity_limit)
-    ? Math.max(1, Math.round(job.dialogue_capacity_limit))
-    : null;
-  const reactionWindowHours = typeof job.reaction_window_hours === 'number' && Number.isFinite(job.reaction_window_hours)
-    ? Math.max(1, Math.round(job.reaction_window_hours))
-    : null;
-  const reactionWindowDays = typeof job.reaction_window_days === 'number' && Number.isFinite(job.reaction_window_days)
-    ? Math.max(1, Math.round(job.reaction_window_days))
-    : null;
-
-  const openDialoguesLabel = openDialoguesCount !== null && dialogueCapacityLimit !== null
-    ? t('job.card.open_dialogues_with_limit', {
-      open: openDialoguesCount,
-      limit: dialogueCapacityLimit,
-      defaultValue: isSk
-        ? '{{open}} / {{limit}} otvorených dialógov'
-        : isCs
-          ? '{{open}} / {{limit}} dialogů otevřeno'
-          : '{{open}} / {{limit}} dialogues open'
-    })
-    : null;
-
-  const responseWindowValue = (() => {
-    const hours = reactionWindowHours;
-    const days = reactionWindowDays;
-    if (days !== null) {
-      if (isSk) {
-        const unit = days === 1 ? 'deň' : (days <= 4 ? 'dni' : 'dní');
-        return `${days} ${unit}`;
-      }
-      if (isCs) {
-        const unit = days === 1 ? 'den' : (days <= 4 ? 'dny' : 'dnů');
-        return `${days} ${unit}`;
-      }
-      return `${days} day${days === 1 ? '' : 's'}`;
-    }
-    if (hours !== null && hours % 24 === 0) {
-      const wholeDays = Math.max(1, Math.round(hours / 24));
-      if (isSk) {
-        const unit = wholeDays === 1 ? 'deň' : (wholeDays <= 4 ? 'dni' : 'dní');
-        return `${wholeDays} ${unit}`;
-      }
-      if (isCs) {
-        const unit = wholeDays === 1 ? 'den' : (wholeDays <= 4 ? 'dny' : 'dnů');
-        return `${wholeDays} ${unit}`;
-      }
-      return `${wholeDays} day${wholeDays === 1 ? '' : 's'}`;
-    }
-    if (hours !== null) {
-      if (isSk) return `${hours} hodín`;
-      if (isCs) return `${hours} hodin`;
-      return `${hours}h`;
-    }
-    return null;
-  })();
-
-  const responseWindowLabel = responseWindowValue
-    ? t('job.card.response_window_badge', {
-      value: responseWindowValue,
-      defaultValue: isSk
-        ? 'Reakčné okno: {{value}}'
-        : isCs
-          ? 'Reakční okno: {{value}}'
-          : 'Response window: {{value}}'
-    })
-    : null;
-
-
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
   };
 
-  // Check if job has transparent salary information (salary range or both salary_from and salary_to)
-  const hasTransparentSalary = !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") ||
-    !!(job.salary_from && job.salary_to);
+  // Commute Layer
+  let distanceBadge: React.ReactNode = null;
+  const commute = userProfile ? calculateCommuteReality(job, userProfile) : null;
 
-  // Calculate quick distance if user profile is available
-  let distanceBadge = null;
-  if (userProfile && (userProfile.address || userProfile.coordinates)) {
-    const commuteProfile = userProfile.address
-      ? userProfile
-      : { ...userProfile, address: t('filters.use_current_location') as string };
-    const commute = calculateCommuteReality(job, commuteProfile);
-    const userCoords = commuteProfile.coordinates || getCoordinates(commuteProfile.address);
-    let airDistanceKm: number | null = null;
+  if (commute) {
+    const userCoords = userProfile?.coordinates || null;
     if (userCoords) {
-      const jobCoords = (job.lat !== undefined && job.lng !== undefined && job.lat !== null && job.lng !== null)
-        ? { lat: job.lat, lon: job.lng }
-        : getCoordinates(job.location);
+      const jobCoords = job.lat && job.lng ? { lat: job.lat, lon: job.lng } : getCoordinates(job.location);
       if (jobCoords) {
         const rawAir = calculateDistanceKm(userCoords.lat, userCoords.lon, jobCoords.lat, jobCoords.lon);
-        airDistanceKm = Math.floor(rawAir * 10) / 10; // truncate to 0.1 km to avoid rounding above filter
+        const airDistanceKm = Math.floor(rawAir * 10) / 10;
+        const badgeLabel = `${airDistanceKm} km`;
+        distanceBadge = (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-solarpunk-sky/10 text-solarpunk-sky border border-solarpunk-sky/20 text-[11px] font-semibold">
+            <Car size={13} />
+            <span>{badgeLabel}</span>
+          </div>
+        );
       }
-    }
-
-    if (commute && !commute.isRelocation && commute.distanceKm !== -1) {
-      const badgeDistance = airDistanceKm ?? commute.distanceKm;
-      const badgeLabel = airDistanceKm !== null ? `${badgeDistance} km · ${t('job.distance_air_label')}` : `${badgeDistance} km`;
+    } else if (commute.isRelocation) {
       distanceBadge = (
-        <div
-          className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 ml-2"
-          title={airDistanceKm !== null ? t('job.distance_air_hint') : undefined}
-        >
-          <Car size={12} /> {badgeLabel}
-        </div>
-      );
-    } else if (commute && commute.isRelocation) {
-      distanceBadge = (
-        <div className="flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800 ml-2">
-          <MapPin size={12} /> {t('job.relocation')}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[11px] font-semibold">
+          <MapPin size={13} />
+          <span>{t('job.relocation')}</span>
         </div>
       );
     }
   }
 
-  const shouldUseProgressiveTeaser = displayMode === 'progressive_teaser' && hasStructuredHandshakeSignal;
-
-  if (shouldUseProgressiveTeaser) {
+  // Progressive Teaser Logic
+  if (displayMode === 'progressive_teaser' && hasStructuredHandshakeSignal) {
     const problemSentence = clampPreview(
-      firstSentence(parsedRoleTruthHard) || firstSentence(parsedRoleTruthFail) || firstSentence(challengePreview || ''),
+      firstSentence(parsedRoleTruthHard) || firstSentence(parsedRoleTruthFail) || firstSentence(challengePreview || t('job.card.role_truth_body')),
       140
     );
-    const contextTokens = [
-      String(job.location || '').trim(),
-      String(job.work_model ? formatWorkModelLabel(job.work_model) : formatJobTypeLabel(job.type)).trim(),
-    ].filter(Boolean);
-    const contextLine = contextTokens.join(' · ');
 
-    const ctaLabel = t('job.card.progressive_cta', {
-      defaultValue: isSk ? 'Ako by si začal(a)?' : isCs ? 'Jak bys začal(a)?' : 'How would you start?'
-    });
-
-    const handleCtaClick = (e: React.MouseEvent) => {
+    const handleTeaserClick = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       void trackAnalyticsEvent({
         event_type: 'feed_progressive_cta_click',
         feature: 'progressive_reveal_v1',
-        metadata: {
-          job_id: job.id,
-          source: 'job_card_teaser',
-        }
+        metadata: { job_id: job.id, source: 'teaser' }
       });
       onClick();
     };
@@ -340,337 +226,132 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     return (
       <div
         onClick={onClick}
-        className={`
-          h-full p-4 rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden
-          ${isSelected ? "bg-slate-100 dark:bg-slate-800/95 border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800/70 z-10" : "bg-white/88 dark:bg-slate-900/82 border-slate-200/80 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"}
-        `}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick();
-          }
-        }}
+        className={`app-organic-surface h-full p-5 border cursor-pointer transition-all duration-200 relative group ${isSelected ? "bg-[rgba(var(--accent-rgb),0.04)] border-[rgba(var(--accent-rgb),0.35)] ring-1 ring-[rgba(var(--accent-rgb),0.20)]" : "bg-white dark:bg-[var(--surface)] border-[var(--border)] hover:border-[rgba(var(--accent-rgb),0.30)] hover:shadow-[var(--shadow-card)]"
+          }`}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div aria-hidden className="app-blob-orbit pointer-events-none absolute -right-8 top-8 h-20 w-20 rounded-[58%_42%_62%_38%/_40%_58%_42%_60%] bg-[rgba(var(--accent-rgb),0.10)] blur-2xl" />
+        <div aria-hidden className="pointer-events-none absolute -left-6 bottom-8 h-16 w-24 rounded-[46%_54%_38%_62%/_52%_38%_62%_48%] bg-[rgba(var(--accent-sky-rgb),0.09)] blur-xl" />
+
+        <div className="app-organic-content flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
-            <div className="text-base font-bold leading-snug text-slate-900 dark:text-white break-words">
-              {job.company}
+            <div className="text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--accent)] transition-colors">{job.company}</div>
+            <div className="mt-1 text-[11px] font-medium text-[var(--text-muted)] truncate flex items-center gap-1.5">
+              <MapPin size={11} className="text-[var(--accent)] shrink-0" />
+              {job.location} · {job.work_model ? formatWorkModelLabel(job.work_model) : formatJobTypeLabel(job.type)}
             </div>
-            {contextLine && (
-              <div className="mt-1 text-[12px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                {contextLine}
+            {postedAtLabel && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[rgba(var(--accent-rgb),0.08)] px-2.5 py-1 text-[10px] font-semibold text-[var(--text-muted)]">
+                <Clock size={11} className="text-[var(--accent)]" />
+                <span>{postedAtLabel}</span>
               </div>
             )}
           </div>
-
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-1.5" title={`Job Health Index: ${jhiScore}/100`}>
-              <div className="relative w-8 h-8 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="16"
-                    cy="16"
-                    r="12"
-                    className="stroke-slate-200 dark:stroke-slate-700 fill-none"
-                    strokeWidth="3"
-                  />
-                  <circle
-                    cx="16"
-                    cy="16"
-                    r="12"
-                    className={`fill-none transition-all duration-1000 ease-out
-                      ${jhiScore >= 70 ? 'stroke-emerald-500' :
-                        jhiScore >= 50 ? 'stroke-amber-500' : 'stroke-rose-500'}
-                    `}
-                    strokeWidth="3"
-                    strokeDasharray={2 * Math.PI * 12}
-                    strokeDashoffset={2 * Math.PI * 12 * (1 - jhiScore / 100)}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className={`absolute text-[10px] font-bold font-mono tracking-tighter
-                  ${jhiScore >= 70 ? 'text-emerald-700 dark:text-emerald-400' :
-                    jhiScore >= 50 ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
-                `}>
-                  {jhiScore}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSaveClick}
-              className={`p-2 rounded-full transition-all ${isSaved
-                ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-200 dark:ring-cyan-700'
-                : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200'}`}
-              title={isSaved ? t('job.remove_save') : t('job.save')}
-              aria-label={isSaved ? t('job.remove_save') : t('job.save')}
-            >
-              <Bookmark size={18} className={isSaved ? "fill-current" : ""} />
-            </button>
-          </div>
+          <Bookmark
+            size={17}
+            className={`${isSaved ? "fill-[var(--accent)] text-[var(--accent)]" : "text-[var(--text-faint)] hover:text-[var(--accent)]"} cursor-pointer hover:scale-110 transition-all`}
+            onClick={handleSaveClick}
+          />
         </div>
-
-        {problemSentence && (
-          <div className="mt-3 text-[13px] leading-relaxed text-slate-700 dark:text-slate-200">
-            <span className="text-slate-500 dark:text-slate-400">„</span>
-            <span className="line-clamp-2">{problemSentence}</span>
-            <span className="text-slate-500 dark:text-slate-400">“</span>
-          </div>
-        )}
-
-        <div className="mt-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 line-clamp-1">
-          {job.title}
+        <div className="app-organic-content text-[14px] leading-relaxed text-[var(--text-strong)] italic mb-4 line-clamp-2">
+          „{problemSentence}“
         </div>
-
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={handleCtaClick}
-            className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[var(--accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--accent)] transition hover:border-[rgba(var(--accent-rgb),0.32)]"
-          >
-            {ctaLabel}
-          </button>
-        </div>
+        <button
+          onClick={handleTeaserClick}
+          className="app-organic-content app-organic-pill text-[12px] font-bold text-[var(--accent)] flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(var(--accent-rgb),0.08)] hover:bg-[rgba(var(--accent-rgb),0.16)] transition-colors"
+        >
+          {isCs ? 'Jak bys začal(a)?' : isSk ? 'Ako by si začal(a)?' : 'How would you start?'}
+          <Sparkles size={14} />
+        </button>
       </div>
     );
   }
 
-  // Base Styles - Professional Light/Dark
+  // Base Styles – Clean white card
   const containerBase = emphasis === 'hero'
-    ? "bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_26%),linear-gradient(145deg,rgba(255,255,255,0.97),rgba(239,246,255,0.93))] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_26%),linear-gradient(145deg,rgba(15,23,42,0.92),rgba(12,74,110,0.22))] border-sky-200/80 dark:border-sky-900/40 hover:border-sky-300 dark:hover:border-sky-700"
-    : "bg-white/88 dark:bg-slate-900/82 border-slate-200/80 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700";
+    ? "bg-white dark:bg-[var(--surface)] border-[rgba(var(--accent-rgb),0.20)] shadow-[var(--shadow-card)]"
+    : "bg-white dark:bg-[var(--surface)] border-[var(--border)] hover:border-[rgba(var(--accent-rgb),0.28)] shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-card)]";
 
-  // Selected state - Active list item style
-  const selectedStyle = "bg-slate-100 dark:bg-slate-800/95 border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800/70 z-10";
+  const selectedStyle = "bg-[rgba(var(--accent-rgb),0.04)] border-[rgba(var(--accent-rgb),0.32)] ring-1 ring-[rgba(var(--accent-rgb),0.18)] z-10";
 
   return (
     <div
       onClick={onClick}
-      className={`
-        h-full ${emphasis === 'hero' ? 'p-4 sm:p-[18px]' : 'p-3 sm:p-4'} rounded-[1.05rem] border cursor-pointer transition-all duration-200 relative group overflow-hidden ${emphasis === 'hero' ? 'shadow-[0_18px_34px_-28px_rgba(14,165,233,0.24)]' : 'shadow-[0_12px_26px_-28px_rgba(15,23,42,0.2)]'}
-        ${isSelected ? selectedStyle : containerBase}
-      `}
+      className={`app-organic-surface h-full ${emphasis === 'hero' ? 'p-7' : 'p-5'} border cursor-pointer transition-all duration-200 relative group ${isSelected ? selectedStyle : containerBase
+        }`}
     >
-      <div className="mb-2 flex items-center gap-2">
-        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${
-          emphasis === 'hero'
-            ? 'border border-orange-200/80 dark:border-orange-900/40 bg-orange-50/90 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300'
-            : 'border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/90 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300'
-        }`}>
+      <div aria-hidden className="app-blob-orbit pointer-events-none absolute -right-10 top-8 h-24 w-24 rounded-[60%_40%_66%_34%/_44%_54%_46%_56%] bg-[rgba(var(--accent-rgb),0.10)] blur-2xl" />
+      <div aria-hidden className="pointer-events-none absolute left-[-1.5rem] top-1/2 h-20 w-14 -translate-y-1/2 rounded-[48%_52%_30%_70%/_34%_60%_40%_66%] bg-[rgba(var(--accent-sky-rgb),0.10)] blur-xl" />
+
+      <div className="app-organic-content mb-3 flex items-center justify-between">
+        <div className="badge-base app-organic-pill inline-flex">
           <Sparkles size={11} />
-          {t('job.card.challenge_label', { defaultValue: 'Real challenge' })}
+          {t('job.card.challenge_label')}
         </div>
-        {emphasis === 'hero' && (
-          <div className="rounded-full border border-sky-200/80 dark:border-sky-900/40 bg-white/80 dark:bg-slate-950/30 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-            {t('job.card.priority_label', { defaultValue: 'Priority' })}
-          </div>
-        )}
+
+        <div className="flex items-center gap-3">
+          {jhiScore > 0 && (
+            <div className="flex items-center gap-1.5" title={`Job Health Index: ${jhiScore}`}>
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+              <span className="text-[10px] font-mono font-bold text-[var(--text-muted)]">{jhiScore}</span>
+            </div>
+          )}
+          <Bookmark
+            size={17}
+            className={`${isSaved ? "fill-[var(--accent)] text-[var(--accent)]" : "text-[var(--text-faint)] hover:text-[var(--accent)]"} cursor-pointer hover:scale-110 transition-all`}
+            onClick={handleSaveClick}
+          />
+        </div>
       </div>
 
-      {/* Job Title and Company */}
-      <div className="mb-3">
-        <h3 className={`font-bold text-base leading-snug break-words ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
-        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors break-words">{job.company}</p>
+      <div className="app-organic-content mb-6">
+        <h3 className="font-bold text-xl leading-snug text-[var(--text-strong)] group-hover:text-solarpunk-green transition-colors mb-2">{job.title}</h3>
+        <p className="text-base font-medium text-solarpunk-green/80">{job.company}</p>
+
         {challengePreview && (
-          <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
-            {challengePreview}
+          <p className="mt-4 text-[14px] leading-relaxed text-[var(--text-muted)] italic line-clamp-3">
+            „{challengePreview}“
           </p>
         )}
-        {emphasis === 'hero' && (
-          <div className="mt-2 rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-3 py-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
-              {t('job.card.role_truth_label', { defaultValue: 'Role truth' })}
-            </div>
-            <div className="mt-1 text-[12px] leading-relaxed text-amber-950 dark:text-amber-100">
-              {roleTruthPreview}
-            </div>
-            {roleTruthMismatchPreview && parsedRoleTruthFail && parsedRoleTruthFail !== parsedRoleTruthHard && (
-              <div className="mt-1.5 rounded-lg border border-amber-200/70 dark:border-amber-900/30 bg-white/70 dark:bg-slate-950/20 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-950 dark:text-amber-100">
-                <span className="font-semibold">
-                  {t('job.card.role_truth_mismatch', { defaultValue: 'Mismatch:' })}
-                </span>{' '}
-                {roleTruthMismatchPreview}
-              </div>
+      </div>
+
+      <div className="app-organic-content mb-5 space-y-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] font-medium">
+            <MapPin size={13} className="text-[var(--accent)] shrink-0" />
+            <span>{job.location}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] font-medium">
+            <Briefcase size={13} className="text-[var(--accent-sky)] shrink-0" />
+            <span>{formatJobTypeLabel(job.type)}</span>
+          </div>
+          {distanceBadge}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[14px]">
+            <Banknote size={16} className="text-[var(--accent)] shrink-0" />
+            {job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified" ? (
+              <span className="font-bold text-[var(--text-strong)]">{job.salaryRange}</span>
+            ) : (
+              <span className="text-[var(--text-faint)] italic text-[12px]">{t('job.salary_not_specified')}</span>
             )}
           </div>
-        )}
-        {emphasis !== 'hero' && hasStructuredHandshakeSignal && (
-          <div className="mt-2 hidden rounded-lg border border-slate-200/80 dark:border-slate-800 bg-slate-50/85 dark:bg-slate-950/28 px-2.5 py-2 space-y-1.5 sm:block">
-            <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {t('job.card.role_truth_label', { defaultValue: 'Role truth' })}:
-              </span>{' '}
-              {roleTruthPreview}
-            </div>
-            {parsedFirstReply && (
-              <div className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {t('job.card.response_prompt', { defaultValue: 'First reply:' })}
-                </span>{' '}
-                {firstReplyPreview}
-              </div>
-            )}
+          <div className="text-[11px] font-medium text-[var(--text-faint)] flex items-center gap-1">
+            <Clock size={11} />
+            {postedAtLabel || relativePostedAt}
           </div>
-        )}
-      </div>
-
-      {(openDialoguesLabel || responseWindowLabel) && (
-        <div className="mb-3 hidden flex-wrap items-center gap-1.5 sm:flex">
-          {openDialoguesLabel && (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/70 bg-emerald-50/80 dark:bg-emerald-950/25 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-200">
-              <MessageCircle size={11} />
-              <span>{openDialoguesLabel}</span>
-            </div>
-          )}
-          {responseWindowLabel && (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 dark:border-blue-800/70 bg-blue-50/80 dark:bg-blue-950/25 px-2 py-1 text-[11px] font-semibold text-blue-800 dark:text-blue-200">
-              <Clock size={11} />
-              <span>{responseWindowLabel}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Bottom Badges Row */}
-      <div className="mb-3 flex items-start justify-between gap-3">
-        {/* Left Side Badges */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {relativePostedAt && (
-            <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
-              <Clock size={11} className="flex-shrink-0" />
-              <span>{relativePostedAt}</span>
-            </div>
-          )}
-          {hiringStageLabel && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-200 dark:border-cyan-800/70">
-              <Briefcase size={11} className="flex-shrink-0" />
-              <span>{hiringStageLabel}</span>
-            </div>
-          )}
-          <div className="hidden sm:flex">{distanceBadge}</div>
-
-          {hasTransparentSalary && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold 
-              bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 
-              border border-emerald-200/60 dark:border-emerald-700/60 
-              text-emerald-700 dark:text-emerald-400 shadow-sm backdrop-blur-sm">
-              <div className="bg-emerald-100 dark:bg-emerald-800 rounded-full p-0.5">
-                <Euro size={10} className="stroke-[2.5px]" />
-              </div>
-              <span className="hidden sm:inline">{t('job.transparent_eu')}</span>
-              <span className="sm:hidden">{t('job.transparent_eu_short')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right Side Actions */}
-        <div className="flex items-center gap-3">
-          {aiMatchScore !== null && (
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
-                bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50
-                text-emerald-700 dark:text-emerald-300"
-              title={`${t('job.ai_match')}: ${aiMatchScore}%`}
-            >
-              <Sparkles size={12} className="text-emerald-600 dark:text-emerald-300" />
-              <span>{aiMatchScore}%</span>
-            </div>
-          )}
-          {/* JHI Circular Progress */}
-          <div className="flex items-center gap-1.5 sm:gap-2" title={`Job Health Index: ${jhiScore}/100`}>
-            <div className="relative w-8 h-8 flex items-center justify-center">
-              {/* Background Circle */}
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="12"
-                  className="stroke-slate-200 dark:stroke-slate-700 fill-none"
-                  strokeWidth="3"
-                />
-                {/* Progress Circle */}
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="12"
-                  className={`fill-none transition-all duration-1000 ease-out
-                    ${jhiScore >= 70 ? 'stroke-emerald-500' :
-                      jhiScore >= 50 ? 'stroke-amber-500' : 'stroke-rose-500'}
-                  `}
-                  strokeWidth="3"
-                  strokeDasharray={2 * Math.PI * 12}
-                  strokeDashoffset={2 * Math.PI * 12 * (1 - jhiScore / 100)}
-                  strokeLinecap="round"
-                />
-              </svg>
-              {/* Score Number */}
-              <span className={`absolute text-[10px] font-bold font-mono tracking-tighter
-                ${jhiScore >= 70 ? 'text-emerald-700 dark:text-emerald-400' :
-                  jhiScore >= 50 ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
-              `}>
-                {jhiScore}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleSaveClick}
-            className={`p-2 rounded-full transition-all ${isSaved
-              ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-200 dark:ring-cyan-700'
-              : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200'}`}
-            title={isSaved ? t('job.remove_save') : t('job.save')}
-          >
-            <Bookmark size={18} className={isSaved ? "fill-current" : ""} />
-          </button>
         </div>
       </div>
 
-      {/* Job Metadata */}
-      <div className="mb-3 grid gap-1.5 text-[12px] font-medium text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:gap-y-1.5 sm:gap-x-3 sm:text-[13px]">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <MapPin size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.location}</span>
-        </div>
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatJobTypeLabel(job.type)}</span>
-        </div>
-        {job.work_model && (
-          <div className="hidden items-center gap-1.5 min-w-0 sm:flex">
-            <Home size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
-            <span className="truncate">{formatWorkModelLabel(job.work_model)}</span>
-          </div>
-        )}
-
-        {/* Salary Display Logic */}
-        {job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified" ? (
-          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 min-w-0">
-            <Banknote size={16} className="text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
-            <span className="truncate">{job.salaryRange}</span>
-          </div>
-        ) : job.aiEstimatedSalary ? (
-          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 min-w-0" title={t('job.ai_estimated_tooltip')}>
-            <Sparkles size={16} className="fill-current flex-shrink-0" />
-            <span className="truncate">{job.aiEstimatedSalary.min.toLocaleString()} - {job.aiEstimatedSalary.max.toLocaleString()} {job.aiEstimatedSalary.currency} ({t('job.salary_estimate')})</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-600 italic min-w-0">
-            <Banknote size={16} className="flex-shrink-0" />
-            <span className="truncate">{t('job.salary_not_specified')}</span>
-          </div>
-        )}
-
+      <div className="app-organic-content mt-auto">
+        <button
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          className="app-organic-cta w-full py-3 px-5 bg-[var(--accent)] text-white font-semibold text-sm hover:bg-[var(--accent-green)] hover:-translate-y-0.5 transition-all active:translate-y-0 flex items-center justify-center gap-2 shadow-[0_10px_26px_rgba(var(--accent-rgb),0.26)]"
+        >
+          {isCs ? 'Podat ruku týmu' : isSk ? 'Podať ruku tímu' : 'Handshake the team'}
+          <Sparkles size={15} />
+        </button>
       </div>
-
-      {emphasis === 'hero' && (
-        <div className="mb-3 hidden rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/82 dark:bg-slate-950/28 px-3 py-2 text-[11px] text-slate-600 dark:text-slate-300 shadow-[0_10px_20px_-24px_rgba(15,23,42,0.3)] sm:block">
-          <span className="font-semibold text-slate-900 dark:text-white">
-            {t('job.card.response_prompt', { defaultValue: 'First reply:' })}
-          </span>{' '}
-          {firstReplyPreview}
-        </div>
-      )}
-
     </div>
   );
 };

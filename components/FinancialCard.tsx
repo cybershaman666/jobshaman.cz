@@ -83,7 +83,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                 : t('financial.market.at', { defaultValue: 'Na úrovni trhu' }))
         : null;
     const salaryTierColor = salaryBenchmarkReady && salaryBenchmark?.delta_vs_p50 !== undefined
-        ? (salaryBenchmark.delta_vs_p50 > 0 ? 'text-emerald-400' : salaryBenchmark.delta_vs_p50 < 0 ? 'text-rose-400' : 'text-amber-300')
+        ? (salaryBenchmark.delta_vs_p50 > 0 ? 'text-amber-400' : salaryBenchmark.delta_vs_p50 < 0 ? 'text-rose-400' : 'text-amber-300')
         : 'text-slate-300';
     const benchmarkFallbackMessage = useMemo(() => {
         const transparency = salaryBenchmark?.transparency;
@@ -119,7 +119,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
             <div className="p-6 border-b border-slate-700 flex justify-between items-start">
                 <div>
                     <h3 className="text-white text-lg font-bold flex items-center gap-2">
-                        <Wallet className="text-emerald-400" size={20} /> {t('financial.reality_title')}
+                        <Wallet className="text-amber-400" size={20} /> {t('financial.reality_title')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
                         {showCommuteDetails
@@ -132,7 +132,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                             {t('financial.jhi_impact_label')}
                         </div>
-                        <div className={`text-xl font-bold ${commuteAnalysis.jhiImpact >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <div className={`text-xl font-bold ${commuteAnalysis.jhiImpact >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
                             {commuteAnalysis.jhiImpact > 0 ? '+' : ''}{commuteAnalysis.jhiImpact} {t('financial.points')}
                         </div>
                     </div>
@@ -179,12 +179,12 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     <div className="p-6 border-r border-slate-700 flex flex-col justify-center">
                         {remoteRole ? (
                             <div className="text-center py-2">
-                                <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
+                                <Home size={40} className="text-amber-400 mx-auto mb-3 opacity-80" />
                                 <h4 className="text-white font-bold text-lg mb-1">{t('financial.home_office')}</h4>
-                                <div className="text-emerald-400 text-sm font-medium mb-2">
+                                <div className="text-amber-400 text-sm font-medium mb-2">
                                     {t('financial.home_office_savings')}
                                 </div>
-                                <div className="text-xs text-emerald-400 mb-3 text-center">
+                                <div className="text-xs text-amber-400 mb-3 text-center">
                                     <div className="flex items-center gap-1 justify-center">
                                         <span className="text-green-400">🏠</span>
                                         <div>
@@ -212,7 +212,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"><MapPin size={12} /> {t('logistics.logistics_title')}</h4>
                                 <div className="relative h-12 mb-6">
                                     <div className="absolute top-2 left-0 right-0 flex justify-between text-[10px] font-bold text-slate-400 uppercase"><span>{t('logistics.home')}</span><span>{t('logistics.work')}</span></div>
-                                    <div className="absolute top-6 left-0 right-0 h-1.5 bg-slate-900/50 rounded-full overflow-hidden"><div className={`h-full ${commuteAnalysis.timeMinutes > 45 ? 'bg-gradient-to-r from-emerald-500 to-rose-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (commuteAnalysis.distanceKm / 60) * 100)}%` }}></div></div>
+                                    <div className="absolute top-6 left-0 right-0 h-1.5 bg-slate-900/50 rounded-full overflow-hidden"><div className={`h-full ${commuteAnalysis.timeMinutes > 45 ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (commuteAnalysis.distanceKm / 60) * 100)}%` }}></div></div>
                                     <div className="absolute top-4 p-1.5 bg-slate-600 border border-slate-500 rounded-full text-white shadow-md transition-all" style={{ left: `clamp(0%, ${Math.min(100, (commuteAnalysis.distanceKm / 60) * 100)}%, 100%)`, transform: 'translateX(-50%)' }}>{React.createElement(getTransportIcon(userProfile.transportMode), { size: 14 })}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -224,13 +224,13 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     </div>
                     <div className="flex flex-col">
                         <div className="flex-1">
-                            <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                            <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
                                             {takeHomeCopy.title}
                                         </div>
-                                        <div className="mt-1 text-xs text-emerald-100/80">
+                                        <div className="mt-1 text-xs text-amber-100/80">
                                             {takeHomeCopy.subtitle}
                                         </div>
                                     </div>
@@ -238,7 +238,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                         <div className="text-2xl font-bold text-white">
                                             {commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(i18n.language)} {cur}
                                         </div>
-                                        <div className="mt-1 text-[11px] text-emerald-200/80">
+                                        <div className="mt-1 text-[11px] text-amber-200/80">
                                             {commuteAnalysis.financialReality.isIco ? takeHomeCopy.contractor : takeHomeCopy.employee}
                                             {userProfile.taxProfile?.childrenCount
                                                 ? ` • ${userProfile.taxProfile.childrenCount} ${takeHomeCopy.family}`

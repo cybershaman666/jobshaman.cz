@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Creative stock avatar">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#082415"/>
+      <stop offset="0.55" stop-color="#14532d"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="65%" cy="25%" r="75%">
+      <stop offset="0" stop-color="#fecdd3" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="44" fill="url(#bg)"/>
+  <rect width="256" height="256" rx="44" fill="url(#glow)"/>
+  <path d="M44 184c24-44 56-64 96-64 50 0 82 18 96 56" fill="none" stroke="#dcfce7" stroke-opacity="0.22" stroke-width="12" stroke-linecap="round"/>
+  <g fill="none" stroke="#dcfce7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.92">
+    <path d="M92 170l64-64 18 18-64 64H92v-18Z"/>
+    <path d="M150 92l14-14 18 18-14 14"/>
+    <path d="M92 188l20-20"/>
+    <path d="M174 146c10 6 18 16 18 28"/>
+  </g>
+</svg>
+

@@ -420,7 +420,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
             case 'closed_rejected':
                 return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300';
             case 'hired':
-                return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+                return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
             case 'closed_timeout':
                 return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
             case 'withdrawn':
@@ -474,7 +474,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
             case 'hired':
                 return {
                     label: t('company.applications.close_reason_hired', { defaultValue: copy.closeReasonHired }),
-                    className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                 };
             case 'closed':
             default:
@@ -573,7 +573,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                             syncedAt={lastSyncedAt}
                             onRefresh={onRefresh}
                         />
-                        <div className="company-control min-w-[240px] px-3.5 py-2.5">
+                        <div className="company-control company-surface-soft app-organic-panel-soft min-w-[240px] px-3.5 py-2.5">
                             <div className="mb-1 text-[11px] uppercase tracking-widest text-[var(--text-faint)]">
                                 {t('company.jobs.open_applications', { defaultValue: copy.openRoleDialogues })}
                             </div>
@@ -587,7 +587,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                 ))}
                             </select>
                         </div>
-                        <button onClick={onOpenJobs} className="app-button-secondary rounded-full px-4 py-2.5 text-sm">
+                        <button onClick={onOpenJobs} className="app-button-secondary app-organic-pill rounded-full px-4 py-2.5 text-sm">
                             {t('company.workspace.actions.open_jobs', { defaultValue: copy.openRoles })}
                         </button>
                     </>
@@ -627,14 +627,14 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                         ) : undefined}
                         className="mb-3"
                     />
-                    <div className="mb-3 rounded-[0.9rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent)]">
+                    <div className="company-surface-soft app-organic-panel-soft mb-3 rounded-[0.9rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent)]">
                         {t('company.applications.reaction_sla_hint', {
                             defaultValue: copy.candidatesSeeExpectation,
                             window: responseSlaLabel
                         })}
                     </div>
                     {resolvedDialogues.length === 0 && !resolvedDialoguesLoading ? (
-                        <div className="rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                        <div className="company-surface-soft app-organic-panel-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                             {t('company.candidates.applications_empty', { defaultValue: copy.noDialogues })}
                         </div>
                     ) : (
@@ -643,7 +643,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                 const timingMeta = getDialogueTimingMeta(dialogue);
                                 const closeReasonMeta = getDialogueClosedReasonMeta(dialogue);
                                 return (
-                                <div key={dialogue.id} className="rounded-[1rem] border border-slate-200/80 bg-white/85 px-3 py-3 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/30">
+                                <div key={dialogue.id} className="company-surface-soft app-organic-panel-soft rounded-[1rem] border border-slate-200/80 bg-white/85 px-3 py-3 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/30">
                                     <div className="flex flex-col gap-2.5">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex items-start gap-3">
@@ -654,7 +654,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                         className="h-11 w-11 shrink-0 rounded-2xl object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[rgba(var(--accent-rgb),0.12)] text-sm font-semibold text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.18)] dark:text-white">
                                                         {getAvatarInitials(dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: copy.candidate }))}
                                                     </div>
                                                 )}
@@ -703,15 +703,15 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                             <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
                                                 {getResponseSlaHint(dialogue)}
                                             </span>
-                                            {dialogue.hasCv && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">CV</span>}
-                                            {dialogue.hasCoverLetter && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{t('company.workspace.labels.cover_letter', { defaultValue: copy.coverLetter })}</span>}
+                                            {dialogue.hasCv && <span className="app-organic-pill company-surface-soft rounded-full px-2 py-1 dark:bg-slate-800">CV</span>}
+                                            {dialogue.hasCoverLetter && <span className="app-organic-pill company-surface-soft rounded-full px-2 py-1 dark:bg-slate-800">{t('company.workspace.labels.cover_letter', { defaultValue: copy.coverLetter })}</span>}
                                             {dialogue.hasJcfpm && (
                                                 <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
                                                     JCFPM: {t('company.applications.labels.summary', { defaultValue: copy.shared })}
                                                 </span>
                                             )}
                                             {resolvedDialoguesUpdating[dialogue.id] && (
-                                                <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                <span className="app-organic-pill company-surface-soft rounded-full px-2 py-1 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                                     {t('common.saving', { defaultValue: copy.saving })}
                                                 </span>
                                             )}

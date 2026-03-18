@@ -37,13 +37,13 @@ const TransparencyCard: React.FC<TransparencyCardProps> = ({ variant = 'light' }
          </div>
 
          {/* EU Transparent Badge Explanation */}
-         <div className={`p-3 ${isDark ? 'bg-emerald-950/10' : 'bg-emerald-50'}`}>
+         <div className={`p-3 ${isDark ? 'bg-amber-950/10' : 'bg-amber-50'}`}>
             <div className="flex items-start gap-2">
-               <Euro size={14} className="text-emerald-600 mt-0.5" />
+               <Euro size={14} className="text-amber-600 mt-0.5" />
                <div className="flex-1">
                   <div className="flex items-center gap-1.5 mb-1">
-                     <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{t('transparency_card.badge_why_title')}</h4>
-                     <Info size={10} className="text-emerald-500" />
+                     <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400">{t('transparency_card.badge_why_title')}</h4>
+                     <Info size={10} className="text-amber-500" />
                   </div>
                   <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                      {t('transparency_card.badge_why_desc')}

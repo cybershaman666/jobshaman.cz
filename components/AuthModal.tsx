@@ -343,7 +343,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         </div>
 
                         {isLogin && (
-                            <div className="mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">
+                            <div className="app-organic-panel-soft mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800">
                                 <AlertCircle size={16} className="mt-0.5" />
                                 <div>
                                     <div className="font-semibold">{t('auth.email_confirm_notice_title')}</div>
@@ -353,7 +353,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         )}
 
                         {infoMessage && (
-                            <div className={`mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-sm ${awaitingConfirmation ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-200 dark:bg-emerald-50 dark:text-emerald-800' : 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text)]'}`}>
+                            <div className={`app-organic-panel-soft mb-4 flex items-start gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-sm ${awaitingConfirmation ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-800' : 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text)]'}`}>
                                 <AlertCircle size={16} className="mt-0.5" />
                                 <div>
                                     {awaitingConfirmation && (
@@ -365,7 +365,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         )}
 
                         {error && (
-                            <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-200 dark:bg-rose-50 dark:text-rose-700">
+                            <div className="app-organic-panel-soft mb-4 flex items-center gap-2 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-200 dark:bg-rose-50 dark:text-rose-700">
                                 <AlertCircle size={16} />
                                 {error}
                             </div>
@@ -487,7 +487,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     )}
 
                     {!isLogin && !isResetMode && (
-                        <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
+                        <label className="app-organic-panel-soft flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
                             <input
                                 type="checkbox"
                                 checked={formData.wantsDigestEmail}
@@ -504,7 +504,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
 
                     {!isLogin && !isResetMode && (
                         <div className="space-y-3">
-                            <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
+                            <label className="app-organic-panel-soft flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
                                 <input
                                     type="checkbox"
                                     checked={formData.agreedToTerms}
@@ -524,7 +524,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                 </span>
                             </label>
 
-                            <label className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
+                            <label className="app-organic-panel-soft flex items-start gap-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[13px] text-[var(--text)]">
                                 <input
                                     type="checkbox"
                                     checked={formData.agreedToPrivacy}
@@ -551,7 +551,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                             <button
                                 type="submit"
                                 disabled={isBusy || (!isLogin && !isResetMode && (!formData.agreedToTerms || !formData.agreedToPrivacy))}
-                                className="app-button-primary w-full"
+                                className="app-button-primary app-organic-cta w-full"
                             >
                                 {loading && <Loader2 className="animate-spin" size={18} />}
                                 {isResetMode
@@ -572,7 +572,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                             type="button"
                                             disabled={isBusy}
                                             onClick={() => handleOAuthSignIn('google')}
-                                            className="app-button-secondary w-full"
+                                            className="app-button-secondary app-organic-pill w-full"
                                         >
                                             {oauthLoading === 'google' ? <Loader2 className="animate-spin" size={18} /> : <Chrome size={18} />}
                                             {t('auth.continue_with_google')}
@@ -581,7 +581,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                             type="button"
                                             disabled={isBusy}
                                             onClick={() => handleOAuthSignIn('linkedin_oidc')}
-                                            className="app-button-secondary w-full"
+                                            className="app-button-secondary app-organic-pill w-full"
                                         >
                                             {oauthLoading === 'linkedin_oidc' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
                                             {t('auth.continue_with_linkedin')}

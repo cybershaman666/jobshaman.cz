@@ -15,6 +15,7 @@ from ..core.runtime_config import (
     get_release_flag,
     resolve_scoring_model_for_user,
 )
+from ..services.recommendation_intelligence import get_candidate_recommendation_intelligence
 from .demand import recompute_market_skill_demand
 from .embeddings import EMBEDDING_VERSION
 from .evaluation import run_offline_recommendation_evaluation
@@ -1164,7 +1165,8 @@ def recommend_jobs_for_user(
     if not candidate:
         return []
 
-    candidate_features = extract_candidate_features(candidate)
+    candidate_intelligence = get_candidate_recommendation_intelligence(candidate, user_id=user_id)
+    candidate_features = extract_candidate_features(candidate, intelligence=candidate_intelligence)
     # Keep live recommendation requests read-heavy; persistence belongs to offline batch refresh.
     candidate_embedding = ensure_candidate_embedding(user_id, candidate_features.get("text") or "", persist=False)
 
@@ -1190,6 +1192,8 @@ def recommend_jobs_for_user(
         semantic = score_from_embeddings(candidate_embedding, job_embeddings.get(job_id) or [])
         job_features = extract_job_features(job)
         total, reasons, breakdown = score_job(candidate_features, job_features, semantic)
+        breakdown["candidate_intelligence_source"] = candidate_intelligence.get("source")
+        breakdown["candidate_target_roles"] = (candidate_intelligence.get("target_roles") or [])[:4]
         if total < min_score:
             continue
         recency_score = 0.0
@@ -1277,7 +1281,7 @@ def batch_refresh_candidate_embeddings() -> int:
     if not supabase:
         return 0
     try:
-        resp = supabase.table("candidate_profiles").select("id, job_title, cv_text, cv_ai_text, story, skills, inferred_skills, strengths, leadership").limit(2000).execute()
+        resp = supabase.table("candidate_profiles").select("id, job_title, cv_text, cv_ai_text, story, skills, inferred_skills, strengths, leadership, values, motivations, work_preferences, work_history, education, address, preferences").limit(2000).execute()
     except Exception as exc:
         print(f"⚠️ [Matching] batch candidate embeddings fetch failed: {exc}")
         return 0
@@ -1285,7 +1289,8 @@ def batch_refresh_candidate_embeddings() -> int:
     profiles = resp.data or []
     updated = 0
     for profile in profiles:
-        features = extract_candidate_features(profile)
+        intelligence = get_candidate_recommendation_intelligence(profile, user_id=profile.get("id"))
+        features = extract_candidate_features(profile, intelligence=intelligence)
         ensure_candidate_embedding(profile.get("id"), features.get("text") or "", persist=True)
         updated += 1
     return updated
@@ -1301,7 +1306,7 @@ def batch_refresh_recommendations() -> int:
     try:
         resp = (
             supabase.table("candidate_profiles")
-            .select("id,job_title,cv_text,cv_ai_text,story,skills,inferred_skills,strengths,leadership,values,motivations,work_preferences,work_history,education,address,lat,lng")
+            .select("id,job_title,cv_text,cv_ai_text,story,skills,inferred_skills,strengths,leadership,values,motivations,work_preferences,work_history,education,address,lat,lng,preferences")
             .limit(1500)
             .execute()
         )

@@ -27,6 +27,7 @@ type Status = 'idle' | 'verifying' | 'success' | 'error';
 type EmploymentChoice = 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
 type VisibilityChoice = 'private' | 'recruiter' | 'public';
 const EMPLOYMENT_CHOICES: EmploymentChoice[] = ['full_time', 'part_time', 'contract', 'internship', 'temporary'];
+const SWIPE_LOCATION_REFRESH_SIGNAL_KEY = 'jobshaman_swipe_location_refresh_signal';
 
 const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     isOpen,
@@ -153,6 +154,19 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         success: 'Supporting document is ready',
         premiumNote: 'Premium unlocks the AI guide, the detailed JCFPM report, personalized JHI, and more room for active dialogues.'
     };
+    const aiPromiseCopy = isCsLike ? {
+        title: 'Co za vás AI udělá',
+        location: 'Z adresy spočítá reálný okruh a přestane tlačit role z druhého konce republiky.',
+        preferences: 'Z role, seniority a skills pochopí směr, ne jen doslovná klíčová slova.',
+        story: 'Z vašeho příběhu a podpůrných podkladů vytáhne kontext pro swipe, doporučení i vysvětlení proč nabídku vidíte.',
+        feedNudge: 'Čím přesnější základ teď vyplníte, tím chytřejší bude mobilní swipe feed hned od prvních karet.',
+    } : {
+        title: 'What AI will do for you',
+        location: 'It turns your address into a realistic radius so the app stops pushing roles from the other side of the country.',
+        preferences: 'It reads role, seniority, and skills as direction, not just literal keywords.',
+        story: 'It turns your story and supporting context into better swipe ranking, recommendations, and visible why-this-role explanations.',
+        feedNudge: 'The stronger the setup now, the smarter the mobile swipe feed will feel from the first cards.',
+    };
 
     useEffect(() => {
         if (!isOpen) return;
@@ -223,6 +237,22 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         setStep(2);
     };
 
+    const emitSwipeLocationRefreshSignal = (nextAddress: string) => {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(
+                SWIPE_LOCATION_REFRESH_SIGNAL_KEY,
+                JSON.stringify({
+                    ts: Date.now(),
+                    address: nextAddress,
+                    userId: profile.id || 'guest',
+                })
+            );
+        } catch (error) {
+            console.warn('Failed to store swipe location refresh signal:', error);
+        }
+    };
+
     const handleVerifyAddress = async () => {
         if (!address) return;
         setIsSavingLocation(true);
@@ -237,6 +267,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 if (onRefreshProfile) {
                     await onRefreshProfile();
                 }
+                emitSwipeLocationRefreshSignal(address);
                 moveToNextAfterLocation();
             } else {
                 setAddressStatus('error');
@@ -274,6 +305,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     if (onRefreshProfile) {
                         await onRefreshProfile();
                     }
+                    emitSwipeLocationRefreshSignal(label);
                     moveToNextAfterLocation();
                 } catch (error) {
                     console.error('Failed to save location:', error);
@@ -397,14 +429,14 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     };
 
     const renderStepIndicator = () => (
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-faint)]">
-            <span className={step >= 1 ? 'text-[var(--accent)]' : ''}>1</span>
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-faint)]">
+            <span className={step >= 1 ? 'text-[var(--accent-strong)]' : ''}>1</span>
             <span>•</span>
-            <span className={step >= 2 ? 'text-[var(--accent)]' : ''}>2</span>
+            <span className={step >= 2 ? 'text-[var(--accent-strong)]' : ''}>2</span>
             <span>•</span>
-            <span className={step >= 3 ? 'text-[var(--accent)]' : ''}>3</span>
+            <span className={step >= 3 ? 'text-[var(--accent-strong)]' : ''}>3</span>
             <span>•</span>
-            <span className={step >= 4 ? 'text-[var(--accent)]' : ''}>4</span>
+            <span className={step >= 4 ? 'text-[var(--accent-strong)]' : ''}>4</span>
         </div>
     );
 
@@ -413,6 +445,19 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{t('onboarding.step_location.title')}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">{t('onboarding.step_location.desc')}</p>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.82))] p-4 dark:bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.16),rgba(15,23,42,0.72))]">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                    <Sparkles size={14} className="text-[var(--accent-strong)]" />
+                    {aiPromiseCopy.title}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                    {aiPromiseCopy.location}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[var(--text-faint)]">
+                    {aiPromiseCopy.feedNudge}
+                </p>
             </div>
 
             <div className="space-y-3">
@@ -451,7 +496,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             </div>
 
             {addressStatus === 'success' && (
-                <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-sm text-[var(--accent-strong)] font-bold">
                     <CheckCircle size={16} />
                     {t('onboarding.location.verified')}
                 </div>
@@ -487,6 +532,16 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                     {t('onboarding.step_preferences.desc', { defaultValue: 'Nastavte obor, cílovou roli, senioritu a základní očekávání. Díky tomu bude feed už od začátku skutečně váš.' })}
+                </p>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-subtle)] p-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                    <Sparkles size={14} className="text-[var(--accent-strong)]" />
+                    {isCsLike ? 'AI čte váš směr' : 'AI reads your direction'}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                    {aiPromiseCopy.preferences}
                 </p>
             </div>
 
@@ -582,11 +637,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                                                 : [...prev, choice]
                                         );
                                     }}
-                                    className={`rounded-full border px-3 py-2 text-xs font-semibold normal-case tracking-normal transition-colors ${
-                                        active
-                                            ? 'border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
-                                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                                    }`}
+                                    className={`rounded-full border px-3 py-2 text-xs font-semibold normal-case tracking-normal transition-colors ${active
+                                        ? 'border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                                        }`}
                                 >
                                     {t(translationKey, { defaultValue: employmentUiCopy[choice] })}
                                 </button>
@@ -659,9 +713,19 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                 </p>
             </div>
 
-            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center">
-                <FileText size={32} className="mx-auto mb-3 text-[var(--accent)]" />
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            <div className="rounded-[1.4rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-subtle)] p-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                    <Sparkles size={14} className="text-[var(--accent-strong)]" />
+                    {isCsLike ? 'AI z toho udělá použitelný kontext' : 'AI turns this into usable context'}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                    {aiPromiseCopy.story}
+                </p>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-8 text-center">
+                <FileText size={40} className="mx-auto mb-4 text-[var(--accent-strong)]" />
+                <p className="text-sm text-[var(--text-muted)] font-medium mb-6 leading-relaxed px-4">
                     {t('profile.upload_cv_desc', { defaultValue: supportStepCopy.uploadBody })}
                 </p>
                 <input
@@ -707,7 +771,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             </button>
 
             {cvStatus === 'success' && (
-                <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-sm text-[var(--accent-strong)] font-bold">
                     <CheckCircle size={16} />
                     {t('onboarding.cv.upload_success', { defaultValue: supportStepCopy.success })}
                 </div>
@@ -775,43 +839,53 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             </div>
 
             <div className="grid gap-3 text-left">
-                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <div className="flex items-center gap-2">
-                        <MapPin size={16} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('onboarding.summary.location')}</span>
+                <div className="rounded-[1.4rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,255,255,0.9))] p-4 dark:bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.16),rgba(15,23,42,0.72))]">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                        <Sparkles size={14} className="text-[var(--accent-strong)]" />
+                        {isCsLike ? 'AI je připravená pro swipe' : 'AI is ready for swipe'}
                     </div>
-                    <span className={`text-xs font-bold ${hasLocation ? 'text-emerald-600' : 'text-amber-500'}`}>
+                    <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                        {aiPromiseCopy.feedNudge}
+                    </p>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-[var(--border-subtle)] bg-white dark:bg-slate-900 rounded-[1.2rem] shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <MapPin size={18} className="text-[var(--text-faint)]" />
+                        <span className="text-sm font-bold text-[var(--text-strong)]">{t('onboarding.summary.location')}</span>
+                    </div>
+                    <span className={`text-xs font-bold uppercase tracking-widest ${hasLocation ? 'text-[var(--accent-strong)]' : 'text-rose-500'}`}>
                         {hasLocation ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
                     </span>
                 </div>
-                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('onboarding.summary.cv')}</span>
+                <div className="flex items-center justify-between p-4 border border-[var(--border-subtle)] bg-white dark:bg-slate-900 rounded-[1.2rem] shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <FileText size={18} className="text-[var(--text-faint)]" />
+                        <span className="text-sm font-bold text-[var(--text-strong)]">{t('onboarding.summary.cv')}</span>
                     </div>
-                    <span className={`text-xs font-bold ${hasCv ? 'text-emerald-600' : 'text-amber-500'}`}>
+                    <span className={`text-xs font-bold uppercase tracking-widest ${hasCv ? 'text-[var(--accent-strong)]' : 'text-rose-500'}`}>
                         {hasCv ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
                     </span>
                 </div>
-                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <div className="flex items-center gap-2">
-                        <Sparkles size={16} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="flex items-center justify-between p-4 border border-[var(--border-subtle)] bg-white dark:bg-slate-900 rounded-[1.2rem] shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <Sparkles size={18} className="text-[var(--text-faint)]" />
+                        <span className="text-sm font-bold text-[var(--text-strong)]">
                             {t('onboarding.summary.skills', { defaultValue: 'Top skills (3+)' })}
                         </span>
                     </div>
-                    <span className={`text-xs font-bold ${confirmedSkillsCount >= 3 ? 'text-emerald-600' : 'text-amber-500'}`}>
+                    <span className={`text-xs font-bold uppercase tracking-widest ${confirmedSkillsCount >= 3 ? 'text-[var(--accent-strong)]' : 'text-rose-500'}`}>
                         {confirmedSkillsCount >= 3 ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
                     </span>
                 </div>
-                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <div className="flex items-center gap-2">
-                        <MapPin size={16} className="text-slate-400" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <div className="flex items-center justify-between p-4 border border-[var(--border-subtle)] bg-white dark:bg-slate-900 rounded-[1.2rem] shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <MapPin size={18} className="text-[var(--text-faint)]" />
+                        <span className="text-sm font-bold text-[var(--text-strong)]">
                             {t('onboarding.summary.preferences', { defaultValue: 'Role + salary preference' })}
                         </span>
                     </div>
-                    <span className={`text-xs font-bold ${hasPreferencePack ? 'text-emerald-600' : 'text-amber-500'}`}>
+                    <span className={`text-xs font-bold uppercase tracking-widest ${hasPreferencePack ? 'text-[var(--accent-strong)]' : 'text-rose-500'}`}>
                         {hasPreferencePack ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
                     </span>
                 </div>
@@ -859,49 +933,50 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <div className="app-modal-panel max-h-[90vh] max-w-3xl overflow-y-auto animate-in zoom-in-95 duration-300">
                 <div className="app-modal-topline"></div>
 
-                <button
-                    onClick={onClose}
-                    className="absolute top-6 right-6 rounded-full p-2 text-[var(--text-faint)] transition hover:bg-black/5 hover:text-[var(--text-strong)] dark:hover:bg-white/5"
-                >
-                    <X size={20} />
-                </button>
-
-                <div className="app-modal-surface m-4 p-8 sm:m-5 sm:p-10">
-                    <div className="flex items-start justify-between mb-8">
-                        <div>
-                            <div className="app-modal-kicker w-fit">
-                                <Sparkles size={12} />
-                                {isCsLike ? 'Základ kandidátského profilu' : 'Candidate setup'}
+                <div className="max-h-[85vh] overflow-y-auto">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-6 right-6 z-20 rounded-full p-2 text-[var(--text-faint)] transition hover:bg-black/5 hover:text-[var(--text-strong)] dark:hover:bg-white/5 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] shadow-sm"
+                    >
+                        <X size={20} />
+                    </button>
+                    <div className="app-modal-surface p-8 sm:p-12">
+                        <div className="flex items-start justify-between mb-8">
+                            <div>
+                                <div className="app-modal-kicker w-fit">
+                                    <Sparkles size={12} />
+                                    {isCsLike ? 'Základ kandidátského profilu' : 'Candidate setup'}
+                                </div>
+                                <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{t('onboarding.title')}</h2>
+                                <div className="mt-2">{renderStepIndicator()}</div>
                             </div>
-                            <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{t('onboarding.title')}</h2>
-                            <div className="mt-2">{renderStepIndicator()}</div>
                         </div>
+
+                        {step === 1 && renderLocationStep()}
+                        {step === 2 && renderPreferencesStep()}
+                        {step === 3 && renderCvStep()}
+                        {step === 4 && renderDoneStep()}
                     </div>
-
-                    {step === 1 && renderLocationStep()}
-                    {step === 2 && renderPreferencesStep()}
-                    {step === 3 && renderCvStep()}
-                    {step === 4 && renderDoneStep()}
                 </div>
-            </div>
 
-            {showAIGuide && (
-                <AIGuidedProfileWizard
-                    profile={baseProfile}
-                    onClose={() => setShowAIGuide(false)}
-                    onApply={async (updates) => {
-                        const updated = { ...baseProfile, ...updates };
-                        await Promise.resolve(onUpdateProfile(updated, true));
-                        if (onRefreshProfile) {
-                            await onRefreshProfile();
-                        }
-                        setLocalCvText(updated.cvText);
-                        setShowAIGuide(false);
-                        onStepCompleted?.('cv');
-                        setStep(4);
-                    }}
-                />
-            )}
+                {showAIGuide && (
+                    <AIGuidedProfileWizard
+                        profile={baseProfile}
+                        onClose={() => setShowAIGuide(false)}
+                        onApply={async (updates) => {
+                            const updated = { ...baseProfile, ...updates };
+                            await Promise.resolve(onUpdateProfile(updated, true));
+                            if (onRefreshProfile) {
+                                await onRefreshProfile();
+                            }
+                            setLocalCvText(updated.cvText);
+                            setShowAIGuide(false);
+                            onStepCompleted?.('cv');
+                            setStep(4);
+                        }}
+                    />
+                )}
+            </div>
         </div>
     );
 };

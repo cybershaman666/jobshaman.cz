@@ -130,6 +130,53 @@ describe('search ranking helpers', () => {
     expect(topEightExternal).toHaveLength(2);
   });
 
+  test('manual query lets a stronger external match stay above weaker native results', () => {
+    const strongExternal = baseJob({
+      id: 'ext-top',
+      title: 'React Developer',
+      description: 'Remote React product role.',
+      listingKind: 'imported',
+      searchDiagnostics: { source: 'live_external', external: true, backendScore: 88 },
+      jhi: {
+        score: 74,
+        baseScore: 74,
+        personalizedScore: 74,
+        financial: 0,
+        timeCost: 0,
+        mentalLoad: 0,
+        growth: 0,
+        values: 0,
+        explanations: [],
+      },
+    });
+    const weakerNative = baseJob({
+      id: 'native-mid',
+      title: 'Frontend Specialist',
+      description: 'General frontend role with some UI work.',
+      searchDiagnostics: { source: 'native', external: false, backendScore: 35 },
+      jhi: {
+        score: 52,
+        baseScore: 52,
+        personalizedScore: 52,
+        financial: 0,
+        timeCost: 0,
+        mentalLoad: 0,
+        growth: 0,
+        values: 0,
+        explanations: [],
+      },
+    });
+
+    const ranked = rankJobsForSearchMode(
+      [weakerNative, strongExternal],
+      'default',
+      'manual_query',
+      matcher
+    );
+
+    expect(ranked[0].id).toBe('ext-top');
+  });
+
   test('applyExternalTopCap preserves all jobs while pushing overflow external jobs below the top window', () => {
     const capped = applyExternalTopCap([
       baseJob({ id: 'ext-a', listingKind: 'imported', searchDiagnostics: { source: 'live_external', external: true } }),

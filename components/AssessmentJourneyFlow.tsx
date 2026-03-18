@@ -1093,7 +1093,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                   onClick={() => setPersonalityPulseAnswers((prev) => ({ ...prev, [item.id]: 1 }))}
                   className={`rounded-md border px-2 py-1 text-xs text-left transition-colors ${
                     current === 1
-                      ? (variant === 'cockpit' ? 'border-emerald-300/60 bg-emerald-500/20 text-emerald-50' : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100')
+                      ? (variant === 'cockpit' ? 'border-amber-300/60 bg-amber-500/20 text-amber-50' : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100')
                       : (variant === 'cockpit' ? 'border-white/20 bg-black/25 text-cyan-100/90' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200')
                   }`}
                 >
@@ -1227,7 +1227,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               <button
                 onClick={handleNext}
                 disabled={!currentAnswer.trim()}
-                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-amber-400/85 hover:bg-amber-300 text-slate-950"
               >
                 {shouldShowTaskStep
                   ? t('assessment_journey.cta_to_task', { defaultValue: 'Pokračovat na misi' })
@@ -1345,7 +1345,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               <button
                 onClick={handleNext}
                 disabled={!taskReady}
-                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-amber-400/85 hover:bg-amber-300 text-slate-950"
               >
                 {t('assessment_journey.cta_finish_checkpoint', { defaultValue: 'Dokončit checkpoint' })}
               </button>
@@ -1360,7 +1360,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               {behavioralConsistency.recurring_motifs.slice(0, 3).map((x) => <div key={x}>• {x}</div>)}
               {behavioralConsistency.recurring_motifs.length === 0 && <div>• {t('assessment_journey.default_pattern_hint', { defaultValue: 'Začíná se rýsovat váš rozhodovací styl.' })}</div>}
             </div>
-            <button onClick={() => proceedTo(3, 'mirroring_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950">
+            <button onClick={() => proceedTo(3, 'mirroring_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-amber-400/85 hover:bg-amber-300 text-slate-950">
               {t('assessment_journey.cta_to_phase3', { defaultValue: 'Pokračovat na energetický kompas' })}
             </button>
           </div>
@@ -1369,7 +1369,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
           <div className="mt-3 cockpit-panel cockpit-panel-enter p-4">
             <h3 className="text-lg font-semibold text-white">{t('assessment_journey.phase_3', { defaultValue: 'Energetický kompas' })}</h3>
             <p className="mt-2 text-sm text-cyan-50/90">{energySnapshotLabel}</p>
-            <button onClick={() => proceedTo(4, 'resource_leak_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950">
+            <button onClick={() => proceedTo(4, 'resource_leak_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-amber-400/85 hover:bg-amber-300 text-slate-950">
               {t('assessment_journey.cta_to_phase4', { defaultValue: 'Pokračovat na Cultural Northstar' })}
             </button>
           </div>
@@ -1389,7 +1389,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
             <button
               onClick={handleFinalize}
               disabled={!northstarCompleted}
-              className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950 disabled:opacity-45"
+              className="mt-4 px-4 py-2 rounded-lg font-semibold bg-amber-400/85 hover:bg-amber-300 text-slate-950 disabled:opacity-45"
             >
               {t('assessment_journey.cta_finalize', { defaultValue: 'Vytvořit souhrnný profil' })}
             </button>
@@ -1409,7 +1409,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                 });
                 onComplete('journey-completed');
               }}
-              className="px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+              className="px-4 py-2 rounded-lg font-semibold bg-amber-400/85 hover:bg-amber-300 text-slate-950"
             >
               {t('assessment_journey.cta_complete', { defaultValue: 'Dokončit cestu' })}
             </button>
@@ -1433,7 +1433,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               <span>{value}%</span>
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 cockpit-metric-sweep" style={{ width: `${clamp(Number(value), 0, 100)}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-amber-300 cockpit-metric-sweep" style={{ width: `${clamp(Number(value), 0, 100)}%` }} />
             </div>
           </div>
         ))}
@@ -1444,7 +1444,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
           </div>
         )}
         {microInsights.length > 0 && (
-          <div className="rounded-lg border border-emerald-300/35 bg-emerald-300/10 px-3 py-2 text-sm">
+          <div className="rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-sm">
             {microInsights[microInsights.length - 1].text}
           </div>
         )}

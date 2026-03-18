@@ -343,7 +343,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                         </span>
                         <span>{formatFileSize(cv.fileSize)}</span>
                         {cv.isActive && (
-                          <span className="flex items-center gap-1 text-green-600 dark:text-emerald-400 font-medium">
+                          <span className="flex items-center gap-1 text-green-600 dark:text-amber-400 font-medium">
                             <Check size={14} />
                             {copy.active}
                           </span>
@@ -403,7 +403,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                   {!cv.isActive && (
                     <button
                       onClick={() => handleSelectCV(cv.id)}
-                      className="p-2 text-green-600 dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-500/15 rounded-lg transition-colors"
+                      className="p-2 text-green-600 dark:text-amber-400 hover:bg-green-50 dark:hover:bg-amber-500/15 rounded-lg transition-colors"
                       title={t('cv_manager.set_active')}
                     >
                       <Check size={16} />

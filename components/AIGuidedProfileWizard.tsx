@@ -161,6 +161,28 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   const currentStep = steps[stepIndex];
   const hasCurrentInput = stepTexts[stepIndex]?.trim().length > 0;
   const whySummary = aiResult ? buildWhySummary(t, aiResult, stepTexts.map((text) => text.trim()).filter(Boolean)) : [];
+  const aiIntroTitle = localeBase === 'cs'
+    ? 'Jak s tim AI nalozi'
+    : localeBase === 'sk'
+      ? 'Ako s tym AI nalozi'
+      : 'How AI will use this';
+  const aiIntroBullets = localeBase === 'cs'
+    ? [
+      'Prelozi vas pribeh do role, seniority, skills a motivace, se kterymi umi feed pracovat.',
+      'Zachyti i neviditelny kontext, treba presahy mezi obory, styl prace a signal, co uz nechcete delat.',
+      'Pouzije to pro chytrejsi swipe, relevantnejsi doporuceni a lepsi vysvetleni proc roli vidite.',
+    ]
+    : localeBase === 'sk'
+      ? [
+        'Prelozi vas pribeh do role, seniority, skills a motivacie, s ktorymi vie feed pracovat.',
+        'Zachyti aj neviditelny kontext, napriklad presahy medzi odbormi, styl prace a signal, co uz nechcete robit.',
+        'Pouzije to na chytrejsi swipe, relevantnejsie odporucania a lepsie vysvetlenie, preco rolu vidite.',
+      ]
+      : [
+        'It turns your story into role, seniority, skills, and motivation signals the feed can actually use.',
+        'It catches hidden context too, like adjacent domains, work style, and signals about what you no longer want to do.',
+        'That context powers smarter swipe ranking, more relevant recommendations, and clearer why-you-see-this explanations.',
+      ];
 
   const updateStepText = (value: string) => {
     setStepTexts((prev) => {
@@ -309,6 +331,20 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
 
         {!aiResult ? (
           <div className="p-6">
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                {aiIntroTitle}
+              </div>
+              <div className="mt-3 space-y-2">
+                {aiIntroBullets.map((line) => (
+                  <p key={line} className="text-sm leading-6 text-slate-700 dark:text-slate-300">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-4">
               <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                 {t('profile.ai_guide.step_progress', { current: stepIndex + 1, total: steps.length })}

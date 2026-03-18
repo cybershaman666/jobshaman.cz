@@ -85,7 +85,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             {evaluating ? t('assessment.results.evaluating') : t('assessment.results.ai_evaluate_btn')}
                         </button>
                     ) : (
-                        <div className="flex items-center gap-2 rounded-full border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                        <div className="flex items-center gap-2 rounded-full border border-amber-100 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                             <CheckCircle size={14} /> {t('assessment.results.evaluated')}
                         </div>
                     )}
@@ -206,7 +206,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full ${result.ai_evaluation.skillMatchScore >= 70 ? 'bg-emerald-500' : result.ai_evaluation.skillMatchScore >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                className={`h-full rounded-full ${result.ai_evaluation.skillMatchScore >= 70 ? 'bg-amber-500' : result.ai_evaluation.skillMatchScore >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
                                                 style={{ width: `${result.ai_evaluation.skillMatchScore}%` }}
                                             />
                                         </div>
@@ -216,14 +216,14 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/20 bg-emerald-50/50 dark:bg-emerald-900/10 p-3">
-                                    <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                <div className="rounded-2xl border border-amber-100 dark:border-amber-900/20 bg-amber-50/50 dark:bg-amber-900/10 p-3">
+                                    <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                                         <CheckCircle size={12} /> {t('assessment.results.pros_title')}
                                     </h4>
                                     <ul className="space-y-1">
                                         {result.ai_evaluation.pros.map((pro, i) => (
                                             <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
-                                                <span className="mt-1 block w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0" />
+                                                <span className="mt-1 block w-1 h-1 rounded-full bg-amber-400 flex-shrink-0" />
                                                 {pro}
                                             </li>
                                         ))}

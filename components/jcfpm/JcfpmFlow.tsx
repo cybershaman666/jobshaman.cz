@@ -119,8 +119,8 @@ const DIMENSION_THEMES: Record<JcfpmDimension, DimensionTheme> = {
     icon: <Brain className="w-6 h-6" />
   },
   d2_social: {
-    bg: 'from-emerald-900 via-teal-900 to-slate-900',
-    accent: 'text-emerald-400',
+    bg: 'from-amber-900 via-teal-900 to-slate-900',
+    accent: 'text-amber-400',
     particleColor: '#34d399',
     icon: <Users className="w-6 h-6" />
   },
@@ -1069,7 +1069,7 @@ export default function JcfpmFlow({
                           <div className={cn(
                             "absolute -top-1 -right-1 w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity",
                             theme.particleColor === '#60a5fa' ? 'bg-blue-400' :
-                              theme.particleColor === '#34d399' ? 'bg-emerald-400' :
+                              theme.particleColor === '#34d399' ? 'bg-amber-400' :
                                 theme.particleColor === '#fb923c' ? 'bg-orange-400' :
                                   theme.particleColor === '#fb7185' ? 'bg-rose-400' : 'bg-white'
                           )} />
@@ -1156,8 +1156,8 @@ export default function JcfpmFlow({
               className="max-w-xl mx-auto text-center space-y-8"
             >
               <div className="p-8 bg-white/10 backdrop-blur-2xl rounded-[3rem] border border-white/20 shadow-2xl">
-                <div className="w-24 h-24 bg-emerald-500/20 border-4 border-emerald-500/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
-                  <Check className="w-12 h-12 text-emerald-400" />
+                <div className="w-24 h-24 bg-amber-500/20 border-4 border-amber-500/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
+                  <Check className="w-12 h-12 text-amber-400" />
                 </div>
                 <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">{copy.finishedTitle}</h2>
                 <p className="text-white/60 text-lg leading-relaxed mb-10">

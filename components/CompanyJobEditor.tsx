@@ -46,7 +46,8 @@ type JobDraftTextSection =
 type JobDraftHandshakeField =
   | 'first_reply_prompt'
   | 'company_truth_hard'
-  | 'company_truth_fail';
+  | 'company_truth_fail'
+  | 'company_goal';
 
 type MicroJobEditorState = {
   challenge_format: JobChallengeFormat;
@@ -96,6 +97,7 @@ const DEFAULT_VALIDATION: JobValidationReport = {
 type LocalValidationMessages = {
   role_title_required: string;
   role_summary_required: string;
+  role_goal_required: string;
   role_truth_hard_required: string;
   role_truth_fail_required: string;
   micro_job_kind_required: string;
@@ -115,6 +117,7 @@ type LocalValidationMessages = {
 const DEFAULT_LOCAL_VALIDATION_MESSAGES: LocalValidationMessages = {
   role_title_required: 'Add a role title.',
   role_summary_required: 'Add a role summary.',
+  role_goal_required: 'Add a concrete goal (what outcome this role should drive).',
   role_truth_hard_required: 'Add what is genuinely hard about this role.',
   role_truth_fail_required: 'Add what type of person usually fails here.',
   micro_job_kind_required: 'Choose what kind of mini challenge this is.',
@@ -415,7 +418,8 @@ const extractHandshakeFields = (draft: Partial<JobDraft> | null | undefined): Re
   return {
     first_reply_prompt: String(draft?.first_reply_prompt ?? handshake.first_reply_prompt ?? '').trim(),
     company_truth_hard: String(draft?.company_truth_hard ?? handshake.company_truth_hard ?? '').trim(),
-    company_truth_fail: String(draft?.company_truth_fail ?? handshake.company_truth_fail ?? '').trim()
+    company_truth_fail: String(draft?.company_truth_fail ?? handshake.company_truth_fail ?? '').trim(),
+    company_goal: String(draft?.company_goal ?? handshake['company_goal'] ?? '').trim(),
   };
 };
 
@@ -515,6 +519,7 @@ const composePreviewMarkdown = (
     responsibilities: string;
     requirements: string;
     niceToHave: string;
+    goal: string;
     benefits: string;
     applicationDetails: string;
     firstReply: string;
@@ -564,6 +569,7 @@ const composePreviewMarkdown = (
     microJob.challenge_format === 'micro_job' && microJobCollaboration ? `**${labels.microJobCollaboration}:** ${microJobCollaboration}` : '',
     microJob.challenge_format === 'micro_job' && microJobLongTermPotential ? `**${labels.microJobLongTermPotential}:** ${microJobLongTermPotential}` : '',
     draft.role_summary ? `## ${labels.roleSummary}\n${draft.role_summary}` : '',
+    !isMicroJob && handshake.company_goal ? `## ${labels.goal}\n${handshake.company_goal}` : '',
     !isMicroJob && draft.team_intro ? `## ${labels.teamIntro}\n${draft.team_intro}` : '',
     draft.responsibilities ? `## ${labels.responsibilities}\n${compactLines(draft.responsibilities).map((line) => `- ${line}`).join('\n')}` : '',
     !isMicroJob && draft.requirements ? `## ${labels.requirements}\n${compactLines(draft.requirements).map((line) => `- ${line}`).join('\n')}` : '',
@@ -580,6 +586,7 @@ const composePreviewMarkdown = (
 
 const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Partial<JobDraft> => ({
   title: '',
+  company_goal: '',
   first_reply_prompt: '',
   company_truth_hard: '',
   company_truth_fail: '',
@@ -604,7 +611,8 @@ const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Pa
     handshake: {
       first_reply_prompt: '',
       company_truth_hard: '',
-      company_truth_fail: ''
+      company_truth_fail: '',
+      company_goal: ''
     },
     micro_job: createEmptyMicroJobState(),
     human_context: createEmptyHumanContext()
@@ -633,6 +641,7 @@ const createLocalValidationReport = (
 
   if (!title) blockingIssues.push(messages.role_title_required);
   if (!roleSummary) blockingIssues.push(messages.role_summary_required);
+  if (!isMicroJob && !handshake.company_goal) blockingIssues.push(messages.role_goal_required);
   if (!isMicroJob && !handshake.company_truth_hard) blockingIssues.push(messages.role_truth_hard_required);
   if (!isMicroJob && !handshake.company_truth_fail) blockingIssues.push(messages.role_truth_fail_required);
   if (isMicroJob && !microJob.kind) blockingIssues.push(messages.micro_job_kind_required);
@@ -738,6 +747,7 @@ const createLocalDraftFromJob = (
   job_id: job.id,
   status: 'published_linked',
   title: job.title || '',
+  company_goal: job.companyGoal || '',
   role_summary: job.description || '',
   responsibilities: '',
   requirements: '',
@@ -760,7 +770,8 @@ const createLocalDraftFromJob = (
     handshake: {
       first_reply_prompt: '',
       company_truth_hard: '',
-      company_truth_fail: ''
+      company_truth_fail: '',
+      company_goal: ''
     },
     micro_job: {
       challenge_format: job.challenge_format || 'standard',
@@ -837,6 +848,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   const validationMessages = useMemo<LocalValidationMessages>(() => ({
     role_title_required: t('company.job_editor.validation_role_title_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_title_required }),
     role_summary_required: t('company.job_editor.validation_role_summary_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_summary_required }),
+    role_goal_required: t('company.job_editor.validation_role_goal_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_goal_required }),
     role_truth_hard_required: t('company.job_editor.validation_role_truth_hard_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_truth_hard_required }),
     role_truth_fail_required: t('company.job_editor.validation_role_truth_fail_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.role_truth_fail_required }),
     micro_job_kind_required: t('company.job_editor.validation_micro_job_kind_required', { defaultValue: DEFAULT_LOCAL_VALIDATION_MESSAGES.micro_job_kind_required }),
@@ -1645,6 +1657,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     salaryTimeframeFallback: t('company.job_editor.preview_labels.salary_timeframe_fallback', { defaultValue: 'month' }),
     locationFallback: t('company.job_editor.feedback.location_unspecified', { defaultValue: 'Location not specified' }),
     roleSummary: t('company.job_editor.section_labels.role_summary', { defaultValue: 'Role Summary' }),
+    goal: t('company.job_editor.section_labels.goal', { defaultValue: 'Goal' }),
     teamIntro: t('company.job_editor.section_labels.team_intro', { defaultValue: 'Team Intro' }),
     responsibilities: t('company.job_editor.section_labels.responsibilities', { defaultValue: 'Responsibilities' }),
     requirements: t('company.job_editor.section_labels.requirements', { defaultValue: 'Requirements' }),
@@ -1725,7 +1738,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   onClick={() => handleSelectDraft(item)}
                   className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${
                     highlightedDraftId === item.id
-                      ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-200 dark:border-emerald-700 dark:bg-emerald-900/20 dark:ring-emerald-900/40'
+                      ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-200 dark:border-amber-700 dark:bg-amber-900/20 dark:ring-amber-900/40'
                       : item.id === selectedDraftId
                         ? 'border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-900/20'
                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/30 dark:hover:bg-slate-900'
@@ -1736,7 +1749,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     {item.title || t('company.job_editor.untitled_role', { defaultValue: 'Untitled role' })}
                     </div>
                     {highlightedDraftId === item.id ? (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
                         {t('company.job_editor.new_badge', { defaultValue: 'New' })}
                       </span>
                     ) : null}
@@ -1759,7 +1772,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
               <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
                 schemaStatus.all_ready
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
                   : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
               }`}>
                 {schemaStatus.all_ready
@@ -1778,7 +1791,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     <span className="font-medium text-slate-800 dark:text-slate-100">
                       {t(`company.job_editor.rollout_tables.${label}`, { defaultValue: label })}
                     </span>
-                    <span className={probe.ready ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
+                    <span className={probe.ready ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-300'}>
                       {probe.ready
                         ? t('company.job_editor.rollout_ok', { defaultValue: 'ok' })
                         : t('company.job_editor.rollout_missing', { defaultValue: 'missing' })}
@@ -1864,7 +1877,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <button
                     onClick={handlePublishDraft}
                     disabled={publishing}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_14px_26px_-18px_rgba(5,150,105,0.7)] hover:bg-emerald-500 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_14px_26px_-18px_rgba(5,150,105,0.7)] hover:bg-amber-500 disabled:opacity-50"
                   >
                     {publishing ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
                     {draft.job_id
@@ -1875,7 +1888,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
 
               {statusMessage && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
                   {statusMessage}
                 </div>
               )}
@@ -2191,6 +2204,20 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
 
                 {!isMicroJobDraft ? (
                   <>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                        {t('company.job_editor.handshake.goal', { defaultValue: 'Goal (what outcome should this role drive?)' })}
+                      </label>
+                      <textarea
+                        value={draft.company_goal || ''}
+                        onChange={(e) => patchDraft({ company_goal: e.target.value })}
+                        className="min-h-[96px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:[color-scheme:dark]"
+                        placeholder={t('company.job_editor.handshake.goal_placeholder', {
+                          defaultValue: 'Example: Reduce dispatch estimate errors from 30% to under 10% within 90 days by unifying data from X/Y/Z.'
+                        })}
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                         {t('company.job_editor.handshake.truth_hard', { defaultValue: 'What is actually hard about this role?' })}
@@ -2583,7 +2610,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     {t('company.job_editor.blocking', { defaultValue: 'Blocking issues' })}
                   </div>
                   {validation.blockingIssues.length === 0 ? (
-                    <div className="text-sm text-emerald-700 dark:text-emerald-300">
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
                       {t('company.job_editor.no_blocking_issues', { defaultValue: 'No blocking issues.' })}
                     </div>
                   ) : (

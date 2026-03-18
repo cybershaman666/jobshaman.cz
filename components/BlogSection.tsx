@@ -402,7 +402,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
             label: t('blog.stats.transparency_rate'),
             value: `${globalStats.transparency_rate}%`,
             icon: Shield,
-            color: 'text-emerald-400'
+            color: 'text-amber-400'
         },
         {
             label: t('blog.stats.avg_jhi'),

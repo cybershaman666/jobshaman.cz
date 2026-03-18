@@ -52,6 +52,24 @@ def _contains(text: str, term: str) -> bool:
     return bool(term and term in (text or ""))
 
 
+def _contains_any(text: str, terms: List[str]) -> bool:
+    haystack = text or ""
+    return any(term and term in haystack for term in (terms or []))
+
+
+def _token_phrase_match(text: str, phrase: str) -> bool:
+    haystack = text or ""
+    normalized = _normalize_text(phrase)
+    if not normalized:
+        return False
+    if normalized in haystack:
+        return True
+    tokens = [token for token in normalized.split() if token]
+    if len(tokens) < 2:
+        return bool(tokens and tokens[0] in haystack)
+    return all(token in haystack for token in tokens)
+
+
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
@@ -212,6 +230,59 @@ def _geography_weight(candidate_features: Dict, job_features: Dict) -> float:
     return _clamp01(score)
 
 
+def _intent_alignment(candidate_features: Dict, job_features: Dict) -> tuple[float, float, List[str], List[str]]:
+    job_title = job_features.get("title") or ""
+    job_text = job_features.get("text") or ""
+    work_model = job_features.get("work_model") or ""
+    job_type = job_features.get("type") or ""
+
+    target_roles = [item for item in (candidate_features.get("intent_roles") or []) if item]
+    adjacent_roles = [item for item in (candidate_features.get("adjacent_roles") or []) if item]
+    priority_keywords = [item for item in (candidate_features.get("intent_keywords") or []) if item]
+    avoid_keywords = [item for item in (candidate_features.get("avoid_keywords") or []) if item]
+    preferred_work_modes = [item for item in (candidate_features.get("preferred_work_modes") or []) if item]
+
+    matched_signals: List[str] = []
+    avoid_hits: List[str] = []
+    score = 0.0
+
+    for role in target_roles:
+        if role and (_token_phrase_match(job_title, role) or _token_phrase_match(job_text, role)):
+            score += 0.42
+            matched_signals.append(role)
+
+    for role in adjacent_roles:
+        if role and (_token_phrase_match(job_title, role) or _token_phrase_match(job_text, role)):
+            score += 0.18
+            matched_signals.append(role)
+
+    keyword_hits = 0
+    for keyword in priority_keywords[:10]:
+        if keyword and keyword in job_text:
+            keyword_hits += 1
+            matched_signals.append(keyword)
+    if keyword_hits:
+        score += min(0.35, keyword_hits * 0.07)
+
+    if preferred_work_modes:
+        work_haystack = " ".join([job_type, work_model, job_text])
+        if _contains_any(work_haystack, preferred_work_modes):
+            score += 0.08
+
+    for keyword in avoid_keywords[:8]:
+        if keyword and keyword in job_title:
+            avoid_hits.append(keyword)
+        elif keyword and keyword in job_text:
+            avoid_hits.append(keyword)
+
+    alignment = _clamp01(score)
+    penalty = 0.0
+    if avoid_hits:
+        penalty = min(0.85, 0.35 + (0.15 * len(avoid_hits)))
+
+    return alignment, penalty, matched_signals[:5], avoid_hits[:4]
+
+
 def _compose_reasons(components: Dict[str, float], missing_core_skills: List[str], seniority_gap: float) -> List[str]:
     labels = {
         "skill_match": "Silna shoda dovednosti",
@@ -254,12 +325,29 @@ def score_job(
 
     exact_ratio, exact_hits, missing_skills = _exact_skill_ratio(candidate_skills, job_text)
     role_transfer_alignment, candidate_role_families, job_role_families, role_relation_strength = _role_transfer_alignment(candidate_text, job_text)
+    intent_alignment, intent_penalty, matched_intent_signals, avoid_intent_hits = _intent_alignment(candidate_features, job_features)
     base_similarity = _clamp01((0.65 * _clamp01(semantic_similarity)) + (0.35 * exact_ratio))
-    skill_similarity = _clamp01((0.8 * base_similarity) + (0.2 * role_transfer_alignment))
+    skill_similarity = _clamp01((0.55 * base_similarity) + (0.2 * role_transfer_alignment) + (0.25 * intent_alignment))
     domain_alignment, strong_domain_mismatch, candidate_domains, job_domains = _domain_alignment(candidate_text, job_text)
-    if strong_domain_mismatch and role_transfer_alignment < 0.5:
-        # Hard gate: semantic similarity can still be high for generic language, but domain mismatch should dominate.
-        skill_similarity *= 0.3
+    
+    # ENHANCED domain mismatch penalty (Issue: CNC jobs showing for Product Managers)
+    # Apply graduated penalty based on mismatch severity
+    if strong_domain_mismatch:
+        if role_transfer_alignment < 0.2:
+            # Hard gate: very different domains with no role transfer connection
+            # CNC operator vs Product Manager scenario
+            skill_similarity *= 0.1
+        elif role_transfer_alignment < 0.4:
+            # Strong penalty for misaligned domains
+            skill_similarity *= 0.15
+        elif role_transfer_alignment < 0.5:
+            # Moderate penalty for somewhat misaligned domains
+            skill_similarity *= 0.25
+        else:
+            # Light penalty for domains with some relation
+            skill_similarity *= 0.4
+    if intent_penalty > 0:
+        skill_similarity *= max(0.05, 1.0 - intent_penalty)
 
     demand_alignment = _clamp01(
         demand_weight_for_skills(
@@ -312,6 +400,8 @@ def score_job(
     if missing_required_qualifications:
         # Regulated/specialized roles without explicit profile evidence should stay near the floor.
         hard_cap = min(hard_cap, 10.0)
+    if avoid_intent_hits:
+        hard_cap = min(hard_cap, 20.0)
     total = min(total, hard_cap)
 
     breakdown = {
@@ -332,6 +422,10 @@ def score_job(
         "job_domains": job_domains[:5],
         "role_transfer_alignment": round(role_transfer_alignment, 4),
         "role_relation_strength": round(role_relation_strength, 4),
+        "intent_alignment": round(intent_alignment, 4),
+        "intent_penalty": round(intent_penalty, 4),
+        "intent_matched_signals": matched_intent_signals,
+        "intent_avoid_hits": avoid_intent_hits,
         "candidate_role_families": candidate_role_families[:4],
         "job_role_families": job_role_families[:4],
         "taxonomy_version": TAXONOMY_VERSION,
@@ -344,6 +438,10 @@ def score_job(
         reasons.insert(0, "Silny oborovy nesoulad mezi profilem a pozici")
     if missing_required_qualifications:
         reasons.insert(0, "Chybi povinna kvalifikace nebo zkusenost pro tuto roli")
+    if avoid_intent_hits:
+        reasons.insert(0, "Role jde proti jasnemu zameru kandidata")
+    elif intent_alignment >= 0.65:
+        reasons.insert(0, "Role cte jasny cil a kontext kandidata")
     if role_transfer_alignment >= 0.95:
         reasons.insert(0, "Profese je ve velmi silne shode")
     elif role_transfer_alignment >= 0.68:

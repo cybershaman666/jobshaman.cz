@@ -196,17 +196,17 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                             title={t('company.workspace.overview_focus_title', { defaultValue: 'What needs attention now' })}
                             subtitle={t('company.workspace.overview_focus_desc', { defaultValue: 'A simple view of what should happen next, who just applied, and where your team should focus first.' })}
                             action={(
-                                <button onClick={onOpenApplications} className="company-pill-surface px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <button onClick={onOpenApplications} className="app-organic-pill company-surface-soft px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
                                     {t('company.workspace.actions.open_full_queue', { defaultValue: 'Open dialogue inbox' })}
                                 </button>
                             )}
                         >
                             <div className="space-y-4">
                                 {featuredTodayAction ? (
-                                    <div className="company-surface-soft rounded-[1.05rem] border border-slate-200/80 dark:border-slate-800 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.45)]">
+                                    <div className="company-surface-soft app-organic-panel-soft rounded-[1.05rem] border border-slate-200/80 dark:border-slate-800 p-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.45)]">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                             <div className="min-w-0">
-                                                <div className="company-pill-surface inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-700 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+                                                <div className="app-organic-pill company-surface-soft inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-700 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
                                                     {featuredTodayAction.label}
                                                 </div>
                                                 <div className="mt-3 text-lg font-semibold tracking-tight text-slate-950 dark:text-white">
@@ -218,7 +218,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                             </div>
                                             <button
                                                 onClick={featuredTodayAction.action}
-                                                className="self-start rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_26px_-18px_rgba(15,23,42,0.9)] transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                                                className="app-button-primary app-organic-cta self-start px-4 py-2.5 text-sm"
                                             >
                                                 {featuredTodayAction.actionLabel}
                                             </button>
@@ -251,7 +251,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         </div>
 
                                         {queuePreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <div className="company-surface-soft app-organic-panel-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                                                 {t('company.workspace.queue_empty', { defaultValue: 'No urgent blockers right now. The queue will light up as new recruiter actions appear.' })}
                                             </div>
                                         ) : (
@@ -281,7 +281,7 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                                         {resolvedDialoguesLoading ? (
                                             <div className="text-sm text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
                                         ) : dialoguePreview.length === 0 ? (
-                                            <div className="company-surface-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                            <div className="company-surface-soft app-organic-panel-soft rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                                                 {t('company.workspace.cards.recent_applications_empty', { defaultValue: 'No dialogues yet. As soon as candidates open a handshake, their thread will land here first.' })}
                                             </div>
                                         ) : (

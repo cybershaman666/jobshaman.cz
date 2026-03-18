@@ -17,20 +17,39 @@ export type MaritalStatus = 'single' | 'married';
 export type GermanTaxClass = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
 export type SearchLanguageCode = 'cs' | 'sk' | 'en' | 'de' | 'pl';
 export type CandidateDomainKey =
-  | 'product_management'
-  | 'hospitality'
+  | 'agriculture'
+  | 'ai_data'
+  | 'aviation'
+  | 'construction'
+  | 'creative_media'
   | 'customer_support'
-  | 'operations'
-  | 'sales'
-  | 'marketing'
-  | 'finance'
-  | 'it'
-  | 'engineering'
-  | 'healthcare'
+  | 'ecommerce'
   | 'education'
+  | 'energy_utilities'
+  | 'engineering'
+  | 'finance'
+  | 'government_defense'
+  | 'healthcare'
+  | 'hospitality'
+  | 'insurance'
+  | 'it'
   | 'logistics'
   | 'manufacturing'
-  | 'retail';
+  | 'maritime'
+  | 'marketing'
+  | 'media_design'
+  | 'mining_heavy_industry'
+  | 'operations'
+  | 'pharma_biotech'
+  | 'procurement'
+  | 'product_management'
+  | 'public_services'
+  | 'real_estate'
+  | 'retail'
+  | 'sales'
+  | 'science_lab'
+  | 'security'
+  | 'telecom_network';
 export type CandidateSeniority = 'entry' | 'junior' | 'medior' | 'senior' | 'lead';
 export type CandidateInferenceSource = 'manual' | 'profile' | 'cv' | 'history' | 'skills' | 'mixed' | 'none';
 export type CandidateMatchBucket = 'best_fit' | 'adjacent' | 'broader';
@@ -38,6 +57,167 @@ export type SearchMode = 'manual_query' | 'manual_filters' | 'discovery_default'
 export type SearchResultSource = 'native' | 'cached_external' | 'live_external';
 export type JobWorkArrangementFilter = 'all' | 'remote' | 'hybrid' | 'onsite';
 export type JobGeographicScope = 'domestic' | 'border' | 'abroad' | 'all';
+
+export interface CareerMapTaxonomyResponse {
+  taxonomy_version: string;
+  role_families: string[];
+  role_family_relations: Record<string, Record<string, number>>;
+}
+
+export interface CareerMapInferRequestJob {
+  id: string;
+  title: string;
+  description?: string | null;
+  required_skills?: string[] | null;
+}
+
+export interface CareerMapInferRequest {
+  jobs: CareerMapInferRequestJob[];
+}
+
+export interface CareerMapKeyScore {
+  key: string;
+  score: number;
+}
+
+export interface CareerMapInferJobResult {
+  id: string;
+  role_families: CareerMapKeyScore[];
+  primary_role_family?: string | null;
+  domains: CareerMapKeyScore[];
+  primary_domain?: string | null;
+}
+
+export interface CareerMapInferResponse {
+  meta: { taxonomy_version: string };
+  jobs: CareerMapInferJobResult[];
+}
+
+export interface CareerMapGraphModel {
+  taxonomy: CareerMapTaxonomyResponse;
+  inference: CareerMapInferResponse;
+  inferredById: Record<string, CareerMapInferJobResult | undefined>;
+}
+
+export interface CareerOpsMeta {
+  generated_at: string;
+  fallback_mode?: string;
+  candidate_intent: {
+    primary_domain?: string | null;
+    secondary_domains?: string[];
+    target_role?: string;
+    seniority?: string | null;
+    include_adjacent_domains?: boolean;
+    inferred_primary_domain?: string | null;
+    inferred_target_role?: string | null;
+    inference_source?: string;
+    inference_confidence?: number | null;
+  };
+  recommendation_intelligence: {
+    target_roles?: string[];
+    adjacent_roles?: string[];
+    priority_keywords?: string[];
+    avoid_keywords?: string[];
+    preferred_work_modes?: string[];
+    seniority?: string;
+    primary_domain?: string;
+    secondary_domains?: string[];
+    used_ai?: boolean;
+    source?: string;
+  };
+  collections: {
+    raw: string;
+    enriched: string;
+    companies: string;
+  };
+  counts: {
+    raw_jobs_seen: number;
+    enriched_jobs_scored: number;
+    companies_ranked: number;
+    actions: number;
+    saved_job_ids?: number;
+    dismissed_job_ids?: number;
+  };
+}
+
+export interface CareerOpsJob {
+  raw_job_id: string;
+  company_key: string;
+  company: string;
+  title: string;
+  location: string;
+  country?: string | null;
+  source_site: string;
+  job_type?: string | null;
+  interval?: string | null;
+  job_url?: string | null;
+  description_excerpt: string;
+  description_present: boolean;
+  is_remote: boolean;
+  work_mode_normalized: string;
+  freshness_bucket: string;
+  freshness_score: number;
+  language_code?: string | null;
+  inferred_seniority?: string | null;
+  primary_role_family?: string | null;
+  primary_domain?: string | null;
+  role_families: CareerMapKeyScore[];
+  domains: CareerMapKeyScore[];
+  scraped_at?: string | null;
+  updated_at?: string | null;
+  expires_at?: string | null;
+  fit_score: number;
+  match_bucket: CandidateMatchBucket;
+  fit_reasons: string[];
+  action_type: 'new_high_fit_job' | 'company_cluster' | 'tailor_now' | 'stale_saved_followup' | string;
+}
+
+export interface CareerOpsCompany {
+  company_key: string;
+  company: string;
+  country?: string | null;
+  open_jobs_count: number;
+  latest_scraped_at?: string | null;
+  primary_role_family?: string | null;
+  primary_domain?: string | null;
+  role_family_counts?: Record<string, number>;
+  domain_counts?: Record<string, number>;
+  source_sites: string[];
+  top_locations: string[];
+  sample_job_ids: string[];
+  sample_titles: string[];
+  remote_ratio: number;
+  hybrid_ratio: number;
+  why_now: string;
+  updated_at?: string | null;
+  avg_fit_score: number;
+  top_jobs: Array<{
+    raw_job_id: string;
+    title: string;
+    fit_score: number;
+    action_type: string;
+  }>;
+}
+
+export interface CareerOpsAction {
+  id: string;
+  kind: 'new_high_fit_job' | 'company_cluster' | 'tailor_now' | 'stale_saved_followup' | string;
+  title: string;
+  subtitle: string;
+  score?: number | null;
+  job_id?: string | null;
+  company_key?: string | null;
+  reason_lines: string[];
+  source_url?: string | null;
+}
+
+export interface CareerOpsFeedResponse {
+  source: string;
+  meta: CareerOpsMeta;
+  jobs: CareerOpsJob[];
+  companies: CareerOpsCompany[];
+  actions: CareerOpsAction[];
+}
 
 export interface TaxProfile {
   countryCode: SupportedCountryCode;
@@ -94,6 +274,7 @@ export interface CandidateSearchProfile {
   defaultMaxDistanceKm: number;
   primaryDomain?: CandidateDomainKey | null;
   secondaryDomains?: CandidateDomainKey[];
+  avoidDomains?: CandidateDomainKey[];
   targetRole?: string;
   seniority?: CandidateSeniority | null;
   includeAdjacentDomains?: boolean;
@@ -106,6 +287,7 @@ export interface CandidateSearchProfile {
 export interface CandidateIntentProfile {
   primaryDomain: CandidateDomainKey | null;
   secondaryDomains: CandidateDomainKey[];
+  avoidDomains: CandidateDomainKey[];
   targetRole: string;
   seniority: CandidateSeniority | null;
   includeAdjacentDomains: boolean;
@@ -412,6 +594,36 @@ export interface JobHumanContext {
   trust: JobHumanContextTrust;
 }
 
+export interface JobRelatedChallenge {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  work_model?: string | null;
+  source?: string | null;
+  preview: string;
+  similarity_score?: number | null;
+}
+
+export interface JobDetailJhiNarrative {
+  score_label: string;
+  strongest_label: string;
+  strongest_value: number;
+  weakest_label: string;
+  weakest_value: number;
+  summary: string;
+  pillar_order: Array<{
+    key: 'financial' | 'timeCost' | 'mentalLoad' | 'growth' | 'values';
+    label: string;
+    value: number;
+  }>;
+}
+
+export interface JobDetailMeta {
+  jhiNarrative: JobDetailJhiNarrative;
+  relatedChallenges: JobRelatedChallenge[];
+}
+
 export interface PublicActivityStats {
   new_challenges_today: number;
   candidate_replies_today: number;
@@ -496,6 +708,7 @@ export interface Job {
   company_id?: string;
   title: string;
   company: string;
+  companyGoal?: string | null;
   location: string;
   type: 'Remote' | 'Hybrid' | 'On-site';
   work_model?: string;
@@ -559,6 +772,9 @@ export interface Job {
   matchReasons?: string[];
   matchedDomains?: CandidateDomainKey[];
   inferredDomain?: CandidateDomainKey | null;
+  inferredDomainConfidence?: number;
+  inferredDomainScoreGap?: number;
+  inferredDomainSource?: 'title_override' | 'taxonomy';
   inferredSeniority?: CandidateSeniority | null;
   searchDiagnostics?: {
     source: SearchResultSource;
@@ -621,6 +837,7 @@ export interface DatabaseJob {
   company_id?: string | null;
   title?: string;
   company?: string;
+  company_goal?: string | null;
   location?: string;
   description?: string;
   role_summary?: string | null;
@@ -680,17 +897,17 @@ export interface CompanyApplicationRow {
   job_id: string | number;
   candidate_id: string;
   status:
-    | 'pending'
-    | 'reviewed'
-    | 'shortlisted'
-    | 'rejected'
-    | 'hired'
-    | 'withdrawn'
-    | 'closed'
-    | 'closed_timeout'
-    | 'closed_rejected'
-    | 'closed_withdrawn'
-    | 'closed_role_filled';
+  | 'pending'
+  | 'reviewed'
+  | 'shortlisted'
+  | 'rejected'
+  | 'hired'
+  | 'withdrawn'
+  | 'closed'
+  | 'closed_timeout'
+  | 'closed_rejected'
+  | 'closed_withdrawn'
+  | 'closed_role_filled';
   created_at?: string;
   submitted_at?: string;
   updated_at?: string;
@@ -991,6 +1208,7 @@ export interface JobDraft {
   job_id?: string | number | null;
   status: JobDraftStatus;
   title: string;
+  company_goal?: string;
   first_reply_prompt?: string;
   company_truth_hard?: string;
   company_truth_fail?: string;
@@ -1039,7 +1257,8 @@ export enum ViewState {
   PROFILE_EDITOR = 'PROFILE_EDITOR',
   COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
   ASSESSMENT = 'ASSESSMENT',
-  JCFPM = 'JCFPM'
+  JCFPM = 'JCFPM',
+  MARKET_RADAR = 'MARKET_RADAR'
 }
 
 export interface AIAnalysisResult {
@@ -1593,6 +1812,7 @@ export interface CandidateUsageStats {
   cvOptimizationsUsed: number;
   coverLettersGenerated: number;
   atcHacksUsed: number;
+  activeDialogueSlotsUsed?: number;
 }
 
 // New types for Career Pathfinder

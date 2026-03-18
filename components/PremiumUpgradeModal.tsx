@@ -221,12 +221,9 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                         </div>
                     </div>
 
-                    <div className="app-modal-surface border-t px-4 py-4 lg:rounded-none lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:px-6 lg:py-6">
+                    <div className="app-modal-surface border-t px-4 py-4 lg:rounded-none lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:px-6 lg:py-6 bg-[var(--surface-subtle)]">
                         <div
-                            className="rounded-[calc(var(--radius-xl)+4px)] border border-amber-200/80 p-5 shadow-[0_24px_60px_-40px_rgba(217,119,6,0.55)]"
-                            style={{
-                                background: 'linear-gradient(180deg, rgba(255, 247, 224, 0.98), rgba(255, 255, 255, 0.98))'
-                            }}
+                            className="rounded-[calc(var(--radius-xl)+4px)] border border-[var(--accent-soft)] p-5 shadow-[0_24px_60px_-40px_rgba(var(--accent-rgb),0.3)] bg-white dark:bg-slate-900"
                         >
                             <div className="space-y-4">
                                 <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
@@ -234,22 +231,22 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                                     {featureName}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-slate-600">{copy.priceLabel}</div>
-                                    <div className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
+                                    <div className="text-sm font-medium text-[var(--text-muted)]">{copy.priceLabel}</div>
+                                    <div className="mt-1 text-3xl font-bold tracking-tight text-[var(--text-strong)]">
                                         {price.eurLabel}
-                                        <span className="ml-2 text-base font-medium text-slate-600">{price.billingLabel}</span>
+                                        <span className="ml-2 text-base font-medium text-[var(--text-muted)]">{price.billingLabel}</span>
                                     </div>
-                                    <div className="mt-2 text-sm text-slate-600">
+                                    <div className="mt-2 text-sm text-[var(--text-muted)]">
                                         ≈ {price.czkLabel} / {price.plnLabel}
                                     </div>
                                 </div>
 
-                                <div className="rounded-[var(--radius-xl)] border border-amber-200/80 bg-white p-4">
+                                <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-4">
                                     <div className="space-y-2">
-                                        <div className="text-sm font-semibold text-slate-950">
+                                        <div className="text-sm font-bold text-[var(--text-strong)]">
                                             {copy.whyLabel}
                                         </div>
-                                        <p className="text-sm leading-6 text-slate-700">
+                                        <p className="text-sm leading-6 text-[var(--text-muted)]">
                                             {copy.note}
                                         </p>
                                     </div>
@@ -259,7 +256,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                                     {copy.featureGroups.map((item) => (
                                         <div key={item.title} className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-white px-3 py-2.5">
                                             <CheckCircle2 size={16} className="mt-0.5 text-[var(--accent-strong)]" />
-                                            <span className="text-sm text-slate-700">{item.title}</span>
+                                            <span className="text-sm text-[var(--text-muted)] font-medium">{item.title}</span>
                                         </div>
                                     ))}
                                 </div>

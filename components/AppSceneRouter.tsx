@@ -1,19 +1,19 @@
 import { lazy, Suspense, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
-import { CompanyProfile, DiscoveryFilterSource, Job, JobSearchFilters, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
+import { CompanyProfile, DiscoveryFilterSource, Job, JobSearchFilters, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
 import PodminkyUziti from '../pages/PodminkyUziti';
 import OchranaSoukromi from '../pages/OchranaSoukromi';
 import EnterpriseSignup from './EnterpriseSignup';
 import CandidateActivationRail from './CandidateActivationRail';
 import ChallengeMarketplace from './challenges/ChallengeMarketplace';
-import ChallengeFocusView from './challenges/ChallengeFocusView';
-import PublicCompanyProfilePage from './challenges/PublicCompanyProfilePage';
 import BlogSection from './BlogSection';
 import { mapJcfpmToJhiPreferencesWithExplanation } from '../services/jcfpmService';
 import { createDefaultJHIPreferences } from '../services/profileDefaults';
 import { trackAnalyticsEvent } from '../services/supabaseService';
 import { isActivationComplete } from '../services/candidateActivationService';
+import ChallengeDetailPage from '../src/pages/challenge-detail/ChallengeDetailPage';
+import CompanySpacePage from '../src/pages/company-space/CompanySpacePage';
 
 const CompanyDashboard = lazy(() => import('./CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./CompanyLandingPage'));
@@ -23,12 +23,15 @@ const InvitationLanding = lazy(() => import('../pages/InvitationLanding'));
 const AssessmentPreviewPage = lazy(() => import('../pages/AssessmentPreviewPage'));
 const DemoHandshakePage = lazy(() => import('../pages/DemoHandshakePage'));
 const DemoCompanyHandshakePage = lazy(() => import('../pages/DemoCompanyHandshakePage'));
+const DemoSolarpunkPark = lazy(() => import('../pages/DemoSolarpunkPark'));
 const JcfpmFlow = lazy(() => import('./jcfpm/JcfpmFlow'));
 const ProfileEditor = lazy(() => import('./ProfileEditor'));
+const MarketRadarPage = lazy(() => import('../pages/MarketRadarPage'));
 
 type AppSceneRouterProps = {
     normalizedPath: string;
     viewState: ViewState;
+    isMapMode?: boolean;
     theme: 'light' | 'dark';
     vercelAnalyticsEnabled: boolean;
     userProfile: UserProfile;
@@ -68,6 +71,7 @@ type AppSceneRouterProps = {
     implicitLanguageCodesApplied: string[];
     discoveryLane: 'challenges' | 'imports';
     discoveryMode: 'all' | 'micro_jobs';
+    searchDiagnostics: SearchDiagnosticsMeta | null;
     candidateActivationState: any;
     activationNextStep: string;
     applyInteractionState: (jobId: string, state: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
@@ -95,6 +99,7 @@ type AppSceneRouterProps = {
     onLoadMoreJobs: () => void;
     onGoToJobsPage: (page: number) => void;
     onSetDiscoveryLane: (lane: 'challenges' | 'imports') => void;
+    onSetDiscoveryMode: (mode: 'all' | 'micro_jobs') => void;
     onSetSearchTerm: (value: string, source?: DiscoveryFilterSource) => void;
     onPerformSearch: (term: string) => void;
     onSetFilterCity: (value: string) => void;
@@ -113,7 +118,7 @@ type AppSceneRouterProps = {
     onSetFilterExperience: (values: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
     onSetFilterLanguageCodes: (values: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
     onSetEnableAutoLanguageGuard: (value: boolean) => void;
-    onApplyDiscoveryDefaults: (filters: JobSearchFilters) => void;
+    onApplyDiscoveryDefaults: (filters: JobSearchFilters, force?: boolean) => void;
     searchMode: SearchMode;
     getLocalePrefix: () => string;
     onboardingDismissedRef: MutableRefObject<boolean>;
@@ -136,34 +141,20 @@ export default function AppSceneRouter({
     resolvedSavedJobs,
     savedJobIds,
     savedJobsSearchTerm,
-    isLoadingJobs,
     loadingMore,
     hasMore,
-    totalCount,
     currentPage,
     pageSize,
-    searchTerm,
-    filterCity,
+    totalCount,
     filterMinSalary,
-    filterBenefits,
     remoteOnly,
-    globalSearch,
-    abroadOnly,
-    countryCodes,
     enableCommuteFilter,
     filterMaxDistance,
-    filterContractType,
-    filterDate,
-    filterExperience,
-    filterLanguageCodes,
-    hasExplicitLanguageFilter,
-    enableAutoLanguageGuard,
-    implicitLanguageCodesApplied,
     discoveryLane,
     discoveryMode,
+    searchDiagnostics,
     candidateActivationState,
     activationNextStep,
-    applyInteractionState,
     onDeleteAccount,
     onSetCompanyProfile,
     onSetViewState,
@@ -182,32 +173,17 @@ export default function AppSceneRouter({
     onSetApplyModalOpen,
     onSetShowCandidateOnboarding,
     onOpenAuth,
-    onOpenPremium,
     onHandleCompanyPageSelect,
     onHandleJobSelect,
     onLoadMoreJobs,
     onGoToJobsPage,
     onSetDiscoveryLane,
-    onSetSearchTerm,
-    onPerformSearch,
-    onSetFilterCity,
+    onSetDiscoveryMode,
     onSetFilterMinSalary,
-    onSetFilterBenefits,
-    onToggleBenefitFilter,
     onSetRemoteOnly,
-    onSetGlobalSearch,
-    onSetAbroadOnly,
-    onSetCountryCodes,
     onSetEnableCommuteFilter,
     onSetFilterMaxDistance,
-    onSetFilterContractType,
-    onToggleContractTypeFilter,
-    onSetFilterDate,
-    onSetFilterExperience,
-    onSetFilterLanguageCodes,
-    onSetEnableAutoLanguageGuard,
     onApplyDiscoveryDefaults,
-    searchMode,
     getLocalePrefix,
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
@@ -274,6 +250,19 @@ export default function AppSceneRouter({
             </div>
         );
     }
+    if (normalizedPath === '/market-radar' || viewState === ViewState.MARKET_RADAR) {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>}>
+                    <MarketRadarPage
+                        userProfile={userProfile}
+                        onOpenAuth={onOpenAuth}
+                        onOpenProfile={() => onSetViewState(ViewState.PROFILE)}
+                    />
+                </Suspense>
+            </div>
+        );
+    }
     if (normalizedPath === '/demo-handshake') {
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
@@ -317,6 +306,13 @@ export default function AppSceneRouter({
                         window.location.assign(`/${lng}/pro-firmy`);
                     }}
                 />
+            </div>
+        );
+    }
+    if (normalizedPath === '/demo-solarpunk-park') {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                <DemoSolarpunkPark />
             </div>
         );
     }
@@ -461,13 +457,13 @@ export default function AppSceneRouter({
             <div className="col-span-1 lg:col-span-12">
                 <div className="space-y-6">
                     {selectedCompanyId ? (
-                        <PublicCompanyProfilePage
+                        <CompanySpacePage
                             companyId={selectedCompanyId}
                             onBack={() => onHandleCompanyPageSelect(null)}
                             onOpenChallenge={onHandleJobSelect}
                         />
                     ) : selectedJob ? (
-                        <ChallengeFocusView
+                        <ChallengeDetailPage
                             job={selectedJob}
                             userProfile={userProfile}
                             firstQualityActionAt={candidateActivationState?.first_quality_action_at ?? null}
@@ -499,60 +495,31 @@ export default function AppSceneRouter({
                                 savedJobIds={savedJobIds}
                                 userProfile={userProfile}
                                 lane={discoveryLane}
-                                microJobsOnly={discoveryMode === 'micro_jobs'}
+                                discoveryMode={discoveryMode}
+                                searchDiagnostics={searchDiagnostics}
+                                setDiscoveryMode={onSetDiscoveryMode}
                                 setLane={onSetDiscoveryLane}
-                                loading={isLoadingJobs}
+                                totalCount={totalCount}
                                 loadingMore={loadingMore}
                                 hasMore={hasMore}
-                                totalCount={totalCount}
                                 currentPage={currentPage}
                                 pageSize={pageSize}
+                                theme={theme}
                                 loadMoreJobs={onLoadMoreJobs}
                                 goToPage={onGoToJobsPage}
-                                applyInteractionState={applyInteractionState}
-                                theme={theme}
-                                searchTerm={searchTerm}
-                                setSearchTerm={onSetSearchTerm}
-                                performSearch={onPerformSearch}
-                                filterCity={filterCity}
-                                setFilterCity={onSetFilterCity}
                                 filterMinSalary={filterMinSalary}
                                 setFilterMinSalary={onSetFilterMinSalary}
-                                filterBenefits={filterBenefits}
-                                setFilterBenefits={onSetFilterBenefits}
-                                toggleBenefitFilter={onToggleBenefitFilter}
                                 remoteOnly={remoteOnly}
                                 setRemoteOnly={onSetRemoteOnly}
-                                globalSearch={globalSearch}
-                                setGlobalSearch={onSetGlobalSearch}
-                                abroadOnly={abroadOnly}
-                                setAbroadOnly={onSetAbroadOnly}
-                                countryCodes={countryCodes}
-                                setCountryCodes={onSetCountryCodes}
                                 enableCommuteFilter={enableCommuteFilter}
                                 setEnableCommuteFilter={onSetEnableCommuteFilter}
                                 filterMaxDistance={filterMaxDistance}
                                 setFilterMaxDistance={onSetFilterMaxDistance}
-                                filterContractType={filterContractType}
-                                setFilterContractType={onSetFilterContractType}
-                                toggleContractTypeFilter={onToggleContractTypeFilter}
-                                filterDate={filterDate}
-                                setFilterDate={onSetFilterDate}
-                                filterExperience={filterExperience}
-                                setFilterExperience={onSetFilterExperience}
-                                filterLanguageCodes={filterLanguageCodes}
-                                hasExplicitLanguageFilter={hasExplicitLanguageFilter}
-                                setFilterLanguageCodes={onSetFilterLanguageCodes}
-                                enableAutoLanguageGuard={enableAutoLanguageGuard}
-                                setEnableAutoLanguageGuard={onSetEnableAutoLanguageGuard}
-                                implicitLanguageCodesApplied={implicitLanguageCodesApplied}
                                 applyDiscoveryDefaults={onApplyDiscoveryDefaults}
-                                searchMode={searchMode}
                                 handleJobSelect={onHandleJobSelect}
                                 handleToggleSave={onToggleSave}
                                 onOpenProfile={() => onSetViewState(ViewState.PROFILE)}
-                                onOpenAuth={() => onOpenAuth('register')}
-                                onOpenPremium={onOpenPremium}
+                                onOpenAuth={onOpenAuth}
                             />
                         </div>
                     )}

@@ -830,9 +830,9 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             {/* Usage Display */}
             {companyProfile && (
                 <div className="lg:col-span-2 mb-4">
-                    <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(90deg,rgba(255,249,235,0.98),rgba(255,244,229,0.94))] p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between dark:border-[rgba(var(--accent-rgb),0.2)] dark:bg-[linear-gradient(90deg,rgba(46,33,9,0.88),rgba(30,22,8,0.94))]">
+                    <div className="company-surface-soft app-organic-panel rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(90deg,rgba(255,249,235,0.98),rgba(255,244,229,0.94))] p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between dark:border-[rgba(var(--accent-rgb),0.2)] dark:bg-[linear-gradient(90deg,rgba(46,33,9,0.88),rgba(30,22,8,0.94))]">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.12)] p-2 text-[var(--accent)]">
+                            <div className="app-organic-panel-soft rounded-lg border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.12)] p-2 text-[var(--accent)]">
                                 <BarChart3 size={20} />
                             </div>
                             <div>
@@ -850,7 +850,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 </div>
                             </div>
                         </div>
-                        <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 px-3 py-2 text-xs font-semibold text-[var(--accent)] shadow-sm dark:bg-slate-950/50">
+                        <div className="app-organic-pill rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 px-3 py-2 text-xs font-semibold text-[var(--accent)] shadow-sm dark:bg-slate-950/50">
                             {t('assessment_creator.included_in_plan', { defaultValue: 'AI assessments are fully included in the monthly plan.' })}
                         </div>
                     </div>
@@ -862,7 +862,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                     className={`rounded-xl shadow-sm p-5 ${
                         demoUsesCockpit
                             ? 'cockpit-panel cockpit-root text-slate-50 border border-white/20 shadow-[0_16px_34px_rgba(2,18,13,0.38)]'
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
+                            : 'company-surface app-organic-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
                     }`}
                 >
                     <div className="flex items-center justify-between gap-3 mb-4">
@@ -873,7 +873,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             <p className={`text-sm ${demoUsesCockpit ? 'text-cyan-100/85' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {t('assessment_creator.demo_center.subtitle', { defaultValue: '5 ukázek napříč různými typy rolí. Klikněte na Preview nebo použijte šablonu.' })}
                             </p>
-                            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
                                 {t('assessment_creator.demo_center.free_tier', { defaultValue: 'Dostupné i pro Free tier (bez čerpání kreditů).' })}
                             </p>
                         </div>
@@ -883,7 +883,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                                     demoUsesCockpit
                                         ? 'border-white/30 bg-black/25 text-cyan-50 hover:bg-black/35'
-                                        : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                        : 'app-organic-pill border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             >
                                 {showDemoCenter
@@ -895,8 +895,8 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                     onClick={() => setShowThreePreview((prev) => !prev)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                                         showThreePreview
-                                            ? (demoUsesCockpit ? 'bg-emerald-400/85 text-slate-950 border-emerald-300' : 'bg-[var(--accent)] text-white border-[var(--accent)]')
-                                            : (demoUsesCockpit ? 'bg-black/25 text-cyan-50 border-white/30' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700')
+                                            ? (demoUsesCockpit ? 'bg-amber-400/85 text-slate-950 border-amber-300' : 'bg-[var(--accent)] text-white border-[var(--accent)]')
+                                            : (demoUsesCockpit ? 'bg-black/25 text-cyan-50 border-white/30' : 'app-organic-pill bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700')
                                     }`}
                                 >
                                     {showThreePreview
@@ -910,7 +910,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
                                 {demoAssessments.map((template) => (
-                                    <div key={template.id} className={`rounded-lg border p-3 ${demoUsesCockpit ? 'border-white/20 bg-black/25 backdrop-blur-sm' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'}`}>
+                                    <div key={template.id} className={`rounded-lg border p-3 ${demoUsesCockpit ? 'border-white/20 bg-black/25 backdrop-blur-sm' : 'company-surface-soft app-organic-panel-soft border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'}`}>
                                         <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${demoUsesCockpit ? 'text-cyan-200' : 'text-[var(--accent)]'}`}>
                                             {template.difficulty}
                                         </div>
@@ -928,11 +928,11 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                             className={`w-full mb-2 px-2 py-1.5 text-xs font-bold rounded transition-colors border ${
                                                 selectedDemoOutputId === template.id
                                                     ? (demoUsesCockpit
-                                                        ? 'bg-emerald-300/20 text-emerald-100 border-emerald-300/50'
-                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800')
+                                                        ? 'bg-amber-300/20 text-amber-100 border-amber-300/50'
+                                                        : 'app-organic-pill bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800')
                                                     : (demoUsesCockpit
                                                         ? 'bg-black/25 text-cyan-100 border-white/25'
-                                                        : 'bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700')
+                                                        : 'app-organic-pill bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700')
                                             }`}
                                         >
                                             {t('assessment_creator.demo_center.show_output', { defaultValue: 'Show output' })}
@@ -943,7 +943,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                                 className={`flex-1 px-2 py-1.5 text-xs font-bold rounded transition-colors ${
                                                     demoUsesCockpit
                                                         ? 'bg-cyan-300/85 text-slate-950 hover:bg-cyan-200'
-                                                        : 'bg-slate-900 text-white hover:bg-slate-800'
+                                                        : 'app-button-secondary app-organic-pill bg-slate-900 text-white hover:bg-slate-800'
                                                 }`}
                                             >
                                                 {t('assessment_creator.demo_center.preview', { defaultValue: 'Preview' })}
@@ -952,8 +952,8 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                                 onClick={() => loadDemoTemplate(template)}
                                                 className={`flex-1 px-2 py-1.5 text-xs font-bold rounded transition-colors ${
                                                     demoUsesCockpit
-                                                        ? 'bg-emerald-400/85 text-slate-950 hover:bg-emerald-300'
-                                                        : 'bg-[var(--accent)] text-white hover:opacity-90'
+                                                        ? 'bg-amber-400/85 text-slate-950 hover:bg-amber-300'
+                                                        : 'app-button-primary app-organic-cta bg-[var(--accent)] text-white hover:opacity-90'
                                                 }`}
                                             >
                                                 {t('assessment_creator.demo_center.use', { defaultValue: 'Use template' })}
@@ -967,7 +967,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 <div className={`mt-5 rounded-xl border p-3 ${
                                     demoUsesCockpit
                                         ? 'border-white/20 bg-black/25 backdrop-blur-sm'
-                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm'
+                                        : 'company-surface-soft app-organic-panel-soft border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm'
                                 }`}>
                                     <div className="flex items-center justify-between mb-2">
                                         <div className={`text-xs uppercase tracking-wider ${
@@ -986,13 +986,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                         className={`h-56 w-full rounded-lg overflow-hidden border ${
                                             demoUsesCockpit
                                                 ? 'border-white/20 bg-black/20'
-                                                : 'border-slate-200 dark:border-slate-800 bg-gradient-to-br from-cyan-50 via-slate-50 to-emerald-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'
+                                                : 'company-surface-soft app-organic-panel-soft border-slate-200 dark:border-slate-800 bg-gradient-to-br from-cyan-50 via-slate-50 to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'
                                         }`}
                                         fallback={
                                             <div className={`h-52 rounded-lg p-3 text-xs border ${
                                                 demoUsesCockpit
                                                     ? 'cockpit-scene-fallback text-cyan-100/90 border-white/20'
-                                                    : 'bg-slate-50 dark:bg-slate-950/30 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                                                    : 'company-surface-soft app-organic-panel-soft bg-slate-50 dark:bg-slate-950/30 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'
                                             }`}>
                                                 Biophilic fallback je aktivní. Živé metriky běží bez WebGL.
                                             </div>
@@ -1019,7 +1019,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                             <div key={String(label)} className={`rounded-lg border px-2 py-1.5 ${
                                                 demoUsesCockpit
                                                     ? 'border-white/20 bg-black/25'
-                                                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'
+                                                : 'company-surface-soft app-organic-panel-soft border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'
                                             }`}>
                                                 <div className={`text-[10px] uppercase tracking-wide ${
                                                     demoUsesCockpit ? 'text-cyan-100/75' : 'text-slate-500 dark:text-slate-400'
@@ -1070,7 +1070,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 </button>
                                 <div className={`px-2 py-1 text-xs font-bold rounded ${
                                 selectedDemoOutput.recommendation === 'recommend'
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                                     : selectedDemoOutput.recommendation === 'conditional'
                                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                                         : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
@@ -1098,14 +1098,14 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-2">
-                                    <div className="text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-2">
+                                    <div className="text-[11px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
                                         Basic Personality Pulse
                                     </div>
-                                    <div className="mt-1 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                                    <div className="mt-1 text-sm font-semibold text-amber-800 dark:text-amber-200">
                                         {demoPersonalityCode}
                                     </div>
-                                    <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-emerald-800 dark:text-emerald-200">
+                                    <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-amber-800 dark:text-amber-200">
                                         <div>E {selectedDemoOutput.personalityPulse.E}%</div>
                                         <div>N {selectedDemoOutput.personalityPulse.N}%</div>
                                         <div>F {selectedDemoOutput.personalityPulse.F}%</div>
@@ -1134,7 +1134,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 </div>
                                 <ul className="space-y-1">
                                     {selectedDemoOutput.strengths.map((item) => (
-                                        <li key={item} className="text-sm text-emerald-700 dark:text-emerald-300">• {item}</li>
+                                        <li key={item} className="text-sm text-amber-700 dark:text-amber-300">• {item}</li>
                                     ))}
                                 </ul>
                             </div>
@@ -1243,9 +1243,9 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             </div>
 
             {/* Input Side */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 transition-colors duration-300">
+            <div className="company-surface app-organic-panel bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 transition-colors duration-300">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="rounded-lg border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.12)] p-2 text-[var(--accent)]">
+                    <div className="app-organic-panel-soft rounded-lg border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.12)] p-2 text-[var(--accent)]">
                         <BrainCircuit size={24} />
                     </div>
                     <div>
@@ -1256,7 +1256,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
                 <div className="space-y-4">
                     {jobs.length > 0 && (
-                        <div className="mb-2 rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3 dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                        <div className="company-surface-soft app-organic-panel-soft mb-2 rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3 dark:bg-[rgba(var(--accent-rgb),0.1)]">
                             <label className="mb-2 flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
                                 <Sparkles size={12} /> {t('assessment_creator.auto_from_job')}
                             </label>
@@ -1317,30 +1317,30 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
                     <div>
                         <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">{t('assessment_creator.structure_title')}</label>
-                        <div className="space-y-3 rounded-xl border border-[rgba(var(--accent-rgb),0.14)] bg-[var(--accent-soft)] p-4 dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                        <div className="company-surface-soft app-organic-panel-soft space-y-3 rounded-xl border border-[rgba(var(--accent-rgb),0.14)] bg-[var(--accent-soft)] p-4 dark:bg-[rgba(var(--accent-rgb),0.1)]">
                             <div className="flex items-center gap-2 text-sm font-bold text-[var(--accent)]">
                                 <Sparkles size={16} className="text-amber-500" />
                                 {t('assessment_creator.structure_heading')}
                             </div>
                             <div className="grid grid-cols-1 gap-2">
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">1</div>
+                                    <div className="app-organic-pill flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">1</div>
                                     <span>{t('assessment_creator.structure_items.1')}</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">2</div>
+                                    <div className="app-organic-pill flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">2</div>
                                     <span>{t('assessment_creator.structure_items.2')}</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">3</div>
+                                    <div className="app-organic-pill flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">3</div>
                                     <span>{t('assessment_creator.structure_items.3')}</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">4</div>
+                                    <div className="app-organic-pill flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">4</div>
                                     <span>{t('assessment_creator.structure_items.4')}</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">5</div>
+                                    <div className="app-organic-pill flex h-[18px] min-w-[18px] items-center justify-center rounded border border-[rgba(var(--accent-rgb),0.14)] bg-white font-bold text-[var(--accent)] dark:bg-slate-800">5</div>
                                     <span>{t('assessment_creator.structure_items.5', { defaultValue: 'Krátký psychologický screening (self-report): stres, spolupráce, ownership, adaptabilita.' })}</span>
                                 </div>
                             </div>
@@ -1353,7 +1353,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                     <button
                         onClick={handleGenerate}
                         disabled={isGenerating || !role}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 shadow-[0_0_15px_rgba(var(--accent-rgb),0.28)]"
+                        className="app-button-primary app-organic-cta flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold text-white transition-colors disabled:opacity-50 shadow-[0_0_15px_rgba(var(--accent-rgb),0.28)]"
                     >
                         {isGenerating ? <Loader2 className="animate-spin" /> : <BrainCircuit />}
                         {isGenerating ? t('assessment_creator.generating') : t('assessment_creator.create_button')}
@@ -1362,17 +1362,17 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             </div>
 
             {/* Output Side */}
-            <div className="bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-full min-h-[500px] transition-colors duration-300">
+            <div className="company-surface-soft app-organic-panel bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-full min-h-[500px] transition-colors duration-300">
                 {assessment ? (
                     <div className="animate-in zoom-in-95 space-y-6">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">{assessment.title}</h3>
                                 <div className="flex gap-2 mt-1">
-                                    <span className="rounded border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-0.5 text-xs font-medium text-[var(--accent)]">{assessment.role}</span>
-                                    <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium border border-slate-300 dark:border-slate-700">{t('assessment_creator.ai_generated')}</span>
+                                    <span className="app-organic-pill rounded border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-0.5 text-xs font-medium text-[var(--accent)]">{assessment.role}</span>
+                                    <span className="app-organic-pill text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium border border-slate-300 dark:border-slate-700">{t('assessment_creator.ai_generated')}</span>
                                     {savedAssessmentId && (
-                                        <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded font-medium border border-emerald-200 dark:border-emerald-900/30">
+                                        <span className="app-organic-pill text-xs px-2 py-0.5 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded font-medium border border-amber-200 dark:border-amber-900/30">
                                             ID: {savedAssessmentId.slice(0, 8)}
                                         </span>
                                     )}
@@ -1385,10 +1385,10 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
                         <div className="space-y-4">
                             {assessment.questions.map((q, idx) => (
-                                <div key={idx} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div key={idx} className="company-surface-soft app-organic-panel-soft bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-xs font-bold text-slate-500 dark:text-slate-500 uppercase tracking-wider">{t('assessment_creator.question')} {idx + 1}</span>
-                                        <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border ${q.type === 'Code' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'}`}>
+                                        <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border ${q.type === 'Code' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'}`}>
                                             {q.type === 'Code' ? <Code size={12} /> : <FileText size={12} />}
                                             {q.type}
                                         </div>
@@ -1401,13 +1401,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                         <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800">
                             <button
                                 onClick={() => assessment && openAssessmentPreviewPage(assessment)}
-                                className="flex items-center gap-2 rounded-lg border border-[rgba(var(--accent-rgb),0.18)] bg-white p-3 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)] dark:bg-slate-900"
+                                className="app-button-secondary app-organic-pill flex items-center gap-2 rounded-lg border border-[rgba(var(--accent-rgb),0.18)] bg-white p-3 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)] dark:bg-slate-900"
                             >
                                 <Eye size={16} />
                                 <span>{t('assessment_creator.preview')}</span>
                             </button>
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <CheckCircle size={16} className="text-emerald-500" />
+                            <div className="company-surface-soft app-organic-panel-soft flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+                                <CheckCircle size={16} className="text-amber-500" />
                                 <span>{t('assessment_creator.send_hint')}</span>
                             </div>
                         </div>

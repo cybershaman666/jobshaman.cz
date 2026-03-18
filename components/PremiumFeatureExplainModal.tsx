@@ -136,8 +136,8 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                         </div>
                     </div>
 
-                    <div className="app-modal-surface border-t px-4 py-4 lg:rounded-none lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:px-6 lg:py-6">
-                        <div className="rounded-[calc(var(--radius-xl)+4px)] border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,247,224,0.98),rgba(255,255,255,0.98))] p-5 shadow-[0_24px_60px_-40px_rgba(217,119,6,0.55)]">
+                    <div className="app-modal-surface border-t px-4 py-4 lg:rounded-none lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:px-6 lg:py-6 bg-[var(--surface-subtle)]">
+                        <div className="rounded-[calc(var(--radius-xl)+4px)] border border-[var(--accent-soft)] p-5 shadow-[0_24px_60px_-40px_rgba(var(--accent-rgb),0.3)] bg-white dark:bg-slate-900">
                             <div className="space-y-4">
                                 <div className="app-eyebrow w-fit !bg-white !text-[var(--accent-strong)]">
                                     <CheckCircle2 size={12} />
@@ -145,23 +145,23 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="text-base font-semibold tracking-[-0.03em] text-slate-950">
+                                    <div className="text-base font-bold tracking-tight text-[var(--text-strong)]">
                                         {feature.premiumTitle}
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-700">
+                                    <p className="text-sm leading-6 text-[var(--text-muted)]">
                                         {feature.premiumBody}
                                     </p>
                                 </div>
 
                                 {feature.premiumEffects && feature.premiumEffects.length > 0 ? (
                                     <div className="rounded-[var(--radius-xl)] border border-amber-200/70 bg-white/80 p-4">
-                                        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                                        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--accent-strong)]">
                                             {copy.practical}
                                         </div>
                                         <div className="space-y-2">
                                             {feature.premiumEffects.map((effect) => (
-                                                <div key={effect} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
-                                                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                                <div key={effect} className="flex items-start gap-2 text-sm leading-6 text-[var(--text-muted)]">
+                                                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
                                                     <span>{effect}</span>
                                                 </div>
                                             ))}
@@ -170,7 +170,7 @@ const PremiumFeatureExplainModal: React.FC<PremiumFeatureExplainModalProps> = ({
                                 ) : null}
 
                                 {hasPremiumAccess ? (
-                                    <div className="rounded-[var(--radius-xl)] border border-emerald-200/80 bg-white p-4 text-sm leading-6 text-emerald-800">
+                                    <div className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
                                         {feature.premiumActiveNote || copy.fallbackActiveNote}
                                     </div>
                                 ) : (

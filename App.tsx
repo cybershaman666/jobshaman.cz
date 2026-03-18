@@ -11,8 +11,7 @@ import CompanyOnboarding from './components/CompanyOnboarding';
 import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CookieBanner from './components/CookieBanner';
 import GuestDiscoveryTourOverlay from './components/GuestDiscoveryTourOverlay';
-import { fetchJobById, fetchJobsByIds } from './services/jobService';
-import { clearJobCache } from './services/jobService';
+import { fetchJobsByIds } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
@@ -22,9 +21,12 @@ import { trackJobInteraction } from './services/jobInteractionService';
 import { createJobApplication } from './services/jobApplicationService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
-import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { useGuestDiscoveryTour } from './hooks/useGuestDiscoveryTour';
-import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
+import { BACKEND_URL, DEFAULT_USER_PROFILE } from './constants';
+import AppViewportShell from './src/app/layout/AppViewportShell';
+import useHeaderOffsets from './src/app/layout/useHeaderOffsets';
+import useMarketplaceDiscovery from './src/app/marketplace/useMarketplaceDiscovery';
+import useMarketplaceSceneState from './src/app/marketplace/useMarketplaceSceneState';
 import {
     deriveActivationState,
     getNextActivationStep,
@@ -77,6 +79,8 @@ const CompanyRegistrationModal = lazy(() => import('./components/CompanyRegistra
 const ApplicationModal = lazy(() => import('./components/ApplicationModal'));
 const PremiumUpgradeModal = lazy(() => import('./components/PremiumUpgradeModal'));
 
+type CandidateOnboardingStepKey = 'location' | 'preferences' | 'cv' | 'done';
+
 // JHI and formatting utilities now imported from utils/
 
 export default function App() {
@@ -93,11 +97,28 @@ export default function App() {
         document.documentElement.classList.remove('dark');
         return 'light';
     });
-    const [selectedJobId, setSelectedJobIdState] = useState<string | null>(() => {
-        const parts = getPathPartsWithoutLocale(window.location.pathname);
-        if (parts[0] === 'jobs') return parts[1] || null;
-        return null;
-    });
+    useHeaderOffsets();
+
+    const {
+        selectedJobId,
+        setSelectedJobId,
+        selectedBlogPostSlug,
+        setSelectedBlogPostSlug,
+        isBlogOpen,
+        setIsBlogOpen,
+        selectedCompanyId,
+        setSelectedCompanyId,
+        discoveryLane,
+        setDiscoveryLane,
+        discoveryMode,
+        setDiscoveryMode,
+        discoverySearchMode,
+        setDiscoverySearchMode,
+        challengeRemoteOnly,
+        setChallengeRemoteOnly,
+        directlyFetchedJob,
+        setDirectlyFetchedJob,
+    } = useMarketplaceSceneState();
 
     // Wrapper to update selectedJobId state; URL sync handled in a dedicated effect
     const getLocalePrefix = () => {
@@ -105,29 +126,6 @@ export default function App() {
         lng = getLocaleFromPathname(window.location.pathname, lng);
         return lng;
     };
-
-    const setSelectedJobId = (id: string | null) => {
-        setSelectedJobIdState(id);
-    };
-    const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(() => {
-        const parts = getPathPartsWithoutLocale(window.location.pathname);
-        if (parts[0] === 'blog') return parts[1] || null;
-        return null;
-    });
-    const [isBlogOpen, setIsBlogOpen] = useState<boolean>(() => {
-        const parts = getPathPartsWithoutLocale(window.location.pathname);
-        return parts[0] === 'blog';
-    });
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(() => {
-        const parts = getPathPartsWithoutLocale(window.location.pathname);
-        if (parts[0] === 'companies') return parts[1] || null;
-        return null;
-    });
-    const [discoveryLane, setDiscoveryLane] = useState<'challenges' | 'imports'>('challenges');
-    const [discoveryMode, setDiscoveryMode] = useState<'all' | 'micro_jobs'>('all');
-    const [discoverySearchMode, setDiscoverySearchMode] = useState(false);
-    const [challengeRemoteOnly, setChallengeRemoteOnly] = useState(false);
-    const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
 
     // Track if user intentionally clicked on LIST (to prevent NavRestore from auto-restoring dashboard)
     const userIntentionallyClickedListRef = useRef(false);
@@ -137,6 +135,7 @@ export default function App() {
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'reset'>('login');
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
     const [showCandidateOnboarding, setShowCandidateOnboarding] = useState(false);
+    const [candidateOnboardingInitialStepOverride, setCandidateOnboardingInitialStepOverride] = useState<CandidateOnboardingStepKey | null>(null);
     const [applyFollowup, setApplyFollowup] = useState<PendingApplyFollowup | null>(null);
     const [showApplyFollowup, setShowApplyFollowup] = useState(false);
     const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<{ email?: string } | null>(null);
@@ -146,6 +145,7 @@ export default function App() {
     const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
     const [showScrollToTop, setShowScrollToTop] = useState(false);
     const onboardingDismissedRef = useRef(false);
+    const postAuthCandidateOnboardingRef = useRef<CandidateOnboardingStepKey | null>(null);
     const activationNudgeShownRef = useRef(false);
     const timeToValueTrackedRef = useRef(false);
     const welcomeEmailAttemptedRef = useRef(false);
@@ -317,6 +317,8 @@ export default function App() {
     useEffect(() => {
         if (!userProfile.isLoggedIn) {
             onboardingDismissedRef.current = false;
+            postAuthCandidateOnboardingRef.current = null;
+            setCandidateOnboardingInitialStepOverride(null);
             if (showCandidateOnboarding) {
                 setShowCandidateOnboarding(false);
             }
@@ -343,6 +345,29 @@ export default function App() {
             setShowCandidateOnboarding(true);
         } else if (isActivationComplete(activationState)) {
             setShowCandidateOnboarding(false);
+        }
+
+        if (postAuthCandidateOnboardingRef.current) {
+            const requestedStep = postAuthCandidateOnboardingRef.current;
+            const resolvedStep: CandidateOnboardingStepKey =
+                requestedStep === 'location' && !activationState.location_verified
+                    ? 'location'
+                    : requestedStep === 'preferences' && !activationState.preferences_ready
+                        ? 'preferences'
+                        : requestedStep === 'cv' && !activationState.cv_ready
+                            ? 'cv'
+                            : !activationState.location_verified
+                                ? 'location'
+                                : activationState.skills_confirmed_count < 3 || !activationState.preferences_ready
+                                    ? 'preferences'
+                                    : !activationState.cv_ready
+                                        ? 'cv'
+                                        : 'done';
+
+            onboardingDismissedRef.current = false;
+            setCandidateOnboardingInitialStepOverride(resolvedStep);
+            setShowCandidateOnboarding(true);
+            postAuthCandidateOnboardingRef.current = null;
         }
     }, [
         userProfile.isLoggedIn,
@@ -497,15 +522,13 @@ export default function App() {
     }, [activationNextStep, candidateActivationState, userProfile.id, userProfile.isLoggedIn, userProfile.role, viewState]);
 
     const {
-        jobs: filteredJobs,
-        loading: isLoadingJobs,
+        filteredJobs,
+        isLoadingJobs,
         loadingMore,
         hasMore,
         totalCount,
         searchTerm,
         isSearching,
-        backendUnreachable,
-        loadInitialJobs,
         loadMoreJobs,
         goToPage,
         performSearch,
@@ -548,11 +571,20 @@ export default function App() {
         applyInteractionState,
         applyDiscoveryDefaults,
         searchMode,
-    } = usePaginatedJobs({
-        userProfile: effectiveUserProfile,
+        searchDiagnostics,
+    } = useMarketplaceDiscovery({
+        effectiveUserProfile,
+        userProfile,
         enabled: !isAdminRoute,
-        microJobsOnly: discoveryMode === 'micro_jobs',
-        remoteOnly: challengeRemoteOnly,
+        discoveryMode,
+        challengeRemoteOnly,
+        setChallengeRemoteOnly,
+        selectedJobId,
+        setDirectlyFetchedJob,
+        isAdminRoute,
+        isCompanyProfile,
+        companyCoordinates,
+        viewState,
     });
     const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
     useEffect(() => {
@@ -839,14 +871,6 @@ export default function App() {
         })();
     }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
 
-    const loadRealJobs = useCallback(async () => {
-        try {
-            await loadInitialJobs();
-        } catch (e) {
-            console.error("Failed to load jobs", e);
-        }
-    }, [loadInitialJobs]);
-
     // Infinite scroll detection
     const jobListRef = useRef<HTMLDivElement>(null);
     const detailScrollRef = useRef<HTMLDivElement>(null);
@@ -998,6 +1022,12 @@ export default function App() {
             } else if (parts[0] === 'assessment-centrum') {
                 setIsBlogOpen(false);
                 setViewState(ViewState.ASSESSMENT);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'market-radar') {
+                setIsBlogOpen(false);
+                setViewState(ViewState.MARKET_RADAR);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
@@ -1163,6 +1193,8 @@ export default function App() {
                 targetPath = `/${lng}/ulozene`;
             } else if (viewState === ViewState.ASSESSMENT) {
                 targetPath = `/${lng}/assessment-centrum`;
+            } else if (viewState === ViewState.MARKET_RADAR) {
+                targetPath = `/${lng}/market-radar`;
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.JCFPM) {
@@ -1200,193 +1232,11 @@ export default function App() {
         }
     }, [selectedJobId, selectedCompanyId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language, companyProfile?.id]);
 
-    // REMOVE OLD HISTORY API PATCHING - replaced with selectedJobId effect above
-    // Fetch job by ID for direct links (e.g., /jobs/18918)
-    useEffect(() => {
-        const fetchDirectJob = async () => {
-            // Only fetch if:
-            // 1. We have a selectedJobId (from URL)
-            // 2. The job is not in filteredJobs
-            // 3. We haven't already fetched it
-            // 4. Jobs have finished initial loading
-            if (selectedJobId && !filteredJobs.find(j => j.id === selectedJobId) && !isLoadingJobs) {
-                console.log('🔗 Direct link detected, fetching job by ID:', selectedJobId);
-                const job = await fetchJobById(selectedJobId);
-                if (job) {
-                    setDirectlyFetchedJob(job);
-                } else {
-                    console.warn('⚠️ Job not found for direct link:', selectedJobId);
-                }
-            }
-        };
-
-        fetchDirectJob();
-    }, [selectedJobId, filteredJobs.length, isLoadingJobs]);
-
-    const reloadLockRef = useRef(false);
-
-    // Remote-only search and commute radius are mutually exclusive in practice.
-    useEffect(() => {
-        if (!challengeRemoteOnly || !enableCommuteFilter) return;
-        setEnableCommuteFilter(false, 'default');
-    }, [challengeRemoteOnly, enableCommuteFilter, setEnableCommuteFilter]);
-
-    // Company profiles: if no coordinates, disable commute filter to avoid empty results
-    useEffect(() => {
-        if (isCompanyProfile && viewState === ViewState.LIST && !companyCoordinates && enableCommuteFilter) {
-            setEnableCommuteFilter(false, 'default');
-        }
-    }, [isCompanyProfile, viewState, companyCoordinates?.lat, companyCoordinates?.lon, enableCommuteFilter]);
-
-    // Keep cache coherent when coordinates become available, but do not force another manual reload.
-    useEffect(() => {
-        if (!userProfile.coordinates?.lat || !userProfile.coordinates?.lon) return;
-        if (reloadLockRef.current) return;
-        reloadLockRef.current = true;
-        Promise.resolve(clearJobCache())
-            .catch((e) => console.error('Error during coordinate-triggered cache clear:', e))
-            .finally(() => {
-                reloadLockRef.current = false;
-            });
-    }, [userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
-
-    // Backend cold-start retry: if we have no jobs after initial load, poll the backend
-    const backendWakeRetryRef = useRef(false);
-    const backendRetryCountRef = useRef(0);
-    const backendRetryTimerRef = useRef<number | null>(null);
-    const backendRetryStartTimerRef = useRef<number | null>(null);
-    const BACKEND_RETRY_MAX = 6; // total tries
-    const BACKEND_RETRY_DELAY_MS = 6000; // base delay; we apply exponential backoff
-    const BACKEND_RETRY_INITIAL_DELAY_MS = 4500; // avoid brief "flash" polling on transient hiccups
-    const backendRetryStartedAtRef = useRef<number>(0);
-    const BACKEND_RETRY_MAX_WINDOW_MS = 2 * 60 * 1000; // never poll longer than 2 minutes per burst
-
-    // UI state for showing the waiting hint
-    // Keep a ref to filteredJobs so async retry closure can access latest value
-    const filteredJobsRef = useRef(filteredJobs);
-    useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
-    const backendUnreachableRef = useRef(backendUnreachable);
-    useEffect(() => { backendUnreachableRef.current = backendUnreachable; }, [backendUnreachable]);
-    const isLoadingJobsRef = useRef(isLoadingJobs);
-    useEffect(() => { isLoadingJobsRef.current = isLoadingJobs; }, [isLoadingJobs]);
-    const loadRealJobsRef = useRef(loadRealJobs);
-    useEffect(() => { loadRealJobsRef.current = loadRealJobs; }, [loadRealJobs]);
-    const hasDedicatedSearchBackend = useMemo(() => {
-        const normalizeOrigin = (value: string): string => {
-            try {
-                const raw = String(value || '').trim();
-                if (!raw) return '';
-                const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-                return new URL(withProtocol).origin;
-            } catch {
-                return String(value || '').trim();
-            }
-        };
-        const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');
-        const coreOrigin = normalizeOrigin(BACKEND_URL || '');
-        return !!searchOrigin && (!coreOrigin || searchOrigin !== coreOrigin);
-    }, []);
-
-    useEffect(() => {
-        const canPollNow = (): boolean => {
-            if (typeof document !== 'undefined') {
-                if (document.visibilityState !== 'visible') return false;
-                if (typeof document.hasFocus === 'function' && !document.hasFocus()) return false;
-            }
-            if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
-            return true;
-        };
-
-        // With dedicated always-on search backend, polling Render wake-ups only creates noisy duplicate reloads.
-        if (hasDedicatedSearchBackend) {
-            backendWakeRetryRef.current = false;
-            if (backendRetryTimerRef.current) {
-                clearTimeout(backendRetryTimerRef.current);
-                backendRetryTimerRef.current = null;
-            }
-            if (backendRetryStartTimerRef.current) {
-                clearTimeout(backendRetryStartTimerRef.current);
-                backendRetryStartTimerRef.current = null;
-            }
-            return;
-        }
-
-        // Guard: don't start if already polling, loading, jobs are present, or backend seems healthy.
-        if (backendWakeRetryRef.current || isLoadingJobsRef.current || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
-            return;
-        }
-
-        const runPoll = async () => {
-            if (!backendWakeRetryRef.current) return;
-            if (!canPollNow()) {
-                backendWakeRetryRef.current = false;
-                return;
-            }
-            if (backendRetryStartedAtRef.current && (Date.now() - backendRetryStartedAtRef.current) > BACKEND_RETRY_MAX_WINDOW_MS) {
-                console.log('Backend wake retry: exceeded max polling window, stopping');
-                backendWakeRetryRef.current = false;
-                return;
-            }
-
-            backendRetryCountRef.current += 1;
-            console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
-
-            try {
-                await loadRealJobsRef.current();
-            } catch (e) {
-                console.error('Backend wake retry: loadRealJobs error', e);
-            }
-
-            if (filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
-                console.log('Backend wake retry: jobs appeared, stopping polling');
-                backendWakeRetryRef.current = false;
-                return;
-            }
-
-            if (backendRetryCountRef.current >= BACKEND_RETRY_MAX) {
-                console.log('Backend wake retry: reached max attempts, stopping');
-                backendWakeRetryRef.current = false;
-                return;
-            }
-
-            const backoffFactor = Math.min(8, Math.pow(2, Math.max(0, backendRetryCountRef.current - 1)));
-            const delayMs = Math.min(60_000, BACKEND_RETRY_DELAY_MS * backoffFactor);
-            backendRetryTimerRef.current = window.setTimeout(runPoll, delayMs);
-        };
-
-        // Start polling with a short delay so transient 500s do not cause a visible "flash" in UI.
-        backendRetryStartTimerRef.current = window.setTimeout(() => {
-            // Re-check guards right before polling starts.
-            if (backendWakeRetryRef.current || isLoadingJobsRef.current || filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
-                return;
-            }
-            if (!canPollNow()) {
-                return;
-            }
-            console.log('Backend wake retry: starting polling to wait for backend wake-up');
-            backendWakeRetryRef.current = true;
-            backendRetryCountRef.current = 0;
-            backendRetryStartedAtRef.current = Date.now();
-            void runPoll();
-        }, BACKEND_RETRY_INITIAL_DELAY_MS);
-
-        return () => {
-            backendWakeRetryRef.current = false;
-            if (backendRetryStartTimerRef.current) {
-                clearTimeout(backendRetryStartTimerRef.current);
-                backendRetryStartTimerRef.current = null;
-            }
-            if (backendRetryTimerRef.current) {
-                clearTimeout(backendRetryTimerRef.current);
-                backendRetryTimerRef.current = null;
-            }
-        };
-    }, [hasDedicatedSearchBackend, backendUnreachable]);
-
     // SEO Update Effect
     useEffect(() => {
         const pageName = showCompanyLanding ? 'company-dashboard' :
             viewState === ViewState.LIST ? 'home' :
+                viewState === ViewState.MARKET_RADAR ? 'home' :
                 viewState === ViewState.PROFILE ? 'profile' :
                     viewState === ViewState.SAVED ? 'saved' :
                         viewState === ViewState.ASSESSMENT ? 'assessment' :
@@ -1733,18 +1583,6 @@ export default function App() {
         }, 0);
     };
 
-    const handleInsightsOpen = () => {
-        setViewState(ViewState.LIST);
-        setSelectedCompanyId(null);
-        setSelectedJobId(null);
-        setIsBlogOpen(true);
-        setSelectedBlogPostSlug(null);
-        setShowCompanyLanding(false);
-        window.setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'auto' });
-        }, 0);
-    };
-
     const focusDiscoverySearch = () => {
         const attemptFocus = () => {
             // Prefer the header search on lg+, fallback to the in-list input on mobile/tablet.
@@ -1769,233 +1607,236 @@ export default function App() {
         }, 80);
     };
 
-    return (
-        <div className={`flex min-h-screen flex-col ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-shell-bg text-[var(--text)] dark:text-[var(--text)]'} font-sans transition-colors duration-300`}>
-            {!isImmersiveAssessmentRoute && (
-                <AppHeader
-                    viewState={viewState}
-                    setViewState={setViewState}
-                    setSelectedJobId={handleJobSelect}
-                    isBlogOpen={isBlogOpen}
-                    setIsBlogOpen={setIsBlogOpen}
-                    setSelectedBlogPostSlug={setSelectedBlogPostSlug}
-                    showCompanyLanding={showCompanyLanding}
-                    setShowCompanyLanding={setShowCompanyLanding}
-                    userProfile={userProfile}
-                    companyProfile={companyProfile}
-                    setCompanyProfile={setCompanyProfile}
-                    handleAuthAction={handleAuthAction}
-                    toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-                    theme={theme}
-                    setIsOnboardingCompany={setIsOnboardingCompany}
-                    onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
-                    discoveryLane={discoveryLane}
-                    setDiscoveryLane={setDiscoveryLane}
-                    discoveryMode={discoveryMode}
-                    setDiscoveryMode={setDiscoveryMode}
-                    discoverySearchMode={discoverySearchMode}
-                    onOpenInsights={handleInsightsOpen}
-                    setDiscoverySearchMode={setDiscoverySearchMode}
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    filterCity={filterCity}
-                    setFilterCity={setFilterCity}
-                    performSearch={performSearch}
-                    onOpenDiscoverySearch={() => {
-                        userIntentionallyClickedListRef.current = true;
-                        setDiscoverySearchMode(true);
-                        setIsBlogOpen(false);
-                        setShowCompanyLanding(false);
-                        setIsOnboardingCompany(false);
-                        setSelectedCompanyId(null);
-                        setSelectedBlogPostSlug(null);
-                        setViewState(ViewState.LIST);
-                        setSelectedJobId(null);
-                        window.setTimeout(() => {
-                            document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            focusDiscoverySearch();
-                        }, 0);
-                    }}
-                />
-            )}
+    const headerNode = !isImmersiveAssessmentRoute ? (
+        <AppHeader
+            viewState={viewState}
+            setViewState={setViewState}
+            selectedJobId={selectedJobId}
+            setSelectedJobId={handleJobSelect}
+            isBlogOpen={isBlogOpen}
+            setIsBlogOpen={setIsBlogOpen}
+            setSelectedBlogPostSlug={setSelectedBlogPostSlug}
+            showCompanyLanding={showCompanyLanding}
+            setShowCompanyLanding={setShowCompanyLanding}
+            userProfile={userProfile}
+            companyProfile={companyProfile}
+            setCompanyProfile={setCompanyProfile}
+            handleAuthAction={handleAuthAction}
+            toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            theme={theme}
+            setIsOnboardingCompany={setIsOnboardingCompany}
+            onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
+            discoveryLane={discoveryLane}
+            setDiscoveryLane={setDiscoveryLane}
+            discoveryMode={discoveryMode}
+            setDiscoveryMode={setDiscoveryMode}
+            discoverySearchMode={discoverySearchMode}
+            setDiscoverySearchMode={setDiscoverySearchMode}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterCity={filterCity}
+            setFilterCity={setFilterCity}
+            performSearch={performSearch}
+            remoteOnly={challengeRemoteOnly}
+            setRemoteOnly={setChallengeRemoteOnly}
+            enableCommuteFilter={enableCommuteFilter}
+            setEnableCommuteFilter={setEnableCommuteFilter}
+            filterMaxDistance={filterMaxDistance}
+            filterMinSalary={filterMinSalary}
+            setFilterMinSalary={setFilterMinSalary}
+            onOpenDiscoverySearch={() => {
+                userIntentionallyClickedListRef.current = true;
+                setDiscoverySearchMode(true);
+                setIsBlogOpen(false);
+                setShowCompanyLanding(false);
+                setIsOnboardingCompany(false);
+                setSelectedCompanyId(null);
+                setSelectedBlogPostSlug(null);
+                setViewState(ViewState.LIST);
+                setSelectedJobId(null);
+                window.setTimeout(() => {
+                    document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    focusDiscoverySearch();
+                }, 0);
+            }}
+        />
+    ) : null;
 
-            {!isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation && (
-                <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
-                    <div className="mb-2 mt-4 flex flex-col gap-4 rounded-[1.4rem] border border-amber-200 bg-amber-50/90 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/20 dark:bg-amber-500/10">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="text-amber-600 dark:text-amber-300 mt-0.5" size={20} />
-                            <div>
-                                <div className="font-bold text-amber-900 dark:text-amber-200">
-                                    {t('auth.confirmation_required_title')}
-                                </div>
-                                <div className="text-sm text-amber-800 dark:text-amber-300">
-                                    {t('auth.confirmation_required')}
-                                </div>
-                                {pendingEmailConfirmation.email && (
-                                    <div className="text-xs text-amber-700 dark:text-amber-200 mt-1">
-                                        {pendingEmailConfirmation.email}
-                                    </div>
-                                )}
-                            </div>
+    const bannerNode = !isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation ? (
+        <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
+            <div className="mb-2 mt-4 flex flex-col gap-4 rounded-[1.4rem] border border-amber-200 bg-amber-50/90 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/20 dark:bg-amber-500/10">
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="text-amber-600 dark:text-amber-300 mt-0.5" size={20} />
+                    <div>
+                        <div className="font-bold text-amber-900 dark:text-amber-200">
+                            {t('auth.confirmation_required_title')}
                         </div>
-                        <button
-                            onClick={clearPendingEmailConfirmation}
-                            className="px-4 py-2 text-sm font-semibold text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-800/40"
-                        >
-                            {t('app.close')}
-                        </button>
+                        <div className="text-sm text-amber-800 dark:text-amber-300">
+                            {t('auth.confirmation_required')}
+                        </div>
+                        {pendingEmailConfirmation.email && (
+                            <div className="text-xs text-amber-700 dark:text-amber-200 mt-1">
+                                {pendingEmailConfirmation.email}
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
-
-            <main className={
-                isImmersiveAssessmentRoute
-                    ? "flex-1 min-h-0 w-full overflow-hidden"
-                    : `flex-1 min-h-0 mx-auto w-full max-w-[1680px] px-4 pb-6 pt-3 sm:px-5 lg:px-6 ${isHomeListView ? 'pb-2' : 'pb-6'} ${usePageScrollLayout ? '' : 'overflow-hidden'}`
-            }>
-                <div className={
-                    isImmersiveAssessmentRoute
-                        ? "h-full"
-                        : usePageScrollLayout
-                            ? "grid grid-cols-1 gap-5 lg:grid-cols-12"
-                            : "grid h-[calc(100dvh-118px)] grid-cols-1 gap-5 lg:grid-cols-12"
-                }>
-                    <Suspense
-                        fallback={
-                            <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-                            </div>
-                        }
-                    >
-                        <AppSceneRouter
-                            normalizedPath={normalizedPath}
-                            viewState={viewState}
-                            theme={theme}
-                            vercelAnalyticsEnabled={vercelAnalyticsEnabled}
-                            userProfile={userProfile}
-                            companyProfile={companyProfile}
-                            selectedCompanyId={selectedCompanyId}
-                            selectedJobId={selectedJobId}
-                            selectedBlogPostSlug={selectedBlogPostSlug}
-                            showCompanyLanding={showCompanyLanding}
-                            isBlogOpen={isBlogOpen}
-                            jobsForDisplay={jobsForDisplay}
-                            selectedJob={selectedJob}
-                            resolvedSavedJobs={resolvedSavedJobs}
-                            savedJobIds={savedJobIds}
-                            savedJobsSearchTerm={savedJobsSearchTerm}
-                            isLoadingJobs={isLoadingJobs}
-                            loadingMore={loadingMore}
-                            hasMore={hasMore}
-                            totalCount={totalCount}
-                            currentPage={currentPage}
-                            pageSize={pageSize}
-                            searchTerm={searchTerm}
-                            filterCity={filterCity}
-                            filterMinSalary={filterMinSalary}
-                            filterBenefits={filterBenefits}
-                            remoteOnly={challengeRemoteOnly}
-                            globalSearch={globalSearch}
-                            abroadOnly={abroadOnly}
-                            countryCodes={countryCodes}
-                            enableCommuteFilter={enableCommuteFilter}
-                            filterMaxDistance={filterMaxDistance}
-                            filterContractType={filterContractType}
-                            filterDate={filterDate}
-                            filterExperience={filterExperience}
-                            filterLanguageCodes={filterLanguageCodes}
-                            hasExplicitLanguageFilter={hasExplicitLanguageFilter}
-                            enableAutoLanguageGuard={enableAutoLanguageGuard}
-                            implicitLanguageCodesApplied={implicitLanguageCodesApplied}
-                            discoveryLane={discoveryLane}
-                            discoveryMode={discoveryMode}
-                            candidateActivationState={candidateActivationState}
-                            activationNextStep={activationNextStep}
-                            applyInteractionState={applyInteractionState}
-                            onDeleteAccount={deleteAccount}
-                            onSetCompanyProfile={setCompanyProfile}
-                            onSetViewState={setViewState}
-                            onProfileUpdate={handleProfileUpdate}
-                            onProfileSave={handleProfileSave}
-                            onRefreshProfile={refreshUserProfile}
-                            onToggleSave={handleToggleSave}
-                            onApplyToJob={handleApplyToJob}
-                            onSavedJobsSearchChange={setSavedJobsSearchTerm}
-                            onSetBlogOpen={setIsBlogOpen}
-                            onSetSelectedBlogPostSlug={setSelectedBlogPostSlug}
-                            onSetSelectedJobId={setSelectedJobId}
-                            onSetSelectedCompanyId={setSelectedCompanyId}
-                            onSetShowCompanyLanding={setShowCompanyLanding}
-                            onSetCompanyRegistrationOpen={setIsCompanyRegistrationOpen}
-                            onSetApplyModalOpen={setIsApplyModalOpen}
-                            onSetShowCandidateOnboarding={setShowCandidateOnboarding}
-                            onOpenAuth={handleAuthAction}
-                            onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
-                            onHandleCompanyPageSelect={handleCompanyPageSelect}
-                            onHandleJobSelect={handleJobSelect}
-                            onLoadMoreJobs={loadMoreJobs}
-                            onGoToJobsPage={goToPage}
-                            onSetDiscoveryLane={setDiscoveryLane}
-                            onSetSearchTerm={setSearchTerm}
-                            onPerformSearch={performSearch}
-                            onSetFilterCity={setFilterCity}
-                            onSetFilterMinSalary={setFilterMinSalary}
-                            onSetFilterBenefits={setFilterBenefits}
-                            onToggleBenefitFilter={toggleBenefitFilter}
-                            onSetRemoteOnly={setChallengeRemoteOnly}
-                            onSetGlobalSearch={setGlobalSearch}
-                            onSetAbroadOnly={setAbroadOnly}
-                            onSetCountryCodes={setCountryCodes}
-                            onSetEnableCommuteFilter={setEnableCommuteFilter}
-                            onSetFilterMaxDistance={setFilterMaxDistance}
-                            onSetFilterContractType={setFilterContractType}
-                            onToggleContractTypeFilter={toggleContractTypeFilter}
-                            onSetFilterDate={setFilterDate}
-                            onSetFilterExperience={setFilterExperience}
-                            onSetFilterLanguageCodes={setFilterLanguageCodes}
-                            onSetEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
-                            onApplyDiscoveryDefaults={applyDiscoveryDefaults}
-                            searchMode={searchMode}
-                            getLocalePrefix={getLocalePrefix}
-                            onboardingDismissedRef={onboardingDismissedRef}
-                        />
-                    </Suspense>
-                </div>
-            </main>
-
-            {!isImmersiveAssessmentRoute && showScrollToTop && (
                 <button
-                    type="button"
-                    onClick={handleFloatingScrollToTop}
-                    aria-label={t('app.back_to_top')}
-                    title={t('app.back_to_top')}
-                    className="fixed bottom-5 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[var(--surface-elevated)] text-[var(--accent)] shadow-[var(--shadow-card)] backdrop-blur transition hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.34)] hover:bg-[var(--surface)] hover:text-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] sm:bottom-6 sm:right-6"
+                    onClick={clearPendingEmailConfirmation}
+                    className="px-4 py-2 text-sm font-semibold text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-800/40"
                 >
-                    <ArrowUp size={18} />
+                    {t('app.close')}
                 </button>
-            )}
+            </div>
+        </div>
+    ) : null;
 
+    const sceneNode = (
+        <Suspense
+            fallback={
+                <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                </div>
+            }
+        >
+            <AppSceneRouter
+                normalizedPath={normalizedPath}
+                viewState={viewState}
+                theme={theme}
+                vercelAnalyticsEnabled={vercelAnalyticsEnabled}
+                userProfile={userProfile}
+                companyProfile={companyProfile}
+                selectedCompanyId={selectedCompanyId}
+                selectedJobId={selectedJobId}
+                selectedBlogPostSlug={selectedBlogPostSlug}
+                showCompanyLanding={showCompanyLanding}
+                isBlogOpen={isBlogOpen}
+                jobsForDisplay={jobsForDisplay}
+                selectedJob={selectedJob}
+                resolvedSavedJobs={resolvedSavedJobs}
+                savedJobIds={savedJobIds}
+                savedJobsSearchTerm={savedJobsSearchTerm}
+                isLoadingJobs={isLoadingJobs}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                totalCount={totalCount}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                searchTerm={searchTerm}
+                filterCity={filterCity}
+                filterMinSalary={filterMinSalary}
+                filterBenefits={filterBenefits}
+                remoteOnly={challengeRemoteOnly}
+                globalSearch={globalSearch}
+                abroadOnly={abroadOnly}
+                countryCodes={countryCodes}
+                enableCommuteFilter={enableCommuteFilter}
+                filterMaxDistance={filterMaxDistance}
+                filterContractType={filterContractType}
+                filterDate={filterDate}
+                filterExperience={filterExperience}
+                filterLanguageCodes={filterLanguageCodes}
+                hasExplicitLanguageFilter={hasExplicitLanguageFilter}
+                enableAutoLanguageGuard={enableAutoLanguageGuard}
+                implicitLanguageCodesApplied={implicitLanguageCodesApplied}
+                discoveryLane={discoveryLane}
+                discoveryMode={discoveryMode}
+                searchDiagnostics={searchDiagnostics}
+                candidateActivationState={candidateActivationState}
+                activationNextStep={activationNextStep}
+                applyInteractionState={applyInteractionState}
+                onDeleteAccount={deleteAccount}
+                onSetCompanyProfile={setCompanyProfile}
+                onSetViewState={setViewState}
+                onProfileUpdate={handleProfileUpdate}
+                onProfileSave={handleProfileSave}
+                onRefreshProfile={refreshUserProfile}
+                onToggleSave={handleToggleSave}
+                onApplyToJob={handleApplyToJob}
+                onSavedJobsSearchChange={setSavedJobsSearchTerm}
+                onSetBlogOpen={setIsBlogOpen}
+                onSetSelectedBlogPostSlug={setSelectedBlogPostSlug}
+                onSetSelectedJobId={setSelectedJobId}
+                onSetSelectedCompanyId={setSelectedCompanyId}
+                onSetShowCompanyLanding={setShowCompanyLanding}
+                onSetCompanyRegistrationOpen={setIsCompanyRegistrationOpen}
+                onSetApplyModalOpen={setIsApplyModalOpen}
+                onSetShowCandidateOnboarding={setShowCandidateOnboarding}
+                onOpenAuth={handleAuthAction}
+                onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
+                onHandleCompanyPageSelect={handleCompanyPageSelect}
+                onHandleJobSelect={handleJobSelect}
+                onLoadMoreJobs={loadMoreJobs}
+                onGoToJobsPage={goToPage}
+                onSetDiscoveryLane={setDiscoveryLane}
+                onSetDiscoveryMode={setDiscoveryMode}
+                onSetSearchTerm={setSearchTerm}
+                onPerformSearch={performSearch}
+                onSetFilterCity={setFilterCity}
+                onSetFilterMinSalary={setFilterMinSalary}
+                onSetFilterBenefits={setFilterBenefits}
+                onToggleBenefitFilter={toggleBenefitFilter}
+                onSetRemoteOnly={setChallengeRemoteOnly}
+                onSetGlobalSearch={setGlobalSearch}
+                onSetAbroadOnly={setAbroadOnly}
+                onSetCountryCodes={setCountryCodes}
+                onSetEnableCommuteFilter={setEnableCommuteFilter}
+                onSetFilterMaxDistance={setFilterMaxDistance}
+                onSetFilterContractType={setFilterContractType}
+                onToggleContractTypeFilter={toggleContractTypeFilter}
+                onSetFilterDate={setFilterDate}
+                onSetFilterExperience={setFilterExperience}
+                onSetFilterLanguageCodes={setFilterLanguageCodes}
+                onSetEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
+                onApplyDiscoveryDefaults={applyDiscoveryDefaults}
+                searchMode={searchMode}
+                getLocalePrefix={getLocalePrefix}
+                onboardingDismissedRef={onboardingDismissedRef}
+            />
+        </Suspense>
+    );
+
+    const floatingActionNode = !isImmersiveAssessmentRoute && showScrollToTop ? (
+        <button
+            type="button"
+            onClick={handleFloatingScrollToTop}
+            aria-label={t('app.back_to_top')}
+            title={t('app.back_to_top')}
+            className="fixed bottom-5 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.22)] bg-[var(--surface-elevated)] text-[var(--accent)] shadow-[var(--shadow-card)] backdrop-blur transition hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.34)] hover:bg-[var(--surface)] hover:text-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] sm:bottom-6 sm:right-6"
+        >
+            <ArrowUp size={18} />
+        </button>
+    ) : null;
+
+    const overlayNodes = (
+        <>
             <Suspense fallback={null}>
                 <CandidateOnboardingModal
                     isOpen={showCandidateOnboarding}
                     profile={userProfile}
                     initialStep={
-                        activationNextStep === 'skills'
-                            ? 'preferences'
-                            : activationNextStep === 'quality_action'
-                                ? 'done'
-                                : activationNextStep
+                        candidateOnboardingInitialStepOverride
+                        || (
+                            activationNextStep === 'skills'
+                                ? 'preferences'
+                                : activationNextStep === 'quality_action'
+                                    ? 'done'
+                                    : activationNextStep
+                        )
                     }
                     onClose={() => {
                         onboardingDismissedRef.current = true;
+                        setCandidateOnboardingInitialStepOverride(null);
                         setShowCandidateOnboarding(false);
                     }}
                     onComplete={() => {
                         onboardingDismissedRef.current = true;
+                        setCandidateOnboardingInitialStepOverride(null);
                         setShowCandidateOnboarding(false);
                     }}
                     onGoToProfile={() => {
                         onboardingDismissedRef.current = true;
+                        setCandidateOnboardingInitialStepOverride(null);
                         setShowCandidateOnboarding(false);
                         setSelectedJobId(null);
                         setSelectedBlogPostSlug(null);
@@ -2062,10 +1903,19 @@ export default function App() {
                         setAuthModalMode('login');
                     }}
                     onSuccess={() => {
+                        const successMode = authModalMode;
                         setIsAuthModalOpen(false);
                         passwordRecoveryInProgressRef.current = false;
                         clearPasswordRecoveryPending();
                         setAuthModalMode('login');
+                        if (successMode === 'register') {
+                            postAuthCandidateOnboardingRef.current = 'location';
+                            onboardingDismissedRef.current = false;
+                            setSelectedJobId(null);
+                            setSelectedBlogPostSlug(null);
+                            setShowCompanyLanding(false);
+                            setViewState(ViewState.LIST);
+                        }
                     }}
                     defaultMode={authModalMode}
                 />
@@ -2104,7 +1954,6 @@ export default function App() {
                 </Suspense>
             )}
 
-            {/* Cookie Banner - Only show when needed */}
             {showCookieBanner && (
                 <CookieBanner
                     theme={theme}
@@ -2120,7 +1969,19 @@ export default function App() {
                 onSkip={completeGuestDiscoveryTour}
                 onComplete={completeGuestDiscoveryTour}
             />
+        </>
+    );
 
-        </div>
+    return (
+        <AppViewportShell
+            isImmersive={isImmersiveAssessmentRoute}
+            theme={theme}
+            usePageScrollLayout={usePageScrollLayout}
+            header={headerNode}
+            banner={bannerNode}
+            scene={sceneNode}
+            floatingAction={floatingActionNode}
+            overlays={overlayNodes}
+        />
     );
 }

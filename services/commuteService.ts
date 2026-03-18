@@ -125,9 +125,17 @@ const COMMUTE_CORRIDORS: CommuteCorridor[] = [
     }
 ];
 
-export const isRemoteJob = (job: Pick<Job, 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
-    const remoteSignals = `${job.type || ''} ${job.work_model || ''} ${job.location || ''} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase();
-    return /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|anywhere|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce z domu|prace z domu|práce na dálku|prace na dalku|na dálku|na dalku|z domova|z domu|praca zdalna|zdalnie|homeoffice möglich|von zuhause|mobiles arbeiten|telecommut(?:e|ing))\b/.test(remoteSignals);
+export const isRemoteJob = (job: Pick<Job, 'title' | 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
+    const remoteSignals = `${job.title || ''} ${job.type || ''} ${job.work_model || ''} ${job.location || ''} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase();
+    const explicitRemoteSignals = `${job.type || ''} ${job.work_model || ''}`.toLowerCase();
+    const hasRemoteLanguage = /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|anywhere|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce z domu|prace z domu|práce na dálku|prace na dalku|na dálku|na dalku|z domova|z domu|praca zdalna|zdalnie|homeoffice möglich|von zuhause|mobiles arbeiten|telecommut(?:e|ing))\b/.test(remoteSignals);
+    if (!hasRemoteLanguage) return false;
+
+    const strongRemoteSignal = /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce na dálku|prace na dalku|praca zdalna|zdalnie|telecommut(?:e|ing))\b/.test(explicitRemoteSignals);
+    const onsiteContradiction = /\b(stavbyvedouci|stavbyvedouc[ií]|stavba|construction|site manager|site supervisor|superintendent|foreman|technik na stavbe|mont[eé]r|installer|field service|servisni technik|servisn[ií] technik|kuryr|kurier|ridic|řidič|delivery driver|courier|warehouse|skladnik|skladn[ií]k|cesnik|číšník|servirka|servírka|kuchar|kuchař|obsluha|recepcni|recepčni|ostraha|security guard)\b/.test(remoteSignals);
+
+    if (onsiteContradiction && !strongRemoteSignal) return false;
+    return true;
 };
 
 const containsAny = (text: string, aliases: string[]): boolean => aliases.some(alias => text.includes(alias));

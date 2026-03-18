@@ -1461,7 +1461,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
                               : record.entityKind === 'lead'
                                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
                               {record.entityKind}
                             </span>
                             {record.entityKind === 'lead' ? (
@@ -1470,7 +1470,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                               </span>
                             ) : sub ? (
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${sub.status === 'active'
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                                 : sub.status === 'trialing'
                                   ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                                   : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'}`}>
@@ -1748,7 +1748,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             const toneClass = severity === 'danger'
                               ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900 dark:bg-rose-900/20'
                               : severity === 'success'
-                                ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-900/20'
+                                ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-900/20'
                                 : 'border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-900/75';
                             return (
                               <div
@@ -1847,7 +1847,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <button
                           onClick={handleCrmSaveSubscription}
                           disabled={crmSaving}
-                          className="inline-flex items-center gap-2 rounded-[0.85rem] bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-[0.85rem] bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-60"
                         >
                           {crmSaving ? t('app.saving') : t('admin_dashboard.common.save')}
                         </button>
@@ -2320,7 +2320,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <option value="no">no</option>
                   </select>
                 </div>
-                <button onClick={handleCreateRole} className="w-full rounded-xl bg-emerald-600 py-2 mt-2 text-sm font-semibold text-white hover:bg-emerald-500">{t('admin_dashboard.jcfpm.create')}</button>
+                <button onClick={handleCreateRole} className="w-full rounded-xl bg-amber-600 py-2 mt-2 text-sm font-semibold text-white hover:bg-amber-500">{t('admin_dashboard.jcfpm.create')}</button>
               </div>
             </article>
           </section>

@@ -35,6 +35,7 @@ export const createDefaultCandidateSearchProfile = (): CandidateSearchProfile =>
   defaultMaxDistanceKm: 30,
   primaryDomain: null,
   secondaryDomains: [],
+  avoidDomains: [],
   targetRole: '',
   seniority: null,
   includeAdjacentDomains: true,

@@ -102,7 +102,7 @@ const EnterpriseSignup: React.FC = () => {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-8">
                 <div className="max-w-2xl mx-auto text-center">
-                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle size={40} />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
@@ -115,7 +115,7 @@ const EnterpriseSignup: React.FC = () => {
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">{t('enterprise_signup.success.next_title')}</h3>
                         <div className="space-y-4 text-left">
                             <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <span className="text-white text-sm font-bold">1</span>
                                 </div>
                                 <div>
@@ -124,7 +124,7 @@ const EnterpriseSignup: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <span className="text-white text-sm font-bold">2</span>
                                 </div>
                                 <div>
@@ -133,7 +133,7 @@ const EnterpriseSignup: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <span className="text-white text-sm font-bold">3</span>
                                 </div>
                                 <div>
@@ -206,7 +206,7 @@ const EnterpriseSignup: React.FC = () => {
                                 }
                             ].map((benefit, index) => (
                                 <div key={index} className="flex gap-4">
-                                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center flex-shrink-0">
                                         <benefit.icon size={24} />
                                     </div>
                                     <div>
@@ -217,23 +217,23 @@ const EnterpriseSignup: React.FC = () => {
                             ))}
                         </div>
 
-                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-700">
-                            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4">{t('enterprise_signup.why_title')}</h3>
-                            <ul className="space-y-3 text-sm text-emerald-800 dark:text-emerald-200">
+                        <div className="bg-gradient-to-r from-amber-50 to-teal-50 dark:from-amber-950/20 dark:to-teal-950/20 rounded-xl p-6 border border-amber-200 dark:border-amber-700">
+                            <h3 className="font-bold text-amber-900 dark:text-amber-100 mb-4">{t('enterprise_signup.why_title')}</h3>
+                            <ul className="space-y-3 text-sm text-amber-800 dark:text-amber-200">
                                 <li className="flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>
                                     <span>{t('enterprise_signup.why_items.1')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>
                                     <span>{t('enterprise_signup.why_items.2')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>
                                     <span>{t('enterprise_signup.why_items.3')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 flex-shrink-0"></div>
                                     <span>{t('enterprise_signup.why_items.4')}</span>
                                 </li>
                             </ul>
@@ -258,7 +258,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.companyName}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                             placeholder={t('enterprise_signup.form.company_name_placeholder')}
                                         />
                                     </div>
@@ -270,7 +270,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.contactName}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                             placeholder={t('enterprise_signup.form.contact_name_placeholder')}
                                         />
                                     </div>
@@ -287,7 +287,7 @@ const EnterpriseSignup: React.FC = () => {
                                                 value={formData.contactEmail}
                                                 onChange={handleInputChange}
                                                 required
-                                                className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                                className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                                 placeholder={t('enterprise_signup.form.email_placeholder')}
                                             />
                                         </div>
@@ -301,7 +301,7 @@ const EnterpriseSignup: React.FC = () => {
                                                 name="contactPhone"
                                                 value={formData.contactPhone}
                                                 onChange={handleInputChange}
-                                                className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                                className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                                 placeholder={t('enterprise_signup.form.phone_placeholder')}
                                             />
                                         </div>
@@ -316,7 +316,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.companySize}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
                                             <option value="">{t('enterprise_signup.form.company_size_placeholder')}</option>
                                             {companySizeOptions.map(size => (
@@ -331,7 +331,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.industry}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
                                             <option value="">{t('enterprise_signup.form.industry_placeholder')}</option>
                                             {industryOptions.map(industry => (
@@ -349,7 +349,7 @@ const EnterpriseSignup: React.FC = () => {
                                         onChange={handleInputChange}
                                         required
                                         rows={4}
-                                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
                                         placeholder={t('enterprise_signup.form.challenges_placeholder')}
                                     />
                                 </div>
@@ -363,7 +363,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.expectedHires}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                             placeholder={t('enterprise_signup.form.expected_hires_placeholder')}
                                         />
                                     </div>
@@ -374,7 +374,7 @@ const EnterpriseSignup: React.FC = () => {
                                             value={formData.timeline}
                                             onChange={handleInputChange}
                                             required
-                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
                                             <option value="">{t('enterprise_signup.form.timeline_placeholder')}</option>
                                             {timelineOptions.map(timeline => (
@@ -387,7 +387,7 @@ const EnterpriseSignup: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="w-full py-4 bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -406,7 +406,7 @@ const EnterpriseSignup: React.FC = () => {
                             <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2">{t('enterprise_signup.questions_title')}</h4>
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                                    {t('enterprise_signup.questions_desc_prefix')} <a href="tel:+420123456789" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">+420 123 456 789</a> {t('enterprise_signup.questions_desc_middle')} <a href="mailto:enterprise@jobshaman.cz" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">enterprise@jobshaman.cz</a>
+                                    {t('enterprise_signup.questions_desc_prefix')} <a href="tel:+420123456789" className="text-amber-600 dark:text-amber-400 font-bold hover:underline">+420 123 456 789</a> {t('enterprise_signup.questions_desc_middle')} <a href="mailto:enterprise@jobshaman.cz" className="text-amber-600 dark:text-amber-400 font-bold hover:underline">enterprise@jobshaman.cz</a>
                                 </p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {t('enterprise_signup.questions_hours')}

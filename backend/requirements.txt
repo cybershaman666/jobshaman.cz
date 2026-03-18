@@ -20,4 +20,4 @@ google-generativeai
 user-agents
 sentry-sdk[fastapi]
 certifi
-
+python-jobspy

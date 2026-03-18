@@ -1,25 +1,24 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  Briefcase,
   ChevronDown,
-  LogOut,
   MapPin,
   Menu,
   Moon,
   Search,
   Sparkles,
   Sun,
-  UserCircle,
-  X
+  TowerControl,
+  X,
+  Building2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CompanyProfile, UserProfile, ViewState } from '../types';
-import { getRecruiterCompany } from '../services/supabaseService';
 import { cn } from './ui/primitives';
 
 interface AppHeaderProps {
   viewState: ViewState;
   setViewState: (view: ViewState) => void;
+  selectedJobId: string | null;
   setSelectedJobId: (id: string | null) => void;
   isBlogOpen?: boolean;
   setIsBlogOpen?: (open: boolean) => void;
@@ -39,7 +38,6 @@ interface AppHeaderProps {
   discoveryMode?: 'all' | 'micro_jobs';
   setDiscoveryMode?: (mode: 'all' | 'micro_jobs') => void;
   discoverySearchMode?: boolean;
-  onOpenInsights?: () => void;
   onOpenDiscoverySearch?: () => void;
   setDiscoverySearchMode?: (active: boolean) => void;
   searchTerm: string;
@@ -47,6 +45,13 @@ interface AppHeaderProps {
   filterCity: string;
   setFilterCity: (city: string) => void;
   performSearch: (term: string) => void;
+  remoteOnly?: boolean;
+  setRemoteOnly?: (enabled: boolean) => void;
+  enableCommuteFilter?: boolean;
+  setEnableCommuteFilter?: (enabled: boolean) => void;
+  filterMaxDistance?: number;
+  filterMinSalary?: number;
+  setFilterMinSalary?: (salary: number) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -59,8 +64,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   showCompanyLanding,
   setShowCompanyLanding,
   userProfile,
-  companyProfile,
-  setCompanyProfile,
   handleAuthAction,
   toggleTheme,
   theme,
@@ -71,39 +74,32 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   discoveryMode = 'all',
   setDiscoveryMode,
   discoverySearchMode = false,
-  onOpenInsights,
   onOpenDiscoverySearch,
   setDiscoverySearchMode,
   searchTerm,
   setSearchTerm,
   filterCity,
   setFilterCity,
-  performSearch
+  performSearch,
+  remoteOnly = false,
+  setRemoteOnly,
+  enableCommuteFilter = false,
+  setEnableCommuteFilter,
+  filterMaxDistance = 50,
+  filterMinSalary = 0,
+  setFilterMinSalary,
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
-  const [legalMenuOpen, setLegalMenuOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
-  const isCsLike = locale === 'cs' || locale === 'sk';
-  const headerLabel = (labels: { cs: string; sk?: string; de?: string; at?: string; pl?: string; en: string }) => {
-    if (locale === 'sk' && labels.sk) return labels.sk;
-    if (locale === 'de' && labels.de) return labels.de;
-    if (locale === 'at' && labels.at) return labels.at || labels.de || labels.en;
-    if (locale === 'pl' && labels.pl) return labels.pl;
-    if (locale === 'cs') return labels.cs;
-    return labels.en;
-  };
-  const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
-  const insightsLabel =
-    locale === 'cs' || locale === 'sk'
-      ? 'Články'
-      : locale === 'de' || locale === 'at'
-        ? 'Artikel'
-        : locale === 'pl'
-          ? 'Artykuły'
-          : 'Articles';
+  const currentLanguageCode = useMemo(() => {
+    const supported = new Set(((i18n.options.supportedLngs || []) as string[]).filter(Boolean));
+    if (supported.has(locale)) return locale;
+    const fallback = (i18n.resolvedLanguage || i18n.language || 'cs').split('-')[0].toLowerCase();
+    return supported.has(fallback) ? fallback : 'cs';
+  }, [i18n.language, i18n.options.supportedLngs, i18n.resolvedLanguage, locale]);
 
   const scrollToElement = (elementId: string, options?: ScrollIntoViewOptions) => {
     window.setTimeout(() => {
@@ -116,11 +112,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const openHomeOverview = () => {
-    if (leaveDemoHandshakeRoute()) return;
-    if (isAdminRoute()) {
-      window.location.assign(`${getLocalePrefix()}/`);
-      return;
-    }
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -131,17 +122,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setDiscoveryMode?.('all');
     setDiscoverySearchMode?.(false);
     setViewState(ViewState.LIST);
-    window.setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const openDiscoveryLane = (lane: 'challenges' | 'imports', focusSearch = false) => {
-    if (leaveDemoHandshakeRoute()) return;
-    if (isAdminRoute()) {
-      window.location.assign(`${getLocalePrefix()}/`);
-      return;
-    }
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -160,11 +144,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const openMicroJobs = () => {
-    if (leaveDemoHandshakeRoute()) return;
-    if (isAdminRoute()) {
-      window.location.assign(`${getLocalePrefix()}/`);
-      return;
-    }
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -181,36 +160,35 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const navItems = [
     {
       key: 'overview',
-      label: headerLabel({ cs: 'Úvod', sk: 'Úvod', de: 'Übersicht', at: 'Übersicht', pl: 'Przegląd', en: 'Overview' }),
+      label: t('header.shell.overview'),
       active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && !discoverySearchMode,
       onClick: openHomeOverview
     },
     {
       key: 'search',
-      label: headerLabel({ cs: 'Hledání a filtry', sk: 'Hľadanie a filtre', de: 'Suche und Filter', at: 'Suche und Filter', pl: 'Szukaj i filtry', en: 'Search and filters' }),
+      label: t('header.shell.browse_feed'),
       active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && discoverySearchMode,
       onClick: () => openDiscoveryLane('challenges', true)
     },
     {
       key: 'micro_jobs',
-      label: headerLabel({ cs: 'Mini výzvy', sk: 'Mini výzvy', de: 'Mini-Aufgaben', at: 'Mini-Aufgaben', pl: 'Mini wyzwania', en: 'Mini challenges' }),
+      label: t('header.shell.quick_gigs'),
       active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'micro_jobs',
       onClick: openMicroJobs
     },
     {
-      key: 'saved',
-      label: headerLabel({ cs: 'Uložené', sk: 'Uložené', de: 'Gespeichert', at: 'Gespeichert', pl: 'Zapisane', en: 'Saved' }),
-      active: viewState === ViewState.SAVED,
+      key: 'market_radar',
+      label: 'Radar',
+      active: viewState === ViewState.MARKET_RADAR,
       onClick: () => {
-        if (leaveDemoHandshakeRoute('ulozene')) return;
+        onIntentionalListClick?.();
+        setIsBlogOpen?.(false);
+        setSelectedBlogPostSlug?.(null);
         setShowCompanyLanding(false);
         setIsOnboardingCompany(false);
-        setIsBlogOpen?.(false);
-        setDiscoveryMode?.('all');
-        setDiscoverySearchMode?.(false);
-        setViewState(ViewState.SAVED);
         setSelectedJobId(null);
-        setSelectedBlogPostSlug?.(null);
+        setDiscoverySearchMode?.(false);
+        setViewState(ViewState.MARKET_RADAR);
       }
     }
   ];
@@ -264,6 +242,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       window.location.assign(`${getLocalePrefix()}/`);
       return;
     }
+    const homePath = `${getLocalePrefix()}/`;
+    if (window.location.pathname !== homePath) {
+      window.history.replaceState({}, '', homePath);
+    }
     onIntentionalListClick?.();
     setDiscoveryLane?.('challenges');
     setDiscoveryMode?.('all');
@@ -286,90 +268,25 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     } catch (error) {
       console.warn('Failed to update locale in path', error);
     }
-
     i18n.changeLanguage(lng);
   };
 
-  const handleBusinessClick = async () => {
-    if (showCompanyLanding) {
-      setShowCompanyLanding(false);
-      setIsBlogOpen?.(false);
-      setSelectedBlogPostSlug?.(null);
-      setDiscoverySearchMode?.(false);
-      setViewState(ViewState.LIST);
-      return;
-    }
-
-    if (!userProfile.isLoggedIn || userProfile.role !== 'recruiter') {
-      setShowCompanyLanding(true);
-      return;
-    }
-
-    if (companyProfile) {
-      setIsBlogOpen?.(false);
-      setSelectedBlogPostSlug?.(null);
-      setDiscoverySearchMode?.(false);
-      setViewState(ViewState.COMPANY_DASHBOARD);
-      return;
-    }
-
-    if (userProfile.id) {
-      try {
-        const resolvedCompany = await getRecruiterCompany(userProfile.id);
-        if (resolvedCompany) {
-          setCompanyProfile(resolvedCompany);
-          setIsOnboardingCompany(false);
-          setIsBlogOpen?.(false);
-          setSelectedBlogPostSlug?.(null);
-          setDiscoverySearchMode?.(false);
-          setViewState(ViewState.COMPANY_DASHBOARD);
-          return;
-        }
-      } catch (error) {
-        console.warn('Failed to resolve recruiter company before onboarding:', error);
-      }
-    }
-
-    setIsOnboardingCompany(true);
+  const searchUiCopy = {
+    label: t('header.shell.search_label'),
+    searchPlaceholder: t('header.shell.search_placeholder'),
+    locationPlaceholder: t('header.shell.location_placeholder'),
+    submit: t('header.shell.search_submit'),
   };
-
-  const activePill = 'bg-[var(--accent-soft)] text-[var(--accent)] border-[rgba(var(--accent-rgb),0.18)]';
-  const inactivePill = 'text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-white/70 border-transparent';
-  const searchUiCopy =
-    locale === 'cs'
-      ? {
-          label: 'Hledání a filtry',
-          searchPlaceholder: 'Hledat nabídky, firmy, typy rolí nebo důležité signály',
-          locationPlaceholder: 'Město, region, práce na dálku',
-          submit: 'Hledat',
-        }
-      : locale === 'sk'
-        ? {
-            label: 'Hľadanie a filtre',
-            searchPlaceholder: 'Hľadať ponuky, firmy, typy rolí alebo dôležité signály',
-            locationPlaceholder: 'Mesto, región, práca na diaľku',
-            submit: 'Hľadať',
-          }
-        : locale === 'de' || locale === 'at'
-          ? {
-              label: 'Suche und Filter',
-              searchPlaceholder: 'Rollen, Firmen, Arbeitsmodelle oder wichtige Signale suchen',
-              locationPlaceholder: 'Stadt, Region, Remote',
-              submit: 'Suchen',
-            }
-          : locale === 'pl'
-            ? {
-                label: 'Szukaj i filtruj',
-                searchPlaceholder: 'Szukaj ofert, firm, typów pracy lub ważnych sygnałów',
-                locationPlaceholder: 'Miasto, region, zdalnie',
-                submit: 'Szukaj',
-              }
-            : {
-                label: 'Search and filters',
-                searchPlaceholder: 'Search challenges, teams, role types, or signal words',
-                locationPlaceholder: 'City, region, remote',
-                submit: 'Search',
-              };
+  const headerUiCopy = {
+    companies: t('header.shell.companies'),
+    remoteOnly: t('header.shell.remote_only'),
+    commuteMax: t('header.shell.commute_max', { km: filterMaxDistance }),
+    atLeast: t('header.shell.at_least'),
+    aiLine: t('header.shell.ai_line'),
+    aiBadge: t('header.shell.ai_badge'),
+    lightMode: t('header.shell.light_mode'),
+    darkMode: t('header.shell.dark_mode'),
+  };
 
   const submitDiscoverySearch = () => {
     if (leaveDemoHandshakeRoute()) return;
@@ -392,413 +309,322 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }, 0);
   };
 
+  const hasDesktopLeftRail = viewState !== ViewState.LIST && viewState !== ViewState.MARKET_RADAR;
+  const showMarketplaceHeaderControls = viewState === ViewState.LIST && !showCompanyLanding && !isBlogOpen;
+  const discoveryAccentStyle = useMemo((): React.CSSProperties | undefined => {
+    if (viewState !== ViewState.LIST && viewState !== ViewState.MARKET_RADAR) return undefined;
+    const isDark = theme === 'dark';
+    const accent = isDark ? '#22c55e' : '#14532d';
+    const accentRgb = isDark ? '34, 197, 94' : '20, 83, 45';
+    const accentGreen = isDark ? '#16a34a' : '#166534';
+    const accentGreenRgb = isDark ? '22, 163, 74' : '22, 101, 52';
+    const accentSky = '#0f766e';
+    const accentSkyRgb = '15, 118, 110';
+    return {
+      ['--accent' as any]: accent,
+      ['--accent-rgb' as any]: accentRgb,
+      ['--accent-green' as any]: accentGreen,
+      ['--accent-green-rgb' as any]: accentGreenRgb,
+      ['--accent-sky' as any]: accentSky,
+      ['--accent-sky-rgb' as any]: accentSkyRgb,
+    };
+  }, [theme, viewState]);
+
   return (
-    <header className="sticky top-0 z-50 w-full px-2 pt-2 sm:px-4 sm:pt-2.5 lg:px-6">
-      <div className="app-topnav mx-auto max-w-[1680px] rounded-[1.15rem] border px-2.5 py-2 sm:rounded-[1.5rem] sm:px-4 sm:py-2.5">
-        <div className="flex items-center gap-2 sm:gap-3">
+    <header
+      style={discoveryAccentStyle}
+      className={cn(
+        'sticky top-0 z-50 w-full py-1.5',
+        'relative overflow-visible px-2 sm:px-4 lg:px-0'
+      )}
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" />
+
+      <div
+        className={cn(
+          'w-full',
+          hasDesktopLeftRail ? 'lg:pl-24' : 'lg:pl-6',
+          'lg:pr-6'
+        )}
+      >
+        <div
+          className={cn(
+            "app-topnav app-organic-shell relative z-40 flex w-full items-center gap-3 overflow-visible border border-transparent bg-transparent px-4 py-2 sm:px-6 shadow-none backdrop-blur-0"
+          )}
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(255,255,255,0.07),transparent_20%),radial-gradient(circle_at_88%_10%,rgba(var(--accent-rgb),0.05),transparent_24%)]" />
+          <div aria-hidden className="app-blob-orbit pointer-events-none absolute -left-6 top-4 h-16 w-20 rounded-[60%_40%_58%_42%/_38%_60%_40%_62%] bg-[rgba(var(--accent-rgb),0.10)] blur-2xl" />
+          <div aria-hidden className="pointer-events-none absolute right-12 top-0 h-12 w-24 rounded-[38%_62%_54%_46%/_52%_46%_54%_48%] bg-[rgba(249,115,22,0.10)] blur-xl" />
+
+          {/* Logo Section */}
           <button
             type="button"
             onClick={navigateToShellHome}
-            className="flex min-w-0 items-center gap-2 rounded-[1rem] px-1.5 py-1 text-left transition hover:bg-white/60 dark:hover:bg-white/5 sm:gap-2.5 sm:rounded-[1.1rem] sm:px-2"
+            className="app-organic-pill relative z-10 flex shrink-0 items-center gap-3 border border-white/10 bg-white/40 px-2.5 py-1.5 transition hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
           >
-            <img src="/logo-alt.png" alt="JobShaman" className="h-8 w-auto object-contain sm:h-11" />
-            <div className="hidden min-w-0 sm:block">
-              <div className="text-lg font-semibold tracking-[-0.045em] text-[var(--text-strong)] sm:text-[1.35rem]">
-                <span>Job</span>
-                <span className="text-[var(--accent)]">Shaman</span>
-              </div>
-            </div>
-            <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-800 dark:border-amber-700/80 dark:bg-amber-950/50 dark:text-amber-200">
-              Beta
+            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-sky-rgb),0.14))] shadow-[0_12px_30px_-18px_rgba(var(--accent-rgb),0.9)]">
+              <img src="/logo-alt.png" alt="JobShaman" className="h-6 w-auto sm:h-7" />
+            </span>
+            <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
+              Job<span className="text-[var(--accent)]">Shaman</span>
             </span>
           </button>
 
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setLanguageMenuOpen((prev) => !prev);
-                  setLegalMenuOpen(false);
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-white/60 px-3 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
-              >
-                <img
-                  src={`https://flagcdn.com/w20/${languages.find((lang) => lang.code === i18n.language)?.flagCode || 'cz'}.png`}
-                  alt=""
-                  className="h-3 w-4 rounded-sm"
-                  loading="lazy"
+          {/* Desktop Search - Single Row */}
+          <div className="mx-auto hidden max-w-5xl flex-1 lg:flex lg:flex-col lg:gap-2">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div className="app-organic-pill inline-flex items-center gap-2 bg-white/55 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--accent)] ring-1 ring-inset ring-[rgba(var(--accent-rgb),0.16)] dark:bg-white/6">
+                <Sparkles size={13} />
+                {headerUiCopy.aiBadge}
+              </div>
+              <div className="text-xs font-medium text-[var(--text-muted)]">
+                {headerUiCopy.aiLine}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                  <Search size={18} />
+                </div>
+                <input
+                  id="appheader-discovery-search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                  placeholder={searchUiCopy.searchPlaceholder}
+                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white/80 dark:bg-white/5 dark:focus:bg-white/10"
                 />
-                {(languages.find((lang) => lang.code === i18n.language)?.name || i18n.language || '').toUpperCase()}
-                <ChevronDown size={14} className="text-[var(--text-faint)]" />
-              </button>
-              {languageMenuOpen ? (
-                <div className="absolute right-0 mt-2 w-36 rounded-[1.1rem] border border-[var(--border)] bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-overlay)]">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => {
-                        changeLanguage(lang.code);
-                        setLanguageMenuOpen(false);
-                      }}
-                      className={cn(
-                        'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition',
-                        i18n.language === lang.code
-                          ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                          : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
-                      )}
-                    >
-                      <img
-                        src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
-                        alt=""
-                        className="h-3 w-4 rounded-sm"
-                        loading="lazy"
-                      />
-                      {lang.name}
-                    </button>
-                  ))}
+              </div>
+              <div className="relative flex-[0.7]">
+                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                  <MapPin size={18} />
                 </div>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
-              title={t('header.toggle_theme')}
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-
-            {canShowBusinessMenu ? (
+                <input
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                  placeholder={searchUiCopy.locationPlaceholder}
+                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white/80 dark:bg-white/5 dark:focus:bg-white/10"
+                />
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
-                    ? 'company-dashboard'
-                    : 'pro-firmy';
-                  if (leaveDemoHandshakeRoute(businessTarget)) return;
-                  void handleBusinessClick();
-                }}
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition whitespace-nowrap',
-                  showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? activePill : inactivePill
-                )}
+                onClick={submitDiscoverySearch}
+                className="app-button-primary app-organic-cta !px-5 !py-3 shadow-[0_18px_40px_-24px_rgba(var(--accent-rgb),0.9)]"
               >
-                <Briefcase size={15} />
-                <span className="hidden xl:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>
+                {searchUiCopy.submit}
               </button>
-            ) : null}
-
-            {userProfile.isLoggedIn ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (leaveDemoHandshakeRoute('profile')) return;
-                    setShowCompanyLanding(false);
-                    setIsOnboardingCompany(false);
-                    setIsBlogOpen?.(false);
-                    setDiscoverySearchMode?.(false);
-                    setViewState(ViewState.PROFILE);
-                    setSelectedJobId(null);
-                    setSelectedBlogPostSlug?.(null);
-                  }}
-                  className="flex items-center gap-3 rounded-[1.1rem] border border-[var(--border-subtle)] bg-white/70 px-3 py-2 text-left transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">
-                    {userProfile.photo && !avatarFailed ? (
-                      <img
-                        src={userProfile.photo}
-                        alt={userProfile.name}
-                        className="h-full w-full object-cover"
-                        onError={() => setAvatarFailed(true)}
-                      />
-                    ) : (
-                      <span>{userProfile.name?.charAt(0) || 'U'}</span>
-                    )}
-                  </div>
-                  <div className="hidden min-w-0 2xl:block">
-                    <div className="truncate text-sm font-semibold text-[var(--text-strong)]">{userProfile.name}</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAuthAction()}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
-                  title={t('header.logout')}
-                >
-                  <LogOut size={16} />
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAuthAction('login')}
-                  className="app-button-secondary !px-3.5 !py-2.5"
-                >
-                  <UserCircle size={16} />
-                  {t('auth.login_button')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAuthAction('register')}
-                  className="app-button-primary !px-3.5 !py-2.5"
-                >
-                  <Sparkles size={16} />
-                  {t('auth.register_button')}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:hidden">
-            <button
-              type="button"
-              onClick={onOpenDiscoverySearch}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] sm:h-10 sm:w-10"
-            >
-              <Search size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-white/60 text-[var(--text)] sm:h-10 sm:w-10"
-            >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2.5 hidden items-center gap-3 border-t border-[var(--border-subtle)] pt-2.5 lg:flex">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <div className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)] xl:block">
-                {searchUiCopy.label}
-              </div>
-              <div className="grid min-w-0 flex-1 gap-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)_auto]">
-                <div className="app-command-field min-w-0">
-                  <Search size={16} className="text-[var(--text-faint)]" />
-                  <input
-                    id="appheader-discovery-search"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') submitDiscoverySearch();
-                    }}
-                    placeholder={searchUiCopy.searchPlaceholder}
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
-                  />
-                </div>
-                <div className="app-command-field min-w-0">
-                  <MapPin size={16} className="text-[var(--text-faint)]" />
-                  <input
-                    value={filterCity}
-                    onChange={(event) => setFilterCity(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') submitDiscoverySearch();
-                    }}
-                    placeholder={searchUiCopy.locationPlaceholder}
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-faint)]"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={submitDiscoverySearch}
-                  className="app-button-primary min-w-[120px]"
-                >
-                  <Search size={16} />
-                  {searchUiCopy.submit}
-                </button>
-              </div>
             </div>
           </div>
 
-          <nav className="flex items-center gap-1">
-            {navItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={item.onClick}
-                className={cn(
-                  'rounded-full border px-3 py-2 text-sm font-semibold transition whitespace-nowrap',
-                  item.active ? activePill : inactivePill
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
+          {/* Right Actions */}
+          <div className="relative z-10 flex items-center gap-2 sm:gap-4">
+            {/* Pro firmy link */}
             <button
               type="button"
               onClick={() => {
-                navigateToShellHome();
-                onOpenInsights?.();
+                onIntentionalListClick?.();
+                setIsBlogOpen?.(false);
+                setSelectedBlogPostSlug?.(null);
+                setShowCompanyLanding(false);
+                setIsOnboardingCompany(false);
+                setSelectedJobId(null);
+                setDiscoverySearchMode?.(false);
+                setViewState(ViewState.MARKET_RADAR);
               }}
-              className={cn(
-                'rounded-full border px-3 py-2 text-sm font-semibold transition whitespace-nowrap',
-                isBlogOpen ? activePill : inactivePill
-              )}
+              className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-1.5 text-xs font-bold text-[var(--accent)] transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
             >
-              {insightsLabel}
+              <TowerControl size={15} />
+              Radar
             </button>
-          </nav>
+
+            <button
+              type="button"
+              onClick={() => setShowCompanyLanding(true)}
+              className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-1.5 text-xs font-bold text-[var(--accent)] transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              <Building2 size={15} />
+              {headerUiCopy.companies}
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="app-organic-pill hidden h-10 w-10 items-center justify-center border border-white/10 bg-white/40 text-[var(--text-muted)] hover:bg-white/60 hover:text-[var(--text-strong)] dark:bg-white/5 dark:hover:bg-white/10 lg:inline-flex"
+              >
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              <div className="relative z-[80]">
+                <button
+                  type="button"
+                  onClick={() => setLanguageMenuOpen((prev) => !prev)}
+                  className="app-organic-pill inline-flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-2 text-xs font-bold text-[var(--text-muted)] hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  {(languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode).toUpperCase()}
+                  <ChevronDown size={12} />
+                </button>
+                {languageMenuOpen && (
+                  <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-32 overflow-hidden rounded-2xl p-1 shadow-xl">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { changeLanguage(lang.code); setLanguageMenuOpen(false); }}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition",
+                          currentLanguageCode === lang.code ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text)] hover:bg-[var(--surface-muted)]"
+                        )}
+                      >
+                        <img src={`https://flagcdn.com/w20/${lang.flagCode}.png`} alt="" className="h-3 w-4 rounded-sm" />
+                        {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* User Profile / Auth */}
+            {userProfile.isLoggedIn ? (
+              <button
+                onClick={() => {
+                  setShowCompanyLanding(false);
+                  setViewState(ViewState.PROFILE);
+                }}
+                className="app-organic-pill group flex items-center gap-2 border border-white/10 bg-white/50 p-1 pr-3 transition hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent)]">
+                  {userProfile.photo && !avatarFailed ? (
+                    <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+                  ) : (
+                    <span>{userProfile.name?.charAt(0)}</span>
+                  )}
+                </div>
+                <span className="hidden text-sm font-semibold lg:block">{userProfile.name}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAuthAction('login')}
+                className="app-button-primary app-organic-cta !px-5 !py-2"
+              >
+                {t('auth.login_button')}
+              </button>
+            )}
+
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="app-organic-pill lg:hidden border border-white/10 bg-white/40 p-2 text-[var(--text-strong)] dark:bg-white/5"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
-        {mobileMenuOpen ? (
-          <div className="mt-2.5 max-h-[calc(100dvh-5.5rem)] overflow-y-auto border-t border-[var(--border-subtle)] pt-2.5 lg:hidden">
-            <div className="grid gap-2">
+        {showMarketplaceHeaderControls ? (
+          <div className="relative z-20 mt-2 hidden lg:block">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[rgba(255,255,255,0.55)] bg-[rgba(255,255,255,0.82)] px-3 py-2 shadow-[0_20px_44px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-[rgba(15,23,42,0.74)]">
+              <div className="flex flex-wrap items-center gap-2">
+                {navItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.onClick}
+                    className={cn(
+                      'app-organic-pill px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition',
+                      item.active
+                        ? 'bg-[rgba(var(--accent-rgb),0.14)] text-[var(--accent)]'
+                        : 'bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10 dark:hover:bg-white/14'
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+              <button
+                  type="button"
+                  onClick={() => setRemoteOnly?.(!remoteOnly)}
+                  className={cn(
+                    'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                    remoteOnly
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                      : 'border-[rgba(var(--accent-rgb),0.1)] bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10'
+                  )}
+                >
+                  {headerUiCopy.remoteOnly}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEnableCommuteFilter?.(!enableCommuteFilter)}
+                  className={cn(
+                    'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                    enableCommuteFilter
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                      : 'border-[rgba(var(--accent-rgb),0.1)] bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10'
+                  )}
+                >
+                  {headerUiCopy.commuteMax}
+                </button>
+                <label className="app-organic-pill flex items-center gap-2 border border-[rgba(var(--accent-rgb),0.1)] bg-white/88 px-3.5 py-2 text-xs font-semibold text-[var(--text-muted)] dark:bg-white/10">
+                  <span>{headerUiCopy.atLeast}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={filterMinSalary || 0}
+                    onChange={(e) => setFilterMinSalary?.(Number(e.target.value || 0))}
+                    className="w-24 bg-transparent text-xs font-semibold text-[var(--text-strong)] outline-none"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Mobile Search/Nav */}
+        {mobileMenuOpen && (
+          <div className="app-frost-panel mt-2 overflow-hidden rounded-[28px] lg:hidden">
+            <div className="grid gap-2 p-4">
+              {/* Unified Search for Mobile */}
+              <div className="relative mb-2">
+                <Search size={18} className="absolute left-4 top-3 text-[var(--text-faint)]" />
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={searchUiCopy.searchPlaceholder}
+                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm dark:bg-white/5"
+                />
+              </div>
               {navItems.map((item) => (
                 <button
                   key={item.key}
-                  type="button"
-                  onClick={() => {
-                    item.onClick();
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={() => { item.onClick(); setMobileMenuOpen(false); }}
                   className={cn(
-                    'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
-                    item.active ? activePill : 'bg-white/70 text-[var(--text)] border-[var(--border-subtle)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700'
+                    "app-organic-surface border px-4 py-3 text-left text-sm font-bold transition",
+                    item.active ? "bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/20" : "bg-white/50 text-[var(--text)] border-transparent"
                   )}
                 >
                   {item.label}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  navigateToShellHome();
-                  onOpenInsights?.();
-                  setMobileMenuOpen(false);
-                }}
-                className={cn(
-                  'rounded-[1rem] border px-4 py-3 text-left text-sm font-semibold transition',
-                  isBlogOpen ? activePill : 'bg-white/70 text-[var(--text)] border-[var(--border-subtle)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700'
-                )}
-              >
-                {insightsLabel}
-              </button>
-              {canShowBusinessMenu ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleBusinessClick();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
-                >
-                  {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
+              <div className="mt-2 flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+                <button onClick={toggleTheme} className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                  {theme === 'dark' ? headerUiCopy.lightMode : headerUiCopy.darkMode}
                 </button>
-              ) : null}
-            </div>
-
-            <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLegalMenuOpen((prev) => !prev);
-                    setLanguageMenuOpen(false);
-                  }}
-                  className="w-full rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
-                >
-                  {t('header.more')}
-                </button>
-                {legalMenuOpen ? (
-                  <div className="mt-2 rounded-[1rem] border border-[var(--border-subtle)] bg-white/85 p-2 dark:border-slate-700 dark:bg-slate-900/95">
-                    <a
-                      href="/podminky-uziti"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-xl px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {t('footer.terms')}
-                    </a>
-                    <a
-                      href="/ochrana-osobnich-udaju"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-xl px-3 py-2 text-sm text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {t('footer.privacy')}
-                    </a>
-                  </div>
-                ) : null}
+                <div className="flex gap-2">
+                  {languages.map(l => (
+                    <button key={l.code} onClick={() => changeLanguage(l.code)} className={cn("app-organic-pill text-xs font-bold p-1 px-2", currentLanguageCode === l.code ? "bg-[var(--accent)] text-white" : "bg-white/50")}>
+                      {l.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <select
-                value={i18n.language}
-                onChange={(event) => changeLanguage(event.target.value)}
-                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-sm text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
-              >
-                {theme === 'dark' ? (isCsLike ? 'Světlý režim' : 'Light mode') : (isCsLike ? 'Tmavý režim' : 'Dark mode')}
-              </button>
-              {userProfile.isLoggedIn ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCompanyLanding(false);
-                      setIsOnboardingCompany(false);
-                      setViewState(ViewState.PROFILE);
-                      setSelectedJobId(null);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="rounded-[1rem] border border-[var(--border-subtle)] bg-white/70 px-4 py-3 text-left text-sm font-semibold text-[var(--text)] dark:bg-slate-900/85 dark:text-slate-100 dark:border-slate-700"
-                  >
-                    {t('nav.profile')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleAuthAction();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm font-semibold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200"
-                  >
-                    {t('header.logout')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleAuthAction('login');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="app-button-secondary justify-start"
-                  >
-                    {t('auth.login_button')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleAuthAction('register');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="app-button-primary justify-start"
-                  >
-                    {t('auth.register_button')}
-                  </button>
-                </>
-              )}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </header>
   );

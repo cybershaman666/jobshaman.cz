@@ -331,7 +331,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
             {step === 'success' && (
               <div className="py-8 flex flex-col items-center animate-in zoom-in-95">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
                   <CheckCircle size={40} />
                 </div>
                 {needsEmailConfirmation && (

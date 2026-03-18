@@ -1082,7 +1082,24 @@
     "language": "Sprache",
     "more": "Mehr",
     "switch_to_candidate": "Zu Bewerber wechseln",
-    "open_profile": "Profil öffnen"
+    "open_profile": "Profil öffnen",
+    "shell": {
+      "overview": "Was gerade läuft",
+      "browse_feed": "Feed durchsuchen",
+      "quick_gigs": "Mini-Jobs",
+      "search_label": "Suche und Filter",
+      "search_placeholder": "Rollen, Firmen, Arbeitsmodelle oder wichtige Signale suchen",
+      "location_placeholder": "Stadt, Region, Remote",
+      "search_submit": "Suchen",
+      "companies": "Für Firmen",
+      "remote_only": "Nur remote",
+      "commute_max": "Pendeln max. {{km}} km",
+      "at_least": "Mindestens",
+      "ai_line": "Die KI liest Kontext, präzisiert die Suche und sortiert den Feed realistischer.",
+      "ai_badge": "AI discovery",
+      "light_mode": "Heller Modus",
+      "dark_mode": "Dunkler Modus"
+    }
   },
   "seo": {
     "base_title": "JobShaman - Career OS für smarte Arbeit",
@@ -4402,5 +4419,36 @@
     "completed_primary": "Unternehmenskonto erstellen",
     "completed_secondary": "Zurück zur Unternehmens-Landingpage",
     "completed_restart": "Demo neu starten"
+  },
+  "workspace": {
+    "feed": {
+      "post_lead": "Eine Challenge veröffentlichen? Das geht nur aus dem",
+      "profile": "Profil",
+      "post_tail": "oder dem Firmen-Dashboard.",
+      "swipe": "Swipe",
+      "feed": "Feed",
+      "swipe_title": "So geht mobiles Durchgehen am schnellsten",
+      "swipe_body": "Auf dem Handy am besten direkt per Swipe starten. Tippen öffnet das Detail, Wischen sortiert Rollen sofort vor.",
+      "ai_title": "AI liest den Kontext im Hintergrund",
+      "ai_body": "Das ist nicht nur Volltextsuche. Die KI liest Profil, Pendelrealität und Zielrichtung und erklärt, warum Rollen nach oben kommen.",
+      "ai_bullets": [
+        "liest Zielrolle und Seniorität",
+        "zeigt warum du das siehst",
+        "drückt irrelevante Richtungen weg"
+      ],
+      "auth_body": "Nach der Registrierung bleiben gemerkte und abgelehnte Rollen erhalten und die Empfehlungen werden klarer.",
+      "address_title": "Adresse ergänzen für sinnvolle Swipes",
+      "address_body": "Ohne Adresse können Nähe und Pendeln kaum sinnvoll bewertet werden. Mit Adresse wird die Auswahl aus deiner Umgebung deutlich besser.",
+      "auth_cta": "Registrieren",
+      "address_cta": "Adresse ergänzen",
+      "later": "Später"
+    },
+    "toolbar": {
+      "ai_badge": "AI steuert die Feed-Reihenfolge",
+      "taxonomy": "Nahe Welten",
+      "hierarchy": "Großes Bild",
+      "helper": "Kontext, Absicht und Fit-Signale steuern die Reihenfolge.",
+      "filters": "Filter"
+    }
   }
 }

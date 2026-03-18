@@ -52,6 +52,7 @@ export interface JobDraftUpsertInput {
     location_public?: string | null;
     application_instructions?: string;
     contact_email?: string | null;
+    company_goal?: string;
     quality_report?: JobValidationReport | null;
     ai_suggestions?: Record<string, unknown> | null;
     editor_state?: Record<string, unknown> | null;
@@ -72,6 +73,7 @@ const extractHandshakeState = (row: any) => {
         first_reply_prompt: row?.first_reply_prompt ?? handshake?.first_reply_prompt ?? '',
         company_truth_hard: row?.company_truth_hard ?? handshake?.company_truth_hard ?? '',
         company_truth_fail: row?.company_truth_fail ?? handshake?.company_truth_fail ?? '',
+        company_goal: row?.company_goal ?? handshake?.company_goal ?? '',
     };
 };
 

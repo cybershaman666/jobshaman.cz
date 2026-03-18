@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 def _norm(s: str) -> str:
@@ -45,7 +45,7 @@ def _flatten_structured_entries(values) -> List[str]:
     return out
 
 
-def extract_candidate_features(candidate: Dict) -> Dict:
+def extract_candidate_features(candidate: Dict, intelligence: Optional[Dict] = None) -> Dict:
     skills = _clean_list(candidate.get("skills"))
     inferred = _clean_list(candidate.get("inferred_skills") or candidate.get("inferredSkills"))
     strengths = _clean_list(candidate.get("strengths"))
@@ -55,6 +55,14 @@ def extract_candidate_features(candidate: Dict) -> Dict:
     preferences = _clean_list(candidate.get("work_preferences") or candidate.get("workPreferences"))
     work_history_entries = _flatten_structured_entries(candidate.get("work_history") or candidate.get("workHistory"))
     education_entries = _flatten_structured_entries(candidate.get("education"))
+    intent_roles = _clean_list((intelligence or {}).get("target_roles"))
+    adjacent_roles = _clean_list((intelligence or {}).get("adjacent_roles"))
+    intent_keywords = _clean_list((intelligence or {}).get("priority_keywords"))
+    avoid_keywords = _clean_list((intelligence or {}).get("avoid_keywords"))
+    preferred_work_modes = _clean_list((intelligence or {}).get("preferred_work_modes"))
+    primary_domain = _norm((intelligence or {}).get("primary_domain"))
+    secondary_domains = _clean_list((intelligence or {}).get("secondary_domains"))
+    intent_seniority = _norm((intelligence or {}).get("seniority"))
 
     text_chunks = [
         candidate.get("job_title") or candidate.get("jobTitle") or "",
@@ -64,6 +72,8 @@ def extract_candidate_features(candidate: Dict) -> Dict:
         " ".join(work_history_entries),
         " ".join(education_entries),
         " ".join(skills + inferred + strengths + leadership + values + motivations + preferences),
+        " ".join(intent_roles + adjacent_roles + intent_keywords + preferred_work_modes),
+        " ".join([primary_domain, *secondary_domains]),
     ]
 
     return {
@@ -76,6 +86,15 @@ def extract_candidate_features(candidate: Dict) -> Dict:
         "preferences": preferences,
         "title": _norm(candidate.get("job_title") or candidate.get("jobTitle") or ""),
         "address": _norm(candidate.get("address") or ""),
+        "intent_roles": intent_roles,
+        "adjacent_roles": adjacent_roles,
+        "intent_keywords": intent_keywords,
+        "avoid_keywords": avoid_keywords,
+        "preferred_work_modes": preferred_work_modes,
+        "primary_domain": primary_domain,
+        "secondary_domains": secondary_domains,
+        "intent_seniority": intent_seniority,
+        "intelligence_source": _norm((intelligence or {}).get("source")),
         "text": "\n".join([chunk for chunk in text_chunks if chunk]).strip(),
     }
 
@@ -94,8 +113,10 @@ def extract_job_features(job: Dict) -> Dict:
         "country": _norm(job.get("country_code") or ""),
         "role": _norm(job.get("role") or title),
         "industry": _norm(job.get("industry") or ""),
+        "type": _norm(job.get("type") or ""),
+        "work_model": _norm(job.get("work_model") or ""),
         "salary_from": job.get("salary_from"),
         "salary_to": job.get("salary_to"),
         "currency": _norm(job.get("currency") or "czk"),
-        "text": "\n".join([title, description, " ".join(tags), " ".join(benefits)]).strip(),
+        "text": "\n".join([title, description, location, _norm(job.get("type") or ""), _norm(job.get("work_model") or ""), " ".join(tags), " ".join(benefits)]).strip(),
     }

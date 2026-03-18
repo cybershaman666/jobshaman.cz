@@ -51,16 +51,16 @@ const itemVariants = {
 
 const DIM_ICONS: Record<string, React.ReactNode> = {
   d1_cognitive: <Brain className="w-5 h-5 text-amber-500" />,
-  d2_social: <Users className="w-5 h-5 text-emerald-500" />,
+  d2_social: <Users className="w-5 h-5 text-amber-500" />,
   d3_motivational: <Flame className="w-5 h-5 text-orange-500" />,
   d4_energy: <Zap className="w-5 h-5 text-amber-500" />,
   d5_values: <Heart className="w-5 h-5 text-rose-500" />,
   d6_ai_readiness: <Cpu className="w-5 h-5 text-amber-600" />,
   d7_cognitive_reflection: <Target className="w-5 h-5 text-amber-600" />,
-  d8_digital_eq: <MessageCircle className="w-5 h-5 text-emerald-500" />,
+  d8_digital_eq: <MessageCircle className="w-5 h-5 text-amber-500" />,
   d9_systems_thinking: <Compass className="w-5 h-5 text-amber-500" />,
   d10_ambiguity_interpretation: <AlertTriangle className="w-5 h-5 text-amber-500" />,
-  d11_problem_decomposition: <Activity className="w-5 h-5 text-emerald-500" />,
+  d11_problem_decomposition: <Activity className="w-5 h-5 text-amber-500" />,
   d12_moral_compass: <CheckCircle2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
 };
 
@@ -1096,7 +1096,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
       </div>
       {!showAdvancedReport && (
         <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-amber-50 to-emerald-50 dark:from-slate-800 dark:to-slate-900">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-amber-50 to-amber-50 dark:from-slate-800 dark:to-slate-900">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {({ cs: 'Základní výstup (free)', en: 'Basic results (free)', de: 'Basis-Ergebnis (free)', at: 'Basis-Ergebnis (free)', pl: 'Wynik podstawowy (free)', sk: 'Základný výsledok (free)' } as Record<string, string>)[locale] || 'Basic results (free)'}
             </h2>
@@ -1130,9 +1130,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           {/* 🔮 Archetype Hero Section */}
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/20 shadow-2xl bg-gradient-to-br from-white via-amber-50/70 to-emerald-50/60 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-xl group"
+            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/20 shadow-2xl bg-gradient-to-br from-white via-amber-50/70 to-amber-50/60 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-xl group"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-emerald-500/10 opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-amber-500/10 opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
             <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
               <div className="shrink-0 relative">
                 <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full" />
@@ -1166,7 +1166,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           {/* 🚀 AI Interpretation Cards */}
           <motion.div variants={itemVariants} className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/40 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-lg shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] print:mt-0 print:border-none print:shadow-none">
-            <div className="bg-gradient-to-r from-amber-50 to-emerald-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
+            <div className="bg-gradient-to-r from-amber-50 to-amber-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-600 text-white rounded-lg shadow-sm print:bg-black">
                   <Rocket className="w-5 h-5" />
@@ -1228,13 +1228,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold mb-3 print:text-black">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-3 print:text-black">
                   <MapIcon className="w-5 h-5" /> {labels.idealEnvironment}
                 </div>
                 <ul className="space-y-3">
                   {aiReportResolved.ideal_environment.map((item, idx) => (
-                    <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-emerald-50/50 dark:bg-emerald-500/5 p-2.5 rounded-lg border border-emerald-100/50 dark:border-emerald-500/10 print:bg-none print:border-none print:p-0">
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 print:bg-black"></span> {item}
+                    <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-amber-50/50 dark:bg-amber-500/5 p-2.5 rounded-lg border border-amber-100/50 dark:border-amber-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 print:bg-black"></span> {item}
                     </li>
                   ))}
                 </ul>
@@ -1261,7 +1261,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed print:text-black">{aiReportResolved.ai_readiness}</p>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold mb-2 print:text-black">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-2 print:text-black">
                   <MapPin className="w-5 h-5" /> {labels.nextSteps}
                 </div>
                 <ul className="space-y-1.5">
@@ -1293,7 +1293,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                 <div className="space-y-3">
                   {(bigFive ? [
                     { label: labels.bigFiveLabels[0], value: bigFive.openness, color: 'bg-amber-500' },
-                    { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-emerald-500' },
+                    { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-amber-500' },
                     { label: labels.bigFiveLabels[2], value: bigFive.extraversion, color: 'bg-orange-500' },
                     { label: labels.bigFiveLabels[3], value: bigFive.agreeableness, color: 'bg-lime-500' },
                     { label: labels.bigFiveLabels[4], value: bigFive.neuroticism, color: 'bg-rose-500' },
@@ -1344,7 +1344,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                     key={`${role.title}-${idx}`}
                     className="jcfpm-avoid-break relative rounded-3xl border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/35 dark:from-slate-950/60 dark:via-slate-900/75 dark:to-slate-950/70 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.28)] transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-transparent to-emerald-500/8 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-transparent to-amber-500/8 opacity-70 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 h-full flex flex-col">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight print:text-black">{role.title}</h4>
@@ -1359,7 +1359,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
                       <div className="flex flex-wrap gap-2 mb-4">
                         {role.ai_impact && <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-amber-100 dark:border-amber-900/30 print:border-slate-300 print:text-black">AI: {role.ai_impact}</span>}
-                        {role.remote_friendly && <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-100 dark:border-emerald-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
+                        {role.remote_friendly && <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-amber-100 dark:border-amber-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
                       </div>
 
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-auto pt-3 border-t border-slate-200/80 dark:border-white/5 print:border-slate-200 print:text-black">
@@ -1401,13 +1401,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                 <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 print:text-black print:border-slate-300">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 print:bg-black"></span> {labels.baseProfile}
                 </span>
-                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/30 print:text-black print:border-slate-300">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 print:bg-black"></span> {labels.practicalSkills}
+                <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 print:text-black print:border-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 print:bg-black"></span> {labels.practicalSkills}
                 </span>
               </div>
             </div>
 
-            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-emerald-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
+            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
                 <ShieldCheck className="w-5 h-5 text-amber-500 print:text-black" />
                 {labels.alignmentTitle}
@@ -1427,7 +1427,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                         initial={{ left: '50%' }}
                         animate={{ left: `${50 + bar.offsetPct * 0.45}%` }}
                         transition={{ duration: 1, delay: 0.2 }}
-                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-emerald-500' :
+                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-amber-500' :
                           bar.status === 'overestimation' ? 'bg-rose-500' : 'bg-amber-500'
                           } print:border-black`}
                       />

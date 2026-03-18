@@ -14,7 +14,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`company-surface-elevated rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)] ${className}`.trim()}>
+    <div className={`company-surface-soft app-organic-panel-soft rounded-[var(--radius-lg)] border p-4 shadow-[var(--shadow-soft)] ${className}`.trim()}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
         {label}
       </div>

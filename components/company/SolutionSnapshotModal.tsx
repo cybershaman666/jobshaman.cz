@@ -188,18 +188,18 @@ const SolutionSnapshotModal: React.FC<SolutionSnapshotModalProps> = ({
       <div className="app-modal-panel max-w-3xl overflow-hidden">
         <div className="app-modal-surface space-y-5 p-5 sm:p-6">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+            <div className="inline-flex rounded-full border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
               {t('company.solution_snapshot.badge', { defaultValue: copy.badge })}
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-white">
+              <h3 className="text-xl font-bold tracking-tight text-[var(--text-strong)]">
                 {t('company.solution_snapshot.title', { defaultValue: copy.title })}
               </h3>
-              <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <p className="text-sm leading-6 text-[var(--text-muted)]">
                 {t('company.solution_snapshot.subtitle', { defaultValue: copy.subtitle })}
               </p>
               {(candidateName || jobTitle) ? (
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-[var(--text-faint)] font-medium">
                   {t('company.solution_snapshot.context', {
                     defaultValue: copy.context,
                     candidate: candidateName || t('company.applications.labels.candidate', { defaultValue: copy.candidate }),
@@ -212,44 +212,44 @@ const SolutionSnapshotModal: React.FC<SolutionSnapshotModalProps> = ({
 
           <div className="grid grid-cols-1 gap-4">
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
                 {t('company.solution_snapshot.problem', { defaultValue: copy.problem })}
               </span>
               <textarea
                 value={problem}
                 onChange={(e) => setProblem(e.target.value)}
                 rows={4}
-                className="w-full rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="input app-modal-input w-full"
                 placeholder={t('company.solution_snapshot.problem_placeholder', { defaultValue: copy.problemPlaceholder })}
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
                 {t('company.solution_snapshot.solution', { defaultValue: copy.solution })}
               </span>
               <textarea
                 value={solution}
                 onChange={(e) => setSolution(e.target.value)}
                 rows={4}
-                className="w-full rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="input app-modal-input w-full"
                 placeholder={t('company.solution_snapshot.solution_placeholder', { defaultValue: copy.solutionPlaceholder })}
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
                 {t('company.solution_snapshot.result', { defaultValue: copy.result })}
               </span>
               <textarea
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
                 rows={4}
-                className="w-full rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="input app-modal-input w-full"
                 placeholder={t('company.solution_snapshot.result_placeholder', { defaultValue: copy.resultPlaceholder })}
               />
             </label>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
                   {t('company.solution_snapshot.problem_tags', { defaultValue: copy.problemTags })}
                 </span>
                 <input
@@ -260,7 +260,7 @@ const SolutionSnapshotModal: React.FC<SolutionSnapshotModalProps> = ({
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
                   {t('company.solution_snapshot.solution_tags', { defaultValue: copy.solutionTags })}
                 </span>
                 <input

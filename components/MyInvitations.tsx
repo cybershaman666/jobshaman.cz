@@ -141,7 +141,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`rounded-full px-3 py-1 text-sm font-bold ${inv.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                <div className={`rounded-full px-3 py-1 text-sm font-bold ${inv.status === 'completed' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                   inv.status === 'expired' ? 'bg-slate-100 text-slate-500' :
                     'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)]'
                   }`}>

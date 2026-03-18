@@ -154,7 +154,7 @@ const CompanyWorkspaceHero: React.FC<CompanyWorkspaceHeroProps> = ({
                     label: t('company.dashboard.tabs.assessments', { defaultValue: copy.assessments }),
                     value: savedAssessmentsCount,
                     icon: BrainCircuit,
-                    tone: 'text-emerald-700 dark:text-emerald-300'
+                    tone: 'text-amber-700 dark:text-amber-300'
                   }
                 ].map((item) => (
                   <div key={item.key} className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">

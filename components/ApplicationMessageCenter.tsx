@@ -472,7 +472,7 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
               key={key}
               className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
                 activeOutcomeKey === key
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                   : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
               }`}
             >

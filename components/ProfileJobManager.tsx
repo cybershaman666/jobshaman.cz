@@ -316,7 +316,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       case 'closed_rejected':
         return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300';
       case 'hired':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'withdrawn':
       case 'closed_withdrawn':
       case 'closed':
@@ -368,7 +368,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       case 'hired':
         return {
           label: t('profile.job_hub.close_reason_hired', { defaultValue: 'Firma vás posunula do stavu přijetí.' }),
-          className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+          className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
         };
       case 'closed':
       default:

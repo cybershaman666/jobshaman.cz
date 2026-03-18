@@ -85,7 +85,7 @@ const CompanySubscriptionHero: React.FC<CompanySubscriptionHeroProps> = ({
             <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${isFreeLikeTier || !subscription?.status
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
               : subscription?.status === 'active'
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                 : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
             }`}>
               {isFreeLikeTier || !subscription?.status ? t('company.subscription.active') : subscription?.status === 'active' ? t('company.subscription.active') : t('company.subscription.inactive')}

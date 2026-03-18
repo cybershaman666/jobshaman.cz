@@ -177,7 +177,7 @@ const JcfpmEntryCard: React.FC<Props> = ({
                 {copy.statDimensions}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
                 {copy.statAiReadiness}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">

@@ -7,11 +7,22 @@ interface JHIChartProps {
   jhi: JHI;
   theme?: 'light' | 'dark';
   highlightGrowth?: boolean; // Highlight "Růst" axis when courses are available
+  compact?: boolean;
 }
 
-const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrowth = false }) => {
+const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrowth = false, compact = false }) => {
   const { t } = useTranslation();
   const isDark = theme === 'dark';
+
+  const colors = {
+    grid: isDark ? '#334155' : '#cbd5e1',
+    text: isDark ? '#cbd5e1' : '#334155',
+    textHalo: isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.9)',
+    stroke: isDark ? '#22d3ee' : '#0f766e',
+    fill: isDark ? '#06b6d4' : '#14b8a6',
+    tooltipBg: '#1e293b',
+    tooltipText: '#f8fafc'
+  };
 
   const data = [
     { subject: t('jhi.label_financial'), A: jhi.financial, fullMark: 100 },
@@ -31,8 +42,11 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
         x={x}
         y={y}
         fill={isHighlighted ? '#22d3ee' : colors.text}
-        fontSize={11}
-        fontWeight={isHighlighted ? 700 : 600}
+        stroke={colors.textHalo}
+        strokeWidth={compact ? 3 : 2}
+        paintOrder="stroke"
+        fontSize={compact ? 12 : 11}
+        fontWeight={isHighlighted || compact ? 700 : 600}
         textAnchor="middle"
         dominantBaseline="middle"
       >
@@ -41,24 +55,14 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
     );
   };
 
-  // Theme configurations
-  const colors = {
-    grid: isDark ? '#334155' : '#e2e8f0', // Slate 700 vs Slate 200
-    text: isDark ? '#94a3b8' : '#64748b', // Slate 400 vs Slate 500
-    stroke: isDark ? '#22d3ee' : '#0f766e', // Cyan 400 vs Teal 700
-    fill: isDark ? '#06b6d4' : '#14b8a6',   // Cyan 500 vs Teal 500
-    tooltipBg: '#1e293b',
-    tooltipText: '#f8fafc'
-  };
-
   return (
-    <div className="w-full h-64 relative">
+    <div className={`w-full relative ${compact ? 'h-48' : 'h-64'}`}>
       <div className="absolute top-0 right-0 z-10">
         <JHIMethodologyTooltip />
       </div>
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
-          <PolarGrid stroke={colors.grid} />
+        <RadarChart cx="50%" cy="50%" outerRadius={compact ? '70%' : '70%'} data={data}>
+          <PolarGrid stroke={colors.grid} strokeOpacity={compact ? 0.9 : 0.7} />
           <PolarAngleAxis
             dataKey="subject"
             tick={<CustomTick />}
@@ -68,9 +72,9 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
             name={t('jhi.series_score')}
             dataKey="A"
             stroke={colors.stroke}
-            strokeWidth={2}
+            strokeWidth={compact ? 2.5 : 2}
             fill={colors.fill}
-            fillOpacity={isDark ? 0.3 : 0.4}
+            fillOpacity={isDark ? (compact ? 0.4 : 0.3) : (compact ? 0.5 : 0.4)}
           />
           <Tooltip
             contentStyle={{

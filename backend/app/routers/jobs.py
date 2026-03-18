@@ -19,15 +19,25 @@ from ..services.asset_service import load_assets_metadata, serialize_asset_metad
 from ..services.subscription_access import fetch_latest_subscription_by, is_active_subscription, user_has_allowed_subscription
 from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs, hybrid_search_jobs_v2
 from ..matching_engine.feature_store import extract_candidate_features, extract_job_features
-from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings
+from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings, fetch_recent_jobs
 from ..matching_engine.scoring import score_from_embeddings, score_job
 from ..services.email import send_application_notification_email, send_review_email, send_recruiter_legality_email
 from ..services.dialogue_composer import build_dialogue_enrichment
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
-from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
+from ..ai_orchestration.client import (
+    AIClientError,
+    call_primary_with_fallback,
+    _extract_json,
+    get_default_fallback_model,
+    get_default_primary_model,
+)
+from ..services.search_intelligence import enrich_search_query
+from ..services.jobspy_jobs import import_jobspy_jobs, search_jobspy_jobs
+from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
+from ..core.config import SCRAPER_TOKEN
 
 
 def _import_first(module_names: list[str]) -> Any:
@@ -83,6 +93,7 @@ _RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
 }
 _INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 _EXTERNAL_LIVE_SEARCH_CACHE_TABLE = "external_live_search_cache"
+_EXTERNAL_FEED_MAX_AGE_DAYS = 21
 _EXTERNAL_LIVE_SEARCH_CACHE_TTL_SECONDS = max(60, int(os.getenv("LIVE_SEARCH_CACHE_TTL_SECONDS") or "900"))
 _EXTERNAL_PROVIDER_FAILURE_THRESHOLD = max(2, int(os.getenv("EXTERNAL_PROVIDER_FAILURE_THRESHOLD") or "2"))
 _EXTERNAL_PROVIDER_COOLDOWN_SECONDS = max(60, int(os.getenv("EXTERNAL_PROVIDER_COOLDOWN_SECONDS") or "300"))
@@ -189,6 +200,29 @@ def _normalize_external_job_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().lower())
 
 
+def _parse_external_job_datetime(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        normalized = raw.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _is_external_job_fresh_enough(job: dict[str, Any]) -> bool:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=_EXTERNAL_FEED_MAX_AGE_DAYS)
+    for field in ("scraped_at", "posted_at", "postedAt", "fetched_at", "updated_at"):
+        parsed = _parse_external_job_datetime(job.get(field))
+        if parsed is not None:
+            return parsed >= cutoff
+    return True
+
+
 def _external_job_dedup_keys(job: dict[str, Any]) -> list[str]:
     keys: set[str] = set()
     job_id = _normalize_external_job_text(job.get("id"))
@@ -254,6 +288,8 @@ def _read_cached_external_jobs(
         for item in payload:
             if not isinstance(item, dict):
                 continue
+            if not _is_external_job_fresh_enough(item):
+                continue
 
             job_country = str(item.get("country_code") or "").strip().upper()
             if allowed_countries and job_country not in allowed_countries:
@@ -299,6 +335,31 @@ def _read_cached_external_jobs(
         "total_count": total_count,
         "has_more": end < total_count,
     }
+
+
+def _merge_external_job_lists(
+    *job_lists: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    merged: list[dict[str, Any]] = []
+    for job_list in job_lists:
+        for item in job_list:
+            if not isinstance(item, dict):
+                continue
+            if not _is_external_job_fresh_enough(item):
+                continue
+            dedup_keys = _external_job_dedup_keys(item)
+            if dedup_keys and any(key in seen for key in dedup_keys):
+                continue
+            for key in dedup_keys:
+                seen.add(key)
+            merged.append(dict(item))
+
+    merged.sort(
+        key=lambda job: str(job.get("scraped_at") or job.get("updated_at") or job.get("fetched_at") or ""),
+        reverse=True,
+    )
+    return merged
 
 
 def _write_external_cache_snapshot(
@@ -1432,6 +1493,14 @@ def _normalize_human_context_editor_state(editor_state: Any) -> dict[str, Any]:
         "publisher": publisher if isinstance(publisher, dict) else None,
         "responders": responders if isinstance(responders, list) else [],
     }
+
+
+def _first_non_empty_text(*values: Any, limit: int = 220) -> str:
+    for value in values:
+        text = _trimmed_text(value, limit)
+        if text:
+            return text
+    return ""
 
 
 def _normalize_job_public_person_input(
@@ -2879,8 +2948,8 @@ def _fallback_application_draft(
 
 
 def _generate_application_draft_text(prompt: str) -> tuple[str, dict[str, Any]]:
-    default_primary = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    default_fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+    default_primary = get_default_primary_model()
+    default_fallback = get_default_fallback_model()
     cfg = get_active_model_config("ai_orchestration", "application_draft")
     primary_model = cfg.get("primary_model") or default_primary
     fallback_model = cfg.get("fallback_model") or default_fallback
@@ -3351,6 +3420,7 @@ def _draft_to_validation_report(draft: dict) -> dict:
     first_reply_prompt = str(draft.get("first_reply_prompt") or handshake.get("first_reply_prompt") or "").strip()
     company_truth_hard = str(draft.get("company_truth_hard") or handshake.get("company_truth_hard") or "").strip()
     company_truth_fail = str(draft.get("company_truth_fail") or handshake.get("company_truth_fail") or "").strip()
+    company_goal = str(draft.get("company_goal") or handshake.get("company_goal") or "").strip()
 
     if not title:
         blocking.append("Missing title.")
@@ -3368,6 +3438,8 @@ def _draft_to_validation_report(draft: dict) -> dict:
         blocking.append("Missing the company truth: what is actually hard about this role.")
     if not is_micro_job and not company_truth_fail:
         blocking.append("Missing the company truth: who typically struggles in this role.")
+    if not is_micro_job and not company_goal:
+        blocking.append("Missing the company goal: what outcome this role should drive.")
     if is_micro_job and not micro_job.get("kind"):
         blocking.append("Missing micro job type.")
     if is_micro_job and not micro_job.get("time_estimate"):
@@ -3398,6 +3470,8 @@ def _draft_to_validation_report(draft: dict) -> dict:
         suggestions.append("Make the 'what is hard' truth prompt more concrete.")
     if not is_micro_job and company_truth_fail and len(company_truth_fail) < 60:
         suggestions.append("Clarify what type of person usually struggles here.")
+    if not is_micro_job and company_goal and len(company_goal) < 24:
+        suggestions.append("Make the goal more concrete (what success should look like).")
 
     transparency_score = max(0, min(100, 100 - len(blocking) * 22 - len(warnings) * 8))
     clarity_score = max(0, min(100, 45 + min(len(role_summary), 400) // 12 + min(len(responsibilities), 600) // 18))
@@ -3416,10 +3490,12 @@ def _compose_job_description_from_draft(draft: dict) -> str:
     is_micro_job = micro_job.get("challenge_format") == "micro_job"
     section_definitions = [
         ("Role Summary", "role_summary"),
+        ("Goal", "company_goal"),
         ("Responsibilities", "responsibilities"),
         ("How To Apply", "application_instructions"),
     ] if is_micro_job else [
         ("Role Summary", "role_summary"),
+        ("Goal", "company_goal"),
         ("Team Intro", "team_intro"),
         ("Responsibilities", "responsibilities"),
         ("Requirements", "requirements"),
@@ -5796,13 +5872,34 @@ async def create_company_job_draft(
     company_id = require_company_access(user, user.get("company_id"))
     user_id = user.get("id") or user.get("auth_id")
     body = payload.dict(exclude_none=True)
+    company_goal = body.get("company_goal")
     insert_payload = {
         "company_id": company_id,
         "created_by": user_id,
         "updated_by": user_id,
         **body,
     }
-    resp = supabase.table("job_drafts").insert(insert_payload).execute()
+    try:
+        resp = supabase.table("job_drafts").insert(insert_payload).execute()
+    except Exception as exc:
+        if _is_missing_column_error(exc, "company_goal"):
+            fallback_body = dict(body)
+            fallback_body.pop("company_goal", None)
+            editor_state = _safe_dict(fallback_body.get("editor_state"))
+            handshake = _safe_dict(editor_state.get("handshake"))
+            if company_goal is not None:
+                handshake["company_goal"] = str(company_goal)[:4000]
+            editor_state["handshake"] = handshake
+            fallback_body["editor_state"] = editor_state
+            fallback_insert = {
+                "company_id": company_id,
+                "created_by": user_id,
+                "updated_by": user_id,
+                **fallback_body,
+            }
+            resp = supabase.table("job_drafts").insert(fallback_insert).execute()
+        else:
+            raise
     if not resp.data:
         raise HTTPException(status_code=500, detail="Failed to create job draft")
     draft = resp.data[0]
@@ -5869,6 +5966,7 @@ async def update_company_job_draft(
         raise HTTPException(status_code=404, detail="Draft not found")
     require_company_access(user, str(current.get("company_id") or ""))
     body = payload.dict(exclude_none=True)
+    company_goal = body.get("company_goal")
     next_draft = {**current, **body}
     next_quality = _draft_to_validation_report(next_draft)
     update_payload = {
@@ -5877,7 +5975,21 @@ async def update_company_job_draft(
         "updated_at": now_iso(),
         "quality_report": next_quality,
     }
-    resp = supabase.table("job_drafts").update(update_payload).eq("id", draft_id).execute()
+    try:
+        resp = supabase.table("job_drafts").update(update_payload).eq("id", draft_id).execute()
+    except Exception as exc:
+        if _is_missing_column_error(exc, "company_goal"):
+            fallback_payload = dict(update_payload)
+            fallback_payload.pop("company_goal", None)
+            editor_state = _safe_dict(fallback_payload.get("editor_state") or current.get("editor_state"))
+            handshake = _safe_dict(editor_state.get("handshake"))
+            if company_goal is not None:
+                handshake["company_goal"] = str(company_goal)[:4000]
+            editor_state["handshake"] = handshake
+            fallback_payload["editor_state"] = editor_state
+            resp = supabase.table("job_drafts").update(fallback_payload).eq("id", draft_id).execute()
+        else:
+            raise
     draft = (resp.data or [None])[0] or {**next_draft, **update_payload}
     draft["quality_report"] = next_quality
     return {"draft": draft}
@@ -5938,6 +6050,8 @@ async def publish_company_job_draft(
         pass
     micro_job = _get_draft_micro_job_state(draft)
     is_micro_job = micro_job.get("challenge_format") == "micro_job"
+    handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
+    company_goal = str(draft.get("company_goal") or handshake.get("company_goal") or "").strip() or None
 
     job_payload = {
         "title": draft.get("title"),
@@ -5952,6 +6066,7 @@ async def publish_company_job_draft(
         "contact_email": draft.get("contact_email"),
         "workplace_address": draft.get("workplace_address"),
         "company_id": company_id,
+        "company_goal": company_goal,
         "contract_type": None if is_micro_job else draft.get("contract_type"),
         "work_type": draft.get("work_model"),
         "source": "jobshaman.cz",
@@ -5965,10 +6080,26 @@ async def publish_company_job_draft(
     job_id = existing_job_id
     if job_id:
         _require_job_access(user, str(job_id))
-        job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
+        try:
+            job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "company_goal"):
+                fallback_payload = dict(job_payload)
+                fallback_payload.pop("company_goal", None)
+                job_resp = supabase.table("jobs").update(fallback_payload).eq("id", job_id).execute()
+            else:
+                raise
         job_row = (job_resp.data or [None])[0] or {"id": job_id}
     else:
-        job_resp = supabase.table("jobs").insert(job_payload).execute()
+        try:
+            job_resp = supabase.table("jobs").insert(job_payload).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "company_goal"):
+                fallback_payload = dict(job_payload)
+                fallback_payload.pop("company_goal", None)
+                job_resp = supabase.table("jobs").insert(fallback_payload).execute()
+            else:
+                raise
         job_row = (job_resp.data or [None])[0]
         if not job_row:
             raise HTTPException(status_code=500, detail="Failed to publish draft")
@@ -5993,6 +6124,7 @@ async def publish_company_job_draft(
     snapshot = {
         "title": job_payload["title"],
         "description": job_payload["description"],
+        "company_goal": company_goal,
         "location": job_payload["location"],
         "salary_from": job_payload["salary_from"],
         "salary_to": job_payload["salary_to"],
@@ -6251,6 +6383,97 @@ async def get_job_human_context(
     }
 
 
+@router.get("/jobs/{job_id}/related")
+@limiter.limit("120/minute")
+async def get_related_job_challenges(
+    job_id: str,
+    request: Request,
+    limit: int = Query(4, ge=1, le=8),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    normalized_job_id = _normalize_job_id(job_id)
+    job_resp = (
+        supabase
+        .table("jobs")
+        .select("id,title,company,location,work_model,source,description,role_summary,company_id,status,scraped_at")
+        .eq("id", normalized_job_id)
+        .maybe_single()
+        .execute()
+    )
+    source_job = job_resp.data if job_resp else None
+    if not source_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    recent_jobs = fetch_recent_jobs(limit=300, days=120)
+    source_job_id = str(source_job.get("id") or normalized_job_id)
+    candidate_rows: list[dict[str, Any]] = []
+    seen_ids: set[str] = {source_job_id}
+
+    for row in recent_jobs:
+        candidate_id = str((row or {}).get("id") or "").strip()
+        if not candidate_id or candidate_id in seen_ids:
+            continue
+        seen_ids.add(candidate_id)
+        candidate_rows.append(row)
+
+    if not candidate_rows:
+        return {"items": []}
+
+    embeddings = ensure_job_embeddings([source_job, *candidate_rows], persist=False)
+    source_embedding = embeddings.get(source_job_id) or []
+    if not source_embedding:
+        return {"items": []}
+
+    source_work_model = str(source_job.get("work_model") or source_job.get("type") or "").strip().lower()
+    source_location = str(source_job.get("location") or "").strip().lower()
+    source_company_id = str(source_job.get("company_id") or "").strip()
+
+    scored_items: list[dict[str, Any]] = []
+    for row in candidate_rows:
+        candidate_id = str((row or {}).get("id") or "").strip()
+        candidate_embedding = embeddings.get(candidate_id) or []
+        if not candidate_embedding:
+            continue
+
+        similarity_score = float(score_from_embeddings(source_embedding, candidate_embedding))
+        work_model = str((row or {}).get("work_model") or (row or {}).get("type") or "").strip().lower()
+        location = str((row or {}).get("location") or "").strip().lower()
+        company_id = str((row or {}).get("company_id") or "").strip()
+
+        if source_work_model and work_model and source_work_model == work_model:
+            similarity_score += 0.06
+        if source_location and location and source_location == location:
+            similarity_score += 0.04
+        if source_company_id and company_id and source_company_id == company_id:
+            similarity_score += 0.03
+
+        preview = _first_non_empty_text(
+            (row or {}).get("role_summary"),
+            (row or {}).get("description"),
+            limit=220,
+        )
+        if not preview:
+            preview = _first_non_empty_text((row or {}).get("title"), limit=220)
+
+        scored_items.append(
+            {
+                "id": candidate_id,
+                "title": _first_non_empty_text((row or {}).get("title"), limit=160) or "Untitled role",
+                "company": _first_non_empty_text((row or {}).get("company"), limit=160) or "Unknown company",
+                "location": _first_non_empty_text((row or {}).get("location"), limit=120),
+                "work_model": _trimmed_text((row or {}).get("work_model"), 80) or None,
+                "source": _trimmed_text((row or {}).get("source"), 80) or None,
+                "preview": preview,
+                "similarity_score": round(similarity_score, 4),
+            }
+        )
+
+    scored_items.sort(key=lambda item: item.get("similarity_score") or 0.0, reverse=True)
+    return {"items": scored_items[:limit]}
+
+
 @router.patch("/company/roles/{job_id}/lifecycle")
 @router.patch("/company/jobs/{job_id}/lifecycle")
 @limiter.limit("30/minute")
@@ -6380,6 +6603,8 @@ async def jobs_hybrid_search(
     request: Request,
 ):
     user_id = _try_get_optional_user_id(request)
+    language = (request.headers.get("accept-language") or "cs").split(",")[0].strip() or "cs"
+    rewritten = enrich_search_query(payload.search_term or "", language=language, subject_id=user_id)
     dismissed_job_ids: set[str] = set()
     if user_id:
         _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
@@ -6387,7 +6612,7 @@ async def jobs_hybrid_search(
 
     result = hybrid_search_jobs(
         {
-            "search_term": payload.search_term,
+            "search_term": rewritten.get("backend_query") or payload.search_term,
             "user_lat": payload.user_lat,
             "user_lng": payload.user_lng,
             "radius_km": payload.radius_km,
@@ -6404,6 +6629,9 @@ async def jobs_hybrid_search(
         page=payload.page,
         page_size=payload.page_size,
     )
+    meta = dict(result.get("meta") or {})
+    meta["ai_query_rewrite"] = rewritten
+    result["meta"] = meta
     _attach_job_dialogue_preview_metrics(result.get("jobs") or [])
     if dismissed_job_ids:
         jobs = result.get("jobs") or []
@@ -6422,6 +6650,8 @@ async def jobs_hybrid_search_v2(
     background_tasks: BackgroundTasks,
 ):
     user_id = _try_get_optional_user_id(request)
+    language = (request.headers.get("accept-language") or "cs").split(",")[0].strip() or "cs"
+    rewritten = enrich_search_query(payload.search_term or "", language=language, subject_id=user_id)
     request_id = str(uuid4())
     cache_key = ""
     cache_sig = ""
@@ -6431,7 +6661,7 @@ async def jobs_hybrid_search_v2(
             "page": payload.page,
             "page_size": payload.page_size,
             "sort_mode": payload.sort_mode,
-            "search_term": (payload.search_term or "").strip(),
+            "search_term": (rewritten.get("backend_query") or payload.search_term or "").strip(),
             "user_lat": payload.user_lat,
             "user_lng": payload.user_lng,
             "radius_km": payload.radius_km,
@@ -6504,7 +6734,7 @@ async def jobs_hybrid_search_v2(
 
     result = hybrid_search_jobs_v2(
         {
-            "search_term": payload.search_term,
+            "search_term": rewritten.get("backend_query") or payload.search_term,
             "user_lat": payload.user_lat,
             "user_lng": payload.user_lng,
             "radius_km": payload.radius_km,
@@ -6525,6 +6755,9 @@ async def jobs_hybrid_search_v2(
     )
 
     jobs = result.get("jobs") or []
+    meta = dict(result.get("meta") or {})
+    meta["ai_query_rewrite"] = rewritten
+    result["meta"] = meta
     if dismissed_job_ids:
         filtered_jobs = _filter_out_dismissed_jobs(jobs, dismissed_job_ids)
         removed_count = len(jobs) - len(filtered_jobs)
@@ -6587,6 +6820,7 @@ async def jobs_hybrid_search_v2(
             "fallback_mode": meta.get("fallback_mode") or "internal_only",
             "cache_hit": bool(meta.get("cache_hit")),
             "degraded_reasons": meta.get("degraded_reasons") or [],
+            "ai_query_rewrite": meta.get("ai_query_rewrite") or {},
         },
     }
     if payload.debug:
@@ -6717,8 +6951,10 @@ async def get_cached_external_feed(
     degraded_reasons: list[str] = []
     fallback_mode = "empty"
     cache_hit = False
+    start = max(0, page) * max(1, page_size)
+    end = start + max(1, page_size)
 
-    result = _read_cached_external_jobs(
+    supabase_result = _read_cached_external_jobs(
         page=page,
         page_size=page_size,
         search_term=search_term,
@@ -6726,10 +6962,37 @@ async def get_cached_external_feed(
         country_codes=parsed_country_codes,
         exclude_country_codes=parsed_exclude_codes,
     )
-    jobs = result.get("jobs") or []
+    try:
+        jobspy_result = search_jobspy_jobs(
+            page=0,
+            page_size=max(80, max(1, page_size) * 4),
+            search_term=search_term,
+            location=filter_city,
+            country_codes=parsed_country_codes,
+            exclude_country_codes=parsed_exclude_codes,
+        )
+    except Exception as exc:
+        print(f"⚠️ Failed to read JobSpy Mongo cache: {exc}")
+        degraded_reasons.append(f"jobspy_unavailable:{type(exc).__name__}")
+        jobspy_result = {"jobs": [], "total_count": 0, "has_more": False}
+    merged_cached_jobs = _merge_external_job_lists(
+        supabase_result.get("jobs") or [],
+        jobspy_result.get("jobs") or [],
+    )
+    total_count = max(
+        len(merged_cached_jobs),
+        int(supabase_result.get("total_count") or 0),
+        int(jobspy_result.get("total_count") or 0),
+    )
+    jobs = merged_cached_jobs[start:end]
+    result = {
+        "jobs": jobs,
+        "has_more": end < total_count,
+        "total_count": total_count,
+    }
     if jobs:
         cache_hit = True
-        fallback_mode = "cache_only"
+        fallback_mode = "cache_only" if not (jobspy_result.get("jobs") or []) else "cache_plus_jobspy"
 
     # Self-seed: cached feed is only useful if something has populated the cache table.
     # When it's empty (fresh deployments, cleared DB), fetch a small snapshot from
@@ -6827,7 +7090,7 @@ async def get_cached_external_feed(
                     degraded_reasons.append(f"provider_error:jooble:{type(exc).__name__}")
                     print(f"⚠️ External cached feed seeding failed for jooble: {exc}")
 
-        result = _read_cached_external_jobs(
+        supabase_result = _read_cached_external_jobs(
             page=page,
             page_size=page_size,
             search_term=search_term,
@@ -6835,34 +7098,36 @@ async def get_cached_external_feed(
             country_codes=parsed_country_codes,
             exclude_country_codes=parsed_exclude_codes,
         )
-        jobs = result.get("jobs") or []
+        merged_cached_jobs = _merge_external_job_lists(
+            supabase_result.get("jobs") or [],
+            jobspy_result.get("jobs") or [],
+            seeded,
+        )
+        total_count = max(
+            len(merged_cached_jobs),
+            int(supabase_result.get("total_count") or 0),
+            int(jobspy_result.get("total_count") or 0),
+        )
+        jobs = merged_cached_jobs[start:end]
+        result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
         if jobs:
             cache_hit = True
-            fallback_mode = "cache_seeded" if seeded else "cache_only"
+            if seeded:
+                fallback_mode = "cache_seeded"
+            elif jobspy_result.get("jobs"):
+                fallback_mode = "jobspy_only"
+            else:
+                fallback_mode = "cache_only"
 
         # If DB cache is still empty/unavailable, return the live snapshot directly
         # so users can see external results even during cache failures.
         if not jobs and seeded:
-            seen: set[str] = set()
-            deduped: list[dict[str, Any]] = []
-            for item in seeded:
-                keys = _external_job_dedup_keys(item)
-                if keys and any(k in seen for k in keys):
-                    continue
-                for k in keys:
-                    seen.add(k)
-                deduped.append(dict(item))
-            deduped.sort(
-                key=lambda job: str(job.get("scraped_at") or job.get("fetched_at") or ""),
-                reverse=True,
-            )
+            deduped = _merge_external_job_lists(jobspy_result.get("jobs") or [], seeded)
             total_count = len(deduped)
-            start = max(0, page) * max(1, page_size)
-            end = start + max(1, page_size)
             jobs = deduped[start:end]
             result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
             fallback_mode = "live_seeded"
-            cache_hit = False
+            cache_hit = bool(jobspy_result.get("jobs"))
         elif not jobs and degraded_reasons:
             fallback_mode = "degraded"
 
@@ -6877,7 +7142,130 @@ async def get_cached_external_feed(
             "fallback_mode": fallback_mode,
             "cache_hit": cache_hit,
             "degraded_reasons": degraded_reasons,
+            "jobspy_total_count": int(jobspy_result.get("total_count") or 0),
         },
+    }
+
+
+@router.post("/jobs/external/jobspy/run")
+@limiter.limit("5/minute")
+async def run_jobspy_external_import(
+    request: Request,
+    search_term: str = Query(..., min_length=1, max_length=200),
+    location: str = Query(default="", max_length=120),
+    google_search_term: str = Query(default="", max_length=240),
+    site_name: str | None = Query(default=None),
+    results_wanted: int = Query(default=20, ge=1, le=100),
+    hours_old: int | None = Query(default=None, ge=1, le=720),
+    country_indeed: str = Query(default="Austria", max_length=80),
+    job_type: str = Query(default="", max_length=40),
+    is_remote: bool = Query(default=False),
+    linkedin_fetch_description: bool = Query(default=False),
+    offset: int = Query(default=0, ge=0, le=1000),
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    parsed_sites = [part.strip() for part in (site_name or "").split(",") if part and part.strip()]
+    result = import_jobspy_jobs(
+        site_name=parsed_sites or None,
+        search_term=search_term,
+        google_search_term=google_search_term,
+        location=location,
+        results_wanted=results_wanted,
+        hours_old=hours_old,
+        country_indeed=country_indeed,
+        job_type=job_type,
+        is_remote=is_remote,
+        linkedin_fetch_description=linkedin_fetch_description,
+        offset=offset,
+    )
+    return {
+        "status": "success",
+        "provider": "jobspy",
+        "collection": result.collection,
+        "imported_count": result.imported_count,
+        "upserted_count": result.upserted_count,
+        "matched_count": result.matched_count,
+        "query_hash": result.query_hash,
+        "jobs": result.sampled_jobs,
+    }
+
+
+@router.get("/jobs/external/jobspy/search")
+@limiter.limit("60/minute")
+async def get_jobspy_external_jobs(
+    request: Request,
+    search_term: str = Query(default="", max_length=200),
+    location: str = Query(default="", max_length=120),
+    source_sites: str | None = Query(default=None),
+    page: int = Query(default=0, ge=0, le=50),
+    page_size: int = Query(default=24, ge=1, le=100),
+):
+    parsed_sites = [part.strip() for part in (source_sites or "").split(",") if part and part.strip()]
+    result = search_jobspy_jobs(
+        page=page,
+        page_size=page_size,
+        search_term=search_term,
+        location=location,
+        source_sites=parsed_sites,
+    )
+    jobs = result.get("jobs") or []
+    _attach_job_dialogue_preview_metrics(jobs)
+    return {
+        "jobs": jobs,
+        "has_more": bool(result.get("has_more")),
+        "total_count": int(result.get("total_count") or 0),
+        "source": "jobspy_mongo_cache",
+        "meta": {
+            "collection": result.get("collection"),
+            "provider": "jobspy",
+        },
+    }
+
+
+@router.post("/jobs/external/jobspy/career-ops/refresh")
+@limiter.limit("5/minute")
+async def refresh_jobspy_career_ops(
+    request: Request,
+    limit: int = Query(default=600, ge=1, le=2000),
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return refresh_jobspy_career_ops_snapshots(limit=limit)
+
+
+@router.get("/jobs/external/jobspy/career-ops")
+@limiter.limit("30/minute")
+async def get_jobspy_career_ops_feed(
+    request: Request,
+    refresh: bool = Query(default=False),
+    job_limit: int = Query(default=24, ge=1, le=60),
+    company_limit: int = Query(default=10, ge=1, le=30),
+    action_limit: int = Query(default=14, ge=1, le=50),
+    user: dict = Depends(get_current_user),
+):
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
+    if not candidate_profile:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+    saved_job_ids, dismissed_job_ids = _fetch_user_interaction_state(user_id, limit=12000)
+    feed = build_career_ops_feed(
+        candidate_profile={**candidate_profile, "id": user_id},
+        saved_job_ids=saved_job_ids,
+        dismissed_job_ids=dismissed_job_ids,
+        refresh=refresh,
+        job_limit=job_limit,
+        company_limit=company_limit,
+        action_limit=action_limit,
+    )
+    return {
+        **feed,
+        "source": "jobspy_career_ops",
     }
 
 @router.post("/jobs/analyze")
@@ -6910,8 +7298,8 @@ async def analyze_job(
         except Exception as exc:
             print(f"⚠️ Failed to read cached ai_analysis for job {normalized_job_id}: {exc}")
 
-    default_primary = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    default_fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+    default_primary = get_default_primary_model()
+    default_fallback = get_default_fallback_model()
     cfg = get_active_model_config("ai_orchestration", "job_analysis")
     primary_model = cfg.get("primary_model") or default_primary
     fallback_model = cfg.get("fallback_model") or default_fallback

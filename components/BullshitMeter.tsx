@@ -16,8 +16,8 @@ const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light
   const isMedium = metrics.score > 20 && metrics.score <= 50;
   
   // Define accent colors
-  let accentColor = "bg-emerald-500";
-  let iconColor = isHigh ? "text-rose-500" : isMedium ? "text-amber-500" : "text-emerald-500";
+  let accentColor = "bg-amber-500";
+  let iconColor = isHigh ? "text-rose-500" : isMedium ? "text-amber-500" : "text-amber-500";
   let statusText = t('bullshit_meter.status_clean');
   
   if (isHigh) {

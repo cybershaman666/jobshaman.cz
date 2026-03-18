@@ -399,16 +399,16 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       );
       const selectedCvSnapshot = useSavedCv
         ? {
-            id: selectedCv?.id || null,
-            label: selectedCv?.label || selectedCv?.originalName || null,
-            originalName: selectedCv?.originalName || null,
-            fileUrl: selectedCv?.fileUrl || null
-          }
+          id: selectedCv?.id || null,
+          label: selectedCv?.label || selectedCv?.originalName || null,
+          originalName: selectedCv?.originalName || null,
+          fileUrl: selectedCv?.fileUrl || null
+        }
         : (cvFile ? {
-            label: cvFile.name,
-            originalName: cvFile.name,
-            fileUrl: null
-          } : null);
+          label: cvFile.name,
+          originalName: cvFile.name,
+          fileUrl: null
+        } : null);
       const candidateProfileSnapshot = {
         name: [formData.firstName, formData.lastName].filter(Boolean).join(' ').trim() || user.name,
         email: formData.email || user.email || '',
@@ -501,30 +501,29 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const renderContent = () => {
     if (step === 'success') {
       return (
-        <div className="text-center py-12 px-6 animate-in fade-in zoom-in-95">
-          <div className="w-20 h-20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            <CheckCircle size={40} />
+        <div className="text-center py-16 px-8 animate-in fade-in zoom-in-95 duration-500">
+          <div className="w-24 h-24 bg-[var(--accent-soft)] text-[var(--accent-strong)] rounded-full flex items-center justify-center mx-auto mb-8 border border-[var(--accent-soft)] shadow-xl shadow-[rgba(var(--accent-rgb),0.2)]">
+            <CheckCircle size={48} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{handshakeUiCopy.successTitle}</h2>
-          <p className="text-slate-600 dark:text-slate-300 mb-8 max-w-md mx-auto">
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--text-strong)] mb-4">{handshakeUiCopy.successTitle}</h2>
+          <p className="text-base text-[var(--text-muted)] mb-10 max-w-md mx-auto leading-relaxed font-medium">
             {handshakeUiCopy.successDesc}
           </p>
 
           {/* AI Feature Teaser */}
           {showAiAssessment && (
-            <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-6 max-w-sm mx-auto text-left relative overflow-hidden backdrop-blur-sm">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500 rounded-full opacity-10 dark:opacity-20 blur-xl"></div>
-              <div className="flex items-center gap-2 mb-3 text-indigo-600 dark:text-indigo-400">
-                <BrainCircuit size={20} />
-                <span className="font-bold text-xs uppercase tracking-wider">JobShaman AI Node</span>
+            <div className="bg-[var(--accent-soft)] border border-[var(--accent-soft)] rounded-2xl p-8 max-w-sm mx-auto text-left relative overflow-hidden shadow-sm">
+              <div className="flex items-center gap-2 mb-4 text-[var(--accent-strong)]">
+                <BrainCircuit size={24} />
+                <span className="font-bold text-[10px] uppercase tracking-widest">{t('apply.ai_node', { defaultValue: 'JobShaman AI Node' })}</span>
               </div>
-              <p className="text-sm text-slate-700 dark:text-slate-200 font-medium mb-2">
+              <p className="text-sm text-[var(--text-strong)] font-bold mb-3 tracking-tight">
                 {t('apply.ai_processing')}
               </p>
-              <div className="w-full bg-indigo-100 dark:bg-indigo-900/50 h-1.5 rounded-full mb-3 overflow-hidden">
-                <div className="h-full bg-indigo-500 w-2/3 animate-pulse shadow-[0_0_10px_#6366f1]"></div>
+              <div className="w-full bg-white dark:bg-slate-900 h-2 rounded-full mb-4 overflow-hidden shadow-inner">
+                <div className="h-full bg-[var(--accent)] w-2/3 animate-[shimmer_2s_infinite] shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)]"></div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-[var(--text-faint)] font-medium leading-relaxed">
                 {t('apply.ai_evaluation_desc')}
               </p>
             </div>
@@ -532,9 +531,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
           <button
             onClick={onClose}
-            className="mt-8 px-6 py-2 bg-slate-800 text-white border border-slate-700 rounded-lg font-medium hover:bg-slate-700 transition-colors"
+            className="app-button-primary mt-12 px-10 py-3 rounded-xl shadow-lg shadow-[rgba(var(--accent-rgb),0.3)] transition-all hover:scale-105"
           >
-            {t('apply.back_to_jobs')}
+            <span className="uppercase tracking-widest text-xs font-bold">{t('apply.back_to_jobs')}</span>
           </button>
         </div>
       );
@@ -542,459 +541,467 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
     if (step === 'submitting') {
       return (
-        <div className="flex flex-col items-center justify-center py-24 px-6 animate-in fade-in">
-          <Loader2 size={48} className="text-indigo-600 dark:text-indigo-500 animate-spin mb-6" />
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{handshakeUiCopy.sending}</h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">{handshakeUiCopy.subtitle}</p>
+        <div className="flex flex-col items-center justify-center py-32 px-8 animate-in fade-in duration-500">
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-[var(--accent)] blur-2xl opacity-20 animate-pulse"></div>
+            <Loader2 size={64} className="text-[var(--accent)] animate-spin relative z-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--text-strong)] leading-tight">{handshakeUiCopy.sending}</h2>
+          <p className="mt-4 text-center text-[var(--text-muted)] font-medium leading-relaxed max-w-xs">{handshakeUiCopy.subtitle}</p>
         </div>
       );
     }
 
     return (
-      <div className="p-6 sm:p-8 space-y-8">
+      <div className="app-modal-surface p-6 sm:p-8 space-y-8">
         {/* Header */}
-        <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
-          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
+        <div className="border-b border-[var(--border-subtle)] pb-6">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--accent-strong)]">
             <MessageSquare size={12} />
             Digital first contact
           </div>
-          <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{handshakeUiCopy.title}</h2>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">{handshakeUiCopy.subtitle}</p>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--text-strong)] leading-tight">{handshakeUiCopy.title}</h2>
+          <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">{handshakeUiCopy.subtitle}</p>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/20 p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
-            <Shield size={16} />
+        <div className="app-organic-panel-soft rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-strong)] opacity-80 mb-4">
+            <Shield size={16} className="text-[var(--accent-strong)]" />
             {handshakeUiCopy.truthTitle}
           </div>
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2.5">
             {effectiveTruthPoints.map((point) => (
-              <div key={point} className="rounded-xl bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 border border-white/70 dark:border-slate-800">
+              <div key={point} className="app-organic-panel-soft rounded-xl bg-white dark:bg-slate-900 px-4 py-3 text-sm text-[var(--text-muted)] border border-[var(--border-subtle)] shadow-sm">
                 {point}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{handshakeUiCopy.promptsTitle}</h3>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{handshakeUiCopy.promptHint}</p>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">{handshakeUiCopy.promptsTitle}</h3>
+            <p className="mt-1 text-xs text-[var(--text-faint)] font-medium">{handshakeUiCopy.promptHint}</p>
           </div>
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{effectivePromptOne}</p>
+          <div className="space-y-5">
+            <div className="app-organic-panel-soft rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-5">
+              <p className="text-sm font-bold text-[var(--text-strong)] leading-relaxed mb-4">{effectivePromptOne}</p>
               <textarea
                 value={handshakeAnswers.scenarioOne}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioOne: e.target.value }))}
-                className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                className="input app-modal-input w-full min-h-[120px] leading-relaxed"
                 placeholder={handshakeUiCopy.scenarioOnePlaceholder}
               />
             </div>
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{effectivePromptTwo}</p>
+            <div className="app-organic-panel-soft rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-5">
+              <p className="text-sm font-bold text-[var(--text-strong)] leading-relaxed mb-4">{effectivePromptTwo}</p>
               <textarea
                 value={handshakeAnswers.scenarioTwo}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, scenarioTwo: e.target.value }))}
-                className="mt-3 w-full h-28 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                className="input app-modal-input w-full min-h-[120px] leading-relaxed"
                 placeholder={handshakeUiCopy.scenarioTwoPlaceholder}
               />
             </div>
-            <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            <div className="app-organic-panel-soft rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-subtle)] p-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)] mb-4">
                 {handshakeUiCopy.optionalContext}
               </p>
               <textarea
                 value={handshakeAnswers.optionalNote}
                 onChange={(e) => setHandshakeAnswers((prev) => ({ ...prev, optionalNote: e.target.value }))}
-                className="mt-3 w-full h-20 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
+                className="input app-modal-input w-full min-h-[80px] leading-relaxed"
                 placeholder={handshakeUiCopy.optionalPlaceholder}
               />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/20">
+        <div className="app-organic-panel-soft rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] overflow-hidden">
           <button
             type="button"
             onClick={() => setShowSupportingContext((prev) => !prev)}
-            className="w-full flex items-center justify-between gap-4 px-4 py-4 text-left"
+            className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-white/50 dark:hover:bg-slate-900/50"
           >
             <div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">{handshakeUiCopy.supportingTitle}</div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{handshakeUiCopy.supportingDesc}</div>
+              <div className="text-sm font-bold text-[var(--text-strong)]">{handshakeUiCopy.supportingTitle}</div>
+              <div className="mt-1 text-xs text-[var(--text-muted)] font-medium leading-relaxed">{handshakeUiCopy.supportingDesc}</div>
             </div>
-            {showSupportingContext ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
+            {showSupportingContext ? (
+              <ChevronUp size={20} className="text-[var(--text-muted)]" />
+            ) : (
+              <ChevronDown size={20} className="text-[var(--text-muted)]" />
+            )}
           </button>
         </div>
 
         {showSupportingContext && (
-        <>
-        {/* 1. Contact Information */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.contact_info')}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="relative">
-              <User size={16} className="absolute left-3 top-3 text-slate-500" />
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                placeholder={t('apply.first_name')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-            </div>
-            <div className="relative">
-              <User size={16} className="absolute left-3 top-3 text-slate-500" />
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                placeholder={t('apply.last_name')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-            </div>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3 top-3 text-slate-500" />
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder={t('apply.email')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-            </div>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3 top-3 text-slate-500" />
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder={t('apply.phone')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-            </div>
-            <div className="relative sm:col-span-2">
-              <Linkedin size={16} className="absolute left-3 top-3 text-slate-500" />
-              <input
-                type="url"
-                name="linkedin"
-                value={formData.linkedin}
-                onChange={handleInputChange}
-                placeholder={t('apply.linkedin')}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:[color-scheme:dark]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Documents */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
-              {t('apply.supporting_context_section', { defaultValue: isCsLike ? 'Podpůrné podklady' : 'Supporting context' })}
-            </h3>
-            {(cvDocuments.length > 0 || user.cvText || user.cvUrl) && (
-              <button
-                onClick={() => setUseSavedCv(!useSavedCv)}
-                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-              >
-                {useSavedCv
-                  ? t('apply.upload_doc_instead', { defaultValue: isCsLike ? 'Nahrát jiný dokument' : 'Upload a different document' })
-                  : t('apply.use_saved_doc', { defaultValue: isCsLike ? 'Použít uložený dokument' : 'Use saved document' })}
-              </button>
-            )}
-          </div>
-
-          {useSavedCv ? (
-            <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400">
-                <FileText size={20} />
+          <>
+            {/* 1. Contact Information */}
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">{t('apply.contact_info')}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="relative group">
+                  <User size={16} className="absolute left-4 top-3.5 text-[var(--text-faint)] group-focus-within:text-[var(--accent-strong)] transition-colors" />
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    placeholder={t('apply.first_name')}
+                    className="input app-modal-input w-full pl-11"
+                  />
+                </div>
+                <div className="relative group">
+                  <User size={16} className="absolute left-4 top-3.5 text-[var(--text-faint)] group-focus-within:text-[var(--accent-strong)] transition-colors" />
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    placeholder={t('apply.last_name')}
+                    className="input app-modal-input w-full pl-11"
+                  />
+                </div>
+                <div className="relative group">
+                  <Mail size={16} className="absolute left-4 top-3.5 text-[var(--text-faint)] group-focus-within:text-[var(--accent-strong)] transition-colors" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder={t('apply.email')}
+                    className="input app-modal-input w-full pl-11"
+                  />
+                </div>
+                <div className="relative group">
+                  <Phone size={16} className="absolute left-4 top-3.5 text-[var(--text-faint)] group-focus-within:text-[var(--accent-strong)] transition-colors" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder={t('apply.phone')}
+                    className="input app-modal-input w-full pl-11"
+                  />
+                </div>
+                <div className="relative group sm:col-span-2">
+                  <Linkedin size={16} className="absolute left-4 top-3.5 text-[var(--text-faint)] group-focus-within:text-[var(--accent-strong)] transition-colors" />
+                  <input
+                    type="url"
+                    name="linkedin"
+                    value={formData.linkedin}
+                    onChange={handleInputChange}
+                    placeholder={t('apply.linkedin')}
+                    className="input app-modal-input w-full pl-11"
+                  />
+                </div>
               </div>
-              <div className="flex-1 space-y-2">
-                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  {t('apply.saved_doc_ready', { defaultValue: isCsLike ? 'Uložený podklad je připravený' : 'A saved document is ready' })}
-                </p>
-                {cvDocumentsLoading ? (
-                  <p className="text-xs text-slate-500">{t('app.loading')}</p>
-                ) : cvDocuments.length > 0 ? (
-                  <div className="space-y-2">
-                    <select
-                      value={selectedCv?.id || ''}
-                      onChange={async (e) => {
-                        const nextId = e.target.value || null;
-                        setSelectedCvId(nextId);
-                        if (nextId && user.id) {
-                          await updateUserCVSelection(user.id, nextId);
-                        }
-                      }}
-                      className="w-full text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/40 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 dark:[color-scheme:dark]"
-                    >
-                      {cvDocuments.map(doc => (
-                        <option key={doc.id} value={doc.id}>
-                          {doc.originalName}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-slate-500">
-                      {selectedCv?.originalName || t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-500">
-                    {user.cvUrl ? 'supporting_document.pdf' : t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
-                  </p>
+            </div>
+
+            {/* 2. Documents */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
+                  {t('apply.supporting_context_section', { defaultValue: isCsLike ? 'Podpůrné podklady' : 'Supporting context' })}
+                </h3>
+                {(cvDocuments.length > 0 || user.cvText || user.cvUrl) && (
+                  <button
+                    onClick={() => setUseSavedCv(!useSavedCv)}
+                    className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                  >
+                    {useSavedCv
+                      ? t('apply.upload_doc_instead', { defaultValue: isCsLike ? 'Nahrát jiný dokument' : 'Upload a different document' })
+                      : t('apply.use_saved_doc', { defaultValue: isCsLike ? 'Použít uložený dokument' : 'Use saved document' })}
+                  </button>
                 )}
               </div>
-              <CheckCircle className="text-emerald-500" size={20} />
-            </div>
-          ) : (
-            <div className={`
-              border-2 border-dashed rounded-xl p-6 text-center transition-colors
-              ${cvFile ? 'border-cyan-500/50 bg-cyan-50 dark:bg-cyan-500/5' : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'}
-            `}>
-              {cvFile ? (
-                <div className="flex items-center justify-center gap-3 text-cyan-600 dark:text-cyan-400">
-                  <FileText size={24} />
-                  <span className="font-medium truncate max-w-[200px]">{cvFile.name}</span>
-                  <button
-                    onClick={() => setCvFile(null)}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"
-                  >
-                    <X size={16} />
-                  </button>
+
+              {useSavedCv ? (
+                <div className="app-organic-panel-soft bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 flex items-center gap-3">
+                  <div className="app-organic-panel-soft p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400">
+                    <FileText size={20} />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {t('apply.saved_doc_ready', { defaultValue: isCsLike ? 'Uložený podklad je připravený' : 'A saved document is ready' })}
+                    </p>
+                    {cvDocumentsLoading ? (
+                      <p className="text-xs text-slate-500">{t('app.loading')}</p>
+                    ) : cvDocuments.length > 0 ? (
+                      <div className="space-y-2">
+                        <select
+                          value={selectedCv?.id || ''}
+                          onChange={async (e) => {
+                            const nextId = e.target.value || null;
+                            setSelectedCvId(nextId);
+                            if (nextId && user.id) {
+                              await updateUserCVSelection(user.id, nextId);
+                            }
+                          }}
+                          className="w-full text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/40 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 dark:[color-scheme:dark]"
+                        >
+                          {cvDocuments.map(doc => (
+                            <option key={doc.id} value={doc.id}>
+                              {doc.originalName}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-[11px] text-slate-500">
+                          {selectedCv?.originalName || t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        {user.cvUrl ? 'supporting_document.pdf' : t('apply.doc_from_profile', { defaultValue: isCsLike ? 'Dokument z profilu' : 'Document from profile' })}
+                      </p>
+                    )}
+                  </div>
+                  <CheckCircle className="text-amber-500" size={20} />
                 </div>
               ) : (
-                <div className="relative">
-                  <Upload size={24} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{t('apply.upload_prompt')}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">PDF, DOCX (Max 5MB)</p>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
+                  <div className={`
+              app-organic-panel-soft border-2 border-dashed rounded-xl p-6 text-center transition-colors
+              ${cvFile ? 'border-cyan-500/50 bg-cyan-50 dark:bg-cyan-500/5' : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'}
+            `}>
+                  {cvFile ? (
+                    <div className="flex items-center justify-center gap-3 text-cyan-600 dark:text-cyan-400">
+                      <FileText size={24} />
+                      <span className="font-medium truncate max-w-[200px]">{cvFile.name}</span>
+                      <button
+                        onClick={() => setCvFile(null)}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Upload size={24} className="mx-auto text-slate-400 mb-2" />
+                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{t('apply.upload_prompt')}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">PDF, DOCX (Max 5MB)</p>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* 3. Cover Letter */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cover_letter')}</h3>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase rounded border border-amber-200 dark:border-amber-800/50">
-                <Crown size={10} /> Premium
-              </div>
-              <button
-                onClick={() => {
-                  if (hasPremiumCoverLetter) {
-                    setShowAiInput(!showAiInput);
-                  } else {
-                    alert(t('alerts.premium_only_feature'));
-                  }
-                }}
-                className={`text-xs flex items-center gap-1 font-medium ${hasPremiumCoverLetter ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}
-              >
-                <Wand2 size={12} />
-                {showAiInput
-                  ? t('apply.ai_hide', { defaultValue: isCsLike ? 'Skrýt copilot' : 'Hide copilot' })
-                  : t('apply.ai_write', { defaultValue: isCsLike ? 'AI copilot' : 'AI copilot' })}
-              </button>
-            </div>
-          </div>
-
-          {showAiInput && (
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/20 animate-in slide-in-from-top-2 mb-2 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-purple-700 dark:text-purple-300">
-                    {t('apply.ai_prompt_label', { defaultValue: isCsLike ? 'Candidate copilot' : 'Candidate copilot' })}
-                  </p>
-                  <p className="mt-1 text-xs text-purple-700/80 dark:text-purple-300/80">
-                    {t('apply.ai_copilot_hint', { defaultValue: isCsLike ? 'Vygeneruje editovatelný draft a ukáže, proč role sedí k profilu.' : 'Generates an editable draft and shows why the role fits your profile.' })}
-                  </p>
-                </div>
-                <button
-                  onClick={handleAiGenerate}
-                  disabled={isGenerating}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-md hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(147,51,234,0.3)]"
-                >
-                  {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                  {draftSuggestion
-                    ? t('apply.ai_regenerate', { defaultValue: isCsLike ? 'Přegenerovat draft' : 'Regenerate draft' })
-                    : t('apply.ai_generate', { defaultValue: isCsLike ? 'Vygenerovat draft' : 'Generate draft' })}
-                </button>
-              </div>
-
-              {draftError && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                  {draftError}
-                </div>
-              )}
-
-              {draftSuggestion && (
-                <div className="rounded-xl border border-white/60 bg-white/80 dark:border-slate-800 dark:bg-slate-950/40 p-3 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                      {t('apply.ai_fit_title', { defaultValue: isCsLike ? 'Why this role fits' : 'Why this role fits' })}
-                    </div>
-                    <div className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
-                      {draftSuggestion.fitScore != null
-                        ? `${Math.round(draftSuggestion.fitScore)} / 100`
-                        : t('apply.ai_fit_pending', { defaultValue: isCsLike ? 'bez skóre' : 'no score' })}
-                    </div>
+            {/* 3. Cover Letter */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">{t('apply.cover_letter')}</h3>
+                <div className="flex items-center gap-3">
+                  <div className="app-organic-pill flex items-center gap-1.5 px-2 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-strong)] text-[10px] font-bold uppercase rounded-full border border-[var(--accent-soft)]">
+                    <Crown size={10} /> Premium
                   </div>
-                  {draftSuggestion.fitReasons.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (hasPremiumCoverLetter) {
+                        setShowAiInput(!showAiInput);
+                      } else {
+                        alert(t('alerts.premium_only_feature'));
+                      }
+                    }}
+                    className={`text-xs flex items-center gap-1 font-bold uppercase tracking-tighter ${hasPremiumCoverLetter ? 'text-[var(--accent-strong)] hover:opacity-80' : 'text-[var(--text-faint)] cursor-not-allowed'}`}
+                  >
+                    <Wand2 size={12} />
+                    {showAiInput
+                      ? t('apply.ai_hide', { defaultValue: isCsLike ? 'Skrýt copilot' : 'Hide copilot' })
+                      : t('apply.ai_write', { defaultValue: isCsLike ? 'AI copilot' : 'AI copilot' })}
+                  </button>
+                </div>
+              </div>
+
+              {showAiInput && (
+                <div className="company-surface-soft app-organic-panel-soft bg-[var(--accent-soft)] p-5 rounded-2xl border border-[var(--accent-soft)] animate-in slide-in-from-top-2 mb-4 space-y-4">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
-                      {draftSuggestion.fitReasons.slice(0, 4).map((reason) => (
-                        <div key={reason} className="text-sm text-slate-700 dark:text-slate-200">
-                          {reason}
-                        </div>
-                      ))}
+                      <p className="text-xs font-bold uppercase tracking-widest text-[var(--accent-strong)]">
+                        {t('apply.ai_prompt_label', { defaultValue: isCsLike ? 'Candidate copilot' : 'Candidate copilot' })}
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)] font-medium leading-relaxed">
+                        {t('apply.ai_copilot_hint', { defaultValue: isCsLike ? 'Vygeneruje editovatelný draft a ukáže, proč role sedí k profilu.' : 'Generates an editable draft and shows why the role fits your profile.' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleAiGenerate}
+                      disabled={isGenerating}
+                      className="app-button-primary app-organic-cta scale-90"
+                    >
+                      {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                      {draftSuggestion
+                        ? t('apply.ai_regenerate', { defaultValue: isCsLike ? 'Přegenerovat draft' : 'Regenerate draft' })
+                        : t('apply.ai_generate', { defaultValue: isCsLike ? 'Vygenerovat draft' : 'Generate draft' })}
+                    </button>
+                  </div>
+
+                  {draftError && (
+                    <div className="app-organic-panel-soft rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                      {draftError}
                     </div>
                   )}
-                  {draftSuggestion.fitWarnings.length > 0 && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
-                      {draftSuggestion.fitWarnings.slice(0, 2).join(' ')}
+
+                  {draftSuggestion && (
+                    <div className="app-organic-panel-soft rounded-[1.2rem] border border-[var(--border-subtle)] bg-white dark:bg-slate-900 p-4 space-y-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                          {t('apply.ai_fit_title', { defaultValue: isCsLike ? 'Why this role fits' : 'Why this role fits' })}
+                        </div>
+                        <div className="app-organic-pill rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-bold text-[var(--accent-strong)] border border-[var(--accent-soft)]">
+                          {draftSuggestion.fitScore != null
+                            ? `${Math.round(draftSuggestion.fitScore)} / 100`
+                            : t('apply.ai_fit_pending', { defaultValue: isCsLike ? 'bez skóre' : 'no score' })}
+                        </div>
+                      </div>
+                      {draftSuggestion.fitReasons.length > 0 && (
+                        <div className="space-y-1.5">
+                          {draftSuggestion.fitReasons.slice(0, 4).map((reason) => (
+                            <div key={reason} className="flex items-start gap-2 text-sm text-[var(--text-muted)]">
+                              <span className="mt-1.5 h-1 w-1 rounded-full bg-[var(--accent)] shrink-0" />
+                              <span>{reason}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {draftSuggestion.fitWarnings.length > 0 && (
+                        <div className="app-organic-panel-soft rounded-xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-4 py-3 text-xs text-[var(--accent-strong)] font-medium">
+                          {draftSuggestion.fitWarnings.slice(0, 2).join(' ')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
+
+              <textarea
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+                className="input app-modal-input w-full min-h-[160px] leading-relaxed"
+                placeholder={t('apply.cover_letter_placeholder')}
+              />
             </div>
-          )}
 
-          <textarea
-            value={coverLetter}
-            onChange={(e) => setCoverLetter(e.target.value)}
-            className="w-full h-40 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500 dark:[color-scheme:dark]"
-            placeholder={t('apply.cover_letter_placeholder')}
-          />
-        </div>
-
-        {/* 4. JCFPM Sharing */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
-              {t('apply.jcfpm_sharing', { defaultValue: 'JCFPM sharing' })}
-            </h3>
-            <span className={`text-[11px] font-semibold px-2 py-1 rounded-full border ${
-              jcfpmSnapshot
-                ? 'border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
-                : 'border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400'
-            }`}>
-              {jcfpmSnapshot
-                ? t('apply.jcfpm_available', { defaultValue: 'Result available' })
-                : t('apply.jcfpm_missing', { defaultValue: 'No result available' })}
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4 space-y-3">
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {jcfpmSnapshot
-                ? hasPremiumJcfpmSharing
-                  ? t('apply.jcfpm_sharing_desc', { defaultValue: jcfpmUiCopy.shareDesc })
-                  : t('apply.jcfpm_sharing_premium_desc', { defaultValue: jcfpmUiCopy.premiumDesc })
-                : t('apply.jcfpm_sharing_missing_desc', { defaultValue: jcfpmUiCopy.missingDesc })}
-            </p>
-
-            {jcfpmSnapshot && hasPremiumJcfpmSharing ? (
-              <div className="space-y-2">
-                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="jcfpm-share-level"
-                    value="summary"
-                    checked={jcfpmShareLevel === 'summary' || jcfpmShareLevel === 'full_report'}
-                    onChange={() => setJcfpmShareLevel('summary')}
-                    className="mt-1 dark:[color-scheme:dark]"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {t('apply.jcfpm_share_summary', { defaultValue: 'Share hiring profile' })}
-                    </span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {t('apply.jcfpm_share_summary_desc', { defaultValue: 'Sends only a compact comparison signal: archetype, top dimensions, strengths, key work-style signals, and a concise JHI adjustment summary.' })}
-                    </span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="jcfpm-share-level"
-                    value="do_not_share"
-                    checked={jcfpmShareLevel === 'do_not_share'}
-                    onChange={() => setJcfpmShareLevel('do_not_share')}
-                    className="mt-1 dark:[color-scheme:dark]"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {t('apply.jcfpm_share_none', { defaultValue: 'Do not share' })}
-                    </span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {t('apply.jcfpm_share_none_desc', { defaultValue: jcfpmUiCopy.noneDesc })}
-                    </span>
-                  </span>
-                </label>
+            {/* 4. JCFPM Sharing */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+                  {t('apply.jcfpm_sharing', { defaultValue: 'JCFPM sharing' })}
+                </h3>
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${jcfpmSnapshot
+                  ? 'border-[var(--accent-soft)] bg-[var(--accent-soft)] text-[var(--accent-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-subtle)] text-[var(--text-faint)]'
+                  }`}>
+                  {jcfpmSnapshot
+                    ? t('apply.jcfpm_available', { defaultValue: 'Result available' })
+                    : t('apply.jcfpm_missing', { defaultValue: 'No result available' })}
+                </span>
               </div>
-            ) : jcfpmSnapshot ? (
-              <button
-                type="button"
-                onClick={() => alert(t('alerts.premium_only_feature'))}
-                className="inline-flex items-center gap-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
-              >
-                {t('apply.jcfpm_sharing_premium_locked', { defaultValue: jcfpmUiCopy.premiumLocked })}
-              </button>
-            ) : null}
-          </div>
-        </div>
 
-        {/* 5. AI Assessment Link (Conditional) */}
-        {showAiAssessment && (
-          <div className="bg-indigo-50 dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/20 flex flex-col sm:flex-row items-start gap-4">
-            <div className="bg-indigo-100 dark:bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">
-              <BrainCircuit size={24} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-bold text-indigo-700 dark:text-indigo-300 text-sm">{t('apply.ai_assessment_title')}</h4>
-                <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] rounded font-bold uppercase border border-indigo-200 dark:border-indigo-500/30">Beta</span>
+              <div className="app-organic-panel-soft rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-5 space-y-4">
+                <p className="text-sm text-[var(--text-muted)] leading-relaxed font-medium">
+                  {jcfpmSnapshot
+                    ? hasPremiumJcfpmSharing
+                      ? t('apply.jcfpm_sharing_desc', { defaultValue: jcfpmUiCopy.shareDesc })
+                      : t('apply.jcfpm_sharing_premium_desc', { defaultValue: jcfpmUiCopy.premiumDesc })
+                    : t('apply.jcfpm_sharing_missing_desc', { defaultValue: jcfpmUiCopy.missingDesc })}
+                </p>
+
+                {jcfpmSnapshot && hasPremiumJcfpmSharing ? (
+                  <div className="space-y-3">
+                    <label className="app-organic-panel-soft flex items-start gap-4 rounded-[1.2rem] border border-[var(--border-subtle)] bg-white dark:bg-slate-900 px-5 py-4 cursor-pointer hover:border-[var(--accent-strong)] transition-colors group">
+                      <input
+                        type="radio"
+                        name="jcfpm-share-level"
+                        value="summary"
+                        checked={jcfpmShareLevel === 'summary' || jcfpmShareLevel === 'full_report'}
+                        onChange={() => setJcfpmShareLevel('summary')}
+                        className="mt-1 shadow-sm h-4 w-4 text-[var(--accent)] border-[var(--border-strong)] focus:ring-[var(--accent)]"
+                      />
+                      <div className="space-y-1">
+                        <span className="block text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--accent-strong)] transition-colors">
+                          {t('apply.jcfpm_share_summary', { defaultValue: 'Share hiring profile' })}
+                        </span>
+                        <span className="block text-xs text-[var(--text-faint)] font-medium leading-relaxed">
+                          {t('apply.jcfpm_share_summary_desc', { defaultValue: 'Sends only a compact comparison signal: archetype, top dimensions, strengths, key work-style signals.' })}
+                        </span>
+                      </div>
+                    </label>
+                    <label className="app-organic-panel-soft flex items-start gap-4 rounded-[1.2rem] border border-[var(--border-subtle)] bg-white dark:bg-slate-900 px-5 py-4 cursor-pointer hover:border-rose-300 transition-colors group">
+                      <input
+                        type="radio"
+                        name="jcfpm-share-level"
+                        value="do_not_share"
+                        checked={jcfpmShareLevel === 'do_not_share'}
+                        onChange={() => setJcfpmShareLevel('do_not_share')}
+                        className="mt-1 shadow-sm h-4 w-4 text-rose-500 border-[var(--border-strong)] focus:ring-rose-500"
+                      />
+                      <div className="space-y-1">
+                        <span className="block text-sm font-bold text-[var(--text-strong)] group-hover:text-rose-600 transition-colors">
+                          {t('apply.jcfpm_share_none', { defaultValue: 'Do not share' })}
+                        </span>
+                        <span className="block text-xs text-[var(--text-faint)] font-medium leading-relaxed">
+                          {t('apply.jcfpm_share_none_desc', { defaultValue: jcfpmUiCopy.noneDesc })}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                ) : jcfpmSnapshot ? (
+                  <button
+                    type="button"
+                    onClick={() => alert(t('alerts.premium_only_feature'))}
+                    className="app-organic-pill inline-flex items-center gap-2 rounded-full border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-4 py-2 text-xs font-bold text-[var(--accent-strong)] uppercase tracking-widest"
+                  >
+                    <Crown size={12} />
+                    {t('apply.jcfpm_sharing_premium_locked', { defaultValue: jcfpmUiCopy.premiumLocked })}
+                  </button>
+                ) : null}
               </div>
-              <p className="text-xs text-indigo-800 dark:text-indigo-200 mb-3 leading-relaxed opacity-80">
-                {t('apply.ai_assessment_desc')}
-              </p>
-              <button className="flex items-center gap-2 text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/50">
-                <LinkIcon size={12} />
-                {t('apply.connect_profile')}
-              </button>
             </div>
-          </div>
-        )}
-        </>
+
+            {/* 5. AI Assessment Link (Conditional) */}
+            {showAiAssessment && (
+              <div className="company-surface-soft app-organic-panel-soft bg-[var(--accent-soft)] p-6 rounded-2xl border border-[var(--accent-soft)] flex flex-col sm:flex-row items-center gap-5">
+                <div className="app-organic-panel-soft bg-white dark:bg-slate-900 p-4 rounded-xl text-[var(--accent-strong)] shadow-sm border border-[var(--border-subtle)]">
+                  <BrainCircuit size={32} />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+                    <h4 className="font-bold text-[var(--text-strong)] text-sm tracking-tight">{t('apply.ai_assessment_title')}</h4>
+                    <span className="px-2 py-0.5 bg-[var(--accent-strong)] text-white text-[10px] rounded-full font-bold uppercase tracking-widest">Beta</span>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] mb-4 leading-relaxed font-medium">
+                    {t('apply.ai_assessment_desc')}
+                  </p>
+                  <button className="app-button-primary app-organic-cta w-full sm:w-auto text-xs py-2 px-5 font-bold shadow-lg shadow-[rgba(var(--accent-rgb),0.3)]">
+                    <LinkIcon size={12} className="mr-1" />
+                    {t('apply.connect_profile')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Footer Actions */}
-        <div className="flex gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex gap-4 pt-8 border-t border-[var(--border-subtle)]">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors"
+            className="flex-1 px-6 py-3.5 border border-[var(--border-subtle)] text-[var(--text-muted)] font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)] transition-all"
           >
             {t('apply.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.email || !formData.firstName || !handshakeAnswers.scenarioOne.trim() || !handshakeAnswers.scenarioTwo.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(8,145,178,0.4)]"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 app-button-primary app-organic-cta rounded-xl disabled:opacity-30 disabled:grayscale"
           >
             <Send size={18} />
-            {handshakeUiCopy.send}
+            <span className="uppercase tracking-widest text-xs font-bold">{handshakeUiCopy.send}</span>
           </button>
         </div>
       </div>
@@ -1002,21 +1009,21 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      ></div>
-      <div className="relative bg-white dark:bg-[#0b1121] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden max-h-[90vh] overflow-y-auto ring-1 ring-black/5 dark:ring-white/10 transition-colors duration-300">
+    <div className="app-modal-backdrop">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="app-modal-panel max-w-xl">
+        <div className="app-modal-topline" />
         {step !== 'success' && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full z-10 transition-colors"
+            className="absolute top-6 right-6 p-2 text-[var(--text-muted)] hover:text-[var(--text-strong)] bg-[var(--surface-subtle)] hover:bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-full z-20 transition-all scale-90 hover:scale-100"
           >
             <X size={20} />
           </button>
         )}
-        {renderContent()}
+        <div className="max-h-[90vh] overflow-y-auto">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

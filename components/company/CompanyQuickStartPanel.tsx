@@ -77,7 +77,7 @@ const CompanyQuickStartPanel: React.FC<CompanyQuickStartPanelProps> = ({
   } as const)[language];
 
   return (
-    <div className="company-surface-elevated overflow-hidden rounded-[var(--radius-lg)] border p-5 shadow-[var(--shadow-card)]">
+    <div className="company-surface app-organic-shell overflow-hidden rounded-[var(--radius-lg)] border p-5 shadow-[var(--shadow-card)]">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
           <div className="app-eyebrow">
@@ -91,13 +91,13 @@ const CompanyQuickStartPanel: React.FC<CompanyQuickStartPanelProps> = ({
             {t('company.workspace.quickstart_desc', { defaultValue: copy.desc })}
           </p>
         </div>
-        <button onClick={onOpenJobs} className="app-button-primary rounded-[var(--radius-md)] px-4 py-3">
+        <button onClick={onOpenJobs} className="app-button-primary app-organic-cta rounded-[var(--radius-md)] px-4 py-3">
           <PenTool size={16} />
           {t('company.dashboard.create_first_ad')}
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-        <button onClick={onOpenJobs} className="company-surface-subtle rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
+        <button onClick={onOpenJobs} className="company-surface-subtle app-organic-panel-soft rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
             <PenTool size={14} />
             {t('company.workspace.quickstart_steps.first_role', { defaultValue: copy.firstRole })}
@@ -106,7 +106,7 @@ const CompanyQuickStartPanel: React.FC<CompanyQuickStartPanelProps> = ({
             {t('company.workspace.quickstart_steps.first_role_desc', { defaultValue: copy.firstRoleDesc })}
           </div>
         </button>
-        <button onClick={onOpenAssessments} className="company-surface-subtle rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
+        <button onClick={onOpenAssessments} className="company-surface-subtle app-organic-panel-soft rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
             <BrainCircuit size={14} />
             {t('company.workspace.quickstart_steps.first_assessment', { defaultValue: copy.firstAssessment })}
@@ -115,7 +115,7 @@ const CompanyQuickStartPanel: React.FC<CompanyQuickStartPanelProps> = ({
             {t('company.workspace.quickstart_steps.first_assessment_desc', { defaultValue: copy.firstAssessmentDesc })}
           </div>
         </button>
-        <button onClick={onOpenSettings} className="company-surface-subtle rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
+        <button onClick={onOpenSettings} className="company-surface-subtle app-organic-panel-soft rounded-[var(--radius-md)] border p-4 text-left shadow-[var(--shadow-soft)] transition-colors hover:border-[rgba(var(--accent-rgb),0.18)]">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
             <Users size={14} />
             {t('company.workspace.quickstart_steps.company_setup', { defaultValue: copy.companySetup })}

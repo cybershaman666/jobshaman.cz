@@ -2229,7 +2229,24 @@
     "language": "Language",
     "more": "More",
     "switch_to_candidate": "Switch to candidate",
-    "open_profile": "Open profile"
+    "open_profile": "Open profile",
+    "shell": {
+      "overview": "What's in play now",
+      "browse_feed": "Browse the feed",
+      "quick_gigs": "Quick gigs",
+      "search_label": "Search and filters",
+      "search_placeholder": "Search challenges, teams, role types, or signal words",
+      "location_placeholder": "City, region, remote",
+      "search_submit": "Search",
+      "companies": "For companies",
+      "remote_only": "Remote only",
+      "commute_max": "Commute max {{km}} km",
+      "at_least": "At least",
+      "ai_line": "AI reads your context, rewrites messy queries, and sorts the feed more intelligently.",
+      "ai_badge": "AI discovery",
+      "light_mode": "Light mode",
+      "dark_mode": "Dark mode"
+    }
   },
   "assessment": {
     "taker": {
@@ -4400,5 +4417,36 @@
     "completed_primary": "Create company account",
     "completed_secondary": "Back to company landing",
     "completed_restart": "Run demo again"
+  },
+  "workspace": {
+    "feed": {
+      "post_lead": "Want to post a challenge? You can only do that from your",
+      "profile": "profile",
+      "post_tail": "or from the company dashboard.",
+      "swipe": "Swipe",
+      "feed": "Feed",
+      "swipe_title": "Swipe should be the default on mobile",
+      "swipe_body": "Tap opens details, left and right swipes help you sort through roles quickly without friction.",
+      "ai_title": "AI is reading context behind the scenes",
+      "ai_body": "This is not just keyword search. AI reads your profile, commute reality, and direction of travel, then explains why a role surfaced.",
+      "ai_bullets": [
+        "reads target role and seniority",
+        "shows why you are seeing this",
+        "pushes irrelevant directions down"
+      ],
+      "auth_body": "After sign-up, saved and rejected roles persist and recommendations become smarter over time.",
+      "address_title": "Add your address to make swipe actually useful",
+      "address_body": "Without an address, nearby-role and commute relevance stay fuzzy. With it, local recommendations get much better.",
+      "auth_cta": "Register",
+      "address_cta": "Add address",
+      "later": "Later"
+    },
+    "toolbar": {
+      "ai_badge": "AI shapes the feed order",
+      "taxonomy": "Nearby worlds",
+      "hierarchy": "Big picture",
+      "helper": "Context, intent, and fit signals steer the order.",
+      "filters": "Filters"
+    }
   }
 }

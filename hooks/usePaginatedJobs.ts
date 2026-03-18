@@ -1,119 +1,31 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DiscoveryFilterSource, DiscoveryFilterSourceMap, Job, JobSearchFilters, SearchDiagnosticsMeta, SearchLanguageCode, UserProfile } from '../types';
-import { dedupeJobsList, fetchExternalOverlayJobs, fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
-import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
+import { Job, SearchDiagnosticsMeta, UserProfile } from '../types';
+import { dedupeJobsList } from '../services/jobService';
 import AnalyticsService from '../services/analyticsService';
-import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState, updateInteractionStateCache } from '../services/jobInteractionService';
 import { getCandidateIntentDomainSeedKeyword, getCandidateIntentDomainLabel, getCandidateIntentRoleSeedKeyword, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 import { recordRuntimeSignal } from '../services/runtimeSignals';
-import { isRemoteJob } from '../services/commuteService';
-import { resolveSearchMode } from '../services/searchModeResolver';
-
-// Infer country code from address text (best-effort)
-const getCountryCodeFromAddress = (address: string): string | null => {
-    if (!address) return null;
-    const loc = address.toLowerCase();
-    if (loc.includes('canada') || loc.includes('toronto') || loc.includes('vancouver') || loc.includes('montreal')) return 'CA';
-    if (loc.includes('united states') || loc.includes('usa') || loc.includes('new york') || loc.includes('california') || loc.includes('texas')) return 'US';
-    if (loc.includes('united kingdom') || loc.includes('uk') || loc.includes('london') || loc.includes('manchester')) return 'GB';
-    if (loc.includes('netherlands') || loc.includes('nederland') || loc.includes('amsterdam') || loc.includes('rotterdam')) return 'NL';
-    if (loc.includes('france') || loc.includes('franc') || loc.includes('paris') || loc.includes('lyon')) return 'FR';
-    if (loc.includes('spain') || loc.includes('espa') || loc.includes('madrid') || loc.includes('barcelona')) return 'ES';
-    if (loc.includes('italy') || loc.includes('italia') || loc.includes('rome') || loc.includes('milan')) return 'IT';
-    if (loc.includes('romania') || loc.includes('bucharest') || loc.includes('bucure')) return 'RO';
-    if (loc.includes('hungary') || loc.includes('budapest')) return 'HU';
-    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
-    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'PL';
-    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'DE';
-    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'AT';
-    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'CZ';
-    return null;
-};
-
-const getCountryCodeFromJobSource = (job: Job): string | null => {
-    const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
-    if (!haystack.trim()) return null;
-    if (haystack.includes('karriere.at')) return 'AT';
-    if (haystack.includes('germantechjobs')) return 'DE';
-    if (haystack.includes('stepstone.de')) return 'DE';
-    if (haystack.includes('stepstone.at')) return 'AT';
-    if (haystack.includes('pracuj.pl')) return 'PL';
-    if (haystack.includes('profesia.sk')) return 'SK';
-    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) return 'CZ';
-    return null;
-};
-
-// Infer country code from language (best-effort)
-const getCountryCodeFromLanguage = (lng?: string): string | null => {
-    if (!lng) return null;
-    const normalized = String(lng || '').trim().toLowerCase().replace(/_/g, '-');
-    if (normalized === 'at' || normalized.endsWith('-at')) return 'AT';
-    const code = normalized.split('-')[0];
-    if (code === 'cs') return 'CZ';
-    if (code === 'sk') return 'SK';
-    if (code === 'de') return 'DE';
-    if (code === 'pl') return 'PL';
-    if (code === 'at') return 'AT';
-    return null;
-};
-
-const getDefaultLanguageCodesFromLocale = (lng?: string): SearchLanguageCode[] => {
-    const code = String(lng || '').split('-')[0].toLowerCase();
-    if (code === 'cs') return ['cs'];
-    if (code === 'sk') return ['sk'];
-    if (code === 'de' || code === 'at') return ['de'];
-    if (code === 'pl') return ['pl'];
-    if (code === 'en') return ['en'];
-    return [];
-};
-
-const getDefaultLanguageCodesFromCountryCodes = (codes: string[]): SearchLanguageCode[] => {
-    const normalized = normalizeCountryCodes(codes);
-    const primary = normalized[0];
-    if (!primary) return [];
-    if (primary === 'CZ' || primary === 'CS') return ['cs'];
-    if (primary === 'SK') return ['sk'];
-    if (primary === 'PL') return ['pl'];
-    if (primary === 'DE' || primary === 'AT') return ['de'];
-    return [];
-};
-
-const expandCountryAliases = (countryCode?: string | null): string[] => {
-    const normalized = String(countryCode || '').trim().toUpperCase();
-    if (!normalized) return [];
-    if (normalized === 'CZ' || normalized === 'CS') return ['CZ', 'CS'];
-    if (normalized === 'SK') return ['SK'];
-    if (normalized === 'PL') return ['PL'];
-    if (normalized === 'DE') return ['DE'];
-    if (normalized === 'AT') return ['AT'];
-    return [];
-};
-
-const sameCountryCodeSet = (left: string[], right: string[]): boolean => {
-    const canon = (values: string[]) =>
-        (values || []).map((v) => String(v || '').trim().toUpperCase()).filter(Boolean).sort();
-    const a = canon(left);
-    const b = canon(right);
-    if (a.length !== b.length) return false;
-    return a.every((code, idx) => code === b[idx]);
-};
-
-const sameStringArray = (left: string[], right: string[]): boolean => {
-    const normalize = (values: string[]) =>
-        (values || []).map((value) => String(value || '').trim()).filter(Boolean);
-    const a = normalize(left);
-    const b = normalize(right);
-    if (a.length !== b.length) return false;
-    return a.every((value, index) => value === b[index]);
-};
-
-const getLogicalCountryCount = (codes: string[]): number => {
-    const canonical = new Set(
-        normalizeCountryCodes(codes).map((code) => (code === 'CS' ? 'CZ' : code))
-    );
-    return canonical.size;
-};
+import useDiscoveryFilters, {
+    normalizeCountryCodes,
+    sameCountryCodeSet,
+} from './useDiscoveryFilters';
+import useJobInteractionState from './useJobInteractionState';
+import {
+    applyExternalOverlayJobFilters,
+    resolveDiscoveryCoordinates,
+    runAsyncExternalOverlay,
+    runFilteredFetchPipeline,
+    runSimplePaginationPipeline,
+} from './discovery/discoveryFetchPipeline';
+import {
+    calculateDistanceKm,
+    createDomesticCountrySafeguard,
+    getCountryCodeFromAddress,
+    getLogicalCountryCount,
+    getSourceMixCounts,
+    inferJobCountryCode,
+    inferJobLanguageCode,
+} from './discovery/discoverySafeguards';
 
 interface UsePaginatedJobsProps {
     userProfile: UserProfile;
@@ -125,124 +37,6 @@ interface UsePaginatedJobsProps {
 
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
 const JOBS_FEED_CACHE_MAX = 80;
-const LEGACY_SAVED_JOBS_KEY = 'savedJobIds';
-const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
-const SAVED_JOB_IDS_PREFIX = 'savedJobIds';
-const DISMISSED_JOB_IDS_PREFIX = 'dismissedJobIds';
-
-const normalizeCountryCodes = (codes: string[]): string[] => {
-    if (!codes || codes.length === 0) return [];
-    const uppered = codes.map(c => String(c || '').trim().toUpperCase()).filter(Boolean);
-    const hasCs = uppered.includes('CS');
-    const hasCz = uppered.includes('CZ');
-    const expanded = (hasCs || hasCz)
-        ? Array.from(new Set([...uppered.filter(c => c !== 'CS' && c !== 'CZ'), 'CZ', 'CS']))
-        : uppered;
-    return expanded;
-};
-
-const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const toRad = (degrees: number) => degrees * (Math.PI / 180);
-    const earthRadiusKm = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return earthRadiusKm * c;
-};
-
-const inferJobCountryCode = (job: Job): string | null => {
-    const explicit = expandCountryAliases(job.country_code)[0];
-    const fromLocation = getCountryCodeFromAddress(job.location || '');
-    const fromSource = getCountryCodeFromJobSource(job);
-
-    // If the DB country code and strong location/source signals disagree,
-    // trust the visible market signal to avoid obvious mismatches like
-    // "Berlin" inside an Austrian-only feed.
-    const contradictionSignal = fromLocation || fromSource;
-    if (explicit && contradictionSignal && contradictionSignal !== explicit) {
-        return contradictionSignal;
-    }
-    if (explicit) return explicit;
-    if (fromLocation) return fromLocation;
-    return fromSource;
-};
-
-const inferJobLanguageCode = (job: Job): string | null => {
-    const explicit = String(job.language_code || '').trim().toLowerCase();
-    const scores = new Map<string, number>();
-    const addScore = (code: string, score: number) => {
-        if (!code || score <= 0) return;
-        scores.set(code, (scores.get(code) || 0) + score);
-    };
-
-    if (explicit) {
-        addScore(explicit, 1);
-    }
-
-    const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
-    if (haystack.includes('jobs.cz') || haystack.includes('prace.cz')) addScore('cs', 4);
-    if (haystack.includes('profesia.sk')) addScore('sk', 4);
-    if (haystack.includes('pracuj.pl')) addScore('pl', 4);
-    if (haystack.includes('karriere.at') || haystack.includes('stepstone.de') || haystack.includes('germantechjobs')) addScore('de', 4);
-
-    const inferredCountry = inferJobCountryCode(job);
-    if (inferredCountry === 'CZ') addScore('cs', 1);
-    if (inferredCountry === 'SK') addScore('sk', 1);
-    if (inferredCountry === 'PL') addScore('pl', 1);
-    if (inferredCountry === 'DE' || inferredCountry === 'AT') addScore('de', 1);
-    if (inferredCountry === 'US' || inferredCountry === 'GB') addScore('en', 1);
-
-    const textHaystack = `${job.title || ''} ${job.description || ''} ${job.location || ''}`.toLowerCase();
-    const scoreLanguage = (patterns: RegExp[]): number =>
-        patterns.reduce((score, pattern) => score + (pattern.test(textHaystack) ? 1 : 0), 0);
-
-    const csScore = scoreLanguage([
-        /\b(práce|pozice|nástup|nabízíme|požadujeme|benefity|mzda|úvazek|praxe|kancelář|domova)\b/i,
-        /[ěščřžýáíéúůťďň]/i,
-        /\b(brno|praha|ostrava|plzeň|olomouc|pardubice|hradec králové|české budějovice)\b/i,
-    ]);
-    const skScore = scoreLanguage([
-        /\b(práca|pozícia|nástup|ponúkame|požadujeme|benefity|mzda|úväzok|prax|kancelária|domu)\b/i,
-        /\b(bratislava|košice|žilina|trnava|nitra|prešov|banská bystrica)\b/i,
-    ]);
-    const plScore = scoreLanguage([
-        /\b(praca|stanowisko|oferujemy|wymagamy|benefity|wynagrodzenie|etat|biuro)\b/i,
-        /[ąćęłńóśźż]/i,
-        /\b(warszawa|kraków|wrocław|gdańsk|poznań|łódź)\b/i,
-    ]);
-    const deScore = scoreLanguage([
-        /\b(stelle|wir bieten|anforderungen|gehalt|vollzeit|teilzeit|büro|homeoffice)\b/i,
-        /[äöüß]/i,
-        /\b(wien|vienna|berlin|münchen|hamburg|graz|linz|salzburg)\b/i,
-    ]);
-    const enScore = scoreLanguage([
-        /\b(we offer|requirements|salary|benefits|full-time|part-time|remote|office)\b/i,
-        /\b(london|new york|united states|united kingdom|usa|uk)\b/i,
-    ]);
-
-    addScore('cs', csScore);
-    addScore('sk', skScore);
-    addScore('pl', plScore);
-    addScore('de', deScore);
-    addScore('en', enScore);
-
-    const ranked = Array.from(scores.entries())
-        .map(([code, score]) => ({ code, score }))
-        .sort((left, right) => right.score - left.score);
-
-    if (ranked[0]?.score && ranked[0].score >= 2) {
-        if (ranked[1] && ranked[0].score === ranked[1].score) {
-            return null;
-        }
-        return ranked[0].code;
-    }
-
-    return null;
-};
 
 // Global deduper helper to prevent repeated logical listings in feed and React key warnings.
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
@@ -264,32 +58,6 @@ const normalizeContractTypeFilter = (value: string): string => {
     if (normalized === 'dpp') return 'dpp';
     if (normalized === 'dpc') return 'dpc';
     return normalized;
-};
-
-type DiscoveryFilterField = keyof DiscoveryFilterSourceMap;
-
-const DEFAULT_FILTER_SOURCES: DiscoveryFilterSourceMap = {
-    searchTerm: 'default',
-    filterCity: 'default',
-    filterContractTypes: 'default',
-    filterBenefits: 'default',
-    filterMinSalary: 'default',
-    filterDatePosted: 'default',
-    filterExperienceLevels: 'default',
-    filterMaxDistance: 'default',
-    enableCommuteFilter: 'default',
-    filterLanguageCodes: 'default',
-    globalSearch: 'default',
-    abroadOnly: 'default',
-    remoteOnly: 'default',
-};
-
-const getSourceMixCounts = (jobs: Job[]): NonNullable<SearchDiagnosticsMeta['source_mix']> => {
-    return jobs.reduce<NonNullable<SearchDiagnosticsMeta['source_mix']>>((acc, job) => {
-        const source = job.searchDiagnostics?.source || (job.listingKind === 'imported' ? 'cached_external' : 'native');
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-    }, {});
 };
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = true, microJobsOnly = false, remoteOnly = false }: UsePaginatedJobsProps) => {
@@ -316,27 +84,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const previousLocaleIdentityRef = useRef<string | null>(null);
     const hasHandledInitialSortFetchRef = useRef(false);
     const hasRunFilterEffectRef = useRef(false);
+    const lastAppliedProfileDefaultsSignatureRef = useRef<string | null>(null);
     const pendingHardRefreshRef = useRef(false);
-    const defaultCountryCodes = useMemo(() => {
-        const fromPreference = expandCountryAliases(userProfile.preferredCountryCode);
-        if (fromPreference.length > 0) return fromPreference;
-
-        const fromAddress = expandCountryAliases(getCountryCodeFromAddress(userProfile.address));
-        if (fromAddress.length > 0) return fromAddress;
-
-        return expandCountryAliases(getCountryCodeFromLanguage(i18n.language));
-    }, [i18n.language, userProfile.address, userProfile.preferredCountryCode]);
-    const [countryCodes, setCountryCodes] = useState<string[]>(() => defaultCountryCodes);
-    const defaultLanguageCodes = useMemo(() => {
-        const fromActiveDomesticMarket = getDefaultLanguageCodesFromCountryCodes(countryCodes);
-        if (fromActiveDomesticMarket.length > 0) return fromActiveDomesticMarket;
-
-        const fromPreferredDomesticMarket = getDefaultLanguageCodesFromCountryCodes(defaultCountryCodes);
-        if (fromPreferredDomesticMarket.length > 0) return fromPreferredDomesticMarket;
-
-        return getDefaultLanguageCodesFromLocale(i18n.language);
-    }, [countryCodes, defaultCountryCodes, i18n.language]);
-
     const [jobs, setJobs] = useState<Job[]>(() => {
         try {
             const cached = localStorage.getItem(JOBS_FEED_CACHE_KEY);
@@ -353,81 +102,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [hasMore, setHasMore] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
-    const [searchTerm, setSearchTerm] = useState('');
     const [impressionSessionKey, setImpressionSessionKey] = useState(() => `impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const [backendUnreachable, setBackendUnreachable] = useState(false);
     const [searchDiagnostics, setSearchDiagnostics] = useState<SearchDiagnosticsMeta | null>(null);
-
-    // Filter state
-    const [filterCity, setFilterCity] = useState('');
-    const [filterMaxDistance, setFilterMaxDistance] = useState<number>(50);
-    const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
-    const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
-    const [filterContractType, setFilterContractType] = useState<string[]>([]);
-    const [filterDate, setFilterDate] = useState<string>('all'); // all, 24h, 3d, 7d, 14d
-    const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
-    const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
-    const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
-    const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
-    const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0);
-    const [abroadOnly, setAbroadOnly] = useState(false);
-    const [sortBy, setSortBy] = useState<string>('newest'); // newest | distance | jhi_desc | salary_desc
-    const [filterSources, setFilterSources] = useState<DiscoveryFilterSourceMap>(DEFAULT_FILTER_SOURCES);
-    const marketBaselineCountryCodes = useMemo(() => {
-        const normalizedCurrent = normalizeCountryCodes(countryCodes);
-        if (
-            normalizedCurrent.length === 1 &&
-            !globalSearch &&
-            !abroadOnly &&
-            filterSources.globalSearch !== 'user_toggle' &&
-            filterSources.abroadOnly !== 'user_toggle'
-        ) {
-            return normalizedCurrent;
-        }
-        return defaultCountryCodes;
-    }, [abroadOnly, countryCodes, defaultCountryCodes, filterSources.abroadOnly, filterSources.globalSearch, globalSearch]);
-    const normalizedDefaultDomesticCountries = useMemo(
-        () => normalizeCountryCodes(marketBaselineCountryCodes),
-        [marketBaselineCountryCodes]
-    );
-
-    // Prevent state churn when callers keep re-setting equivalent country arrays.
-    const setCountryCodesSafe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
-        setCountryCodes(prev => {
-            const nextRaw = typeof value === 'function' ? value(prev) : value;
-            const next = normalizeCountryCodes(nextRaw || []);
-            const prevNorm = normalizeCountryCodes(prev || []);
-            if (sameCountryCodeSet(prevNorm, next)) return prev;
-            return next;
-        });
-    }, []);
-
-    const implicitLanguageCodesApplied = useMemo(() => {
-        const hasCountryOverride = !sameCountryCodeSet(
-            normalizeCountryCodes(countryCodes),
-            normalizeCountryCodes(marketBaselineCountryCodes)
-        );
-        if (!enableAutoLanguageGuard) return [];
-        const hasAnyFilters =
-            !!searchTerm ||
-            !!filterCity ||
-            filterContractType.length > 0 ||
-            filterBenefits.length > 0 ||
-            !!filterMinSalary ||
-            filterDate !== 'all' ||
-            filterExperience.length > 0 ||
-            enableCommuteFilter ||
-            sortBy !== 'newest' ||
-            filterLanguageCodes.length > 0 ||
-            abroadOnly ||
-            remoteOnly ||
-            hasCountryOverride;
-        if (globalSearch) return [];
-        if (hasAnyFilters) return [];
-        if (defaultLanguageCodes.length === 0) return [];
-        return defaultLanguageCodes;
-    }, [
+    const {
         abroadOnly,
+        applyDiscoveryDefaults,
+        countryCodes,
+        defaultCountryCodes,
         defaultLanguageCodes,
         enableAutoLanguageGuard,
         enableCommuteFilter,
@@ -437,63 +119,40 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         filterDate,
         filterExperience,
         filterLanguageCodes,
+        filterMaxDistance,
         filterMinSalary,
+        filterSources,
         globalSearch,
-        remoteOnly,
+        hasExplicitLanguageFilter,
+        implicitLanguageCodesApplied,
+        marketBaselineCountryCodes,
+        normalizedDefaultDomesticCountries,
+        resetDiscoveryFilters,
+        searchMode,
         searchTerm,
         sortBy,
-        countryCodes,
-        marketBaselineCountryCodes,
-    ]);
-
-    const hasExplicitLanguageFilter = filterSources.filterLanguageCodes === 'user_toggle' && filterLanguageCodes.length > 0;
-
-    const searchMode = useMemo(
-        () => resolveSearchMode({
-            searchTerm,
-            filterSources,
-            filterCity,
-            filterContractType,
-            filterBenefits,
-            filterMinSalary,
-            filterDate,
-            filterExperience,
-            enableCommuteFilter,
-            filterLanguageCodes,
-            globalSearch,
-            abroadOnly,
-            remoteOnly,
-            countryCodes,
-            defaultCountryCodes: marketBaselineCountryCodes,
-        }),
-        [
-            abroadOnly,
-            countryCodes,
-            marketBaselineCountryCodes,
-            enableCommuteFilter,
-            filterBenefits,
-            filterCity,
-            filterContractType,
-            filterDate,
-            filterExperience,
-            filterLanguageCodes,
-            filterMinSalary,
-            filterSources,
-            globalSearch,
-            remoteOnly,
-            searchTerm,
-        ]
-    );
-
-    useEffect(() => {
-        if (!enableAutoLanguageGuard) return;
-        if (filterSources.filterLanguageCodes === 'user_toggle') return;
-        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
-    }, [
-        defaultLanguageCodes,
-        enableAutoLanguageGuard,
-        filterSources.filterLanguageCodes,
-    ]);
+        setAbroadOnly: setAbroadOnlyTracked,
+        setCountryCodes: setCountryCodesSafe,
+        setEnableAutoLanguageGuard,
+        setEnableCommuteFilter: setEnableCommuteFilterTracked,
+        setFilterBenefits: setFilterBenefitsTracked,
+        setFilterCity: setFilterCityTracked,
+        setFilterContractType: setFilterContractTypeTracked,
+        setFilterDate: setFilterDateTracked,
+        setFilterExperience: setFilterExperienceTracked,
+        setFilterLanguageCodes: setFilterLanguageCodesTracked,
+        setFilterMaxDistance: setFilterMaxDistanceTracked,
+        setFilterMinSalary: setFilterMinSalaryTracked,
+        setFilterSources,
+        setGlobalSearch: setGlobalSearchTracked,
+        setSearchTerm: setSearchTermTracked,
+        setSortBy,
+    } = useDiscoveryFilters({
+        userProfile,
+        locale: i18n.language,
+        remoteOnly,
+        getCountryCodeFromAddress,
+    });
 
     useEffect(() => {
         if (previousLocaleIdentityRef.current === null) {
@@ -505,7 +164,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
 
         previousLocaleIdentityRef.current = localeIdentity;
-        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
+        setFilterLanguageCodesTracked((prev) => (prev.length > 0 ? [] : prev), 'default');
         setEnableAutoLanguageGuard(true);
         setFilterSources((prev) => {
             if (prev.filterLanguageCodes === 'default') return prev;
@@ -513,413 +172,33 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         });
     }, [localeIdentity]);
 
-    useEffect(() => {
-        if (filterSources.filterLanguageCodes === 'user_toggle') return;
-        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
-        setEnableAutoLanguageGuard(true);
-    }, [defaultCountryCodes, filterSources.filterLanguageCodes]);
+    const {
+        applyInteractionState,
+        dismissedJobIds,
+        filterDismissedJobs,
+        savedJobIds,
+        setDismissedJobIds,
+        setSavedJobIds,
+    } = useJobInteractionState({
+        enabled,
+        userProfile,
+    });
 
-    const updateFilterSource = useCallback((field: DiscoveryFilterField, source: DiscoveryFilterSource) => {
-        setFilterSources((prev) => {
-            if (prev[field] === source) return prev;
-            return { ...prev, [field]: source };
-        });
-    }, []);
-
-    const setSearchTermTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setSearchTerm((prev) => (prev === value ? prev : value));
-        updateFilterSource('searchTerm', source);
-    }, [updateFilterSource]);
-
-    const setFilterCityTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterCity((prev) => (prev === value ? prev : value));
-        updateFilterSource('filterCity', source);
-    }, [updateFilterSource]);
-
-    const setFilterMaxDistanceTracked = useCallback((value: number, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterMaxDistance((prev) => (prev === value ? prev : value));
-        updateFilterSource('filterMaxDistance', source);
-    }, [updateFilterSource]);
-
-    const setEnableCommuteFilterTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setEnableCommuteFilter((prev) => (prev === value ? prev : value));
-        updateFilterSource('enableCommuteFilter', source);
-    }, [updateFilterSource]);
-
-    const setFilterBenefitsTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterBenefits((prev) => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return sameStringArray(prev, next) ? prev : next;
-        });
-        updateFilterSource('filterBenefits', source);
-    }, [updateFilterSource]);
-
-    const setFilterContractTypeTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterContractType((prev) => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return sameStringArray(prev, next) ? prev : next;
-        });
-        updateFilterSource('filterContractTypes', source);
-    }, [updateFilterSource]);
-
-    const setFilterDateTracked = useCallback((value: string, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterDate((prev) => (prev === value ? prev : value));
-        updateFilterSource('filterDatePosted', source);
-    }, [updateFilterSource]);
-
-    const setFilterMinSalaryTracked = useCallback((value: number, source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterMinSalary((prev) => (prev === value ? prev : value));
-        updateFilterSource('filterMinSalary', source);
-    }, [updateFilterSource]);
-
-    const setFilterExperienceTracked = useCallback((value: string[] | ((prev: string[]) => string[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterExperience((prev) => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return sameStringArray(prev, next) ? prev : next;
-        });
-        updateFilterSource('filterExperienceLevels', source);
-    }, [updateFilterSource]);
-
-    const setFilterLanguageCodesTracked = useCallback((value: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source: DiscoveryFilterSource = 'user_toggle') => {
-        setFilterLanguageCodes((prev) => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return sameStringArray(prev, next) ? prev : next;
-        });
-        updateFilterSource('filterLanguageCodes', source);
-    }, [updateFilterSource]);
-
-    const setGlobalSearchTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setGlobalSearch((prev) => (prev === value ? prev : value));
-        updateFilterSource('globalSearch', source);
-    }, [updateFilterSource]);
-
-    const setAbroadOnlyTracked = useCallback((value: boolean, source: DiscoveryFilterSource = 'user_toggle') => {
-        setAbroadOnly((prev) => (prev === value ? prev : value));
-        updateFilterSource('abroadOnly', source);
-    }, [updateFilterSource]);
-
-    const applyDiscoveryDefaults = useCallback((filters: JobSearchFilters) => {
-        if (filterSources.searchTerm !== 'user_toggle' && filters.searchTerm !== undefined) {
-            setSearchTermTracked(filters.searchTerm || '', 'default');
-        }
-        if (filterSources.filterCity !== 'user_toggle' && filters.filterCity !== undefined) {
-            setFilterCityTracked(filters.filterCity || '', 'default');
-        }
-        if (filterSources.filterMinSalary !== 'user_toggle' && filters.filterMinSalary !== undefined) {
-            setFilterMinSalaryTracked(filters.filterMinSalary || 0, 'default');
-        }
-        if (filterSources.filterBenefits !== 'user_toggle' && filters.filterBenefits !== undefined) {
-            setFilterBenefitsTracked(Array.isArray(filters.filterBenefits) ? filters.filterBenefits : [], 'default');
-        }
-        if (filterSources.filterContractTypes !== 'user_toggle' && filters.filterContractTypes !== undefined) {
-            setFilterContractTypeTracked(Array.isArray(filters.filterContractTypes) ? filters.filterContractTypes : [], 'default');
-        }
-        if (filterSources.filterDatePosted !== 'user_toggle' && filters.filterDatePosted !== undefined) {
-            setFilterDateTracked(filters.filterDatePosted || 'all', 'default');
-        }
-        if (filterSources.filterExperienceLevels !== 'user_toggle' && filters.filterExperienceLevels !== undefined) {
-            setFilterExperienceTracked(Array.isArray(filters.filterExperienceLevels) ? filters.filterExperienceLevels : [], 'default');
-        }
-        if (filterSources.filterLanguageCodes !== 'user_toggle' && filters.filterLanguageCodes !== undefined) {
-            setFilterLanguageCodesTracked(Array.isArray(filters.filterLanguageCodes) ? filters.filterLanguageCodes : [], 'default');
-        }
-        if (filterSources.enableCommuteFilter !== 'user_toggle' && filters.enableCommuteFilter !== undefined) {
-            setEnableCommuteFilterTracked(Boolean(filters.enableCommuteFilter), 'default');
-        }
-        if (filterSources.filterMaxDistance !== 'user_toggle' && filters.filterMaxDistance !== undefined) {
-            setFilterMaxDistanceTracked(filters.filterMaxDistance || 50, 'default');
-        }
-        if (filterSources.globalSearch !== 'user_toggle' && filters.globalSearch !== undefined) {
-            setGlobalSearchTracked(Boolean(filters.globalSearch), 'default');
-        }
-        if (filterSources.abroadOnly !== 'user_toggle' && filters.abroadOnly !== undefined) {
-            setAbroadOnlyTracked(Boolean(filters.abroadOnly), 'default');
-        }
-    }, [
-        filterSources,
-        setAbroadOnlyTracked,
-        setEnableCommuteFilterTracked,
-        setFilterBenefitsTracked,
-        setFilterCityTracked,
-        setFilterContractTypeTracked,
-        setFilterDateTracked,
-        setFilterExperienceTracked,
-        setFilterLanguageCodesTracked,
-        setFilterMaxDistanceTracked,
-        setFilterMinSalaryTracked,
-        setGlobalSearchTracked,
-        setSearchTermTracked,
-    ]);
-
-    const savedJobStorageKey = `${SAVED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
-    const dismissedJobStorageKey = `${DISMISSED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
-
-    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
-    const [dismissedJobIds, setDismissedJobIds] = useState<string[]>([]);
-    const savedJobIdsRef = useRef<Set<string>>(new Set());
-    const dismissedJobIdsRef = useRef<Set<string>>(new Set());
-    const interactionStateHydratedRef = useRef(false);
-    const lastInteractionSyncSignatureRef = useRef<string>('');
-    const interactionSyncTimerRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        savedJobIdsRef.current = new Set(savedJobIds);
-    }, [savedJobIds]);
-
-    useEffect(() => {
-        dismissedJobIdsRef.current = new Set(dismissedJobIds);
-    }, [dismissedJobIds]);
-
-    const filterDismissedJobs = useCallback((list: Job[]) => {
-        const dismissed = dismissedJobIdsRef.current;
-        if (!dismissed.size || !list.length) return list;
-        const filtered = list.filter((job) => !dismissed.has(job.id));
-        if (filtered.length === 0 && list.length > 0) {
-            recordRuntimeSignal('custom:dismissed_feed_fail_open', {
-                original_count: list.length,
-                dismissed_count: dismissed.size,
-            }, {
-                dedupeKey: `dismissed-feed-fail-open:${list.length}:${dismissed.size}`,
-                throttleMs: 30_000,
-            });
-            return list;
-        }
-        return filtered;
-    }, []);
-
-    const applyDomesticCountrySafeguard = useCallback((list: Job[]) => {
-        if (list.length === 0) {
-            return list;
-        }
-
-        const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
-        const isDefaultCountrySelection = sameCountryCodeSet(
-            normalizedCountryCodes,
-            normalizeCountryCodes(marketBaselineCountryCodes)
-        );
-
-        // If the user is using a commute radius and didn't explicitly narrow countries,
-        // don't drop cross-border jobs that are still inside the circle.
-        const shouldAllowCrossBorderRadius =
-            enableCommuteFilter &&
-            !globalSearch &&
-            !abroadOnly &&
-            isDefaultCountrySelection;
-
-        const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
-            ? new Set(normalizedCountryCodes)
-            : null;
-        const allowedLanguageCodes = filterLanguageCodes.length > 0
-            ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
-            : null;
-        const hasExplicitLanguageFilter = allowedLanguageCodes !== null;
-
-        const safeguarded = list.filter((job) => {
-            if (allowedCountryCodes) {
-                const inferredCountry = inferJobCountryCode(job);
-                if (!inferredCountry || !allowedCountryCodes.has(inferredCountry)) {
-                    return false;
-                }
-            }
-
-            if (allowedLanguageCodes) {
-                const explicitLanguage = String(job.language_code || '').trim().toLowerCase();
-                const resolvedLanguage = explicitLanguage || inferJobLanguageCode(job);
-                if (!resolvedLanguage || !allowedLanguageCodes.has(resolvedLanguage)) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-        if (safeguarded.length === 0 && list.length > 0 && !hasExplicitLanguageFilter && !allowedCountryCodes) {
-            recordRuntimeSignal('custom:domestic_safeguard_fail_open', {
-                original_count: list.length,
-                allowed_country_codes: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
-                allowed_language_codes: allowedLanguageCodes ? Array.from(allowedLanguageCodes) : [],
-            }, {
-                dedupeKey: JSON.stringify({
-                    originalCount: list.length,
-                    countries: allowedCountryCodes ? Array.from(allowedCountryCodes) : [],
-                    languages: allowedLanguageCodes ? Array.from(allowedLanguageCodes) : [],
-                }),
-                throttleMs: 30_000,
-            });
-            return list;
-        }
-        return safeguarded;
-    }, [
-        abroadOnly,
+    const applyDomesticCountrySafeguard = useMemo(() => createDomesticCountrySafeguard({
         countryCodes,
         marketBaselineCountryCodes,
-        defaultLanguageCodes,
-        enableAutoLanguageGuard,
         enableCommuteFilter,
-        filterSources.abroadOnly,
-        filterSources.globalSearch,
-        filterBenefits,
-        filterCity,
-        filterContractType,
-        filterDate,
-        filterExperience,
-        filterLanguageCodes,
-        filterMinSalary,
         globalSearch,
-        searchTerm,
+        abroadOnly,
+        filterLanguageCodes,
+    }), [
+        abroadOnly,
+        countryCodes,
+        enableCommuteFilter,
+        filterLanguageCodes,
+        globalSearch,
+        marketBaselineCountryCodes,
     ]);
-
-    useEffect(() => {
-        const readIds = (key: string): string[] => {
-            try {
-                const raw = localStorage.getItem(key);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) return [];
-                return parsed.map((id: unknown) => String(id));
-            } catch {
-                return [];
-            }
-        };
-        const readSavedJobIdsFromCache = (key: string): string[] => {
-            try {
-                const raw = localStorage.getItem(key);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed !== 'object') return [];
-                return Object.keys(parsed).map((id) => String(id)).filter(Boolean);
-            } catch {
-                return [];
-            }
-        };
-
-        const saved = readIds(savedJobStorageKey);
-        const dismissed = readIds(dismissedJobStorageKey);
-        const cachedSaved = readSavedJobIdsFromCache(`${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`);
-        const mergedSaved = saved.length > 0 ? saved : cachedSaved;
-        if (!userProfile.id && saved.length === 0) {
-            const legacy = readIds(LEGACY_SAVED_JOBS_KEY);
-            const legacyMerged = legacy.length > 0 ? legacy : cachedSaved;
-            setSavedJobIds(Array.from(new Set(legacyMerged)).filter((id) => !dismissed.includes(id)));
-        } else {
-            setSavedJobIds(Array.from(new Set(mergedSaved)).filter((id) => !dismissed.includes(id)));
-        }
-        setDismissedJobIds(Array.from(new Set(dismissed)));
-    }, [savedJobStorageKey, dismissedJobStorageKey, userProfile.id]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(savedJobStorageKey, JSON.stringify(savedJobIds));
-            if (!userProfile.id) {
-                localStorage.setItem(LEGACY_SAVED_JOBS_KEY, JSON.stringify(savedJobIds));
-            }
-        } catch (error) {
-            console.error('Error saving jobs to localStorage:', error);
-        }
-    }, [savedJobIds, savedJobStorageKey, userProfile.id]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(dismissedJobStorageKey, JSON.stringify(dismissedJobIds));
-        } catch (error) {
-            console.error('Error saving dismissed jobs to localStorage:', error);
-        }
-    }, [dismissedJobIds, dismissedJobStorageKey]);
-
-    useEffect(() => {
-        updateInteractionStateCache({
-            savedJobIds,
-            dismissedJobIds,
-        });
-    }, [savedJobIds, dismissedJobIds]);
-
-    useEffect(() => {
-        if (!enabled) return;
-        if (!userProfile.isLoggedIn || !userProfile.id) return;
-        if (!interactionStateHydratedRef.current) return;
-
-        const normalizeIds = (list: string[]) => Array.from(new Set(list.map((id) => String(id)))).sort();
-        const nextSaved = normalizeIds(savedJobIds);
-        const nextDismissed = normalizeIds(dismissedJobIds).filter((id) => !nextSaved.includes(id));
-        const signature = JSON.stringify({ saved: nextSaved, dismissed: nextDismissed });
-        if (signature === lastInteractionSyncSignatureRef.current) return;
-
-        if (interactionSyncTimerRef.current) {
-            window.clearTimeout(interactionSyncTimerRef.current);
-        }
-
-        interactionSyncTimerRef.current = window.setTimeout(() => {
-            void (async () => {
-                const payload = {
-                    savedJobIds: nextSaved,
-                    dismissedJobIds: nextDismissed,
-                    clientUpdatedAt: new Date().toISOString(),
-                    source: 'client_state_sync'
-                };
-                const result = await syncJobInteractionState(payload);
-                if (result) {
-                    const canonicalSaved = normalizeIds(result.savedJobIds || []);
-                    const canonicalDismissed = normalizeIds(result.dismissedJobIds || []).filter((id) => !canonicalSaved.includes(id));
-                    const canonicalSignature = JSON.stringify({ saved: canonicalSaved, dismissed: canonicalDismissed });
-                    lastInteractionSyncSignatureRef.current = canonicalSignature;
-                    if (canonicalSignature !== signature) {
-                        setSavedJobIds(canonicalSaved);
-                        setDismissedJobIds(canonicalDismissed);
-                    }
-                } else {
-                    lastInteractionSyncSignatureRef.current = signature;
-                }
-            })();
-        }, 800);
-
-        return () => {
-            if (interactionSyncTimerRef.current) {
-                window.clearTimeout(interactionSyncTimerRef.current);
-            }
-        };
-    }, [savedJobIds, dismissedJobIds, userProfile.isLoggedIn, userProfile.id, enabled]);
-
-    useEffect(() => {
-        let cancelled = false;
-        if (!enabled) return;
-        if (!userProfile.isLoggedIn || !userProfile.id) return;
-
-        (async () => {
-            try {
-                const state = await fetchJobInteractionState(20000);
-                if (cancelled) return;
-
-                // Merge backend state with local cache so historical saved items
-                // are not dropped when backend interaction history is partial.
-                const mergedSavedSet = new Set<string>([
-                    ...Array.from(savedJobIdsRef.current),
-                    ...state.savedJobIds.map((id) => String(id)),
-                ]);
-                const mergedDismissedSet = new Set<string>([
-                    ...Array.from(dismissedJobIdsRef.current),
-                    ...state.dismissedJobIds.map((id) => String(id)),
-                ]);
-
-                const nextSaved = Array.from(mergedSavedSet);
-                const nextDismissed = Array.from(mergedDismissedSet).filter((id) => !mergedSavedSet.has(id));
-
-                setSavedJobIds(nextSaved);
-                setDismissedJobIds(nextDismissed);
-            } catch (error) {
-                if (!cancelled) {
-                    console.warn('Failed to hydrate interaction state from backend:', error);
-                }
-            } finally {
-                if (!cancelled) {
-                    interactionStateHydratedRef.current = true;
-                    void flushInteractionStateSyncQueue();
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [userProfile.isLoggedIn, userProfile.id, enabled]);
 
     // Persist a warm cache so first paint is never empty when backend wakes up.
     useEffect(() => {
@@ -992,28 +271,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
 
         try {
-            // Only use coordinates if we are doing a commute filter or proximity sort
-            let lat = userProfile.coordinates?.lat;
-            let lon = userProfile.coordinates?.lon;
-
-            // If user has an address but no coordinates yet, try to resolve it for radius filtering.
-            if ((lat == null || lon == null) && enableCommuteFilter && userProfile.address) {
-                const addrCoords = getStaticCoordinates(userProfile.address) || await geocodeWithCaching(userProfile.address);
-                if (addrCoords) {
-                    lat = addrCoords.lat;
-                    lon = addrCoords.lon;
-                }
-            }
-
-            // If no user coordinates but we have a city and commute filter is requested,
-            // try to get coordinates for the city to allow radius search.
-            if ((lat == null || lon == null) && filterCity && enableCommuteFilter) {
-                const cityCoords = getStaticCoordinates(filterCity);
-                if (cityCoords) {
-                    lat = cityCoords.lat;
-                    lon = cityCoords.lon;
-                }
-            }
+            const { lat, lon } = await resolveDiscoveryCoordinates({
+                userProfile,
+                enableCommuteFilter,
+                filterCity,
+            });
 
             const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
             const hasCountryFilter = !globalSearch && normalizedCountryCodes.length > 0;
@@ -1036,80 +298,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 ? filterLanguageCodes
                 : undefined;
             const requestedPageSize = initialPageSize;
-
-            // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
-            // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
-            // simple pagination over `jobs` stays fast and stable.
-            const canUseSimplePagination =
-                !hasAnyFilters &&
-                (!hasCountryFilter || getLogicalCountryCount(normalizedCountryCodes) === 1);
-
-            if (canUseSimplePagination) {
-                const aggregatedRawJobs: Job[] = [];
-                let nextSimplePage = page;
-                let simpleFetchCount = 0;
-                let finalHasMore = false;
-                let finalTotalCount = 0;
-                let visiblePool: Job[] = [];
-
-                while (simpleFetchCount < 4) {
-                    const basicResult = await fetchJobsPaginated(
-                        nextSimplePage,
-                        requestedPageSize,
-                        undefined,
-                        undefined,
-                        50,
-                        hasCountryFilter ? normalizedCountryCodes : undefined,
-                        retrievalLanguageCodes,
-                        false,
-                        microJobsOnly,
-                        true
-                    );
-                    if (isStaleRequest()) return;
-
-                    aggregatedRawJobs.push(...basicResult.jobs);
-                    visiblePool = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(aggregatedRawJobs)));
-                    finalHasMore = basicResult.hasMore;
-                    finalTotalCount = Math.max(finalTotalCount, Number(basicResult.totalCount || 0));
-                    simpleFetchCount += 1;
-
-                    if (visiblePool.length >= requestedPageSize || !basicResult.hasMore) {
-                        break;
-                    }
-
-                    nextSimplePage += 1;
-                }
-
-                setBackendUnreachable(false);
-
-                const visibleJobs = visiblePool.slice(0, requestedPageSize);
-                const resolvedHasMore = finalHasMore || visiblePool.length > requestedPageSize;
-                console.log('📦 Simple pagination result:', {
-                    raw: aggregatedRawJobs.length,
-                    visible: visibleJobs.length,
-                    hasMore: resolvedHasMore,
-                    totalCount: finalTotalCount,
-                    countryCodes: hasCountryFilter ? normalizedCountryCodes : [],
-                    retrievalLanguageCodes: retrievalLanguageCodes || [],
-                });
-                setSearchDiagnostics({
-                    search_mode: searchMode,
-                    base_result_count: aggregatedRawJobs.length,
-                    post_filter_count: visibleJobs.length,
-                    source_mix: getSourceMixCounts(visibleJobs),
-                    reordered_by_profile: false,
-                });
-                if (isLoadMore) {
-                    setJobs(prev => dedupeJobs(visibleJobs, prev));
-                } else {
-                    setJobs(visibleJobs);
-                }
-
-                setHasMore(resolvedHasMore);
-                setTotalCount(Math.max(0, finalTotalCount));
-                return;
-            }
-
             const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
             const isDefaultCountrySelection = sameCountryCodeSet(normalizedCountryCodes, normalizeCountryCodes(marketBaselineCountryCodes));
             const shouldAutoExpandBorderCountries =
@@ -1125,192 +313,166 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // don't block cross-border jobs (AT/SK/DE/PL...) that are still within the commute circle.
             const effectiveCountryCodes = (globalSearch || shouldAutoExpandBorderCountries) ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
-            const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => jobs.filter((job) => {
-                const normalizedJobCountry = inferJobCountryCode(job);
-                if (effectiveCountryCodes && effectiveCountryCodes.length > 0) {
-                    const allowed = normalizeCountryCodes(effectiveCountryCodes);
-                    if (!normalizedJobCountry || !allowed.includes(normalizedJobCountry)) {
-                        return false;
-                    }
-                }
-                if (excludeCountryCodes && excludeCountryCodes.length > 0) {
-                    const excluded = normalizeCountryCodes(excludeCountryCodes);
-                    if (normalizedJobCountry && excluded.includes(normalizedJobCountry)) {
-                        return false;
-                    }
-                }
-                if (retrievalLanguageCodes && retrievalLanguageCodes.length > 0) {
-                    const explicitLanguage = String(job.language_code || '').trim().toLowerCase();
-                    const jobLanguage = explicitLanguage || inferJobLanguageCode(job);
-                    if (!jobLanguage || !retrievalLanguageCodes.includes(jobLanguage as SearchLanguageCode)) {
-                        return false;
-                    }
-                }
-                if (remoteOnly && !isRemoteJob(job)) {
-                    return false;
-                }
-                if (filterCity.trim()) {
-                    const cityHaystack = `${job.location || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
-                    if (!cityHaystack.includes(filterCity.trim().toLowerCase())) {
-                        return false;
-                    }
-                }
-                if (enableCommuteFilter && filterMaxDistance > 0) {
-                    if (lat == null || lon == null) {
-                        return false;
-                    }
-                    const explicitDistance = Number((job as any).distance_km ?? (job as any).distanceKm ?? job.distanceKm);
-                    const computedDistance = (
-                        typeof job.lat === 'number' &&
-                        typeof job.lng === 'number'
-                    ) ? calculateDistanceKm(lat, lon, job.lat, job.lng) : null;
-                    const distanceKm = Number.isFinite(explicitDistance) && explicitDistance >= 0
-                        ? explicitDistance
-                        : computedDistance;
-                    if (distanceKm == null || distanceKm > filterMaxDistance) {
-                        return false;
-                    }
-                    (job as any).distance_km = distanceKm;
-                    (job as any).distanceKm = distanceKm;
-                }
-                return true;
+            const defaultMaxDistanceKm = userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined;
+            const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => applyExternalOverlayJobFilters({
+                jobs,
+                effectiveCountryCodes,
+                excludeCountryCodes,
+                retrievalLanguageCodes,
+                remoteOnly,
+                filterCity,
+                enableCommuteFilter,
+                filterMaxDistance,
+                lat,
+                lon,
+                inferJobCountryCode,
+                inferJobLanguageCode,
+                normalizeCountryCodes,
+                calculateDistanceKm,
+                defaultMaxDistanceKm,
             });
 
-            const result = await fetchJobsWithFilters({
+            // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
+            // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
+            // simple pagination over `jobs` stays fast and stable.
+            const canUseSimplePagination =
+                !hasAnyFilters &&
+                (!hasCountryFilter || getLogicalCountryCount(normalizedCountryCodes) === 1);
+
+            if (canUseSimplePagination) {
+                const simpleResult = await runSimplePaginationPipeline({
+                    page,
+                    pageSize: requestedPageSize,
+                    hasCountryFilter,
+                    normalizedCountryCodes,
+                    retrievalLanguageCodes,
+                    microJobsOnly,
+                    searchMode,
+                    filterDismissedJobs,
+                    applyDomesticCountrySafeguard,
+                    isStaleRequest,
+                    getSourceMixCounts,
+                });
+                if (!simpleResult) return;
+
+                setBackendUnreachable(false);
+                console.log('📦 Simple pagination result:', {
+                    raw: simpleResult.rawCount,
+                    visible: simpleResult.visibleJobs.length,
+                    hasMore: simpleResult.resolvedHasMore,
+                    totalCount: simpleResult.totalCount,
+                    countryCodes: hasCountryFilter ? normalizedCountryCodes : [],
+                    retrievalLanguageCodes: retrievalLanguageCodes || [],
+                });
+                setSearchDiagnostics(simpleResult.diagnostics);
+                if (isLoadMore) {
+                    setJobs(prev => dedupeJobs(simpleResult.visibleJobs, prev));
+                } else {
+                    setJobs(simpleResult.visibleJobs);
+                }
+
+                setHasMore(simpleResult.resolvedHasMore);
+                setTotalCount(simpleResult.totalCount);
+
+                if (!isLoadMore && page === 0) {
+                    externalOverlayControllerRef.current?.abort();
+                    runAsyncExternalOverlay({
+                        searchTerm,
+                        filterCity,
+                        externalSearchSeedTerm,
+                        effectiveCountryCodes: hasCountryFilter ? normalizedCountryCodes : undefined,
+                        excludeCountryCodes: abroadOnly ? normalizedDefaultDomesticCountries : undefined,
+                        applyExternalRecoveryFilters,
+                        lastSignature: lastExternalOverlaySignatureRef.current,
+                        onSignatureChange: (signature) => {
+                            lastExternalOverlaySignatureRef.current = signature;
+                        },
+                        replaceController: (controller) => {
+                            externalOverlayControllerRef.current = controller;
+                        },
+                        setJobs: (updater) => {
+                            setJobs(updater);
+                        },
+                    });
+                }
+                return;
+            }
+
+            // Profile benefit preferences should shape ranking and presets, but not silently
+            // act as hard discovery filters. Otherwise a broad text query can collapse to a
+            // near-empty result set because of a hidden profile-only benefit like dog-friendly.
+            const effectiveBenefits = Array.from(new Set(filterBenefits));
+
+            const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
+            const effectiveRadiusKm = enableCommuteFilter
+                ? filterMaxDistance
+                : (hasExplicitLocationFilter ? undefined : (userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined));
+
+            const filteredResult = await runFilteredFetchPipeline({
                 page,
                 pageSize: requestedPageSize,
                 searchTerm,
-                sortMode: sortBy as 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
                 searchMode,
                 filterCity,
-                filterContractTypes: filterContractType,
-                filterBenefits,
+                sortBy,
+                filterContractType,
+                filterBenefits: effectiveBenefits,
                 filterMinSalary,
-                filterDatePosted: filterDate,
-                filterExperienceLevels: filterExperience,
-                radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
-                userLat: lat,
-                userLng: lon,
-                countryCodes: effectiveCountryCodes,
+                filterDate,
+                filterExperience,
+                effectiveRadiusKm,
+                lat,
+                lon,
+                effectiveCountryCodes,
                 excludeCountryCodes,
-                filterLanguageCodes: retrievalLanguageCodes,
+                retrievalLanguageCodes,
                 remoteOnly,
-                jhiPreferences: userProfile.jhiPreferences,
-                userTaxProfile: userProfile.taxProfile,
-                externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
-                externalOverlayMode: 'async',
-                includeJhi: false,
+                externalSearchSeedTerm,
                 microJobsOnly,
-                abortSignal: fetchController.signal
+                abortSignal: fetchController.signal,
+                userProfile,
+                filterDismissedJobs,
+                applyDomesticCountrySafeguard,
+                applyExternalRecoveryFilters,
+                isStaleRequest,
+                getSourceMixCounts,
             });
-            if (isStaleRequest()) return;
+            if (!filteredResult) return;
             setBackendUnreachable(false);
 
-            let visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs)));
             console.log('📦 Filtered fetch result:', {
-                raw: result.jobs.length,
-                visible: visibleJobs.length,
-                hasMore: result.hasMore,
-                totalCount: result.totalCount,
+                raw: filteredResult.result.jobs.length,
+                visible: filteredResult.visibleJobs.length,
+                hasMore: filteredResult.result.hasMore,
+                totalCount: filteredResult.result.totalCount,
                 searchMode,
             });
-            const nextDiagnostics: SearchDiagnosticsMeta = {
-                ...(result.meta || {}),
-                search_mode: result.meta?.search_mode || searchMode,
-                base_result_count: result.meta?.base_result_count ?? result.jobs.length,
-                post_filter_count: result.meta?.post_filter_count ?? visibleJobs.length,
-                source_mix: result.meta?.source_mix || getSourceMixCounts(visibleJobs),
-                reordered_by_profile: result.meta?.reordered_by_profile ?? false,
-            };
-            setSearchDiagnostics(nextDiagnostics);
-            let resolvedHasMore = result.hasMore;
-            let resolvedTotalCount = Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length));
-
-            const shouldRunExternalRecovery =
-                !isLoadMore &&
-                page === 0 &&
-                visibleJobs.length === 0 &&
-                (!!String(searchTerm || '').trim() || !!String(filterCity || '').trim());
-
-            if (shouldRunExternalRecovery) {
-                try {
-                    const recoveryJobs = await fetchExternalOverlayJobs({
-                        searchTerm: searchTerm || undefined,
-                        externalSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
-                        filterCity,
-                        countryCodes: effectiveCountryCodes,
-                        excludeCountryCodes,
-                        abortSignal: fetchController.signal,
-                        includeJhi: false,
-                        mode: 'recovery'
-                    });
-                    if (!isStaleRequest() && recoveryJobs.length > 0) {
-                        visibleJobs = dedupeJobsList(
-                            applyDomesticCountrySafeguard(
-                                filterDismissedJobs(applyExternalRecoveryFilters(recoveryJobs))
-                            )
-                        );
-                        resolvedHasMore = false;
-                        resolvedTotalCount = visibleJobs.length;
-                        recordRuntimeSignal('custom:search_external_recovery', {
-                            result_count: visibleJobs.length,
-                            search_term: searchTerm || null,
-                            filter_city: filterCity || null,
-                        }, {
-                            dedupeKey: JSON.stringify({
-                                searchTerm: searchTerm || '',
-                                filterCity: filterCity || '',
-                                resultCount: visibleJobs.length
-                            }),
-                            throttleMs: 20_000,
-                        });
-                    }
-                } catch (recoveryError) {
-                    if ((recoveryError as any)?.name !== 'AbortError') {
-                        console.warn('External recovery search failed:', recoveryError);
-                    }
-                }
-            }
+            setSearchDiagnostics(filteredResult.diagnostics);
 
             if (isLoadMore) {
-                setJobs(prev => dedupeJobs(visibleJobs, prev));
+                setJobs(prev => dedupeJobs(filteredResult.visibleJobs, prev));
             } else {
-                setJobs(visibleJobs);
+                setJobs(filteredResult.visibleJobs);
             }
 
-            setHasMore(resolvedHasMore);
-            setTotalCount(resolvedTotalCount);
-            if (visibleJobs.length === 0) {
-                recordRuntimeSignal('custom:search_empty_result', {
-                    search_term: searchTerm || null,
-                    filter_city: filterCity || null,
-                    fallback_mode: result.meta?.fallback_mode || null,
-                    degraded_reasons: result.meta?.degraded_reasons || [],
-                }, {
-                    dedupeKey: JSON.stringify({
-                        searchTerm: searchTerm || '',
-                        filterCity: filterCity || '',
-                        fallbackMode: result.meta?.fallback_mode || 'none',
-                    }),
-                    throttleMs: 20_000,
-                });
-            }
+            setHasMore(filteredResult.resolvedHasMore);
+            setTotalCount(filteredResult.resolvedTotalCount);
 
             if (import.meta.env.DEV || String(import.meta.env.VITE_SEARCH_DEBUG || '').toLowerCase() === 'true') {
                 console.groupCollapsed(
-                    `[search-debug] ${nextDiagnostics.search_mode} ${String(searchTerm || '').trim() || '(browse)'}`
+                    `[search-debug] ${filteredResult.diagnostics.search_mode} ${String(searchTerm || '').trim() || '(browse)'}`
                 );
                 console.table({
-                    search_mode: nextDiagnostics.search_mode,
-                    backend_count: nextDiagnostics.base_result_count,
-                    post_filter_count: nextDiagnostics.post_filter_count,
-                    source_mix: JSON.stringify(nextDiagnostics.source_mix || {}),
-                    reordered_by_profile: nextDiagnostics.reordered_by_profile,
+                    search_mode: filteredResult.diagnostics.search_mode,
+                    backend_count: filteredResult.diagnostics.base_result_count,
+                    post_filter_count: filteredResult.diagnostics.post_filter_count,
+                    source_mix: JSON.stringify(filteredResult.diagnostics.source_mix || {}),
+                    reordered_by_profile: filteredResult.diagnostics.reordered_by_profile,
                     sort_mode: sortBy,
                     remote_only: remoteOnly,
                 });
                 console.table(
-                    visibleJobs.slice(0, 10).map((job, index) => ({
+                    filteredResult.visibleJobs.slice(0, 10).map((job, index) => ({
                         rank: index + 1,
                         title: job.title,
                         company: job.company,
@@ -1328,47 +490,25 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // Async external overlay: never block the main feed. Fetch extras in the background
             // and merge them into the already-rendered list (page 0 only).
             if (!isLoadMore && page === 0) {
-                try {
-                    const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
-                    const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
-                    const effectiveCountryCodes = globalSearch ? undefined : normalizedCountryCodes;
-                    const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
-
-                    const signature = JSON.stringify({
-                        searchTerm: String(searchTerm || '').trim(),
-                        filterCity: String(filterCity || '').trim(),
-                        countryCodes: effectiveCountryCodes || null,
-                        excludeCountryCodes: excludeCountryCodes || null,
-                        seed: String(externalSearchSeedTerm || '').trim()
-                    });
-                    if (signature !== lastExternalOverlaySignatureRef.current) {
+                externalOverlayControllerRef.current?.abort();
+                runAsyncExternalOverlay({
+                    searchTerm,
+                    filterCity,
+                    externalSearchSeedTerm,
+                    effectiveCountryCodes,
+                    excludeCountryCodes,
+                    applyExternalRecoveryFilters,
+                    lastSignature: lastExternalOverlaySignatureRef.current,
+                    onSignatureChange: (signature) => {
                         lastExternalOverlaySignatureRef.current = signature;
-                        externalOverlayControllerRef.current?.abort();
-                        const overlayController = new AbortController();
-                        externalOverlayControllerRef.current = overlayController;
-
-                        void (async () => {
-                            const overlayJobs = await fetchExternalOverlayJobs({
-                                searchTerm: searchTerm || undefined,
-                                externalSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
-                                filterCity,
-                                countryCodes: effectiveCountryCodes,
-                                excludeCountryCodes,
-                                abortSignal: overlayController.signal,
-                                includeJhi: false
-                            });
-                            if (overlayController.signal.aborted) return;
-                            if (!overlayJobs.length) return;
-
-                            const filteredOverlayJobs = applyExternalRecoveryFilters(overlayJobs);
-                            if (!filteredOverlayJobs.length) return;
-
-                            setJobs((prev) => dedupeJobsList([...prev, ...filteredOverlayJobs]));
-                        })();
-                    }
-                } catch {
-                    // No-op: overlay is best-effort only.
-                }
+                    },
+                    replaceController: (controller) => {
+                        externalOverlayControllerRef.current = controller;
+                    },
+                    setJobs: (updater) => {
+                        setJobs(updater);
+                    },
+                });
             }
 
             // Track analytics
@@ -1382,7 +522,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     filterExperienceLevels: filterExperience,
                     radiusKm: filterMaxDistance,
                     hasDistanceFilter: enableCommuteFilter,
-                    resultCount: result.totalCount || 0
+                    resultCount: filteredResult.result.totalCount || 0
                 }).catch(err => console.warn('Analytics tracking failed:', err));
             }
 
@@ -1501,11 +641,65 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [fetchFilteredJobs]);
 
     useEffect(() => {
+        if (userProfile.isLoggedIn) return;
+        lastAppliedProfileDefaultsSignatureRef.current = null;
+    }, [userProfile.isLoggedIn]);
+
+    // Initial/synced Profile Defaults application
+    useEffect(() => {
+        if (!enabled) return;
+
+        const isProfileReady = userProfile.isLoggedIn ? !!userProfile.id : true;
+        if (!isProfileReady) return;
+
+        const searchProfile = userProfile.preferences?.searchProfile;
+        if (!searchProfile) return;
+
+        const hasProfileLocation = Boolean(
+            userProfile.coordinates?.lat
+            || userProfile.coordinates?.lon
+            || String(userProfile.address || '').trim()
+        );
+        console.log('🏁 Applying initial profile search defaults...');
+
+        const desiredMin = Number(userProfile.preferences?.desired_salary_min ?? 0) || 0;
+        const defaultCommute = Boolean(searchProfile.defaultEnableCommuteFilter ?? false) && hasProfileLocation;
+        const defaultDistance = Number(searchProfile.defaultMaxDistanceKm ?? 50) || 50;
+        const defaultsSignature = JSON.stringify({
+            profileId: userProfile.id || 'guest',
+            desiredMin,
+            defaultCommute,
+            defaultDistance,
+            hasProfileLocation,
+        });
+        if (lastAppliedProfileDefaultsSignatureRef.current === defaultsSignature) return;
+
+        const shouldForce = lastAppliedProfileDefaultsSignatureRef.current == null;
+        lastAppliedProfileDefaultsSignatureRef.current = defaultsSignature;
+
+        applyDiscoveryDefaults({
+            filterMinSalary: desiredMin,
+            enableCommuteFilter: defaultCommute,
+            filterMaxDistance: defaultDistance,
+        }, shouldForce);
+    }, [
+        enabled,
+        userProfile.isLoggedIn,
+        userProfile.id,
+        userProfile.address,
+        userProfile.coordinates?.lat,
+        userProfile.coordinates?.lon,
+        userProfile.preferences?.searchProfile,
+        userProfile.preferences?.desired_salary_min,
+        applyDiscoveryDefaults
+    ]);
+
+    useEffect(() => {
         if (filterSources.globalSearch !== 'user_toggle') {
-            setGlobalSearch(defaultCountryCodes.length === 0);
+            setGlobalSearchTracked(defaultCountryCodes.length === 0, 'default');
         }
         if (filterSources.abroadOnly !== 'user_toggle') {
-            setAbroadOnly(false);
+            setAbroadOnlyTracked(false, 'default');
         }
         if (defaultCountryCodes.length === 0) return;
         if (globalSearch || abroadOnly) return;
@@ -1571,58 +765,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterExperienceTracked(prev => prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]);
     };
 
-    const applyInteractionState = useCallback((
-        jobId: string,
-        eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave'
-    ) => {
-        const normalizedId = String(jobId);
-        if (!normalizedId) return;
-
-        if (eventType === 'save' || eventType === 'swipe_right') {
-            setSavedJobIds(prev => (prev.includes(normalizedId) ? prev : [...prev, normalizedId]));
-            setDismissedJobIds(prev => prev.filter(id => id !== normalizedId));
-            return;
-        }
-
-        setSavedJobIds(prev => prev.filter(id => id !== normalizedId));
-        if (eventType === 'swipe_left') {
-            setDismissedJobIds(prev => (prev.includes(normalizedId) ? prev : [...prev, normalizedId]));
-            setJobs(prev => prev.filter(job => job.id !== normalizedId));
-        }
-    }, []);
-
-    const setSavedJobIdsWithDedupe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
-        setSavedJobIds(prev => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return Array.from(new Set(next.map((id) => String(id))));
-        });
-    }, []);
-
-    const setDismissedJobIdsWithDedupe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
-        setDismissedJobIds(prev => {
-            const next = typeof value === 'function' ? value(prev) : value;
-            return Array.from(new Set(next.map((id) => String(id))));
-        });
-    }, []);
-
     const clearAllFilters = () => {
-        setSearchTermTracked('', 'default');
-        setFilterCityTracked('', 'default');
-        setFilterBenefitsTracked([], 'default');
-        setFilterContractTypeTracked([], 'default');
-        setFilterDateTracked('all', 'default');
-        setFilterMinSalaryTracked(0, 'default');
-        setFilterExperienceTracked([], 'default');
-        setFilterMaxDistanceTracked(50, 'default');
-        setFilterLanguageCodesTracked([], 'default');
-        setEnableAutoLanguageGuard(true);
-        setEnableCommuteFilterTracked(false, 'default');
-        setAbroadOnlyTracked(false, 'default');
-        setCountryCodesSafe([]);
-        setGlobalSearchTracked(true, 'default');
-        setFilterSources(DEFAULT_FILTER_SOURCES);
+        resetDiscoveryFilters();
         setSearchDiagnostics(null);
-        // Reset page
         setCurrentPage(0);
     };
 
@@ -1679,8 +824,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterExperience: setFilterExperienceTracked,
         setFilterLanguageCodes: setFilterLanguageCodesTracked,
         setEnableAutoLanguageGuard,
-        setSavedJobIds: setSavedJobIdsWithDedupe,
-        setDismissedJobIds: setDismissedJobIdsWithDedupe,
+        setSavedJobIds,
+        setDismissedJobIds,
         setShowFilters,
         setExpandedSections,
         setGlobalSearch: setGlobalSearchTracked,

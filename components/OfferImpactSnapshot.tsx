@@ -16,7 +16,7 @@ interface OfferImpactSnapshotProps {
 
 const toneClassMap: Record<NonNullable<OfferImpactSnapshotRow['tone']>, string> = {
   default: 'text-slate-300',
-  positive: 'text-emerald-400',
+  positive: 'text-amber-400',
   negative: 'text-rose-400',
   emphasis: 'text-white text-xl font-bold pt-3 mt-3 border-t border-slate-700'
 };

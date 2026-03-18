@@ -14,7 +14,7 @@ const ContextualRelevance: React.FC<ContextualRelevanceProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700';
+    if (score >= 80) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700';
     if (score >= 60) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700';
     return 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-700';
   };
@@ -22,7 +22,7 @@ const ContextualRelevance: React.FC<ContextualRelevanceProps> = ({
   const getRelevanceIcon = (relevance: string) => {
     switch (relevance) {
       case 'relevant':
-        return <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" />;
+        return <CheckCircle size={14} className="text-amber-600 dark:text-amber-400" />;
       case 'weakly_relevant':
         return <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />;
       case 'context_mismatch':
@@ -84,14 +84,14 @@ const ContextualRelevance: React.FC<ContextualRelevanceProps> = ({
           {/* Relevant benefits */}
           {groupedBenefits.relevant.length > 0 && (
             <div>
-              <h5 className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-2">
+              <h5 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
                 <CheckCircle size={16} />
                 Plně relevantní ({groupedBenefits.relevant.length})
               </h5>
               <div className="space-y-2">
                 {groupedBenefits.relevant.map((benefit, index) => (
                   <div key={index} className="flex items-start gap-2 text-sm">
-                    <span className="text-emerald-600 dark:text-emerald-400 mt-0.5">•</span>
+                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
                     <div className="flex-1">
                       <span className="font-medium text-slate-700 dark:text-slate-300">
                         {benefit.benefit}

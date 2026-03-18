@@ -2255,7 +2255,24 @@
     "language": "Język",
     "more": "Więcej",
     "switch_to_candidate": "Przełącz na kandydata",
-    "open_profile": "Otwórz profil"
+    "open_profile": "Otwórz profil",
+    "shell": {
+      "overview": "Co jest teraz w grze",
+      "browse_feed": "Przejrzyj feed",
+      "quick_gigs": "Fuszki",
+      "search_label": "Szukaj i filtruj",
+      "search_placeholder": "Szukaj ofert, firm, typów pracy lub ważnych sygnałów",
+      "location_placeholder": "Miasto, region, zdalnie",
+      "search_submit": "Szukaj",
+      "companies": "Dla firm",
+      "remote_only": "Tylko remote",
+      "commute_max": "Dojazd max {{km}} km",
+      "at_least": "Minimum",
+      "ai_line": "AI czyta kontekst, doprecyzowuje zapytanie i porządkuje feed bardziej sensownie.",
+      "ai_badge": "AI discovery",
+      "light_mode": "Tryb jasny",
+      "dark_mode": "Tryb ciemny"
+    }
   },
   "assessment": {
     "taker": {
@@ -4414,5 +4431,36 @@
     "completed_primary": "Załóż konto firmowe",
     "completed_secondary": "Powrót na landing dla firm",
     "completed_restart": "Uruchom demo ponownie"
+  },
+  "workspace": {
+    "feed": {
+      "post_lead": "Chcesz dodać wyzwanie? To zrobisz wyłącznie z",
+      "profile": "profilu",
+      "post_tail": "albo z dashboardu firmy.",
+      "swipe": "Swipe",
+      "feed": "Feed",
+      "swipe_title": "Na telefonie najlepiej zacząć od swipe",
+      "swipe_body": "Dotknięcie otwiera szczegóły, a przesunięcia szybko sortują oferty bez skakania po ekranach.",
+      "ai_title": "AI czyta kontekst w tle",
+      "ai_body": "To nie jest tylko fulltext. AI czyta profil, dojazd i kierunek pracy, a potem pokazuje, dlaczego oferta wylądowała wyżej.",
+      "ai_bullets": [
+        "czyta rolę docelową i seniority",
+        "pokazuje dlaczego to widzisz",
+        "odsuwa nietrafione kierunki"
+      ],
+      "auth_body": "Po rejestracji zapisane i odrzucone role zostają z Tobą, a rekomendacje robią się trafniejsze.",
+      "address_title": "Dodaj adres, żeby swipe miał sens",
+      "address_body": "Bez adresu trudno dobrze ocenić okolice i dojazd. Z adresem dostaniesz lepsze oferty z Twojego regionu.",
+      "auth_cta": "Zarejestruj się",
+      "address_cta": "Dodaj adres",
+      "later": "Później"
+    },
+    "toolbar": {
+      "ai_badge": "AI układa kolejność feedu",
+      "taxonomy": "Bliskie światy",
+      "hierarchy": "Szerszy obraz",
+      "helper": "Kontekst, intencja i sygnały dopasowania sterują kolejnością.",
+      "filters": "Filtry"
+    }
   }
 }

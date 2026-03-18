@@ -8,7 +8,7 @@
     },
     "hospitality": {
       "labels": { "cs": "Gastro a hospitality", "sk": "Gastro a hospitality", "en": "Hospitality", "de": "Hotellerie & Gastro", "pl": "Hospitality i gastro" },
-      "keywords": ["hotel", "reception", "housekeeping", "front office", "concierge", "restaurant", "barista", "chef", "waiter", "servis", "gast", "hospitality", "guest experience", "ubytovani"],
+      "keywords": ["hotel", "reception", "housekeeping", "front office", "concierge", "restaurant", "barista", "chef", "waiter", "cisnik", "kuchar", "recepcni", "gast", "hospitality", "guest experience", "ubytovani"],
       "related": ["operations", "customer_support", "retail"]
     },
     "customer_support": {
@@ -18,7 +18,7 @@
     },
     "operations": {
       "labels": { "cs": "Provoz a operations", "sk": "Prevádzka a operations", "en": "Operations", "de": "Operations", "pl": "Operacje" },
-      "keywords": ["operations", "office manager", "project coordinator", "delivery lead", "process manager", "business operations", "provoz", "koordinator", "back office", "administrative support", "chief of staff"],
+      "keywords": ["operations", "office manager", "project coordinator", "project manager", "projektovy manazer", "projektovy manager", "manazer projektu", "stavbyvedouci", "delivery lead", "process manager", "business operations", "provoz", "koordinator", "back office", "administrative support", "chief of staff"],
       "related": ["product_management", "logistics", "customer_support", "sales"]
     },
     "sales": {
@@ -43,12 +43,12 @@
     },
     "engineering": {
       "labels": { "cs": "Technika a inženýring", "sk": "Technika a inžiniering", "en": "Engineering", "de": "Ingenieurwesen", "pl": "Inżynieria" },
-      "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer"],
+      "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automechanik", "auto mechanik", "mechanik", "mechanik vozidel", "servisni technik", "technik udrzby", "udrzbar", "udrzba", "maintenance", "maintenance technician", "field service", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer"],
       "related": ["manufacturing", "it", "operations"]
     },
     "healthcare": {
       "labels": { "cs": "Zdravotnictví a péče", "sk": "Zdravotníctvo a starostlivosť", "en": "Healthcare & care", "de": "Gesundheit & Pflege", "pl": "Zdrowie i opieka" },
-      "keywords": ["nurse", "medical", "clinic", "doctor", "healthcare", "caregiver", "social care", "zdravotni sestra", "pecovatel", "terapeut", "ambulance"],
+      "keywords": ["nurse", "nursing", "medical", "clinic", "doctor", "healthcare", "caregiver", "social care", "sestra", "prakticka sestra", "zdravotni sestra", "zdravotni bratr", "pecovatel", "terapeut", "ambulance", "sanitar", "zachranar", "paramedik"],
       "related": ["education", "hospitality"]
     },
     "education": {

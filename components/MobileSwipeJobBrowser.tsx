@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Job } from '../types';
-import { Bookmark, X, Check, ChevronDown, Sparkles, List, Activity } from 'lucide-react';
+import { Job, UserProfile } from '../types';
+import { Bookmark, X, Check, ChevronDown, Sparkles, List, Activity, Clock, MapPin, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackJobInteraction } from '../services/jobInteractionService';
@@ -11,10 +11,13 @@ interface MobileSwipeJobBrowserProps {
     jobs: Job[];
     swipeStateStorageKey: string;
     savedJobIds: string[];
+    userProfile: UserProfile;
     onToggleSave: (jobId: string, options?: { source?: string; position?: number }) => void;
     onRejectJob?: (jobId: string) => void;
     onOpenDetails: (jobId: string) => void;
     onSwitchToList: () => void;
+    onOpenAuth?: (mode?: 'login' | 'register') => Promise<void> | void;
+    onOpenProfile?: () => void;
     isLoadingMore: boolean;
     isLoading?: boolean;
     hasMore: boolean;
@@ -32,14 +35,66 @@ interface SwipeState {
     gesture: 'idle' | 'pending' | 'swipe' | 'scroll';
 }
 
+const SWIPE_LOCATION_REFRESH_SIGNAL_KEY = 'jobshaman_swipe_location_refresh_signal';
+
+const formatRelativePostedAt = (job: Job, locale: string): string => {
+    const source = String(job.scrapedAt || job.postedAt || '').trim();
+    if (!source) return '';
+
+    const parsedDate = new Date(source);
+    if (Number.isNaN(parsedDate.getTime())) return '';
+
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - parsedDate.getTime()) / 1000));
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+    if (diffSeconds < 60) return rtf.format(0, 'second');
+    if (diffSeconds < 3600) return rtf.format(-Math.floor(diffSeconds / 60), 'minute');
+    if (diffSeconds < 86400) return rtf.format(-Math.floor(diffSeconds / 3600), 'hour');
+    if (diffSeconds < 604800) return rtf.format(-Math.floor(diffSeconds / 86400), 'day');
+    if (diffSeconds < 2_629_800) return rtf.format(-Math.floor(diffSeconds / 604800), 'week');
+    return rtf.format(-Math.floor(diffSeconds / 2_629_800), 'month');
+};
+
+const buildWhyReasons = (job: Job, t: (key: string, options?: any) => string): string[] => {
+    const reasons: string[] = [];
+
+    if (Array.isArray(job.matchReasons) && job.matchReasons.length > 0) {
+        for (const reason of job.matchReasons) {
+            const text = String(reason || '').trim();
+            if (text) reasons.push(text);
+        }
+    }
+
+    const distance = Number(job.distanceKm ?? 0);
+    if (Number.isFinite(distance) && distance > 0 && distance < 40) {
+        reasons.push(t('job.why_distance', { defaultValue: `Dojezd ${Math.round(distance)} km`, distance: Math.round(distance) }));
+    }
+
+    if ((job.type || '').toLowerCase() === 'remote') {
+        reasons.push(t('job.why_remote', { defaultValue: 'Remote režim' }));
+    } else if ((job.type || '').toLowerCase() === 'hybrid' || (job.work_model || '').toLowerCase() === 'hybrid') {
+        reasons.push(t('job.why_hybrid', { defaultValue: 'Hybridní režim' }));
+    }
+
+    const score = Math.round(Number(job.jhi?.score || 0));
+    if (score >= 60) {
+        reasons.push(t('job.why_jhi', { defaultValue: `Silný JHI (${score})`, score }));
+    }
+
+    return Array.from(new Set(reasons)).slice(0, 3);
+};
+
 const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     jobs,
     swipeStateStorageKey,
     savedJobIds,
+    userProfile,
     onToggleSave,
     onRejectJob,
     onOpenDetails,
     onSwitchToList,
+    onOpenAuth,
+    onOpenProfile,
     isLoadingMore,
     isLoading = false,
     hasMore,
@@ -47,7 +102,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     theme,
     fullscreen = false
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     void theme;
     const [currentIndex, setCurrentIndex] = useState(0);
     const [processedJobIds, setProcessedJobIds] = useState<string[]>([]);
@@ -60,6 +115,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         gesture: 'idle'
     });
     const [showSwipeCoach, setShowSwipeCoach] = useState(false);
+    const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
     const [exitAnimation, setExitAnimation] = useState<'left' | 'right' | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const gestureRef = useRef<SwipeState['gesture']>('idle');
@@ -71,6 +127,32 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const previousRemainingJobsCountRef = useRef<number | null>(null);
     const processedJobIdsSet = new Set(processedJobIds);
     const swipeStateKey = `jobshaman_swipe_state:${swipeStateStorageKey}`;
+    const swipeCoachKey = `jobshaman_swipe_coach_v2:${swipeStateStorageKey}`;
+    const isLoggedIn = Boolean(userProfile?.isLoggedIn);
+    const hasAddress = Boolean(userProfile?.address || userProfile?.coordinates?.lat || userProfile?.coordinates?.lon);
+    const needsRegistration = !isLoggedIn;
+    const needsAddress = isLoggedIn && !hasAddress;
+    const coachTitle = needsRegistration
+        ? t('job.swipe_coach_title_register', { defaultValue: 'Swipe je připravený. Ještě mu dejte kontext.' })
+        : needsAddress
+            ? t('job.swipe_coach_title_address', { defaultValue: 'Swipe bude mnohem chytřejší s adresou.' })
+            : t('job.swipe_tutorial_title');
+    const coachBody = needsRegistration
+        ? t('job.swipe_coach_body_register', { defaultValue: 'Pár prvních swipů funguje i bez účtu, ale po registraci si AI začne pamatovat, co ukládáte, odmítáte a co je opravdu blízko vašemu životu.' })
+        : needsAddress
+            ? t('job.swipe_coach_body_address', { defaultValue: 'Bez adresy AI hůř odhadne okolí a dojezd. Po doplnění lokace se feed přeskupí mnohem víc podle reality kolem vás.' })
+            : t('job.swipe_tutorial_desc');
+    const coachSignal = needsRegistration
+        ? t('job.swipe_coach_signal_register', { defaultValue: 'Registrace odemyká paměť swipe a lepší doporučování.' })
+        : needsAddress
+            ? t('job.swipe_coach_signal_address', { defaultValue: 'Adresa odemyká lokální relevance a realističtější dojezd.' })
+            : t('job.swipe_coach_signal_default', { defaultValue: 'AI se učí z každého swipe, otevření detailu i uložení.' });
+    const coachPrimaryCta = needsRegistration
+        ? t('job.swipe_coach_cta_register', { defaultValue: 'Registrovat a zpřesnit feed' })
+        : needsAddress
+            ? t('job.swipe_coach_cta_address', { defaultValue: 'Doplnit adresu' })
+            : t('job.swipe_tutorial_cta');
+    const coachSecondaryCta = t('job.swipe_coach_cta_secondary', { defaultValue: 'Pokračovat do swipe' });
 
     const findNextUnprocessedIndex = (
         sourceJobs: Job[],
@@ -94,6 +176,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const currentJob = currentIndex < jobs.length && !processedJobIdsSet.has(jobs[currentIndex].id)
         ? jobs[currentIndex]
         : undefined;
+    const relativePostedAt = currentJob ? formatRelativePostedAt(currentJob, i18n.language || 'en-US') : '';
+    const whyReasons = currentJob ? buildWhyReasons(currentJob, t) : [];
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
     const jhiScore = currentJob?.jhi?.score;
     const aiMatchScore = null;
@@ -142,13 +226,50 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const key = 'swipe_tutorial_seen';
-        const hasSeen = window.localStorage.getItem(key);
+        const hasSeen = window.localStorage.getItem(swipeCoachKey);
         if (!hasSeen) {
             setShowSwipeCoach(true);
-            window.localStorage.setItem(key, '1');
         }
-    }, []);
+    }, [swipeCoachKey]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!hasAddress) return;
+
+        try {
+            const raw = window.localStorage.getItem(SWIPE_LOCATION_REFRESH_SIGNAL_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw) as { ts?: number; address?: string; userId?: string } | null;
+            if (!parsed?.ts || Date.now() - parsed.ts > 10 * 60 * 1000) {
+                window.localStorage.removeItem(SWIPE_LOCATION_REFRESH_SIGNAL_KEY);
+                return;
+            }
+            if ((parsed.userId || 'guest') !== (userProfile.id || 'guest')) {
+                return;
+            }
+
+            const message = t('job.swipe_refresh_message', {
+                defaultValue: 'AI feed se právě přeskupil podle vaší lokality a reálného okolí.',
+            });
+            setRefreshMessage(message);
+            window.localStorage.removeItem(SWIPE_LOCATION_REFRESH_SIGNAL_KEY);
+        } catch (error) {
+            console.warn('Failed to read swipe location refresh signal:', error);
+        }
+    }, [hasAddress, t, userProfile.id]);
+
+    useEffect(() => {
+        if (!refreshMessage) return;
+        const timeoutId = window.setTimeout(() => setRefreshMessage(null), 4200);
+        return () => window.clearTimeout(timeoutId);
+    }, [refreshMessage]);
+
+    const closeSwipeCoach = () => {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(swipeCoachKey, '1');
+        }
+        setShowSwipeCoach(false);
+    };
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -515,6 +636,21 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 <p className="mb-6 text-[var(--text-muted)]">
                     {t('job.swiped_count', { count: reviewedCount })}
                 </p>
+                {hasMore ? (
+                    <button
+                        onClick={() => {
+                            if (!isLoadingMore) {
+                                onLoadMore();
+                            }
+                        }}
+                        disabled={isLoadingMore}
+                        className="app-button-primary mb-3"
+                    >
+                        {isLoadingMore
+                            ? t('job.loading_more', { defaultValue: 'Načítám další nabídky…' })
+                            : t('job.load_more', { defaultValue: 'Načíst další nabídky' })}
+                    </button>
+                ) : null}
                 <button
                     onClick={() => {
                         setCurrentIndex(0);
@@ -566,6 +702,55 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                         {t('job.swipe_hint')}
                     </div>
                 </div>
+                {(needsRegistration || needsAddress) && (
+                    <div className="mt-3 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.07)] px-3 py-2.5">
+                        <div className="mt-0.5 rounded-full bg-white/80 p-1.5 text-[var(--accent)] dark:bg-white/10">
+                            {needsRegistration ? <UserPlus size={14} /> : <MapPin size={14} />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold text-[var(--text-strong)]">
+                                {needsRegistration
+                                    ? t('job.swipe_nudge_register_title', { defaultValue: 'AI si zatím nepamatuje vaše preference naplno' })
+                                    : t('job.swipe_nudge_address_title', { defaultValue: 'Lokalita zatím chybí pro přesný lokální swipe' })}
+                            </div>
+                            <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                                {needsRegistration
+                                    ? t('job.swipe_nudge_register_body', { defaultValue: 'Registrace pomůže držet historii swipe a zlepšit doporučení v dalších relacích.' })
+                                    : t('job.swipe_nudge_address_body', { defaultValue: 'Doplňte adresu a AI začne lépe filtrovat blízké nabídky a reálný dojezd.' })}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (needsRegistration) {
+                                    onOpenAuth?.('register');
+                                } else {
+                                    onOpenProfile?.();
+                                }
+                            }}
+                            className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-white dark:bg-white/10"
+                        >
+                            {needsRegistration
+                                ? t('job.swipe_nudge_register_cta', { defaultValue: 'Registrovat' })
+                                : t('job.swipe_nudge_address_cta', { defaultValue: 'Doplnit adresu' })}
+                        </button>
+                    </div>
+                )}
+                {refreshMessage && (
+                    <div className="mt-3 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-green-rgb),0.22)] bg-[rgba(var(--accent-green-rgb),0.10)] px-3 py-2.5">
+                        <div className="mt-0.5 rounded-full bg-white/80 p-1.5 text-[var(--accent-green)] dark:bg-white/10">
+                            <Sparkles size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold text-[var(--text-strong)]">
+                                {t('job.swipe_refresh_title', { defaultValue: 'AI právě přepočítala swipe podle vaší lokality' })}
+                            </div>
+                            <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                                {refreshMessage}
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Progress bar */}
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--border-subtle)]">
                     <div
@@ -585,21 +770,24 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
-                            <div className="absolute inset-0 bg-black/40" onClick={() => setShowSwipeCoach(false)}></div>
+                            <div className="absolute inset-0 bg-black/40" onClick={closeSwipeCoach}></div>
                             <motion.div
                                 initial={{ scale: 0.96, opacity: 0, y: 10 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.96, opacity: 0, y: 10 }}
                                 transition={{ duration: 0.2 }}
-                                className="app-surface relative z-10 w-[90%] max-w-sm rounded-[var(--radius-xl)] border p-5 text-center shadow-[var(--shadow-overlay)]"
+                                className="app-surface relative z-10 w-[92%] max-w-sm rounded-[var(--radius-xl)] border p-5 text-center shadow-[var(--shadow-overlay)]"
                             >
                                 <div className="mb-1 text-sm font-bold text-[var(--text-strong)]">
-                                    {t('job.swipe_tutorial_title')}
+                                    {coachTitle}
                                 </div>
-                                <div className="mb-4 text-xs text-[var(--text-muted)]">
-                                    {t('job.swipe_tutorial_desc')}
+                                <div className="mb-4 text-xs leading-5 text-[var(--text-muted)]">
+                                    {coachBody}
                                 </div>
-                                <div className="relative h-16 mb-4 flex items-center justify-center">
+                                <div className="mb-3 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-3 py-2 text-xs font-medium leading-5 text-[var(--text-strong)]">
+                                    {coachSignal}
+                                </div>
+                                <div className="relative mb-4 flex h-24 items-center justify-center overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)]">
                                     <motion.div
                                         className="absolute left-4 text-rose-500 text-2xl font-bold"
                                         animate={{ x: [-4, -12, -4], opacity: [0.6, 1, 0.6] }}
@@ -608,24 +796,62 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         ←
                                     </motion.div>
                                     <motion.div
-                                        className="absolute right-4 text-emerald-500 text-2xl font-bold"
+                                        className="absolute right-4 text-amber-500 text-2xl font-bold"
                                         animate={{ x: [4, 12, 4], opacity: [0.6, 1, 0.6] }}
                                         transition={{ duration: 1.4, repeat: Infinity }}
                                     >
                                         →
                                     </motion.div>
                                     <motion.div
-                                        className="h-14 w-24 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] shadow-sm"
+                                        className="absolute h-16 w-28 rounded-[1.1rem] border border-[var(--border-subtle)] bg-white shadow-sm dark:bg-slate-900"
                                         animate={{ x: [0, 18, 0, -18, 0], rotate: [0, 2, 0, -2, 0] }}
                                         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                                     />
+                                    <motion.div
+                                        className="absolute top-4 left-4 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-semibold text-rose-600 dark:bg-rose-950/30 dark:text-rose-300"
+                                        animate={{ opacity: [0.45, 1, 0.45] }}
+                                        transition={{ duration: 1.4, repeat: Infinity }}
+                                    >
+                                        {t('job.pass', { defaultValue: 'Pass' })}
+                                    </motion.div>
+                                    <motion.div
+                                        className="absolute bottom-4 right-4 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+                                        animate={{ opacity: [0.45, 1, 0.45] }}
+                                        transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
+                                    >
+                                        {t('job.save', { defaultValue: 'Save' })}
+                                    </motion.div>
                                 </div>
-                                <button
-                                    onClick={() => setShowSwipeCoach(false)}
-                                    className="app-button-primary w-full"
-                                >
-                                    {t('job.swipe_tutorial_cta')}
-                                </button>
+                                <div className="flex flex-col gap-2">
+                                    {(needsRegistration || needsAddress) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                closeSwipeCoach();
+                                                if (needsRegistration) {
+                                                    onOpenAuth?.('register');
+                                                } else {
+                                                    onOpenProfile?.();
+                                                }
+                                            }}
+                                            className="app-button-primary w-full"
+                                        >
+                                            {needsRegistration ? <UserPlus size={16} /> : <MapPin size={16} />}
+                                            {coachPrimaryCta}
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={closeSwipeCoach}
+                                        className={cn(
+                                            'w-full rounded-[var(--radius-md)] px-4 py-3 text-sm font-semibold transition',
+                                            needsRegistration || needsAddress
+                                                ? 'border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-strong)] hover:bg-[var(--surface)]'
+                                                : 'app-button-primary'
+                                        )}
+                                    >
+                                        {needsRegistration || needsAddress ? coachSecondaryCta : coachPrimaryCta}
+                                    </button>
+                                </div>
                             </motion.div>
                         </motion.div>
                     )}
@@ -710,12 +936,23 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         </p>
                                     </div>
                                 )}
+                                {relativePostedAt && (
+                                    <div className="rounded-[var(--radius-lg)] bg-[var(--surface-muted)] p-3">
+                                        <p className="text-xs font-semibold text-[var(--text-faint)]">
+                                            {t('job.posted', { defaultValue: 'Published' })}
+                                        </p>
+                                        <p className="flex items-center gap-1.5 text-sm font-medium leading-snug text-[var(--text-strong)]">
+                                            <Clock size={14} className="text-[var(--accent)]" />
+                                            {relativePostedAt}
+                                        </p>
+                                    </div>
+                                )}
                                 {aiMatchScore !== null && (
-                                    <div className="rounded-[var(--radius-lg)] border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/30 dark:bg-emerald-950/20">
-                                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                    <div className="rounded-[var(--radius-lg)] border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/30 dark:bg-amber-950/20">
+                                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                                             {t('job.ai_match')}
                                         </p>
-                                        <p className="text-sm font-semibold text-emerald-600">
+                                        <p className="text-sm font-semibold text-amber-600">
                                             {aiMatchScore}%
                                         </p>
                                     </div>
@@ -731,6 +968,24 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     {currentJob.description?.substring(0, 300)}...
                                 </p>
                             </div>
+
+                            {whyReasons.length > 0 && (
+                                <div className="mb-6 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
+                                    <h3 className="mb-2 text-sm font-bold uppercase text-[var(--accent)]">
+                                        {t('job.why_seen', { defaultValue: 'Proč to vidíš' })}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {whyReasons.map((reason) => (
+                                            <span
+                                                key={reason}
+                                                className="inline-flex max-w-full items-center rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium text-[var(--text-strong)] ring-1 ring-inset ring-[rgba(15,23,42,0.07)] dark:bg-white/8 dark:text-white/90"
+                                            >
+                                                <span className="truncate">{reason}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Hint about full details */}
                             <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
@@ -783,7 +1038,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                     onClick={handleSave}
                     className={cn(
                         'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-3 py-3 font-semibold text-white transition',
-                        isSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
+                        isSaved ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
                     )}
                     title={t('job.swipe_right_title')}
                 >

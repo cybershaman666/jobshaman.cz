@@ -24,8 +24,12 @@ import {
   Mail,
   Bell,
   Calculator,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Zap,
+  ArrowRight,
+  PlusCircle
 } from 'lucide-react';
+import CreateMiniChallengeModal from './challenges/CreateMiniChallengeModal';
 import { updateCurrentUserPassword, uploadProfilePhoto } from '../services/supabaseService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
@@ -57,6 +61,7 @@ import JcfpmReportPanel from './jcfpm/JcfpmReportPanel';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 import { fetchMySolutionSnapshots } from '../services/jobApplicationService';
+import { GrowthSignal } from './ui/primitives';
 
 import { useTranslation } from 'react-i18next';
 
@@ -75,7 +80,7 @@ interface ProfileEditorProps {
 }
 
 const ProfileJobManager = lazy(() => import('./ProfileJobManager'));
-type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'settings' | 'saved';
+type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'challenges' | 'settings' | 'saved';
 type ProfileLocale = 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en';
 type ProfileLocaleLabels = { cs: string; en: string; sk?: string; de?: string; at?: string; pl?: string };
 
@@ -805,6 +810,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       intro: 'Tahle část určuje, co má být v přehledu opravdu vaše. Nejdřív obor a cílová role, až potom životní filtry.',
       primaryDomain: 'Hlavní obor',
       secondaryDomains: 'Příbuzné obory',
+      avoidDomains: 'Vyhnout se těmto oborům',
+      avoidDomainsHint: 'Použijte pro směry, kam už nechcete padat ani jako širší přesah.',
       targetRole: 'Cílová role',
       targetRolePlaceholder: 'Např. Product Manager, Recepční, Finanční účetní',
       seniority: 'Seniorita',
@@ -821,6 +828,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       intro: 'Táto časť určuje, čo má byť v prehľade naozaj vaše. Najprv odbor a cieľová rola, až potom životné filtre.',
       primaryDomain: 'Hlavný odbor',
       secondaryDomains: 'Príbuzné odbory',
+      avoidDomains: 'Vyhnúť sa týmto odborom',
+      avoidDomainsHint: 'Použite pre smery, kam už nechcete padať ani ako širší presah.',
       targetRole: 'Cieľová rola',
       targetRolePlaceholder: 'Napr. Product Manager, Recepčná, Finančná účtovníčka',
       seniority: 'Seniorita',
@@ -837,6 +846,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       intro: 'Dieser Bereich entscheidet, was sich im Feed wirklich nach Ihnen anfühlen soll: zuerst Fachbereich und Zielrolle, dann Lebenskontext-Filter.',
       primaryDomain: 'Hauptbereich',
       secondaryDomains: 'Verwandte Bereiche',
+      avoidDomains: 'Diese Bereiche vermeiden',
+      avoidDomainsHint: 'Nutzen Sie das für Richtungen, in die Sie auch als breiter Stretch nicht mehr rutschen wollen.',
       targetRole: 'Zielrolle',
       targetRolePlaceholder: 'Zum Beispiel Product Manager, Rezeption, Finanzbuchhaltung',
       seniority: 'Seniorität',
@@ -869,6 +880,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       intro: 'Ta sekcja decyduje, co naprawdę powinno być „Twoim” feedem: najpierw obszar i rola docelowa, dopiero potem filtry życiowe.',
       primaryDomain: 'Główny obszar',
       secondaryDomains: 'Powiązane obszary',
+      avoidDomains: 'Unikaj tych obszarów',
+      avoidDomainsHint: 'Użyj tego dla kierunków, do których nie chcesz już wpadać nawet jako szeroki overlap.',
       targetRole: 'Rola docelowa',
       targetRolePlaceholder: 'Na przykład Product Manager, Recepcjonista, Księgowa',
       seniority: 'Poziom seniority',
@@ -885,6 +898,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       intro: 'This section decides what should actually feel like your feed: first domain and target role, then life-context filters.',
       primaryDomain: 'Primary domain',
       secondaryDomains: 'Adjacent domains',
+      avoidDomains: 'Avoid these domains',
+      avoidDomainsHint: 'Use this for directions you no longer want surfacing even as a broader overlap.',
       targetRole: 'Target role',
       targetRolePlaceholder: 'For example Product Manager, Receptionist, Financial Accountant',
       seniority: 'Seniority',
@@ -932,6 +947,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [isRepairingPhoto, setIsRepairingPhoto] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('personal');
+  const [isProfileChallengeModalOpen, setIsProfileChallengeModalOpen] = useState(false);
   const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
   const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
   const [solutionSnapshots, setSolutionSnapshots] = useState<SolutionSnapshot[]>([]);
@@ -1125,38 +1141,38 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const buildFormDataFromProfile = (sourceProfile: UserProfile) => {
     const resolvedSearchProfile = enrichSearchProfileWithInference(sourceProfile);
     return {
-    personal: {
-      name: sourceProfile.name || '',
-      jobTitle: sourceProfile.jobTitle || '',
-      email: sourceProfile.email || '',
-      phone: sourceProfile.phone || '',
-      address: sourceProfile.address || '',
-      preferredCountryCode: sourceProfile.preferredCountryCode || sourceProfile.taxProfile?.countryCode || 'CZ',
-      linkedIn: sourceProfile.preferences?.linkedIn || (sourceProfile as any).linkedIn || '',
-      portfolio: sourceProfile.preferences?.portfolio || (sourceProfile as any).portfolio || '',
-      github: sourceProfile.preferences?.github || (sourceProfile as any).github || ''
-    },
-    notifications: {
-      dailyDigestEnabled: sourceProfile.dailyDigestEnabled ?? true,
-      dailyDigestPushEnabled: sourceProfile.dailyDigestPushEnabled ?? true,
-      dailyDigestTime: sourceProfile.dailyDigestTime || '07:30',
-      dailyDigestTimezone: sourceProfile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
-    },
-    searchProfile: {
-      ...createDefaultCandidateSearchProfile(),
-      ...resolvedSearchProfile,
-      remoteLanguageCodes: (
-        resolvedSearchProfile.remoteLanguageCodes &&
-        resolvedSearchProfile.remoteLanguageCodes.length > 0
-          ? resolvedSearchProfile.remoteLanguageCodes
-          : createDefaultCandidateSearchProfile().remoteLanguageCodes
-      ) as SearchLanguageCode[],
-    },
-    experience: sourceProfile.workHistory || [],
-    education: sourceProfile.education || [],
-    skills: sourceProfile.skills || [],
-    taxProfile: sourceProfile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
-    jhiPreferences: sourceProfile.jhiPreferences || createDefaultJHIPreferences()
+      personal: {
+        name: sourceProfile.name || '',
+        jobTitle: sourceProfile.jobTitle || '',
+        email: sourceProfile.email || '',
+        phone: sourceProfile.phone || '',
+        address: sourceProfile.address || '',
+        preferredCountryCode: sourceProfile.preferredCountryCode || sourceProfile.taxProfile?.countryCode || 'CZ',
+        linkedIn: sourceProfile.preferences?.linkedIn || (sourceProfile as any).linkedIn || '',
+        portfolio: sourceProfile.preferences?.portfolio || (sourceProfile as any).portfolio || '',
+        github: sourceProfile.preferences?.github || (sourceProfile as any).github || ''
+      },
+      notifications: {
+        dailyDigestEnabled: sourceProfile.dailyDigestEnabled ?? true,
+        dailyDigestPushEnabled: sourceProfile.dailyDigestPushEnabled ?? true,
+        dailyDigestTime: sourceProfile.dailyDigestTime || '07:30',
+        dailyDigestTimezone: sourceProfile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
+      },
+      searchProfile: {
+        ...createDefaultCandidateSearchProfile(),
+        ...resolvedSearchProfile,
+        remoteLanguageCodes: (
+          resolvedSearchProfile.remoteLanguageCodes &&
+            resolvedSearchProfile.remoteLanguageCodes.length > 0
+            ? resolvedSearchProfile.remoteLanguageCodes
+            : createDefaultCandidateSearchProfile().remoteLanguageCodes
+        ) as SearchLanguageCode[],
+      },
+      experience: sourceProfile.workHistory || [],
+      education: sourceProfile.education || [],
+      skills: sourceProfile.skills || [],
+      taxProfile: sourceProfile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
+      jhiPreferences: sourceProfile.jhiPreferences || createDefaultJHIPreferences()
     };
   };
 
@@ -1241,78 +1257,99 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     label: string;
     caption?: string;
   }> = [
-    {
-      key: 'personal',
-      icon: User,
-      label: t('profile.personal_info', {
-        defaultValue: getProfileLocaleLabel({
-          cs: 'Osobní údaje',
-          sk: 'Osobné údaje',
-          de: 'Persönliche Angaben',
-          at: 'Persönliche Angaben',
-          pl: 'Dane osobowe',
-          en: 'Personal details'
-        }, profileLocale)
-      })
-    },
-    {
-      key: 'cv',
-      icon: FileText,
-      label: t('profile.supporting_context_tab', { defaultValue: supportingContextCopy.tabLabel }),
-      caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
-    },
-    { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
-    {
-      key: 'settings',
-      icon: Bell,
-      label: t('profile.settings_title', {
-        defaultValue: getProfileLocaleLabel({
-          cs: 'Nastavení',
-          sk: 'Nastavenia',
-          de: 'Einstellungen',
-          at: 'Einstellungen',
-          pl: 'Ustawienia',
-          en: 'Settings'
-        }, profileLocale)
-      })
-    },
-    {
-      key: 'saved',
-      icon: Bookmark,
-      label: t('profile.job_hub.badge', {
-        defaultValue: getProfileLocaleLabel({
-          cs: 'Dialogové centrum',
-          sk: 'Dialógové centrum',
-          de: 'Dialogzentrum',
-          at: 'Dialogzentrum',
-          pl: 'Centrum dialogów',
-          en: 'Dialogue hub'
-        }, profileLocale)
-      }),
-      caption: t('profile.job_hub.tab_caption', {
-        defaultValue: getProfileLocaleLabel({
-          cs: 'Dialogy a sloty',
-          sk: 'Dialógy a sloty',
-          de: 'Dialoge und Slots',
-          at: 'Dialoge und Slots',
-          pl: 'Dialogi i sloty',
-          en: 'Dialogues and slots'
-        }, profileLocale)
-      })
-    },
-  ];
+      {
+        key: 'personal',
+        icon: User,
+        label: t('profile.personal_info', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Osobní údaje',
+            sk: 'Osobné údaje',
+            de: 'Persönliche Angaben',
+            at: 'Persönliche Angaben',
+            pl: 'Dane osobowe',
+            en: 'Personal details'
+          }, profileLocale)
+        })
+      },
+      {
+        key: 'cv',
+        icon: FileText,
+        label: t('profile.supporting_context_tab', { defaultValue: supportingContextCopy.tabLabel }),
+        caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
+      },
+      { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
+      {
+        key: 'settings',
+        icon: Bell,
+        label: t('profile.settings_title', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Nastavení',
+            sk: 'Nastavenia',
+            de: 'Einstellungen',
+            at: 'Einstellungen',
+            pl: 'Ustawienia',
+            en: 'Settings'
+          }, profileLocale)
+        })
+      },
+      {
+        key: 'saved',
+        icon: Bookmark,
+        label: t('profile.job_hub.badge', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Dialogové centrum',
+            sk: 'Dialógové centrum',
+            de: 'Dialogzentrum',
+            at: 'Dialogzentrum',
+            pl: 'Centrum dialogów',
+            en: 'Dialogue hub'
+          }, profileLocale)
+        }),
+        caption: t('profile.job_hub.tab_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Dialogy a sloty',
+            sk: 'Dialógy a sloty',
+            de: 'Dialoge und Slots',
+            at: 'Dialoge und Slots',
+            pl: 'Dialogi i sloty',
+            en: 'Dialogues and slots'
+          }, profileLocale)
+        })
+      },
+      {
+        key: 'challenges',
+        icon: Briefcase,
+        label: t('profile.mini_challenges.badge', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Mini výzvy',
+            sk: 'Mini výzvy',
+            de: 'Mini-Herausforderungen',
+            at: 'Mini-Herausforderungen',
+            pl: 'Mini wyzwania',
+            en: 'Mini challenges'
+          }, profileLocale)
+        }),
+        caption: t('profile.mini_challenges.tab_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Zadat a spravovat',
+            en: 'Post and manage'
+          }, profileLocale)
+        })
+      },
+    ];
   const isPersonalTab = activeTab === 'personal';
   const isCvTab = activeTab === 'cv';
   const isJcfpmTab = activeTab === 'jcfpm';
+  const isChallengesTab = activeTab === 'challenges';
   const isSettingsTab = activeTab === 'settings';
   const profileInputClass = 'w-full rounded-[0.95rem] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
   const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
   const profileIconButtonClass = 'rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]';
-  const profilePrimaryButtonClass = 'app-button-primary disabled:cursor-not-allowed disabled:opacity-60';
-  const profileSurfaceClass = 'app-surface overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-card)]';
+  const profilePrimaryButtonClass = 'app-button-primary app-organic-cta disabled:cursor-not-allowed disabled:opacity-60';
+  const profileSurfaceClass = 'app-surface app-organic-panel overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-card)]';
   const profileAccentIconShellClass = 'rounded-lg bg-[var(--accent-soft)] p-2';
   const profileAccentIconClass = 'h-5 w-5 text-[var(--accent)]';
-  const profileAccentPanelClass = 'rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4';
+  const profileAccentPanelClass = 'app-organic-panel-soft rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4';
   const profileAccentBadgeClass = 'inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]';
 
   const profileHeroCopy = ({
@@ -1379,6 +1416,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     formData.searchProfile.primaryDomain,
     formData.searchProfile.targetRole,
     formData.searchProfile.seniority,
+    (formData.searchProfile.avoidDomains || []).length > 0,
     formData.searchProfile.nearBorder,
     formData.searchProfile.wantsContractorRoles,
     formData.searchProfile.wantsDogFriendlyOffice,
@@ -1725,11 +1763,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     key={option.key}
                     type="button"
                     onClick={() => handleSearchProfileChange('seniority', active ? null : option.key)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                      active
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                    }`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -1760,16 +1797,50 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           : [...current, option.key];
                         handleSearchProfileChange('secondaryDomains', next);
                       }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                          : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                      } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                        } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
                     >
                       {option.label}
                     </button>
                   );
                 })}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.avoidDomains}</label>
+            <div className="flex flex-wrap gap-2">
+              {intentDomainOptions
+                .filter((option) => option.key !== formData.searchProfile.primaryDomain && !(formData.searchProfile.secondaryDomains || []).includes(option.key))
+                .map((option) => {
+                  const active = (formData.searchProfile.avoidDomains || []).includes(option.key);
+                  const disabled = !active && (formData.searchProfile.avoidDomains || []).length >= 3;
+                  return (
+                    <button
+                      key={`avoid-${option.key}`}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        const current = formData.searchProfile.avoidDomains || [];
+                        const next = active
+                          ? current.filter((item) => item !== option.key)
+                          : [...current, option.key];
+                        handleSearchProfileChange('avoidDomains', next);
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300'
+                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-rose-200 hover:bg-rose-50/70 dark:hover:border-rose-900/30 dark:hover:bg-rose-950/20'
+                        } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+            </div>
+            <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+              {intentProfileCopy.avoidDomainsHint}
             </div>
           </div>
 
@@ -1833,11 +1904,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             ].map((item) => (
               <label
                 key={item.field}
-                className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
-                  item.active
-                    ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                }`}
+                className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${item.active
+                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -1849,11 +1919,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </label>
             ))}
             <label
-              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
-                formData.searchProfile.wantsDogFriendlyOffice
-                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-              }`}
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${formData.searchProfile.wantsDogFriendlyOffice
+                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                }`}
             >
               <input
                 type="checkbox"
@@ -1864,11 +1933,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <span>{searchProfileCopy.dogFriendly}</span>
             </label>
             <label
-              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
-                formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')
-                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-              }`}
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support')
+                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                }`}
             >
               <input
                 type="checkbox"
@@ -1879,11 +1947,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <span>{searchProfileCopy.childFriendly}</span>
             </label>
             <label
-              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
-                formData.jhiPreferences.hardConstraints.excludeShift
-                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                  : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-              }`}
+              className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${formData.jhiPreferences.hardConstraints.excludeShift
+                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                }`}
             >
               <input
                 type="checkbox"
@@ -1966,11 +2033,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
             <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
-              <label className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${
-                formData.searchProfile.defaultEnableCommuteFilter
-                  ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
-                  : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-              }`}>
+              <label className={`flex items-start gap-3 rounded-[0.95rem] border px-4 py-3 text-sm transition ${formData.searchProfile.defaultEnableCommuteFilter
+                ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--text-strong)]'
+                : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                }`}>
                 <input
                   type="checkbox"
                   checked={formData.searchProfile.defaultEnableCommuteFilter}
@@ -2023,11 +2089,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         : [...formData.searchProfile.remoteLanguageCodes, option.code];
                       handleSearchProfileChange('remoteLanguageCodes', next as SearchLanguageCode[]);
                     }}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                      active
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                    }`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -2046,11 +2111,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     key={option.key}
                     type="button"
                     onClick={() => toggleBenefitPriority(option.key)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                      active
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                    }`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -2414,6 +2478,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       nextSearchProfile.secondaryDomains = Array.from(new Set(((value as CandidateDomainKey[]) || []).filter(Boolean))).slice(0, 2);
     }
 
+    if (field === 'avoidDomains') {
+      nextSearchProfile.avoidDomains = Array.from(new Set(((value as CandidateDomainKey[]) || []).filter(Boolean))).slice(0, 3);
+    }
+
     if (field === 'defaultMaxDistanceKm') {
       nextSearchProfile.defaultMaxDistanceKm = Math.max(5, Number(value) || 5);
     }
@@ -2494,8 +2562,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     const nextSearchProfile: CandidateSearchProfile = {
       ...formData.searchProfile,
       preferredBenefitKeys: checked
-      ? Array.from(new Set([...current, ...childKeys]))
-      : current.filter((item) => !childKeys.includes(item)),
+        ? Array.from(new Set([...current, ...childKeys]))
+        : current.filter((item) => !childKeys.includes(item)),
     };
     const nextProfileDraft: UserProfile = {
       ...profile,
@@ -2911,12 +2979,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-18rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-[rgba(var(--accent-rgb),0.14)] blur-3xl" />
         <div className="absolute right-[-14rem] top-[8rem] h-[24rem] w-[24rem] rounded-full bg-[rgba(var(--accent-rgb),0.08)] blur-3xl" />
-        <div className="absolute bottom-[-12rem] left-[30%] h-[24rem] w-[24rem] rounded-full bg-emerald-200/20 blur-3xl dark:bg-emerald-500/10" />
+        <div className="absolute bottom-[-12rem] left-[30%] h-[24rem] w-[24rem] rounded-full bg-amber-200/20 blur-3xl dark:bg-amber-500/10" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1720px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
+      <div className="app-aurora-shell relative mx-auto w-full max-w-[1720px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
         {/* Header */}
-        <div className="app-page-header overflow-hidden rounded-[var(--radius-2xl)] border p-5 shadow-[var(--shadow-card)] sm:p-7">
+        <div className="app-page-header app-organic-shell overflow-hidden rounded-[var(--radius-2xl)] border p-5 shadow-[var(--shadow-card)] sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
@@ -2998,7 +3066,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
           {saveFeedback && (
             <div className={`mt-4 flex items-center gap-2 text-sm font-medium ${saveFeedback.type === 'success'
-              ? 'text-emerald-600 dark:text-emerald-300'
+              ? 'text-amber-600 dark:text-amber-300'
               : 'text-rose-600 dark:text-rose-300'
               }`}>
               <CheckCircle size={16} />
@@ -3047,551 +3115,551 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isPersonalTab && (
               <>
-            {/* Personal Information Section */}
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={profileAccentIconShellClass}>
-                      <User className={profileAccentIconClass} />
+                {/* Personal Information Section */}
+                <div className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={profileAccentIconShellClass}>
+                          <User className={profileAccentIconClass} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.personal_info')}</h2>
+                      </div>
+                      <button
+                        onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
+                        className={profileIconButtonClass}
+                      >
+                        <Edit size={16} />
+                      </button>
                     </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.personal_info')}</h2>
-                  </div>
-                  <button
-                    onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
-                    className={profileIconButtonClass}
-                  >
-                    <Edit size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.full_name')}</label>
-                    <input
-                      type="text"
-                      value={formData.personal.name}
-                      onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
-                      className={profileInputClass}
-                    />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.job_title')}</label>
-                    <input
-                      type="text"
-                      value={formData.personal.jobTitle}
-                      onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
-                      className={profileInputClass}
-                    />
-                  </div>
-                </div>
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.full_name')}</label>
+                        <input
+                          type="text"
+                          value={formData.personal.name}
+                          onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
+                          className={profileInputClass}
+                        />
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.phone')}</label>
-                    <input
-                      type="tel"
-                      value={formData.personal.phone}
-                      onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
-                      className={profileInputClass}
-                    />
-                  </div>
-                </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.job_title')}</label>
+                        <input
+                          type="text"
+                          value={formData.personal.jobTitle}
+                          onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
+                          className={profileInputClass}
+                        />
+                      </div>
+                    </div>
 
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.address')}</label>
-                  <input
-                    type="text"
-                    value={formData.personal.address}
-                    onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
-                    className={`w-full rounded-[0.95rem] border bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
-                      addressVerificationStatus === 'error' ? 'border-rose-500' :
-                        'border-[var(--border)]'
-                      }`}
-                    placeholder={t('profile.address_placeholder')}
-                  />
-                  <div className="flex items-center gap-2 mt-2">
-                    <button
-                      onClick={handleVerifyAddress}
-                      disabled={isVerifyingAddress || !formData.personal.address}
-                      className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${addressVerificationStatus === 'success'
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                    >
-                      {isVerifyingAddress ? (
-                        <>
-                          <span className="animate-spin">⌛</span> {t('profile.verifying')}
-                        </>
-                      ) : addressVerificationStatus === 'success' ? (
-                        <>
-                          <CheckCircle size={14} /> {t('profile.address_verified')}
-                        </>
-                      ) : (
-                        <>
-                          <MapPin size={14} /> {t('profile.verify_address')}
-                        </>
-                      )}
-                    </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.phone')}</label>
+                        <input
+                          type="tel"
+                          value={formData.personal.phone}
+                          onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
+                          className={profileInputClass}
+                        />
+                      </div>
+                    </div>
 
-                    {addressVerificationStatus === 'error' && (
-                      <span className="text-xs text-rose-500 flex items-center gap-1">
-                        <AlertCircle size={12} /> {t('profile.verification_failed')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.linkedin')}</label>
-                    <div className="relative">
-                      <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <div className="mt-6">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.address')}</label>
                       <input
-                        type="url"
-                        value={formData.personal.linkedIn}
-                        onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
-                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
-                        placeholder={t('profile.linkedin_placeholder')}
+                        type="text"
+                        value={formData.personal.address}
+                        onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
+                        className={`w-full rounded-[0.95rem] border bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] ${addressVerificationStatus === 'success' ? 'border-amber-500 pr-12' :
+                          addressVerificationStatus === 'error' ? 'border-rose-500' :
+                            'border-[var(--border)]'
+                          }`}
+                        placeholder={t('profile.address_placeholder')}
                       />
-                    </div>
-                  </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={handleVerifyAddress}
+                          disabled={isVerifyingAddress || !formData.personal.address}
+                          className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${addressVerificationStatus === 'success'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                          {isVerifyingAddress ? (
+                            <>
+                              <span className="animate-spin">⌛</span> {t('profile.verifying')}
+                            </>
+                          ) : addressVerificationStatus === 'success' ? (
+                            <>
+                              <CheckCircle size={14} /> {t('profile.address_verified')}
+                            </>
+                          ) : (
+                            <>
+                              <MapPin size={14} /> {t('profile.verify_address')}
+                            </>
+                          )}
+                        </button>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.portfolio')}</label>
-                    <div className="relative">
-                      <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                      <input
-                        type="url"
-                        value={formData.personal.portfolio}
-                        onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
-                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
-                        placeholder={t('profile.portfolio_placeholder')}
-                      />
+                        {addressVerificationStatus === 'error' && (
+                          <span className="text-xs text-rose-500 flex items-center gap-1">
+                            <AlertCircle size={12} /> {t('profile.verification_failed')}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.github')}</label>
-                    <div className="relative">
-                      <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                      <input
-                        type="url"
-                        value={formData.personal.github}
-                        onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
-                        className={`${profileInputClass} py-2.5 pl-10 pr-4`}
-                        placeholder={t('profile.github_placeholder')}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.linkedin')}</label>
+                        <div className="relative">
+                          <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <input
+                            type="url"
+                            value={formData.personal.linkedIn}
+                            onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
+                            className={`${profileInputClass} py-2.5 pl-10 pr-4`}
+                            placeholder={t('profile.linkedin_placeholder')}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.portfolio')}</label>
+                        <div className="relative">
+                          <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <input
+                            type="url"
+                            value={formData.personal.portfolio}
+                            onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
+                            className={`${profileInputClass} py-2.5 pl-10 pr-4`}
+                            placeholder={t('profile.portfolio_placeholder')}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.github')}</label>
+                        <div className="relative">
+                          <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <input
+                            type="url"
+                            value={formData.personal.github}
+                            onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
+                            className={`${profileInputClass} py-2.5 pl-10 pr-4`}
+                            placeholder={t('profile.github_placeholder')}
+                          />
+                        </div>
+                      </div>
                     </div>
+
                   </div>
                 </div>
-
-              </div>
-            </div>
               </>
             )}
 
             {isCvTab && (
               <>
-            <div className="grid grid-cols-1 2xl:grid-cols-5 gap-6 items-start">
-              <div className="2xl:col-span-2">
-                {renderAiGuidePanel}
-              </div>
-              <div className="2xl:col-span-3">
-            {/* Supporting Context Section */}
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-start gap-3">
-                  <div className={profileAccentIconShellClass}>
-                    <FileText className={profileAccentIconClass} />
+                <div className="grid grid-cols-1 2xl:grid-cols-5 gap-6 items-start">
+                  <div className="2xl:col-span-2">
+                    {renderAiGuidePanel}
                   </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                      {t('profile.supporting_context_section', { defaultValue: supportingContextCopy.sectionTitle })}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                      {t('profile.supporting_context_desc', { defaultValue: supportingContextCopy.sectionIntro })}
-                    </p>
+                  <div className="2xl:col-span-3">
+                    {/* Supporting Context Section */}
+                    <div className={profileSurfaceClass}>
+                      <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="flex items-start gap-3">
+                          <div className={profileAccentIconShellClass}>
+                            <FileText className={profileAccentIconClass} />
+                          </div>
+                          <div>
+                            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                              {t('profile.supporting_context_section', { defaultValue: supportingContextCopy.sectionTitle })}
+                            </h2>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                              {t('profile.supporting_context_desc', { defaultValue: supportingContextCopy.sectionIntro })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-6">
+                        <input
+                          ref={cvInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleCVUpload}
+                          className="hidden"
+                        />
+
+                        <div className={`w-full rounded-lg border-2 border-dashed p-5 transition-colors ${profile.cvUrl ? 'border-[rgba(var(--accent-rgb),0.42)] bg-[rgba(var(--accent-rgb),0.08)]' : 'border-slate-300 hover:border-[rgba(var(--accent-rgb),0.3)]'
+                          }`}>
+                          <div className="text-center">
+                            <FileText className={`mx-auto mb-3 h-10 w-10 ${profile.cvUrl ? 'text-[var(--accent)]' : 'text-slate-400'}`} />
+
+                            {profile.cvUrl ? (
+                              <div>
+                                <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                                  {t('profile.cv_uploaded', { defaultValue: supportingContextCopy.uploadedTitle })}
+                                </p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
+                                  <CheckCircle className="w-4 h-4 text-amber-500" />
+                                  <span>{t('profile.cv_upload_success', { defaultValue: supportingContextCopy.uploadedDesc })}</span>
+                                </p>
+                                <button
+                                  onClick={() => cvInputRef.current?.click()}
+                                  disabled={isUploadingCV}
+                                  className={`${profilePrimaryButtonClass} px-4 py-2 text-sm`}
+                                >
+                                  {t('profile.replace_cv', { defaultValue: supportingContextCopy.replaceLabel })}
+                                </button>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                                  {t('profile.upload_cv', { defaultValue: supportingContextCopy.emptyTitle })}
+                                </p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                  {t('profile.upload_cv_desc', { defaultValue: supportingContextCopy.emptyDesc })}
+                                </p>
+                                <button
+                                  onClick={() => cvInputRef.current?.click()}
+                                  disabled={isUploadingCV}
+                                  className={`${profilePrimaryButtonClass} px-6 py-3 ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file', { defaultValue: supportingContextCopy.selectLabel })}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {profile.id && (
+                          <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                            <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
+                              {t('cv_manager.title', { defaultValue: supportingContextCopy.libraryTitle })}
+                            </h4>
+                            <CVManager userId={profile.id} isPremium={isPremium} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
+            )}
 
-              <div className="p-6">
-                <input
-                  ref={cvInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleCVUpload}
-                  className="hidden"
-                />
+            {isCvTab && (
+              <>
+                {/* Work Experience Section */}
+                <div className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={profileAccentIconShellClass}>
+                          <Briefcase className={profileAccentIconClass} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.experience')}</h2>
+                      </div>
+                      <button
+                        onClick={handleAddExperience}
+                        className={profileIconButtonClass}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
 
-                <div className={`w-full rounded-lg border-2 border-dashed p-5 transition-colors ${profile.cvUrl ? 'border-[rgba(var(--accent-rgb),0.42)] bg-[rgba(var(--accent-rgb),0.08)]' : 'border-slate-300 hover:border-[rgba(var(--accent-rgb),0.3)]'
-                  }`}>
-                  <div className="text-center">
-                    <FileText className={`mx-auto mb-3 h-10 w-10 ${profile.cvUrl ? 'text-[var(--accent)]' : 'text-slate-400'}`} />
-
-                    {profile.cvUrl ? (
-                      <div>
-                        <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                          {t('profile.cv_uploaded', { defaultValue: supportingContextCopy.uploadedTitle })}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-500" />
-                          <span>{t('profile.cv_upload_success', { defaultValue: supportingContextCopy.uploadedDesc })}</span>
-                        </p>
+                  <div className="p-6 space-y-4">
+                    {formData.experience.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                        <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>{t('profile.no_experience')}</p>
                         <button
-                          onClick={() => cvInputRef.current?.click()}
-                          disabled={isUploadingCV}
-                          className={`${profilePrimaryButtonClass} px-4 py-2 text-sm`}
+                          onClick={handleAddExperience}
+                          className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
                         >
-                          {t('profile.replace_cv', { defaultValue: supportingContextCopy.replaceLabel })}
+                          {t('profile.add_first_experience')}
+                        </button>
+                      </div>
+                    ) : (
+                      formData.experience.map((experience, index) => (
+                        <div key={`${experience.id || 'exp'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold text-slate-900 dark:text-white">
+                              {experience.role || t('profile.new_role')} {experience.company && `@ ${experience.company}`}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {activeExperienceId !== experience.id && (
+                                <button
+                                  onClick={() => setActiveExperienceId(experience.id)}
+                                  className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
+                                >
+                                  {t('app.edit', { defaultValue: 'Upravit' })}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleRemoveExperience(experience.id)}
+                                className="text-red-500 hover:text-red-600 transition-colors"
+                                title={t('app.delete')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {activeExperienceId === experience.id ? (
+                            <>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.company')}</label>
+                                  <input
+                                    type="text"
+                                    value={experience.company}
+                                    onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.company_placeholder')}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.role')}</label>
+                                  <input
+                                    type="text"
+                                    value={experience.role}
+                                    onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.role_placeholder')}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="mt-4">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.duration')}</label>
+                                <input
+                                  type="text"
+                                  value={experience.duration}
+                                  onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
+                                  className={profileCompactInputClass}
+                                  placeholder={t('profile.duration_placeholder')}
+                                />
+                              </div>
+
+                              <div className="mt-4">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.description')}</label>
+                                <textarea
+                                  value={experience.description}
+                                  onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
+                                  className={`${profileCompactInputClass} resize-none`}
+                                  rows={3}
+                                  placeholder={t('profile.description_placeholder')}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-sm text-slate-600 dark:text-slate-400">
+                              <div>{experience.duration || t('profile.duration_placeholder')}</div>
+                              {experience.description && (
+                                <p className="mt-2">{experience.description}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Education Section */}
+                <div className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={profileAccentIconShellClass}>
+                          <GraduationCap className={profileAccentIconClass} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.education')}</h2>
+                      </div>
+                      <button
+                        onClick={handleAddEducation}
+                        className={profileIconButtonClass}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    {formData.education.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                        <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>{t('profile.no_education')}</p>
+                        <button
+                          onClick={handleAddEducation}
+                          className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+                        >
+                          {t('profile.add_first_education')}
+                        </button>
+                      </div>
+                    ) : (
+                      formData.education.map((edu, index) => (
+                        <div key={`${edu.id || 'edu'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold text-slate-900 dark:text-white">
+                              {edu.degree || t('profile.new_education')} {edu.school && `@ ${edu.school}`}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {activeEducationId !== edu.id && (
+                                <button
+                                  onClick={() => setActiveEducationId(edu.id)}
+                                  className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
+                                >
+                                  {t('app.edit', { defaultValue: 'Upravit' })}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleRemoveEducation(edu.id)}
+                                className="text-red-500 hover:text-red-600 transition-colors"
+                                title={t('app.delete')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {activeEducationId === edu.id ? (
+                            <>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.school')}</label>
+                                  <input
+                                    type="text"
+                                    value={edu.school}
+                                    onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.school_placeholder')}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.degree')}</label>
+                                  <input
+                                    type="text"
+                                    value={edu.degree}
+                                    onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.degree_placeholder')}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.field')}</label>
+                                  <input
+                                    type="text"
+                                    value={edu.field}
+                                    onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.field_placeholder')}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.year')}</label>
+                                  <input
+                                    type="text"
+                                    value={edu.year}
+                                    onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
+                                    className={profileCompactInputClass}
+                                    placeholder={t('profile.year_placeholder')}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-sm text-slate-600 dark:text-slate-400">
+                              <div>{edu.field || t('profile.field_placeholder')}</div>
+                              <div>{edu.year || t('profile.year_placeholder')}</div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills Section */}
+                <div className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={profileAccentIconShellClass}>
+                          <Award className={profileAccentIconClass} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.skills')}</h2>
+                        <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-1 text-sm text-[var(--accent)]">
+                          {t('profile.skills_count', { count: formData.skills.length })}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleAddSkill}
+                        className={profileIconButtonClass}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {formData.skills.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                        <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>{t('profile.no_skills')}</p>
+                        <p className="text-sm mt-2 mb-4">{t('profile.skills_key_desc')}</p>
+                        <button
+                          onClick={handleAddSkill}
+                          className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+                        >
+                          {t('profile.add_first_skill')}
                         </button>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                          {t('profile.upload_cv', { defaultValue: supportingContextCopy.emptyTitle })}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                          {t('profile.upload_cv_desc', { defaultValue: supportingContextCopy.emptyDesc })}
-                        </p>
-                        <button
-                          onClick={() => cvInputRef.current?.click()}
-                          disabled={isUploadingCV}
-                          className={`${profilePrimaryButtonClass} px-6 py-3 ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file', { defaultValue: supportingContextCopy.selectLabel })}
-                        </button>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {formData.skills.map((skill, index) => (
+                            <div key={index} className="group relative">
+                              <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-sm text-[var(--accent)]">
+                                {skill}
+                                <button
+                                  onClick={() => handleRemoveSkill(skill)}
+                                  className="ml-2 text-[var(--accent)] transition-colors hover:text-red-500"
+                                  title={t('app.delete')}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className={profileAccentPanelClass}>
+                          <h4 className="mb-2 font-medium text-[var(--text-strong)]">{t('profile.skills_importance_title')}</h4>
+                          <ul className="space-y-1 text-sm text-[var(--text-muted)]">
+                            <li>• {t('profile.skills_importance_1')}</li>
+                            <li>• {t('profile.skills_importance_2')}</li>
+                            <li>• {t('profile.skills_importance_3')}</li>
+                            <li>• {t('profile.skills_importance_4')}</li>
+                          </ul>
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-
-                {profile.id && (
-                  <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
-                      {t('cv_manager.title', { defaultValue: supportingContextCopy.libraryTitle })}
-                    </h4>
-                    <CVManager userId={profile.id} isPremium={isPremium} />
-                  </div>
-                )}
-              </div>
-            </div>
-              </div>
-            </div>
-              </>
-            )}
-
-            {isCvTab && (
-              <>
-            {/* Work Experience Section */}
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={profileAccentIconShellClass}>
-                      <Briefcase className={profileAccentIconClass} />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.experience')}</h2>
-                  </div>
-                  <button
-                    onClick={handleAddExperience}
-                    className={profileIconButtonClass}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {formData.experience.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                    <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('profile.no_experience')}</p>
-                    <button
-                      onClick={handleAddExperience}
-                      className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-                    >
-                      {t('profile.add_first_experience')}
-                    </button>
-                  </div>
-                ) : (
-                  formData.experience.map((experience, index) => (
-                    <div key={`${experience.id || 'exp'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-slate-900 dark:text-white">
-                          {experience.role || t('profile.new_role')} {experience.company && `@ ${experience.company}`}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {activeExperienceId !== experience.id && (
-                            <button
-                              onClick={() => setActiveExperienceId(experience.id)}
-                              className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
-                            >
-                              {t('app.edit', { defaultValue: 'Upravit' })}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemoveExperience(experience.id)}
-                            className="text-red-500 hover:text-red-600 transition-colors"
-                            title={t('app.delete')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {activeExperienceId === experience.id ? (
-                        <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.company')}</label>
-                              <input
-                                type="text"
-                                value={experience.company}
-                                onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.company_placeholder')}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.role')}</label>
-                              <input
-                                type="text"
-                                value={experience.role}
-                                onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.role_placeholder')}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.duration')}</label>
-                            <input
-                              type="text"
-                              value={experience.duration}
-                              onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
-                              className={profileCompactInputClass}
-                              placeholder={t('profile.duration_placeholder')}
-                            />
-                          </div>
-
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.description')}</label>
-                            <textarea
-                              value={experience.description}
-                              onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
-                              className={`${profileCompactInputClass} resize-none`}
-                              rows={3}
-                              placeholder={t('profile.description_placeholder')}
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-slate-600 dark:text-slate-400">
-                          <div>{experience.duration || t('profile.duration_placeholder')}</div>
-                          {experience.description && (
-                            <p className="mt-2">{experience.description}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Education Section */}
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={profileAccentIconShellClass}>
-                      <GraduationCap className={profileAccentIconClass} />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.education')}</h2>
-                  </div>
-                  <button
-                    onClick={handleAddEducation}
-                    className={profileIconButtonClass}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {formData.education.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                    <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('profile.no_education')}</p>
-                    <button
-                      onClick={handleAddEducation}
-                      className="mt-4 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-                    >
-                      {t('profile.add_first_education')}
-                    </button>
-                  </div>
-                ) : (
-                  formData.education.map((edu, index) => (
-                    <div key={`${edu.id || 'edu'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-slate-900 dark:text-white">
-                          {edu.degree || t('profile.new_education')} {edu.school && `@ ${edu.school}`}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {activeEducationId !== edu.id && (
-                            <button
-                              onClick={() => setActiveEducationId(edu.id)}
-                              className="px-2.5 py-1.5 text-xs rounded-md border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)]"
-                            >
-                              {t('app.edit', { defaultValue: 'Upravit' })}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemoveEducation(edu.id)}
-                            className="text-red-500 hover:text-red-600 transition-colors"
-                            title={t('app.delete')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {activeEducationId === edu.id ? (
-                        <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.school')}</label>
-                              <input
-                                type="text"
-                                value={edu.school}
-                                onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.school_placeholder')}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.degree')}</label>
-                              <input
-                                type="text"
-                                value={edu.degree}
-                                onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.degree_placeholder')}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.field')}</label>
-                              <input
-                                type="text"
-                                value={edu.field}
-                                onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.field_placeholder')}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.year')}</label>
-                              <input
-                                type="text"
-                                value={edu.year}
-                                onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                                className={profileCompactInputClass}
-                                placeholder={t('profile.year_placeholder')}
-                              />
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-slate-600 dark:text-slate-400">
-                          <div>{edu.field || t('profile.field_placeholder')}</div>
-                          <div>{edu.year || t('profile.year_placeholder')}</div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Skills Section */}
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={profileAccentIconShellClass}>
-                      <Award className={profileAccentIconClass} />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.skills')}</h2>
-                    <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-1 text-sm text-[var(--accent)]">
-                      {t('profile.skills_count', { count: formData.skills.length })}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleAddSkill}
-                    className={profileIconButtonClass}
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {formData.skills.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                    <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('profile.no_skills')}</p>
-                    <p className="text-sm mt-2 mb-4">{t('profile.skills_key_desc')}</p>
-                    <button
-                      onClick={handleAddSkill}
-                      className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-                    >
-                      {t('profile.add_first_skill')}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {formData.skills.map((skill, index) => (
-                        <div key={index} className="group relative">
-                          <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1 text-sm text-[var(--accent)]">
-                            {skill}
-                            <button
-                              onClick={() => handleRemoveSkill(skill)}
-                              className="ml-2 text-[var(--accent)] transition-colors hover:text-red-500"
-                              title={t('app.delete')}
-                            >
-                              <X size={14} />
-                            </button>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className={profileAccentPanelClass}>
-                      <h4 className="mb-2 font-medium text-[var(--text-strong)]">{t('profile.skills_importance_title')}</h4>
-                      <ul className="space-y-1 text-sm text-[var(--text-muted)]">
-                        <li>• {t('profile.skills_importance_1')}</li>
-                        <li>• {t('profile.skills_importance_2')}</li>
-                        <li>• {t('profile.skills_importance_3')}</li>
-                        <li>• {t('profile.skills_importance_4')}</li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
               </>
             )}
 
@@ -3612,789 +3680,789 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isSettingsTab && (
               <>
-            {renderPremiumSearchSetupPanel}
-            {renderIntentSetupPanel}
+                {renderPremiumSearchSetupPanel}
+                {renderIntentSetupPanel}
 
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className={profileAccentIconShellClass}>
-                    <Calculator className={profileAccentIconClass} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.tax.title')}</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {isPremium
-                        ? `${formData.taxProfile.countryCode} • ${formData.taxProfile.taxYear} • ${t(`profile.tax.${formData.taxProfile.employmentType}`)} • ${t('profile.tax.children')}: ${formData.taxProfile.childrenCount}`
-                        : t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {isPremium ? (
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
-                    <select
-                      value={formData.taxProfile.countryCode}
-                      onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
-                      className={profileCompactInputClass}
-                    >
-                      <option value="CZ">CZ</option>
-                      <option value="SK">SK</option>
-                      <option value="PL">PL</option>
-                      <option value="DE">DE</option>
-                      <option value="AT">AT</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.year')}</label>
-                    <input
-                      type="number"
-                      value={formData.taxProfile.taxYear}
-                      onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
-                      className={profileCompactInputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.employment_type')}</label>
-                    <select
-                      value={formData.taxProfile.employmentType}
-                      onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
-                      className={profileCompactInputClass}
-                    >
-                      <option value="employee">{t('profile.tax.employee')}</option>
-                      <option value="contractor">{t('profile.tax.contractor')}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.marital_status')}</label>
-                    <select
-                      value={formData.taxProfile.maritalStatus}
-                      onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
-                      className={profileCompactInputClass}
-                    >
-                      <option value="single">{t('profile.tax.single')}</option>
-                      <option value="married">{t('profile.tax.married')}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.children')}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.taxProfile.childrenCount}
-                      onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
-                      className={profileCompactInputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.spouse_income')}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.taxProfile.spouseAnnualIncome || 0}
-                      onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
-                      className={profileCompactInputClass}
-                    />
-                  </div>
-                  {formData.taxProfile.countryCode === 'DE' && (
-                    <>
+                <div className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center gap-3">
+                      <div className={profileAccentIconShellClass}>
+                        <Calculator className={profileAccentIconClass} />
+                      </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {t('profile.tax.de_tax_class', { defaultValue: 'Daňová třída (DE)' })}
-                        </label>
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.tax.title')}</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {isPremium
+                            ? `${formData.taxProfile.countryCode} • ${formData.taxProfile.taxYear} • ${t(`profile.tax.${formData.taxProfile.employmentType}`)} • ${t('profile.tax.children')}: ${formData.taxProfile.childrenCount}`
+                            : t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {isPremium ? (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
                         <select
-                          value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
-                          onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
+                          value={formData.taxProfile.countryCode}
+                          onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
                           className={profileCompactInputClass}
                         >
-                          <option value="I">I</option>
-                          <option value="II">II</option>
-                          <option value="III">III</option>
-                          <option value="IV">IV</option>
-                          <option value="V">V</option>
-                          <option value="VI">VI</option>
+                          <option value="CZ">CZ</option>
+                          <option value="SK">SK</option>
+                          <option value="PL">PL</option>
+                          <option value="DE">DE</option>
+                          <option value="AT">AT</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {t('profile.tax.de_church_tax', { defaultValue: 'Církevní daň (DE)' })}
-                        </label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.year')}</label>
+                        <input
+                          type="number"
+                          value={formData.taxProfile.taxYear}
+                          onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
+                          className={profileCompactInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.employment_type')}</label>
                         <select
-                          value={formData.taxProfile.deChurchTaxRate ?? 0}
-                          onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
+                          value={formData.taxProfile.employmentType}
+                          onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
                           className={profileCompactInputClass}
                         >
-                          <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
-                          <option value={0.08}>8 %</option>
-                          <option value={0.09}>9 %</option>
+                          <option value="employee">{t('profile.tax.employee')}</option>
+                          <option value="contractor">{t('profile.tax.contractor')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {t('profile.tax.de_kvz', { defaultValue: 'KVZ (DE) – Zusatzbeitragssatz %' })}
-                        </label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.marital_status')}</label>
+                        <select
+                          value={formData.taxProfile.maritalStatus}
+                          onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
+                          className={profileCompactInputClass}
+                        >
+                          <option value="single">{t('profile.tax.single')}</option>
+                          <option value="married">{t('profile.tax.married')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.children')}</label>
                         <input
                           type="number"
                           min={0}
-                          max={5}
-                          step={0.1}
-                          value={formData.taxProfile.deKvzRate ?? 2.9}
-                          onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
+                          value={formData.taxProfile.childrenCount}
+                          onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
                           className={profileCompactInputClass}
                         />
                       </div>
-                    </>
-                  )}
-                  {formData.taxProfile.countryCode === 'AT' && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t('profile.tax.at_13_14', { defaultValue: '13./14. plat (AT)' })}
-                      </label>
-                      <select
-                        value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
-                        onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
-                        className={profileCompactInputClass}
-                      >
-                        <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
-                        <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
-                      </select>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.spouse_income')}</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={formData.taxProfile.spouseAnnualIncome || 0}
+                          onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
+                          className={profileCompactInputClass}
+                        />
+                      </div>
+                      {formData.taxProfile.countryCode === 'DE' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              {t('profile.tax.de_tax_class', { defaultValue: 'Daňová třída (DE)' })}
+                            </label>
+                            <select
+                              value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
+                              onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
+                              className={profileCompactInputClass}
+                            >
+                              <option value="I">I</option>
+                              <option value="II">II</option>
+                              <option value="III">III</option>
+                              <option value="IV">IV</option>
+                              <option value="V">V</option>
+                              <option value="VI">VI</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              {t('profile.tax.de_church_tax', { defaultValue: 'Církevní daň (DE)' })}
+                            </label>
+                            <select
+                              value={formData.taxProfile.deChurchTaxRate ?? 0}
+                              onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
+                              className={profileCompactInputClass}
+                            >
+                              <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
+                              <option value={0.08}>8 %</option>
+                              <option value={0.09}>9 %</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              {t('profile.tax.de_kvz', { defaultValue: 'KVZ (DE) – Zusatzbeitragssatz %' })}
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={5}
+                              step={0.1}
+                              value={formData.taxProfile.deKvzRate ?? 2.9}
+                              onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
+                              className={profileCompactInputClass}
+                            />
+                          </div>
+                        </>
+                      )}
+                      {formData.taxProfile.countryCode === 'AT' && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            {t('profile.tax.at_13_14', { defaultValue: '13./14. plat (AT)' })}
+                          </label>
+                          <select
+                            value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
+                            onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
+                            className={profileCompactInputClass}
+                          >
+                            <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
+                            <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-6">
+                      <div className={`${profileAccentPanelClass} rounded-[1rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-muted)] p-5`}>
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="space-y-3">
+                            <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+                              Premium
+                            </span>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {t('alerts.premium_only_feature')}
+                              </p>
+                              <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                                {t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                t('profile.tax.country', { defaultValue: 'Země a daňový rok' }),
+                                t('profile.tax.employment_type', { defaultValue: 'Typ spolupráce' }),
+                                t('profile.tax.children', { defaultValue: 'Děti a rodinná situace' }),
+                              ].map((item) => (
+                                <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (profile.id) {
+                                redirectToCheckout('premium', profile.id);
+                              }
+                            }}
+                            className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
+                          >
+                            {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="p-6">
-                  <div className={`${profileAccentPanelClass} rounded-[1rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-muted)] p-5`}>
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-3">
-                        <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-                          Premium
-                        </span>
-                        <div>
+
+                <div id="jhi" className={profileSurfaceClass}>
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="flex items-center gap-3">
+                      <div className={profileAccentIconShellClass}>
+                        <SlidersHorizontal className={profileAccentIconClass} />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.jhi.title')}</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {topJhiWeights.map(([key, value]) => `${t(`profile.jhi.weights.${key}`)} ${Math.round(value * 100)}%`).join(' · ')}
+                          {activeJhiConstraintsCount > 0 ? ` · ${activeJhiConstraintsCount} ${t('profile.jhi.constraints.label', { defaultValue: 'omezení' })}` : ''}
+                        </p>
+                      </div>
+                      <span className="ml-auto inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Premium
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {t('profile.jhi.explainer')}
+                    </p>
+                    {!isPremium && (
+                      <div className={`${profileAccentPanelClass} flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900 dark:text-white">
                             {t('alerts.premium_only_feature')}
                           </p>
-                          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                            {t('profile.tax.paywall_hint', { defaultValue: 'Daňový profil zpřesní čistý příjem, srovnání HPP vs. IČO a realističtější výpočet vaší pracovní situace.' })}
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {t('profile.jhi.paywall_hint', { defaultValue: 'Personalizace JHI skóre je dostupná pouze v Premium.' })}
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            t('profile.tax.country', { defaultValue: 'Země a daňový rok' }),
-                            t('profile.tax.employment_type', { defaultValue: 'Typ spolupráce' }),
-                            t('profile.tax.children', { defaultValue: 'Děti a rodinná situace' }),
-                          ].map((item) => (
-                            <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
+                        <button
+                          onClick={() => {
+                            if (profile.id) {
+                              redirectToCheckout('premium', profile.id);
+                            }
+                          }}
+                          className={`${profilePrimaryButtonClass} w-full px-3 py-2 text-sm sm:w-auto`}
+                        >
+                          {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          if (profile.id) {
-                            redirectToCheckout('premium', profile.id);
-                          }
-                        }}
-                        className={`${profilePrimaryButtonClass} w-full px-4 py-2.5 text-sm lg:w-auto`}
-                      >
-                        {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className={profileAccentIconShellClass}>
-                    <SlidersHorizontal className={profileAccentIconClass} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.jhi.title')}</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {topJhiWeights.map(([key, value]) => `${t(`profile.jhi.weights.${key}`)} ${Math.round(value * 100)}%`).join(' · ')}
-                      {activeJhiConstraintsCount > 0 ? ` · ${activeJhiConstraintsCount} ${t('profile.jhi.constraints.label', { defaultValue: 'omezení' })}` : ''}
-                    </p>
-                  </div>
-                  <span className="ml-auto inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                    Premium
-                  </span>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t('profile.jhi.explainer')}
-                </p>
-                {!isPremium && (
-                  <div className={`${profileAccentPanelClass} flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4`}>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {t('alerts.premium_only_feature')}
+                    )}
+                    <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => applyJhiPreset('balanced')}
+                          className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed"
+                        >
+                          {t('profile.jhi.presets.balanced')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyJhiPreset('money')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:cursor-not-allowed"
+                        >
+                          {t('profile.jhi.presets.money')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyJhiPreset('calm')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40 disabled:cursor-not-allowed"
+                        >
+                          {t('profile.jhi.presets.calm')}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+                        {(['financial', 'timeCost', 'mentalLoad', 'growth', 'values'] as const).map((weightKey) => (
+                          <div key={weightKey}>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              {t(`profile.jhi.weights.${weightKey}`)}
+                            </label>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                              {Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)} %
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={5}
+                              value={Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)}
+                              onChange={(e) => handleJhiPreferenceWeightChange(weightKey, (Number(e.target.value) || 0) / 100)}
+                              className="w-full jhi-slider disabled:cursor-not-allowed"
+                              style={sliderTrackStyle(Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+                        {t('profile.jhi.weights_auto_normalized')}
                       </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        {t('profile.jhi.paywall_hint', { defaultValue: 'Personalizace JHI skóre je dostupná pouze v Premium.' })}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (profile.id) {
-                          redirectToCheckout('premium', profile.id);
-                        }
-                      }}
-                      className={`${profilePrimaryButtonClass} w-full px-3 py-2 text-sm sm:w-auto`}
-                    >
-                      {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurLabel}`}
-                    </button>
-                  </div>
-                )}
-                <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => applyJhiPreset('balanced')}
-                      className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:bg-[rgba(var(--accent-rgb),0.12)] disabled:cursor-not-allowed"
-                    >
-                      {t('profile.jhi.presets.balanced')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyJhiPreset('money')}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:cursor-not-allowed"
-                    >
-                      {t('profile.jhi.presets.money')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyJhiPreset('calm')}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40 disabled:cursor-not-allowed"
-                    >
-                      {t('profile.jhi.presets.calm')}
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
-                    {(['financial', 'timeCost', 'mentalLoad', 'growth', 'values'] as const).map((weightKey) => (
-                      <div key={weightKey}>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {t(`profile.jhi.weights.${weightKey}`)}
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-3">
+                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.jhiPreferences.hardConstraints.mustRemote}
+                            onChange={(e) => handleJhiConstraintChange('mustRemote', e.target.checked)}
+                          />
+                          {t('profile.jhi.constraints.must_remote')}
                         </label>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                          {Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)} %
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          step={5}
-                          value={Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)}
-                          onChange={(e) => handleJhiPreferenceWeightChange(weightKey, (Number(e.target.value) || 0) / 100)}
-                          className="w-full jhi-slider disabled:cursor-not-allowed"
-                          style={sliderTrackStyle(Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100))}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-                    {t('profile.jhi.weights_auto_normalized')}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-3">
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={formData.jhiPreferences.hardConstraints.mustRemote}
-                        onChange={(e) => handleJhiConstraintChange('mustRemote', e.target.checked)}
-                      />
-                      {t('profile.jhi.constraints.must_remote')}
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={formData.jhiPreferences.hardConstraints.excludeShift}
-                        onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
-                      />
-                      {t('profile.jhi.constraints.exclude_shift')}
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={formData.jhiPreferences.hardConstraints.growthRequired}
-                        onChange={(e) => handleJhiConstraintChange('growthRequired', e.target.checked)}
-                      />
-                      {t('profile.jhi.constraints.growth_required')}
-                    </label>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.max_commute')}</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
-                        onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
-                        className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.min_net')}</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
-                        onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
-                        className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    {(['peopleIntensity', 'careerGrowthPreference', 'homeOfficePreference'] as const).map((key) => (
-                      <div key={key}>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          {t(`profile.jhi.work_style.${key}`)}
+                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.jhiPreferences.hardConstraints.excludeShift}
+                            onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
+                          />
+                          {t('profile.jhi.constraints.exclude_shift')}
                         </label>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                          {formData.jhiPreferences.workStyle[key]} %
+                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.jhiPreferences.hardConstraints.growthRequired}
+                            onChange={(e) => handleJhiConstraintChange('growthRequired', e.target.checked)}
+                          />
+                          {t('profile.jhi.constraints.growth_required')}
+                        </label>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.max_commute')}</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
+                            onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
+                            className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
+                          />
                         </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          step={5}
-                          value={formData.jhiPreferences.workStyle[key]}
-                          onChange={(e) => handleJhiWorkStyleChange(key, Number(e.target.value) || 0)}
-                          className="w-full jhi-slider disabled:cursor-not-allowed"
-                          style={sliderTrackStyle(formData.jhiPreferences.workStyle[key])}
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.min_net')}</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
+                            onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
+                            className={`${profileCompactInputClass} disabled:cursor-not-allowed`}
+                          />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </fieldset>
-              </div>
-            </div>
-
-            {FEATURE_HAPPINESS_AUDIT_THREE && (
-              <div className={profileSurfaceClass}>
-                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                        {t('happiness_audit_3d.title', { defaultValue: profileUiCopy.happinessTitle })}
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {t('happiness_audit_3d.subtitle', { defaultValue: profileUiCopy.happinessSubtitle })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                        {profileUiCopy.premiumBadge}
-                      </span>
-                      <button
-                        onClick={() => setEnableLive3D((prev) => !prev)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
-                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                        }`}
-                      >
-                        {enableLive3D
-                          ? t('happiness_audit_3d.live_on', { defaultValue: profileUiCopy.live3dOn })
-                          : t('happiness_audit_3d.live_off', { defaultValue: profileUiCopy.live3dOffButton })}
-                      </button>
-                    </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        {(['peopleIntensity', 'careerGrowthPreference', 'homeOfficePreference'] as const).map((key) => (
+                          <div key={key}>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              {t(`profile.jhi.work_style.${key}`)}
+                            </label>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                              {formData.jhiPreferences.workStyle[key]} %
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={5}
+                              value={formData.jhiPreferences.workStyle[key]}
+                              onChange={(e) => handleJhiWorkStyleChange(key, Number(e.target.value) || 0)}
+                              className="w-full jhi-slider disabled:cursor-not-allowed"
+                              style={sliderTrackStyle(formData.jhiPreferences.workStyle[key])}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </fieldset>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  {!isPremium && (
-                    <div className="text-sm text-amber-700 dark:text-amber-300">
-                      {t('happiness_audit_3d.premium_required', { defaultValue: profileUiCopy.premiumRequired })}
-                    </div>
-                  )}
-                  <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
-                        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                          {profileUiCopy.auditQuest1}
+
+                {FEATURE_HAPPINESS_AUDIT_THREE && (
+                  <div className={profileSurfaceClass}>
+                    <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                            {t('happiness_audit_3d.title', { defaultValue: profileUiCopy.happinessTitle })}
+                          </h2>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {t('happiness_audit_3d.subtitle', { defaultValue: profileUiCopy.happinessSubtitle })}
+                          </p>
                         </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                          {profileUiCopy.quest1Body} ({monthlyCommuteHours} h)
-                        </p>
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                          {([
-                            ['commute', profileUiCopy.commute],
-                            ['taxes', profileUiCopy.taxes],
-                            ['fixed', profileUiCopy.fixedCosts],
-                          ] as const).map(([key, label]) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => setResourceLeakToggles((prev) => ({ ...prev, [key]: !prev[key] }))}
-                              className={`px-3 py-2 rounded-lg text-sm border ${resourceLeakToggles[key]
-                                ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
-                                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
-                                }`}
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            {profileUiCopy.premiumBadge}
+                          </span>
+                          <button
+                            onClick={() => setEnableLive3D((prev) => !prev)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
+                              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                              }`}
+                          >
+                            {enableLive3D
+                              ? t('happiness_audit_3d.live_on', { defaultValue: profileUiCopy.live3dOn })
+                              : t('happiness_audit_3d.live_off', { defaultValue: profileUiCopy.live3dOffButton })}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {!isPremium && (
+                        <div className="text-sm text-amber-700 dark:text-amber-300">
+                          {t('happiness_audit_3d.premium_required', { defaultValue: profileUiCopy.premiumRequired })}
+                        </div>
+                      )}
+                      <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
+                        <div className="space-y-4">
+                          <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
+                            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
+                              {profileUiCopy.auditQuest1}
+                            </div>
+                            <p className="text-sm text-slate-700 dark:text-slate-200">
+                              {profileUiCopy.quest1Body} ({monthlyCommuteHours} h)
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                              {([
+                                ['commute', profileUiCopy.commute],
+                                ['taxes', profileUiCopy.taxes],
+                                ['fixed', profileUiCopy.fixedCosts],
+                              ] as const).map(([key, label]) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setResourceLeakToggles((prev) => ({ ...prev, [key]: !prev[key] }))}
+                                  className={`px-3 py-2 rounded-lg text-sm border ${resourceLeakToggles[key]
+                                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
+                                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300'
+                                    }`}
+                                >
+                                  {resourceLeakToggles[key]
+                                    ? `${profileUiCopy.pipeOn}: ${label}`
+                                    : `${profileUiCopy.pipeOff}: ${label}`}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              {profileUiCopy.disconnected}: {disconnectedPipes} / 3
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
+                            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
+                              {profileUiCopy.auditQuest2}
+                            </div>
+                            <p className="text-sm text-slate-700 dark:text-slate-200">
+                              {profileUiCopy.quest2Body}
+                            </p>
+                            <textarea
+                              value={narrativeStory}
+                              onChange={(e) => setNarrativeStory(e.target.value)}
+                              placeholder={profileUiCopy.storyPlaceholder}
+                              className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                            />
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {narrativeSkills.length > 0 ? narrativeSkills.map((skill, index) => (
+                                <span key={`${skill}-${index}`} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                  {skill}
+                                </span>
+                              )) : (
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{profileUiCopy.noConstellation}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4">
+                            <div className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-2">
+                              {profileUiCopy.auditQuest3}
+                            </div>
+                            <p className="text-sm text-slate-700 dark:text-slate-200">
+                              {profileUiCopy.quest3Body}
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <label className="text-xs text-slate-600 dark:text-slate-300">
+                                {profileUiCopy.individualVsTeam} ({culturalCompass.individualVsTeam})
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  step={5}
+                                  value={culturalCompass.individualVsTeam}
+                                  onChange={(e) => setCulturalCompass((prev) => ({ ...prev, individualVsTeam: Number(e.target.value) || 0 }))}
+                                  className="mt-1 w-full"
+                                />
+                              </label>
+                              <label className="text-xs text-slate-600 dark:text-slate-300">
+                                {profileUiCopy.chaosVsStructure} ({culturalCompass.chaosVsStructure})
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  step={5}
+                                  value={culturalCompass.chaosVsStructure}
+                                  onChange={(e) => setCulturalCompass((prev) => ({ ...prev, chaosVsStructure: Number(e.target.value) || 0 }))}
+                                  className="mt-1 w-full"
+                                />
+                              </label>
+                            </div>
+                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              {profileUiCopy.companyOffNorth.replace('{{value}}', String(culturalMismatch))}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.salary', { defaultValue: profileUiCopy.monthlyGrossSalary })}
+                              <input
+                                type="number"
+                                min={0}
+                                value={happinessAuditInput.salary}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, salary: Number(e.target.value) || 0 }))}
+                                className={`mt-1 ${profileCompactInputClass}`}
+                              />
+                            </label>
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.commute_cost', { defaultValue: profileUiCopy.monthlyCommuteCost })}
+                              <input
+                                type="number"
+                                min={0}
+                                value={happinessAuditInput.commute_cost}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_cost: Number(e.target.value) || 0 }))}
+                                className={`mt-1 ${profileCompactInputClass}`}
+                              />
+                            </label>
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.home_office_days', { defaultValue: profileUiCopy.homeOfficeDays })}
+                              <input
+                                type="range"
+                                min={0}
+                                max={5}
+                                step={1}
+                                value={happinessAuditInput.home_office_days}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, home_office_days: Number(e.target.value) || 0 }))}
+                                className="mt-2 w-full"
+                              />
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.home_office_days} / 5</div>
+                            </label>
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.commute_minutes', { defaultValue: profileUiCopy.commuteMinutes })}
+                              <input
+                                type="range"
+                                min={0}
+                                max={180}
+                                step={5}
+                                value={happinessAuditInput.commute_minutes_daily}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_minutes_daily: Number(e.target.value) || 0 }))}
+                                className="mt-2 w-full"
+                              />
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} {profileUiCopy.minutesPerDay}</div>
+                            </label>
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.energy', { defaultValue: profileUiCopy.subjectiveEnergy })}
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={5}
+                                value={happinessAuditInput.subjective_energy}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, subjective_energy: Number(e.target.value) || 0 }))}
+                                className="mt-2 w-full"
+                              />
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.subjective_energy}/100</div>
+                            </label>
+                            <label className="text-sm text-slate-700 dark:text-slate-300">
+                              {t('happiness_audit_3d.role_shift', { defaultValue: profileUiCopy.roleDrift })}
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={5}
+                                value={happinessAuditInput.role_shift}
+                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, role_shift: Number(e.target.value) || 0 }))}
+                                className="mt-2 w-full"
+                              />
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.role_shift}/100</div>
+                            </label>
+                          </div>
+                        </div>
+                      </fieldset>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                          <div className="mb-2 text-xs uppercase tracking-wider text-[var(--accent)]">
+                            {profileUiCopy.orbitTitle}
+                          </div>
+                          {enableLive3D ? (
+                            <SceneShell
+                              capability={sceneCapability}
+                              enableControls
+                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
                             >
-                              {resourceLeakToggles[key]
-                                ? `${profileUiCopy.pipeOn}: ${label}`
-                                : `${profileUiCopy.pipeOff}: ${label}`}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          {profileUiCopy.disconnected}: {disconnectedPipes} / 3
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
-                        <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
-                          {profileUiCopy.auditQuest2}
-                        </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                          {profileUiCopy.quest2Body}
-                        </p>
-                        <textarea
-                          value={narrativeStory}
-                          onChange={(e) => setNarrativeStory(e.target.value)}
-                          placeholder={profileUiCopy.storyPlaceholder}
-                          className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
-                        />
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {narrativeSkills.length > 0 ? narrativeSkills.map((skill, index) => (
-                            <span key={`${skill}-${index}`} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                              {skill}
-                            </span>
-                          )) : (
-                            <span className="text-xs text-slate-500 dark:text-slate-400">{profileUiCopy.noConstellation}</span>
+                              <LifeSustainabilityOrbit output={happinessAuditOutput} />
+                            </SceneShell>
+                          ) : (
+                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                              {profileUiCopy.live3dOff}
+                            </div>
                           )}
                         </div>
+                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                          <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
+                            {profileUiCopy.anchorTitle}
+                          </div>
+                          {enableLive3D ? (
+                            <SceneShell
+                              capability={sceneCapability}
+                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
+                            >
+                              <CareerAnchorDrift output={happinessAuditOutput} />
+                            </SceneShell>
+                          ) : (
+                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                              {profileUiCopy.live3dOff}
+                            </div>
+                          )}
+                        </div>
+                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                          <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                            {profileUiCopy.mirrorTitle}
+                          </div>
+                          {enableLive3D ? (
+                            <SceneShell
+                              capability={sceneCapability}
+                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
+                            >
+                              <NebulaOfPotential frame={narrativeFrame} />
+                            </SceneShell>
+                          ) : (
+                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                              {profileUiCopy.live3dOff}
+                            </div>
+                          )}
+                        </div>
+                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
+                          <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
+                            {profileUiCopy.northstarTitle}
+                          </div>
+                          {enableLive3D ? (
+                            <SceneShell
+                              capability={sceneCapability}
+                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
+                            >
+                              <CulturalNorthstarCompass
+                                alignmentScore={culturalAlignment}
+                                individualVsTeam={culturalCompass.individualVsTeam}
+                                chaosVsStructure={culturalCompass.chaosVsStructure}
+                              />
+                            </SceneShell>
+                          ) : (
+                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                              {profileUiCopy.live3dOff}
+                            </div>
+                          )}
+                          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {`${profileUiCopy.alignmentLabel}: ${culturalAlignment}% · ${profileUiCopy.mismatchLabel}: ${culturalMismatch}%`}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20 p-4">
-                        <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
-                          {profileUiCopy.auditQuest3}
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                          {isSimulatingAudit
+                            ? t('happiness_audit_3d.simulating', { defaultValue: profileUiCopy.simulating })
+                            : t('happiness_audit_3d.results', { defaultValue: profileUiCopy.auditOutput })}
                         </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                          {profileUiCopy.quest3Body}
-                        </p>
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <label className="text-xs text-slate-600 dark:text-slate-300">
-                            {profileUiCopy.individualVsTeam} ({culturalCompass.individualVsTeam})
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={5}
-                              value={culturalCompass.individualVsTeam}
-                              onChange={(e) => setCulturalCompass((prev) => ({ ...prev, individualVsTeam: Number(e.target.value) || 0 }))}
-                              className="mt-1 w-full"
-                            />
-                          </label>
-                          <label className="text-xs text-slate-600 dark:text-slate-300">
-                            {profileUiCopy.chaosVsStructure} ({culturalCompass.chaosVsStructure})
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={5}
-                              value={culturalCompass.chaosVsStructure}
-                              onChange={(e) => setCulturalCompass((prev) => ({ ...prev, chaosVsStructure: Number(e.target.value) || 0 }))}
-                              className="mt-1 w-full"
-                            />
-                          </label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                          <div><span className="text-slate-500">{profileUiCopy.timeRing}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
+                          <div><span className="text-slate-500">{profileUiCopy.energyRing}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
+                          <div><span className="text-slate-500">{profileUiCopy.sustainability}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
+                          <div><span className="text-slate-500">{profileUiCopy.drift}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
                         </div>
-                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          {profileUiCopy.companyOffNorth.replace('{{value}}', String(culturalMismatch))}
+                        <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                          {(happinessAuditOutput?.recommendations || []).map((item, index) => (
+                            <li key={`${item}-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                          {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: profileUiCopy.advisoryDisclaimer })}
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.salary', { defaultValue: profileUiCopy.monthlyGrossSalary })}
-                          <input
-                            type="number"
-                            min={0}
-                            value={happinessAuditInput.salary}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, salary: Number(e.target.value) || 0 }))}
-                            className={`mt-1 ${profileCompactInputClass}`}
-                          />
-                        </label>
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.commute_cost', { defaultValue: profileUiCopy.monthlyCommuteCost })}
-                          <input
-                            type="number"
-                            min={0}
-                            value={happinessAuditInput.commute_cost}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_cost: Number(e.target.value) || 0 }))}
-                            className={`mt-1 ${profileCompactInputClass}`}
-                          />
-                        </label>
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.home_office_days', { defaultValue: profileUiCopy.homeOfficeDays })}
-                          <input
-                            type="range"
-                            min={0}
-                            max={5}
-                            step={1}
-                            value={happinessAuditInput.home_office_days}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, home_office_days: Number(e.target.value) || 0 }))}
-                            className="mt-2 w-full"
-                          />
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.home_office_days} / 5</div>
-                        </label>
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.commute_minutes', { defaultValue: profileUiCopy.commuteMinutes })}
-                          <input
-                            type="range"
-                            min={0}
-                            max={180}
-                            step={5}
-                            value={happinessAuditInput.commute_minutes_daily}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_minutes_daily: Number(e.target.value) || 0 }))}
-                            className="mt-2 w-full"
-                          />
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} {profileUiCopy.minutesPerDay}</div>
-                        </label>
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.energy', { defaultValue: profileUiCopy.subjectiveEnergy })}
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            step={5}
-                            value={happinessAuditInput.subjective_energy}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, subjective_energy: Number(e.target.value) || 0 }))}
-                            className="mt-2 w-full"
-                          />
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.subjective_energy}/100</div>
-                        </label>
-                        <label className="text-sm text-slate-700 dark:text-slate-300">
-                          {t('happiness_audit_3d.role_shift', { defaultValue: profileUiCopy.roleDrift })}
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            step={5}
-                            value={happinessAuditInput.role_shift}
-                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, role_shift: Number(e.target.value) || 0 }))}
-                            className="mt-2 w-full"
-                          />
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.role_shift}/100</div>
-                        </label>
-                      </div>
-                    </div>
-                  </fieldset>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <div className="mb-2 text-xs uppercase tracking-wider text-[var(--accent)]">
-                        {profileUiCopy.orbitTitle}
-                      </div>
-                      {enableLive3D ? (
-                        <SceneShell
-                          capability={sceneCapability}
-                          enableControls
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                        >
-                          <LifeSustainabilityOrbit output={happinessAuditOutput} />
-                        </SceneShell>
-                      ) : (
-                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {profileUiCopy.live3dOff}
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
-                        {profileUiCopy.anchorTitle}
-                      </div>
-                      {enableLive3D ? (
-                        <SceneShell
-                          capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                        >
-                          <CareerAnchorDrift output={happinessAuditOutput} />
-                        </SceneShell>
-                      ) : (
-                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {profileUiCopy.live3dOff}
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
-                        {profileUiCopy.mirrorTitle}
-                      </div>
-                      {enableLive3D ? (
-                        <SceneShell
-                          capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                        >
-                          <NebulaOfPotential frame={narrativeFrame} />
-                        </SceneShell>
-                      ) : (
-                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {profileUiCopy.live3dOff}
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
-                        {profileUiCopy.northstarTitle}
-                      </div>
-                      {enableLive3D ? (
-                        <SceneShell
-                          capability={sceneCapability}
-                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                        >
-                          <CulturalNorthstarCompass
-                            alignmentScore={culturalAlignment}
-                            individualVsTeam={culturalCompass.individualVsTeam}
-                            chaosVsStructure={culturalCompass.chaosVsStructure}
-                          />
-                        </SceneShell>
-                      ) : (
-                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                          {profileUiCopy.live3dOff}
-                        </div>
-                      )}
-                      <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                        {`${profileUiCopy.alignmentLabel}: ${culturalAlignment}% · ${profileUiCopy.mismatchLabel}: ${culturalMismatch}%`}
                       </div>
                     </div>
                   </div>
-
-                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
-                      {isSimulatingAudit
-                        ? t('happiness_audit_3d.simulating', { defaultValue: profileUiCopy.simulating })
-                        : t('happiness_audit_3d.results', { defaultValue: profileUiCopy.auditOutput })}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div><span className="text-slate-500">{profileUiCopy.timeRing}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{profileUiCopy.energyRing}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{profileUiCopy.sustainability}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
-                      <div><span className="text-slate-500">{profileUiCopy.drift}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
-                    </div>
-                    <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                      {(happinessAuditOutput?.recommendations || []).map((item, index) => (
-                        <li key={`${item}-${index}`}>• {item}</li>
-                      ))}
-                    </ul>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: profileUiCopy.advisoryDisclaimer })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                )}
 
               </>
             )}
 
             {isJcfpmTab && (
-            <div id="jcfpm-card" className={profileSurfaceClass}>
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Career Fit & Potential Test
-                  <span className="ml-2 inline-block bg-emerald-100 text-emerald-800 dark:bg-emerald-600 dark:text-emerald-50 text-xs font-medium px-2 py-0.5 rounded-full">
-                    &bull; test
-                  </span>
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {profilePremiumCopy.jcfpmSummary}
-                </p>
+              <div id="jcfpm-card" className={profileSurfaceClass}>
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Career Fit & Potential Test
+                    <span className="ml-2 inline-block bg-amber-100 text-amber-800 dark:bg-amber-600 dark:text-amber-50 text-xs font-medium px-2 py-0.5 rounded-full">
+                      &bull; test
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {profilePremiumCopy.jcfpmSummary}
+                  </p>
+                </div>
+                <div className="space-y-4 bg-[linear-gradient(180deg,rgba(255,250,240,0.88),rgba(255,255,255,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.28),rgba(10,18,32,0.96))]">
+                  <JcfpmEntryCard
+                    isPremium={isPremium}
+                    sceneCapability={sceneCapability}
+                    hasDraft={hasJcfpmDraft}
+                    hasSnapshot={Boolean(jcfpmSnapshot)}
+                    lastUpdatedAt={jcfpmSnapshot?.completed_at}
+                    onResume={() => {
+                      const lng = (i18n.language || 'cs').split('-')[0];
+                      window.location.href = `/${lng}/profile/jcfpm?mode=resume`;
+                    }}
+                    onRestart={() => {
+                      clearJcfpmDraft(profile.id);
+                      const lng = (i18n.language || 'cs').split('-')[0];
+                      window.location.href = `/${lng}/profile/jcfpm?mode=restart`;
+                    }}
+                    onStartCore={() => {
+                      const lng = (i18n.language || 'cs').split('-')[0];
+                      window.location.href = `/${lng}/profile/jcfpm?mode=start`;
+                    }}
+                    onStartDeep={() => {
+                      const lng = (i18n.language || 'cs').split('-')[0];
+                      window.location.href = `/${lng}/profile/jcfpm?section=deep_dive&mode=start`;
+                    }}
+                    onView={() => {
+                      window.requestAnimationFrame(() => {
+                        document.getElementById('profile-jcfpm-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
+                    }}
+                    onUpgrade={() => {
+                      if (profile.id) {
+                        redirectToCheckout('premium', profile.id);
+                      }
+                    }}
+                  />
+                  {jcfpmSnapshot && (
+                    <div id="profile-jcfpm-report" className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-soft)]">
+                      <JcfpmReportPanel snapshot={jcfpmSnapshot} showAdvancedReport={isPremium} />
+                    </div>
+                  )}
+                  {profile.preferences?.jcfpm_jhi_adjustment_v1 && isPremium && (
+                    <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 p-4 dark:bg-slate-900/70">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                        Jak test upravil JHI preference
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                        Úpravy vycházejí hlavně z dimenzí D2, D3, D4, D5 a D6. Níže je přesně co se změnilo a proč.
+                      </p>
+                      <div className="space-y-2">
+                        {profile.preferences.jcfpm_jhi_adjustment_v1.changes.slice(0, 6).map((change, idx) => (
+                          <div key={`${change.field}-${idx}`} className="text-xs text-slate-700 dark:text-slate-300">
+                            {(() => {
+                              const reasonText =
+                                change.reason_i18n?.[jcfpmReasonLocale] ||
+                                change.reason_i18n?.[jcfpmReasonLocaleBase] ||
+                                translateLegacyJhiReason(change.reason);
+                              return (
+                                <>
+                                  <span className="font-semibold">{formatJhiFieldLabel(change.field)}</span>: {change.from} → {change.to}
+                                  <span className="text-slate-500 dark:text-slate-400"> ({reasonText})</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {profile.preferences?.jcfpm_jhi_adjustment_v1 && !isPremium && (
+                    <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                        {t('profile.jcfpm.basic_result_active', { defaultValue: profilePremiumCopy.jcfpmBasicTitle })}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {t('profile.jcfpm.basic_result_desc', {
+                          defaultValue: profilePremiumCopy.jcfpmBasicDesc
+                        })}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (profile.id) {
+                            redirectToCheckout('premium', profile.id);
+                          }
+                        }}
+                        className="mt-3 inline-flex items-center gap-2 rounded-[0.9rem] border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                      >
+                        {t('profile.jcfpm.unlock_premium_results', { defaultValue: profilePremiumCopy.jcfpmUnlock })}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-4 bg-[linear-gradient(180deg,rgba(255,250,240,0.88),rgba(255,255,255,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.28),rgba(10,18,32,0.96))]">
-                <JcfpmEntryCard
-                  isPremium={isPremium}
-                  sceneCapability={sceneCapability}
-                  hasDraft={hasJcfpmDraft}
-                  hasSnapshot={Boolean(jcfpmSnapshot)}
-                  lastUpdatedAt={jcfpmSnapshot?.completed_at}
-                  onResume={() => {
-                    const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?mode=resume`;
-                  }}
-                  onRestart={() => {
-                    clearJcfpmDraft(profile.id);
-                    const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?mode=restart`;
-                  }}
-                  onStartCore={() => {
-                    const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?mode=start`;
-                  }}
-                  onStartDeep={() => {
-                    const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?section=deep_dive&mode=start`;
-                  }}
-                  onView={() => {
-                    window.requestAnimationFrame(() => {
-                      document.getElementById('profile-jcfpm-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    });
-                  }}
-                  onUpgrade={() => {
-                    if (profile.id) {
-                      redirectToCheckout('premium', profile.id);
-                    }
-                  }}
-                />
-                {jcfpmSnapshot && (
-                  <div id="profile-jcfpm-report" className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-soft)]">
-                    <JcfpmReportPanel snapshot={jcfpmSnapshot} showAdvancedReport={isPremium} />
-                  </div>
-                )}
-                {profile.preferences?.jcfpm_jhi_adjustment_v1 && isPremium && (
-                  <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 p-4 dark:bg-slate-900/70">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-                      Jak test upravil JHI preference
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      Úpravy vycházejí hlavně z dimenzí D2, D3, D4, D5 a D6. Níže je přesně co se změnilo a proč.
-                    </p>
-                    <div className="space-y-2">
-                      {profile.preferences.jcfpm_jhi_adjustment_v1.changes.slice(0, 6).map((change, idx) => (
-                        <div key={`${change.field}-${idx}`} className="text-xs text-slate-700 dark:text-slate-300">
-                          {(() => {
-                            const reasonText =
-                              change.reason_i18n?.[jcfpmReasonLocale] ||
-                              change.reason_i18n?.[jcfpmReasonLocaleBase] ||
-                              translateLegacyJhiReason(change.reason);
-                            return (
-                              <>
-                                <span className="font-semibold">{formatJhiFieldLabel(change.field)}</span>: {change.from} → {change.to}
-                                <span className="text-slate-500 dark:text-slate-400"> ({reasonText})</span>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {profile.preferences?.jcfpm_jhi_adjustment_v1 && !isPremium && (
-                  <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-                      {t('profile.jcfpm.basic_result_active', { defaultValue: profilePremiumCopy.jcfpmBasicTitle })}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {t('profile.jcfpm.basic_result_desc', {
-                        defaultValue: profilePremiumCopy.jcfpmBasicDesc
-                      })}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (profile.id) {
-                          redirectToCheckout('premium', profile.id);
-                        }
-                      }}
-                      className="mt-3 inline-flex items-center gap-2 rounded-[0.9rem] border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-                    >
-                      {t('profile.jcfpm.unlock_premium_results', { defaultValue: profilePremiumCopy.jcfpmUnlock })}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
             )}
 
             <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95 sm:p-6">
@@ -4422,7 +4490,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
               {saveFeedback && (
                 <div className={`mt-3 text-sm font-medium flex items-center gap-2 ${saveFeedback.type === 'success'
-                  ? 'text-emerald-700 dark:text-emerald-300'
+                  ? 'text-amber-700 dark:text-amber-300'
                   : 'text-rose-700 dark:text-rose-300'
                   }`}>
                   <CheckCircle size={16} />
@@ -4430,6 +4498,97 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               )}
             </div>
+
+            {isChallengesTab && (
+              <div className={profileSurfaceClass}>
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={profileAccentIconShellClass}>
+                        <Zap className={profileAccentIconClass} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                          {t('profile.mini_challenges.title', { defaultValue: 'Moje mini výzvy' })}
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('profile.mini_challenges.desc', { defaultValue: 'Zde můžete zadávat nové řešitelské výzvy nebo spravovat ty stávající.' })}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsProfileChallengeModalOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 hover:shadow-lg active:scale-95"
+                    >
+                      <Plus size={18} />
+                      {t('profile.mini_challenges.post_btn', { defaultValue: 'Nová výzva' })}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-8">
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center dark:border-slate-800">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
+                      <Briefcase className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {t('profile.mini_challenges.empty_title', { defaultValue: 'Moje zadané výzvy' })}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      {t('profile.mini_challenges.empty_desc', { defaultValue: 'Zatím jste nezadali žádnou vlastní výzvu pro ostatní.' })}
+                    </p>
+                    <button
+                      onClick={() => setIsProfileChallengeModalOpen(true)}
+                      className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-teal-600 hover:text-teal-700"
+                    >
+                      {t('profile.mini_challenges.first_btn', { defaultValue: 'Vytvořit novou výzvu' })}
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                      {t('profile.mini_challenges.completed_title', { defaultValue: 'Dokončené výzvy k přidání do referencí' })}
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      {/* Mock completed challenge for demonstration */}
+                      <div className="rounded-[1.1rem] border border-slate-200 bg-teal-50/30 p-4 dark:border-slate-700 dark:bg-teal-900/10">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-bold text-slate-900 dark:text-white">Tvorba Solarpunk Mapy</div>
+                            <div className="text-xs text-slate-500">Zadal: EnergoHub o.s.</div>
+                          </div>
+                          <span className="rounded-full bg-teal-100 px-2 py-1 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                            DOKONČENO
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                          Implementace interaktivního SVG propojení mezi karierními cestami v solarpunkovém vizuálu.
+                        </p>
+                        <button
+                          onClick={() => alert(localeBase === 'cs' ? 'Přidáno do vašich referencí v sekci Vyřešené situace.' : 'Added to your references in Solved Situations.')}
+                          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-teal-200 py-2 text-xs font-bold text-teal-700 transition hover:bg-teal-50 dark:bg-slate-800 dark:border-slate-700 dark:text-teal-300"
+                        >
+                          <PlusCircle size={14} />
+                          {t('profile.mini_challenges.add_reference', { defaultValue: 'Přidat do portfolia' })}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <CreateMiniChallengeModal
+                  isOpen={isProfileChallengeModalOpen}
+                  onClose={() => setIsProfileChallengeModalOpen(false)}
+                  isCsLike={localeBase === 'cs' || localeBase === 'sk'}
+                  onSubmit={(data) => {
+                    console.log('Profile: New Mini Challenge created:', data);
+                    setIsProfileChallengeModalOpen(false);
+                    alert(localeBase === 'cs' ? 'Výzva byla vytvořena.' : 'Challenge created.');
+                  }}
+                />
+              </div>
+            )}
 
             {isSettingsTab && (
               <div className={profileSurfaceClass}>
@@ -4609,7 +4768,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         <button
                           onClick={handleEnablePush}
                           disabled={pushBusy}
-                          className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg text-xs border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-50"
                         >
                           {t('profile.push_enable', {
                             defaultValue: getProfileLocaleLabel({
@@ -4720,7 +4879,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </button>
                     {passwordFeedback && (
                       <div className={`text-sm font-medium flex items-center gap-2 ${passwordFeedback.type === 'success'
-                        ? 'text-emerald-700 dark:text-emerald-300'
+                        ? 'text-amber-700 dark:text-amber-300'
                         : 'text-rose-700 dark:text-rose-300'
                         }`}>
                         {passwordFeedback.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
@@ -4775,10 +4934,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                      {solutionSnapshots.map((snapshot) => (
+                      {solutionSnapshots.map((snapshot, idx) => (
                         <div
                           key={snapshot.id}
-                          className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)]"
+                          className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-card)] solarpunk-interactive"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -4791,18 +4950,25 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                                   .join(' • ')}
                               </div>
                             </div>
-                            <span className={profileAccentBadgeClass}>
-                              {t('profile.solved_problems.badge', {
-                                defaultValue: getProfileLocaleLabel({
-                                  cs: 'Outcome z micro jobu',
-                                  sk: 'Outcome z micro jobu',
-                                  de: 'Micro Job Outcome',
-                                  at: 'Micro Job Outcome',
-                                  pl: 'Outcome micro jobu',
-                                  en: 'Micro job outcome'
-                                }, profileLocale)
-                              })}
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={profileAccentBadgeClass}>
+                                {t('profile.solved_problems.badge', {
+                                  defaultValue: getProfileLocaleLabel({
+                                    cs: 'Outcome z micro jobu',
+                                    sk: 'Outcome z micro jobu',
+                                    de: 'Micro Job Outcome',
+                                    at: 'Micro Job Outcome',
+                                    pl: 'Outcome micro jobu',
+                                    en: 'Micro job outcome'
+                                  }, profileLocale)
+                                })}
+                              </span>
+                              <GrowthSignal
+                                level={idx + 1}
+                                variant="emoji"
+                                className="text-base"
+                              />
+                            </div>
                           </div>
 
                           <div className="mt-4 space-y-3">
@@ -4873,36 +5039,36 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isSettingsTab && (
               <>
-            {/* Danger Zone */}
-            <div className="overflow-hidden rounded-[1.05rem] border-2 border-red-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-red-900/30 dark:bg-slate-800/95">
-              <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                {/* Danger Zone */}
+                <div className="overflow-hidden rounded-[1.05rem] border-2 border-red-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-red-900/30 dark:bg-slate-800/95">
+                  <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                        <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <h2 className="text-xl font-semibold text-red-900 dark:text-red-100">{t('profile.danger_zone')}</h2>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-semibold text-red-900 dark:text-red-100">{t('profile.danger_zone')}</h2>
+
+                  <div className="p-6">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                      {t('profile.delete_account_warning_desc')}
+                    </p>
+
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="inline-flex items-center gap-2 rounded-[0.95rem] bg-red-600 px-4 py-2 text-white font-medium transition-colors hover:bg-red-700"
+                    >
+                      <Trash2 size={16} />
+                      {t('profile.delete_account')}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-6">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                  {t('profile.delete_account_warning_desc')}
-                </p>
-
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-2 rounded-[0.95rem] bg-red-600 px-4 py-2 text-white font-medium transition-colors hover:bg-red-700"
-                >
-                  <Trash2 size={16} />
-                  {t('profile.delete_account')}
-                </button>
-              </div>
-            </div>
-
-            {/* Premium Features Preview */}
-            <div className="mt-8">
-              <PremiumFeaturesPreview userProfile={profileWithResolvedSubscription} />
-            </div>
+                {/* Premium Features Preview */}
+                <div className="mt-8">
+                  <PremiumFeaturesPreview userProfile={profileWithResolvedSubscription} />
+                </div>
               </>
             )}
           </>

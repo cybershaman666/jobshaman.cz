@@ -81,7 +81,7 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
             <div
               key={item.id}
               className={`rounded-[0.8rem] px-2 py-1 border ${item.done
-                ? 'border-emerald-300/70 text-emerald-700 bg-emerald-50/70'
+                ? 'border-amber-300/70 text-amber-700 bg-amber-50/70'
                 : 'border-amber-200 text-slate-600 bg-white/65'
                 }`}
             >

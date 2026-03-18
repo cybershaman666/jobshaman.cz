@@ -11,6 +11,7 @@ interface PublicActivityPanelProps {
   mode?: PublicActivityPanelMode;
   className?: string;
   onPrimaryAction?: () => void;
+  compact?: boolean;
 }
 
 const formatTimestamp = (value: string, locale: string): string => {
@@ -29,6 +30,7 @@ const PublicActivityPanel: React.FC<PublicActivityPanelProps> = ({
   mode = 'homepage',
   className,
   onPrimaryAction,
+  compact = false,
 }) => {
   const { i18n } = useTranslation();
   const locale = i18n.language || 'en';
@@ -37,7 +39,7 @@ const PublicActivityPanel: React.FC<PublicActivityPanelProps> = ({
 
   useEffect(() => {
     let cancelled = false;
-    fetchPublicActivityFeed(language, mode === 'homepage' ? 5 : 4)
+    fetchPublicActivityFeed(language, compact ? 3 : (mode === 'homepage' ? 5 : 4))
       .then((result) => {
         if (!cancelled) {
           setPayload(result && result.events.length > 0 ? result : null);
@@ -147,6 +149,45 @@ const PublicActivityPanel: React.FC<PublicActivityPanelProps> = ({
     { label: copy.stats.companyReplies, value: payload.stats.company_replies_today, tone: 'default' as const },
     { label: copy.stats.completedMini, value: payload.stats.completed_mini_projects_7d, tone: 'success' as const },
   ];
+
+  if (compact) {
+    return (
+      <SurfaceCard
+        className={cn(
+          'space-y-3 border-[rgba(var(--accent-rgb),0.18)] bg-white/80 shadow-[0_24px_70px_-56px_rgba(15,23,42,0.36)] backdrop-blur dark:bg-[rgba(15,23,42,0.72)]',
+          className
+        )}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] dark:bg-white/5">
+            <Sparkles size={14} />
+            {copy.eyebrow}
+          </div>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+            {payload.events.length}
+          </div>
+        </div>
+        <div className="grid gap-2">
+          {payload.events.map((event) => (
+            <div
+              key={event.id}
+              className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-white/76 px-4 py-3 dark:bg-white/5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--text-strong)]">{event.title}</div>
+                  <div className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{event.body}</div>
+                </div>
+                <div className="shrink-0 text-xs font-medium text-[var(--text-faint)]">
+                  {formatTimestamp(event.timestamp, locale)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SurfaceCard>
+    );
+  }
 
   return (
     <SurfaceCard

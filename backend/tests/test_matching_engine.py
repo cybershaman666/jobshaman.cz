@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from backend.app.matching_engine.feature_store import extract_candidate_features, extract_job_features
 from backend.app.matching_engine.scoring import score_job
 from backend.app.matching_engine import serve
@@ -266,6 +273,76 @@ def test_matching_prefers_relevant_manager_ai_dev_hotel_roles_over_unrelated_tra
     assert max(score for score, _ in bad_scores) <= 20
     assert min(score for score, _ in good_scores) > max(score for score, _ in bad_scores)
     assert all(breakdown.get("hard_cap", 100) <= 15 for _, breakdown in bad_scores)
+
+
+def test_score_job_boosts_ai_enriched_target_role_match():
+    candidate = {
+        "job_title": "Operations Specialist",
+        "skills": ["operations", "process optimization", "analytics"],
+    }
+    intelligence = {
+        "target_roles": ["product manager ai", "ai systems architect"],
+        "adjacent_roles": ["operations manager"],
+        "priority_keywords": ["product roadmap", "ai platform", "cross-functional", "stakeholder management"],
+        "avoid_keywords": ["ridic", "svarec", "reznik"],
+        "preferred_work_modes": ["hybrid", "remote"],
+        "source": "test",
+    }
+    job = {
+        "title": "AI Product Manager",
+        "description": "Product roadmap for AI platform, stakeholder management, cross-functional work with engineering.",
+        "location": "Brno",
+        "country_code": "cz",
+        "type": "Hybrid",
+        "salary_from": 95000,
+        "currency": "czk",
+    }
+
+    score, reasons, breakdown = score_job(
+        extract_candidate_features(candidate, intelligence=intelligence),
+        extract_job_features(job),
+        semantic_similarity=0.42,
+    )
+
+    assert breakdown["intent_alignment"] >= 0.65
+    assert "product manager ai" in (breakdown.get("intent_matched_signals") or [])
+    assert score >= 45
+    assert any("jasny cil a kontext kandidata" in reason.lower() for reason in reasons)
+
+
+def test_score_job_penalizes_ai_enriched_avoid_direction():
+    candidate = {
+        "job_title": "Product Manager",
+        "skills": ["roadmap", "product discovery", "stakeholder management"],
+    }
+    intelligence = {
+        "target_roles": ["product manager", "operations manager"],
+        "adjacent_roles": ["program manager"],
+        "priority_keywords": ["roadmap", "stakeholder", "process"],
+        "avoid_keywords": ["ridic", "kamion", "tachograf"],
+        "preferred_work_modes": ["hybrid"],
+        "source": "test",
+    }
+    job = {
+        "title": "Ridic C+E",
+        "description": "Kamionova doprava, tachograf, mezinarodni preprava.",
+        "location": "Brno",
+        "country_code": "cz",
+        "salary_from": 52000,
+        "currency": "czk",
+    }
+
+    score, reasons, breakdown = score_job(
+        extract_candidate_features(candidate, intelligence=intelligence),
+        extract_job_features(job),
+        semantic_similarity=0.38,
+    )
+
+    assert breakdown["intent_penalty"] > 0
+    assert breakdown.get("intent_avoid_hits")
+    assert breakdown.get("hard_cap") <= 20.0
+    assert score <= 20.0
+    assert any("jasnemu zameru kandidata" in reason.lower() for reason in reasons)
 
 
 def test_batch_refresh_recommendations_reuses_prefetched_jobs(monkeypatch):

@@ -123,7 +123,7 @@ const OchranaSoukromi = () => {
           {copy.sections.rightsBodyPrefix}{' '}
           <a
             href="mailto:floki@jobshaman.cz"
-            className="text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
+            className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
           >
             floki@jobshaman.cz
           </a>

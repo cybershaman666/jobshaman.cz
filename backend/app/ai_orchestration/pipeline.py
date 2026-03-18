@@ -6,7 +6,13 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import ValidationError
 
-from .client import AIClientError, _extract_json, call_primary_with_fallback
+from .client import (
+    AIClientError,
+    _extract_json,
+    call_primary_with_fallback,
+    get_default_fallback_model,
+    get_default_primary_model,
+)
 from ..core.runtime_config import get_active_model_config, get_release_flag
 from .models import (
     AIGuidedProfileAIResult,
@@ -17,8 +23,8 @@ from .models import (
 from .prompt_registry import get_prompt
 from .telemetry import canonical_hash, estimate_text_cost_usd, log_ai_generation
 
-DEFAULT_PRIMARY_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-DEFAULT_FALLBACK_MODEL = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+DEFAULT_PRIMARY_MODEL = get_default_primary_model()
+DEFAULT_FALLBACK_MODEL = get_default_fallback_model()
 
 
 def _sanitize_steps(steps: List[Dict[str, str]]) -> List[Dict[str, str]]:

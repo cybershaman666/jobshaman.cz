@@ -54,7 +54,7 @@ const WorkspaceSyncBadge: React.FC<WorkspaceSyncBadgeProps> = ({
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`.trim()}>
-      <div className="rounded-full border border-emerald-200/80 bg-white/85 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 shadow-[0_12px_24px_-24px_rgba(16,185,129,0.3)] backdrop-blur dark:border-emerald-900/30 dark:bg-slate-950/45 dark:text-emerald-300">
+      <div className="rounded-full border border-amber-200/80 bg-white/85 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-700 shadow-[0_12px_24px_-24px_rgba(16,185,129,0.3)] backdrop-blur dark:border-amber-900/30 dark:bg-slate-950/45 dark:text-amber-300">
         {label}
       </div>
       {onRefresh && (

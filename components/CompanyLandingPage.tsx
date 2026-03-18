@@ -627,7 +627,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   };
 
   return (
-    <div className="app-shell-bg h-full w-full overflow-y-auto rounded-[var(--radius-xl)] border border-[var(--border)]">
+    <div className="app-shell-bg app-aurora-shell h-full w-full overflow-y-auto rounded-[var(--radius-xl)] border border-[var(--border)]">
       <div className="mx-auto flex max-w-6xl flex-1 flex-col gap-6 p-6 lg:p-10">
         <div className="flex justify-end">
           <button onClick={() => handleLogin('topbar')} className="app-button-secondary rounded-full px-4 py-2">
@@ -636,7 +636,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </button>
         </div>
 
-        <section className="app-page-header rounded-[var(--radius-2xl)] border p-6 lg:p-8">
+        <section className="app-page-header app-organic-shell rounded-[var(--radius-2xl)] border p-6 lg:p-8">
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
             <div>
               <div className="app-eyebrow">
@@ -703,7 +703,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 font-semibold text-rose-700">
               {copy.comparisonOld}
             </div>
-            <div className="rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3 font-semibold text-emerald-700">
+            <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-700">
               {copy.comparisonNew}
             </div>
             {copy.comparisonRows.map(([legacy, next]) => (
@@ -763,7 +763,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <div className="mt-4 space-y-2">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-2 text-sm text-[var(--text)]">
-                      <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                      <CheckCircle size={16} className="mt-0.5 shrink-0 text-amber-500" />
                       <span>{feature}</span>
                     </div>
                   ))}
@@ -813,7 +813,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
-        <section className="app-page-header rounded-[var(--radius-xl)] border p-6 lg:p-8">
+        <section className="app-page-header app-organic-shell rounded-[var(--radius-xl)] border p-6 lg:p-8">
           <div className="grid items-center gap-6 lg:grid-cols-2">
             <div>
               <div className="app-eyebrow">

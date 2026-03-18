@@ -2235,7 +2235,24 @@
     "language": "Jazyk",
     "more": "Viac",
     "switch_to_candidate": "Prepnúť na uchádzača",
-    "open_profile": "Otvoriť profil"
+    "open_profile": "Otvoriť profil",
+    "shell": {
+      "overview": "Čo je teraz v hre",
+      "browse_feed": "Prejsť feed",
+      "quick_gigs": "Fušky",
+      "search_label": "Hľadanie a filtre",
+      "search_placeholder": "Hľadať ponuky, firmy, typy rolí alebo dôležité signály",
+      "location_placeholder": "Mesto, región, práca na diaľku",
+      "search_submit": "Hľadať",
+      "companies": "Pre firmy",
+      "remote_only": "Len remote",
+      "commute_max": "Dochádzka max {{km}} km",
+      "at_least": "Aspoň",
+      "ai_line": "AI číta kontext, spresňuje dopyt a triedi feed podľa reality.",
+      "ai_badge": "AI discovery",
+      "light_mode": "Svetlý režim",
+      "dark_mode": "Tmavý režim"
+    }
   },
   "assessment": {
     "taker": {
@@ -4389,5 +4406,36 @@
     "completed_primary": "Založiť firemný účet",
     "completed_secondary": "Späť na landing pre firmy",
     "completed_restart": "Spustiť demo znova"
+  },
+  "workspace": {
+    "feed": {
+      "post_lead": "Chcete zadať výzvu? To ide výhradne z",
+      "profile": "profilu",
+      "post_tail": "alebo firemného dashboardu.",
+      "swipe": "Swipe",
+      "feed": "Feed",
+      "swipe_title": "Najrýchlejší spôsob, ako tu prechádzať ponuky",
+      "swipe_body": "Na mobile začni swipom. Klepnutie otvorí detail, ťah doľava alebo doprava rýchlo triedi roly.",
+      "ai_title": "AI číta kontext na pozadí",
+      "ai_body": "Nie je to len fulltext. AI číta profil, dochádzku a pracovný smer a vysvetľuje, prečo sa rola dostala vyššie.",
+      "ai_bullets": [
+        "číta cieľ a senioritu",
+        "ukazuje prečo to vidíš",
+        "tlačí preč nerelevantné smery"
+      ],
+      "auth_body": "Po registrácii si aplikácia pamätá uložené aj odmietnuté roly a odporúčania sa časom spresňujú.",
+      "address_title": "Doplň adresu pre zmysluplný swipe",
+      "address_body": "Bez adresy nevieme dobre odfiltrovať okolie a dochádzku. S adresou dostaneš omnoho lepšie roly z tvojho regiónu.",
+      "auth_cta": "Registrovať sa",
+      "address_cta": "Doplniť adresu",
+      "later": "Teraz nie"
+    },
+    "toolbar": {
+      "ai_badge": "AI riadi poradie feedu",
+      "taxonomy": "Blízke svety",
+      "hierarchy": "Veľký obraz",
+      "helper": "Poradie riadi kontext, zámer a signály zhody.",
+      "filters": "Filtre"
+    }
   }
 }

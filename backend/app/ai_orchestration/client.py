@@ -50,6 +50,31 @@ def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
     return in_count, out_count
 
 
+def resolve_ai_provider() -> str:
+    provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    if provider in {"mistral", "openai"}:
+        return provider
+    if os.getenv("MISTRAL_API_KEY"):
+        return "mistral"
+    return "openai"
+
+
+def get_default_primary_model() -> str:
+    if resolve_ai_provider() == "mistral":
+        return os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    return os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+
+
+def get_default_fallback_model() -> Optional[str]:
+    if resolve_ai_provider() == "mistral":
+        return (
+            os.getenv("MISTRAL_FALLBACK_MODEL")
+            or os.getenv("MISTRAL_MODEL_FALLBACK")
+            or None
+        )
+    return os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+
+
 def _extract_openai_text(payload: Dict[str, Any]) -> str:
     # Responses API style
     output = payload.get("output")
@@ -85,6 +110,64 @@ def _extract_openai_text(payload: Dict[str, Any]) -> str:
                 return "\n".join(parts).strip()
 
     raise AIClientError("OpenAI response did not contain text")
+
+
+def _call_mistral_chat_completion(
+    prompt: str,
+    model_name: str,
+    max_retries: int = 2,
+    generation_config: Optional[Dict[str, Any]] = None,
+) -> AIClientResult:
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        raise AIClientError("MISTRAL_API_KEY is not configured")
+
+    endpoint = os.getenv("MISTRAL_ENDPOINT", "https://api.mistral.ai/v1/chat/completions")
+    temperature = (generation_config or {}).get("temperature", 0)
+    top_p = (generation_config or {}).get("top_p", 1)
+
+    payload = {
+        "model": model_name,
+        "temperature": temperature,
+        "top_p": top_p,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    attempt = 0
+    while True:
+        attempt += 1
+        started = time.perf_counter()
+        try:
+            resp = requests.post(endpoint, headers=headers, json=payload, timeout=90)
+            if resp.status_code >= 400:
+                raise AIClientError(f"Mistral HTTP {resp.status_code}: {resp.text[:500]}")
+            data = resp.json()
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            text = _extract_openai_text(data)
+            tokens_in, tokens_out = _usage_counts_openai(data)
+            return AIClientResult(
+                text=text,
+                model_name=model_name,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                latency_ms=elapsed_ms,
+            )
+        except Exception as exc:
+            if attempt > max_retries or not _is_transient_error(exc):
+                raise AIClientError(str(exc))
+            backoff = 0.4 * (2 ** (attempt - 1))
+            time.sleep(backoff)
 
 
 def _call_openai_chat_completion(
@@ -154,7 +237,13 @@ def call_model_with_retry(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> AIClientResult:
-    # Unified provider path: OpenAI-compatible API (OpenRouter endpoint in production).
+    if resolve_ai_provider() == "mistral":
+        return _call_mistral_chat_completion(
+            prompt,
+            model_name,
+            max_retries=max_retries,
+            generation_config=generation_config,
+        )
     return _call_openai_chat_completion(
         prompt,
         model_name,
@@ -171,6 +260,8 @@ def call_primary_with_fallback(
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> tuple[AIClientResult, bool]:
     default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
+    if resolve_ai_provider() == "mistral":
+        default_rescue = "mistral-small-latest"
 
     rescue_raw = os.getenv("AI_RESCUE_MODELS") or os.getenv("GEMINI_RESCUE_MODELS") or default_rescue
     rescue_models = [m.strip() for m in rescue_raw.split(",") if m.strip()]
@@ -209,4 +300,7 @@ __all__ = [
     "AIClientResult",
     "_extract_json",
     "call_primary_with_fallback",
+    "get_default_fallback_model",
+    "get_default_primary_model",
+    "resolve_ai_provider",
 ]

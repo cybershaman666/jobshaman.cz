@@ -242,6 +242,7 @@ class JobDraftUpsertRequest(BaseModel):
     location_public: Optional[str] = Field(default=None, max_length=500)
     application_instructions: Optional[str] = Field(default=None, max_length=5000)
     contact_email: Optional[str] = Field(default=None, max_length=320)
+    company_goal: Optional[str] = Field(default=None, max_length=4000)
     quality_report: Optional[dict] = None
     ai_suggestions: Optional[dict] = None
     editor_state: Optional[dict] = None

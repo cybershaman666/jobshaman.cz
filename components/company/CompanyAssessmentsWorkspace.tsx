@@ -95,13 +95,13 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                         />
                         <button
                             onClick={onToggleInvitations}
-                            className="app-button-secondary rounded-full px-4 py-2.5 text-sm"
+                            className="app-button-secondary app-organic-pill rounded-full px-4 py-2.5 text-sm"
                         >
                             {showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.manage_invites')}
                         </button>
                         <button
                             onClick={onOpenInvitationModal}
-                            className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_28px_-18px_rgba(15,23,42,0.9)] transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+                            className="app-button-primary app-organic-cta rounded-full px-4 py-2.5 text-sm"
                         >
                             {t('company.assessments_tab.invite_btn', { defaultValue: 'Invite candidate' })}
                         </button>
@@ -128,7 +128,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
             </div>
 
             {assessmentContext && (
-                    <div className="rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 shadow-[var(--shadow-soft)]">
+                    <div className="company-surface-soft app-organic-panel rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 shadow-[var(--shadow-soft)]">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                         <div>
                             <div className="text-xs uppercase tracking-widest text-[var(--accent)]">{t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}</div>
@@ -139,7 +139,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                 {assessmentContext.candidateName && <span>{assessmentContext.candidateName}</span>}
                                 {assessmentContext.candidateEmail && <span>{assessmentContext.candidateEmail}</span>}
                                 {assessmentContext.assessmentId && (
-                                    <span className="rounded border border-[rgba(var(--accent-rgb),0.16)] bg-white/70 px-2 py-0.5">
+                                    <span className="app-organic-pill rounded border border-[rgba(var(--accent-rgb),0.16)] bg-white/70 px-2 py-0.5">
                                         {t('company.assessment_library.assessment_id', { defaultValue: 'Assessment ID' })}: {assessmentContext.assessmentId.slice(0, 8)}
                                     </span>
                                 )}
@@ -149,14 +149,14 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             {linkedDialogueId && (
                                 <button
                                     onClick={handleBackToDialogue}
-                                    className="app-button-secondary rounded-full px-3 py-1.5 text-sm"
+                                    className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-sm"
                                 >
                                     {t('company.assessment_library.back_to_application', { defaultValue: 'Back to dialogue' })}
                                 </button>
                             )}
                             <button
                                 onClick={onOpenInvitationModal}
-                                className="app-button-secondary rounded-full px-3 py-1.5 text-sm !text-[var(--accent)]"
+                                className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-sm !text-[var(--accent)]"
                             >
                                 {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this context' })}
                             </button>
@@ -189,19 +189,19 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                     const isActiveAssessment = assessmentContext?.assessmentId === item.id;
                                     const busy = assessmentLibraryBusyId === item.id;
                                     return (
-                                        <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2.5">
+                                        <div key={item.id} className="company-surface-soft app-organic-panel-soft rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2.5">
                                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                                 <div>
                                                     <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                                         {item.title}
                                                     </div>
                                                     <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{item.role}</span>
-                                                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                                        <span className="app-organic-pill px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{item.role}</span>
+                                                        <span className="app-organic-pill px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
                                                             {t('company.assessment_library.assessment_id', { defaultValue: 'Assessment ID' })}: {item.id.slice(0, 8)}
                                                         </span>
                                                         {isActiveAssessment && (
-                                                            <span className="rounded border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent)]">
+                                                            <span className="app-organic-pill rounded border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent)]">
                                                                 {t('company.assessment_library.selected', { defaultValue: 'Selected' })}
                                                             </span>
                                                         )}
@@ -210,27 +210,27 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                                 <div className="flex flex-wrap gap-2">
                                                     <button
                                                         onClick={() => onUseSavedAssessment(item)}
-                                                        className="app-button-secondary rounded-md px-3 py-1.5 text-xs !text-[var(--accent)]"
+                                                        className="app-button-secondary app-organic-pill rounded-md px-3 py-1.5 text-xs !text-[var(--accent)]"
                                                     >
                                                         {t('company.assessment_library.use', { defaultValue: 'Use' })}
                                                     </button>
                                                     <button
                                                         onClick={() => openAssessmentPreviewPage(item)}
-                                                        className="app-button-secondary rounded-full px-3 py-1.5 text-xs"
+                                                        className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-xs"
                                                     >
                                                         {t('company.workspace.actions.preview_assessment', { defaultValue: 'Náhled' })}
                                                     </button>
                                                     <button
                                                         onClick={() => onDuplicateAssessment(item.id)}
                                                         disabled={busy}
-                                                        className="app-button-secondary rounded-full px-3 py-1.5 text-xs disabled:opacity-50"
+                                                        className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-xs disabled:opacity-50"
                                                     >
                                                         {t('company.job_editor.duplicate', { defaultValue: 'Duplicate' })}
                                                     </button>
                                                     <button
                                                         onClick={() => onArchiveAssessment(item.id)}
                                                         disabled={busy}
-                                                        className="px-3 py-1.5 rounded-md border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-950/20 disabled:opacity-50"
+                                                        className="app-organic-pill px-3 py-1.5 rounded-md border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-950/20 disabled:opacity-50"
                                                     >
                                                         {t('company.assessment_library.archive', { defaultValue: 'Archive' })}
                                                     </button>

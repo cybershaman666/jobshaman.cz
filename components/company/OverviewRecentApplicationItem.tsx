@@ -38,7 +38,7 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
   if (!dialogue) return null;
 
   return (
-    <div className="company-surface-subtle rounded-[var(--radius-md)] border p-4 shadow-[var(--shadow-soft)]">
+    <div className="company-surface-subtle app-organic-panel-soft rounded-[var(--radius-md)] border p-4 shadow-[var(--shadow-soft)]">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex items-start gap-3">
           {dialogue.candidateAvatarUrl || dialogue.candidate_avatar_url ? (
@@ -48,7 +48,7 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
               className="h-11 w-11 shrink-0 rounded-2xl object-cover"
             />
           ) : (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-muted)] text-sm font-semibold text-[var(--text-muted)]">
+            <div className="company-surface-soft app-organic-panel-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[rgba(var(--accent-rgb),0.12)] text-sm font-semibold text-[var(--accent)]">
               {getAvatarInitials(dialogue.candidate_name || t('company.applications.labels.candidate', { defaultValue: copy.candidate }))}
             </div>
           )}
@@ -67,20 +67,20 @@ const OverviewRecentApplicationItem: React.FC<OverviewRecentApplicationItemProps
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {dialogue.hasCv && <span className="company-pill-surface rounded-full border px-2 py-1 text-[11px] font-medium">CV</span>}
+          {dialogue.hasCv && <span className="company-pill-surface app-organic-pill rounded-full border px-2 py-1 text-[11px] font-medium">CV</span>}
           {dialogue.hasCoverLetter && (
-            <span className="company-pill-surface rounded-full border px-2 py-1 text-[11px] font-medium">
+            <span className="company-pill-surface app-organic-pill rounded-full border px-2 py-1 text-[11px] font-medium">
               {t('company.workspace.labels.cover_letter', { defaultValue: copy.coverLetter })}
             </span>
           )}
           {dialogue.hasJcfpm && (
-            <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-1 text-[11px] font-medium text-[var(--accent)]">
+            <span className="app-organic-pill rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2 py-1 text-[11px] font-medium text-[var(--accent)]">
               JCFPM
             </span>
           )}
           <button
             onClick={() => handleOpenDialogue?.(dialogue.id)}
-            className="app-button-secondary rounded-full px-3 py-1.5 text-xs"
+            className="app-button-secondary app-organic-pill rounded-full px-3 py-1.5 text-xs"
           >
             {t('company.workspace.actions.open_dossier', { defaultValue: copy.openDialogue })}
           </button>

@@ -180,7 +180,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             loadingDefault="Syncing candidate signals..."
                             onRefresh={onRefresh}
                         />
-                        <div className="company-control min-w-[240px] px-4 py-3">
+                        <div className="company-control company-surface-soft app-organic-panel-soft min-w-[240px] px-4 py-3">
                             <div className="mb-1 text-[11px] uppercase tracking-widest text-[var(--text-faint)]">
                                 {t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
                             </div>
@@ -194,7 +194,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                 ))}
                             </select>
                         </div>
-                        <div className="company-control max-w-md px-4 py-3 text-xs text-[var(--text-muted)]">
+                        <div className="company-control company-surface-soft app-organic-panel-soft max-w-md px-4 py-3 text-xs text-[var(--text-muted)]">
                             {isLoadingCandidateBenchmarks
                                 ? t('common.loading')
                                 : (candidateBenchmarks?.transparency?.note || t('company.candidates.benchmark.note', { defaultValue: 'Separate operational metrics without an aggregated quality index yet.' }))}
@@ -315,8 +315,8 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
             </WorkspacePanel>
 
             {filteredCandidates.length === 0 ? (
-                <div className="company-surface rounded-[22px] border border-dashed border-slate-200 dark:border-slate-800 bg-white/90 p-6 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)] dark:bg-slate-900/90">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="company-surface app-organic-panel rounded-[22px] border border-dashed border-slate-200 dark:border-slate-800 bg-white/90 p-6 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)] dark:bg-slate-900/90">
+                    <div className="company-surface-soft app-organic-panel-soft mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
                         <Users size={28} className="text-slate-400" />
                     </div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
@@ -333,19 +333,19 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
             ) : (
                 <div className="grid grid-cols-1 gap-3">
                     {filteredCandidates.map((candidate) => (
-                        <div key={candidate.id} className="company-surface group relative overflow-hidden rounded-[22px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/92 dark:hover:border-slate-700">
+                        <div key={candidate.id} className="company-surface app-organic-panel group relative overflow-hidden rounded-[22px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/92 dark:hover:border-slate-700">
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h3 className="text-lg font-bold text-slate-900 transition-colors group-hover:text-[var(--accent)] dark:text-white">{candidate.name}</h3>
-                                        <span className="company-pill-surface rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{candidate.role || (candidate as any).job_title}</span>
+                                        <span className="company-pill-surface app-organic-pill rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{candidate.role || (candidate as any).job_title}</span>
                                         {getCandidateHasJcfpm(candidate) && (
-                                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                                            <span className="app-organic-pill rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
                                                 {t('company.candidates.jcfpm_badge', { defaultValue: 'JCFPM' })}
                                             </span>
                                         )}
                                         {getCandidateMatchScore(candidate) != null && (
-                                            <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">
+                                            <span className="app-organic-pill rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">
                                                 {t('company.candidates.fit_badge', { defaultValue: 'Fit' })}: {Math.round(getCandidateMatchScore(candidate) || 0)}
                                             </span>
                                         )}
@@ -354,7 +354,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
 
                                     <div className="flex flex-wrap gap-2 mb-3">
                                         {candidate.skills.map((skill) => (
-                                            <span key={skill} className="company-pill-surface rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+                                            <span key={skill} className="company-pill-surface app-organic-pill rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
                                                 {skill}
                                             </span>
                                         ))}
@@ -371,13 +371,13 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                     </div>
 
                                     {getCandidateComparisonSignals(candidate).length > 0 && (
-                                        <div className="mt-4 rounded-2xl border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
+                                        <div className="company-surface-soft app-organic-panel-soft mt-4 rounded-2xl border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-3">
                                             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                                                 {t('company.candidates.comparison_signals', { defaultValue: 'Comparable signal' })}
                                             </div>
                                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                                 {getCandidateComparisonSignals(candidate).map((signal) => (
-                                                    <div key={`${candidate.id}-${signal.key}`} className="rounded-xl border border-white/80 bg-white/80 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/50">
+                                                    <div key={`${candidate.id}-${signal.key}`} className="app-organic-panel-soft rounded-xl border border-white/80 bg-white/80 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/50">
                                                         <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                                                             {signal.label}
                                                         </div>
@@ -397,19 +397,19 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                     )}
                                 </div>
 
-                                <div className="company-surface-soft md:w-60 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/85 p-3 dark:bg-slate-950/50">
+                                <div className="company-surface-soft app-organic-panel-soft md:w-60 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/85 p-3 dark:bg-slate-950/50">
                                     <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 font-mono">{t('company.candidates.risk_analysis')}</h4>
 
                                     <div className="mb-3">
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="text-slate-500 dark:text-slate-400">{t('company.candidates.flight_risk')}</span>
-                                            <span className={`font-bold ${candidate.flightRisk === 'High' ? 'text-rose-500' : candidate.flightRisk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                            <span className={`font-bold ${candidate.flightRisk === 'High' ? 'text-rose-500' : candidate.flightRisk === 'Medium' ? 'text-amber-500' : 'text-amber-500'}`}>
                                                 {candidate.flightRisk === 'High' ? t('company.candidates.risk_levels.high') : candidate.flightRisk === 'Medium' ? t('company.candidates.risk_levels.medium') : t('company.candidates.risk_levels.low')}
                                             </span>
                                         </div>
                                         <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full">
                                             <div
-                                                className={`h-1.5 rounded-full ${candidate.flightRisk === 'High' ? 'bg-rose-500' : candidate.flightRisk === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                                className={`h-1.5 rounded-full ${candidate.flightRisk === 'High' ? 'bg-rose-500' : candidate.flightRisk === 'Medium' ? 'bg-amber-500' : 'bg-amber-500'}`}
                                                 style={{ width: `${Math.max(8, Math.min(100, typeof candidate.flightRiskScore === 'number' ? candidate.flightRiskScore : (candidate.flightRisk === 'High' ? 80 : candidate.flightRisk === 'Medium' ? 50 : 20)))}%` }}
                                             ></div>
                                         </div>
@@ -425,7 +425,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                             {candidate.flightRiskBreakdown.slice(0, 4).map((factor, idx) => (
                                                 <div key={`${candidate.id}-risk-${idx}`} className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed flex justify-between gap-2">
                                                     <span>{factor.reason}</span>
-                                                    <span className={factor.impact_points > 0 ? 'text-rose-500 font-semibold' : 'text-emerald-500 font-semibold'}>
+                                                    <span className={factor.impact_points > 0 ? 'text-rose-500 font-semibold' : 'text-amber-500 font-semibold'}>
                                                         {factor.impact_points > 0 ? '+' : ''}{factor.impact_points}
                                                     </span>
                                                 </div>

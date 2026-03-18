@@ -124,7 +124,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
         t('premium.feature_2_benefit_3'),
         t('premium.feature_2_benefit_4')
       ],
-      color: 'from-green-500 to-emerald-500',
+      color: 'from-green-500 to-amber-500',
       bgColor: 'bg-green-50 dark:bg-green-900/20'
     },
     {

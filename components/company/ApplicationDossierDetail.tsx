@@ -428,7 +428,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
             case 'hired':
                 return {
                     label: t('company.applications.close_reason_hired', { defaultValue: copy.closeReasonHired }),
-                    className: 'border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
+                    className: 'border-amber-200 bg-amber-50/80 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300'
                 };
             case 'closed':
             default:
@@ -597,7 +597,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                         </button>
                         <button
                             onClick={handleInviteCandidate}
-                            className="px-3 py-2 rounded-full border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+                            className="px-3 py-2 rounded-full border border-amber-200 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-950/20"
                         >
                             {t('company.assessment_library.invite_from_context', { defaultValue: copy.inviteFromDialogue })}
                         </button>
@@ -606,7 +606,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
             </div>
 
             {shouldRenderSolutionSnapshotCard ? (
-                <div className="rounded-[22px] border border-emerald-200/80 bg-emerald-50/70 p-4 shadow-[0_16px_32px_-28px_rgba(5,150,105,0.35)] dark:border-emerald-900/30 dark:bg-emerald-950/20">
+                <div className="rounded-[22px] border border-amber-200/80 bg-amber-50/70 p-4 shadow-[0_16px_32px_-28px_rgba(5,150,105,0.35)] dark:border-amber-900/30 dark:bg-amber-950/20">
                     <SectionHeader
                         title={t('company.solution_snapshot.title', { defaultValue: 'Solution snapshot' })}
                         subtitle={
@@ -627,7 +627,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setSolutionSnapshotModalOpen(true)}
-                                    className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-800 dark:bg-slate-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                                    className="rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 dark:border-amber-800 dark:bg-slate-950/40 dark:text-amber-300 dark:hover:bg-amber-950/30"
                                 >
                                     {solutionSnapshot
                                         ? t('company.solution_snapshot.edit', { defaultValue: 'Edit' })
@@ -710,13 +710,13 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                             ) : null}
                         </div>
                     ) : solutionSnapshotState?.reason === 'awaiting_completion' ? (
-                        <div className="rounded-[1rem] border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-emerald-900/30 dark:bg-slate-950/30 dark:text-slate-300">
+                        <div className="rounded-[1rem] border border-dashed border-amber-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-amber-900/30 dark:bg-slate-950/30 dark:text-slate-300">
                             {t('company.solution_snapshot.locked_hint', {
                                 defaultValue: 'Once you mark the collaboration as hired, you can create a short solution snapshot for the candidate profile.'
                             })}
                         </div>
                     ) : (
-                        <div className="rounded-[1rem] border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-emerald-900/30 dark:bg-slate-950/30 dark:text-slate-300">
+                        <div className="rounded-[1rem] border border-dashed border-amber-200 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-amber-900/30 dark:bg-slate-950/30 dark:text-slate-300">
                             {t('company.solution_snapshot.empty_hint', {
                                 defaultValue: 'Capture the concrete solution story here so the micro job becomes a shareable proof of work.'
                             })}
