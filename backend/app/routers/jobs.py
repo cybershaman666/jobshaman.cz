@@ -7,6 +7,7 @@ from statistics import median
 from typing import Any
 from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
+from fastapi.responses import JSONResponse
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -33,10 +34,11 @@ from ..ai_orchestration.client import (
     get_default_primary_model,
 )
 from ..services.search_intelligence import enrich_search_query
-from ..services.jobspy_jobs import import_jobspy_jobs, search_jobspy_jobs
+from ..services.jobspy_jobs import get_jobspy_storage_health, import_jobspy_jobs, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
+from ..core import config
 from ..core.config import SCRAPER_TOKEN
 
 
@@ -7203,25 +7205,41 @@ async def get_jobspy_external_jobs(
     page_size: int = Query(default=24, ge=1, le=100),
 ):
     parsed_sites = [part.strip() for part in (source_sites or "").split(",") if part and part.strip()]
-    result = search_jobspy_jobs(
-        page=page,
-        page_size=page_size,
-        search_term=search_term,
-        location=location,
-        source_sites=parsed_sites,
-    )
-    jobs = result.get("jobs") or []
-    _attach_job_dialogue_preview_metrics(jobs)
-    return {
-        "jobs": jobs,
-        "has_more": bool(result.get("has_more")),
-        "total_count": int(result.get("total_count") or 0),
-        "source": "jobspy_mongo_cache",
-        "meta": {
-            "collection": result.get("collection"),
-            "provider": "jobspy",
-        },
-    }
+    try:
+        result = search_jobspy_jobs(
+            page=page,
+            page_size=page_size,
+            search_term=search_term,
+            location=location,
+            source_sites=parsed_sites,
+        )
+        jobs = result.get("jobs") or []
+        _attach_job_dialogue_preview_metrics(jobs)
+        return {
+            "jobs": jobs,
+            "has_more": bool(result.get("has_more")),
+            "total_count": int(result.get("total_count") or 0),
+            "source": "jobspy_mongo_cache",
+            "meta": {
+                "collection": result.get("collection"),
+                "provider": "jobspy",
+            },
+        }
+    except Exception as exc:
+        print(f"⚠️ JobSpy external search unavailable: {exc}")
+        return {
+            "jobs": [],
+            "has_more": False,
+            "total_count": 0,
+            "source": "jobspy_mongo_cache",
+            "meta": {
+                "collection": config.MONGODB_JOBSPY_COLLECTION,
+                "provider": "jobspy",
+                "degraded": True,
+                "error": exc.__class__.__name__,
+                "mongodb_configured": bool(config.MONGODB_URI),
+            },
+        }
 
 
 @router.post("/jobs/external/jobspy/career-ops/refresh")
@@ -7233,6 +7251,18 @@ async def refresh_jobspy_career_ops(
     if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
         raise HTTPException(status_code=403, detail="Unauthorized")
     return refresh_jobspy_career_ops_snapshots(limit=limit)
+
+
+@router.get("/jobs/external/jobspy/health")
+@limiter.limit("20/minute")
+async def get_jobspy_health(
+    request: Request,
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    health = get_jobspy_storage_health()
+    status = 200 if health.get("ok") else 503
+    return JSONResponse(status_code=status, content=health)
 
 
 @router.get("/jobs/external/jobspy/career-ops")
@@ -7254,19 +7284,39 @@ async def get_jobspy_career_ops_feed(
         raise HTTPException(status_code=404, detail="Candidate profile not found")
 
     saved_job_ids, dismissed_job_ids = _fetch_user_interaction_state(user_id, limit=12000)
-    feed = build_career_ops_feed(
-        candidate_profile={**candidate_profile, "id": user_id},
-        saved_job_ids=saved_job_ids,
-        dismissed_job_ids=dismissed_job_ids,
-        refresh=refresh,
-        job_limit=job_limit,
-        company_limit=company_limit,
-        action_limit=action_limit,
-    )
-    return {
-        **feed,
-        "source": "jobspy_career_ops",
-    }
+    try:
+        feed = build_career_ops_feed(
+            candidate_profile={**candidate_profile, "id": user_id},
+            saved_job_ids=saved_job_ids,
+            dismissed_job_ids=dismissed_job_ids,
+            refresh=refresh,
+            job_limit=job_limit,
+            company_limit=company_limit,
+            action_limit=action_limit,
+        )
+        return {
+            **feed,
+            "source": "jobspy_career_ops",
+        }
+    except Exception as exc:
+        print(f"⚠️ JobSpy career-ops unavailable: {exc}")
+        return {
+            "source": "jobspy_career_ops",
+            "jobs": [],
+            "companies": [],
+            "actions": [],
+            "meta": {
+                "fallback_mode": "degraded_empty",
+                "counts": {
+                    "raw_jobs_seen": 0,
+                    "enriched_jobs_scored": 0,
+                    "companies_ranked": 0,
+                    "actions": 0,
+                },
+                "error": exc.__class__.__name__,
+                "mongodb_configured": bool(config.MONGODB_URI),
+            },
+        }
 
 @router.post("/jobs/analyze")
 @limiter.limit("20/minute")

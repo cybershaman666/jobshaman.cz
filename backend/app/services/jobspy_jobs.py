@@ -563,6 +563,53 @@ def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) ->
     }
 
 
+def get_jobspy_storage_health() -> dict[str, Any]:
+    info: dict[str, Any] = {
+        "provider": "jobspy",
+        "mongodb_configured": bool(config.MONGODB_URI),
+        "mongodb_db": config.MONGODB_DB,
+        "collections": {
+            "raw": config.MONGODB_JOBSPY_COLLECTION,
+            "enriched": config.MONGODB_JOBSPY_ENRICHED_COLLECTION,
+            "companies": config.MONGODB_JOBSPY_COMPANY_COLLECTION,
+        },
+    }
+    if not config.MONGODB_URI:
+        info.update({
+            "ok": False,
+            "error": "RuntimeError",
+            "message": "MONGODB_URI missing",
+        })
+        return info
+
+    try:
+        client = _get_client()
+        ping_result = client.admin.command("ping")
+        db = client[config.MONGODB_DB]
+        raw_collection = db[config.MONGODB_JOBSPY_COLLECTION]
+        enriched_collection = db[config.MONGODB_JOBSPY_ENRICHED_COLLECTION]
+        company_collection = db[config.MONGODB_JOBSPY_COMPANY_COLLECTION]
+        fresh_cutoff = _fresh_cutoff()
+        info.update({
+            "ok": True,
+            "ping": _sanitize_for_json(ping_result),
+            "counts": {
+                "raw_total": int(raw_collection.count_documents({})),
+                "raw_fresh": int(raw_collection.count_documents({"scraped_at": {"$gte": fresh_cutoff}})),
+                "enriched_total": int(enriched_collection.count_documents({})),
+                "companies_total": int(company_collection.count_documents({})),
+            },
+        })
+        return info
+    except Exception as exc:
+        info.update({
+            "ok": False,
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+        })
+        return info
+
+
 def serialize_jobspy_job(document: dict[str, Any]) -> dict[str, Any]:
     payload = dict(document)
     payload.pop("_id", None)
