@@ -34,7 +34,7 @@ from ..ai_orchestration.client import (
     get_default_primary_model,
 )
 from ..services.search_intelligence import enrich_search_query
-from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, search_jobspy_jobs
+from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, jobspy_mongo_enabled, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
 from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
@@ -7243,7 +7243,7 @@ async def get_jobspy_external_jobs(
             "meta": {
                 "collection": result.get("collection"),
                 "provider": "jobspy",
-                "storage": result.get("storage") or ("jobs_postgres" if jobs_postgres_enabled() else "mongo"),
+                "storage": result.get("storage") or ("jobs_postgres" if jobs_postgres_enabled() else ("mongo" if jobspy_mongo_enabled() else "disabled")),
             },
         }
     except Exception as exc:
@@ -7259,7 +7259,8 @@ async def get_jobspy_external_jobs(
                 "degraded": True,
                 "error": exc.__class__.__name__,
                 "mongodb_configured": bool(config.MONGODB_URI),
-                "storage": "jobs_postgres" if jobs_postgres_enabled() else "mongo",
+                "mongodb_enabled": jobspy_mongo_enabled(),
+                "storage": "jobs_postgres" if jobs_postgres_enabled() else ("mongo" if jobspy_mongo_enabled() else "disabled"),
             },
         }
 
@@ -7440,6 +7441,7 @@ async def get_jobspy_career_ops_feed(
                 },
                 "error": exc.__class__.__name__,
                 "mongodb_configured": bool(config.MONGODB_URI),
+                "mongodb_enabled": jobspy_mongo_enabled(),
             },
         }
 

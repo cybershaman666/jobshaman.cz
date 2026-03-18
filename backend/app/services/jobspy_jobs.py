@@ -57,6 +57,10 @@ _COUNTRY_NAMES_BY_CODE = {
 }
 
 
+def jobspy_mongo_enabled() -> bool:
+    return bool(config.MONGODB_JOBSPY_ENABLED and config.MONGODB_URI)
+
+
 def _load_jobspy_scrape_jobs():
     try:
         from jobspy import scrape_jobs as _scrape_jobs
@@ -206,8 +210,8 @@ def _build_mongo_client_kwargs(*, use_certifi_ca: bool) -> dict[str, Any]:
 
 
 def _create_verified_client() -> MongoClient:
-    if not config.MONGODB_URI:
-        raise RuntimeError("MONGODB_URI missing")
+    if not jobspy_mongo_enabled():
+        raise RuntimeError("JobSpy Mongo storage disabled")
 
     attempts: list[tuple[str, dict[str, Any]]] = [("certifi", _build_mongo_client_kwargs(use_certifi_ca=True))]
     if _CA_FILE:
@@ -567,7 +571,7 @@ def import_jobspy_jobs(
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to mirror JobSpy docs into Jobs main table: {exc}")
 
-        if config.MONGODB_URI:
+        if jobspy_mongo_enabled():
             try:
                 collection = _get_collection()
                 operations = [
@@ -635,6 +639,17 @@ def search_jobspy_jobs(
                 "error": exc.__class__.__name__,
             }
 
+    if not jobspy_mongo_enabled():
+        return {
+            "jobs": [],
+            "total_count": 0,
+            "has_more": False,
+            "collection": config.MONGODB_JOBSPY_COLLECTION,
+            "provider": "jobspy",
+            "storage": "disabled",
+            "error": "JobSpy Mongo disabled",
+        }
+
     collection = _get_collection()
     query: dict[str, Any] = {
         "expires_at": {"$gt": _utcnow()},
@@ -686,6 +701,16 @@ def search_jobspy_jobs(
 
 
 def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) -> dict[str, Any]:
+    if not jobspy_mongo_enabled():
+        return {
+            "collection": config.MONGODB_JOBSPY_COLLECTION,
+            "scanned": 0,
+            "updated": 0,
+            "skipped": 0,
+            "only_missing": only_missing,
+            "disabled": True,
+        }
+
     collection = _get_collection()
     query: dict[str, Any] = {"expires_at": {"$gt": _utcnow()}}
     if only_missing:
@@ -760,6 +785,19 @@ def backfill_jobspy_postgres_from_mongo(*, limit: int = 1000, only_fresh: bool =
             "imported": 0,
         }
 
+    if not jobspy_mongo_enabled():
+        return {
+            "collection": config.MONGODB_JOBSPY_COLLECTION,
+            "jobs_postgres_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
+            "jobs_postgres_enabled": True,
+            "scanned": 0,
+            "imported": 0,
+            "upserted": 0,
+            "matched": 0,
+            "only_fresh": only_fresh,
+            "disabled": True,
+        }
+
     collection = _get_collection()
     query: dict[str, Any] = {}
     if only_fresh:
@@ -797,6 +835,7 @@ def get_jobspy_storage_health() -> dict[str, Any]:
     info: dict[str, Any] = {
         "provider": "jobspy",
         "mongodb_configured": bool(config.MONGODB_URI),
+        "mongodb_enabled": bool(config.MONGODB_JOBSPY_ENABLED),
         "jobs_postgres": get_jobs_postgres_health(),
         "mongodb_db": config.MONGODB_DB,
         "collections": {
@@ -805,11 +844,11 @@ def get_jobspy_storage_health() -> dict[str, Any]:
             "companies": config.MONGODB_JOBSPY_COMPANY_COLLECTION,
         },
     }
-    if not config.MONGODB_URI:
+    if not jobspy_mongo_enabled():
         info.update({
             "ok": False,
             "error": "RuntimeError",
-            "message": "MONGODB_URI missing",
+            "message": "JobSpy Mongo storage disabled",
         })
         return info
 
