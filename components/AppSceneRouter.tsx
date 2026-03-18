@@ -1,7 +1,7 @@
 import { lazy, Suspense, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
-import { CompanyProfile, DiscoveryFilterSource, Job, JobSearchFilters, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
+import { CompanyProfile, DiscoveryFilterSource, Job, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
 import PodminkyUziti from '../pages/PodminkyUziti';
 import OchranaSoukromi from '../pages/OchranaSoukromi';
 import EnterpriseSignup from './EnterpriseSignup';
@@ -26,12 +26,10 @@ const DemoCompanyHandshakePage = lazy(() => import('../pages/DemoCompanyHandshak
 const DemoSolarpunkPark = lazy(() => import('../pages/DemoSolarpunkPark'));
 const JcfpmFlow = lazy(() => import('./jcfpm/JcfpmFlow'));
 const ProfileEditor = lazy(() => import('./ProfileEditor'));
-const MarketRadarPage = lazy(() => import('../pages/MarketRadarPage'));
 
 type AppSceneRouterProps = {
     normalizedPath: string;
     viewState: ViewState;
-    isMapMode?: boolean;
     theme: 'light' | 'dark';
     vercelAnalyticsEnabled: boolean;
     userProfile: UserProfile;
@@ -101,6 +99,7 @@ type AppSceneRouterProps = {
     onSetDiscoveryLane: (lane: 'challenges' | 'imports') => void;
     onSetDiscoveryMode: (mode: 'all' | 'micro_jobs') => void;
     onSetSearchTerm: (value: string, source?: DiscoveryFilterSource) => void;
+    onApplyDiscoveryDefaults?: () => void;
     onPerformSearch: (term: string) => void;
     onSetFilterCity: (value: string) => void;
     onSetFilterMinSalary: (value: number) => void;
@@ -118,7 +117,6 @@ type AppSceneRouterProps = {
     onSetFilterExperience: (values: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
     onSetFilterLanguageCodes: (values: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
     onSetEnableAutoLanguageGuard: (value: boolean) => void;
-    onApplyDiscoveryDefaults: (filters: JobSearchFilters, force?: boolean) => void;
     searchMode: SearchMode;
     getLocalePrefix: () => string;
     onboardingDismissedRef: MutableRefObject<boolean>;
@@ -147,6 +145,7 @@ export default function AppSceneRouter({
     pageSize,
     totalCount,
     filterMinSalary,
+    filterBenefits,
     remoteOnly,
     enableCommuteFilter,
     filterMaxDistance,
@@ -180,10 +179,10 @@ export default function AppSceneRouter({
     onSetDiscoveryLane,
     onSetDiscoveryMode,
     onSetFilterMinSalary,
+    onSetFilterBenefits,
     onSetRemoteOnly,
     onSetEnableCommuteFilter,
     onSetFilterMaxDistance,
-    onApplyDiscoveryDefaults,
     getLocalePrefix,
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
@@ -247,19 +246,6 @@ export default function AppSceneRouter({
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                 <AssessmentPreviewPage />
-            </div>
-        );
-    }
-    if (normalizedPath === '/market-radar' || viewState === ViewState.MARKET_RADAR) {
-        return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>}>
-                    <MarketRadarPage
-                        userProfile={userProfile}
-                        onOpenAuth={onOpenAuth}
-                        onOpenProfile={() => onSetViewState(ViewState.PROFILE)}
-                    />
-                </Suspense>
             </div>
         );
     }
@@ -509,13 +495,14 @@ export default function AppSceneRouter({
                                 goToPage={onGoToJobsPage}
                                 filterMinSalary={filterMinSalary}
                                 setFilterMinSalary={onSetFilterMinSalary}
+                                filterBenefits={filterBenefits}
+                                setFilterBenefits={(benefits) => onSetFilterBenefits(benefits, 'user_toggle')}
                                 remoteOnly={remoteOnly}
                                 setRemoteOnly={onSetRemoteOnly}
                                 enableCommuteFilter={enableCommuteFilter}
                                 setEnableCommuteFilter={onSetEnableCommuteFilter}
                                 filterMaxDistance={filterMaxDistance}
                                 setFilterMaxDistance={onSetFilterMaxDistance}
-                                applyDiscoveryDefaults={onApplyDiscoveryDefaults}
                                 handleJobSelect={onHandleJobSelect}
                                 handleToggleSave={onToggleSave}
                                 onOpenProfile={() => onSetViewState(ViewState.PROFILE)}

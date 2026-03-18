@@ -5,9 +5,7 @@ import {
   Menu,
   Moon,
   Search,
-  Sparkles,
   Sun,
-  TowerControl,
   X,
   Building2
 } from 'lucide-react';
@@ -176,21 +174,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'micro_jobs',
       onClick: openMicroJobs
     },
-    {
-      key: 'market_radar',
-      label: 'Radar',
-      active: viewState === ViewState.MARKET_RADAR,
-      onClick: () => {
-        onIntentionalListClick?.();
-        setIsBlogOpen?.(false);
-        setSelectedBlogPostSlug?.(null);
-        setShowCompanyLanding(false);
-        setIsOnboardingCompany(false);
-        setSelectedJobId(null);
-        setDiscoverySearchMode?.(false);
-        setViewState(ViewState.MARKET_RADAR);
-      }
-    }
   ];
 
   const languages = [
@@ -309,10 +292,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }, 0);
   };
 
-  const hasDesktopLeftRail = viewState !== ViewState.LIST && viewState !== ViewState.MARKET_RADAR;
+  const hasDesktopLeftRail = viewState !== ViewState.LIST;
   const showMarketplaceHeaderControls = viewState === ViewState.LIST && !showCompanyLanding && !isBlogOpen;
   const discoveryAccentStyle = useMemo((): React.CSSProperties | undefined => {
-    if (viewState !== ViewState.LIST && viewState !== ViewState.MARKET_RADAR) return undefined;
+    if (viewState !== ViewState.LIST) return undefined;
     const isDark = theme === 'dark';
     const accent = isDark ? '#22c55e' : '#14532d';
     const accentRgb = isDark ? '34, 197, 94' : '20, 83, 45';
@@ -349,239 +332,212 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       >
         <div
           className={cn(
-            "app-topnav app-organic-shell relative z-40 flex w-full items-center gap-3 overflow-visible border border-transparent bg-transparent px-4 py-2 sm:px-6 shadow-none backdrop-blur-0"
+            "app-topnav app-organic-shell relative z-40 flex w-full flex-col gap-3 overflow-visible px-4 py-2.5 sm:px-6"
           )}
         >
-          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(255,255,255,0.07),transparent_20%),radial-gradient(circle_at_88%_10%,rgba(var(--accent-rgb),0.05),transparent_24%)]" />
-          <div aria-hidden className="app-blob-orbit pointer-events-none absolute -left-6 top-4 h-16 w-20 rounded-[60%_40%_58%_42%/_38%_60%_40%_62%] bg-[rgba(var(--accent-rgb),0.10)] blur-2xl" />
-          <div aria-hidden className="pointer-events-none absolute right-12 top-0 h-12 w-24 rounded-[38%_62%_54%_46%/_52%_46%_54%_48%] bg-[rgba(249,115,22,0.10)] blur-xl" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.16),transparent)]" />
 
-          {/* Logo Section */}
-          <button
-            type="button"
-            onClick={navigateToShellHome}
-            className="app-organic-pill relative z-10 flex shrink-0 items-center gap-3 border border-white/10 bg-white/40 px-2.5 py-1.5 transition hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(var(--accent-rgb),0.18),rgba(var(--accent-sky-rgb),0.14))] shadow-[0_12px_30px_-18px_rgba(var(--accent-rgb),0.9)]">
-              <img src="/logo-alt.png" alt="JobShaman" className="h-6 w-auto sm:h-7" />
-            </span>
-            <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
-              Job<span className="text-[var(--accent)]">Shaman</span>
-            </span>
-          </button>
-
-          {/* Desktop Search - Single Row */}
-          <div className="mx-auto hidden max-w-5xl flex-1 lg:flex lg:flex-col lg:gap-2">
-            <div className="flex items-center justify-between gap-3 px-1">
-              <div className="app-organic-pill inline-flex items-center gap-2 bg-white/55 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--accent)] ring-1 ring-inset ring-[rgba(var(--accent-rgb),0.16)] dark:bg-white/6">
-                <Sparkles size={13} />
-                {headerUiCopy.aiBadge}
-              </div>
-              <div className="text-xs font-medium text-[var(--text-muted)]">
-                {headerUiCopy.aiLine}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
-                  <Search size={18} />
-                </div>
-                <input
-                  id="appheader-discovery-search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
-                  placeholder={searchUiCopy.searchPlaceholder}
-                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white/80 dark:bg-white/5 dark:focus:bg-white/10"
-                />
-              </div>
-              <div className="relative flex-[0.7]">
-                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
-                  <MapPin size={18} />
-                </div>
-                <input
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
-                  placeholder={searchUiCopy.locationPlaceholder}
-                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white/80 dark:bg-white/5 dark:focus:bg-white/10"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={submitDiscoverySearch}
-                className="app-button-primary app-organic-cta !px-5 !py-3 shadow-[0_18px_40px_-24px_rgba(var(--accent-rgb),0.9)]"
-              >
-                {searchUiCopy.submit}
-              </button>
-            </div>
-          </div>
-
-          {/* Right Actions */}
-          <div className="relative z-10 flex items-center gap-2 sm:gap-4">
-            {/* Pro firmy link */}
+          <div className="relative z-10 flex w-full items-center gap-3">
+            {/* Logo Section */}
             <button
               type="button"
-              onClick={() => {
-                onIntentionalListClick?.();
-                setIsBlogOpen?.(false);
-                setSelectedBlogPostSlug?.(null);
-                setShowCompanyLanding(false);
-                setIsOnboardingCompany(false);
-                setSelectedJobId(null);
-                setDiscoverySearchMode?.(false);
-                setViewState(ViewState.MARKET_RADAR);
-              }}
-              className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-1.5 text-xs font-bold text-[var(--accent)] transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+              onClick={navigateToShellHome}
+              className="relative z-10 flex shrink-0 items-center gap-3 px-1 py-1 transition opacity-95 hover:opacity-100"
             >
-              <TowerControl size={15} />
-              Radar
+              <span className="flex h-9 w-9 items-center justify-center">
+                <img src="/logo-alt.png" alt="JobShaman" className="h-6 w-auto sm:h-7" />
+              </span>
+              <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
+                Job<span className="text-[var(--accent)]">Shaman</span>
+              </span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowCompanyLanding(true)}
-              className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-1.5 text-xs font-bold text-[var(--accent)] transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
-            >
-              <Building2 size={15} />
-              {headerUiCopy.companies}
-            </button>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="app-organic-pill hidden h-10 w-10 items-center justify-center border border-white/10 bg-white/40 text-[var(--text-muted)] hover:bg-white/60 hover:text-[var(--text-strong)] dark:bg-white/5 dark:hover:bg-white/10 lg:inline-flex"
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-              <div className="relative z-[80]">
+            {/* Desktop Search - Single Row */}
+            <div className="mx-auto hidden max-w-5xl flex-1 lg:flex">
+              <div className="flex w-full items-center gap-2">
+                <div className="relative flex-1">
+                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                    <Search size={18} />
+                  </div>
+                  <input
+                    id="appheader-discovery-search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                    placeholder={searchUiCopy.searchPlaceholder}
+                    className="app-organic-input w-full border border-[var(--border)] bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white dark:bg-white/5 dark:focus:bg-white/10"
+                  />
+                </div>
+                <div className="relative flex-[0.7]">
+                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                    <MapPin size={18} />
+                  </div>
+                  <input
+                    value={filterCity}
+                    onChange={(e) => setFilterCity(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                    placeholder={searchUiCopy.locationPlaceholder}
+                    className="app-organic-input w-full border border-[var(--border)] bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white dark:bg-white/5 dark:focus:bg-white/10"
+                  />
+                </div>
                 <button
                   type="button"
-                  onClick={() => setLanguageMenuOpen((prev) => !prev)}
-                  className="app-organic-pill inline-flex items-center gap-1.5 border border-white/10 bg-white/40 px-3 py-2 text-xs font-bold text-[var(--text-muted)] hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+                  onClick={submitDiscoverySearch}
+                  className="app-button-primary app-organic-cta !px-5 !py-3 shadow-[0_18px_40px_-24px_rgba(var(--accent-rgb),0.9)]"
                 >
-                  {(languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode).toUpperCase()}
-                  <ChevronDown size={12} />
+                  {searchUiCopy.submit}
                 </button>
-                {languageMenuOpen && (
-                  <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-32 overflow-hidden rounded-2xl p-1 shadow-xl">
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => { changeLanguage(lang.code); setLanguageMenuOpen(false); }}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition",
-                          currentLanguageCode === lang.code ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text)] hover:bg-[var(--surface-muted)]"
-                        )}
-                      >
-                        <img src={`https://flagcdn.com/w20/${lang.flagCode}.png`} alt="" className="h-3 w-4 rounded-sm" />
-                        {lang.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* User Profile / Auth */}
-            {userProfile.isLoggedIn ? (
+            {/* Right Actions */}
+            <div className="relative z-10 flex items-center gap-2 sm:gap-4">
+              {/* Pro firmy link */}
               <button
-                onClick={() => {
-                  setShowCompanyLanding(false);
-                  setViewState(ViewState.PROFILE);
-                }}
-                className="app-organic-pill group flex items-center gap-2 border border-white/10 bg-white/50 p-1 pr-3 transition hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
+                type="button"
+                onClick={() => setShowCompanyLanding(true)}
+                className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-[var(--border)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] transition-colors hover:border-[rgba(var(--accent-rgb),0.22)] hover:text-[var(--accent)] dark:bg-white/5 dark:hover:bg-white/10"
               >
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent)]">
-                  {userProfile.photo && !avatarFailed ? (
-                    <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
-                  ) : (
-                    <span>{userProfile.name?.charAt(0)}</span>
+                <Building2 size={15} />
+                {headerUiCopy.companies}
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="app-organic-pill hidden h-10 w-10 items-center justify-center border border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/5 dark:hover:bg-white/10 lg:inline-flex"
+                >
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <div className="relative z-[80]">
+                  <button
+                    type="button"
+                    onClick={() => setLanguageMenuOpen((prev) => !prev)}
+                    className="app-organic-pill inline-flex items-center gap-1.5 border border-[var(--border)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--surface-muted)] dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    {(languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode).toUpperCase()}
+                    <ChevronDown size={12} />
+                  </button>
+                  {languageMenuOpen && (
+                    <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-32 overflow-hidden rounded-2xl p-1 shadow-xl">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => { changeLanguage(lang.code); setLanguageMenuOpen(false); }}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition",
+                            currentLanguageCode === lang.code ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text)] hover:bg-[var(--surface-muted)]"
+                          )}
+                        >
+                          <img src={`https://flagcdn.com/w20/${lang.flagCode}.png`} alt="" className="h-3 w-4 rounded-sm" />
+                          {lang.name}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <span className="hidden text-sm font-semibold lg:block">{userProfile.name}</span>
-              </button>
-            ) : (
+              </div>
+
+              {/* User Profile / Auth */}
+              {userProfile.isLoggedIn ? (
+                <button
+                  onClick={() => {
+                    setShowCompanyLanding(false);
+                    setViewState(ViewState.PROFILE);
+                  }}
+                  className="app-organic-pill group flex items-center gap-2 border border-[var(--border)] bg-white p-1 pr-3 transition hover:bg-[var(--surface-muted)] dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent)]">
+                    {userProfile.photo && !avatarFailed ? (
+                      <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+                    ) : (
+                      <span>{userProfile.name?.charAt(0)}</span>
+                    )}
+                  </div>
+                  <span className="hidden text-sm font-semibold lg:block">{userProfile.name}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleAuthAction('login')}
+                  className="app-button-primary app-organic-cta !px-5 !py-2"
+                >
+                  {t('auth.login_button')}
+                </button>
+              )}
+
+              {/* Mobile Menu Toggle */}
               <button
-                onClick={() => handleAuthAction('login')}
-                className="app-button-primary app-organic-cta !px-5 !py-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="app-organic-pill lg:hidden border border-[var(--border)] bg-white p-2 text-[var(--text-strong)] dark:bg-white/5"
               >
-                {t('auth.login_button')}
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-            )}
-
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="app-organic-pill lg:hidden border border-white/10 bg-white/40 p-2 text-[var(--text-strong)] dark:bg-white/5"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            </div>
           </div>
-        </div>
 
-        {showMarketplaceHeaderControls ? (
-          <div className="relative z-20 mt-2 hidden lg:block">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[rgba(255,255,255,0.55)] bg-[rgba(255,255,255,0.82)] px-3 py-2 shadow-[0_20px_44px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-white/10 dark:bg-[rgba(15,23,42,0.74)]">
-              <div className="flex flex-wrap items-center gap-2">
-                {navItems.map((item) => (
+          {showMarketplaceHeaderControls ? (
+            <div className="relative z-20 hidden w-full border-t border-[var(--border)]/80 pt-3 lg:block">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={item.onClick}
+                      className={cn(
+                        'app-organic-pill px-4 py-2 text-sm font-semibold transition',
+                        item.active
+                          ? 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-1 ring-inset ring-[rgba(var(--accent-rgb),0.18)]'
+                          : 'bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10 dark:hover:bg-white/14'
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                   <button
-                    key={item.key}
                     type="button"
-                    onClick={item.onClick}
+                    onClick={() => setRemoteOnly?.(!remoteOnly)}
                     className={cn(
-                      'app-organic-pill px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition',
-                      item.active
-                        ? 'bg-[rgba(var(--accent-rgb),0.14)] text-[var(--accent)]'
-                        : 'bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10 dark:hover:bg-white/14'
+                      'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                      remoteOnly
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                        : 'border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10'
                     )}
                   >
-                    {item.label}
+                    {headerUiCopy.remoteOnly}
                   </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-              <button
-                  type="button"
-                  onClick={() => setRemoteOnly?.(!remoteOnly)}
-                  className={cn(
-                    'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
-                    remoteOnly
-                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
-                      : 'border-[rgba(var(--accent-rgb),0.1)] bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10'
-                  )}
-                >
-                  {headerUiCopy.remoteOnly}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEnableCommuteFilter?.(!enableCommuteFilter)}
-                  className={cn(
-                    'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
-                    enableCommuteFilter
-                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
-                      : 'border-[rgba(var(--accent-rgb),0.1)] bg-white/88 text-[var(--text-muted)] hover:bg-white hover:text-[var(--text-strong)] dark:bg-white/10'
-                  )}
-                >
-                  {headerUiCopy.commuteMax}
-                </button>
-                <label className="app-organic-pill flex items-center gap-2 border border-[rgba(var(--accent-rgb),0.1)] bg-white/88 px-3.5 py-2 text-xs font-semibold text-[var(--text-muted)] dark:bg-white/10">
-                  <span>{headerUiCopy.atLeast}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={filterMinSalary || 0}
-                    onChange={(e) => setFilterMinSalary?.(Number(e.target.value || 0))}
-                    className="w-24 bg-transparent text-xs font-semibold text-[var(--text-strong)] outline-none"
-                  />
-                </label>
+                  <button
+                    type="button"
+                    onClick={() => setEnableCommuteFilter?.(!enableCommuteFilter)}
+                    className={cn(
+                      'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                      enableCommuteFilter
+                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
+                        : 'border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10'
+                    )}
+                  >
+                    {headerUiCopy.commuteMax}
+                  </button>
+                  <label className="app-organic-pill flex items-center gap-2 border border-[var(--border)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--text-muted)] dark:bg-white/10">
+                    <span>{headerUiCopy.atLeast}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={filterMinSalary || 0}
+                      onChange={(e) => setFilterMinSalary?.(Number(e.target.value || 0))}
+                      className="w-24 bg-transparent text-xs font-semibold text-[var(--text-strong)] outline-none"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {/* Mobile Search/Nav */}
         {mobileMenuOpen && (

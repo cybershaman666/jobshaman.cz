@@ -871,7 +871,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {sections.map((section) => {
         const title = section.title.cs;
         const subtitle = section.subtitle ? section.subtitle.cs : undefined;
@@ -880,7 +880,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
           const job = section.jobs[0];
           if (!job) return null;
           return (
-            <div key={section.key} className="space-y-4">
+            <div key={section.key} className="space-y-5">
               <SectionHeader title={title} subtitle={subtitle} tone={section.tone} />
               <div className="grid grid-cols-1 xl:grid-cols-12">
                 <OfferCard
@@ -889,7 +889,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
                   saved={savedJobIds.includes(job.id)}
                   language={language}
                   variant="hero"
-                  className="xl:col-span-8 xl:col-start-1"
+                  className="xl:col-span-12"
                   onSelect={() => onSelect(job.id)}
                   onOpen={() => onOpen(job.id)}
                   onToggleSave={() => onToggleSave(job.id)}
@@ -902,9 +902,9 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
         const variant = section.layout === 'grid_large' ? 'large' : 'default';
 
         return (
-          <div key={section.key} className="space-y-4">
+          <div key={section.key} className="space-y-5">
             <SectionHeader title={title} subtitle={subtitle} count={section.jobs.length} tone={section.tone} />
-            <div className="grid grid-cols-1 items-stretch gap-4 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
+            <div className="grid grid-cols-1 items-stretch gap-5 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
               {section.jobs.map((job, idx) => {
                 const spanClass = getSectionSpanClass(section.layout, idx, section.jobs.length);
 
@@ -929,13 +929,13 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       })}
 
       {remaining.length ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <SectionHeader
             title={feedCopy.remainingTitle}
             subtitle={feedCopy.remainingSubtitle}
             count={remaining.length}
           />
-          <div className="grid grid-cols-1 items-stretch gap-4 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
+          <div className="grid grid-cols-1 items-stretch gap-5 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
             {remaining.slice(0, 24).map((job, idx, list) => {
               return (
                 <OfferCard

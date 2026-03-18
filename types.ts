@@ -1257,8 +1257,7 @@ export enum ViewState {
   PROFILE_EDITOR = 'PROFILE_EDITOR',
   COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
   ASSESSMENT = 'ASSESSMENT',
-  JCFPM = 'JCFPM',
-  MARKET_RADAR = 'MARKET_RADAR'
+  JCFPM = 'JCFPM'
 }
 
 export interface AIAnalysisResult {

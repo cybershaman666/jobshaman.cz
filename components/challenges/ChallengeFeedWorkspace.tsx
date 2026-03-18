@@ -79,10 +79,10 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   const showAddressPrompt = isMobileViewport && userProfile.isLoggedIn && !hasAddress;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 lg:space-y-7">
       {isMobileViewport ? (
         <div className="space-y-4 lg:hidden">
-          <SurfaceCard className="space-y-4 border-[rgba(15,23,42,0.08)] bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-slate-950">
+          <SurfaceCard className="space-y-4 rounded-[18px] border-[var(--border)] bg-white shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)] dark:border-[rgba(255,255,255,0.08)] dark:bg-slate-950">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1.5">
                 <div className="app-eyebrow w-fit">
@@ -102,7 +102,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
             </div>
 
             {showAuthPrompt ? (
-              <div className="flex flex-col gap-3 rounded-xl border border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
+              <div className="flex flex-col gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
                 <p className="text-sm leading-6 text-[var(--text)]">{copy.authBody}</p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="app-button-primary app-organic-cta" onClick={() => onOpenAuth('register')}>
@@ -117,7 +117,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
             ) : null}
 
             {showAddressPrompt ? (
-              <div className="flex flex-col gap-3 rounded-xl border border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
+              <div className="flex flex-col gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
                   <MapPin size={16} className="text-[var(--accent)]" />
                   {copy.addressTitle}
@@ -158,7 +158,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
       ) : null}
 
       <div className={isMobileViewport && mobileMode === 'swipe' ? 'hidden lg:block' : ''}>
-        <SurfaceCard className="mb-4 border-[rgba(15,23,42,0.08)] bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-slate-950">
+        <SurfaceCard className="mb-5 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
               <div className="app-eyebrow w-fit">
@@ -177,7 +177,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
           </div>
         </SurfaceCard>
 
-        <div className="relative rounded-[28px] border border-[rgba(15,23,42,0.08)] bg-white p-3 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.16)] dark:border-white/8 dark:bg-slate-950">
+        <div className="relative rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 lg:p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
           <ChallengeEditorialFeed
             jobs={jobs}
             selectedJobId={selectedJobId}
@@ -190,7 +190,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
         </div>
 
         {hasMore || totalCount > jobs.length ? (
-          <SurfaceCard className="border-[rgba(15,23,42,0.08)] bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-slate-950">
+          <SurfaceCard className="rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm leading-6 text-[var(--text-muted)]">
                 {`${Math.min(jobs.length, totalCount)} / ${Math.max(totalCount, jobs.length)}`}

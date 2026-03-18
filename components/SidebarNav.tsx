@@ -2,22 +2,19 @@ import React from 'react';
 import {
     BarChart2,
     Building2,
-    Compass,
     Home,
     Settings,
     SlidersHorizontal,
     Sparkles,
-    Star,
-    TowerControl
+    Star
 } from 'lucide-react';
 import { UserProfile, ViewState } from '../types';
 import { cn } from './ui/primitives';
 
 interface SidebarNavProps {
     viewState: ViewState;
-    setViewState: (view: ViewState) => void;
     isMapMode?: boolean;
-    onToggleMap?: (active: boolean) => void;
+    setViewState: (view: ViewState) => void;
     discoveryMode?: 'all' | 'micro_jobs';
     setDiscoveryMode?: (mode: 'all' | 'micro_jobs') => void;
     setDiscoveryLane?: (lane: 'challenges' | 'imports') => void;
@@ -30,8 +27,6 @@ interface SidebarNavProps {
 const SidebarNav: React.FC<SidebarNavProps> = ({
     viewState,
     setViewState,
-    isMapMode = false,
-    onToggleMap,
     discoveryMode = 'all',
     setDiscoveryMode,
     setDiscoveryLane,
@@ -40,10 +35,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
     onOpenCompanies,
     className
 }) => {
-    const navItems: Array<{ id: ViewState | 'map' | 'micro' | 'companies' | 'jhi'; icon: any; label: string }> = [
+    const navItems: Array<{ id: ViewState | 'micro' | 'companies' | 'jhi'; icon: any; label: string }> = [
         { id: ViewState.LIST, icon: Home, label: 'Feed' },
-        { id: ViewState.MARKET_RADAR, icon: TowerControl, label: 'Radar' },
-        { id: 'map', icon: Compass, label: 'Map' },
         { id: 'micro', icon: Sparkles, label: 'Mini' },
         { id: ViewState.SAVED, icon: Star, label: 'Saved' },
         { id: 'companies', icon: Building2, label: 'Firmy' },
@@ -61,13 +54,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     <button
                         key={item.id}
                         onClick={() => {
-                            if (item.id === 'map') {
-                                onToggleMap?.(true);
-                                setViewState(ViewState.LIST);
-                                return;
-                            }
                             if (item.id === 'micro') {
-                                onToggleMap?.(false);
                                 setDiscoveryLane?.('challenges');
                                 setDiscoverySearchMode?.(false);
                                 setDiscoveryMode?.('micro_jobs');
@@ -75,7 +62,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                                 return;
                             }
                             if (item.id === 'companies') {
-                                onToggleMap?.(false);
                                 setDiscoverySearchMode?.(false);
                                 if (userProfile.role === 'recruiter') {
                                     setViewState(ViewState.COMPANY_DASHBOARD);
@@ -85,7 +71,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                                 return;
                             }
                             if (item.id === 'jhi') {
-                                onToggleMap?.(false);
                                 setDiscoverySearchMode?.(false);
                                 setViewState(ViewState.PROFILE);
                                 try {
@@ -95,15 +80,12 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                                 }
                                 return;
                             }
-                            onToggleMap?.(false);
                             setViewState(item.id as ViewState);
                         }}
                         className={cn(
                             "group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
-                            (item.id === 'map'
-                                ? isMapMode
-                                : item.id === 'micro'
-                                    ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs' && !isMapMode)
+                            (item.id === 'micro'
+                                    ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs')
                                     : viewState === item.id)
                                 ? "bg-white/25 text-white shadow-lg shadow-cyan-300/30"
                                 : "text-cyan-100 hover:bg-white/15 hover:text-white"
@@ -112,7 +94,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                     >
                         <item.icon size={22} className={cn(
                             "transition-transform group-hover:scale-110",
-                            (item.id === 'map' ? isMapMode : viewState === item.id) ? "scale-110" : "scale-100"
+                            viewState === item.id ? "scale-110" : "scale-100"
                         )} />
 
                         {/* Tooltip-like label on hover */}
@@ -121,10 +103,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
                         </span>
 
                         {/* Active indicator bar */}
-                        {(item.id === 'map'
-                            ? isMapMode
-                            : item.id === 'micro'
-                                ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs' && !isMapMode)
+                        {(item.id === 'micro'
+                                ? (viewState === ViewState.LIST && discoveryMode === 'micro_jobs')
                                 : viewState === item.id) && (
                             <div className="absolute -left-1 h-6 w-1 rounded-r-full bg-white" />
                         )}

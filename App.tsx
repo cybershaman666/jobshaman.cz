@@ -569,7 +569,6 @@ export default function App() {
         currentPage,
         pageSize,
         applyInteractionState,
-        applyDiscoveryDefaults,
         searchMode,
         searchDiagnostics,
     } = useMarketplaceDiscovery({
@@ -1027,7 +1026,7 @@ export default function App() {
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'market-radar') {
                 setIsBlogOpen(false);
-                setViewState(ViewState.MARKET_RADAR);
+                setViewState(ViewState.LIST);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
@@ -1193,8 +1192,6 @@ export default function App() {
                 targetPath = `/${lng}/ulozene`;
             } else if (viewState === ViewState.ASSESSMENT) {
                 targetPath = `/${lng}/assessment-centrum`;
-            } else if (viewState === ViewState.MARKET_RADAR) {
-                targetPath = `/${lng}/market-radar`;
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.JCFPM) {
@@ -1236,7 +1233,6 @@ export default function App() {
     useEffect(() => {
         const pageName = showCompanyLanding ? 'company-dashboard' :
             viewState === ViewState.LIST ? 'home' :
-                viewState === ViewState.MARKET_RADAR ? 'home' :
                 viewState === ViewState.PROFILE ? 'profile' :
                     viewState === ViewState.SAVED ? 'saved' :
                         viewState === ViewState.ASSESSMENT ? 'assessment' :
@@ -1788,7 +1784,6 @@ export default function App() {
                 onSetFilterExperience={setFilterExperience}
                 onSetFilterLanguageCodes={setFilterLanguageCodes}
                 onSetEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
-                onApplyDiscoveryDefaults={applyDiscoveryDefaults}
                 searchMode={searchMode}
                 getLocalePrefix={getLocalePrefix}
                 onboardingDismissedRef={onboardingDismissedRef}

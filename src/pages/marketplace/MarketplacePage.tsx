@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import type { Job, JobSearchFilters, SearchDiagnosticsMeta, UserProfile } from '../../../types';
+import type { Job, SearchDiagnosticsMeta, UserProfile } from '../../../types';
 import ChallengeControlCenter from '../../../components/challenges/ChallengeControlCenter';
 import { type DiscoveryMode } from '../../../components/challenges/ChallengeSidebar';
-import type { ChallengeWorkspaceView } from '../../../components/challenges/challengeWorkspaceTypes';
 
 export interface MarketplacePageProps {
   hasNativeChallenges: boolean;
@@ -26,10 +25,11 @@ export interface MarketplacePageProps {
   loadMoreJobs: () => void;
   goToPage: (page: number) => void;
   onOpenProfile: () => void;
-  applyDiscoveryDefaults: (filters: JobSearchFilters, force?: boolean) => void;
   theme: 'light' | 'dark';
   filterMinSalary: number;
   setFilterMinSalary: (salary: number) => void;
+  filterBenefits: string[];
+  setFilterBenefits: (benefits: string[]) => void;
   remoteOnly: boolean;
   setRemoteOnly: (enabled: boolean) => void;
   enableCommuteFilter: boolean;
@@ -59,10 +59,11 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   loadMoreJobs,
   goToPage,
   onOpenProfile,
-  applyDiscoveryDefaults,
   theme,
   filterMinSalary,
   setFilterMinSalary,
+  filterBenefits,
+  setFilterBenefits,
   remoteOnly,
   setRemoteOnly,
   enableCommuteFilter,
@@ -71,8 +72,6 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   setFilterMaxDistance,
   onOpenAuth,
 }) => {
-  const [workspaceView, setWorkspaceView] = useState<ChallengeWorkspaceView>('feed');
-
   return (
     <div className="space-y-5 bg-white dark:bg-slate-950">
       <div id="marketplace-workspace">
@@ -97,18 +96,17 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           theme={theme}
           filterMinSalary={filterMinSalary}
           setFilterMinSalary={setFilterMinSalary}
+          filterBenefits={filterBenefits}
+          setFilterBenefits={setFilterBenefits}
           remoteOnly={remoteOnly}
           setRemoteOnly={setRemoteOnly}
           enableCommuteFilter={enableCommuteFilter}
           setEnableCommuteFilter={setEnableCommuteFilter}
           filterMaxDistance={filterMaxDistance}
           setFilterMaxDistance={setFilterMaxDistance}
-          applyDiscoveryDefaults={applyDiscoveryDefaults}
           onOpenProfile={onOpenProfile}
           onOpenAuth={onOpenAuth}
           selectedJobId={selectedJobId}
-          workspaceView={workspaceView}
-          onWorkspaceViewChange={setWorkspaceView}
         />
       </div>
     </div>

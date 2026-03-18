@@ -4427,8 +4427,8 @@
       "feed": "Feed",
       "swipe_title": "Swipe should be the default on mobile",
       "swipe_body": "Tap opens details, left and right swipes help you sort through roles quickly without friction.",
-      "ai_title": "AI is reading context behind the scenes",
-      "ai_body": "This is not just keyword search. AI reads your profile, commute reality, and direction of travel, then explains why a role surfaced.",
+      "ai_title": "This is not just about finding a job.",
+      "ai_body": "It is about making the right decision.",
       "ai_bullets": [
         "reads target role and seniority",
         "shows why you are seeing this",

@@ -1,24 +1,19 @@
 import React from 'react';
-import { ArrowRight, Compass, Plus } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 
 import { cn } from '../../../../components/ui/primitives';
-import type { ChallengeWorkspaceView } from '../../../../components/challenges/challengeWorkspaceTypes';
 
 interface MarketplaceHeroProps {
   locale: string;
-  activeView: ChallengeWorkspaceView;
   hasNativeChallenges: boolean;
   onExploreFeed: () => void;
-  onOpenMap: () => void;
   onCreateChallenge: () => void;
 }
 
 const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
   locale,
-  activeView,
   hasNativeChallenges,
   onExploreFeed,
-  onOpenMap,
   onCreateChallenge,
 }) => {
   const language = locale.split('-')[0].toLowerCase();
@@ -30,10 +25,8 @@ const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
       body: 'JobShaman není další nekonečný seznam pozic. Otevřeš konkrétní pracovní situaci a místo „mám zájem“ ukážeš, jak bys začal.',
       subline: 'Firmy tak vidí tvoje uvažování dřív než přílohy.',
       viewFeed: 'Prozkoumat feed',
-      viewMap: 'Otevřít mapu',
       createChallenge: 'Zadat mini výzvu',
       modeFeed: 'Feed',
-      modeMap: 'Mapa',
       nativeLive: 'Nativní výzvy jedou',
       nativeSoon: 'Importy jsou připravené',
     }
@@ -42,10 +35,8 @@ const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
       body: 'JobShaman is not another endless list of roles. You open a real work situation and, instead of clicking “I’m interested,” you show how you would begin.',
       subline: 'Teams see your thinking before they see your attachments.',
       viewFeed: 'Explore feed',
-      viewMap: 'Open map',
       createChallenge: 'Create mini challenge',
       modeFeed: 'Feed',
-      modeMap: 'Map',
       nativeLive: 'Native challenges are live',
       nativeSoon: 'Imports are ready',
     };
@@ -66,7 +57,7 @@ const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
               JobShaman
             </span>
             <span className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-              {activeView === 'map' ? copy.modeMap : copy.modeFeed}
+              {copy.modeFeed}
             </span>
             <span
               className={cn(
@@ -97,10 +88,6 @@ const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
               <button type="button" onClick={onExploreFeed} className="app-button-primary !rounded-2xl !px-5 !py-3">
                 {copy.viewFeed}
                 <ArrowRight size={16} />
-              </button>
-              <button type="button" onClick={onOpenMap} className="app-button-secondary !rounded-2xl !px-5 !py-3">
-                <Compass size={16} />
-                {copy.viewMap}
               </button>
               <button type="button" onClick={onCreateChallenge} className="app-button-secondary !rounded-2xl !px-5 !py-3">
                 <Plus size={16} />

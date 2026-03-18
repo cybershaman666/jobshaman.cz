@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Coins, Compass, Home, Import, RotateCcw, SlidersHorizontal, Sparkles, TrainFront } from 'lucide-react';
+import { CarFront, Coins, Compass, Dog, GraduationCap, HeartHandshake, HeartPulse, Home, Import, RotateCcw, SlidersHorizontal, Sparkles, TrainFront, UtensilsCrossed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../../types';
 import { SurfaceCard, cn } from '../ui/primitives';
@@ -25,6 +25,8 @@ interface ChallengeSidebarProps {
   setDiscoveryMode: (mode: DiscoveryMode) => void;
   filterMinSalary: number;
   setFilterMinSalary: (salary: number) => void;
+  filterBenefits: string[];
+  setFilterBenefits: (benefits: string[]) => void;
   remoteOnly: boolean;
   setRemoteOnly: (enabled: boolean) => void;
   enableCommuteFilter: boolean;
@@ -50,6 +52,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
   setDiscoveryMode,
   filterMinSalary,
   setFilterMinSalary,
+  filterBenefits,
+  setFilterBenefits,
   remoteOnly,
   setRemoteOnly,
   enableCommuteFilter,
@@ -90,6 +94,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         presets: 'Rychlé režimy',
         traditional: 'Doladit ručně',
         domains: 'Obory',
+        life: 'Život a benefity',
         seniority: 'Seniorita',
         contract: 'Úvazek',
         presetsTitle: 'Rychlé režimy',
@@ -113,6 +118,14 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         profile: 'Profil',
         noMinimum: 'Bez minima',
         off: 'Vypnuto',
+        dogFriendly: 'Dog-friendly office',
+        childFriendly: 'Child-friendly office',
+        companyCar: 'Služební auto i soukromě',
+        education: 'Kurzy a vzdělávání',
+        multisport: 'Multisport / sport karta',
+        meal: 'Stravenky / jídlo',
+        healthCare: 'Zdravotní péče',
+        childcare: 'Podpora péče o děti',
       };
     }
     if (locale === 'sk') {
@@ -134,6 +147,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         presets: 'Rýchle režimy',
         traditional: 'Doladiť ručne',
         domains: 'Obory',
+        life: 'Život a benefity',
         seniority: 'Seniorita',
         contract: 'Úväzok',
         presetsTitle: 'Rýchle režimy',
@@ -157,6 +171,14 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         profile: 'Profil',
         noMinimum: 'Bez minima',
         off: 'Vypnuté',
+        dogFriendly: 'Dog-friendly office',
+        childFriendly: 'Child-friendly office',
+        companyCar: 'Služobné auto aj súkromne',
+        education: 'Kurzy a vzdelávanie',
+        multisport: 'Multisport / šport karta',
+        meal: 'Strava / príspevok na jedlo',
+        healthCare: 'Zdravotná starostlivosť',
+        childcare: 'Podpora starostlivosti o deti',
       };
     }
     if (locale === 'de') {
@@ -178,6 +200,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         presets: 'Schnelle Modi',
         traditional: 'Manuell nachziehen',
         domains: 'Bereiche',
+        life: 'Leben und Benefits',
         seniority: 'Seniorität',
         contract: 'Vertragsart',
         presetsTitle: 'Schnelle Modi',
@@ -201,6 +224,14 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         profile: 'Profil',
         noMinimum: 'Kein Minimum',
         off: 'Aus',
+        dogFriendly: 'Hundefreundliches Büro',
+        childFriendly: 'Kinderfreundliches Büro',
+        companyCar: 'Firmenwagen zur privaten Nutzung',
+        education: 'Kurse und Weiterbildung',
+        multisport: 'Sportkarte / Fitness',
+        meal: 'Essenszuschuss',
+        healthCare: 'Gesundheitsversorgung',
+        childcare: 'Kinderbetreuung',
       };
     }
     if (locale === 'pl') {
@@ -222,6 +253,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         presets: 'Szybkie tryby',
         traditional: 'Dostrój ręcznie',
         domains: 'Obszary',
+        life: 'Życie i benefity',
         seniority: 'Seniority',
         contract: 'Typ umowy',
         presetsTitle: 'Szybkie tryby',
@@ -245,6 +277,14 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
         profile: 'Profil',
         noMinimum: 'Bez minimum',
         off: 'Wyłączone',
+        dogFriendly: 'Biuro przyjazne psom',
+        childFriendly: 'Biuro przyjazne dzieciom',
+        companyCar: 'Auto służbowe także prywatnie',
+        education: 'Kursy i rozwój',
+        multisport: 'Karta sportowa',
+        meal: 'Posiłki / karta lunchowa',
+        healthCare: 'Opieka medyczna',
+        childcare: 'Wsparcie opieki nad dziećmi',
       };
     }
     return {
@@ -265,6 +305,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
       presets: 'Life presets',
       traditional: 'Traditional filters',
       domains: 'Domains',
+      life: 'Life and benefits',
       seniority: 'Seniority',
       contract: 'Contract type',
       presetsTitle: 'Reality presets',
@@ -288,6 +329,14 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
       profile: 'Profile',
       noMinimum: 'Any',
       off: 'Off',
+      dogFriendly: 'Dog-friendly office',
+      childFriendly: 'Child-friendly office',
+      companyCar: 'Company car for personal use',
+      education: 'Courses and learning',
+      multisport: 'Sport card / fitness',
+      meal: 'Meal allowance',
+      healthCare: 'Health care',
+      childcare: 'Childcare support',
     };
   }, [isCsLike, locale]);
 
@@ -444,10 +493,17 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
     domains: [
       { key: 'it', label: isCsLike ? 'IT' : 'IT' },
       { key: 'engineering', label: locale === 'cs' ? 'Inženýring' : locale === 'sk' ? 'Inžiniering' : locale === 'de' ? 'Engineering' : locale === 'pl' ? 'Inżynieria' : 'Engineering' },
+      { key: 'manufacturing', label: locale === 'cs' ? 'Výroba' : locale === 'sk' ? 'Výroba' : locale === 'de' ? 'Produktion' : locale === 'pl' ? 'Produkcja' : 'Manufacturing' },
+      { key: 'logistics', label: locale === 'cs' ? 'Logistika' : locale === 'sk' ? 'Logistika' : locale === 'de' ? 'Logistik' : locale === 'pl' ? 'Logistyka' : 'Logistics' },
+      { key: 'healthcare', label: locale === 'cs' ? 'Zdravotnictví' : locale === 'sk' ? 'Zdravotníctvo' : locale === 'de' ? 'Gesundheit' : locale === 'pl' ? 'Ochrona zdrowia' : 'Healthcare' },
+      { key: 'finance', label: locale === 'de' ? 'Finanzen' : locale === 'pl' ? 'Finanse' : 'Finance' },
       { key: 'marketing', label: locale === 'pl' ? 'Marketing' : 'Marketing' },
       { key: 'sales', label: locale === 'cs' ? 'Obchod' : locale === 'sk' ? 'Obchod' : locale === 'de' ? 'Vertrieb' : locale === 'pl' ? 'Sprzedaż' : 'Sales' },
       { key: 'product', label: locale === 'cs' ? 'Produkt' : locale === 'sk' ? 'Produkt' : locale === 'de' ? 'Produkt' : locale === 'pl' ? 'Produkt' : 'Product' },
-      { key: 'finance', label: locale === 'de' ? 'Finanzen' : locale === 'pl' ? 'Finanse' : 'Finance' },
+      { key: 'operations', label: locale === 'cs' ? 'Provoz' : locale === 'sk' ? 'Prevádzka' : locale === 'de' ? 'Operations' : locale === 'pl' ? 'Operacje' : 'Operations' },
+      { key: 'education', label: locale === 'cs' ? 'Vzdělávání' : locale === 'sk' ? 'Vzdelávanie' : locale === 'de' ? 'Bildung' : locale === 'pl' ? 'Edukacja' : 'Education' },
+      { key: 'customer_support', label: locale === 'cs' ? 'Zákaznická péče' : locale === 'sk' ? 'Zákaznícka podpora' : locale === 'de' ? 'Kundensupport' : locale === 'pl' ? 'Obsługa klienta' : 'Customer support' },
+      { key: 'creative_media', label: locale === 'cs' ? 'Kreativa a média' : locale === 'sk' ? 'Kreatíva a médiá' : locale === 'de' ? 'Kreativ & Medien' : locale === 'pl' ? 'Kreatywa i media' : 'Creative & media' },
     ],
     seniority: [
       { key: 'junior', label: isCsLike ? 'Junior' : 'Junior' },
@@ -458,10 +514,20 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
       { key: 'employee', label: locale === 'cs' ? 'HPP' : locale === 'sk' ? 'TPP' : locale === 'de' ? 'Angestellt' : locale === 'pl' ? 'Etat' : 'Employee' },
       { key: 'contractor', label: locale === 'cs' ? 'IČO' : locale === 'sk' ? 'SZČO' : locale === 'de' ? 'Freelance' : locale === 'pl' ? 'B2B' : 'Contractor' },
     ],
+    benefits: [
+      { key: 'dog_friendly', label: copy.dogFriendly, icon: <Dog size={14} /> },
+      { key: 'child_friendly', label: copy.childFriendly, icon: <HeartHandshake size={14} /> },
+      { key: 'car_personal', label: copy.companyCar, icon: <CarFront size={14} /> },
+      { key: 'education', label: copy.education, icon: <GraduationCap size={14} /> },
+      { key: 'multisport', label: copy.multisport, icon: <Sparkles size={14} /> },
+      { key: 'meal_allowance', label: copy.meal, icon: <UtensilsCrossed size={14} /> },
+      { key: 'health_care', label: copy.healthCare, icon: <HeartPulse size={14} /> },
+      { key: 'childcare_support', label: copy.childcare, icon: <HeartHandshake size={14} /> },
+    ],
   };
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [showAllDomains, setShowAllDomains] = useState(false);
+  const [showAllDomains, setShowAllDomains] = useState(true);
   const resetAllFilters = () => {
     setLane('challenges');
     setDiscoveryMode('all');
@@ -469,6 +535,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
     setEnableCommuteFilter(false);
     setFilterMaxDistance(50);
     setFilterMinSalary(0);
+    setFilterBenefits([]);
     setFilterDomains([]);
     setFilterSeniorities([]);
     setFilterContractTypes([]);
@@ -479,7 +546,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
     if (discoveryMode === 'micro_jobs') signals.push(copy.miniChallenges);
     return signals.slice(0, 4);
   }, [copy.miniChallenges, copy.remote, discoveryMode, remoteOnly]);
-  const advancedFilterCount = filterDomains.length + filterSeniorities.length + filterContractTypes.length;
+  const advancedFilterCount = filterBenefits.length + filterDomains.length + filterSeniorities.length + filterContractTypes.length;
   const advancedFilterLabel = (advancedFilterCount === 1 ? copy.activeCount : copy.activeCountPlural).replace('{{count}}', String(advancedFilterCount));
   const visibleDomains = showAllDomains ? traditionalOptions.domains : traditionalOptions.domains.slice(0, 4);
   const hiddenDomainCount = Math.max(0, traditionalOptions.domains.length - visibleDomains.length);
@@ -494,11 +561,11 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
     advancedFilterCount > 0;
 
   return (
-    <aside className="lg:sticky lg:top-[calc(var(--app-sticky-stack-offset)+10px)] lg:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-28px)] lg:overflow-y-auto lg:pr-1">
-      <SurfaceCard className="space-y-4 rounded-[28px] border-[rgba(15,23,42,0.05)] p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.24)] lg:p-5 dark:border-white/6" variant="frost">
+    <aside className="lg:sticky lg:top-[calc(var(--app-sticky-stack-offset)+10px)] lg:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-28px)] lg:overflow-y-auto">
+      <SurfaceCard className="space-y-4 rounded-[18px] border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.14)] lg:p-5" variant="default">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
               {copy.reality}
             </div>
             <div className="mt-1 text-sm text-[var(--text-muted)]">
@@ -508,7 +575,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
           <button
             type="button"
             onClick={onOpenProfile}
-            className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-strong)] dark:bg-white/5"
+            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]"
           >
             {copy.profile}
           </button>
@@ -518,7 +585,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
           <button
             type="button"
             onClick={resetAllFilters}
-            className="inline-flex items-center gap-2 rounded-full border border-[rgba(15,23,42,0.08)] bg-white/74 px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-strong)] dark:border-white/8 dark:bg-white/6"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-strong)]"
           >
             <RotateCcw size={12} />
             {copy.resetAll}
@@ -550,7 +617,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                     "flex w-full items-center gap-2 rounded-[16px] border px-3 py-2.5 text-left text-sm font-semibold transition group cursor-pointer relative z-10 shadow-[0_8px_22px_-20px_rgba(15,23,42,0.2)]",
                     item.active
                       ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.10)] text-[var(--text-strong)]"
-                      : "border-[rgba(15,23,42,0.06)] bg-[rgba(255,255,255,0.78)] text-[var(--text)] hover:bg-white dark:bg-white/5 dark:border-white/6 dark:hover:bg-white/10"
+                      : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text)] hover:bg-[var(--surface)]"
                   )}
                 >
                   <span className={cn("text-[var(--text-faint)] group-active:scale-95 transition-transform", item.active && "text-[var(--accent)]")}>
@@ -562,7 +629,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
             </div>
           </div>
         ))}
-        <div className="space-y-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),rgba(255,255,255,0.82))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)] dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
+        <div className="space-y-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),var(--surface-elevated))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)]">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.quickReality}</div>
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.salary}</div>
@@ -589,7 +656,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                   "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
                   filterMinSalary === value
                     ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                    : "border-[rgba(15,23,42,0.08)] bg-white/74 text-[var(--text-muted)] hover:border-teal-500/20 dark:border-white/8 dark:bg-white/6"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
                 )}
                 title={copy.salaryPresets}
               >
@@ -599,7 +666,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),rgba(255,255,255,0.82))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)] dark:border-white/8 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
+        <div className="grid gap-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),var(--surface-elevated))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)]">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.distance}</div>
             <div className="text-sm font-semibold text-[var(--text-strong)]">{enableCommuteFilter ? `${filterMaxDistance} km` : copy.off}</div>
@@ -628,7 +695,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                   "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
                   enableCommuteFilter && filterMaxDistance === value
                     ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                    : "border-[rgba(15,23,42,0.08)] bg-white/74 text-[var(--text-muted)] hover:border-teal-500/20 dark:border-white/8 dark:bg-white/6"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
                 )}
                 title={copy.distancePresets}
               >
@@ -659,6 +726,34 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
             <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-bold uppercase text-[var(--text-muted)]">{copy.life}</div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {traditionalOptions.benefits.map((benefit) => (
+                    <button
+                      key={benefit.key}
+                      onClick={() => {
+                        const next = filterBenefits.includes(benefit.key)
+                          ? filterBenefits.filter((k) => k !== benefit.key)
+                          : [...filterBenefits, benefit.key];
+                        setFilterBenefits(next);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
+                        filterBenefits.includes(benefit.key)
+                          ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                          : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
+                      )}
+                    >
+                      <span className="opacity-80">{benefit.icon}</span>
+                      {benefit.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="text-[10px] font-bold uppercase text-[var(--text-muted)]">{copy.domains}</div>
                   {hiddenDomainCount > 0 ? (
                     <button
@@ -684,7 +779,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterDomains.includes(dom.key)
                           ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                          : "border-[rgba(15,23,42,0.08)] bg-white/74 text-[var(--text-muted)] hover:border-teal-500/20 dark:border-white/8 dark:bg-white/6"
+                          : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
                       )}
                     >
                       {dom.label}
@@ -710,7 +805,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterSeniorities.includes(s.key)
                           ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                          : "border-[rgba(15,23,42,0.08)] bg-white/74 text-[var(--text-muted)] hover:border-teal-500/20 dark:border-white/8 dark:bg-white/6"
+                          : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
                       )}
                     >
                       {s.label}
@@ -736,7 +831,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterContractTypes.includes(c.key)
                           ? "border-teal-500/30 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                          : "border-[var(--border-subtle)] bg-white/50 text-[var(--text-muted)] hover:border-teal-500/20"
+                          : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-teal-500/20"
                       )}
                     >
                       {c.label}
