@@ -76,9 +76,20 @@ def build_dialogue_enrichment(dialogue_id: str) -> dict[str, Any]:
     assets = collect_dialogue_assets(dialogue_id)
     has_audio = any(str(item.get("kind") or "").lower() == "audio" for item in assets)
 
-    ai_summary = get_dialogue_ai_summary(dialogue_id)
-    fit_evidence = get_dialogue_fit_evidence(dialogue_id)
-    transcript_doc = get_dialogue_transcript(dialogue_id) if has_audio else None
+    # Dialogue detail must stay available even when legacy Mongo enrichment is
+    # temporarily unavailable during the storage migration.
+    try:
+        ai_summary = get_dialogue_ai_summary(dialogue_id)
+    except Exception:
+        ai_summary = None
+    try:
+        fit_evidence = get_dialogue_fit_evidence(dialogue_id)
+    except Exception:
+        fit_evidence = None
+    try:
+        transcript_doc = get_dialogue_transcript(dialogue_id) if has_audio else None
+    except Exception:
+        transcript_doc = None
 
     audio_transcript_status = "not_applicable"
     if has_audio:

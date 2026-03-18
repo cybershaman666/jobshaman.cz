@@ -633,8 +633,9 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
 
         embedding_vector = embed_text(search_term)
 
-    # Keep online search path fast: no DB upserts during request handling.
-    job_embeddings = ensure_job_embeddings(filtered, persist=False)
+    # Keep browse mode fast: embeddings are only needed when we actually have a
+    # semantic query. Without a search term, recency/filters are enough.
+    job_embeddings = ensure_job_embeddings(filtered, persist=False) if search_term else {}
 
     now = datetime.now(timezone.utc)
     ranked = []

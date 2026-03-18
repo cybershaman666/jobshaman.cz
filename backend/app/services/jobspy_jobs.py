@@ -543,6 +543,8 @@ def import_jobspy_jobs(
     upserted_count = 0
     matched_count = 0
     storage_errors: list[Exception] = []
+    persisted_to_postgres = False
+    mirrored_to_jobs_main = False
 
     if documents:
         if jobs_postgres_enabled():
@@ -550,6 +552,7 @@ def import_jobspy_jobs(
                 pg_result = backfill_jobspy_from_documents(documents)
                 upserted_count = int(pg_result.get("upserted_count") or 0)
                 matched_count = int(pg_result.get("matched_count") or 0)
+                persisted_to_postgres = True
             except Exception as exc:
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to persist JobSpy docs to Jobs Postgres: {exc}")
@@ -559,6 +562,7 @@ def import_jobspy_jobs(
                     for document in documents
                     if isinstance(document, dict) and _safe_str(document.get("_id"))
                 ])
+                mirrored_to_jobs_main = True
             except Exception as exc:
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to mirror JobSpy docs into Jobs main table: {exc}")
@@ -582,7 +586,7 @@ def import_jobspy_jobs(
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to persist JobSpy docs to Mongo: {exc}")
 
-        if storage_errors and upserted_count == 0 and matched_count == 0:
+        if storage_errors and not (persisted_to_postgres or mirrored_to_jobs_main) and upserted_count == 0 and matched_count == 0:
             raise storage_errors[-1]
 
     sampled_jobs = [serialize_jobspy_job(doc) for doc in documents[:5]]
