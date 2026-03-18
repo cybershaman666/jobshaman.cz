@@ -6,6 +6,7 @@ import { recordRuntimeSignal } from './runtimeSignals';
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
 const CSRF_TOKEN_COOLDOWN_MS = 60_000;
+const BACKEND_OPTIONAL_COOLDOWN_MS = 60_000;
 const REQUEST_LOG_THROTTLE_MS = 15_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
 const CSRF_FETCH_TIMEOUT_MS = 35_000;
@@ -21,6 +22,7 @@ let csrfTokenCooldownUntil = 0;
 const csrfFetchInFlight = new Map<string, Promise<string | null>>();
 let lastRequestTimeoutLogAt = 0;
 let lastMissingCsrfLogAt = 0;
+const backendOptionalCooldownUntilByOrigin = new Map<string, number>();
 
 type AuthTokenCache = { token: string | null; expMs: number; checkedAtMs: number };
 let authTokenCache: AuthTokenCache = { token: null, expMs: 0, checkedAtMs: 0 };
@@ -83,6 +85,36 @@ const getRequestOrigin = (url: string): string | null => {
     }
 };
 
+const isBackendOptionalCooldownEligiblePath = (path: string): boolean => {
+    return (
+        path === '/csrf-token' ||
+        path === '/subscription-status' ||
+        path === '/jobs/interactions' ||
+        path === '/jobs/interactions/state/sync' ||
+        path === '/jobs/external/cached-feed' ||
+        path === '/analytics/track'
+    );
+};
+
+const isBackendOptionalCooldownEligibleUrl = (url: string): boolean => {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return isBackendOptionalCooldownEligiblePath(parsed.pathname || '');
+    } catch {
+        return false;
+    }
+};
+
+const getBackendOptionalCooldownUntil = (origin: string | null): number => {
+    if (!origin) return 0;
+    return backendOptionalCooldownUntilByOrigin.get(origin) || 0;
+};
+
+const markBackendOptionalUnavailable = (origin: string | null): void => {
+    if (!origin) return;
+    backendOptionalCooldownUntilByOrigin.set(origin, Date.now() + BACKEND_OPTIONAL_COOLDOWN_MS);
+};
+
 const isAuthOptionalRequest = (url: string): boolean => {
     try {
         const parsed = new URL(url, window.location.origin);
@@ -123,10 +155,14 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
  */
 export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string = BACKEND_URL): Promise<string | null> => {
     const csrfFetchKey = backendBaseUrl || BACKEND_URL;
+    const backendOrigin = getRequestOrigin(`${backendBaseUrl}/csrf-token`);
     if (csrfFetchInFlight.has(csrfFetchKey)) {
         return csrfFetchInFlight.get(csrfFetchKey)!;
     }
     if (Date.now() < csrfTokenCooldownUntil) {
+        return null;
+    }
+    if (Date.now() < getBackendOptionalCooldownUntil(backendOrigin)) {
         return null;
     }
 
@@ -188,6 +224,7 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
 
                 // If it's a server error (5xx), we might want to retry
                 if (status >= 500) {
+                    markBackendOptionalUnavailable(backendOrigin);
                     lastError = new Error(`Server error: ${status}`);
                     if (attempt < maxRetries) {
                         const delay = Math.pow(2, attempt) * 1000;
@@ -224,6 +261,7 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
 
             if (isConnectivityIssue) {
                 csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
+                markBackendOptionalUnavailable(backendOrigin);
                 recordRuntimeSignal('csrf_fetch_unavailable', {
                     attempt,
                     aborted: isAborted,
@@ -510,8 +548,17 @@ export const authenticatedFetch = async (
 ): Promise<Response> => {
     const method = (options.method || 'GET').toUpperCase();
     const requestPath = getRequestPath(url) || 'unknown';
+    const requestOrigin = getRequestOrigin(url);
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
+    const eligibleForBackendCooldown = isBackendOptionalCooldownEligibleUrl(url);
+
+    if (eligibleForBackendCooldown && Date.now() < getBackendOptionalCooldownUntil(requestOrigin)) {
+        return new Response(JSON.stringify({ detail: 'backend_optional_cooldown_active' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 
     const authOptional = isAuthOptionalRequest(url);
     let resolvedAuthToken = authToken
@@ -586,12 +633,19 @@ export const authenticatedFetch = async (
 
         try {
             try {
-                return await fetch(url, {
+                const response = await fetch(url, {
                     ...options,
                     headers,
                     signal: controller.signal
                 });
+                if (eligibleForBackendCooldown && response.status >= 500) {
+                    markBackendOptionalUnavailable(requestOrigin);
+                }
+                return response;
             } catch (error) {
+                if (eligibleForBackendCooldown && (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller))) {
+                    markBackendOptionalUnavailable(requestOrigin);
+                }
                 if (url.includes('/csrf-token') && (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller))) {
                     csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
                 }

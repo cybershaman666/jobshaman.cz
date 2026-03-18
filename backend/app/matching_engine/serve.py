@@ -684,6 +684,19 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
 
 
 def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, user_id: Optional[str] = None) -> Dict:
+    if jobs_postgres_main_enabled():
+        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
+        fallback["meta"] = {
+            "fallback": "jobs_postgres_v1_bridge",
+            "fallback_reason": "jobs_postgres_v1_bridge",
+            "sort_mode": _normalize_sort_mode(filters.get("sort_mode")),
+            "effective_page_size": max(1, min(_SEARCH_V2_PAGE_SIZE_MAX, int(page_size or 50))),
+            "requested_page_size": max(1, int(page_size or 50)),
+            "cooldown_active": False,
+            "cooldown_until": None,
+        }
+        return fallback
+
     if not supabase:
         return {"jobs": [], "has_more": False, "total_count": 0, "meta": {"fallback": "no_supabase"}}
 

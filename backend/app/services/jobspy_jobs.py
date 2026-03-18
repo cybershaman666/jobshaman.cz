@@ -620,7 +620,16 @@ def search_jobspy_jobs(
                 fresh_cutoff=_fresh_cutoff(),
             )
         except Exception as exc:
-            print(f"⚠️ Jobs Postgres JobSpy search unavailable, falling back to Mongo: {exc}")
+            print(f"⚠️ Jobs Postgres JobSpy search unavailable: {exc}")
+            return {
+                "jobs": [],
+                "total_count": 0,
+                "has_more": False,
+                "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
+                "provider": "jobspy",
+                "storage": "jobs_postgres",
+                "error": exc.__class__.__name__,
+            }
 
     collection = _get_collection()
     query: dict[str, Any] = {

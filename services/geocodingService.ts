@@ -109,6 +109,19 @@ export const getStaticCoordinates = (address: string): { lat: number, lon: numbe
             return EU_CITIES_CACHE[key];
         }
     }
+
+    const parts = String(address)
+        .split(',')
+        .map((part) => normalizeAddress(part))
+        .filter(Boolean);
+    for (const part of parts) {
+        if (EU_CITIES_CACHE[part]) return EU_CITIES_CACHE[part];
+        for (const key of staticKeys) {
+            if (part.includes(key)) {
+                return EU_CITIES_CACHE[key];
+            }
+        }
+    }
     return null;
 };
 

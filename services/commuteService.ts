@@ -598,7 +598,7 @@ export const calculateValuesScore = (job: Job, benefits: string[]): number => {
 export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAnalysis | null => {
     const isRemote = isRemoteJob(job);
 
-    if (!user.address && !isRemote) {
+    if (!user.address && !user.coordinates && !isRemote) {
         return null;
     }
 
@@ -609,7 +609,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     let bestOneWayMinutes = 0;
 
     if (!isRemote) {
-        const userCoords = user.coordinates || getCoordinates(user.address);
+        const userCoords = user.coordinates || (user.address ? getCoordinates(user.address) : null);
 
         // Priority: Use existing job coordinates if available
         let jobCoords: { lat: number, lon: number } | null = null;
@@ -625,7 +625,9 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             const airDistance = calculateDistanceKm(userCoords.lat, userCoords.lon, jobCoords.lat, jobCoords.lon);
             // Apply road factor (usually ~1.3x air distance)
             distanceKm = Math.round(airDistance * 1.3);
-            corridorProfile = detectCorridorProfile(user.address, job.location, distanceKm);
+            corridorProfile = user.address
+                ? detectCorridorProfile(user.address, job.location, distanceKm)
+                : null;
 
             const carMinutesOneWay = corridorProfile?.carMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.car) * 60);
             const publicMinutesOneWay = corridorProfile?.publicMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.public) * 60);
@@ -726,7 +728,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
         // Additional zone supplements for cross-zone commuting (Czech Republic specific)
         if (countryCode === 'CZ') {
             const jobLoc = job.location.toLowerCase();
-            const userLoc = user.address.toLowerCase();
+            const userLoc = String(user.address || '').toLowerCase();
 
             const isJobInPrague = jobLoc.includes('praha') || jobLoc.includes('prague');
             const isUserInPrague = userLoc.includes('praha') || userLoc.includes('prague');

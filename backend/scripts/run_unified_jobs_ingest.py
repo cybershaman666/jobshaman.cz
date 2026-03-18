@@ -9,8 +9,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parents[2]
-BACKEND_DIR = ROOT / "backend"
+SCRIPT_PATH = Path(__file__).resolve()
+if SCRIPT_PATH.parent.name == "scripts" and (SCRIPT_PATH.parent.parent / "app").exists():
+    ROOT = SCRIPT_PATH.parent.parent
+    BACKEND_DIR = ROOT
+else:
+    ROOT = SCRIPT_PATH.parents[2]
+    BACKEND_DIR = ROOT / "backend"
 SCRAPER_DIR = BACKEND_DIR / "scraper"
 
 for path in (BACKEND_DIR, SCRAPER_DIR):
@@ -23,7 +28,10 @@ load_dotenv(dotenv_path=BACKEND_DIR / ".env", override=False)
 os.environ.setdefault("JWT_SECRET", "jobshaman-unified-ingest-local-dev")
 os.environ.setdefault("SECRET_KEY", os.environ["JWT_SECRET"])
 
-from scraper.scraper_multi import run_all_scrapers  # type: ignore
+try:
+    from scraper.scraper_multi import run_all_scrapers  # type: ignore
+except Exception:
+    from scraper_multi import run_all_scrapers  # type: ignore
 from app.services.jobspy_jobs import backfill_jobspy_geocoding, import_jobspy_jobs
 
 

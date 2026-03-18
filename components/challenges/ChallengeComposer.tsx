@@ -335,9 +335,9 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
 
   if (threadLoading) {
     return (
-      <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5 text-slate-900 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[#111827] dark:text-slate-100">
+      <div className="rounded-[6px] border border-slate-200 bg-white p-5 text-slate-900 shadow-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-          <Loader2 size={18} className="animate-spin text-amber-300" />
+          <Loader2 size={18} className="animate-spin text-[var(--accent)]" />
           {copy.loading}
         </div>
       </div>
@@ -346,14 +346,14 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
 
   if (dialogue) {
     return (
-      <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5 text-slate-900 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[#111827] dark:text-slate-100">
+      <div className="rounded-[6px] border border-slate-200 bg-white p-5 text-slate-900 shadow-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
           <div>
             <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{copy.discussion}</div>
             <div className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{job.title}</div>
             <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{job.company}</div>
           </div>
-          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">
+          <span className="rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
             {dialogue.status}
           </span>
         </div>
@@ -383,15 +383,15 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
   }
 
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-5 text-slate-900 shadow-[0_30px_80px_-52px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.96),rgba(8,15,28,0.98))] dark:text-slate-100">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_320px]">
+    <div className="rounded-[6px] border border-slate-200 bg-white p-5 text-slate-900 shadow-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+      <div className="grid gap-5 xl:grid-cols-1">
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-            <Handshake size={14} className="text-amber-300" />
+            <Handshake size={14} className="text-[var(--accent)]" />
             {copy.laneTitle}
           </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/40">
-            <h3 className="text-xl font-semibold text-slate-950 dark:text-white">
+          <div className="rounded-[6px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
               {job.firstStepPrompt || copy.missionBody}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -399,7 +399,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/90 p-4 dark:border-slate-800 dark:bg-slate-950/50">
+          <div className="rounded-[6px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               <Sparkles size={13} className="text-[var(--accent)]" />
               {copy.starterTitle}
@@ -410,7 +410,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
                   key={starter}
                   type="button"
                   onClick={() => applyStarter(starter)}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-slate-700 transition hover:border-amber-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
+                  className="rounded-[999px] border border-slate-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                 >
                   {starter}
                 </button>
@@ -422,10 +422,10 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={copy.draftPlaceholder}
-            className="min-h-[240px] w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400/40 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="min-h-[240px] w-full rounded-[6px] border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-900 outline-none placeholder:text-slate-400 focus:border-[rgba(var(--accent-rgb),0.28)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
 
-          <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+          <div className="rounded-[6px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-slate-950 dark:text-white">{copy.supportTitle}</div>
@@ -436,7 +436,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
               <button
                 type="button"
                 onClick={onOpenSupportingContext}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-amber-400/40 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:text-white"
+                className="inline-flex items-center gap-2 rounded-[999px] border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:text-white"
               >
                 <Paperclip size={12} />
                 {copy.addContext}
@@ -447,30 +447,30 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
               value={supportingNote}
               onChange={(event) => setSupportingNote(event.target.value)}
               placeholder={copy.supportPlaceholder}
-              className="mt-4 min-h-[96px] w-full rounded-[1rem] border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400/40 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="mt-4 min-h-[96px] w-full rounded-[6px] border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-[rgba(var(--accent-rgb),0.28)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-[1.6rem] border border-[rgba(245,158,11,0.18)] bg-amber-50/70 p-4 dark:border-amber-400/12 dark:bg-amber-500/8">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">
+          <div className="rounded-[6px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
               <Orbit size={14} />
               {copy.missionTitle}
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{copy.missionBody}</p>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="inline-flex items-center gap-2 rounded-[999px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
             <ShieldCheck size={12} />
             {copy.footer}
           </div>
 
           {userProfile.isLoggedIn ? (
-            <div className="rounded-[1.1rem] border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs leading-5 text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+            <div className="rounded-[6px] border border-slate-200 bg-white px-3.5 py-3 text-xs leading-5 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
               <div className="font-semibold text-slate-900 dark:text-white">{copy.slotsTitle}</div>
               <div className="mt-1">{copy.slotsHint}</div>
-              <div className="mt-2 font-semibold text-[var(--accent)]">
+              <div className="mt-2 font-semibold text-slate-900 dark:text-white">
                 {dialogueCapacity
                   ? copy.slotsValue
                     .replace('{{remaining}}', String(dialogueCapacity.remaining))
@@ -484,7 +484,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={!draft.trim() || submitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-[var(--text-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             {userProfile.isLoggedIn ? copy.submitLabel : copy.createAccount}

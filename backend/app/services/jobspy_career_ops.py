@@ -7,16 +7,6 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
-from pymongo import ASCENDING, DESCENDING, MongoClient, UpdateOne
-from pymongo.collection import Collection
-
-try:
-    import certifi
-
-    _CA_FILE = certifi.where()
-except Exception:
-    _CA_FILE = None
-
 try:
     from langdetect import detect
 except Exception:
@@ -25,10 +15,8 @@ except Exception:
 from ..core import config
 from ..matching_engine.role_taxonomy import DOMAIN_KEYWORDS, ROLE_FAMILY_KEYWORDS, TAXONOMY_VERSION
 from .candidate_intent import get_related_domains, resolve_candidate_intent_profile
+from .jobs_postgres_store import read_recent_jobspy_documents
 from .recommendation_intelligence import get_candidate_recommendation_intelligence
-
-_mongo_client: MongoClient | None = None
-_indexes_ready = False
 
 
 def _utcnow() -> datetime:
@@ -66,48 +54,6 @@ def _serialize_datetime(value: datetime | None) -> str | None:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.isoformat()
-
-
-def _build_mongo_client_kwargs(*, use_certifi_ca: bool) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {
-        "serverSelectionTimeoutMS": 5000,
-        "connectTimeoutMS": 10000,
-        "socketTimeoutMS": 10000,
-        "retryWrites": True,
-        "tls": True,
-    }
-    if use_certifi_ca and _CA_FILE:
-        kwargs["tlsCAFile"] = _CA_FILE
-    return kwargs
-
-
-def _create_verified_client() -> MongoClient:
-    if not config.MONGODB_URI:
-        raise RuntimeError("MONGODB_URI missing")
-
-    attempts: list[tuple[str, dict[str, Any]]] = [("certifi", _build_mongo_client_kwargs(use_certifi_ca=True))]
-    if _CA_FILE:
-        attempts.append(("system", _build_mongo_client_kwargs(use_certifi_ca=False)))
-
-    last_error: Exception | None = None
-    for label, kwargs in attempts:
-        client = MongoClient(config.MONGODB_URI, **kwargs)
-        try:
-            client.admin.command("ping")
-            if label == "system":
-                print("ℹ️ JobSpy career-ops Mongo connected using system CA trust store fallback")
-            return client
-        except Exception as exc:
-            last_error = exc
-            try:
-                client.close()
-            except Exception:
-                pass
-            if label == "certifi":
-                print(f"⚠️ JobSpy career-ops Mongo certifi TLS bootstrap failed, retrying with system CA store: {exc}")
-    if last_error is not None:
-        raise last_error
-    raise RuntimeError("Failed to initialize MongoDB client")
 
 
 def _tokenize(value: Any) -> list[str]:
@@ -227,68 +173,6 @@ def _excerpt(value: str, limit: int = 260) -> str:
     return plain[: max(1, limit - 1)].rstrip() + "…"
 
 
-def _get_client() -> MongoClient:
-    global _mongo_client
-    if _mongo_client is None:
-        _mongo_client = _create_verified_client()
-    return _mongo_client
-
-
-def _raw_collection() -> Collection:
-    return _get_client()[config.MONGODB_DB][config.MONGODB_JOBSPY_COLLECTION]
-
-
-def _enriched_collection() -> Collection:
-    global _indexes_ready
-    collection = _get_client()[config.MONGODB_DB][config.MONGODB_JOBSPY_ENRICHED_COLLECTION]
-    if not _indexes_ready:
-        collection.create_index([("scraped_at", DESCENDING)])
-        collection.create_index([("company_key", ASCENDING), ("scraped_at", DESCENDING)])
-        collection.create_index([("primary_domain", ASCENDING), ("scraped_at", DESCENDING)])
-        collection.create_index([("primary_role_family", ASCENDING), ("scraped_at", DESCENDING)])
-        _company_collection().create_index([("open_jobs_count", DESCENDING), ("latest_scraped_at", DESCENDING)])
-        _company_collection().create_index([("company_key", ASCENDING)], unique=True)
-        _indexes_ready = True
-    return collection
-
-
-def _company_collection() -> Collection:
-    return _get_client()[config.MONGODB_DB][config.MONGODB_JOBSPY_COMPANY_COLLECTION]
-
-
-def _latest_collection_timestamp(collection: Collection, field_names: tuple[str, ...]) -> datetime | None:
-    for field_name in field_names:
-        doc = collection.find_one({field_name: {"$exists": True}}, sort=[(field_name, DESCENDING)], projection={field_name: 1})
-        if not doc:
-            continue
-        value = doc.get(field_name)
-        if isinstance(value, datetime):
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            return value
-    return None
-
-
-def _should_refresh_career_ops() -> bool:
-    raw_collection = _raw_collection()
-    enriched_collection = _enriched_collection()
-
-    raw_count = raw_collection.count_documents({"expires_at": {"$gt": _utcnow()}})
-    enriched_count = enriched_collection.count_documents({"expires_at": {"$gt": _utcnow()}})
-    if raw_count <= 0:
-        return False
-    if enriched_count <= 0 or enriched_count < raw_count:
-        return True
-
-    latest_raw = _latest_collection_timestamp(raw_collection, ("updated_at", "scraped_at"))
-    latest_enriched = _latest_collection_timestamp(enriched_collection, ("updated_at", "scraped_at"))
-    if latest_raw and not latest_enriched:
-        return True
-    if latest_raw and latest_enriched and latest_raw > latest_enriched:
-        return True
-    return False
-
-
 def build_enriched_job_document(raw_job: dict[str, Any]) -> dict[str, Any]:
     title = _safe_str(raw_job.get("title"))
     company = _safe_str(raw_job.get("company"))
@@ -366,34 +250,17 @@ def _serialize_company_snapshot(document: dict[str, Any]) -> dict[str, Any]:
 
 
 def refresh_jobspy_career_ops_snapshots(limit: int = 600) -> dict[str, Any]:
-    raw_jobs = list(
-        _raw_collection()
-        .find({"expires_at": {"$gt": _utcnow()}}, {"raw_payload": 0})
-        .sort([("scraped_at", DESCENDING), ("updated_at", DESCENDING)])
-        .limit(max(1, min(2000, int(limit or 600))))
-    )
+    raw_jobs = read_recent_jobspy_documents(limit=max(1, min(2000, int(limit or 600))))
     enriched_docs = [build_enriched_job_document(doc) for doc in raw_jobs if isinstance(doc, dict) and doc.get("_id")]
-    if enriched_docs:
-        operations = [
-            UpdateOne({"_id": doc["_id"]}, {"$set": doc}, upsert=True)
-            for doc in enriched_docs
-        ]
-        _enriched_collection().bulk_write(operations, ordered=False)
     company_docs = build_company_snapshot_documents(enriched_docs)
-    if company_docs:
-        company_ops = [
-            UpdateOne({"_id": doc["_id"]}, {"$set": doc}, upsert=True)
-            for doc in company_docs
-        ]
-        _company_collection().bulk_write(company_ops, ordered=False)
     return {
         "raw_job_count": len(raw_jobs),
         "enriched_job_count": len(enriched_docs),
         "company_snapshot_count": len(company_docs),
         "collections": {
-            "raw": config.MONGODB_JOBSPY_COLLECTION,
-            "enriched": config.MONGODB_JOBSPY_ENRICHED_COLLECTION,
-            "companies": config.MONGODB_JOBSPY_COMPANY_COLLECTION,
+            "raw": config.JOBS_POSTGRES_JOBSPY_TABLE,
+            "enriched": "in_memory",
+            "companies": "in_memory",
         },
         "generated_at": _serialize_datetime(_utcnow()),
     }
@@ -600,18 +467,10 @@ def build_career_ops_feed(
     company_limit: int = 10,
     action_limit: int = 14,
 ) -> dict[str, Any]:
-    if refresh or _enriched_collection().count_documents({}) == 0 or _should_refresh_career_ops():
-        refresh_jobspy_career_ops_snapshots(limit=800)
-
     saved_ids = {str(item or "").strip() for item in (saved_job_ids or []) if str(item or "").strip()}
     dismissed_ids = {str(item or "").strip() for item in (dismissed_job_ids or []) if str(item or "").strip()}
-
-    docs = list(
-        _enriched_collection()
-        .find({"expires_at": {"$gt": _utcnow()}}, {"_id": 1, "company_key": 1, "company": 1, "title": 1, "location": 1, "country": 1, "source_site": 1, "job_type": 1, "interval": 1, "job_url": 1, "description_excerpt": 1, "description_present": 1, "is_remote": 1, "work_mode_normalized": 1, "queried_sites": 1, "search_term": 1, "location_query": 1, "hours_old": 1, "min_amount": 1, "max_amount": 1, "currency": 1, "query_hash": 1, "scraped_at": 1, "updated_at": 1, "expires_at": 1, "freshness_bucket": 1, "freshness_score": 1, "language_code": 1, "inferred_seniority": 1, "role_families": 1, "primary_role_family": 1, "domains": 1, "primary_domain": 1, "taxonomy_version": 1, "keywords": 1})
-        .sort([("scraped_at", DESCENDING), ("updated_at", DESCENDING)])
-        .limit(800)
-    )
+    raw_jobs = read_recent_jobspy_documents(limit=800)
+    docs = [build_enriched_job_document(doc) for doc in raw_jobs if isinstance(doc, dict) and doc.get("_id")]
     scored_jobs = [
         score_enriched_job_for_candidate(doc, candidate_profile=candidate_profile, saved_job_ids=saved_ids)
         for doc in docs
@@ -620,10 +479,9 @@ def build_career_ops_feed(
     scored_jobs.sort(key=lambda item: (float(item.get("fit_score") or 0), str(item.get("scraped_at") or "")), reverse=True)
     top_jobs = scored_jobs[: max(1, min(60, int(job_limit or 24)))]
 
-    company_keys = [str(item.get("company_key") or "") for item in scored_jobs[:200] if str(item.get("company_key") or "")]
     company_docs_by_id = {
         str(doc.get("_id") or ""): doc
-        for doc in _company_collection().find({"_id": {"$in": list(set(company_keys))}})
+        for doc in build_company_snapshot_documents(docs)
     }
 
     ranked_companies: list[dict[str, Any]] = []
@@ -733,12 +591,12 @@ def build_career_ops_feed(
             "candidate_intent": resolve_candidate_intent_profile(candidate_profile),
             "recommendation_intelligence": get_candidate_recommendation_intelligence(candidate_profile, user_id=str(candidate_profile.get("id") or "")),
             "collections": {
-                "raw": config.MONGODB_JOBSPY_COLLECTION,
-                "enriched": config.MONGODB_JOBSPY_ENRICHED_COLLECTION,
-                "companies": config.MONGODB_JOBSPY_COMPANY_COLLECTION,
+                "raw": config.JOBS_POSTGRES_JOBSPY_TABLE,
+                "enriched": "in_memory",
+                "companies": "in_memory",
             },
             "counts": {
-                "raw_jobs_seen": _raw_collection().count_documents({"expires_at": {"$gt": _utcnow()}}),
+                "raw_jobs_seen": len(raw_jobs),
                 "enriched_jobs_scored": len(scored_jobs),
                 "companies_ranked": len(ranked_companies),
                 "actions": len(deduped_actions[: max(1, min(50, int(action_limit or 14)))]),

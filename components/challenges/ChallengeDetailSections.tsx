@@ -6,9 +6,9 @@ import { MetricTile, SurfaceCard, cn } from '../ui/primitives';
 
 export const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex items-center gap-3">
-    <div className="h-px flex-1 bg-[linear-gradient(90deg,transparent,rgba(var(--accent-green-rgb),0.18))]" />
+    <div className="h-px flex-1 bg-[var(--border-subtle)]" />
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{title}</div>
-    <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(var(--accent-sky-rgb),0.18),transparent)]" />
+    <div className="h-px flex-1 bg-[var(--border-subtle)]" />
   </div>
 );
 
@@ -19,10 +19,10 @@ export const NarrativeCard: React.FC<{ title: string; body: string; tone?: 'defa
 }) => (
   <div
     className={cn(
-      'app-organic-panel-soft rounded-[var(--radius-lg)] border px-5 py-4',
+      'rounded-[6px] border px-5 py-4',
       tone === 'accent'
-        ? 'border-[rgba(var(--accent-green-rgb),0.18)] bg-[linear-gradient(135deg,rgba(255,248,236,0.94),rgba(244,250,246,0.94)_58%,rgba(243,248,255,0.94))]'
-        : 'border-[var(--border-subtle)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(250,250,244,0.96))]'
+        ? 'border-[rgba(var(--accent-rgb),0.16)] bg-white dark:bg-slate-950'
+        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
     )}
   >
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{title}</div>
@@ -43,16 +43,16 @@ export const HumanContextPersonCard: React.FC<{
   person,
   fallbackRole
 }) => (
-  <div className="app-organic-panel-soft rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(250,250,244,0.94))] p-4">
+  <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 dark:bg-slate-950">
     <div className="flex items-start gap-3">
       {person.avatar_url ? (
         <img
           src={person.avatar_url}
           alt={person.display_name}
-          className="h-12 w-12 rounded-2xl object-cover"
+          className="h-12 w-12 rounded-[6px] object-cover"
         />
       ) : (
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[6px] bg-[var(--surface)] text-sm font-semibold text-[var(--accent)] dark:bg-slate-900">
           {getInitials(person.display_name)}
         </div>
       )}
@@ -92,7 +92,7 @@ export const ChallengeHumanContextSection: React.FC<ChallengeHumanContextSection
   if (!hasContent) return null;
 
   return (
-    <div className="app-organic-panel space-y-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+    <div className="space-y-4 rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 dark:bg-slate-950">
       {humanContext?.publisher ? (
         <div className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.publisherLabel}</div>
@@ -122,7 +122,7 @@ export const ChallengeHumanContextSection: React.FC<ChallengeHumanContextSection
             {trustLabels.map((label) => (
               <span
                 key={label}
-                className="app-organic-pill inline-flex items-center gap-2 border border-[rgba(var(--accent-rgb),0.12)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]"
+                className="inline-flex items-center gap-2 rounded-[999px] border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] dark:bg-slate-950"
               >
                 <Users size={13} className="text-[var(--accent)]" />
                 {label}
@@ -163,7 +163,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
 }) => {
   if (isMicroJobRole) {
     return (
-      <SurfaceCard className="space-y-4" variant="frost">
+      <SurfaceCard className="space-y-4">
         <div className="app-eyebrow w-fit">
           <Wallet size={12} />
           {microJobCopy.financialNoteTitle}
@@ -175,7 +175,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
 
   if (!userProfile.isLoggedIn) {
     return (
-      <SurfaceCard className="space-y-4" variant="frost">
+      <SurfaceCard className="space-y-4">
         <div className="app-eyebrow w-fit">
           <Wallet size={12} />
           {copy.financialTitle}
@@ -190,7 +190,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
 
   if (!userProfile.address && !userProfile.coordinates && !remoteRole) {
     return (
-      <SurfaceCard className="space-y-4" variant="frost">
+      <SurfaceCard className="space-y-4">
         <div className="app-eyebrow w-fit">
           <Route size={12} />
           {copy.financialTitle}
@@ -206,7 +206,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
   if (!commuteAnalysis) return null;
 
   return (
-    <SurfaceCard className="space-y-5" variant="frost">
+    <SurfaceCard className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <div className="app-eyebrow w-fit">
@@ -235,7 +235,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
         <MetricTile label={copy.realValue} value={`${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`} tone="accent" />
       </div>
 
-      <div className="app-organic-panel-soft rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
+      <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm leading-6 text-[var(--text-muted)] dark:bg-slate-950">
         {copy.financialFormula
           .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
           .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
@@ -249,7 +249,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
       </div>
 
       {salaryBenchmark && !salaryBenchmark.insufficient_data ? (
-        <div className="app-organic-panel-soft grid gap-3 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 sm:grid-cols-2 dark:bg-slate-950">
           <MetricTile
             label={copy.marketMedian}
             value={`${(salaryBenchmark.p50 || 0).toLocaleString(locale)} ${salaryBenchmark.currency || commuteAnalysis.financialReality.currency}`}
@@ -285,7 +285,7 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
   onOpenSupportingContext,
   onOpenImportedListing,
 }) => (
-  <SurfaceCard className="space-y-4" variant="frost">
+  <SurfaceCard className="space-y-4">
     <SectionTitle title={copy.reality} />
     <div className="grid gap-3">
       <button
@@ -294,7 +294,10 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
           if (job.company_id) onOpenCompanyPage(job.company_id);
         }}
         disabled={!job.company_id}
-        className={cn('app-button-secondary justify-between', !job.company_id && 'cursor-not-allowed opacity-50')}
+        className={cn(
+          'flex w-full items-center justify-between rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]',
+          !job.company_id && 'cursor-not-allowed opacity-50'
+        )}
       >
         <span className="inline-flex items-center gap-2">
           <Building2 size={16} />
@@ -302,7 +305,11 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
         </span>
         <ArrowUpRight size={15} />
       </button>
-      <button type="button" onClick={onOpenSupportingContext} className="app-button-secondary justify-between">
+      <button
+        type="button"
+        onClick={onOpenSupportingContext}
+        className="flex w-full items-center justify-between rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+      >
         <span className="inline-flex items-center gap-2">
           <Compass size={16} />
           {copy.openContext}
@@ -310,7 +317,11 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
         <ArrowUpRight size={15} />
       </button>
       {job.url ? (
-        <button type="button" onClick={onOpenImportedListing} className="app-button-primary justify-between">
+        <button
+          type="button"
+          onClick={onOpenImportedListing}
+          className="flex w-full items-center justify-between rounded-[14px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3 text-sm font-medium text-[var(--text-strong)] transition-colors hover:bg-[rgba(var(--accent-rgb),0.1)]"
+        >
           <span className="inline-flex items-center gap-2">
             <Sparkles size={16} />
             {copy.openListing}

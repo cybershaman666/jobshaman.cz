@@ -37,7 +37,7 @@ from ..services.search_intelligence import enrich_search_query
 from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
-from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_jobs_postgres_health, jobs_postgres_enabled, read_external_cache_jobs, upsert_external_cache_snapshot
+from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
 from ..core import config
@@ -1340,6 +1340,21 @@ def _is_missing_relationship_error(exc: Exception, left_table: str, right_table:
 
 def _safe_dict(value) -> dict:
     return value if isinstance(value, dict) else {}
+
+
+def _read_job_record(job_id: Any) -> dict[str, Any] | None:
+    normalized_job_id = _normalize_job_id(str(job_id))
+    pg_row = get_job_by_id(normalized_job_id)
+    if isinstance(pg_row, dict) and pg_row:
+        return pg_row
+    if not supabase:
+        return None
+    try:
+        resp = supabase.table("jobs").select("*").eq("id", normalized_job_id).maybe_single().execute()
+        row = resp.data if resp else None
+        return row if isinstance(row, dict) else None
+    except Exception:
+        return None
 
 
 def _safe_string_list(value, limit: int = 12) -> list[str]:
@@ -6232,8 +6247,7 @@ async def create_edit_draft_from_job(
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     job_row = _require_job_access(user, job_id)
     company_id = str(job_row.get("company_id") or "")
-    source_resp = supabase.table("jobs").select("*").eq("id", _normalize_job_id(job_id)).maybe_single().execute()
-    source = source_resp.data if source_resp else None
+    source = _read_job_record(job_id)
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
     existing_human_context = _build_job_human_context_editor_state(job_id, company_id)
@@ -6319,8 +6333,7 @@ async def duplicate_job_into_draft(
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     _require_job_access(user, job_id)
-    source_resp = supabase.table("jobs").select("*").eq("id", _normalize_job_id(job_id)).maybe_single().execute()
-    source = source_resp.data if source_resp else None
+    source = _read_job_record(job_id)
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
     company_id = str(source.get("company_id") or "")
@@ -6375,19 +6388,8 @@ async def get_job_human_context(
     job_id: str,
     request: Request,
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
     normalized_job_id = _normalize_job_id(job_id)
-    job_resp = (
-        supabase
-        .table("jobs")
-        .select("id,company_id,source")
-        .eq("id", normalized_job_id)
-        .maybe_single()
-        .execute()
-    )
-    job_row = job_resp.data if job_resp else None
+    job_row = _read_job_record(normalized_job_id)
     if not job_row:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -6421,19 +6423,8 @@ async def get_related_job_challenges(
     request: Request,
     limit: int = Query(4, ge=1, le=8),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
     normalized_job_id = _normalize_job_id(job_id)
-    job_resp = (
-        supabase
-        .table("jobs")
-        .select("id,title,company,location,work_model,source,description,role_summary,company_id,status,scraped_at")
-        .eq("id", normalized_job_id)
-        .maybe_single()
-        .execute()
-    )
-    source_job = job_resp.data if job_resp else None
+    source_job = _read_job_record(normalized_job_id)
     if not source_job:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -7248,10 +7239,11 @@ async def get_jobspy_external_jobs(
             "jobs": jobs,
             "has_more": bool(result.get("has_more")),
             "total_count": int(result.get("total_count") or 0),
-            "source": "jobspy_mongo_cache",
+            "source": "jobspy_cache",
             "meta": {
                 "collection": result.get("collection"),
                 "provider": "jobspy",
+                "storage": result.get("storage") or ("jobs_postgres" if jobs_postgres_enabled() else "mongo"),
             },
         }
     except Exception as exc:
@@ -7260,13 +7252,14 @@ async def get_jobspy_external_jobs(
             "jobs": [],
             "has_more": False,
             "total_count": 0,
-            "source": "jobspy_mongo_cache",
+            "source": "jobspy_cache",
             "meta": {
-                "collection": config.MONGODB_JOBSPY_COLLECTION,
+                "collection": config.JOBS_POSTGRES_JOBSPY_TABLE if jobs_postgres_enabled() else config.MONGODB_JOBSPY_COLLECTION,
                 "provider": "jobspy",
                 "degraded": True,
                 "error": exc.__class__.__name__,
                 "mongodb_configured": bool(config.MONGODB_URI),
+                "storage": "jobs_postgres" if jobs_postgres_enabled() else "mongo",
             },
         }
 
@@ -7510,7 +7503,8 @@ async def analyze_job(
 
     if normalized_job_id is not None:
         try:
-            supabase.table("jobs").update({"ai_analysis": analysis}).eq("id", normalized_job_id).execute()
+            if not update_job_fields(normalized_job_id, {"ai_analysis": analysis}) and supabase:
+                supabase.table("jobs").update({"ai_analysis": analysis}).eq("id", normalized_job_id).execute()
         except Exception as exc:
             print(f"⚠️ Failed to persist ai_analysis for job {normalized_job_id}: {exc}")
 
@@ -7534,9 +7528,6 @@ async def generate_job_application_draft(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
@@ -7547,11 +7538,7 @@ async def generate_job_application_draft(
     if normalized_job_id is None:
         raise HTTPException(status_code=400, detail="Invalid job ID")
 
-    try:
-        job_resp = supabase.table("jobs").select("*").eq("id", normalized_job_id).maybe_single().execute()
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to load job: {exc}")
-    job = job_resp.data if job_resp and isinstance(job_resp.data, dict) else None
+    job = _read_job_record(normalized_job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -7648,9 +7635,9 @@ async def match_candidates_service(request: Request, job_id: str = Query(...), u
     job_row = _require_job_access(user, job_id)
     company_id = str(job_row.get("company_id") or "")
     _require_company_tier(user, company_id, {"growth", "professional", "enterprise"})
-    job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
-    if not job_res.data: raise HTTPException(status_code=404, detail="Job not found")
-    job = job_res.data
+    job = _read_job_record(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
     cand_res = supabase.table("candidate_profiles").select("*").execute()
     candidates = cand_res.data or []

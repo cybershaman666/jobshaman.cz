@@ -577,6 +577,69 @@ def query_jobs_for_hybrid_search(
     return jobs
 
 
+def get_job_by_id(job_id: Any) -> dict[str, Any] | None:
+    if not jobs_postgres_main_enabled():
+        return None
+    normalized_id = str(job_id or "").strip()
+    if not normalized_id:
+        return None
+    _ensure_schema()
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT payload_json FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = %s LIMIT 1",
+            (normalized_id,),
+        )
+        row = cur.fetchone() or {}
+    payload = _json_load((row or {}).get("payload_json"), {})
+    if isinstance(payload, dict) and payload:
+        return dict(payload)
+    return None
+
+
+def list_company_jobs(*, company_id: str, limit: int = 200) -> list[dict[str, Any]]:
+    if not jobs_postgres_main_enabled():
+        return []
+    normalized_company_id = str(company_id or "").strip()
+    if not normalized_company_id:
+        return []
+    _ensure_schema()
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT payload_json
+            FROM {config.JOBS_POSTGRES_JOBS_TABLE}
+            WHERE company_id = %s
+            ORDER BY scraped_at DESC
+            LIMIT %s
+            """,
+            (normalized_company_id, max(1, int(limit or 200))),
+        )
+        rows = cur.fetchall() or []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        payload = _json_load((row or {}).get("payload_json"), {})
+        if isinstance(payload, dict):
+            out.append(dict(payload))
+    return out
+
+
+def update_job_fields(job_id: Any, patch: dict[str, Any]) -> bool:
+    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_WRITE_MAIN:
+        return False
+    normalized_id = str(job_id or "").strip()
+    if not normalized_id or not isinstance(patch, dict) or not patch:
+        return False
+    existing = get_job_by_id(normalized_id)
+    if not existing:
+        return False
+    merged = dict(existing)
+    merged.update(patch)
+    backfill_jobs_from_documents([merged])
+    return True
+
+
 def upsert_jobspy_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
     if not jobs_postgres_enabled():
         return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
@@ -755,6 +818,33 @@ def search_jobspy_documents(
         "has_more": (max(0, page) + 1) * limit < total_count,
         "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
     }
+
+
+def read_recent_jobspy_documents(*, limit: int = 800, fresh_cutoff: datetime | None = None) -> list[dict[str, Any]]:
+    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_SERVE_EXTERNAL:
+        return []
+    _ensure_schema()
+    conn = _connect()
+    cutoff = fresh_cutoff or (_utcnow() - timedelta(days=21))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT payload_json
+            FROM {config.JOBS_POSTGRES_JOBSPY_TABLE}
+            WHERE expires_at > %s
+              AND scraped_at >= %s
+            ORDER BY scraped_at DESC, updated_at DESC
+            LIMIT %s
+            """,
+            (_utcnow(), cutoff, max(1, min(5000, int(limit or 800)))),
+        )
+        rows = cur.fetchall() or []
+    jobs: list[dict[str, Any]] = []
+    for row in rows:
+        payload = _json_load((row or {}).get("payload_json"), {})
+        if isinstance(payload, dict):
+            jobs.append(dict(payload))
+    return jobs
 
 
 def backfill_jobspy_from_documents(documents: list[dict[str, Any]]) -> dict[str, int]:

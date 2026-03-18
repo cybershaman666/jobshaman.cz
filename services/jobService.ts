@@ -597,6 +597,9 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         url: scrapedJob.url,
         lat: resolvedCoords.lat,
         lng: resolvedCoords.lng,
+        ...(Number.isFinite(Number(scrapedJob.distance_km ?? scrapedJob.distanceKm))
+            ? { distanceKm: Number(scrapedJob.distance_km ?? scrapedJob.distanceKm) }
+            : {}),
         jhi: jhi,
         noiseMetrics: estimateNoise(fullDesc),
         transparency: {
@@ -956,7 +959,10 @@ const fetchJobsPaginatedFallback = async (
                 supabase.from('jobs').select('id', { count: 'exact', head: true })
             );
             if (countError) {
-                console.warn('Failed to count paginated jobs with scoped filters:', countError);
+                noteSupabaseNetworkFailure('fetchJobsPaginatedFallback.count', countError);
+                if (!isSupabaseNetworkCooldownActive()) {
+                    console.warn('Failed to count paginated jobs with scoped filters:', countError);
+                }
             } else {
                 totalCount = Number(count || 0);
             }
@@ -2893,10 +2899,8 @@ export const fetchJobsWithFilters = async (
         compactSearchLength >= 2;
     const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL && (
         hasSemanticIntent ||
-        // Dedicated search runtime can handle heavy filter combinations well.
-        // Without dedicated runtime, prefer Supabase RPC for filter-only queries
-        // to avoid slow backend wake-up / timeout penalties.
-        (dedicatedSearchRuntime && hasFilteringIntent && isSearchV2Enabled())
+        hasFilteringIntent ||
+        (dedicatedSearchRuntime && isSearchV2Enabled())
     );
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
