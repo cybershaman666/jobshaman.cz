@@ -164,12 +164,12 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
 
   const forestAccentStyle = useMemo((): React.CSSProperties => {
     const isDark = theme === 'dark';
-    const accent = isDark ? '#22c55e' : '#14532d';
-    const accentRgb = isDark ? '34, 197, 94' : '20, 83, 45';
-    const accentGreen = isDark ? '#16a34a' : '#166534';
-    const accentGreenRgb = isDark ? '22, 163, 74' : '22, 101, 52';
-    const accentSky = '#0f766e';
-    const accentSkyRgb = '15, 118, 110';
+    const accent = isDark ? '#22d3ee' : '#0ea5c9';
+    const accentRgb = isDark ? '34, 211, 238' : '14, 165, 201';
+    const accentGreen = isDark ? '#14b8a6' : '#0f766e';
+    const accentGreenRgb = isDark ? '20, 184, 166' : '15, 118, 110';
+    const accentSky = isDark ? '#0d9488' : '#38bdf8';
+    const accentSkyRgb = isDark ? '13, 148, 136' : '56, 189, 248';
     return {
       ['--accent' as any]: accent,
       ['--accent-rgb' as any]: accentRgb,

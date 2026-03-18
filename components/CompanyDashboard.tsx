@@ -191,8 +191,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     // This satisfies TypeScript because subsequent code knows companyProfile is not null
     if (!companyProfile) {
         return (
-            <div className="min-h-[500px] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4 text-[var(--text-muted)]">
+            <div className="mx-auto w-full max-w-[1680px] px-4 py-6 sm:px-5 lg:px-6">
+                <div className="company-surface app-organic-shell flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-[var(--radius-2xl)] border p-8 text-[var(--text-muted)]">
                     <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--accent)]"></div>
                     <p>{t('common.loading') || 'Načítám...'}</p>
                 </div>

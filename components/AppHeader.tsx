@@ -72,7 +72,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   discoveryMode = 'all',
   setDiscoveryMode,
   discoverySearchMode = false,
-  onOpenDiscoverySearch,
   setDiscoverySearchMode,
   searchTerm,
   setSearchTerm,
@@ -123,24 +122,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const openDiscoveryLane = (lane: 'challenges' | 'imports', focusSearch = false) => {
-    onIntentionalListClick?.();
-    setIsBlogOpen?.(false);
-    setSelectedBlogPostSlug?.(null);
-    setShowCompanyLanding(false);
-    setIsOnboardingCompany(false);
-    setSelectedJobId(null);
-    setViewState(ViewState.LIST);
-    setDiscoveryLane?.(lane);
-    setDiscoveryMode?.('all');
-    setDiscoverySearchMode?.(focusSearch);
-    if (focusSearch) {
-      onOpenDiscoverySearch?.();
-      return;
-    }
-    scrollToElement('challenge-discovery');
-  };
-
   const openMicroJobs = () => {
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
@@ -161,12 +142,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       label: t('header.shell.overview'),
       active: !showCompanyLanding && !isBlogOpen && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && !discoverySearchMode,
       onClick: openHomeOverview
-    },
-    {
-      key: 'search',
-      label: t('header.shell.browse_feed'),
-      active: !showCompanyLanding && viewState === ViewState.LIST && discoveryLane === 'challenges' && discoveryMode === 'all' && discoverySearchMode,
-      onClick: () => openDiscoveryLane('challenges', true)
     },
     {
       key: 'micro_jobs',
@@ -255,7 +230,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const searchUiCopy = {
-    label: t('header.shell.search_label'),
     searchPlaceholder: t('header.shell.search_placeholder'),
     locationPlaceholder: t('header.shell.location_placeholder'),
     submit: t('header.shell.search_submit'),
@@ -297,12 +271,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const discoveryAccentStyle = useMemo((): React.CSSProperties | undefined => {
     if (viewState !== ViewState.LIST) return undefined;
     const isDark = theme === 'dark';
-    const accent = isDark ? '#22c55e' : '#14532d';
-    const accentRgb = isDark ? '34, 197, 94' : '20, 83, 45';
-    const accentGreen = isDark ? '#16a34a' : '#166534';
-    const accentGreenRgb = isDark ? '22, 163, 74' : '22, 101, 52';
-    const accentSky = '#0f766e';
-    const accentSkyRgb = '15, 118, 110';
+    const accent = isDark ? '#22d3ee' : '#0ea5c9';
+    const accentRgb = isDark ? '34, 211, 238' : '14, 165, 201';
+    const accentGreen = isDark ? '#14b8a6' : '#0f766e';
+    const accentGreenRgb = isDark ? '20, 184, 166' : '15, 118, 110';
+    const accentSky = isDark ? '#0d9488' : '#38bdf8';
+    const accentSkyRgb = isDark ? '13, 148, 136' : '56, 189, 248';
     return {
       ['--accent' as any]: accent,
       ['--accent-rgb' as any]: accentRgb,
@@ -312,6 +286,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       ['--accent-sky-rgb' as any]: accentSkyRgb,
     };
   }, [theme, viewState]);
+  const headerInputClass = 'app-header-input w-full py-3 pl-11 pr-4 text-sm outline-none transition';
+  const headerControlClass = 'app-header-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors';
+  const headerIconButtonClass = 'app-header-control hidden h-10 w-10 items-center justify-center lg:inline-flex';
+  const headerNavItemClass = 'app-header-control px-4 py-2 text-sm font-semibold';
+  const headerFilterClass = 'app-header-control px-3.5 py-2 text-xs font-semibold';
 
   return (
     <header
@@ -326,17 +305,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       <div
         className={cn(
           'w-full',
-          hasDesktopLeftRail ? 'lg:pl-24' : 'lg:pl-6',
-          'lg:pr-6'
+          hasDesktopLeftRail ? 'lg:pl-24 lg:pr-6' : 'lg:px-3'
         )}
       >
         <div
           className={cn(
-            "app-topnav app-organic-shell relative z-40 flex w-full flex-col gap-3 overflow-visible px-4 py-2.5 sm:px-6"
+            "app-topnav relative z-40 flex w-full flex-col gap-3 overflow-visible rounded-[18px] px-4 py-2.5 sm:px-6"
           )}
         >
-          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.16),transparent)]" />
-
           <div className="relative z-10 flex w-full items-center gap-3">
             {/* Logo Section */}
             <button
@@ -347,8 +323,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <span className="flex h-9 w-9 items-center justify-center">
                 <img src="/logo-alt.png" alt="JobShaman" className="h-6 w-auto sm:h-7" />
               </span>
-              <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
-                Job<span className="text-[var(--accent)]">Shaman</span>
+              <span className="flex items-center gap-2">
+                <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
+                  Job<span className="text-[var(--accent)]">Shaman</span>
+                </span>
+                <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.10)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] sm:text-[11px]">
+                  Beta
+                </span>
               </span>
             </button>
 
@@ -365,7 +346,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
                     placeholder={searchUiCopy.searchPlaceholder}
-                    className="app-organic-input w-full border border-[var(--border)] bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white dark:bg-white/5 dark:focus:bg-white/10"
+                    className={headerInputClass}
                   />
                 </div>
                 <div className="relative flex-[0.7]">
@@ -377,13 +358,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     onChange={(e) => setFilterCity(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
                     placeholder={searchUiCopy.locationPlaceholder}
-                    className="app-organic-input w-full border border-[var(--border)] bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[rgba(var(--accent-rgb),0.40)] focus:bg-white dark:bg-white/5 dark:focus:bg-white/10"
+                    className={headerInputClass}
                   />
                 </div>
                 <button
                   type="button"
                   onClick={submitDiscoverySearch}
-                  className="app-button-primary app-organic-cta !px-5 !py-3 shadow-[0_18px_40px_-24px_rgba(var(--accent-rgb),0.9)]"
+                  className="app-header-search-cta px-4 py-2.5 text-sm font-semibold"
                 >
                   {searchUiCopy.submit}
                 </button>
@@ -396,7 +377,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCompanyLanding(true)}
-                className="app-organic-pill hidden lg:flex items-center gap-1.5 border border-[var(--border)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] transition-colors hover:border-[rgba(var(--accent-rgb),0.22)] hover:text-[var(--accent)] dark:bg-white/5 dark:hover:bg-white/10"
+                className={cn(headerControlClass, 'hidden lg:flex')}
               >
                 <Building2 size={15} />
                 {headerUiCopy.companies}
@@ -406,7 +387,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="app-organic-pill hidden h-10 w-10 items-center justify-center border border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/5 dark:hover:bg-white/10 lg:inline-flex"
+                  className={headerIconButtonClass}
                 >
                   {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
@@ -414,7 +395,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   <button
                     type="button"
                     onClick={() => setLanguageMenuOpen((prev) => !prev)}
-                    className="app-organic-pill inline-flex items-center gap-1.5 border border-[var(--border)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] hover:bg-[var(--surface-muted)] dark:bg-white/5 dark:hover:bg-white/10"
+                    className={headerControlClass}
                   >
                     {(languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode).toUpperCase()}
                     <ChevronDown size={12} />
@@ -446,7 +427,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     setShowCompanyLanding(false);
                     setViewState(ViewState.PROFILE);
                   }}
-                  className="app-organic-pill group flex items-center gap-2 border border-[var(--border)] bg-white p-1 pr-3 transition hover:bg-[var(--surface-muted)] dark:bg-white/5 dark:hover:bg-white/10"
+                  className="app-header-control group flex items-center gap-2 p-1 pr-3 transition-colors"
                 >
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent)]">
                     {userProfile.photo && !avatarFailed ? (
@@ -469,7 +450,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="app-organic-pill lg:hidden border border-[var(--border)] bg-white p-2 text-[var(--text-strong)] dark:bg-white/5"
+                className="app-header-control inline-flex h-10 w-10 items-center justify-center p-2 lg:hidden"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -486,10 +467,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                       type="button"
                       onClick={item.onClick}
                       className={cn(
-                        'app-organic-pill px-4 py-2 text-sm font-semibold transition',
+                        headerNavItemClass,
                         item.active
-                          ? 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-1 ring-inset ring-[rgba(var(--accent-rgb),0.18)]'
-                          : 'bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10 dark:hover:bg-white/14'
+                          ? 'app-header-control-active'
+                          : null
                       )}
                     >
                       {item.label}
@@ -502,10 +483,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     type="button"
                     onClick={() => setRemoteOnly?.(!remoteOnly)}
                     className={cn(
-                      'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                      headerFilterClass,
                       remoteOnly
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
-                        : 'border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10'
+                        ? 'app-header-control-active'
+                        : null
                     )}
                   >
                     {headerUiCopy.remoteOnly}
@@ -514,15 +495,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     type="button"
                     onClick={() => setEnableCommuteFilter?.(!enableCommuteFilter)}
                     className={cn(
-                      'app-organic-pill border px-3.5 py-2 text-xs font-semibold transition',
+                      headerFilterClass,
                       enableCommuteFilter
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
-                        : 'border-[var(--border)] bg-white text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] dark:bg-white/10'
+                        ? 'app-header-control-active'
+                        : null
                     )}
                   >
                     {headerUiCopy.commuteMax}
                   </button>
-                  <label className="app-organic-pill flex items-center gap-2 border border-[var(--border)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--text-muted)] dark:bg-white/10">
+                  <label className={cn(headerFilterClass, 'flex items-center gap-2')}>
                     <span>{headerUiCopy.atLeast}</span>
                     <input
                       type="number"
@@ -550,7 +531,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={searchUiCopy.searchPlaceholder}
-                  className="app-organic-input w-full border border-white/10 bg-white/55 py-3 pl-11 pr-4 text-sm dark:bg-white/5"
+                  className={headerInputClass}
                 />
               </div>
               {navItems.map((item) => (
@@ -558,8 +539,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   key={item.key}
                   onClick={() => { item.onClick(); setMobileMenuOpen(false); }}
                   className={cn(
-                    "app-organic-surface border px-4 py-3 text-left text-sm font-bold transition",
-                    item.active ? "bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/20" : "bg-white/50 text-[var(--text)] border-transparent"
+                    "app-header-control w-full justify-start px-4 py-3 text-left text-sm font-bold transition-colors",
+                    item.active ? "app-header-control-active" : null
                   )}
                 >
                   {item.label}
@@ -572,7 +553,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </button>
                 <div className="flex gap-2">
                   {languages.map(l => (
-                    <button key={l.code} onClick={() => changeLanguage(l.code)} className={cn("app-organic-pill text-xs font-bold p-1 px-2", currentLanguageCode === l.code ? "bg-[var(--accent)] text-white" : "bg-white/50")}>
+                    <button
+                      key={l.code}
+                      onClick={() => changeLanguage(l.code)}
+                      className={cn("app-header-control px-2 py-1 text-xs font-bold", currentLanguageCode === l.code ? "app-header-control-active" : null)}
+                    >
                       {l.name}
                     </button>
                   ))}

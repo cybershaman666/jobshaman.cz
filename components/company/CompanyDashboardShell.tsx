@@ -28,8 +28,8 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
   const ActiveTabIcon = activeTabMeta.icon;
 
   return (
-    <div className="app-aurora-shell mx-auto min-h-full w-full max-w-[1680px] pb-6 sm:pb-8">
-      <div className="app-page-header app-organic-shell mb-4 overflow-hidden rounded-[var(--radius-2xl)] border p-4 sm:p-5 lg:p-6">
+    <div className="app-aurora-shell mx-auto min-h-full w-full max-w-[1680px] px-4 pb-6 pt-4 sm:px-5 sm:pb-8 lg:px-6">
+      <div className="company-surface app-organic-shell mb-4 overflow-hidden rounded-[var(--radius-2xl)] border p-4 sm:p-5 lg:p-6">
         <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
           <div>
             <div className="app-eyebrow">
@@ -42,7 +42,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
           </div>
 
           <div className="grid gap-3 min-[520px]:grid-cols-2 xl:grid-cols-3">
-            <div className="company-surface-soft rounded-[var(--radius-lg)] border p-4">
+            <div className="company-surface-soft app-organic-panel-soft rounded-[var(--radius-lg)] border p-4">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                 <ActiveTabIcon size={12} className="text-[var(--accent)]" />
                 {t('company.shell.current_module', { defaultValue: 'Current module' })}
@@ -51,7 +51,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
                 {activeTabMeta.label}
               </div>
             </div>
-            <div className="company-surface-soft rounded-[var(--radius-lg)] border p-4">
+            <div className="company-surface-soft app-organic-panel-soft rounded-[var(--radius-lg)] border p-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                 {t('company.shell.active_modules', { defaultValue: 'Active modules' })}
               </div>
@@ -59,7 +59,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
                 {tabs.length}
               </div>
             </div>
-            <div className="company-surface-soft rounded-[var(--radius-lg)] border p-4">
+            <div className="company-surface-soft app-organic-panel-soft rounded-[var(--radius-lg)] border p-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                 {t('company.shell.workspace_label', { defaultValue: 'Hiring workspace' })}
               </div>
@@ -70,7 +70,7 @@ const CompanyDashboardShell: React.FC<CompanyDashboardShellProps> = ({
           </div>
         </div>
 
-        <div className="company-surface-soft flex gap-2 overflow-x-auto rounded-[var(--radius-lg)] border p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="company-surface-soft app-organic-panel-soft flex gap-2 overflow-x-auto rounded-[var(--radius-lg)] border p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => (
             <button
               key={tab.key}

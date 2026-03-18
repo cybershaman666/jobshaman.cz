@@ -293,6 +293,88 @@ type FeedSection = {
   jobs: Job[];
 };
 
+const getMatchBucketRank = (bucket?: string): number => (
+  bucket === 'best_fit' ? 3 : bucket === 'adjacent' ? 2 : 1
+);
+
+const getFeatureScore = (job: Job): number => {
+  const priorityScore = Number(job.priorityScore ?? job.searchScore ?? 0);
+  const matchScore = clamp(Math.round(Number(job.aiMatchScore || 0)), 0, 100);
+  const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
+  const salaryScore = Math.min(18, Math.round(salaryAnchor(job) / 10000));
+  const distance = Number(job.distanceKm || 0);
+  const isRemote = (() => {
+    try {
+      return isRemoteJob(job) || String(job.type || '').toLowerCase() === 'remote';
+    } catch {
+      return String(job.type || '').toLowerCase() === 'remote';
+    }
+  })();
+  const commuteBonus = isRemote ? 10 : Number.isFinite(distance) && distance > 0 && distance <= 30 ? 6 : 0;
+  const reactionHours = reactionWindowHours(job);
+  const responseBonus = reactionHours !== null && reactionHours <= 48 ? 6 : 0;
+
+  return priorityScore
+    + getMatchBucketRank(job.matchBucket) * 18
+    + matchScore * 0.55
+    + jhiScore * 0.45
+    + salaryScore
+    + commuteBonus
+    + responseBonus;
+};
+
+const isFeatureEligible = (job: Job): boolean => {
+  const priorityScore = Number(job.priorityScore ?? job.searchScore ?? 0);
+  const matchScore = clamp(Math.round(Number(job.aiMatchScore || 0)), 0, 100);
+  const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
+
+  return (
+    job.matchBucket === 'best_fit' ||
+    priorityScore >= 55 ||
+    matchScore >= 60 ||
+    jhiScore >= 70
+  );
+};
+
+const pickHighlightIndex = (
+  jobs: Job[],
+  preferredIndex: number,
+  options?: { requireEligibility?: boolean }
+): number | null => {
+  if (!jobs.length) return null;
+
+  const scored = jobs
+    .map((job, index) => ({
+      index,
+      eligible: isFeatureEligible(job),
+      score: getFeatureScore(job) - Math.abs(index - preferredIndex) * 5,
+    }))
+    .sort((left, right) => right.score - left.score);
+
+  const eligible = scored.filter((item) => item.eligible);
+  if (eligible.length > 0) {
+    return eligible[0].index;
+  }
+
+  if (options?.requireEligibility) return null;
+  return scored[0]?.index ?? null;
+};
+
+const pickChunkHighlightIndexes = (jobs: Job[], chunkSize = 6, preferredIndex = 2): Set<number> => {
+  const highlighted = new Set<number>();
+
+  for (let start = 0; start < jobs.length; start += chunkSize) {
+    const chunk = jobs.slice(start, start + chunkSize);
+    const localPreferredIndex = Math.min(preferredIndex, Math.max(0, chunk.length - 1));
+    const localHighlightIndex = pickHighlightIndex(chunk, localPreferredIndex, { requireEligibility: true });
+    if (localHighlightIndex !== null) {
+      highlighted.add(start + localHighlightIndex);
+    }
+  }
+
+  return highlighted;
+};
+
 const getBalancedGridSpanClass = (index: number, total: number): string => {
   const isLastOddTabletCard = total % 2 === 1 && index === total - 1;
   const desktopRemainder = total % 3;
@@ -335,18 +417,18 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; count?: number
       <div className={cn(
         'app-organic-pill inline-flex items-center gap-2 px-4 py-2 shadow-sm ring-1 ring-inset',
         tone === 'match'
-          ? 'bg-violet-500/10 ring-violet-400/18'
+          ? 'bg-[rgba(var(--accent-rgb),0.16)] ring-[rgba(var(--accent-rgb),0.24)]'
           : 'bg-[rgba(var(--accent-rgb),0.16)] ring-[rgba(var(--accent-rgb),0.24)]'
       )}>
         <span className={cn(
           'h-2 w-2 rounded-full',
           tone === 'match'
-            ? 'bg-violet-400 shadow-[0_0_14px_rgba(167,139,250,0.28)]'
+            ? 'bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.42)]'
             : 'bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.42)]'
         )} />
         <div className={cn(
           'text-[13px] font-black uppercase tracking-[0.2em]',
-          tone === 'match' ? 'text-violet-700 dark:text-violet-300' : 'text-[var(--accent)]'
+          tone === 'match' ? 'text-[var(--accent)]' : 'text-[var(--accent)]'
         )}>{title}</div>
       </div>
       {subtitle ? <div className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">{subtitle}</div> : null}
@@ -355,7 +437,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; count?: number
       <div className={cn(
         'app-organic-pill px-3.5 py-2 text-[12px] font-black shadow-sm ring-1 ring-inset',
         tone === 'match'
-          ? 'bg-violet-500/10 text-violet-700 ring-violet-400/18 dark:text-violet-300'
+          ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.22)] dark:bg-[rgba(var(--accent-rgb),0.16)]'
           : 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.22)] dark:bg-[rgba(var(--accent-rgb),0.16)]'
       )}>{count}</div>
     ) : null}
@@ -429,11 +511,12 @@ const OfferCard: React.FC<{
   saved: boolean;
   language: string;
   variant?: 'default' | 'hero' | 'large';
+  contrast?: boolean;
   className?: string;
   onSelect: () => void;
   onOpen: () => void;
   onToggleSave: () => void;
-}> = ({ job, selected, saved, language, variant = 'default', className, onSelect, onOpen, onToggleSave }) => {
+}> = ({ job, selected, saved, language, variant = 'default', contrast = false, className, onSelect, onOpen, onToggleSave }) => {
   const isCsLike = language === 'cs' || language === 'sk';
   const avatarUrl = String(job.companyProfile?.logo_url || '').trim() || getFallbackCompanyAvatarUrl(job.company);
   const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
@@ -462,7 +545,7 @@ const OfferCard: React.FC<{
 
   const isImported = job.listingKind === 'imported' || !job.challenge;
   const ctaLabel = localeText(language, { cs: 'Vstoupit do firmy', sk: 'Vstúpiť do firmy', de: 'In die Firma eintreten', pl: 'Wejdź do firmy', en: 'Enter the company' });
-  const isPromoted = variant === 'hero' || variant === 'large';
+  const isFeatureCard = variant === 'hero' || contrast;
   const isDefaultCard = variant === 'default';
   const companyLogo = avatarUrl;
   const showFallbackMonogram = isStockCompanyAvatarUrl(companyLogo);
@@ -474,10 +557,10 @@ const OfferCard: React.FC<{
     `${job.id || ''}-${job.company || ''}-${job.title || ''}`,
   );
   const coverHeightClass = variant === 'hero' ? 'h-32 sm:h-[8.5rem]' : variant === 'large' ? 'h-28 sm:h-[7.25rem]' : 'h-24';
-  const fitReasons = useMemo(() => (isPromoted ? generateWhyItFitsReasons(job, language) : []), [isPromoted, job, language]);
+  const fitReasons = useMemo(() => (isFeatureCard ? generateWhyItFitsReasons(job, language) : []), [isFeatureCard, job, language]);
   const visibleWhyReasons = useMemo(
-    () => generateWhyItFitsReasons(job, language).slice(0, variant === 'hero' ? 3 : variant === 'large' ? 2 : 1),
-    [job, language, variant]
+    () => generateWhyItFitsReasons(job, language).slice(0, variant === 'hero' ? 3 : isFeatureCard ? 2 : 1),
+    [isFeatureCard, job, language, variant]
   );
   const primaryMeta = job.location || job.type || localeText(language, { cs: 'Lokalita neuvedena', sk: 'Lokalita neuvedená', de: 'Ort nicht angegeben', pl: 'Lokalizacja niepodana', en: 'Location not specified' });
   const relativePostedAt = formatRelativePostedAt(job, language);
@@ -492,7 +575,6 @@ const OfferCard: React.FC<{
         : localeText(language, { cs: 'PODOBNÉ V OKOLÍ', sk: 'PODOBNÉ V OKOLÍ', de: 'ÄHNLICH IN IHRER NÄHE', pl: 'PODOBNE W OKOLICY', en: 'SIMILAR NEARBY' });
   const externalSourceLabel = getExternalSourceLabel(job, language);
   const bullshit = useMemo(() => analyzeJobBullshit(job, language), [job, language]);
-  const matchBadgeClass = 'bg-violet-500/10 text-violet-700 ring-violet-400/18 dark:bg-violet-500/14 dark:text-violet-300';
   const compactTags = useMemo(() => {
     const tags: string[] = [];
     if (isMicro) {
@@ -533,9 +615,9 @@ const OfferCard: React.FC<{
   const supportLabels = [externalSourceLabel, ...compactTags, qualityLabel]
     .filter((label): label is string => Boolean(label))
     .slice(0, 2);
-  const insightReasons = (isPromoted ? visibleWhyReasons : visibleWhyReasons.slice(0, 1))
+  const insightReasons = (isFeatureCard ? visibleWhyReasons : visibleWhyReasons.slice(0, 1))
     .map((reason) => reason.replace(/^✔\s*/, ''))
-    .slice(0, isPromoted ? 2 : 1);
+    .slice(0, isFeatureCard ? 2 : 1);
   const primaryInsight = insightReasons[0] || '';
   const secondaryInsight = insightReasons[1] || '';
   const supportLine = supportLabels.join(' • ');
@@ -547,6 +629,12 @@ const OfferCard: React.FC<{
     : variant === 'large'
       ? localeText(language, { cs: 'Silná shoda', sk: 'Silná zhoda', de: 'Starker Match', pl: 'Mocne dopasowanie', en: 'Strong match' })
       : '';
+  const titleTextClass = isFeatureCard ? 'text-slate-50' : 'text-[var(--text-strong)]';
+  const mutedTextClass = isFeatureCard ? 'text-slate-300' : 'text-[var(--text-muted)]';
+  const faintTextClass = isFeatureCard ? 'text-slate-400' : 'text-[var(--text-faint)]';
+  const matchBadgeClass = isFeatureCard
+    ? 'border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.18)] text-white shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.34)]'
+    : 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.16)]';
   return (
     <div
       role="button"
@@ -565,18 +653,25 @@ const OfferCard: React.FC<{
         cardRadiusClass,
         cardHeightClass,
         cardPadding,
-        selected
-          ? 'border-[rgba(var(--accent-green-rgb),0.24)] bg-[rgba(255,255,255,0.98)] dark:bg-[rgba(15,23,42,0.96)]'
-          : 'border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.98)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(15,23,42,0.94)]',
-        variant === 'hero' && 'border-[rgba(var(--accent-rgb),0.22)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),rgba(255,255,255,0.98)_18%,rgba(255,255,255,0.98))] dark:bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.12),rgba(15,23,42,0.96)_22%,rgba(15,23,42,0.96))]',
-        variant === 'large' && 'border-[rgba(var(--accent-rgb),0.16)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.035),rgba(255,255,255,0.98)_16%,rgba(255,255,255,0.98))] dark:bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.08),rgba(15,23,42,0.95)_20%,rgba(15,23,42,0.95))]',
+        isFeatureCard
+          ? 'border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#0b2f38)] text-slate-50 shadow-[0_36px_90px_-56px_rgba(8,23,37,0.72)]'
+          : selected
+            ? 'border-[rgba(var(--accent-green-rgb),0.24)] bg-[rgba(255,255,255,0.98)] dark:bg-[rgba(15,23,42,0.96)]'
+            : 'border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.98)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(15,23,42,0.94)]',
+        isFeatureCard && selected && 'border-[rgba(var(--accent-rgb),0.42)] shadow-[0_0_0_1px_rgba(var(--accent-rgb),0.18),0_40px_96px_-52px_rgba(8,23,37,0.82)]',
         className,
-        !selected && !isPromoted && 'hover:border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.16)]',
-        isPromoted && 'shadow-[0_32px_80px_-50px_rgba(15,23,42,0.34)]'
+        !selected && !isFeatureCard && 'hover:border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.16)]',
+        isFeatureCard && 'hover:border-[rgba(var(--accent-rgb),0.28)] hover:shadow-[0_40px_96px_-52px_rgba(8,23,37,0.8)]'
       )}
       style={cardStyle}
     >
-      {isPromoted ? (
+      {isFeatureCard ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.22),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(var(--accent-sky-rgb),0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%)]"
+        />
+      ) : null}
+      {isFeatureCard ? (
         <div
           aria-hidden
           className={cn(
@@ -587,7 +682,7 @@ const OfferCard: React.FC<{
           )}
         />
       ) : null}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-[linear-gradient(180deg,rgba(var(--card-accent-rgb,var(--accent-rgb)),0.05),transparent)] dark:opacity-70" />
+      <div aria-hidden className={cn('pointer-events-none absolute inset-x-0 top-0 h-12 bg-[linear-gradient(180deg,rgba(var(--card-accent-rgb,var(--accent-rgb)),0.05),transparent)]', isFeatureCard ? 'opacity-90' : 'dark:opacity-70')} />
 
       <div className={cn("relative w-full mb-4 overflow-hidden bg-slate-100 dark:bg-slate-800", coverHeightClass, coverRadiusClass)}>
         <img
@@ -595,7 +690,7 @@ const OfferCard: React.FC<{
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=800&auto=format&fit=crop';
           }}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover"
           alt={effectiveDomain || job.company || 'Challenge cover'}
           loading="lazy"
         />
@@ -625,7 +720,10 @@ const OfferCard: React.FC<{
               {showFallbackMonogram ? (
                 <div
                   className={cn(
-                    'flex shrink-0 items-center justify-center rounded-xl border border-white/70 bg-[rgba(var(--card-accent-rgb,var(--accent-rgb)),0.10)] text-sm font-bold text-[var(--text-strong)] shadow-sm transition-transform group-hover:scale-105 dark:text-white',
+                    'flex shrink-0 items-center justify-center rounded-xl border text-sm font-bold shadow-sm',
+                    isFeatureCard
+                      ? 'border-white/12 bg-white/10 text-white'
+                      : 'border-white/70 bg-[rgba(var(--card-accent-rgb,var(--accent-rgb)),0.10)] text-[var(--text-strong)] dark:text-white',
                     variant === 'hero' ? 'h-14 w-14' : 'h-12 w-12'
                   )}
                 >
@@ -636,7 +734,8 @@ const OfferCard: React.FC<{
                   src={companyLogo}
                   alt={job.company}
                   className={cn(
-                    'shrink-0 rounded-xl border border-white/70 object-cover shadow-sm transition-transform group-hover:scale-105',
+                    'shrink-0 rounded-xl border object-cover shadow-sm',
+                    isFeatureCard ? 'border-white/12' : 'border-white/70',
                     variant === 'hero' ? 'h-14 w-14' : 'h-12 w-12'
                   )}
                   loading="lazy"
@@ -645,21 +744,21 @@ const OfferCard: React.FC<{
             </div>
             <div className="mt-1 min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="min-w-0 truncate text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">{job.company}</div>
-                {isPromoted ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-[var(--accent)]">
+                <div className={cn('min-w-0 truncate text-[13px] font-semibold uppercase tracking-[0.08em]', faintTextClass)}>{job.company}</div>
+                {isFeatureCard && topMatchLabel ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.28)] bg-[rgba(var(--accent-rgb),0.18)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-white shadow-[0_16px_36px_-24px_rgba(var(--accent-rgb),0.36)]">
                     <Sparkles size={12} className="opacity-80" />
                     {topMatchLabel}
                   </span>
                 ) : null}
               </div>
-              <div className={cn('mt-1.5 break-words text-[1.08rem] font-semibold leading-[1.3] tracking-[-0.03em] text-[var(--text-strong)]', variant === 'hero' && 'text-[1.26rem] sm:text-[1.4rem]', titleClamp)}>{job.title}</div>
+              <div className={cn('mt-1.5 break-words text-[1.08rem] font-semibold leading-[1.3] tracking-[-0.03em]', titleTextClass, variant === 'hero' && 'text-[1.26rem] sm:text-[1.4rem]', titleClamp)}>{job.title}</div>
               {supportLine ? (
-                <div className="mt-2 text-[12px] leading-5 text-[var(--text-faint)]">
+                <div className={cn('mt-2 text-[12px] leading-5', faintTextClass)}>
                   {supportLine}
                 </div>
               ) : null}
-              {isPromoted ? (
+              {isFeatureCard ? (
                 <div className="mt-2 text-[12px] font-medium text-[var(--accent)]">
                   {matchLabel}
                 </div>
@@ -677,8 +776,10 @@ const OfferCard: React.FC<{
               'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition',
               saved
                 ? 'border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.18)] bg-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.08)] text-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.92)]'
-                : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-strong)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5',
-              isPromoted ? 'mt-1.5' : ''
+                : isFeatureCard
+                  ? 'border-white/12 bg-white/8 text-slate-300 hover:bg-white/12 hover:text-white'
+                  : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-strong)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5',
+              isFeatureCard ? 'mt-1.5' : ''
             )}
             title={saved
               ? localeText(language, { cs: 'Uloženo', sk: 'Uložené', de: 'Gespeichert', pl: 'Zapisane', en: 'Saved' })
@@ -690,14 +791,14 @@ const OfferCard: React.FC<{
 
         {quickSummary ? (
           <div className="space-y-1">
-            <div className={cn('break-words text-[13px] leading-[1.75] text-[var(--text-muted)] overflow-hidden', isPromoted ? 'line-clamp-4' : 'line-clamp-4')}>
+            <div className={cn('break-words text-[13px] leading-[1.75] overflow-hidden', mutedTextClass, 'line-clamp-4')}>
               {quickSummary}
             </div>
           </div>
         ) : null}
 
-        {isPromoted && heroSignals.length > 0 ? (
-          <div className="space-y-1 text-[12px] leading-[1.55] text-[var(--text-muted)]">
+        {(variant === 'hero' || (contrast && variant !== 'default')) && heroSignals.length > 0 ? (
+          <div className={cn('space-y-1 text-[12px] leading-[1.55]', mutedTextClass)}>
             {heroSignals.map((signal) => (
               <div key={signal} className="line-clamp-1">
                 {signal}
@@ -706,19 +807,19 @@ const OfferCard: React.FC<{
           </div>
         ) : null}
         {primaryInsight ? (
-          <div className="border-l-2 border-[rgba(var(--accent-rgb),0.35)] pl-3">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">
+          <div className={cn('border-l-2 pl-3', isFeatureCard ? 'border-[rgba(var(--accent-rgb),0.44)]' : 'border-[rgba(var(--accent-rgb),0.35)]')}>
+            <div className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', faintTextClass)}>
               {whySectionTitle(language)}
             </div>
-            <div className="mt-1 line-clamp-2 text-[12px] leading-[1.55] text-[var(--text-muted)]">
+            <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', mutedTextClass)}>
               {primaryInsight}
             </div>
             {secondaryInsight ? (
-              <div className="mt-1 line-clamp-2 text-[12px] leading-[1.55] text-[var(--text-faint)]">
+              <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', faintTextClass)}>
                 {secondaryInsight}
               </div>
             ) : narrativeLine ? (
-              <div className="mt-1 line-clamp-2 text-[12px] leading-[1.55] text-[var(--text-faint)]">
+              <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', faintTextClass)}>
                 {narrativeLine}
               </div>
             ) : null}
@@ -730,17 +831,17 @@ const OfferCard: React.FC<{
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset',
               verdict.tone === 'good'
-                ? 'bg-emerald-500/12 text-emerald-700 ring-emerald-500/18 dark:text-emerald-300'
+                ? isFeatureCard ? 'bg-emerald-400/14 text-emerald-200 ring-emerald-300/20' : 'bg-emerald-500/12 text-emerald-700 ring-emerald-500/18 dark:text-emerald-300'
                 : verdict.tone === 'bad'
-                  ? 'bg-amber-500/12 text-amber-700 ring-amber-500/18 dark:text-amber-300'
-                  : 'bg-[rgba(var(--accent-rgb),0.10)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.14)]'
+                  ? isFeatureCard ? 'bg-amber-400/14 text-amber-200 ring-amber-300/20' : 'bg-amber-500/12 text-amber-700 ring-amber-500/18 dark:text-amber-300'
+                  : isFeatureCard ? 'bg-[rgba(var(--accent-rgb),0.18)] text-white ring-[rgba(var(--accent-rgb),0.24)]' : 'bg-[rgba(var(--accent-rgb),0.10)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.14)]'
             )}
             title={bullshit.summary || bullshit.greenSummary || ''}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
             {verdict.label}
           </span>
-          {!isPromoted && matchScore > 0 ? (
+          {!isFeatureCard && matchScore > 0 ? (
             <span className={cn('inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ring-inset', matchBadgeClass)}>
               {matchLabel}
             </span>
@@ -748,32 +849,32 @@ const OfferCard: React.FC<{
         </div>
 
         <div className="grid grid-cols-1 gap-2 pt-1.5 sm:grid-cols-2">
-          <span className={cn('badge-base rounded-lg border border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] px-3 py-2 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full')}>
             <MapPin size={13} />
             <span className="truncate">{primaryMeta}</span>
           </span>
           {relativePostedAt ? (
-            <span className="badge-base rounded-lg border border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] px-3 py-2 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
+            <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5')}>
               <Clock size={13} />
               <span className="truncate">{relativePostedAt}</span>
             </span>
           ) : null}
-          <span className={cn('badge-base rounded-lg border border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] px-3 py-2 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
             {salary}
           </span>
-          {isPromoted ? (
+          {isFeatureCard ? (
             <>
               {variant !== 'hero' ? (
                 <span
                   className={cn(
                     'inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-[0.12em] transition',
                     matchScore > 0
-                      ? `${matchBadgeClass} shadow-sm shadow-violet-500/10`
+                      ? matchBadgeClass
                       : jhiScore >= 75
-                        ? 'bg-gradient-to-r from-[rgba(var(--accent-rgb),0.15)] to-[rgba(var(--accent-sky-rgb),0.15)] text-[var(--accent)] shadow-sm shadow-[rgba(var(--accent-rgb),0.1)]'
+                        ? 'border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.14)] text-[var(--accent)] shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.26)]'
                         : jhiScore >= 55
-                          ? 'bg-gradient-to-r from-teal-500/15 to-emerald-500/10 text-teal-700 dark:text-teal-300'
-                          : 'bg-[var(--surface-muted)] text-[var(--text-muted)] dark:bg-white/5'
+                          ? 'border border-white/12 bg-white/8 text-slate-100'
+                          : 'border border-white/10 bg-white/6 text-slate-400'
                   )}
                   title={matchScore > 0
                     ? localeText(language, { cs: 'Shoda s profilem', sk: 'Zhoda s profilom', de: 'Profil-Match', pl: 'Dopasowanie do profilu', en: 'Profile match' })
@@ -795,7 +896,12 @@ const OfferCard: React.FC<{
               e.stopPropagation();
               onOpen();
             }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] dark:bg-white dark:text-slate-950 dark:hover:bg-emerald-300"
+            className={cn(
+              'inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm transition',
+              isFeatureCard
+                ? 'bg-[var(--accent)] font-bold text-slate-950 shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.5)] hover:brightness-110'
+                : 'bg-[var(--text-strong)] font-semibold text-white hover:bg-[var(--accent)] dark:bg-white dark:text-slate-950 dark:hover:bg-[var(--accent)]'
+            )}
           >
             <span className="flex items-center gap-2">
               {isDefaultCard
@@ -944,6 +1050,35 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[] };
   }, [compactLayout, feedCopy.fastTitle, feedCopy.heroSubtitle, feedCopy.heroTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
 
+  const sectionHighlightIndexes = useMemo(() => {
+    const indexes = new Map<string, number | null>();
+
+    sections.forEach((section) => {
+      if (section.key === 'hero') {
+        indexes.set(section.key, 0);
+        return;
+      }
+
+      const preferredIndex = section.key === 'spotlight'
+        ? 1
+        : section.key === 'remote'
+          ? 0
+          : section.key === 'fast'
+            ? Math.min(2, Math.max(0, section.jobs.length - 1))
+            : 0;
+
+      indexes.set(section.key, pickHighlightIndex(section.jobs, preferredIndex));
+    });
+
+    return indexes;
+  }, [sections]);
+
+  const visibleRemaining = useMemo(() => remaining.slice(0, 24), [remaining]);
+  const remainingHighlightIndexes = useMemo(
+    () => pickChunkHighlightIndexes(visibleRemaining, 6, 2),
+    [visibleRemaining]
+  );
+
   if (loading && jobs.length === 0) {
     return <LoadingEditorialFeedSkeleton compactLayout={compactLayout} />;
   }
@@ -1004,6 +1139,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
                   saved={savedJobIds.includes(job.id)}
                   language={language}
                   variant="hero"
+                  contrast
                   className="xl:col-span-12"
                   onSelect={() => onSelect(job.id)}
                   onOpen={() => onOpen(job.id)}
@@ -1014,14 +1150,14 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
           );
         }
 
-        const variant = section.layout === 'grid_large' ? 'large' : 'default';
-
         return (
           <div key={section.key} className="space-y-5">
             <SectionHeader title={title} subtitle={subtitle} count={section.jobs.length} tone={section.tone} />
             <div className="grid grid-cols-1 items-stretch gap-5 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
               {section.jobs.map((job, idx) => {
                 const spanClass = getSectionSpanClass(section.layout, idx, section.jobs.length);
+                const highlightIndex = sectionHighlightIndexes.get(section.key) ?? null;
+                const isHighlighted = highlightIndex === idx;
 
                 return (
                   <OfferCard
@@ -1030,7 +1166,8 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
                     selected={job.id === selectedJobId}
                     saved={savedJobIds.includes(job.id)}
                     language={language}
-                    variant={variant as any}
+                    variant={section.layout === 'grid_large' && isHighlighted ? 'large' : 'default'}
+                    contrast={isHighlighted}
                     className={spanClass}
                     onSelect={() => onSelect(job.id)}
                     onOpen={() => onOpen(job.id)}
@@ -1051,7 +1188,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
             count={remaining.length}
           />
           <div className="grid grid-cols-1 items-stretch gap-5 md:auto-rows-fr md:grid-cols-6 md:grid-flow-dense xl:auto-rows-fr xl:grid-cols-12 xl:grid-flow-dense">
-            {remaining.slice(0, 24).map((job, idx, list) => {
+            {visibleRemaining.map((job, idx, list) => {
               return (
                 <OfferCard
                   key={job.id}
@@ -1059,6 +1196,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
                   selected={job.id === selectedJobId}
                   saved={savedJobIds.includes(job.id)}
                   language={language}
+                  contrast={remainingHighlightIndexes.has(idx)}
                   className={getBalancedGridSpanClass(idx, list.length)}
                   onSelect={() => onSelect(job.id)}
                   onOpen={() => onOpen(job.id)}

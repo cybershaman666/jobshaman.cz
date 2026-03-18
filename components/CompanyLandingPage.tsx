@@ -627,8 +627,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   };
 
   return (
-    <div className="app-shell-bg app-aurora-shell h-full w-full overflow-y-auto rounded-[var(--radius-xl)] border border-[var(--border)]">
-      <div className="mx-auto flex max-w-6xl flex-1 flex-col gap-6 p-6 lg:p-10">
+    <div className="mx-auto w-full max-w-[1680px] px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+      <div className="app-aurora-shell mx-auto flex w-full max-w-[1480px] flex-col gap-6 lg:gap-7">
         <div className="flex justify-end">
           <button onClick={() => handleLogin('topbar')} className="app-button-secondary rounded-full px-4 py-2">
             <LogIn size={16} />
@@ -700,10 +700,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.comparisonTitle}</h2>
           </div>
           <div className="grid grid-cols-[1fr,1fr] gap-3 text-sm">
-            <div className="rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3 font-semibold text-rose-700">
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 font-semibold text-[var(--text-muted)]">
               {copy.comparisonOld}
             </div>
-            <div className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-700">
+            <div className="rounded-[var(--radius-md)] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-4 py-3 font-semibold text-[var(--accent)]">
               {copy.comparisonNew}
             </div>
             {copy.comparisonRows.map(([legacy, next]) => (
@@ -734,48 +734,58 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           })}
         </section>
 
-        <section className="company-surface rounded-[var(--radius-xl)] border p-6 shadow-[var(--shadow-card)] lg:p-8">
-          <div className="mb-3 flex items-center gap-3">
-            <Crown className="text-[var(--accent)]" size={20} />
-            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.pricingTitle}</h2>
-          </div>
-          <p className="max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{copy.pricingLead}</p>
+        <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#0b2f38)] p-6 shadow-[0_36px_90px_-56px_rgba(8,23,37,0.72)] lg:p-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.22),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(var(--accent-sky-rgb),0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%)]"
+          />
+          <div className="relative z-10">
+            <div className="mb-3 flex items-center gap-3">
+              <Crown className="text-[var(--accent)]" size={20} />
+              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-slate-50">{copy.pricingTitle}</h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-6 text-slate-300">{copy.pricingLead}</p>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {copy.pricingPlans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-[var(--radius-xl)] border p-5 shadow-[var(--shadow-soft)] ${
-                  plan.highlighted
-                    ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[var(--accent-soft)]'
-                    : 'company-surface-subtle'
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="app-eyebrow !px-2.5 !py-1 !text-[10px]">
-                    <Sparkles size={12} />
-                    {copy.recommended}
-                  </div>
-                )}
-                <div className="mt-3 text-lg font-semibold text-[var(--text-strong)]">{plan.name}</div>
-                <div className="mt-2 text-2xl font-black text-[var(--text-strong)]">{plan.price}</div>
-                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{plan.note}</p>
-                <div className="mt-4 space-y-2">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-start gap-2 text-sm text-[var(--text)]">
-                      <CheckCircle size={16} className="mt-0.5 shrink-0 text-amber-500" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => (plan.ctaMode === 'demo' ? handleDemo('pricing') : handleRegister('pricing'))}
-                  className={plan.highlighted ? 'app-button-primary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3' : 'app-button-secondary mt-5 w-full rounded-[var(--radius-md)] px-4 py-3'}
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {copy.pricingPlans.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`rounded-[var(--radius-xl)] border p-5 backdrop-blur-xl ${
+                    plan.highlighted
+                      ? 'border-[rgba(var(--accent-rgb),0.42)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.22),rgba(255,255,255,0.08))] shadow-[0_28px_56px_-32px_rgba(var(--accent-rgb),0.42)]'
+                      : 'border-white/10 bg-white/6 shadow-[0_20px_40px_-32px_rgba(2,6,23,0.7)]'
+                  }`}
                 >
-                  {plan.ctaLabel || (plan.ctaMode === 'demo' ? copy.secondaryCta : copy.primaryCta)}
-                </button>
-              </div>
-            ))}
+                  {plan.highlighted && (
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.18)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                      <Sparkles size={12} />
+                      {copy.recommended}
+                    </div>
+                  )}
+                  <div className="mt-3 text-lg font-semibold text-white">{plan.name}</div>
+                  <div className={`mt-2 text-2xl font-black ${plan.highlighted ? 'text-[var(--accent)]' : 'text-slate-50'}`}>{plan.price}</div>
+                  <p className="mt-2 text-xs leading-5 text-slate-300">{plan.note}</p>
+                  <div className="mt-4 space-y-2">
+                    {plan.features.map((feature) => (
+                      <div key={feature} className="flex items-start gap-2 text-sm text-slate-100">
+                        <CheckCircle size={16} className={`mt-0.5 shrink-0 ${plan.highlighted ? 'text-[var(--accent)]' : 'text-slate-300'}`} />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => (plan.ctaMode === 'demo' ? handleDemo('pricing') : handleRegister('pricing'))}
+                    className={
+                      plan.highlighted
+                        ? 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.5)] transition hover:brightness-110'
+                        : 'mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/12'
+                    }
+                  >
+                    {plan.ctaLabel || (plan.ctaMode === 'demo' ? copy.secondaryCta : copy.primaryCta)}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

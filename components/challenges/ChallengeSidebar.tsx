@@ -562,8 +562,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
 
   return (
     <aside className="lg:sticky lg:top-[calc(var(--app-sticky-stack-offset)+10px)] lg:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-28px)] lg:overflow-y-auto">
-      <SurfaceCard className="space-y-4 rounded-[18px] border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.14)] lg:p-5" variant="default">
-        <div className="flex items-center justify-between gap-3">
+      <SurfaceCard className="app-sidebar-shell space-y-4 rounded-[18px] border-[var(--border)] bg-white p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.14)] lg:p-5" variant="default">
+        <div className="space-y-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
               {copy.reality}
@@ -572,25 +572,26 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
               {copy.helper}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onOpenProfile}
-            className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]"
-          >
-            {copy.profile}
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]"
+            >
+              {copy.profile}
+            </button>
+            {hasAnyFilters ? (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-strong)]"
+              >
+                <RotateCcw size={12} />
+                {copy.resetAll}
+              </button>
+            ) : null}
+          </div>
         </div>
-
-        {hasAnyFilters ? (
-          <button
-            type="button"
-            onClick={resetAllFilters}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-strong)]"
-          >
-            <RotateCcw size={12} />
-            {copy.resetAll}
-          </button>
-        ) : null}
 
         {activeSignals.length ? (
           <div className="flex flex-wrap gap-2">
@@ -629,7 +630,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
             </div>
           </div>
         ))}
-        <div className="space-y-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),var(--surface-elevated))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)]">
+        <div className="app-sidebar-shell rounded-[22px] border border-[var(--border-subtle)] bg-white p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] space-y-3">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.quickReality}</div>
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.salary}</div>
@@ -666,7 +667,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-[22px] border border-[rgba(var(--accent-rgb),0.10)] bg-[linear-gradient(180deg,rgba(var(--accent-rgb),0.05),var(--surface-elevated))] p-3.5 shadow-[0_18px_34px_-26px_rgba(15,23,42,0.22)]">
+        <div className="app-sidebar-shell grid gap-3 rounded-[22px] border border-[var(--border-subtle)] bg-white p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)]">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.distance}</div>
             <div className="text-sm font-semibold text-[var(--text-strong)]">{enableCommuteFilter ? `${filterMaxDistance} km` : copy.off}</div>
