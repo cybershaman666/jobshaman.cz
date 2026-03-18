@@ -218,10 +218,14 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     };
   }, [commuteAnalysis, copy, job.jhi?.score, remoteRole]);
   const heroLead = isImported ? copy.heroLeadImported : copy.heroLeadNative;
+  const heroPanelClass = 'border-[var(--border-subtle)] bg-[var(--surface)] dark:bg-slate-950';
+  const heroPanelSoftClass = 'border-[var(--border-subtle)] bg-[var(--surface-muted)] dark:bg-slate-950';
+  const heroStrongTextClass = 'text-slate-900 dark:text-white';
+  const heroMutedTextClass = 'text-slate-600 dark:text-slate-300';
 
   return (
     <div className="space-y-5">
-      <div className="mx-auto w-full max-w-[1760px] space-y-5 pb-8">
+      <div className="mx-auto w-full max-w-[1480px] space-y-5 pb-8">
         <button
           type="button"
           onClick={onBack}
@@ -232,15 +236,15 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
         </button>
 
         <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
-          <div className="relative min-h-[220px] overflow-hidden rounded-[16px] bg-[var(--surface)]">
+          <div className="relative min-h-[180px] overflow-hidden rounded-[16px] bg-[var(--surface)]">
             <img
               src={coverImageUrl}
               alt={job.company}
-              className="absolute inset-0 h-full w-full object-cover opacity-[0.08] saturate-0"
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.26] saturate-[0.94] dark:opacity-[0.3]"
               loading="lazy"
             />
 
-            <div className="relative flex h-full min-h-[220px] flex-col justify-between p-6 sm:p-8 lg:p-9">
+            <div className="relative flex h-full min-h-[180px] flex-col justify-between p-5 sm:p-6 lg:p-7">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-[999px] border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
@@ -266,23 +270,19 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                 </div>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_340px]">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
                 <div className={cn(
                   'space-y-4 rounded-[18px] border p-4 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.12)] sm:p-5',
-                  isImported
-                    ? 'border-slate-200 bg-white'
-                    : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                  heroPanelClass
                 )}>
                   <div className={cn(
                     'inline-flex max-w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 shadow-none',
-                    isImported
-                      ? 'border-slate-200 bg-white'
-                      : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                    heroPanelSoftClass
                   )}>
                     {usePublisherMonogram ? (
                       <div className={cn(
-                        'flex h-14 w-14 items-center justify-center rounded-[6px] text-sm font-bold ring-1',
-                        isImported ? 'bg-slate-100 text-slate-900 ring-slate-200' : 'bg-slate-100 text-slate-900 ring-slate-200 dark:bg-slate-900 dark:text-white dark:ring-slate-700'
+                        'flex h-12 w-12 items-center justify-center rounded-[10px] text-sm font-bold ring-1',
+                        'bg-slate-100 text-slate-900 ring-slate-200 dark:bg-slate-900 dark:text-white dark:ring-slate-700'
                       )}>
                         {publisherInitials}
                       </div>
@@ -290,30 +290,28 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       <img
                         src={publisherAvatar}
                         alt={publisherName}
-                        className={cn('h-14 w-14 rounded-[6px] object-cover ring-1', isImported ? 'ring-slate-200' : 'ring-slate-200 dark:ring-slate-700')}
+                        className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                         loading="lazy"
                       />
                     )}
                     <div>
-                      <div className={cn('text-sm font-semibold', isImported ? 'text-slate-900' : 'text-slate-900 dark:text-white')}>{publisherName}</div>
-                      <div className={cn('text-sm', isImported ? 'text-slate-600' : 'text-slate-600 dark:text-slate-300')}>{publisherRole}</div>
+                      <div className={cn('text-sm font-semibold', heroStrongTextClass)}>{publisherName}</div>
+                      <div className={cn('text-sm', heroMutedTextClass)}>{publisherRole}</div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <h1 className={cn(
-                      'max-w-5xl text-[2rem] font-semibold leading-[1.06] tracking-[-0.04em] sm:text-[2.4rem] lg:text-[2.8rem]',
-                      isImported ? 'text-slate-950' : 'text-slate-950 dark:text-white'
+                      'max-w-4xl text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[2.2rem] lg:text-[2.5rem]',
+                      heroStrongTextClass
                     )}>
                       {job.title}
                     </h1>
                     <div className={cn(
-                      'inline-flex max-w-3xl rounded-[6px] border px-4 py-3 shadow-none',
-                      isImported
-                        ? 'border-slate-200 bg-white'
-                        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                      'inline-flex max-w-2xl rounded-[14px] border px-4 py-3 shadow-none',
+                      heroPanelSoftClass
                     )}>
-                      <p className={cn('text-sm leading-6 sm:text-base', isImported ? 'text-slate-700' : 'text-slate-700 dark:text-slate-200')}>
+                      <p className={cn('text-sm leading-6 sm:text-base', heroMutedTextClass)}>
                         {heroLead}
                       </p>
                     </div>
@@ -321,44 +319,38 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
                   <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                     <div className={cn(
-                      'min-w-0 rounded-[6px] border px-3.5 py-3 shadow-none',
-                      isImported
-                        ? 'border-slate-200 bg-white'
-                        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
+                      heroPanelSoftClass
                     )}>
-                      <div className={cn('flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]', isImported ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400')}>
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                         <MapPin size={13} />
                         {copy.location}
                       </div>
-                      <div className={cn('mt-2 text-sm leading-6 break-words', isImported ? 'text-slate-800' : 'text-slate-800 dark:text-slate-100')}>
+                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
                         {locationValue}
                       </div>
                     </div>
                     <div className={cn(
-                      'min-w-0 rounded-[6px] border px-3.5 py-3 shadow-none',
-                      isImported
-                        ? 'border-slate-200 bg-white'
-                        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
+                      heroPanelSoftClass
                     )}>
-                      <div className={cn('flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]', isImported ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400')}>
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                         <Compass size={13} />
                         {copy.workModel}
                       </div>
-                      <div className={cn('mt-2 text-sm leading-6 break-words', isImported ? 'text-slate-800' : 'text-slate-800 dark:text-slate-100')}>
+                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
                         {workModelValue}
                       </div>
                     </div>
                     <div className={cn(
-                      'min-w-0 rounded-[6px] border px-3.5 py-3 shadow-none',
-                      isImported
-                        ? 'border-slate-200 bg-white'
-                        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
+                      heroPanelSoftClass
                     )}>
-                      <div className={cn('flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]', isImported ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400')}>
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                         <Wallet size={13} />
                         {copy.salary}
                       </div>
-                      <div className={cn('mt-2 text-sm leading-6 break-words', isImported ? 'text-slate-800' : 'text-slate-800 dark:text-slate-100')}>
+                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
                         {displayedSalary}
                       </div>
                     </div>
@@ -398,13 +390,11 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
                 <div className={cn(
                   'self-end rounded-[18px] border p-4 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.12)]',
-                  isImported
-                    ? 'border-slate-200 bg-white text-slate-900'
-                    : 'border-[var(--border-subtle)] bg-white text-slate-900 dark:bg-slate-950 dark:text-white'
+                  `${heroPanelClass} ${heroStrongTextClass}`
                 )}>
                   <div className={cn('mt-4 grid gap-3', isImported ? 'grid-cols-1' : matchScore > 0 ? 'sm:grid-cols-2 lg:grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-1')}>
                     {matchScore > 0 ? (
-                      <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950">
+                      <div className="rounded-[14px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.match}</div>
                         <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{matchScore}%</div>
                       </div>
@@ -416,18 +406,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className={item.accent
-                          ? (isImported
-                            ? 'rounded-[6px] border border-slate-200 bg-white px-4 py-4'
-                            : 'rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950')
-                          : (isImported
-                            ? 'rounded-[6px] border border-slate-200 bg-white px-4 py-4'
-                            : 'rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950')}
+                        className={`rounded-[14px] border px-4 py-4 ${heroPanelSoftClass}`}
                       >
-                        <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', isImported ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400')}>{item.label}</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{item.label}</div>
                         <div className={cn(
                           'mt-2 font-semibold tracking-[-0.03em]',
-                          isImported ? 'text-slate-900' : 'text-slate-900 dark:text-white',
+                          heroStrongTextClass,
                           item.label === copy.location || item.label === copy.workModel ? 'text-sm leading-6 break-words' : 'text-lg'
                         )}>{item.value}</div>
                       </div>
@@ -435,8 +419,8 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   </div>
 
                   {isImported ? (
-                    <div className="mt-4 rounded-[6px] border border-slate-200 bg-white p-3.5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className={`mt-4 rounded-[14px] border p-3.5 ${heroPanelSoftClass}`}>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                         {copy.response}
                       </div>
                       <button
@@ -456,7 +440,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
         </div>
 
         {isImported ? (
-          <div className="mx-auto w-full max-w-[1520px]">
+          <div className="mx-auto w-full max-w-[1480px]">
             <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
               <div>
                 <div className="text-sm font-semibold text-[var(--text-strong)]">
@@ -477,7 +461,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
           </div>
         ) : null}
 
-        <div className="mx-auto w-full max-w-[1520px]">
+        <div className="mx-auto w-full max-w-[1480px]">
           <div className="space-y-5">
             <SurfaceCard className="space-y-5 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
               <SectionTitle title={copy.insideTitle} />
@@ -725,16 +709,16 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       </div>
 
                       {bullshitAnalysis.signals.length > 0 ? (
-                        <div className="mt-3 rounded-[6px] border border-[var(--border-subtle)] bg-white px-3.5 py-3.5 dark:bg-slate-950">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                        <div className="mt-3 rounded-[6px] border border-rose-200 bg-rose-50/70 px-3.5 py-3.5 dark:border-rose-900/60 dark:bg-rose-950/20">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">
                             {copy.bullshitTitle}
                           </div>
-                          <div className="mt-1 text-xs font-semibold text-[var(--text-strong)]">
+                          <div className="mt-1 text-xs font-semibold text-rose-900 dark:text-rose-100">
                             {bullshitAnalysis.tone === 'bullshit'
                               ? `${copy.bullshitSmells} (${bullshitAnalysis.score}/${bullshitAnalysis.maxScore})`
                               : `${copy.bullshitWatch} (${bullshitAnalysis.score}/${bullshitAnalysis.maxScore})`}
                           </div>
-                          <div className="mt-1.5 text-xs leading-5 text-[var(--text-muted)]">
+                          <div className="mt-1.5 text-xs leading-5 text-rose-800 dark:text-rose-100/90">
                             {bullshitAnalysis.summary}
                           </div>
                           {bullshitAnalysis.categories.length > 0 ? (
@@ -742,7 +726,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                               {bullshitAnalysis.categories.map((category) => (
                                 <span
                                   key={category}
-                                  className="inline-flex items-center rounded-[999px] border border-[var(--border-subtle)] bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                                  className="inline-flex items-center rounded-[999px] border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200"
                                 >
                                   {category}
                                 </span>
@@ -753,7 +737,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                             {bullshitAnalysis.signals.map((signal) => (
                               <div
                                 key={signal}
-                                className="text-xs leading-5 text-[var(--text-muted)]"
+                                className="text-xs leading-5 text-rose-800 dark:text-rose-100/90"
                               >
                                 {signal}
                               </div>
@@ -763,21 +747,21 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       ) : null}
 
                       {bullshitAnalysis.greenFlags.length > 0 ? (
-                        <div className="mt-3 rounded-[6px] border border-[var(--border-subtle)] bg-white px-3.5 py-3.5 dark:bg-slate-950">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                        <div className="mt-3 rounded-[6px] border border-emerald-200 bg-emerald-50/70 px-3.5 py-3.5 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
                             {copy.greenTitle}
                           </div>
-                          <div className="mt-1 text-xs font-semibold text-[var(--text-strong)]">
+                          <div className="mt-1 text-xs font-semibold text-emerald-900 dark:text-emerald-100">
                             {copy.greenSubtitle}
                           </div>
-                          <div className="mt-1.5 text-xs leading-5 text-[var(--text-muted)]">
+                          <div className="mt-1.5 text-xs leading-5 text-emerald-800 dark:text-emerald-100/90">
                             {bullshitAnalysis.greenSummary}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {bullshitAnalysis.greenFlags.map((flag) => (
                               <span
                                 key={flag}
-                                className="inline-flex items-center rounded-[999px] border border-[var(--border-subtle)] bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                                className="inline-flex items-center rounded-[999px] border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200"
                               >
                                 {flag}
                               </span>

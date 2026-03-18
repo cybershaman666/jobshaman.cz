@@ -1573,15 +1573,19 @@ const ChallengeMarketplace: React.FC<ChallengeMarketplaceProps> = ({
     [locale, userProfile]
   );
   const resolvedDialogueCapacity = useMemo(() => {
+    if (userProfile.isLoggedIn && hasPremiumAccess) {
+      const active = dialogueCapacity?.active || 0;
+      if (dialogueCapacity && dialogueCapacity.limit >= 25) {
+        return dialogueCapacity;
+      }
+      return {
+        active,
+        limit: 25,
+        remaining: Math.max(0, 25 - active),
+      };
+    }
     if (dialogueCapacity && dialogueCapacity.limit > 0) {
       return dialogueCapacity;
-    }
-    if (userProfile.isLoggedIn && hasPremiumAccess) {
-      return {
-        active: dialogueCapacity?.active || 0,
-        limit: 25,
-        remaining: Math.max(0, 25 - (dialogueCapacity?.active || 0)),
-      };
     }
     return dialogueCapacity;
   }, [dialogueCapacity, hasPremiumAccess, userProfile.isLoggedIn]);

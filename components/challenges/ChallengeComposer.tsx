@@ -45,6 +45,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
   const [dialogue, setDialogue] = useState<DialogueDetail | null>(null);
   const [dialogueCapacity, setDialogueCapacity] = useState<CandidateDialogueCapacity | null>(null);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const hasPremiumAccess = userProfile.subscription?.tier === 'premium';
   const copy = locale === 'cs'
     ? {
         loading: 'Načítám challenge diskusi…',
@@ -261,6 +262,24 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
     };
   }, [userProfile.id, userProfile.isLoggedIn]);
 
+  const resolvedDialogueCapacity = useMemo(() => {
+    if (!userProfile.isLoggedIn) return dialogueCapacity;
+    if (!hasPremiumAccess) return dialogueCapacity;
+
+    const active = Math.max(0, Number(dialogueCapacity?.active || 0));
+    const premiumLimit = 25;
+
+    if (!dialogueCapacity || dialogueCapacity.limit < premiumLimit) {
+      return {
+        active,
+        limit: premiumLimit,
+        remaining: Math.max(0, premiumLimit - active),
+      };
+    }
+
+    return dialogueCapacity;
+  }, [dialogueCapacity, hasPremiumAccess, userProfile.isLoggedIn]);
+
   useEffect(() => {
     if (!draft.trim()) {
       window.localStorage.removeItem(storageKey);
@@ -471,10 +490,10 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
               <div className="font-semibold text-slate-900 dark:text-white">{copy.slotsTitle}</div>
               <div className="mt-1">{copy.slotsHint}</div>
               <div className="mt-2 font-semibold text-slate-900 dark:text-white">
-                {dialogueCapacity
+                {resolvedDialogueCapacity
                   ? copy.slotsValue
-                    .replace('{{remaining}}', String(dialogueCapacity.remaining))
-                    .replace('{{limit}}', String(dialogueCapacity.limit))
+                    .replace('{{remaining}}', String(resolvedDialogueCapacity.remaining))
+                    .replace('{{limit}}', String(resolvedDialogueCapacity.limit))
                   : copy.slotsLoading}
               </div>
             </div>

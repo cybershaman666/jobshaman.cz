@@ -1342,15 +1342,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const isJcfpmTab = activeTab === 'jcfpm';
   const isChallengesTab = activeTab === 'challenges';
   const isSettingsTab = activeTab === 'settings';
-  const profileInputClass = 'w-full rounded-[0.95rem] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
-  const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.34)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.08)] dark:[color-scheme:dark]';
-  const profileIconButtonClass = 'rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]';
+  const profileInputClass = 'w-full rounded-[0.9rem] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.22)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.06)] dark:[color-scheme:dark]';
+  const profileCompactInputClass = 'w-full rounded-[0.85rem] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.22)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.06)] dark:[color-scheme:dark]';
+  const profileIconButtonClass = 'rounded-[0.85rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]';
   const profilePrimaryButtonClass = 'app-button-primary app-organic-cta disabled:cursor-not-allowed disabled:opacity-60';
-  const profileSurfaceClass = 'app-surface app-organic-panel overflow-hidden rounded-[var(--radius-xl)] border shadow-[var(--shadow-card)]';
-  const profileAccentIconShellClass = 'rounded-lg bg-[var(--accent-soft)] p-2';
-  const profileAccentIconClass = 'h-5 w-5 text-[var(--accent)]';
-  const profileAccentPanelClass = 'app-organic-panel-soft rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4';
-  const profileAccentBadgeClass = 'inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]';
+  const profileSurfaceClass = 'overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]';
+  const profileAccentIconShellClass = 'rounded-[12px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2';
+  const profileAccentIconClass = 'h-5 w-5 text-[var(--text-strong)]';
+  const profileAccentPanelClass = 'rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4';
+  const profileAccentBadgeClass = 'inline-flex items-center rounded-[999px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]';
 
   const profileHeroCopy = ({
     cs: {
@@ -2975,16 +2975,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   return (
-    <div className="app-shell-bg relative min-h-screen overflow-x-clip">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-18rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-[rgba(var(--accent-rgb),0.14)] blur-3xl" />
-        <div className="absolute right-[-14rem] top-[8rem] h-[24rem] w-[24rem] rounded-full bg-[rgba(var(--accent-rgb),0.08)] blur-3xl" />
-        <div className="absolute bottom-[-12rem] left-[30%] h-[24rem] w-[24rem] rounded-full bg-amber-200/20 blur-3xl dark:bg-amber-500/10" />
-      </div>
-
-      <div className="app-aurora-shell relative mx-auto w-full max-w-[1720px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
+    <div className="app-shell-bg relative min-h-screen overflow-x-clip bg-white dark:bg-slate-950">
+      <div className="relative mx-auto w-full max-w-[1680px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
         {/* Header */}
-        <div className="app-page-header app-organic-shell overflow-hidden rounded-[var(--radius-2xl)] border p-5 shadow-[var(--shadow-card)] sm:p-7">
+        <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)] sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
@@ -2992,16 +2986,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <img
                     src={profile.photo}
                     alt="Profile"
-                    className="h-20 w-20 rounded-full border border-[var(--border)] object-cover ring-2 ring-[rgba(var(--accent-rgb),0.14)] sm:h-24 sm:w-24"
+                    className="h-20 w-20 rounded-[18px] border border-[var(--border)] object-cover sm:h-24 sm:w-24"
                     onError={() => setProfilePhotoFailed(true)}
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-muted)] ring-2 ring-[rgba(var(--accent-rgb),0.14)] sm:h-24 sm:w-24">
-                    <Camera size={32} className="text-[var(--accent)]" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-[18px] border border-[var(--border)] bg-[var(--surface-muted)] sm:h-24 sm:w-24">
+                    <Camera size={32} className="text-[var(--text-muted)]" />
                   </div>
                 )}
 
-                <label className="absolute bottom-0 right-0 cursor-pointer rounded-full border border-[rgba(var(--accent-rgb),0.2)] bg-[var(--accent)] p-2 text-white transition-colors hover:bg-[var(--accent-hover)]">
+                <label className="absolute bottom-0 right-0 cursor-pointer rounded-[10px] border border-[var(--border-subtle)] bg-white p-2 text-slate-700 transition-colors hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
                   <input
                     type="file"
                     accept="image/*"
@@ -3030,7 +3024,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <button
                     onClick={handlePhotoRepair}
                     disabled={isRepairingPhoto}
-                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-elevated)]"
+                  className="mt-2 inline-flex items-center gap-2 rounded-[999px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-elevated)]"
                   >
                     {isRepairingPhoto ? t('profile.photo_uploading') : t('profile.photo_repair')}
                   </button>
@@ -3040,15 +3034,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             <div className="w-full max-w-[34rem] space-y-3 lg:w-auto">
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
                   <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.readiness}</div>
                   <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileReadinessScore}%</div>
                 </div>
-                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
                   <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.sections}</div>
                   <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileTotalSections}</div>
                 </div>
-                <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
+                <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3">
                   <div className="min-w-0 break-words text-[10px] leading-tight text-[var(--text-faint)]">{profileHeroCopy.docs}</div>
                   <div className="mt-1 text-xl font-semibold text-[var(--text-strong)]">{profileDocumentsReady}/2</div>
                 </div>
@@ -3085,13 +3079,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`rounded-[1rem] border px-3 py-3 text-left transition-all ${isActive
-                    ? 'border-[rgba(var(--accent-rgb),0.26)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[var(--shadow-soft)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:-translate-y-[1px] hover:border-[rgba(var(--accent-rgb),0.18)] hover:bg-[var(--surface-elevated)]'
+                  className={`rounded-[14px] border px-3 py-3 text-left transition-all ${isActive
+                    ? 'border-[var(--border)] bg-white text-[var(--text-strong)] shadow-[0_10px_24px_-18px_rgba(15,23,42,0.18)] dark:bg-slate-950'
+                    : 'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text)] hover:-translate-y-[1px] hover:border-[var(--border)] hover:bg-[var(--surface-elevated)]'
                     }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`rounded-lg p-2 ${isActive ? 'bg-white/70 text-[var(--accent)]' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                    <div className={`rounded-[10px] p-2 ${isActive ? 'bg-[var(--surface-muted)] text-[var(--text-strong)]' : 'bg-[var(--surface-elevated)] text-[var(--text-muted)]'}`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">

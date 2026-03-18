@@ -6,6 +6,10 @@ const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'praha': { lat: 50.0755, lon: 14.4378 },
     'prague': { lat: 50.0755, lon: 14.4378 },
     'brno': { lat: 49.1951, lon: 16.6068 },
+    'stary liskovec': { lat: 49.1686, lon: 16.5815 },
+    'brno stary liskovec': { lat: 49.1686, lon: 16.5815 },
+    'dolni herspice': { lat: 49.1702, lon: 16.5979 },
+    'brno dolni herspice': { lat: 49.1702, lon: 16.5979 },
     'ostrava': { lat: 49.8209, lon: 18.2625 },
     'plzen': { lat: 49.7384, lon: 13.3736 },
     'liberec': { lat: 50.7663, lon: 15.0543 },
@@ -99,19 +103,20 @@ export const getStaticCoordinates = (address: string): { lat: number, lon: numbe
     if (isCountryOnlyAddress(address)) {
         return COUNTRY_CENTROIDS[normalizeAddress(address)] || null;
     }
-    if (!isCityOnlyAddress(address)) return null;
     const normalized = normalizeAddress(address);
     if (EU_CITIES_CACHE[normalized]) return EU_CITIES_CACHE[normalized];
 
     const staticKeys = Object.keys(EU_CITIES_CACHE).sort((a, b) => b.length - a.length);
-    for (const key of staticKeys) {
-        if (normalized.includes(key)) {
-            return EU_CITIES_CACHE[key];
+    if (isCityOnlyAddress(address)) {
+        for (const key of staticKeys) {
+            if (normalized.includes(key)) {
+                return EU_CITIES_CACHE[key];
+            }
         }
     }
 
     const parts = String(address)
-        .split(',')
+        .split(/[,\-\/|]/)
         .map((part) => normalizeAddress(part))
         .filter(Boolean);
     for (const part of parts) {
@@ -122,6 +127,13 @@ export const getStaticCoordinates = (address: string): { lat: number, lon: numbe
             }
         }
     }
+
+    for (const key of staticKeys) {
+        if (normalized.includes(key)) {
+            return EU_CITIES_CACHE[key];
+        }
+    }
+
     return null;
 };
 

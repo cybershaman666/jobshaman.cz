@@ -104,7 +104,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 
     tier_limits = {
         "free": {"assessments": 0, "job_postings": 1, "role_opens": 1, "dialogue_slots": 3, "name": "Free"},
-        "premium": {"assessments": 0, "job_postings": 0, "role_opens": 0, "dialogue_slots": 0, "name": "Premium"},
+        "premium": {"assessments": 0, "job_postings": 0, "role_opens": 0, "dialogue_slots": 25, "name": "Premium"},
         "starter": {"assessments": 15, "job_postings": 3, "role_opens": 3, "dialogue_slots": 12, "name": "Starter"},
         "growth": {"assessments": 60, "job_postings": 10, "role_opens": 10, "dialogue_slots": 40, "name": "Growth"},
         "professional": {"assessments": 150, "job_postings": 20, "role_opens": 25, "dialogue_slots": 100, "name": "Professional"},
