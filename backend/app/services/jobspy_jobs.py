@@ -18,6 +18,7 @@ except Exception:
 
 from ..core import config
 from .jobs_postgres_store import (
+    backfill_jobs_from_documents,
     backfill_jobspy_from_documents,
     get_jobs_postgres_health,
     jobs_postgres_enabled,
@@ -95,6 +96,64 @@ def _safe_str(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
     return str(value).strip()
+
+
+def _coerce_amount(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(float(value))
+    except Exception:
+        return None
+
+
+def _jobspy_document_to_jobs_row(document: dict[str, Any]) -> dict[str, Any]:
+    source_site = _safe_str(document.get("source_site") or document.get("provider") or "jobspy")
+    location = _safe_str(document.get("location") or document.get("search_location_query") or "Remote")
+    title = _safe_str(document.get("title") or "Role")
+    company = _safe_str(document.get("company") or "Unknown company")
+    description = _safe_str(document.get("description") or title)
+    tags = [value for value in [
+        source_site,
+        _safe_str(document.get("job_type")),
+        _safe_str(document.get("interval")),
+    ] if value]
+    work_model = "Remote" if bool(document.get("is_remote")) else "On-site"
+    return {
+        "id": _safe_str(document.get("_id")),
+        "company_id": None,
+        "posted_by": None,
+        "recruiter_id": None,
+        "title": title,
+        "company": company,
+        "location": location or "Remote",
+        "description": description,
+        "benefits": [],
+        "tags": tags[:8],
+        "contract_type": _safe_str(document.get("job_type")) or None,
+        "salary_from": _coerce_amount(document.get("min_amount")),
+        "salary_to": _coerce_amount(document.get("max_amount")),
+        "salary_timeframe": _safe_str(document.get("interval")) or "month",
+        "salary_currency": _safe_str(document.get("currency")) or "EUR",
+        "currency": _safe_str(document.get("currency")) or "EUR",
+        "work_type": work_model,
+        "work_model": work_model,
+        "source": source_site,
+        "source_kind": "external",
+        "url": _safe_str(document.get("job_url")),
+        "education_level": None,
+        "lat": document.get("lat"),
+        "lng": document.get("lng"),
+        "country_code": _safe_str(document.get("country_code")) or None,
+        "language_code": "en",
+        "legality_status": "legal",
+        "verification_notes": f"JobSpy import from {source_site}",
+        "status": "active",
+        "is_active": True,
+        "created_at": document.get("scraped_at"),
+        "scraped_at": document.get("scraped_at"),
+        "updated_at": document.get("updated_at"),
+    }
 
 
 def _sanitize_for_json(value: Any) -> Any:
@@ -494,6 +553,15 @@ def import_jobspy_jobs(
             except Exception as exc:
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to persist JobSpy docs to Jobs Postgres: {exc}")
+            try:
+                backfill_jobs_from_documents([
+                    _jobspy_document_to_jobs_row(document)
+                    for document in documents
+                    if isinstance(document, dict) and _safe_str(document.get("_id"))
+                ])
+            except Exception as exc:
+                storage_errors.append(exc)
+                print(f"⚠️ Failed to mirror JobSpy docs into Jobs main table: {exc}")
 
         if config.MONGODB_URI:
             try:

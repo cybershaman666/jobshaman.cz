@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.database import supabase
+from ..core import config
 from .jobs_postgres_store import backfill_jobs_from_documents, jobs_postgres_enabled
 
 
@@ -15,6 +16,18 @@ def backfill_jobs_postgres_from_supabase(
     if not jobs_postgres_enabled():
         return {
             "jobs_postgres_enabled": False,
+            "url_configured": bool(config.JOBS_POSTGRES_URL),
+            "serve_main": bool(config.JOBS_POSTGRES_SERVE_MAIN),
+            "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
+            "resolved_url_source_candidates": {
+                "JOBS_POSTGRES_URL": bool(os.getenv("JOBS_POSTGRES_URL")),
+                "NORTHFLANK_POSTGRES_URL": bool(os.getenv("NORTHFLANK_POSTGRES_URL")),
+                "EXTERNAL_POSTGRES_URI_ADMIN": bool(os.getenv("EXTERNAL_POSTGRES_URI_ADMIN")),
+                "EXTERNAL_POSTGRES_URI": bool(os.getenv("EXTERNAL_POSTGRES_URI")),
+                "POSTGRES_URI_ADMIN": bool(os.getenv("POSTGRES_URI_ADMIN")),
+                "POSTGRES_URI": bool(os.getenv("POSTGRES_URI")),
+                "DATABASE_URL": bool(os.getenv("DATABASE_URL")),
+            },
             "scanned": 0,
             "imported": 0,
             "upserted": 0,
@@ -23,6 +36,9 @@ def backfill_jobs_postgres_from_supabase(
     if not supabase:
         return {
             "jobs_postgres_enabled": True,
+            "url_configured": bool(config.JOBS_POSTGRES_URL),
+            "serve_main": bool(config.JOBS_POSTGRES_SERVE_MAIN),
+            "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
             "supabase_available": False,
             "scanned": 0,
             "imported": 0,
@@ -65,6 +81,9 @@ def backfill_jobs_postgres_from_supabase(
 
     return {
         "jobs_postgres_enabled": True,
+        "url_configured": bool(config.JOBS_POSTGRES_URL),
+        "serve_main": bool(config.JOBS_POSTGRES_SERVE_MAIN),
+        "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
         "supabase_available": True,
         "scanned": scanned,
         "imported": imported,

@@ -28,6 +28,10 @@ try:
 except ImportError:
     from scraper_api_sources import run_external_api_sources  # type: ignore
 try:
+    from .scraper_base import save_job_to_supabase as shared_save_job_to_supabase
+except ImportError:
+    from scraper_base import save_job_to_supabase as shared_save_job_to_supabase  # type: ignore
+try:
     from scripts.backfill_remote_import_metadata import backfill as backfill_remote_import_metadata
 except ImportError:
     try:
@@ -694,130 +698,7 @@ def extract_salary_range(stxt):
 
 # --- Uložení do Supabase ---
 def save_job_to_supabase(job_data):
-    if not supabase:
-        print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
-        return False
-
-    response = None
-    for attempt in range(2):
-        try:
-            response = (
-                supabase.table("jobs")
-                .select("id,language_code")
-                .eq("url", job_data["url"])
-                .execute()
-            )
-            break
-        except Exception as e:
-            if attempt == 0 and _is_transient_db_error(e):
-                print(f"Chyba při kontrole duplicity (pokus 1/2): {e}")
-                _refresh_supabase_client()
-                time.sleep(0.4)
-                continue
-            print(f"Chyba při kontrole duplicity: {e}")
-            break
-    if response and response.data:
-        print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
-        row = response.data[0]
-        if row.get("language_code") is None:
-            lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
-            detected_lang = detect_language_code(lang_text)
-            if not detected_lang:
-                cc = (job_data.get("country_code") or "").lower()
-                if cc in ("cz", "cs"):
-                    detected_lang = "cs"
-                elif cc == "sk":
-                    detected_lang = "sk"
-                elif cc == "pl":
-                    detected_lang = "pl"
-                elif cc in ("de", "at"):
-                    detected_lang = "de"
-            if detected_lang:
-                try:
-                    supabase.table("jobs").update({"language_code": detected_lang}).eq("id", row["id"]).execute()
-                    print(f"    🈯 Language backfilled for existing job: {detected_lang}")
-                except Exception as e:
-                    print(f"    ⚠️ Language backfill failed: {e}")
-        return False  # Duplicate - not saved
-
-    parsed_url = urlparse(job_data["url"])
-    job_data["source"] = parsed_url.netloc.replace("www.", "")
-    job_data.setdefault("scraped_at", now_iso())
-    job_data.setdefault("legality_status", "legal") # Default to legal for scraped jobs
-    
-    # DETECT AND ASSIGN COUNTRY CODE based on domain
-    domain = parsed_url.netloc.lower()
-    if '.cz' in domain:
-        job_data["country_code"] = "cs"
-    elif '.sk' in domain:
-        job_data["country_code"] = "sk"
-    elif '.pl' in domain:
-        job_data["country_code"] = "pl"
-    elif '.de' in domain:
-        job_data["country_code"] = "de"
-    else:
-        # Default to Czech if domain is unknown
-        job_data["country_code"] = "cs"
-    
-    print(f"    🌍 Country code: {job_data['country_code']} (detected from {domain})")
-
-    if "language_code" not in job_data:
-        lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
-        detected_lang = detect_language_code(lang_text)
-        if not detected_lang:
-            cc = (job_data.get("country_code") or "").lower()
-            if cc in ("cz", "cs"):
-                detected_lang = "cs"
-            elif cc == "sk":
-                detected_lang = "sk"
-            elif cc == "pl":
-                detected_lang = "pl"
-            elif cc in ("de", "at"):
-                detected_lang = "de"
-        if detected_lang:
-            job_data["language_code"] = detected_lang
-            print(f"    🈯 Detected language: {detected_lang}")
-    
-    # GEOCODE LOCATION: Convert location string to lat/lon
-    if "location" in job_data and job_data["location"]:
-        location_str = job_data["location"]
-        print(f"    🌍 Geocodování lokality: {location_str}")
-        
-        geo_result = geocode_location(location_str)
-        if geo_result:
-            job_data["lat"] = geo_result["lat"]
-            job_data["lng"] = geo_result["lon"]
-            print(f"       ✅ Nalezeno: ({geo_result['lat']:.4f}, {geo_result['lon']:.4f}) [{geo_result['source']}]")
-        else:
-            print(f"       ⚠️ Geolokace selhala, ulož sem bez souřadnic")
-            job_data["lat"] = None
-            job_data["lng"] = None
-
-    for attempt in range(2):
-        try:
-            response = supabase.table("jobs").insert(job_data).execute()
-            if response.data:
-                print(f"    --> Data pro '{job_data.get('title')}' úspěšně uložena.")
-                return True
-            print(f"    ❌ Chyba při ukládání dat: {job_data.get('title')}")
-            return False
-        except Exception as e:
-            if attempt == 0 and _is_transient_db_error(e):
-                print(f"    ⚠️ Dočasná DB chyba při ukládání (pokus 1/2): {e}")
-                _refresh_supabase_client()
-                time.sleep(0.6)
-                continue
-            error_text = str(e)
-            if "row-level security" in error_text.lower() or "42501" in error_text:
-                print(
-                    "    ❌ Insert do `jobs` zablokovala RLS politika. "
-                    f"Aktivní key source={SUPABASE_SERVICE_KEY_SOURCE}, role={SUPABASE_SERVICE_KEY_ROLE}. "
-                    "Zkontroluj, že Northflank posílá `SUPABASE_SERVICE_ROLE_KEY` "
-                    "nebo `SUPABASE_SERVICE_KEY`, ne public/anon key."
-                )
-            print(f"    ❌ Došlo k neočekávané chybě při ukládání: {e}")
-            return False
-    return False
+    return shared_save_job_to_supabase(supabase, job_data)
 
 
 # --- Stahování stránky ---

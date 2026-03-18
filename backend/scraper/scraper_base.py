@@ -43,6 +43,11 @@ except Exception:
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
+try:
+    from app.services.jobs_postgres_store import backfill_jobs_from_documents, jobs_postgres_enabled
+except Exception:
+    backfill_jobs_from_documents = None  # type: ignore
+    jobs_postgres_enabled = None  # type: ignore
 
 # --- Environment Setup ---
 
@@ -825,6 +830,22 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
     Returns:
         True if saved successfully, False otherwise
     """
+    def _mirror_row_to_jobs_postgres(row: Optional[Dict]) -> None:
+        if not row or not isinstance(row, dict):
+            return
+        if not callable(backfill_jobs_from_documents):
+            return
+        try:
+            enabled = bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
+        except Exception:
+            enabled = False
+        if not enabled:
+            return
+        try:
+            backfill_jobs_from_documents([dict(row)])
+        except Exception as exc:
+            print(f"    ⚠️ Jobs Postgres mirror failed: {exc}")
+
     if not supabase:
         print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
         return False
@@ -843,7 +864,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             try:
                 response = (
                     supabase.table("jobs")
-                    .select("id,language_code")
+                    .select("*")
                     .eq("url", url)
                     .execute()
                 )
@@ -879,9 +900,11 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             if detected_lang:
                 try:
                     supabase.table("jobs").update({"language_code": detected_lang}).eq("id", row["id"]).execute()
+                    row["language_code"] = detected_lang
                     print(f"    🈯 Language backfilled for existing job: {detected_lang}")
                 except Exception as e:
                     print(f"    ⚠️ Language backfill failed: {e}")
+        _mirror_row_to_jobs_postgres(row)
         return False
     
     # Extract source from URL
@@ -991,6 +1014,8 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         try:
             response = supabase.table("jobs").insert(job_data).execute()
             if response.data:
+                inserted_row = response.data[0] if isinstance(response.data, list) and response.data else None
+                _mirror_row_to_jobs_postgres(inserted_row)
                 print(f"    --> Data pro '{job_data.get('title')}' úspěšně uložena.")
                 return True
             print(f"    ❌ Chyba při ukládání dat: {job_data.get('title')}")
