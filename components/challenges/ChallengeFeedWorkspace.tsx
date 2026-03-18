@@ -16,6 +16,7 @@ interface ChallengeFeedWorkspaceProps {
   userProfile: UserProfile;
   searchDiagnostics: SearchDiagnosticsMeta | null;
   totalCount: number;
+  isLoadingJobs: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   currentPage: number;
@@ -36,8 +37,9 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   savedJobIds,
   locale,
   userProfile,
-  searchDiagnostics: _searchDiagnostics,
+  searchDiagnostics,
   totalCount,
+  isLoadingJobs,
   loadingMore,
   hasMore,
   currentPage,
@@ -77,6 +79,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   const hasAddress = Boolean(userProfile.address || userProfile.coordinates?.lat);
   const showAuthPrompt = isMobileViewport && !userProfile.isLoggedIn;
   const showAddressPrompt = isMobileViewport && userProfile.isLoggedIn && !hasAddress;
+  const useCompactSearchLayout = searchDiagnostics?.search_mode === 'manual_query';
 
   return (
     <div className="space-y-6 lg:space-y-7">
@@ -180,9 +183,11 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
         <div className="relative rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 lg:p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
           <ChallengeEditorialFeed
             jobs={jobs}
+            loading={isLoadingJobs}
             selectedJobId={selectedJobId}
             savedJobIds={savedJobIds}
             locale={activeLocale}
+            compactLayout={useCompactSearchLayout}
             onSelect={(jobId: string) => handleJobSelect(jobId)}
             onOpen={(jobId: string) => handleJobSelect(jobId)}
             onToggleSave={(jobId: string) => handleToggleSave(jobId)}

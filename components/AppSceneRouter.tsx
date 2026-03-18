@@ -139,6 +139,7 @@ export default function AppSceneRouter({
     resolvedSavedJobs,
     savedJobIds,
     savedJobsSearchTerm,
+    isLoadingJobs,
     loadingMore,
     hasMore,
     currentPage,
@@ -486,6 +487,7 @@ export default function AppSceneRouter({
                                 setDiscoveryMode={onSetDiscoveryMode}
                                 setLane={onSetDiscoveryLane}
                                 totalCount={totalCount}
+                                isLoadingJobs={isLoadingJobs}
                                 loadingMore={loadingMore}
                                 hasMore={hasMore}
                                 currentPage={currentPage}

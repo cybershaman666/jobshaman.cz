@@ -16,6 +16,7 @@ export interface MarketplacePageProps {
   setDiscoveryMode: (mode: DiscoveryMode) => void;
   setLane: (lane: 'challenges' | 'imports') => void;
   totalCount: number;
+  isLoadingJobs: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   currentPage: number;
@@ -50,6 +51,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   setDiscoveryMode,
   setLane,
   totalCount,
+  isLoadingJobs,
   loadingMore,
   hasMore,
   currentPage,
@@ -85,6 +87,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           setDiscoveryMode={setDiscoveryMode}
           savedJobIds={savedJobIds}
           totalCount={totalCount}
+          isLoadingJobs={isLoadingJobs}
           loadingMore={loadingMore}
           hasMore={hasMore}
           currentPage={currentPage}

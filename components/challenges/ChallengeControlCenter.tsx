@@ -19,6 +19,7 @@ interface ChallengeControlCenterProps {
   setDiscoveryMode: (mode: DiscoveryMode) => void;
   savedJobIds: string[];
   totalCount: number;
+  isLoadingJobs: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   currentPage: number;
@@ -53,6 +54,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
   setDiscoveryMode,
   savedJobIds,
   totalCount,
+  isLoadingJobs,
   loadingMore,
   hasMore,
   currentPage,
@@ -113,6 +115,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
 
   const annotatedJobs = useMemo(() => computeCandidateAnnotations(jobs || [], userProfile, locale), [jobs, locale, userProfile]);
   const microJobs = useMemo(() => annotatedJobs.filter(isMicroJob), [annotatedJobs]);
+  const standardJobs = useMemo(() => annotatedJobs.filter((job) => !isMicroJob(job)), [annotatedJobs]);
   const importedJobs = useMemo(
     () => annotatedJobs.filter((job) => isImportedListing(job) && !isMicroJob(job)),
     [annotatedJobs]
@@ -121,9 +124,17 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     () => annotatedJobs.filter((job) => !isImportedListing(job) && !isMicroJob(job)),
     [annotatedJobs]
   );
+  const effectiveSearchMode = searchDiagnostics?.search_mode || 'discovery_default';
   const laneScopedJobs = useMemo(() => {
     if (discoveryMode === 'micro_jobs') {
       return microJobs;
+    }
+
+    if (effectiveSearchMode === 'manual_query') {
+      if (lane === 'imports') {
+        return standardJobs.filter((job) => isImportedListing(job));
+      }
+      return standardJobs;
     }
 
     const rankForFeed = (items: Job[]) => [...items].sort((left, right) => {
@@ -141,7 +152,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     }
 
     return rankForFeed([...nativeJobs, ...importedJobs, ...microJobs]);
-  }, [discoveryMode, importedJobs, lane, microJobs, nativeJobs]);
+  }, [discoveryMode, effectiveSearchMode, importedJobs, lane, microJobs, nativeJobs, standardJobs]);
 
   useEffect(() => {
     if (discoveryMode !== 'all') return;
@@ -260,6 +271,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
               userProfile={userProfile}
               searchDiagnostics={searchDiagnostics}
               totalCount={totalCount}
+              isLoadingJobs={isLoadingJobs}
               loadingMore={loadingMore}
               hasMore={hasMore}
               currentPage={currentPage}

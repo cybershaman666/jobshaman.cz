@@ -271,9 +271,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
 
         try {
+            const hasUserPinnedCommuteFilter = filterSources.enableCommuteFilter === 'user_toggle';
+            const suppressImplicitCommuteForManualQuery =
+                searchMode === 'manual_query' && !hasUserPinnedCommuteFilter;
+            const effectiveEnableCommuteFilter = suppressImplicitCommuteForManualQuery
+                ? false
+                : enableCommuteFilter;
+            const defaultMaxDistanceKm = userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined;
+            const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
+            const effectiveImplicitRadiusKm =
+                !suppressImplicitCommuteForManualQuery && !effectiveEnableCommuteFilter && !hasExplicitLocationFilter
+                    ? defaultMaxDistanceKm
+                    : undefined;
+
             const { lat, lon } = await resolveDiscoveryCoordinates({
                 userProfile,
-                enableCommuteFilter,
+                enableCommuteFilter: effectiveEnableCommuteFilter,
                 filterCity,
             });
 
@@ -288,7 +301,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 !!filterMinSalary ||
                 filterDate !== 'all' ||
                 filterExperience.length > 0 ||
-                enableCommuteFilter ||
+                effectiveEnableCommuteFilter ||
                 sortBy !== 'newest' ||
                 hasExplicitLanguageFilter ||
                 abroadOnly ||
@@ -301,7 +314,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : normalizedDefaultDomesticCountries;
             const isDefaultCountrySelection = sameCountryCodeSet(normalizedCountryCodes, normalizeCountryCodes(marketBaselineCountryCodes));
             const shouldAutoExpandBorderCountries =
-                enableCommuteFilter &&
+                effectiveEnableCommuteFilter &&
                 lat != null &&
                 lon != null &&
                 !globalSearch &&
@@ -313,7 +326,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // don't block cross-border jobs (AT/SK/DE/PL...) that are still within the commute circle.
             const effectiveCountryCodes = (globalSearch || shouldAutoExpandBorderCountries) ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
-            const defaultMaxDistanceKm = userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined;
             const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => applyExternalOverlayJobFilters({
                 jobs,
                 effectiveCountryCodes,
@@ -321,7 +333,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 retrievalLanguageCodes,
                 remoteOnly,
                 filterCity,
-                enableCommuteFilter,
+                enableCommuteFilter: effectiveEnableCommuteFilter,
                 filterMaxDistance,
                 lat,
                 lon,
@@ -329,7 +341,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 inferJobLanguageCode,
                 normalizeCountryCodes,
                 calculateDistanceKm,
-                defaultMaxDistanceKm,
+                defaultMaxDistanceKm: effectiveImplicitRadiusKm,
             });
 
             // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
@@ -403,10 +415,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // near-empty result set because of a hidden profile-only benefit like dog-friendly.
             const effectiveBenefits = Array.from(new Set(filterBenefits));
 
-            const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
-            const effectiveRadiusKm = enableCommuteFilter
+            const effectiveRadiusKm = effectiveEnableCommuteFilter
                 ? filterMaxDistance
-                : (hasExplicitLocationFilter ? undefined : (userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined));
+                : effectiveImplicitRadiusKm;
 
             const filteredResult = await runFilteredFetchPipeline({
                 page,
@@ -470,6 +481,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     reordered_by_profile: filteredResult.diagnostics.reordered_by_profile,
                     sort_mode: sortBy,
                     remote_only: remoteOnly,
+                    commute_enabled: effectiveEnableCommuteFilter,
+                    implicit_commute_suppressed: suppressImplicitCommuteForManualQuery,
+                    radius_km: effectiveRadiusKm ?? null,
                 });
                 console.table(
                     filteredResult.visibleJobs.slice(0, 10).map((job, index) => ({
@@ -565,7 +579,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, userProfile.preferences?.searchProfile?.defaultMaxDistanceKm, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes, filterSources.enableCommuteFilter
     ]);
 
 

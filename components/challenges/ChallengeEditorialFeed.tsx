@@ -11,9 +11,11 @@ import { getStockCoverForDomain } from '../../utils/domainCoverImages';
 
 interface ChallengeEditorialFeedProps {
   jobs: Job[];
+  loading?: boolean;
   selectedJobId: string | null;
   savedJobIds: string[];
   locale: string;
+  compactLayout?: boolean;
   onSelect: (jobId: string) => void;
   onOpen: (jobId: string) => void;
   onToggleSave: (jobId: string) => void;
@@ -359,6 +361,67 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; count?: number
     ) : null}
   </div>
 );
+
+const LoadingCardSkeleton: React.FC<{ large?: boolean }> = ({ large = false }) => (
+  <div
+    className={cn(
+      'overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--surface-elevated)] p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)] animate-pulse',
+      large ? 'min-h-[20rem] sm:min-h-[22rem]' : 'min-h-[18rem] sm:min-h-[20rem]'
+    )}
+  >
+    <div className={cn('rounded-[18px] bg-[var(--surface-muted)]', large ? 'h-28 sm:h-32' : 'h-24')} />
+    <div className="mt-4 flex items-start gap-3">
+      <div className="h-12 w-12 rounded-xl bg-[var(--surface-muted)]" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="h-4 w-24 rounded-full bg-[var(--surface-muted)]" />
+        <div className="h-6 w-4/5 rounded-full bg-[var(--surface-muted)]" />
+        <div className="h-4 w-3/5 rounded-full bg-[var(--surface-muted)]" />
+      </div>
+    </div>
+    <div className="mt-5 grid grid-cols-2 gap-2">
+      <div className="h-10 rounded-xl bg-[var(--surface-muted)]" />
+      <div className="h-10 rounded-xl bg-[var(--surface-muted)]" />
+      <div className="col-span-2 h-10 rounded-xl bg-[var(--surface-muted)]" />
+    </div>
+    <div className="mt-5 space-y-2">
+      <div className="h-3 w-full rounded-full bg-[var(--surface-muted)]" />
+      <div className="h-3 w-11/12 rounded-full bg-[var(--surface-muted)]" />
+      <div className="h-3 w-3/4 rounded-full bg-[var(--surface-muted)]" />
+    </div>
+    <div className="mt-6 h-11 rounded-xl bg-[var(--surface-muted)]" />
+  </div>
+);
+
+const LoadingEditorialFeedSkeleton: React.FC<{ compactLayout?: boolean }> = ({ compactLayout = false }) => {
+  const items = compactLayout
+    ? Array.from({ length: 6 }, (_, index) => ({ key: `compact-${index}`, className: 'md:col-span-3 xl:col-span-4', large: false }))
+    : [
+        { key: 'hero', className: 'xl:col-span-12', large: true },
+        { key: 'a', className: 'md:col-span-3 xl:col-span-6', large: false },
+        { key: 'b', className: 'md:col-span-3 xl:col-span-6', large: false },
+        { key: 'c', className: 'md:col-span-6 xl:col-span-12', large: false },
+      ];
+
+  return (
+    <div className="space-y-5">
+      {!compactLayout ? (
+        <div className="px-1 py-1">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-2 text-[12px] font-black uppercase tracking-[0.2em] text-[var(--accent)] shadow-sm animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+            Načítám feed
+          </div>
+        </div>
+      ) : null}
+      <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
+        {items.map((item) => (
+          <div key={item.key} className={item.className}>
+            <LoadingCardSkeleton large={item.large} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const OfferCard: React.FC<{
   job: Job;
@@ -749,9 +812,11 @@ const OfferCard: React.FC<{
 
 const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
   jobs,
+  loading = false,
   selectedJobId,
   savedJobIds,
   locale,
+  compactLayout = false,
   onSelect,
   onOpen,
   onToggleSave,
@@ -769,9 +834,9 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     remainingSubtitle: localeText(language, { cs: 'Zbytek feedu bez zbytečně chytrých škatulek.', sk: 'Zvyšok feedu bez zbytočne múdrych škatuliek.', de: 'Der Rest des Feeds ohne überkluge Schubladen.', pl: 'Reszta feedu bez przekombinowanych szufladek.', en: 'The rest of the feed without over-clever buckets.' }),
   }), [language]);
 
-  const { sections, remaining } = useMemo(() => {
+  const { sections, remaining, compactJobs } = useMemo(() => {
     const pool = Array.isArray(jobs) ? jobs.slice() : [];
-    const sorted = sortJobsForDiscovery(pool);
+    const sorted = compactLayout ? pool : sortJobsForDiscovery(pool);
     const used = new Set<string>();
     const isImportedListing = (job: Job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external);
 
@@ -789,6 +854,14 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const isMicro = (job: Job) => job.challenge_format === 'micro_job';
     const standardSorted = sorted.filter((job) => !isMicro(job));
+
+    if (compactLayout) {
+      return {
+        sections: [] as FeedSection[],
+        remaining: [] as Job[],
+        compactJobs: standardSorted,
+      };
+    }
 
     const hero = take(standardSorted, 1);
 
@@ -868,8 +941,41 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     }
 
     const remainingJobs = sorted.filter((job) => job?.id && !used.has(job.id) && !isMicro(job));
-    return { sections: sectionsList, remaining: remainingJobs };
-  }, [feedCopy.fastTitle, feedCopy.heroSubtitle, feedCopy.heroTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
+    return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[] };
+  }, [compactLayout, feedCopy.fastTitle, feedCopy.heroSubtitle, feedCopy.heroTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
+
+  if (loading && jobs.length === 0) {
+    return <LoadingEditorialFeedSkeleton compactLayout={compactLayout} />;
+  }
+
+  if (compactLayout) {
+    if (compactJobs.length === 0) {
+      return (
+        <div className="py-10 text-center text-sm text-[var(--text-muted)]">
+          {feedCopy.empty}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
+        {compactJobs.map((job) => (
+          <OfferCard
+            key={job.id}
+            job={job}
+            selected={job.id === selectedJobId}
+            saved={savedJobIds.includes(job.id)}
+            language={language}
+            variant="default"
+            className="md:col-span-3 xl:col-span-4"
+            onSelect={() => onSelect(job.id)}
+            onOpen={() => onOpen(job.id)}
+            onToggleSave={() => onToggleSave(job.id)}
+          />
+        ))}
+      </div>
+    );
+  }
 
   if (!sections.length && remaining.length === 0) {
     return (
