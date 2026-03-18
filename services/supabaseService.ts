@@ -1365,6 +1365,13 @@ export const trackAnalyticsEvent = async (event: {
                 body: JSON.stringify(payload)
             });
             if (response.ok) return;
+            if (response.status >= 500) {
+                analyticsNetworkCooldownUntil = Date.now() + ANALYTICS_NETWORK_COOLDOWN_MS;
+                if (Date.now() - lastAnalyticsNetworkLogAt > 30_000) {
+                    console.warn('Analytics endpoint unavailable. Using fallback temporarily.');
+                    lastAnalyticsNetworkLogAt = Date.now();
+                }
+            }
         } catch (error) {
             if (isLikelySupabaseNetworkError(error)) {
                 analyticsNetworkCooldownUntil = Date.now() + ANALYTICS_NETWORK_COOLDOWN_MS;

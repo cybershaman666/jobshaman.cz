@@ -28,6 +28,8 @@ EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() 
 _ALLOWED_ORIGIN_REGEX = (
     r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
     r"|^https?://jobshaman(-[a-z0-9-]+)?\.vercel\.app(:\d+)?$"
+    r"|^https?://[a-z0-9-]+\.northflank\.app(:\d+)?$"
+    r"|^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$"
     r"|^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 )
 _origin_regex = re.compile(_ALLOWED_ORIGIN_REGEX, re.IGNORECASE)
@@ -71,6 +73,8 @@ def _build_allowed_origins() -> list[str]:
         "https://www.jobshaman.cz",
         "https://www.jobshaman.com",
         "https://jobshaman.vercel.app",
+        "https://jobshaman-search-api.northflank.app",
+        "https://site--jobshaman--rb4dlj74d5kc.code.run",
         "http://localhost:3000",
         "http://localhost:5173",
     ]

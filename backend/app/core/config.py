@@ -37,11 +37,11 @@ def _resolve_jobs_postgres_url() -> str | None:
     if direct:
         return direct
 
-    username = _env_str("USERNAME") or _env_str("POSTGRES_USER")
-    password = _env_str("PASSWORD") or _env_str("POSTGRES_PASSWORD")
-    host = _env_str("HOST") or _env_str("POSTGRES_HOST")
-    port = _env_str("PORT") or _env_str("POSTGRES_PORT") or "5432"
-    database = _env_str("DATABASE") or _env_str("POSTGRES_DB")
+    username = _env_str("POSTGRES_USER") or _env_str("JOBS_POSTGRES_USER")
+    password = _env_str("POSTGRES_PASSWORD") or _env_str("JOBS_POSTGRES_PASSWORD")
+    host = _env_str("POSTGRES_HOST") or _env_str("JOBS_POSTGRES_HOST")
+    port = _env_str("POSTGRES_PORT") or _env_str("JOBS_POSTGRES_PORT") or "5432"
+    database = _env_str("POSTGRES_DB") or _env_str("JOBS_POSTGRES_DB")
 
     if not (username and password and host and database):
         return None

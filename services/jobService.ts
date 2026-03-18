@@ -39,6 +39,8 @@ const HYBRID_SEARCH_RECENT_CACHE = new Map<string, { at: number; result: JobsFet
 const HYBRID_SEARCH_RECENT_TTL_MS = 20_000;
 const HYBRID_SEARCH_RECENT_EMPTY_TTL_MS = 120_000;
 const HYBRID_SEARCH_RECENT_EMPTY_SESSION_PREFIX = 'jobshaman_hybrid_recent_empty:';
+const BACKEND_SEARCH_UNAVAILABLE_TTL_MS = 90_000;
+const BACKEND_CACHED_FEED_UNAVAILABLE_TTL_MS = 90_000;
 
 const readSessionTimestamp = (key: string): number => {
     try {
@@ -64,6 +66,11 @@ const deleteSessionKey = (key: string): void => {
     } catch {
         // ignore
     }
+};
+
+const isRecentSessionFlagActive = (key: string, ttlMs: number): boolean => {
+    const ts = readSessionTimestamp(key);
+    return ts > 0 && (Date.now() - ts) < ttlMs;
 };
 
 const _normalizeKeyArray = (value: unknown): string[] | null => {
@@ -1520,6 +1527,20 @@ const fetchCachedExternalFeedJobs = async (options: {
     pageSize?: number;
     includeJhi?: boolean;
 }): Promise<JobsFetchResult> => {
+    const cooldownKey = 'jobshaman_cached_external_unavailable';
+    if (isRecentSessionFlagActive(cooldownKey, BACKEND_CACHED_FEED_UNAVAILABLE_TTL_MS)) {
+        return {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                fallback_mode: 'degraded',
+                cache_hit: false,
+                degraded_reasons: ['cached_feed_unavailable_recent']
+            }
+        };
+    }
+
     const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
     if (!backendBase) {
         return { jobs: [], hasMore: false, totalCount: 0, meta: { fallback_mode: 'internal_only', cache_hit: false, degraded_reasons: ['backend_unavailable'] } };
@@ -1550,6 +1571,19 @@ const fetchCachedExternalFeedJobs = async (options: {
             }
         );
         if (!response.ok) {
+            if (response.status >= 500) {
+                writeSessionTimestamp(cooldownKey, Date.now());
+                return {
+                    jobs: [],
+                    hasMore: false,
+                    totalCount: 0,
+                    meta: {
+                        fallback_mode: 'degraded',
+                        cache_hit: false,
+                        degraded_reasons: ['cached_feed_backend_5xx']
+                    }
+                };
+            }
             throw new Error(`External cached feed failed: ${response.status}`);
         }
         const payload = await response.json();
@@ -1564,6 +1598,7 @@ const fetchCachedExternalFeedJobs = async (options: {
         if (isAbortFetchError(error)) {
             throw error;
         }
+        writeSessionTimestamp(cooldownKey, Date.now());
         console.warn('External cached feed unavailable:', error);
         return {
             jobs: [],
@@ -3675,6 +3710,10 @@ export const fetchJobsWithFilters = async (
 
     const fetchViaBackendHybrid = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         throwIfAborted();
+        const hybridUnavailableKey = 'jobshaman_hybrid_backend_unavailable';
+        if (isRecentSessionFlagActive(hybridUnavailableKey, BACKEND_SEARCH_UNAVAILABLE_TTL_MS)) {
+            throw new Error('Hybrid backend temporarily unavailable');
+        }
         const backendBases = resolveHybridBackendBases();
         if (!backendBases.length) {
             return { jobs: [], hasMore: false, totalCount: 0 };
@@ -3856,6 +3895,12 @@ export const fetchJobsWithFilters = async (
                 throwIfAborted();
 
                 if (!hybridResponse.ok && v2Enabled) {
+                    if (hybridResponse.status >= 500) {
+                        writeSessionTimestamp(hybridUnavailableKey, Date.now());
+                        const err = new Error(`Hybrid request failed: ${hybridResponse.status}`);
+                        (err as any).status = hybridResponse.status;
+                        throw err;
+                    }
                     const fallbackResponse = await authenticatedFetch(`${baseUrl}/jobs/hybrid-search`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3865,9 +3910,14 @@ export const fetchJobsWithFilters = async (
                     throwIfAborted();
 
                     if (!fallbackResponse.ok) {
+                        if (fallbackResponse.status >= 500) {
+                            writeSessionTimestamp(hybridUnavailableKey, Date.now());
+                        }
                         let detail = '';
                         try { detail = await fallbackResponse.text(); } catch { }
-                        console.warn('Hybrid v1 fallback response detail:', detail);
+                        if (fallbackResponse.status < 500) {
+                            console.warn('Hybrid v1 fallback response detail:', detail);
+                        }
                         const err = new Error(`Hybrid fallback failed: ${fallbackResponse.status}`);
                         (err as any).status = fallbackResponse.status;
                         throw err;
@@ -3884,9 +3934,14 @@ export const fetchJobsWithFilters = async (
                 }
 
                 if (!hybridResponse.ok) {
+                    if (hybridResponse.status >= 500) {
+                        writeSessionTimestamp(hybridUnavailableKey, Date.now());
+                    }
                     let detail = '';
                     try { detail = await hybridResponse.text(); } catch { }
-                    console.warn('Hybrid response detail:', detail);
+                    if (hybridResponse.status < 500) {
+                        console.warn('Hybrid response detail:', detail);
+                    }
                     const err = new Error(`Hybrid request failed: ${hybridResponse.status}`);
                     (err as any).status = hybridResponse.status;
                     throw err;
@@ -3916,8 +3971,11 @@ export const fetchJobsWithFilters = async (
                 if (isAbortFetchError(err)) {
                     throw err;
                 }
-                lastError = err;
                 const status = Number((err as any)?.status || 0);
+                if (status >= 500 || String((err as any)?.message || '').toLowerCase().includes('temporarily unavailable')) {
+                    writeSessionTimestamp(hybridUnavailableKey, Date.now());
+                }
+                lastError = err;
                 if (isNetworkFetchError(err)) {
                     continue;
                 }
