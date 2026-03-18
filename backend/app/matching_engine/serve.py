@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 from ..core.database import supabase
+from ..services.jobs_postgres_store import jobs_postgres_main_enabled, query_jobs_for_hybrid_search
 from ..core.runtime_config import (
     get_active_action_prediction_model,
     get_active_model_config,
@@ -503,7 +504,7 @@ def _normalize_sort_mode(value: Optional[str]) -> str:
 
 
 def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dict:
-    if not supabase:
+    if not supabase and not jobs_postgres_main_enabled():
         return {"jobs": [], "has_more": False, "total_count": 0}
 
     flag = get_release_flag("matching_engine_v2", subject_id="public_hybrid", default=True)
@@ -528,6 +529,17 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     candidate_limit = max(250, min(900, safe_page_size * 6))
 
     def _run_base_query(with_status_filter: bool):
+        pg_rows = query_jobs_for_hybrid_search(
+            limit=candidate_limit,
+            cutoff_iso=cutoff_iso,
+            country_codes=list(country_codes),
+            language_codes=list(language_codes),
+            min_salary=min_salary,
+        )
+        if pg_rows:
+            return pg_rows
+        if not supabase:
+            return []
         query = (
             supabase.table("jobs")
             .select(

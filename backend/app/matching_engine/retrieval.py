@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple
 
 from ..core.database import supabase
+from ..services.jobs_postgres_store import read_recent_jobs
 from .embeddings import EMBEDDING_MODEL, EMBEDDING_VERSION, embed_text
 
 
@@ -89,6 +90,10 @@ def ensure_job_embeddings(jobs: List[Dict], persist: bool = True) -> Dict[str, L
 
 
 def fetch_recent_jobs(limit: int = 500, days: int = 30) -> List[Dict]:
+    pg_rows = read_recent_jobs(limit=limit, days=days)
+    if pg_rows:
+        return pg_rows
+
     if not supabase:
         return []
 

@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,6 +22,39 @@ def _env_str(name: str, default: str | None = None) -> str | None:
     if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
         val = val[1:-1].strip()
     return val if val else default
+
+
+def _resolve_jobs_postgres_url() -> str | None:
+    direct = (
+        _env_str("JOBS_POSTGRES_URL")
+        or _env_str("NORTHFLANK_POSTGRES_URL")
+        or _env_str("EXTERNAL_POSTGRES_URI_ADMIN")
+        or _env_str("EXTERNAL_POSTGRES_URI")
+        or _env_str("POSTGRES_URI_ADMIN")
+        or _env_str("POSTGRES_URI")
+        or _env_str("DATABASE_URL")
+    )
+    if direct:
+        return direct
+
+    username = _env_str("USERNAME") or _env_str("POSTGRES_USER")
+    password = _env_str("PASSWORD") or _env_str("POSTGRES_PASSWORD")
+    host = _env_str("HOST") or _env_str("POSTGRES_HOST")
+    port = _env_str("PORT") or _env_str("POSTGRES_PORT") or "5432"
+    database = _env_str("DATABASE") or _env_str("POSTGRES_DB")
+
+    if not (username and password and host and database):
+        return None
+
+    return f"postgresql://{quote_plus(username)}:{quote_plus(password)}@{host}:{port}/{quote_plus(database)}"
+
+
+def _resolve_jobs_postgres_sslmode() -> str:
+    explicit = _env_str("JOBS_POSTGRES_SSLMODE")
+    if explicit:
+        return explicit
+    tls_enabled = _env_bool("TLS_ENABLED", True)
+    return "require" if tls_enabled else "disable"
 
 
 def _resolve_secret_key() -> str:
@@ -94,6 +128,16 @@ MONGODB_JOBSPY_COLLECTION = _env_str("MONGODB_JOBSPY_COLLECTION", "jobspy_jobs")
 MONGODB_JOBSPY_TTL_DAYS = max(1, int(_env_str("MONGODB_JOBSPY_TTL_DAYS", "14") or "14"))
 MONGODB_JOBSPY_ENRICHED_COLLECTION = _env_str("MONGODB_JOBSPY_ENRICHED_COLLECTION", "jobspy_jobs_enriched")
 MONGODB_JOBSPY_COMPANY_COLLECTION = _env_str("MONGODB_JOBSPY_COMPANY_COLLECTION", "jobspy_company_snapshots")
+JOBS_POSTGRES_URL = _resolve_jobs_postgres_url()
+JOBS_POSTGRES_SSLMODE = _resolve_jobs_postgres_sslmode()
+JOBS_POSTGRES_JOBS_TABLE = _env_str("JOBS_POSTGRES_JOBS_TABLE", "jobs_nf")
+JOBS_POSTGRES_EXTERNAL_CACHE_TABLE = _env_str("JOBS_POSTGRES_EXTERNAL_CACHE_TABLE", "external_live_search_cache_nf")
+JOBS_POSTGRES_JOBSPY_TABLE = _env_str("JOBS_POSTGRES_JOBSPY_TABLE", "jobspy_jobs_nf")
+JOBS_POSTGRES_ENABLED = _env_bool("JOBS_POSTGRES_ENABLED", bool(JOBS_POSTGRES_URL))
+JOBS_POSTGRES_SERVE_EXTERNAL = _env_bool("JOBS_POSTGRES_SERVE_EXTERNAL", JOBS_POSTGRES_ENABLED)
+JOBS_POSTGRES_WRITE_EXTERNAL = _env_bool("JOBS_POSTGRES_WRITE_EXTERNAL", JOBS_POSTGRES_ENABLED)
+JOBS_POSTGRES_SERVE_MAIN = _env_bool("JOBS_POSTGRES_SERVE_MAIN", JOBS_POSTGRES_ENABLED)
+JOBS_POSTGRES_WRITE_MAIN = _env_bool("JOBS_POSTGRES_WRITE_MAIN", JOBS_POSTGRES_ENABLED)
 
 # External asset storage
 EXTERNAL_ASSET_STORAGE_MODE = _env_str("EXTERNAL_ASSET_STORAGE_MODE", "local").lower()

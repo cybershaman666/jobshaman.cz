@@ -17,6 +17,12 @@ except Exception:
     _CA_FILE = None
 
 from ..core import config
+from .jobs_postgres_store import (
+    backfill_jobspy_from_documents,
+    get_jobs_postgres_health,
+    jobs_postgres_enabled,
+    search_jobspy_documents,
+)
 
 _mongo_client: MongoClient | None = None
 _indexes_ready = False
@@ -436,7 +442,6 @@ def import_jobspy_jobs(
 ) -> JobSpyImportResult:
     scrape_jobs = _load_jobspy_scrape_jobs()
 
-    collection = _get_collection()
     queried_at = _utcnow()
     expires_at = queried_at + timedelta(days=max(1, config.MONGODB_JOBSPY_TTL_DAYS))
     sites = _normalize_sites(site_name)
@@ -478,18 +483,39 @@ def import_jobspy_jobs(
 
     upserted_count = 0
     matched_count = 0
+    storage_errors: list[Exception] = []
+
     if documents:
-        operations = [
-            UpdateOne(
-                {"_id": document["_id"]},
-                {"$set": document},
-                upsert=True,
-            )
-            for document in documents
-        ]
-        result = collection.bulk_write(operations, ordered=False)
-        upserted_count = int(result.upserted_count or 0)
-        matched_count = int(result.matched_count or 0)
+        if jobs_postgres_enabled():
+            try:
+                pg_result = backfill_jobspy_from_documents(documents)
+                upserted_count = int(pg_result.get("upserted_count") or 0)
+                matched_count = int(pg_result.get("matched_count") or 0)
+            except Exception as exc:
+                storage_errors.append(exc)
+                print(f"⚠️ Failed to persist JobSpy docs to Jobs Postgres: {exc}")
+
+        if config.MONGODB_URI:
+            try:
+                collection = _get_collection()
+                operations = [
+                    UpdateOne(
+                        {"_id": document["_id"]},
+                        {"$set": document},
+                        upsert=True,
+                    )
+                    for document in documents
+                ]
+                result = collection.bulk_write(operations, ordered=False)
+                if not jobs_postgres_enabled():
+                    upserted_count = int(result.upserted_count or 0)
+                    matched_count = int(result.matched_count or 0)
+            except Exception as exc:
+                storage_errors.append(exc)
+                print(f"⚠️ Failed to persist JobSpy docs to Mongo: {exc}")
+
+        if storage_errors and upserted_count == 0 and matched_count == 0:
+            raise storage_errors[-1]
 
     sampled_jobs = [serialize_jobspy_job(doc) for doc in documents[:5]]
     query_hash = documents[0]["query_hash"] if documents else hashlib.sha1(b"empty").hexdigest()
@@ -513,6 +539,21 @@ def search_jobspy_jobs(
     country_codes: list[str] | None = None,
     exclude_country_codes: list[str] | None = None,
 ) -> dict[str, Any]:
+    if jobs_postgres_enabled():
+        try:
+            return search_jobspy_documents(
+                page=page,
+                page_size=page_size,
+                search_term=search_term,
+                location=location,
+                source_sites=source_sites,
+                country_codes=country_codes,
+                exclude_country_codes=exclude_country_codes,
+                fresh_cutoff=_fresh_cutoff(),
+            )
+        except Exception as exc:
+            print(f"⚠️ Jobs Postgres JobSpy search unavailable, falling back to Mongo: {exc}")
+
     collection = _get_collection()
     query: dict[str, Any] = {
         "expires_at": {"$gt": _utcnow()},
@@ -629,10 +670,53 @@ def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) ->
     }
 
 
+def backfill_jobspy_postgres_from_mongo(*, limit: int = 1000, only_fresh: bool = True) -> dict[str, Any]:
+    if not jobs_postgres_enabled():
+        return {
+            "collection": config.MONGODB_JOBSPY_COLLECTION,
+            "jobs_postgres_enabled": False,
+            "scanned": 0,
+            "imported": 0,
+        }
+
+    collection = _get_collection()
+    query: dict[str, Any] = {}
+    if only_fresh:
+        query["expires_at"] = {"$gt": _utcnow()}
+        query["scraped_at"] = {"$gte": _fresh_cutoff()}
+
+    cursor = collection.find(
+        query,
+        {"raw_payload": 1},
+    ).limit(max(1, min(10000, int(limit or 1000))))
+    documents: list[dict[str, Any]] = []
+    try:
+        for row in cursor:
+            if isinstance(row, dict):
+                documents.append(dict(row))
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    pg_result = backfill_jobspy_from_documents(documents)
+    return {
+        "collection": config.MONGODB_JOBSPY_COLLECTION,
+        "jobs_postgres_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
+        "jobs_postgres_enabled": True,
+        "scanned": len(documents),
+        "imported": int(pg_result.get("imported_count") or 0),
+        "upserted": int(pg_result.get("upserted_count") or 0),
+        "matched": int(pg_result.get("matched_count") or 0),
+        "only_fresh": only_fresh,
+    }
+
+
 def get_jobspy_storage_health() -> dict[str, Any]:
     info: dict[str, Any] = {
         "provider": "jobspy",
         "mongodb_configured": bool(config.MONGODB_URI),
+        "jobs_postgres": get_jobs_postgres_health(),
         "mongodb_db": config.MONGODB_DB,
         "collections": {
             "raw": config.MONGODB_JOBSPY_COLLECTION,

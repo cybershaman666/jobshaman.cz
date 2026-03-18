@@ -34,8 +34,10 @@ from ..ai_orchestration.client import (
     get_default_primary_model,
 )
 from ..services.search_intelligence import enrich_search_query
-from ..services.jobspy_jobs import get_jobspy_storage_health, import_jobspy_jobs, search_jobspy_jobs
+from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
+from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
+from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_jobs_postgres_health, jobs_postgres_enabled, read_external_cache_jobs, upsert_external_cache_snapshot
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
 from ..core import config
@@ -255,29 +257,38 @@ def _read_cached_external_jobs(
     country_codes: list[str] | None = None,
     exclude_country_codes: list[str] | None = None,
 ) -> dict[str, Any]:
-    if not supabase:
-        return {"jobs": [], "total_count": 0, "has_more": False}
+    if jobs_postgres_enabled():
+        try:
+            rows = [{"payload_json": read_external_cache_jobs(limit_rows=120)}]
+        except Exception as exc:
+            print(f"⚠️ Failed to read Jobs Postgres external cache: {exc}")
+            rows = []
+    else:
+        rows = []
+
+    if not rows:
+        if not supabase:
+            return {"jobs": [], "total_count": 0, "has_more": False}
+
+        try:
+            response = (
+                supabase.table(_EXTERNAL_LIVE_SEARCH_CACHE_TABLE)
+                .select("provider,payload_json,expires_at,fetched_at")
+                .gte("expires_at", datetime.now(timezone.utc).isoformat())
+                .order("fetched_at", desc=True)
+                .limit(120)
+                .execute()
+            )
+            rows = response.data or []
+        except Exception as exc:
+            if not _is_missing_table_error(exc, _EXTERNAL_LIVE_SEARCH_CACHE_TABLE):
+                print(f"⚠️ Failed to read external live cache: {exc}")
+            return {"jobs": [], "total_count": 0, "has_more": False}
 
     normalized_search = _normalize_external_job_text(search_term)
     normalized_city = _normalize_external_job_text(filter_city)
     allowed_countries = {code.strip().upper() for code in (country_codes or []) if code.strip()}
     blocked_countries = {code.strip().upper() for code in (exclude_country_codes or []) if code.strip()}
-
-    try:
-        response = (
-            supabase.table(_EXTERNAL_LIVE_SEARCH_CACHE_TABLE)
-            .select("provider,payload_json,expires_at,fetched_at")
-            .gte("expires_at", datetime.now(timezone.utc).isoformat())
-            .order("fetched_at", desc=True)
-            .limit(120)
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_table_error(exc, _EXTERNAL_LIVE_SEARCH_CACHE_TABLE):
-            print(f"⚠️ Failed to read external live cache: {exc}")
-        return {"jobs": [], "total_count": 0, "has_more": False}
-
-    rows = response.data or []
     seen: set[str] = set()
     deduped_jobs: list[dict[str, Any]] = []
     search_tokens = [token for token in normalized_search.split(" ") if token]
@@ -374,11 +385,29 @@ def _write_external_cache_snapshot(
     exclude_country_codes: list[str] | None,
     page: int = 1,
 ) -> None:
-    if not supabase:
-        return
     now = datetime.now(timezone.utc)
     snapshot = [dict(item) for item in jobs if isinstance(item, dict)]
     if not snapshot:
+        return
+    if jobs_postgres_enabled():
+        try:
+            persisted = upsert_external_cache_snapshot(
+                cache_key=f"seed:{provider}:{uuid4()}",
+                provider=provider,
+                search_term=search_term,
+                filter_city=filter_city,
+                country_codes=country_codes,
+                exclude_country_codes=exclude_country_codes,
+                page=page,
+                jobs=snapshot,
+                fetched_at=now,
+                expires_at=now + timedelta(seconds=_EXTERNAL_LIVE_SEARCH_CACHE_TTL_SECONDS),
+            )
+            if persisted:
+                return
+        except Exception as exc:
+            print(f"⚠️ Failed to persist Jobs Postgres external cache snapshot ({provider}): {exc}")
+    if not supabase:
         return
     try:
         supabase.table(_EXTERNAL_LIVE_SEARCH_CACHE_TABLE).upsert(
@@ -7263,6 +7292,109 @@ async def get_jobspy_health(
     health = get_jobspy_storage_health()
     status = 200 if health.get("ok") else 503
     return JSONResponse(status_code=status, content=health)
+
+
+@router.post("/jobs/external/jobspy/postgres/init")
+@limiter.limit("10/minute")
+async def init_jobspy_postgres_schema(
+    request: Request,
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    try:
+        schema = ensure_jobs_postgres_schema()
+        health = get_jobs_postgres_health()
+        return {
+            "status": "success",
+            "provider": "jobs_postgres",
+            "schema": schema,
+            "health": health,
+        }
+    except Exception as exc:
+        message = str(exc)
+        hint = None
+        if "failed to resolve host" in message.lower():
+            hint = (
+                "Configured Jobs Postgres hostname is not resolvable from this runtime. "
+                "Verify that the backend service can reach the Northflank Postgres addon host."
+            )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "provider": "jobs_postgres",
+                "error": exc.__class__.__name__,
+                "message": message,
+                "hint": hint,
+            },
+        )
+
+
+@router.post("/jobs/external/jobspy/postgres/backfill")
+@limiter.limit("5/minute")
+async def backfill_jobspy_postgres(
+    request: Request,
+    limit: int = Query(default=2000, ge=1, le=20000),
+    include_stale: bool = Query(default=False),
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    try:
+        result = backfill_jobspy_postgres_from_mongo(
+            limit=limit,
+            only_fresh=not include_stale,
+        )
+        return {
+            "status": "success",
+            "provider": "jobspy",
+            **result,
+        }
+    except Exception as exc:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "provider": "jobspy",
+                "error": exc.__class__.__name__,
+                "message": str(exc),
+            },
+        )
+
+
+@router.post("/jobs/postgres/backfill")
+@limiter.limit("3/minute")
+async def backfill_jobs_postgres(
+    request: Request,
+    limit: int = Query(default=5000, ge=1, le=50000),
+    batch_size: int = Query(default=500, ge=1, le=2000),
+    include_inactive: bool = Query(default=False),
+):
+    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    try:
+        result = backfill_jobs_postgres_from_supabase(
+            limit=limit,
+            batch_size=batch_size,
+            only_active=not include_inactive,
+        )
+        return {
+            "status": "success",
+            "provider": "jobs_postgres",
+            **result,
+        }
+    except Exception as exc:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "provider": "jobs_postgres",
+                "error": exc.__class__.__name__,
+                "message": str(exc),
+            },
+        )
 
 
 @router.get("/jobs/external/jobspy/career-ops")

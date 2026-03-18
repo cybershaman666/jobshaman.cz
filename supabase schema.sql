@@ -1,23 +1,154 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.ab_test_assignments (
+CREATE TABLE public.action_prediction_models (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  model_key text NOT NULL,
+  version text NOT NULL,
+  objective text NOT NULL DEFAULT 'apply_click_probability'::text,
+  coefficients_json jsonb NOT NULL,
+  feature_schema_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  trained_on_window_days integer NOT NULL DEFAULT 30 CHECK (trained_on_window_days >= 1 AND trained_on_window_days <= 365),
+  sample_size integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT action_prediction_models_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.admin_crm_leads (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  company_name text NOT NULL,
+  contact_name text,
+  contact_role text,
+  email text,
+  phone text,
+  website text,
+  country text,
+  city text,
+  status text NOT NULL DEFAULT 'new'::text,
+  priority text NOT NULL DEFAULT 'medium'::text,
+  source text NOT NULL DEFAULT 'manual'::text,
+  notes text,
+  next_follow_up_at timestamp with time zone,
+  last_contacted_at timestamp with time zone,
+  linked_company_id uuid,
+  owner_admin_user_id uuid,
+  owner_admin_email text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT admin_crm_leads_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_crm_leads_linked_company_id_fkey FOREIGN KEY (linked_company_id) REFERENCES public.companies(id)
+);
+CREATE TABLE public.admin_founder_board_cards (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  body text,
+  card_type text NOT NULL DEFAULT 'idea'::text,
+  status text NOT NULL DEFAULT 'inbox'::text,
+  priority text NOT NULL DEFAULT 'medium'::text,
+  assignee_name text,
+  assignee_email text,
+  author_admin_user_id uuid,
+  author_admin_email text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT admin_founder_board_cards_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.admin_founder_board_comments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  card_id uuid NOT NULL,
+  body text NOT NULL,
+  author_admin_user_id uuid,
+  author_admin_email text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT admin_founder_board_comments_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_founder_board_comments_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.admin_founder_board_cards(id)
+);
+CREATE TABLE public.admin_subscription_audit (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subscription_id uuid,
+  target_type text,
+  target_id uuid,
+  action text NOT NULL,
+  admin_user_id uuid,
+  admin_email text,
+  before jsonb,
+  after jsonb,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT admin_subscription_audit_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_subscription_audit_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id),
+  CONSTRAINT admin_subscription_audit_admin_user_id_fkey FOREIGN KEY (admin_user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.admin_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid UNIQUE,
+  email text UNIQUE,
+  role text DEFAULT 'admin'::text,
+  is_active boolean DEFAULT true,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT admin_users_pkey PRIMARY KEY (id),
+  CONSTRAINT admin_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT admin_users_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.ai_conversion_metrics (
+  id bigint NOT NULL DEFAULT nextval('ai_conversion_metrics_id_seq'::regclass),
+  user_id uuid,
+  feature text NOT NULL,
+  action text NOT NULL,
+  action_value numeric,
+  context jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ai_conversion_metrics_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ai_generation_diffs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
-  test_id character varying NOT NULL,
-  variant_id character varying NOT NULL,
-  assigned_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT ab_test_assignments_pkey PRIMARY KEY (id),
-  CONSTRAINT ab_test_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+  feature text NOT NULL,
+  previous_log_id uuid,
+  current_log_id uuid,
+  previous_output_hash text,
+  current_output_hash text,
+  changed_sections ARRAY NOT NULL DEFAULT '{}'::text[],
+  change_ratio numeric NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ai_generation_diffs_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.ab_test_conversions (
+CREATE TABLE public.ai_generation_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  assignment_id uuid,
-  conversion_event character varying NOT NULL,
-  conversion_value numeric,
-  converted_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT ab_test_conversions_pkey PRIMARY KEY (id),
-  CONSTRAINT ab_test_conversions_assignment_id_fkey FOREIGN KEY (assignment_id) REFERENCES public.ab_test_assignments(id)
+  user_id uuid,
+  feature text NOT NULL,
+  prompt_version text,
+  model_primary text,
+  model_final text,
+  fallback_used boolean NOT NULL DEFAULT false,
+  input_chars integer NOT NULL DEFAULT 0,
+  output_valid boolean NOT NULL DEFAULT false,
+  latency_ms integer,
+  tokens_in integer,
+  tokens_out integer,
+  estimated_cost numeric,
+  error_code text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  input_hash text,
+  prompt_hash text,
+  output_hash text,
+  section_hashes jsonb NOT NULL DEFAULT '{}'::jsonb,
+  CONSTRAINT ai_generation_logs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ai_prompt_versions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  version text NOT NULL,
+  system_prompt text NOT NULL,
+  schema_version text NOT NULL DEFAULT 'v1'::text,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ai_prompt_versions_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.analytics_events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -32,6 +163,21 @@ CREATE TABLE public.analytics_events (
   CONSTRAINT analytics_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
   CONSTRAINT analytics_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id)
 );
+CREATE TABLE public.application_messages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  application_id uuid NOT NULL,
+  company_id uuid,
+  candidate_id uuid,
+  sender_user_id uuid,
+  sender_role text NOT NULL CHECK (sender_role = ANY (ARRAY['candidate'::text, 'recruiter'::text])),
+  body text NOT NULL DEFAULT ''::text,
+  attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  read_by_candidate_at timestamp with time zone,
+  read_by_company_at timestamp with time zone,
+  CONSTRAINT application_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT application_messages_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.job_applications(id)
+);
 CREATE TABLE public.assessment_invitations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL,
@@ -44,6 +190,8 @@ CREATE TABLE public.assessment_invitations (
   created_at timestamp with time zone DEFAULT now(),
   completed_at timestamp with time zone,
   metadata jsonb,
+  application_id uuid,
+  job_id bigint,
   CONSTRAINT assessment_invitations_pkey PRIMARY KEY (id),
   CONSTRAINT assessment_invitations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT assessment_invitations_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
@@ -59,6 +207,7 @@ CREATE TABLE public.assessment_results (
   status text DEFAULT 'completed'::text,
   company_id uuid,
   ai_evaluation jsonb,
+  application_id uuid,
   CONSTRAINT assessment_results_pkey PRIMARY KEY (id),
   CONSTRAINT assessment_results_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id),
   CONSTRAINT assessment_results_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
@@ -69,6 +218,15 @@ CREATE TABLE public.benefit_valuations (
   description text,
   CONSTRAINT benefit_valuations_pkey PRIMARY KEY (benefit_name)
 );
+CREATE TABLE public.candidate_embeddings (
+  candidate_id uuid NOT NULL,
+  embedding USER-DEFINED NOT NULL,
+  embedding_model text NOT NULL,
+  embedding_version text NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT candidate_embeddings_pkey PRIMARY KEY (candidate_id),
+  CONSTRAINT candidate_embeddings_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
+);
 CREATE TABLE public.candidate_profiles (
   id uuid NOT NULL,
   cv_text text,
@@ -77,32 +235,29 @@ CREATE TABLE public.candidate_profiles (
   transport_mode text DEFAULT 'public'::text,
   skills ARRAY DEFAULT '{}'::text[],
   preferences jsonb DEFAULT '{"priorities": [], "financialGoals": 50, "workLifeBalance": 50, "commuteTolerance": 45}'::jsonb,
-  tax_profile jsonb,
-  jhi_preferences jsonb DEFAULT '{"pillarWeights": {"financial": 0.3, "timeCost": 0.25, "mentalLoad": 0.2, "growth": 0.15, "values": 0.1}, "hardConstraints": {"mustRemote": false, "maxCommuteMinutes": null, "minNetMonthly": null, "excludeShift": false, "growthRequired": false}, "workStyle": {"peopleIntensity": 50, "careerGrowthPreference": 50, "homeOfficePreference": 50}}'::jsonb,
   work_history jsonb DEFAULT '[]'::jsonb,
   education jsonb DEFAULT '[]'::jsonb,
   lat double precision,
   lng double precision,
   phone text,
   job_title text,
+  story text,
+  hobbies ARRAY,
+  volunteering ARRAY,
+  leadership ARRAY,
+  strengths ARRAY,
+  values ARRAY,
+  inferred_skills ARRAY,
+  awards ARRAY,
+  certifications ARRAY,
+  side_projects ARRAY,
+  motivations ARRAY,
+  work_preferences ARRAY,
+  cv_ai_text text,
+  tax_profile jsonb,
+  jhi_preferences jsonb DEFAULT '{"workStyle": {"peopleIntensity": 50, "homeOfficePreference": 50, "careerGrowthPreference": 50}, "pillarWeights": {"growth": 0.15, "values": 0.1, "timeCost": 0.25, "financial": 0.3, "mentalLoad": 0.2}, "hardConstraints": {"mustRemote": false, "excludeShift": false, "minNetMonthly": null, "growthRequired": false, "maxCommuteMinutes": null}}'::jsonb,
   CONSTRAINT candidate_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT candidate_profiles_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.career_tracks (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  candidate_id uuid NOT NULL,
-  original_job_title text,
-  original_salary_avg integer,
-  resource_id uuid,
-  status text DEFAULT 'in_progress'::text,
-  new_job_id integer,
-  salary_increase_percent double precision,
-  completed_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT career_tracks_pkey PRIMARY KEY (id),
-  CONSTRAINT career_tracks_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id),
-  CONSTRAINT career_tracks_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.learning_resources(id),
-  CONSTRAINT career_tracks_new_job_id_fkey FOREIGN KEY (new_job_id) REFERENCES public.jobs(id)
 );
 CREATE TABLE public.companies (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -135,10 +290,22 @@ CREATE TABLE public.companies (
   contact_person character varying,
   legal_address text,
   registry_info text,
+  team_member_profiles jsonb NOT NULL DEFAULT '{}'::jsonb,
   CONSTRAINT companies_pkey PRIMARY KEY (id),
   CONSTRAINT companies_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
   CONSTRAINT companies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id),
   CONSTRAINT companies_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.subscriptions(id)
+);
+CREATE TABLE public.company_activity_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL,
+  event_type text NOT NULL,
+  subject_type text,
+  subject_id text,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  actor_user_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT company_activity_log_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.company_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -153,27 +320,6 @@ CREATE TABLE public.company_members (
   CONSTRAINT company_members_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT company_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
   CONSTRAINT company_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.course_review_votes (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  review_id uuid NOT NULL,
-  voter_id uuid NOT NULL,
-  is_helpful boolean NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT course_review_votes_pkey PRIMARY KEY (id),
-  CONSTRAINT course_review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.course_reviews(id),
-  CONSTRAINT course_review_votes_voter_id_fkey FOREIGN KEY (voter_id) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.course_reviews (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  course_id text NOT NULL,
-  reviewer_id uuid NOT NULL,
-  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment text,
-  is_verified_graduate boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT course_reviews_pkey PRIMARY KEY (id),
-  CONSTRAINT course_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.csrf_sessions (
   id bigint NOT NULL DEFAULT nextval('csrf_sessions_id_seq'::regclass),
@@ -190,7 +336,6 @@ CREATE TABLE public.csrf_sessions (
 CREATE TABLE public.cv_documents (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
-  external_asset_id uuid,
   file_name text,
   original_name text,
   file_url text,
@@ -201,8 +346,15 @@ CREATE TABLE public.cv_documents (
   uploaded_at timestamp without time zone DEFAULT now(),
   last_used timestamp without time zone,
   CONSTRAINT cv_documents_pkey PRIMARY KEY (id),
-  CONSTRAINT cv_documents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT cv_documents_external_asset_id_fkey FOREIGN KEY (external_asset_id) REFERENCES public.external_assets(id)
+  CONSTRAINT cv_documents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.data_retention_policies (
+  id bigint NOT NULL DEFAULT nextval('data_retention_policies_id_seq'::regclass),
+  table_name text NOT NULL UNIQUE,
+  retain_days integer NOT NULL CHECK (retain_days >= 1),
+  is_enabled boolean NOT NULL DEFAULT true,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT data_retention_policies_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.enterprise_leads (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -224,6 +376,22 @@ CREATE TABLE public.enterprise_leads (
   CONSTRAINT enterprise_leads_pkey PRIMARY KEY (id),
   CONSTRAINT enterprise_leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.external_live_search_cache (
+  cache_key text NOT NULL,
+  provider text NOT NULL,
+  search_term text,
+  filter_city text,
+  country_codes ARRAY NOT NULL DEFAULT '{}'::text[],
+  exclude_country_codes ARRAY NOT NULL DEFAULT '{}'::text[],
+  page integer NOT NULL DEFAULT 1,
+  result_count integer NOT NULL DEFAULT 0,
+  payload_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+  fetched_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT external_live_search_cache_pkey PRIMARY KEY (cache_key)
+);
 CREATE TABLE public.filter_analytics (
   id bigint NOT NULL DEFAULT nextval('filter_analytics_id_seq'::regclass),
   user_id uuid,
@@ -240,97 +408,6 @@ CREATE TABLE public.filter_analytics (
   CONSTRAINT filter_analytics_pkey PRIMARY KEY (id),
   CONSTRAINT filter_analytics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE public.freelancer_portfolio_items (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  freelancer_id uuid NOT NULL,
-  title text,
-  description text,
-  media_url text,
-  media_type text,
-  ordering integer DEFAULT 0,
-  metadata jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  image_url text,
-  file_name text,
-  url text,
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT freelancer_portfolio_items_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_portfolio_items_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id)
-);
-CREATE TABLE public.freelancer_profiles (
-  id uuid NOT NULL,
-  headline text,
-  bio text,
-  presentation text,
-  hourly_rate integer,
-  currency text DEFAULT 'CZK'::text,
-  skills ARRAY DEFAULT '{}'::text[],
-  tags ARRAY DEFAULT '{}'::text[],
-  portfolio jsonb DEFAULT '[]'::jsonb,
-  work_type text DEFAULT 'remote'::text CHECK (work_type = ANY (ARRAY['local'::text, 'remote'::text, 'hybrid'::text, 'onsite'::text])),
-  availability text,
-  address text,
-  lat double precision,
-  lng double precision,
-  website text,
-  contact_email text,
-  contact_phone text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT freelancer_profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_profiles_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.freelancer_review_votes (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  review_id uuid NOT NULL,
-  voter_id uuid NOT NULL,
-  is_helpful boolean NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT freelancer_review_votes_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.freelancer_reviews(id),
-  CONSTRAINT freelancer_review_votes_voter_id_fkey FOREIGN KEY (voter_id) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.freelancer_reviews (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  freelancer_id uuid NOT NULL,
-  reviewer_id uuid NOT NULL,
-  service_id integer,
-  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment text,
-  created_at timestamp with time zone DEFAULT now(),
-  is_verified_customer boolean DEFAULT false,
-  CONSTRAINT freelancer_reviews_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_reviews_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id),
-  CONSTRAINT freelancer_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.profiles(id),
-  CONSTRAINT freelancer_reviews_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.jobs(id)
-);
-CREATE TABLE public.freelancer_services (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  freelancer_id uuid NOT NULL,
-  title text NOT NULL,
-  description text,
-  price_min integer,
-  price_max integer,
-  currency text DEFAULT 'CZK'::text,
-  is_active boolean DEFAULT true,
-  category text,
-  tags ARRAY DEFAULT '{}'::text[],
-  views_count integer DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT freelancer_services_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_services_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id)
-);
-CREATE TABLE public.freelancer_skills (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  freelancer_id uuid NOT NULL,
-  skill_name text NOT NULL,
-  confidence integer DEFAULT 0,
-  endorsements integer DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT freelancer_skills_pkey PRIMARY KEY (id),
-  CONSTRAINT freelancer_skills_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id)
-);
 CREATE TABLE public.geocode_cache (
   id bigint NOT NULL DEFAULT nextval('geocode_cache_id_seq'::regclass),
   address_normalized text NOT NULL UNIQUE,
@@ -342,21 +419,36 @@ CREATE TABLE public.geocode_cache (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT geocode_cache_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.external_assets (
+CREATE TABLE public.jcfpm_items (
+  id text NOT NULL,
+  dimension text NOT NULL,
+  subdimension text,
+  prompt text NOT NULL,
+  reverse_scoring boolean DEFAULT false,
+  sort_order integer NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  item_type text NOT NULL DEFAULT 'likert'::text,
+  payload jsonb,
+  assets jsonb,
+  pool_key text,
+  variant_index integer,
+  prompt_i18n jsonb,
+  subdimension_i18n jsonb,
+  payload_i18n jsonb,
+  CONSTRAINT jcfpm_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jcfpm_results (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  storage_provider text NOT NULL DEFAULT 'local',
-  bucket text NOT NULL,
-  object_key text NOT NULL UNIQUE,
-  kind text NOT NULL DEFAULT 'attachment',
-  mime_type text,
-  size_bytes bigint DEFAULT 0,
-  sha256 text,
-  uploaded_by uuid,
-  filename text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT external_assets_pkey PRIMARY KEY (id),
-  CONSTRAINT external_assets_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.profiles(id)
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  raw_responses jsonb NOT NULL,
+  dimension_scores jsonb NOT NULL,
+  fit_scores jsonb,
+  ai_report jsonb,
+  version text NOT NULL DEFAULT 'jcfpm-v1'::text,
+  is_shared boolean NOT NULL DEFAULT false,
+  share_slug text,
+  CONSTRAINT jcfpm_results_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.job_applications (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -367,6 +459,17 @@ CREATE TABLE public.job_applications (
   cover_letter text,
   status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'reviewed'::text, 'shortlisted'::text, 'rejected'::text, 'hired'::text])),
   created_at timestamp with time zone DEFAULT now(),
+  source text,
+  submitted_at timestamp with time zone,
+  updated_at timestamp with time zone,
+  cv_document_id uuid,
+  cv_snapshot jsonb DEFAULT '{}'::jsonb,
+  candidate_profile_snapshot jsonb DEFAULT '{}'::jsonb,
+  jcfpm_share_level text,
+  shared_jcfpm_payload jsonb DEFAULT '{}'::jsonb,
+  application_payload jsonb DEFAULT '{}'::jsonb,
+  reviewed_at timestamp with time zone,
+  reviewed_by uuid,
   CONSTRAINT job_applications_pkey PRIMARY KEY (id),
   CONSTRAINT job_applications_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.profiles(id),
   CONSTRAINT job_applications_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id)
@@ -382,6 +485,46 @@ CREATE TABLE public.job_candidate_matches (
   CONSTRAINT job_candidate_matches_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
   CONSTRAINT job_candidate_matches_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
 );
+CREATE TABLE public.job_drafts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL,
+  job_id bigint,
+  status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'ready_for_publish'::text, 'published_linked'::text, 'archived'::text])),
+  title text NOT NULL DEFAULT ''::text,
+  role_summary text NOT NULL DEFAULT ''::text,
+  team_intro text NOT NULL DEFAULT ''::text,
+  responsibilities text NOT NULL DEFAULT ''::text,
+  requirements text NOT NULL DEFAULT ''::text,
+  nice_to_have text NOT NULL DEFAULT ''::text,
+  benefits_structured jsonb NOT NULL DEFAULT '[]'::jsonb,
+  salary_from numeric,
+  salary_to numeric,
+  salary_currency text NOT NULL DEFAULT 'CZK'::text,
+  salary_timeframe text NOT NULL DEFAULT 'month'::text,
+  contract_type text,
+  work_model text,
+  workplace_address text,
+  location_public text,
+  application_instructions text NOT NULL DEFAULT ''::text,
+  contact_email text,
+  quality_report jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ai_suggestions jsonb NOT NULL DEFAULT '{}'::jsonb,
+  editor_state jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_drafts_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.job_embeddings (
+  job_id bigint NOT NULL,
+  embedding USER-DEFINED NOT NULL,
+  embedding_model text NOT NULL,
+  embedding_version text NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_embeddings_pkey PRIMARY KEY (job_id),
+  CONSTRAINT job_embeddings_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
 CREATE TABLE public.job_interactions (
   id bigint NOT NULL DEFAULT nextval('job_interactions_id_seq'::regclass),
   user_id uuid NOT NULL,
@@ -395,6 +538,78 @@ CREATE TABLE public.job_interactions (
   CONSTRAINT job_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
   CONSTRAINT job_interactions_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
 );
+CREATE TABLE public.job_public_people (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_id bigint NOT NULL,
+  company_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  person_kind text NOT NULL CHECK (person_kind = ANY (ARRAY['publisher'::text, 'responder'::text])),
+  display_name text NOT NULL DEFAULT ''::text,
+  display_role text NOT NULL DEFAULT ''::text,
+  avatar_url text,
+  short_context text,
+  display_order integer NOT NULL DEFAULT 0,
+  is_visible boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_public_people_pkey PRIMARY KEY (id),
+  CONSTRAINT job_public_people_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
+  CONSTRAINT job_public_people_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
+  CONSTRAINT job_public_people_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.job_role_profiles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  d1 double precision NOT NULL,
+  d2 double precision NOT NULL,
+  d3 double precision NOT NULL,
+  d4 double precision NOT NULL,
+  d5 double precision NOT NULL,
+  d6 double precision NOT NULL,
+  salary_range text,
+  growth_potential text,
+  ai_impact text,
+  remote_friendly text,
+  weights jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  ai_intensity text,
+  CONSTRAINT job_role_profiles_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.job_solution_snapshots (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  dialogue_id uuid NOT NULL,
+  job_id bigint NOT NULL,
+  company_id uuid NOT NULL,
+  candidate_id uuid NOT NULL,
+  problem text NOT NULL DEFAULT ''::text,
+  solution text NOT NULL DEFAULT ''::text,
+  result text NOT NULL DEFAULT ''::text,
+  problem_tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+  solution_tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+  is_public boolean NOT NULL DEFAULT false,
+  share_slug text,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_solution_snapshots_pkey PRIMARY KEY (id),
+  CONSTRAINT job_solution_snapshots_dialogue_id_fkey FOREIGN KEY (dialogue_id) REFERENCES public.job_applications(id),
+  CONSTRAINT job_solution_snapshots_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
+  CONSTRAINT job_solution_snapshots_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
+  CONSTRAINT job_solution_snapshots_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.profiles(id),
+  CONSTRAINT job_solution_snapshots_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.job_versions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_id bigint NOT NULL,
+  draft_id uuid,
+  version_number integer NOT NULL,
+  published_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+  change_summary text,
+  published_by uuid,
+  published_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT job_versions_pkey PRIMARY KEY (id),
+  CONSTRAINT job_versions_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.job_drafts(id)
+);
 CREATE TABLE public.jobs (
   id integer NOT NULL DEFAULT nextval('jobs_id_seq'::regclass),
   title text NOT NULL,
@@ -403,9 +618,7 @@ CREATE TABLE public.jobs (
   location text,
   description text,
   benefits ARRAY,
-  benefits_norm ARRAY,
   contract_type text,
-  contract_type_norm ARRAY,
   salary_from integer,
   salary_to integer,
   work_type text,
@@ -438,60 +651,86 @@ CREATE TABLE public.jobs (
   job_level text,
   working_time text,
   work_model text,
-  work_model_norm ARRAY,
   salary_timeframe text,
+  language_code text,
+  status text DEFAULT 'active'::text,
+  search_text tsvector,
+  search_text_plain text,
+  contract_type_norm ARRAY,
+  work_model_norm ARRAY,
+  benefits_norm ARRAY,
   CONSTRAINT jobs_pkey PRIMARY KEY (id),
   CONSTRAINT jobs_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT jobs_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.profiles(id),
   CONSTRAINT jobs_posted_by_fkey FOREIGN KEY (posted_by) REFERENCES public.profiles(id)
 );
-CREATE TABLE public.learning_resources (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  skill_name ARRAY NOT NULL,
-  title text NOT NULL,
-  url text NOT NULL,
-  provider text,
-  price_estimate jsonb,
-  relevance_score double precision DEFAULT 1.0,
-  created_at timestamp with time zone DEFAULT now(),
-  description text,
-  duration_hours integer,
-  difficulty text DEFAULT 'Beginner'::text,
-  rating double precision DEFAULT 5.0,
-  reviews_count integer DEFAULT 0,
-  is_government_funded boolean DEFAULT false,
-  funding_amount_czk integer DEFAULT 0,
-  affiliate_url text,
-  location text,
-  lat double precision,
-  lng double precision,
-  status text DEFAULT 'active'::text,
-  partner_id uuid,
-  total_graduates_count integer DEFAULT 0,
-  active_students_count integer DEFAULT 0,
-  CONSTRAINT learning_resources_pkey PRIMARY KEY (id),
-  CONSTRAINT learning_resources_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES public.marketplace_partners(id)
+CREATE TABLE public.market_skill_demand (
+  id bigint NOT NULL DEFAULT nextval('market_skill_demand_id_seq'::regclass),
+  skill text NOT NULL,
+  country_code text,
+  city text,
+  demand_score numeric NOT NULL DEFAULT 0,
+  window_start date NOT NULL,
+  window_end date NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT market_skill_demand_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.marketplace_partners (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  name text NOT NULL,
-  contact_email text,
-  contact_name text,
-  contact_phone text,
-  website text,
-  address text,
-  description text,
-  offer text,
-  course_categories ARRAY,
-  lat double precision,
-  lng double precision,
-  commission_rate double precision,
-  partner_type text,
-  owner_id uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT marketplace_partners_pkey PRIMARY KEY (id)
-  ,
-  CONSTRAINT marketplace_partners_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id)
+CREATE TABLE public.model_experiment_assignments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  experiment_key text NOT NULL,
+  user_id uuid NOT NULL,
+  subsystem text NOT NULL,
+  feature text NOT NULL,
+  assigned_version text NOT NULL,
+  bucket integer NOT NULL CHECK (bucket >= 0 AND bucket <= 99),
+  assigned_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT model_experiment_assignments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.model_experiments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subsystem text NOT NULL CHECK (subsystem = ANY (ARRAY['matching'::text, 'ai_orchestration'::text])),
+  feature text NOT NULL,
+  experiment_key text NOT NULL UNIQUE,
+  control_version text NOT NULL,
+  candidate_version text NOT NULL,
+  traffic_percent integer NOT NULL DEFAULT 10 CHECK (traffic_percent >= 0 AND traffic_percent <= 100),
+  is_enabled boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT model_experiments_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.model_offline_evaluations (
+  id bigint NOT NULL DEFAULT nextval('model_offline_evaluations_id_seq'::regclass),
+  model_key text NOT NULL,
+  model_version text NOT NULL,
+  scoring_version text,
+  window_days integer NOT NULL,
+  sample_size integer NOT NULL,
+  auc numeric,
+  log_loss numeric,
+  precision_at_5 numeric,
+  precision_at_10 numeric,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  notes text,
+  CONSTRAINT model_offline_evaluations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.model_registry (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subsystem text NOT NULL CHECK (subsystem = ANY (ARRAY['ai_orchestration'::text, 'matching'::text])),
+  feature text NOT NULL,
+  version text NOT NULL,
+  provider text NOT NULL DEFAULT 'google'::text,
+  model_name text NOT NULL,
+  temperature numeric,
+  top_p numeric,
+  top_k integer,
+  is_primary boolean NOT NULL DEFAULT false,
+  is_fallback boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT false,
+  config_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT model_registry_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.premium_access_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -507,6 +746,15 @@ CREATE TABLE public.premium_access_logs (
   CONSTRAINT premium_access_logs_pkey PRIMARY KEY (id),
   CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.profile_role_cleanup_log (
+  id bigint NOT NULL DEFAULT nextval('profile_role_cleanup_log_id_seq'::regclass),
+  profile_id uuid NOT NULL,
+  old_role text NOT NULL,
+  new_role text NOT NULL,
+  reason text NOT NULL,
+  cleaned_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT profile_role_cleanup_log_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
   email text NOT NULL,
@@ -518,8 +766,77 @@ CREATE TABLE public.profiles (
   subscription_tier character varying DEFAULT 'free'::character varying,
   usage_stats jsonb DEFAULT '{"atcHacksUsed": 0, "cvOptimizationsUsed": 0, "coverLettersGenerated": 0}'::jsonb,
   has_assessment boolean DEFAULT false,
+  welcome_email_sent boolean DEFAULT false,
+  preferred_locale text,
+  preferred_country_code text,
+  daily_digest_enabled boolean DEFAULT true,
+  daily_digest_last_sent_at timestamp with time zone,
+  daily_digest_time time without time zone DEFAULT '07:30:00'::time without time zone,
+  daily_digest_timezone text DEFAULT 'Europe/Prague'::text,
+  daily_digest_push_enabled boolean DEFAULT true,
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.push_subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  endpoint text NOT NULL UNIQUE,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  expires_at timestamp with time zone,
+  user_agent text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.recommendation_cache (
+  id bigint NOT NULL DEFAULT nextval('recommendation_cache_id_seq'::regclass),
+  user_id uuid NOT NULL,
+  job_id bigint NOT NULL,
+  score numeric NOT NULL,
+  breakdown_json jsonb NOT NULL,
+  reasons_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+  model_version text NOT NULL,
+  computed_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone NOT NULL,
+  scoring_version text,
+  CONSTRAINT recommendation_cache_pkey PRIMARY KEY (id),
+  CONSTRAINT recommendation_cache_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id),
+  CONSTRAINT recommendation_cache_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
+CREATE TABLE public.recommendation_exposures (
+  id bigint NOT NULL DEFAULT nextval('recommendation_exposures_id_seq'::regclass),
+  request_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  job_id bigint NOT NULL,
+  position integer NOT NULL CHECK ("position" >= 1),
+  score numeric NOT NULL,
+  predicted_action_probability numeric,
+  action_model_version text,
+  model_version text NOT NULL,
+  scoring_version text NOT NULL,
+  source text NOT NULL DEFAULT 'recommendations_api'::text,
+  shown_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT recommendation_exposures_pkey PRIMARY KEY (id),
+  CONSTRAINT recommendation_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id),
+  CONSTRAINT recommendation_exposures_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
+CREATE TABLE public.recommendation_feedback_events (
+  id bigint NOT NULL DEFAULT nextval('recommendation_feedback_events_id_seq'::regclass),
+  request_id uuid,
+  user_id uuid NOT NULL,
+  job_id bigint NOT NULL,
+  signal_type text NOT NULL CHECK (signal_type = ANY (ARRAY['impression'::text, 'open_detail'::text, 'apply_click'::text, 'save'::text, 'unsave'::text, 'dwell_ms'::text, 'scroll_depth'::text])),
+  signal_value numeric,
+  scoring_version text,
+  model_version text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT recommendation_feedback_events_pkey PRIMARY KEY (id),
+  CONSTRAINT recommendation_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT recommendation_feedback_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
 );
 CREATE TABLE public.recruiter_profiles (
   id uuid NOT NULL,
@@ -528,17 +845,68 @@ CREATE TABLE public.recruiter_profiles (
   CONSTRAINT recruiter_profiles_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id),
   CONSTRAINT recruiter_profiles_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id)
 );
-CREATE TABLE public.resource_reviews (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  resource_id uuid,
-  candidate_id uuid,
-  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment text,
-  is_verified_graduate boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT resource_reviews_pkey PRIMARY KEY (id),
-  CONSTRAINT resource_reviews_resource_id_fkey FOREIGN KEY (resource_id) REFERENCES public.learning_resources(id),
-  CONSTRAINT resource_reviews_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
+CREATE TABLE public.release_flags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  flag_key text NOT NULL UNIQUE,
+  subsystem text NOT NULL CHECK (subsystem = ANY (ARRAY['ai_orchestration'::text, 'matching'::text, 'frontend'::text, 'admin'::text])),
+  description text,
+  is_enabled boolean NOT NULL DEFAULT false,
+  rollout_percent integer NOT NULL DEFAULT 100 CHECK (rollout_percent >= 0 AND rollout_percent <= 100),
+  variant text,
+  config_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT release_flags_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.role_taxonomy (
+  id bigint NOT NULL DEFAULT nextval('role_taxonomy_id_seq'::regclass),
+  canonical_role text NOT NULL UNIQUE,
+  role_family text,
+  role_track text,
+  seniority_default text,
+  aliases ARRAY NOT NULL DEFAULT '{}'::text[],
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT role_taxonomy_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.salary_normalization (
+  id bigint NOT NULL DEFAULT nextval('salary_normalization_id_seq'::regclass),
+  country_code text NOT NULL,
+  city text,
+  currency text NOT NULL,
+  seniority text,
+  normalized_index numeric NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  role text,
+  industry text,
+  role_taxonomy_id bigint,
+  role_family text,
+  role_track text,
+  CONSTRAINT salary_normalization_pkey PRIMARY KEY (id),
+  CONSTRAINT salary_normalization_role_taxonomy_id_fkey FOREIGN KEY (role_taxonomy_id) REFERENCES public.role_taxonomy(id)
+);
+CREATE TABLE public.salary_public_reference (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  country_code text NOT NULL,
+  role_family text NOT NULL,
+  region_key text NOT NULL,
+  seniority_band text NOT NULL,
+  employment_type text NOT NULL,
+  currency text NOT NULL DEFAULT 'CZK'::text,
+  p25 numeric,
+  p50 numeric,
+  p75 numeric,
+  sample_size integer DEFAULT 0,
+  data_window_days integer,
+  source_name text NOT NULL,
+  source_url text,
+  period_label text,
+  measure_type text NOT NULL DEFAULT 'median'::text,
+  gross_net text NOT NULL DEFAULT 'gross'::text,
+  employment_scope text NOT NULL DEFAULT 'full_time'::text,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  method_version text DEFAULT 'salary-benchmark-v2'::text,
+  CONSTRAINT salary_public_reference_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.saved_filter_sets (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -552,20 +920,71 @@ CREATE TABLE public.saved_filter_sets (
   CONSTRAINT saved_filter_sets_pkey PRIMARY KEY (id),
   CONSTRAINT saved_filter_sets_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-CREATE TABLE public.service_inquiries (
+CREATE TABLE public.scoring_model_versions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  freelancer_id uuid,
-  service_id uuid,
-  from_user_id uuid,
-  from_email text,
-  subject text,
-  message text,
-  metadata jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT service_inquiries_pkey PRIMARY KEY (id),
-  CONSTRAINT service_inquiries_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id),
-  CONSTRAINT service_inquiries_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.freelancer_services(id),
-  CONSTRAINT service_inquiries_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.profiles(id)
+  version text NOT NULL UNIQUE,
+  alpha_skill numeric NOT NULL,
+  beta_demand numeric NOT NULL,
+  gamma_seniority numeric NOT NULL,
+  delta_salary numeric NOT NULL,
+  epsilon_geo numeric NOT NULL,
+  notes text,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT scoring_model_versions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.search_exposures (
+  id bigint NOT NULL DEFAULT nextval('search_exposures_id_seq'::regclass),
+  request_id uuid NOT NULL,
+  user_id uuid,
+  job_id integer NOT NULL,
+  position integer NOT NULL,
+  query text,
+  filters_json jsonb DEFAULT '{}'::jsonb,
+  ranking_features_json jsonb DEFAULT '{}'::jsonb,
+  shown_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT search_exposures_pkey PRIMARY KEY (id),
+  CONSTRAINT search_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT search_exposures_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
+CREATE TABLE public.search_feedback_events (
+  id bigint NOT NULL DEFAULT nextval('search_feedback_events_id_seq'::regclass),
+  request_id uuid,
+  user_id uuid,
+  job_id integer NOT NULL,
+  signal_type text NOT NULL,
+  signal_value double precision,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT search_feedback_events_pkey PRIMARY KEY (id),
+  CONSTRAINT search_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT search_feedback_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
+CREATE TABLE public.seasonal_bias_corrections (
+  id bigint NOT NULL DEFAULT nextval('seasonal_bias_corrections_id_seq'::regclass),
+  month smallint NOT NULL CHECK (month >= 1 AND month <= 12),
+  country_code text,
+  city text,
+  skill text,
+  correction_factor numeric NOT NULL DEFAULT 1.0,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT seasonal_bias_corrections_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.skill_graph_edges (
+  id bigint NOT NULL DEFAULT nextval('skill_graph_edges_id_seq'::regclass),
+  from_skill text NOT NULL,
+  to_skill text NOT NULL,
+  weight numeric NOT NULL DEFAULT 0.0,
+  relation_type text NOT NULL DEFAULT 'related'::text,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT skill_graph_edges_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.skill_graph_nodes (
+  id bigint NOT NULL DEFAULT nextval('skill_graph_nodes_id_seq'::regclass),
+  skill text NOT NULL UNIQUE,
+  category text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT skill_graph_nodes_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.subscription_usage (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -573,25 +992,11 @@ CREATE TABLE public.subscription_usage (
   period_start timestamp with time zone NOT NULL,
   period_end timestamp with time zone NOT NULL,
   active_jobs_count integer DEFAULT 0,
-  active_dialogue_slots_used integer DEFAULT 0,
-  role_opens_used integer DEFAULT 0,
   ai_assessments_used integer DEFAULT 0,
   ad_optimizations_used integer DEFAULT 0,
   last_reset_at timestamp with time zone DEFAULT now(),
   CONSTRAINT subscription_usage_pkey PRIMARY KEY (id)
 );
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_name = 'subscription_usage'
-  ) THEN
-    ALTER TABLE public.subscription_usage
-      ADD COLUMN IF NOT EXISTS active_dialogue_slots_used integer DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS role_opens_used integer DEFAULT 0;
-  END IF;
-END $$;
 CREATE TABLE public.subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -620,57 +1025,3 @@ CREATE TABLE public.webhook_events (
   status character varying DEFAULT 'processed'::character varying,
   CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE public.jcfpm_items (
-  id text NOT NULL,
-  dimension text NOT NULL,
-  subdimension text,
-  prompt text NOT NULL,
-  reverse_scoring boolean DEFAULT false,
-  sort_order integer NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT jcfpm_items_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.job_role_profiles (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  d1 double precision NOT NULL,
-  d2 double precision NOT NULL,
-  d3 double precision NOT NULL,
-  d4 double precision NOT NULL,
-  d5 double precision NOT NULL,
-  d6 double precision NOT NULL,
-  salary_range text,
-  growth_potential text,
-  ai_impact text,
-  remote_friendly text,
-  weights jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT job_role_profiles_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.jcfpm_results (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  raw_responses jsonb NOT NULL,
-  dimension_scores jsonb NOT NULL,
-  fit_scores jsonb,
-  ai_report jsonb,
-  version text DEFAULT 'jcfpm-v1'::text,
-  CONSTRAINT jcfpm_results_pkey PRIMARY KEY (id)
-);
-
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.tables
-    WHERE table_schema = 'public'
-      AND table_name = 'application_messages'
-  ) THEN
-    EXECUTE 'ALTER TABLE public.application_messages ADD COLUMN IF NOT EXISTS asset_ids jsonb DEFAULT ''[]''::jsonb';
-  END IF;
-END
-$$;
