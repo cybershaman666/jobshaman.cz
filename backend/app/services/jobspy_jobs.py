@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import hashlib
 import math
 from dataclasses import dataclass
@@ -595,6 +596,10 @@ def import_jobspy_jobs(
 
     sampled_jobs = [serialize_jobspy_job(doc) for doc in documents[:5]]
     query_hash = documents[0]["query_hash"] if documents else hashlib.sha1(b"empty").hexdigest()
+    del records
+    del jobs_df
+    if linkedin_fetch_description:
+        gc.collect()
     return JobSpyImportResult(
         imported_count=len(documents),
         upserted_count=upserted_count,
