@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from ..core.database import supabase
+from ..services.jobs_postgres_store import prune_expired_main_jobs
 
 
 _SUPPORTED_TABLES = {
@@ -104,5 +105,11 @@ def run_retention_cleanup() -> Dict[str, int]:
         except Exception as exc:
             print(f"⚠️ [Retention] cleanup failed for {table}: {exc}")
             result[table] = 0
+
+    try:
+        result["jobs_postgres_main"] = int((prune_expired_main_jobs() or {}).get("deleted") or 0)
+    except Exception as exc:
+        print(f"⚠️ [Retention] jobs_postgres main cleanup failed: {exc}")
+        result["jobs_postgres_main"] = 0
 
     return result

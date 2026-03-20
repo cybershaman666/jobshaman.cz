@@ -681,12 +681,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         );
         console.log('🏁 Applying initial profile search defaults...');
 
-        const desiredMin = Number(userProfile.preferences?.desired_salary_min ?? 0) || 0;
         const defaultCommute = Boolean(searchProfile.defaultEnableCommuteFilter ?? false) && hasProfileLocation;
         const defaultDistance = Number(searchProfile.defaultMaxDistanceKm ?? 50) || 50;
         const defaultsSignature = JSON.stringify({
             profileId: userProfile.id || 'guest',
-            desiredMin,
             defaultCommute,
             defaultDistance,
             hasProfileLocation,
@@ -697,7 +695,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         lastAppliedProfileDefaultsSignatureRef.current = defaultsSignature;
 
         applyDiscoveryDefaults({
-            filterMinSalary: desiredMin,
             enableCommuteFilter: defaultCommute,
             filterMaxDistance: defaultDistance,
         }, shouldForce);
@@ -709,7 +706,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         userProfile.coordinates?.lat,
         userProfile.coordinates?.lon,
         userProfile.preferences?.searchProfile,
-        userProfile.preferences?.desired_salary_min,
         applyDiscoveryDefaults
     ]);
 

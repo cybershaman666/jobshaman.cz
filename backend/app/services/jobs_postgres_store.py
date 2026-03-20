@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from threading import Lock
 from typing import Any
 
@@ -20,19 +22,76 @@ def jobs_postgres_main_enabled() -> bool:
     return bool(jobs_postgres_enabled() and config.JOBS_POSTGRES_SERVE_MAIN)
 
 
+def _inject_local_venv_site_packages() -> list[str]:
+    added: list[str] = []
+    current_file = Path(__file__).resolve()
+    backend_dir = current_file.parents[2]
+    repo_root = current_file.parents[4]
+    candidates = (
+        backend_dir / "venv",
+        repo_root / ".venv",
+    )
+
+    for venv_dir in candidates:
+        lib_dir = venv_dir / "lib"
+        if not lib_dir.exists():
+            continue
+        for site_packages in sorted(lib_dir.glob("python*/site-packages"), reverse=True):
+            site_packages_str = str(site_packages)
+            if site_packages.is_dir() and site_packages_str not in sys.path:
+                sys.path.insert(0, site_packages_str)
+                added.append(site_packages_str)
+    return added
+
+
 def _load_psycopg():
     try:
         import psycopg
         from psycopg.rows import dict_row
     except Exception as exc:
-        raise RuntimeError(
-            "Jobs Postgres runtime is not available. Install backend dependencies including psycopg[binary]."
-        ) from exc
+        added_paths = _inject_local_venv_site_packages()
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+        except Exception:
+            searched = ", ".join(added_paths) if added_paths else "no local venv site-packages found"
+            raise RuntimeError(
+                "Jobs Postgres runtime is not available. Install backend dependencies including "
+                "psycopg[binary]. "
+                f"Interpreter: {sys.executable}. "
+                f"Checked local venv paths: {searched}."
+            ) from exc
+        return psycopg, dict_row
     return psycopg, dict_row
 
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _normalize_main_source_kind(doc: dict[str, Any]) -> str:
+    raw_kind = str(doc.get("source_kind") or "").strip().lower()
+    if raw_kind in {"native", "external", "imported"}:
+        return "external" if raw_kind == "imported" else raw_kind
+    source = str(doc.get("source") or "").strip().lower()
+    if "jobshaman" in source:
+        return "native"
+    company_id = str(doc.get("company_id") or "").strip()
+    return "native" if company_id else "external"
+
+
+def _jobs_main_cutoff_sql() -> tuple[str, tuple[Any, ...]]:
+    now = _utcnow()
+    imported_cutoff = now - timedelta(days=max(1, int(config.JOBS_POSTGRES_IMPORTED_RETENTION_DAYS or 15)))
+    native_cutoff = now - timedelta(days=max(1, int(config.JOBS_POSTGRES_NATIVE_RETENTION_DAYS or 30)))
+    clause = """
+        (
+            (COALESCE(source_kind, 'native') = 'native' AND scraped_at >= %s)
+            OR
+            (COALESCE(source_kind, 'native') <> 'native' AND scraped_at >= %s)
+        )
+    """
+    return clause, (native_cutoff, imported_cutoff)
 
 
 def _connect():
@@ -438,6 +497,7 @@ def upsert_jobs_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
             """,
             [
                 {
+                    "source_kind": _normalize_main_source_kind(doc),
                     "id": str(doc.get("id") or ""),
                     "company_id": doc.get("company_id"),
                     "posted_by": doc.get("posted_by"),
@@ -461,7 +521,6 @@ def upsert_jobs_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
                     "work_type": doc.get("work_type"),
                     "work_model": doc.get("work_model"),
                     "source": doc.get("source"),
-                    "source_kind": str(doc.get("source_kind") or "native"),
                     "url": doc.get("url"),
                     "education_level": doc.get("education_level"),
                     "lat": _coerce_float(doc.get("lat")),
@@ -503,6 +562,7 @@ def read_recent_jobs(*, limit: int = 500, days: int = 30) -> list[dict[str, Any]
     _ensure_schema()
     conn = _connect()
     cutoff = _utcnow() - timedelta(days=max(1, int(days or 30)))
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -511,10 +571,11 @@ def read_recent_jobs(*, limit: int = 500, days: int = 30) -> list[dict[str, Any]
             WHERE scraped_at >= %s
               AND COALESCE(status, 'active') = 'active'
               AND COALESCE(legality_status, 'legal') = 'legal'
+              AND {cutoff_sql}
             ORDER BY scraped_at DESC
             LIMIT %s
             """,
-            (cutoff, max(1, int(limit or 500))),
+            (cutoff, *cutoff_params, max(1, int(limit or 500))),
         )
         rows = cur.fetchall() or []
     jobs: list[dict[str, Any]] = []
@@ -537,11 +598,13 @@ def query_jobs_for_hybrid_search(
         return []
     _ensure_schema()
     conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     where_parts = [
         "COALESCE(legality_status, 'legal') = 'legal'",
         "COALESCE(status, 'active') = 'active'",
+        cutoff_sql.strip(),
     ]
-    params: list[Any] = []
+    params: list[Any] = list(cutoff_params)
     if cutoff_iso:
         where_parts.append("scraped_at >= %s")
         params.append(_coerce_timestamp(cutoff_iso))
@@ -585,10 +648,32 @@ def get_job_by_id(job_id: Any) -> dict[str, Any] | None:
         return None
     _ensure_schema()
     conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
         cur.execute(
-            f"SELECT payload_json FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = %s LIMIT 1",
-            (normalized_id,),
+            f"SELECT payload_json FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = %s AND {cutoff_sql} LIMIT 1",
+            (normalized_id, *cutoff_params),
+        )
+        row = cur.fetchone() or {}
+    payload = _json_load((row or {}).get("payload_json"), {})
+    if isinstance(payload, dict) and payload:
+        return dict(payload)
+    return None
+
+
+def get_job_by_url(url: Any) -> dict[str, Any] | None:
+    if not jobs_postgres_main_enabled():
+        return None
+    normalized_url = str(url or "").strip()
+    if not normalized_url:
+        return None
+    _ensure_schema()
+    conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"SELECT payload_json FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE url = %s AND {cutoff_sql} ORDER BY scraped_at DESC LIMIT 1",
+            (normalized_url, *cutoff_params),
         )
         row = cur.fetchone() or {}
     payload = _json_load((row or {}).get("payload_json"), {})
@@ -605,16 +690,18 @@ def list_company_jobs(*, company_id: str, limit: int = 200) -> list[dict[str, An
         return []
     _ensure_schema()
     conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT payload_json
             FROM {config.JOBS_POSTGRES_JOBS_TABLE}
             WHERE company_id = %s
+              AND {cutoff_sql}
             ORDER BY scraped_at DESC
             LIMIT %s
             """,
-            (normalized_company_id, max(1, int(limit or 200))),
+            (normalized_company_id, *cutoff_params, max(1, int(limit or 200))),
         )
         rows = cur.fetchall() or []
     out: list[dict[str, Any]] = []
@@ -638,6 +725,45 @@ def update_job_fields(job_id: Any, patch: dict[str, Any]) -> bool:
     merged.update(patch)
     backfill_jobs_from_documents([merged])
     return True
+
+
+def delete_job_by_id(job_id: Any) -> bool:
+    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_WRITE_MAIN:
+        return False
+    normalized_id = str(job_id or "").strip()
+    if not normalized_id:
+        return False
+    _ensure_schema()
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"DELETE FROM {config.JOBS_POSTGRES_JOBS_TABLE} WHERE id = %s",
+            (normalized_id,),
+        )
+        deleted = cur.rowcount or 0
+    return bool(deleted)
+
+
+def prune_expired_main_jobs() -> dict[str, int]:
+    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_WRITE_MAIN:
+        return {"deleted": 0}
+    _ensure_schema()
+    conn = _connect()
+    native_cutoff = _utcnow() - timedelta(days=max(1, int(config.JOBS_POSTGRES_NATIVE_RETENTION_DAYS or 30)))
+    imported_cutoff = _utcnow() - timedelta(days=max(1, int(config.JOBS_POSTGRES_IMPORTED_RETENTION_DAYS or 15)))
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            DELETE FROM {config.JOBS_POSTGRES_JOBS_TABLE}
+            WHERE
+                (COALESCE(source_kind, 'native') = 'native' AND scraped_at < %s)
+                OR
+                (COALESCE(source_kind, 'native') <> 'native' AND scraped_at < %s)
+            """,
+            (native_cutoff, imported_cutoff),
+        )
+        deleted = cur.rowcount or 0
+    return {"deleted": int(deleted)}
 
 
 def upsert_jobspy_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
@@ -864,6 +990,8 @@ def get_jobs_postgres_health() -> dict[str, Any]:
         "jobspy_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
         "serve_main": bool(config.JOBS_POSTGRES_SERVE_MAIN),
         "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
+        "native_retention_days": int(config.JOBS_POSTGRES_NATIVE_RETENTION_DAYS),
+        "imported_retention_days": int(config.JOBS_POSTGRES_IMPORTED_RETENTION_DAYS),
     }
     if not jobs_postgres_enabled():
         return info

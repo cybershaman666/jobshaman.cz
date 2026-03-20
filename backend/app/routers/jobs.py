@@ -37,7 +37,7 @@ from ..services.search_intelligence import enrich_search_query
 from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, jobspy_mongo_enabled, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
-from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
+from ..services.jobs_postgres_store import delete_job_by_id, ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
 from ..core import config
@@ -1372,6 +1372,25 @@ def _safe_string_list(value, limit: int = 12) -> list[str]:
 
 _NATIVE_JOB_SOURCE = "jobshaman.cz"
 _JOB_PUBLIC_PERSON_MAX_RESPONDERS = 3
+
+
+def _sync_main_job_to_jobs_postgres(job_row: dict[str, Any] | None, *, source_kind: str = "native") -> None:
+    if not isinstance(job_row, dict) or not job_row:
+        return
+    payload = dict(job_row)
+    payload["source_kind"] = source_kind
+    payload.setdefault("source", _NATIVE_JOB_SOURCE)
+    payload.setdefault("scraped_at", payload.get("updated_at") or payload.get("created_at") or now_iso())
+    payload.setdefault("created_at", payload.get("scraped_at"))
+    payload["updated_at"] = payload.get("updated_at") or now_iso()
+    try:
+        updated = update_job_fields(payload.get("id"), payload)
+        if updated:
+            return
+    except Exception:
+        pass
+    from ..services.jobs_postgres_store import backfill_jobs_from_documents
+    backfill_jobs_from_documents([payload])
 
 
 def _empty_job_human_context_trust() -> dict[str, Any]:
@@ -3892,6 +3911,10 @@ async def update_job_status(job_id: str, update: JobStatusUpdateRequest, request
     _require_job_access(user, job_id)
     # Query Supabase for job ownership and update status
     resp = supabase.table("jobs").update({"status": update.status}).eq("id", job_id).execute()
+    try:
+        update_job_fields(job_id, {"status": update.status})
+    except Exception:
+        pass
     return {"status": "success"}
 
 @router.delete("/{job_id}")
@@ -3901,6 +3924,10 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     _require_job_access(user, job_id)
     supabase.table("jobs").delete().eq("id", job_id).execute()
+    try:
+        delete_job_by_id(job_id)
+    except Exception:
+        pass
     return {"status": "success"}
 
 @router.post("/jobs/interactions")
@@ -6116,6 +6143,7 @@ async def publish_company_job_draft(
         "contract_type": None if is_micro_job else draft.get("contract_type"),
         "work_type": draft.get("work_model"),
         "source": "jobshaman.cz",
+        "source_kind": "native",
         "scraped_at": now_iso(),
     }
 
@@ -6150,6 +6178,13 @@ async def publish_company_job_draft(
         if not job_row:
             raise HTTPException(status_code=500, detail="Failed to publish draft")
         job_id = _normalize_job_id(job_row.get("id"))
+
+    if isinstance(job_row, dict):
+        sync_row = dict(job_row)
+        sync_row.update(job_payload)
+        sync_row["id"] = job_id
+        sync_row["company_id"] = company_id
+        _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
 
     next_version = 1
     try:
@@ -6511,6 +6546,10 @@ async def update_company_job_lifecycle(
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     job_row = _require_job_access(user, job_id)
     supabase.table("jobs").update({"status": payload.status}).eq("id", _normalize_job_id(job_id)).execute()
+    try:
+        update_job_fields(_normalize_job_id(job_id), {"status": payload.status})
+    except Exception:
+        pass
 
     event_type = (
         "job_closed" if payload.status == "closed"

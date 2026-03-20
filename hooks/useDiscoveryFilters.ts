@@ -142,7 +142,9 @@ export const useDiscoveryFilters = ({
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
     const [filterDate, setFilterDate] = useState<string>('all');
-    const [filterMinSalary, setFilterMinSalary] = useState<number>(() => Number(userProfile.preferences?.desired_salary_min ?? 0) || 0);
+    // Keep profile salary as a recommendation signal and preset value, not a hidden hard filter
+    // on the default discovery feed. Users can still opt into it explicitly from the UI.
+    const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]);
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
     const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);

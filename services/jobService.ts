@@ -807,6 +807,53 @@ export const fetchJobsPaginated = async (
     microJobsOnly: boolean = false,
     skipCount: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+    const backendBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL) || normalizeBackendBaseUrl(BACKEND_URL);
+    const normalizedCountryCodes = Array.isArray(countryCode)
+        ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
+        : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
+    const normalizedLanguageCodes = (languageCodes || []).map((code) => String(code || '').trim().toLowerCase()).filter(Boolean);
+
+    if (backendBase && !microJobsOnly) {
+        try {
+            const response = await authenticatedFetch(`${backendBase}/jobs/hybrid-search-v2`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    search_term: '',
+                    page,
+                    page_size: pageSize,
+                    user_lat: userLat ?? null,
+                    user_lng: userLng ?? null,
+                    radius_km: (userLat != null && userLng != null) ? radiusKm : null,
+                    filter_city: '',
+                    filter_contract_types: [],
+                    filter_benefits: [],
+                    filter_min_salary: null,
+                    filter_date_posted: 'all',
+                    filter_experience_levels: [],
+                    filter_country_codes: normalizedCountryCodes,
+                    exclude_country_codes: [],
+                    filter_language_codes: normalizedLanguageCodes,
+                    sort_mode: 'newest',
+                }),
+            });
+
+            if (response.ok) {
+                const payload = await response.json();
+                const rawJobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+                const processedJobs = rawJobs.map((job: any) => transformJob(job, includeJhi));
+                const filteredJobs = filterJobsByQuality(processedJobs);
+                return {
+                    jobs: filteredJobs,
+                    hasMore: Boolean(payload?.has_more),
+                    totalCount: Number(payload?.total_count || filteredJobs.length),
+                };
+            }
+        } catch (error) {
+            console.warn('Backend paginated jobs fetch failed, falling back to Supabase:', error);
+        }
+    }
+
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
         return { jobs: [], hasMore: false, totalCount: 0 };
@@ -814,9 +861,6 @@ export const fetchJobsPaginated = async (
 
     try {
         // If user coordinates provided AND both lat/lng are defined, use spatial query
-        const normalizedCountryCodes = Array.isArray(countryCode)
-            ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
-            : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
         const singleCountryCode = normalizedCountryCodes.length === 1 ? normalizedCountryCodes[0] : undefined;
 
         if (!microJobsOnly && userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {

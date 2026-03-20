@@ -529,15 +529,14 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     candidate_limit = max(250, min(900, safe_page_size * 6))
 
     def _run_base_query(with_status_filter: bool):
-        pg_rows = query_jobs_for_hybrid_search(
-            limit=candidate_limit,
-            cutoff_iso=cutoff_iso,
-            country_codes=list(country_codes),
-            language_codes=list(language_codes),
-            min_salary=min_salary,
-        )
-        if pg_rows:
-            return pg_rows
+        if jobs_postgres_main_enabled():
+            return query_jobs_for_hybrid_search(
+                limit=candidate_limit,
+                cutoff_iso=cutoff_iso,
+                country_codes=list(country_codes),
+                language_codes=list(language_codes),
+                min_salary=min_salary,
+            )
         if not supabase:
             return []
         query = (

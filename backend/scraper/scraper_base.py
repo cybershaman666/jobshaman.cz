@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import json
 import time
 import base64
+import uuid
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
@@ -44,9 +45,10 @@ except Exception:
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
 try:
-    from app.services.jobs_postgres_store import backfill_jobs_from_documents, jobs_postgres_enabled
+    from app.services.jobs_postgres_store import backfill_jobs_from_documents, get_job_by_url, jobs_postgres_enabled
 except Exception:
     backfill_jobs_from_documents = None  # type: ignore
+    get_job_by_url = None  # type: ignore
     jobs_postgres_enabled = None  # type: ignore
 
 # --- Environment Setup ---
@@ -846,10 +848,52 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         except Exception as exc:
             print(f"    ⚠️ Jobs Postgres mirror failed: {exc}")
 
-    if not supabase:
-        print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
+    def _upsert_direct_to_jobs_postgres(payload: Dict) -> bool:
+        if not isinstance(payload, dict):
+            return False
+        if not callable(backfill_jobs_from_documents):
+            return False
+        try:
+            enabled = bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
+        except Exception:
+            enabled = False
+        if not enabled:
+            return False
+
+        normalized_url = str(payload.get("url") or "").strip()
+        existing_row: Optional[Dict] = None
+        if normalized_url and callable(get_job_by_url):
+            try:
+                existing = get_job_by_url(normalized_url)
+                if isinstance(existing, dict) and existing:
+                    existing_row = dict(existing)
+            except Exception as exc:
+                print(f"    ⚠️ Jobs Postgres duplicate lookup failed: {exc}")
+
+        doc = dict(existing_row or {})
+        doc.update(payload)
+        if existing_row and existing_row.get("id") and not payload.get("id"):
+            doc["id"] = existing_row["id"]
+        if not doc.get("id"):
+            doc["id"] = str(uuid.uuid5(uuid.NAMESPACE_URL, normalized_url or json.dumps(payload, sort_keys=True, default=str)))
+        doc["source_kind"] = "external"
+        doc.setdefault("status", "active")
+        doc.setdefault("is_active", True)
+        doc.setdefault("scraped_at", now_iso())
+        doc.setdefault("created_at", doc.get("scraped_at"))
+        doc["updated_at"] = now_iso()
+
+        try:
+            result = backfill_jobs_from_documents([doc])
+            imported_count = int(result.get("imported_count") or 0)
+            matched_count = int(result.get("matched_count") or 0)
+            if imported_count > 0 or matched_count > 0:
+                print(f"    --> Data pro '{doc.get('title')}' uložena přímo do Jobs Postgres.")
+                return True
+        except Exception as exc:
+            print(f"    ⚠️ Direct Jobs Postgres write failed: {exc}")
         return False
-    
+
     url = job_data["url"]
     
     # If is_duplicate() was already called for this URL (cache hit), skip the DB check.
@@ -1008,6 +1052,13 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
     if "description" in job_data and job_data["description"] and len(job_data["description"]) > 9500:
         print(f"    ⚠️ Popis je příliš dlouhý ({len(job_data['description'])} znaků). Zkracuji na 9500.")
         job_data["description"] = job_data["description"][:9500] + "\n\n... (Popis byl zkrácen)"
+
+    if _upsert_direct_to_jobs_postgres(job_data):
+        return True
+
+    if not supabase:
+        print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
+        return False
 
     # Save to database
     for attempt in range(2):

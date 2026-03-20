@@ -57,9 +57,15 @@ _COUNTRY_NAMES_BY_CODE = {
     "PL": ["poland", "polska"],
 }
 
+_JOBSPY_ALLOWED_COUNTRY_CODES = {
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
+    "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+    "SI", "ES", "SE",
+}
+
 
 def jobspy_mongo_enabled() -> bool:
-    return bool(config.MONGODB_JOBSPY_ENABLED and config.MONGODB_URI)
+    return False
 
 
 def _load_jobspy_scrape_jobs():
@@ -287,6 +293,19 @@ def _normalize_country_code(value: Any) -> str | None:
     return None
 
 
+def _is_allowed_jobspy_country(country_code: Any) -> bool:
+    normalized = _normalize_country_code(country_code)
+    return bool(normalized and normalized in _JOBSPY_ALLOWED_COUNTRY_CODES)
+
+
+def _resolve_effective_jobspy_country_codes(country_codes: list[str] | None) -> list[str]:
+    normalized = [_normalize_country_code(code) for code in (country_codes or [])]
+    filtered = [code for code in normalized if code and code in _JOBSPY_ALLOWED_COUNTRY_CODES]
+    if filtered:
+        return sorted(set(filtered))
+    return sorted(_JOBSPY_ALLOWED_COUNTRY_CODES)
+
+
 def _build_geocode_candidates(
     *,
     city: str,
@@ -509,22 +528,42 @@ def import_jobspy_jobs(
     queried_at = _utcnow()
     expires_at = queried_at + timedelta(days=max(1, config.MONGODB_JOBSPY_TTL_DAYS))
     sites = _normalize_sites(site_name)
+    safe_country_indeed = _safe_str(country_indeed) or "usa"
 
-    jobs_df = scrape_jobs(
-        site_name=sites or None,
-        search_term=_safe_str(search_term) or None,
-        google_search_term=_safe_str(google_search_term) or None,
-        location=_safe_str(location) or None,
-        results_wanted=max(1, min(200, int(results_wanted or 20))),
-        hours_old=hours_old,
-        country_indeed=_safe_str(country_indeed) or "usa",
-        job_type=_safe_str(job_type) or None,
-        is_remote=bool(is_remote),
-        linkedin_fetch_description=bool(linkedin_fetch_description),
-        description_format=_safe_str(description_format) or "markdown",
-        verbose=max(0, min(2, int(verbose or 0))),
-        offset=max(0, int(offset or 0)),
-    )
+    def _run_scrape(selected_sites: list[str]):
+        return scrape_jobs(
+            site_name=selected_sites or None,
+            search_term=_safe_str(search_term) or None,
+            google_search_term=_safe_str(google_search_term) or None,
+            location=_safe_str(location) or None,
+            results_wanted=max(1, min(200, int(results_wanted or 20))),
+            hours_old=hours_old,
+            country_indeed=safe_country_indeed,
+            job_type=_safe_str(job_type) or None,
+            is_remote=bool(is_remote),
+            linkedin_fetch_description=bool(linkedin_fetch_description and any(site.lower() == "linkedin" for site in selected_sites)),
+            description_format=_safe_str(description_format) or "markdown",
+            verbose=max(0, min(2, int(verbose or 0))),
+            offset=max(0, int(offset or 0)),
+        )
+
+    try:
+        jobs_df = _run_scrape(sites)
+    except Exception as exc:
+        selected_sites = [site for site in sites if site]
+        has_linkedin = any(site.lower() == "linkedin" for site in selected_sites)
+        if has_linkedin:
+            fallback_sites = [site for site in selected_sites if site.lower() != "linkedin"]
+            print(f"⚠️ JobSpy LinkedIn scrape failed for country='{safe_country_indeed}', location='{location}', query='{search_term}': {exc}")
+            if fallback_sites:
+                print(f"↪️ Retrying JobSpy batch without LinkedIn: {', '.join(fallback_sites)}")
+                jobs_df = _run_scrape(fallback_sites)
+                sites = fallback_sites
+            else:
+                print("↪️ LinkedIn was the only JobSpy site in this batch; returning empty result instead of failing ingest.")
+                jobs_df = None
+        else:
+            raise
 
     records = jobs_df.to_dict(orient="records") if jobs_df is not None else []
     documents = [
@@ -544,6 +583,14 @@ def import_jobspy_jobs(
         for record in records
         if isinstance(record, dict)
     ]
+    filtered_documents = [doc for doc in documents if _is_allowed_jobspy_country(doc.get("country_code"))]
+    dropped_non_eu = len(documents) - len(filtered_documents)
+    if dropped_non_eu > 0:
+        print(
+            f"🧹 Dropped {dropped_non_eu} non-EU JobSpy jobs for "
+            f"country='{safe_country_indeed}', location='{location}', query='{search_term}'."
+        )
+    documents = filtered_documents
 
     upserted_count = 0
     matched_count = 0
@@ -572,25 +619,6 @@ def import_jobspy_jobs(
                 storage_errors.append(exc)
                 print(f"⚠️ Failed to mirror JobSpy docs into Jobs main table: {exc}")
 
-        if jobspy_mongo_enabled():
-            try:
-                collection = _get_collection()
-                operations = [
-                    UpdateOne(
-                        {"_id": document["_id"]},
-                        {"$set": document},
-                        upsert=True,
-                    )
-                    for document in documents
-                ]
-                result = collection.bulk_write(operations, ordered=False)
-                if not jobs_postgres_enabled():
-                    upserted_count = int(result.upserted_count or 0)
-                    matched_count = int(result.matched_count or 0)
-            except Exception as exc:
-                storage_errors.append(exc)
-                print(f"⚠️ Failed to persist JobSpy docs to Mongo: {exc}")
-
         if storage_errors and not (persisted_to_postgres or mirrored_to_jobs_main) and upserted_count == 0 and matched_count == 0:
             raise storage_errors[-1]
 
@@ -605,7 +633,7 @@ def import_jobspy_jobs(
         upserted_count=upserted_count,
         matched_count=matched_count,
         query_hash=query_hash,
-        collection=config.MONGODB_JOBSPY_COLLECTION,
+        collection=config.JOBS_POSTGRES_JOBSPY_TABLE,
         sampled_jobs=sampled_jobs,
     )
 
@@ -620,6 +648,11 @@ def search_jobspy_jobs(
     country_codes: list[str] | None = None,
     exclude_country_codes: list[str] | None = None,
 ) -> dict[str, Any]:
+    effective_country_codes = _resolve_effective_jobspy_country_codes(country_codes)
+    normalized_excluded_country_codes = [
+        code for code in [_normalize_country_code(item) for item in (exclude_country_codes or [])]
+        if code
+    ]
     if jobs_postgres_enabled():
         try:
             return search_jobspy_documents(
@@ -628,8 +661,8 @@ def search_jobspy_jobs(
                 search_term=search_term,
                 location=location,
                 source_sites=source_sites,
-                country_codes=country_codes,
-                exclude_country_codes=exclude_country_codes,
+                country_codes=effective_country_codes,
+                exclude_country_codes=normalized_excluded_country_codes,
                 fresh_cutoff=_fresh_cutoff(),
             )
         except Exception as exc:
@@ -644,245 +677,68 @@ def search_jobspy_jobs(
                 "error": exc.__class__.__name__,
             }
 
-    if not jobspy_mongo_enabled():
-        return {
-            "jobs": [],
-            "total_count": 0,
-            "has_more": False,
-            "collection": config.MONGODB_JOBSPY_COLLECTION,
-            "provider": "jobspy",
-            "storage": "disabled",
-            "error": "JobSpy Mongo disabled",
-        }
-
-    collection = _get_collection()
-    query: dict[str, Any] = {
-        "expires_at": {"$gt": _utcnow()},
-        "scraped_at": {"$gte": _fresh_cutoff()},
-    }
-
-    normalized_search = _safe_str(search_term).lower()
-    normalized_location = _safe_str(location).lower()
-    if normalized_search:
-        query["search_blob"] = {"$regex": normalized_search, "$options": "i"}
-    if normalized_location:
-        query["location"] = {"$regex": normalized_location, "$options": "i"}
-    normalized_sites = [site.strip().lower() for site in (source_sites or []) if site and site.strip()]
-    if normalized_sites:
-        query["source_site"] = {"$in": normalized_sites}
-    normalized_country_codes = [code.strip().upper() for code in (country_codes or []) if code and code.strip()]
-    normalized_excluded_country_codes = [code.strip().upper() for code in (exclude_country_codes or []) if code and code.strip()]
-    if normalized_country_codes:
-        country_name_patterns = [
-            {"country": {"$regex": f"^{name}$", "$options": "i"}}
-            for code in normalized_country_codes
-            for name in _COUNTRY_NAMES_BY_CODE.get(code, [])
-        ]
-        query["$or"] = [{"country_code": {"$in": normalized_country_codes}}, *country_name_patterns]
-    if normalized_excluded_country_codes:
-        query.setdefault("$and", [])
-        query["$and"].append({"country_code": {"$nin": normalized_excluded_country_codes}})
-        excluded_patterns = [
-            {"country": {"$not": {"$regex": f"^{name}$", "$options": "i"}}}
-            for code in normalized_excluded_country_codes
-            for name in _COUNTRY_NAMES_BY_CODE.get(code, [])
-        ]
-        query["$and"].extend(excluded_patterns)
-
-    total_count = collection.count_documents(query)
-    cursor = (
-        collection.find(query, {"raw_payload": 0})
-        .sort([("scraped_at", DESCENDING), ("updated_at", DESCENDING)])
-        .skip(max(0, page) * max(1, page_size))
-        .limit(max(1, min(100, page_size)))
-    )
-    jobs = [serialize_jobspy_job(item) for item in cursor]
     return {
-        "jobs": jobs,
-        "total_count": int(total_count),
-        "has_more": (max(0, page) + 1) * max(1, page_size) < int(total_count),
-        "collection": config.MONGODB_JOBSPY_COLLECTION,
+        "jobs": [],
+        "total_count": 0,
+        "has_more": False,
+        "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
+        "provider": "jobspy",
+        "storage": "disabled",
+        "error": "JobSpy Jobs Postgres disabled",
     }
 
 
 def backfill_jobspy_geocoding(*, limit: int = 200, only_missing: bool = True) -> dict[str, Any]:
-    if not jobspy_mongo_enabled():
-        return {
-            "collection": config.MONGODB_JOBSPY_COLLECTION,
-            "scanned": 0,
-            "updated": 0,
-            "skipped": 0,
-            "only_missing": only_missing,
-            "disabled": True,
-        }
-
-    collection = _get_collection()
-    query: dict[str, Any] = {"expires_at": {"$gt": _utcnow()}}
-    if only_missing:
-        query["$or"] = [
-            {"lat": {"$exists": False}},
-            {"lat": None},
-            {"lng": {"$exists": False}},
-            {"lng": None},
-        ]
-
-    cursor = (
-        collection.find(
-            query,
-            {
-                "_id": 1,
-                "city": 1,
-                "state": 1,
-                "location": 1,
-                "country": 1,
-                "country_code": 1,
-                "location_query": 1,
-                "is_remote": 1,
-            },
-        )
-        .sort([("updated_at", DESCENDING), ("scraped_at", DESCENDING)])
-        .limit(max(1, min(2000, int(limit or 200))))
-    )
-
-    updated = 0
-    skipped = 0
-    scanned = 0
-    for row in cursor:
-        scanned += 1
-        lat, lng, geocoded_country_code, geocode_source = _resolve_job_geocode(
-            city=_safe_str(row.get("city")),
-            state=_safe_str(row.get("state")),
-            country=_safe_str(row.get("country")),
-            location_query=_safe_str(row.get("location_query") or row.get("location")),
-            is_remote=bool(row.get("is_remote")),
-        )
-        if lat is None or lng is None:
-            skipped += 1
-            continue
-
-        patch: dict[str, Any] = {
-            "lat": lat,
-            "lng": lng,
-            "updated_at": _utcnow(),
-        }
-        if geocoded_country_code:
-            patch["country_code"] = geocoded_country_code
-        if geocode_source:
-            patch["geocode_source"] = geocode_source
-        collection.update_one({"_id": row["_id"]}, {"$set": patch})
-        updated += 1
-
     return {
-        "collection": config.MONGODB_JOBSPY_COLLECTION,
-        "scanned": scanned,
-        "updated": updated,
-        "skipped": skipped,
+        "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
+        "scanned": 0,
+        "updated": 0,
+        "skipped": 0,
         "only_missing": only_missing,
+        "disabled": True,
+        "message": "JobSpy geocoding backfill via Mongo is disabled; ingestion now writes directly to Jobs Postgres.",
     }
 
 
 def backfill_jobspy_postgres_from_mongo(*, limit: int = 1000, only_fresh: bool = True) -> dict[str, Any]:
-    if not jobs_postgres_enabled():
-        return {
-            "collection": config.MONGODB_JOBSPY_COLLECTION,
-            "jobs_postgres_enabled": False,
-            "scanned": 0,
-            "imported": 0,
-        }
-
-    if not jobspy_mongo_enabled():
-        return {
-            "collection": config.MONGODB_JOBSPY_COLLECTION,
-            "jobs_postgres_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
-            "jobs_postgres_enabled": True,
-            "scanned": 0,
-            "imported": 0,
-            "upserted": 0,
-            "matched": 0,
-            "only_fresh": only_fresh,
-            "disabled": True,
-        }
-
-    collection = _get_collection()
-    query: dict[str, Any] = {}
-    if only_fresh:
-        query["expires_at"] = {"$gt": _utcnow()}
-        query["scraped_at"] = {"$gte": _fresh_cutoff()}
-
-    cursor = collection.find(
-        query,
-        {"raw_payload": 1},
-    ).limit(max(1, min(10000, int(limit or 1000))))
-    documents: list[dict[str, Any]] = []
-    try:
-        for row in cursor:
-            if isinstance(row, dict):
-                documents.append(dict(row))
-    finally:
-        try:
-            cursor.close()
-        except Exception:
-            pass
-    pg_result = backfill_jobspy_from_documents(documents)
     return {
-        "collection": config.MONGODB_JOBSPY_COLLECTION,
+        "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
         "jobs_postgres_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
-        "jobs_postgres_enabled": True,
-        "scanned": len(documents),
-        "imported": int(pg_result.get("imported_count") or 0),
-        "upserted": int(pg_result.get("upserted_count") or 0),
-        "matched": int(pg_result.get("matched_count") or 0),
+        "jobs_postgres_enabled": bool(jobs_postgres_enabled()),
+        "scanned": 0,
+        "imported": 0,
+        "upserted": 0,
+        "matched": 0,
         "only_fresh": only_fresh,
+        "disabled": True,
+        "message": "JobSpy Mongo backfill is obsolete; ingestion writes directly to Jobs Postgres.",
     }
 
 
 def get_jobspy_storage_health() -> dict[str, Any]:
     info: dict[str, Any] = {
         "provider": "jobspy",
-        "mongodb_configured": bool(config.MONGODB_URI),
-        "mongodb_enabled": bool(config.MONGODB_JOBSPY_ENABLED),
+        "mongodb_configured": False,
+        "mongodb_enabled": False,
         "jobs_postgres": get_jobs_postgres_health(),
-        "mongodb_db": config.MONGODB_DB,
+        "mongodb_db": None,
         "collections": {
-            "raw": config.MONGODB_JOBSPY_COLLECTION,
-            "enriched": config.MONGODB_JOBSPY_ENRICHED_COLLECTION,
-            "companies": config.MONGODB_JOBSPY_COMPANY_COLLECTION,
+            "jobspy_postgres": config.JOBS_POSTGRES_JOBSPY_TABLE,
         },
+        "storage": "jobs_postgres" if jobs_postgres_enabled() else "disabled",
     }
-    if not jobspy_mongo_enabled():
+    if not jobs_postgres_enabled():
         info.update({
             "ok": False,
             "error": "RuntimeError",
-            "message": "JobSpy Mongo storage disabled",
+            "message": "JobSpy Jobs Postgres storage disabled",
         })
         return info
-
-    try:
-        client = _get_client()
-        ping_result = client.admin.command("ping")
-        db = client[config.MONGODB_DB]
-        raw_collection = db[config.MONGODB_JOBSPY_COLLECTION]
-        enriched_collection = db[config.MONGODB_JOBSPY_ENRICHED_COLLECTION]
-        company_collection = db[config.MONGODB_JOBSPY_COMPANY_COLLECTION]
-        fresh_cutoff = _fresh_cutoff()
-        info.update({
-            "ok": True,
-            "ping": _sanitize_for_json(ping_result),
-            "counts": {
-                "raw_total": int(raw_collection.count_documents({})),
-                "raw_fresh": int(raw_collection.count_documents({"scraped_at": {"$gte": fresh_cutoff}})),
-                "enriched_total": int(enriched_collection.count_documents({})),
-                "companies_total": int(company_collection.count_documents({})),
-            },
-        })
-        return info
-    except Exception as exc:
-        info.update({
-            "ok": False,
-            "error": exc.__class__.__name__,
-            "message": str(exc),
-        })
-        return info
+    info.update({
+        "ok": True,
+        "message": "JobSpy storage is running in postgres-only mode.",
+    })
+    return info
 
 
 def serialize_jobspy_job(document: dict[str, Any]) -> dict[str, Any]:
