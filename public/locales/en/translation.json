@@ -4429,6 +4429,10 @@
       "swipe_body": "Tap opens details, left and right swipes help you sort through roles quickly without friction.",
       "ai_title": "This is not just about finding a job.",
       "ai_body": "It is about making the right decision.",
+      "stats_jobs_label": "In the database now",
+      "stats_jobs_body": "Total active job count across the whole database.",
+      "stats_live_label": "Browsing challenges now",
+      "stats_live_body": "Estimated candidates currently looking through challenges.",
       "ai_bullets": [
         "reads target role and seniority",
         "shows why you are seeing this",

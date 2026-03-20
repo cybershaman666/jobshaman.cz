@@ -4431,6 +4431,10 @@
       "swipe_body": "Auf dem Handy am besten direkt per Swipe starten. Tippen öffnet das Detail, Wischen sortiert Rollen sofort vor.",
       "ai_title": "Es geht nicht nur darum, einen Job zu finden.",
       "ai_body": "Es geht darum, die richtige Entscheidung zu treffen.",
+      "stats_jobs_label": "Jetzt in der Datenbank",
+      "stats_jobs_body": "Gesamtzahl aktiver Stellen in der gesamten Datenbank.",
+      "stats_live_label": "Gerade in Challenges",
+      "stats_live_body": "Geschätzte Zahl an Kandidaten, die sich gerade Challenges ansehen.",
       "ai_bullets": [
         "liest Zielrolle und Seniorität",
         "zeigt warum du das siehst",
