@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { CompanyProfile, UserProfile, ViewState } from '../types';
 import { cn } from './ui/primitives';
+import { getNormalizedAppPath, isExternalStandalonePath } from '../utils/appRouting';
 
 interface AppHeaderProps {
   viewState: ViewState;
@@ -114,6 +115,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const openHomeOverview = () => {
+    if (leaveStandaloneRoute()) return;
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -128,6 +130,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const openMicroJobs = () => {
+    if (leaveStandaloneRoute('')) return;
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -199,8 +202,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     return true;
   };
 
+  const leaveStandaloneRoute = (targetPath?: string): boolean => {
+    const normalizedCurrentPath = getNormalizedAppPath(window.location.pathname);
+    if (!isExternalStandalonePath(normalizedCurrentPath)) return false;
+    const localePrefix = getLocalePrefix();
+    const normalizedTarget = targetPath
+      ? `${localePrefix}/${targetPath.replace(/^\/+/, '')}`.replace(/\/+$/, '')
+      : `${localePrefix}/`;
+    window.location.assign(normalizedTarget);
+    return true;
+  };
+
   const navigateToShellHome = () => {
     if (leaveDemoHandshakeRoute()) return;
+    if (leaveStandaloneRoute()) return;
     if (isAdminRoute()) {
       window.location.assign(`${getLocalePrefix()}/`);
       return;
@@ -270,6 +285,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const submitDiscoverySearch = () => {
     if (leaveDemoHandshakeRoute()) return;
+    if (leaveStandaloneRoute()) return;
     if (isAdminRoute()) {
       window.location.assign(`${getLocalePrefix()}/`);
       return;
