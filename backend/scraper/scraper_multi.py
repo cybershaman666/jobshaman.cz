@@ -28,9 +28,15 @@ try:
 except ImportError:
     from scraper_api_sources import run_external_api_sources  # type: ignore
 try:
-    from .scraper_base import save_job_to_supabase as shared_save_job_to_supabase
+    from .scraper_base import (
+        save_job_to_supabase as shared_save_job_to_supabase,
+        jobs_postgres_write_available,
+    )
 except ImportError:
-    from scraper_base import save_job_to_supabase as shared_save_job_to_supabase  # type: ignore
+    from scraper_base import (  # type: ignore
+        save_job_to_supabase as shared_save_job_to_supabase,
+        jobs_postgres_write_available,
+    )
 try:
     from scripts.backfill_remote_import_metadata import backfill as backfill_remote_import_metadata
 except ImportError:
@@ -1271,9 +1277,11 @@ def fix_duplicated_city(text):
 
 
 def run_all_scrapers():
-    if not supabase:
-        print("❌ Supabase není dostupné. Scrapování zrušeno.")
+    if not supabase and not jobs_postgres_write_available():
+        print("❌ Není dostupný zapisovatelný backend. Scrapování zrušeno.")
         return 0
+    if not supabase and jobs_postgres_write_available():
+        print("ℹ️ Supabase není dostupné, pokračuji v postgres-only režimu.")
 
     websites = [
         {

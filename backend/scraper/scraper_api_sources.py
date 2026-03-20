@@ -40,6 +40,7 @@ norm_text = _scraper_base.norm_text
 now_iso = _scraper_base.now_iso
 save_job_to_supabase = _scraper_base.save_job_to_supabase
 get_country_centroid = _scraper_base.get_country_centroid
+jobs_postgres_write_available = getattr(_scraper_base, "jobs_postgres_write_available", None)
 
 _geocoding = _import_first(["geocoding", "backend.geocoding"])
 geocode_location = _geocoding.geocode_location
@@ -452,6 +453,15 @@ def _save_api_job(
     if resolved_country_code:
         job_data["country_code"] = resolved_country_code
     return save_job_to_supabase(supabase_client, job_data, seen_urls=seen_urls)
+
+
+def _api_storage_available(supabase_client: Any = None) -> bool:
+    if supabase_client is not None:
+        return True
+    try:
+        return bool(jobs_postgres_write_available()) if callable(jobs_postgres_write_available) else False
+    except Exception:
+        return False
 
 
 def _request_json(url: str, *, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Any:
@@ -1289,7 +1299,8 @@ def search_jooble_jobs_live(
 
 def scrape_arbeitnow_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
-    if not supabase_client:
+    if not _api_storage_available(supabase_client):
+        print("❌ Arbeitnow import skipped: no writable storage backend available.")
         return 0
 
     api_url = (os.getenv("ARBEITNOW_API_URL") or DEFAULT_ARBEITNOW_API_URL).strip()
@@ -1515,7 +1526,8 @@ def search_arbeitnow_jobs_live(
 
 def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
-    if not supabase_client:
+    if not _api_storage_available(supabase_client):
+        print("❌ WWR import skipped: no writable storage backend available.")
         return 0
     if not _wwr_db_import_enabled():
         print("ℹ️ WWR DB import disabled (ENABLE_WWR_DB_IMPORT=false).")
@@ -1583,7 +1595,8 @@ def scrape_weworkremotely_jobs(supabase_client: Any = None) -> int:
 
 def scrape_german_tech_jobs(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
-    if not supabase_client:
+    if not _api_storage_available(supabase_client):
+        print("❌ GermanTechJobs import skipped: no writable storage backend available.")
         return 0
 
     rss_url = _resolve_german_tech_jobs_rss_url()
@@ -1651,8 +1664,8 @@ def scrape_german_tech_jobs(supabase_client: Any = None) -> int:
 
 def run_external_api_sources(supabase_client: Any = None) -> int:
     supabase_client = supabase_client or get_supabase_client()
-    if not supabase_client:
-        print("❌ API sources skipped: Supabase is not available.")
+    if not _api_storage_available(supabase_client):
+        print("❌ API sources skipped: no writable storage backend is available.")
         return 0
 
     total_saved = 0

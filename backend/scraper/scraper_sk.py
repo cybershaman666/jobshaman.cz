@@ -44,35 +44,82 @@ class SlovakiaScraper(BaseScraper):
     def scrape_profesia_sk(self, soup):
         """Scrape Profesia.sk (structural extraction)"""
         jobs_saved = 0
-        
-        # Target job list items specifically
+
+        listing_entries = []
+
+        # Legacy markup.
         items = soup.select('li.list-row')
-        print(f"    🔍 Nalezeno {len(items)} nabídek na stránce")
-        
         for item in items:
-            try:
-                # Extract basic info from list (can be fallback)
-                title_list = norm_text(item.select_one('.title').get_text()) if item.select_one('.title') else None
-                employer_list = norm_text(item.select_one('.employer').get_text()) if item.select_one('.employer') else None
-                loc_list = norm_text(item.select_one('.job-location').get_text()) if item.select_one('.job-location') else None
-                
-                # Prefer offer detail link (avoid company profile links like /C12345)
-                a_el = item.select_one('h2 a[id^="offer"][href*="/praca/"]')
-                if not a_el:
-                    a_el = item.select_one('a[id^="offer"][href*="/praca/"]')
-                if not a_el:
-                    for a in item.find_all('a', href=True):
-                        href = a.get('href', '')
-                        if '/praca/' in href and '/O' in href:
-                            a_el = a
-                            break
-                if not a_el:
+            title_list = norm_text(item.select_one('.title').get_text()) if item.select_one('.title') else None
+            employer_list = norm_text(item.select_one('.employer').get_text()) if item.select_one('.employer') else None
+            loc_list = norm_text(item.select_one('.job-location').get_text()) if item.select_one('.job-location') else None
+
+            a_el = item.select_one('h2 a[id^="offer"][href*="/praca/"]')
+            if not a_el:
+                a_el = item.select_one('a[id^="offer"][href*="/praca/"]')
+            if not a_el:
+                for anchor in item.find_all('a', href=True):
+                    href = anchor.get('href', '')
+                    if '/praca/' in href and '/O' in href:
+                        a_el = anchor
+                        break
+            if not a_el:
+                continue
+
+            raw_url = urljoin('https://www.profesia.sk', a_el['href'])
+            clean_url = raw_url.split('?')[0]
+            listing_entries.append({
+                'title': title_list,
+                'company': employer_list,
+                'location': loc_list,
+                'url': raw_url,
+                'clean_url': clean_url,
+            })
+
+        # Current Profesia list pages no longer expose the old list-row structure consistently.
+        # Fall back to headline/detail links directly from the listing page.
+        if not listing_entries:
+            for a_el in soup.find_all('a', href=True):
+                href = a_el.get('href', '')
+                if '/praca/' not in href:
                     continue
-                    
-                url = urljoin('https://www.profesia.sk', a_el['href'])
-                
-                # Strip query params from URL for duplicate check
-                clean_url = url.split('?')[0]
+                if any(skip in href for skip in ['/firma/', '/platy/', '/blog/']):
+                    continue
+                if '/O' not in href and 'offer' not in (a_el.get('id') or '').lower():
+                    continue
+
+                title_list = norm_text(a_el.get_text())
+                if len(title_list) < 4:
+                    continue
+
+                raw_url = urljoin('https://www.profesia.sk', href)
+                clean_url = raw_url.split('?')[0]
+                listing_entries.append({
+                    'title': title_list,
+                    'company': None,
+                    'location': None,
+                    'url': raw_url,
+                    'clean_url': clean_url,
+                })
+
+        deduped_entries = []
+        seen_listing_urls = set()
+        for entry in listing_entries:
+            clean_url = entry.get('clean_url')
+            if not clean_url or clean_url in seen_listing_urls:
+                continue
+            seen_listing_urls.add(clean_url)
+            deduped_entries.append(entry)
+
+        print(f"    🔍 Nalezeno {len(deduped_entries)} nabídek na stránce")
+
+        for entry in deduped_entries:
+            try:
+                title_list = entry.get('title')
+                employer_list = entry.get('company')
+                loc_list = entry.get('location')
+                url = str(entry.get('url') or '')
+                clean_url = str(entry.get('clean_url') or '')
                 
                 if self.is_duplicate(clean_url):
                     # print(f"       --> (Cache) Nabídka již existuje: {clean_url}")
@@ -506,6 +553,7 @@ class SlovakiaScraper(BaseScraper):
 
                 # Detect work type
                 work_type = detect_work_type(title, description, location)
+                work_model = self._detect_work_model(location, title, description)
                 
                 # Build job data
                 job_data = {
@@ -687,7 +735,7 @@ def run_slovakia_scraper():
     websites = [
         {
             'name': 'Profesia.sk',
-            'base_url': 'https://www.profesia.sk/praca/?page_num=1',
+            'base_url': 'https://www.profesia.sk/praca/',
             'max_pages': 10
         },
         {

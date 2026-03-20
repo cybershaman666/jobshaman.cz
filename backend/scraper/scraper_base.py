@@ -188,6 +188,13 @@ def get_supabase_client() -> Optional[Client]:
         return None
 
 
+def jobs_postgres_write_available() -> bool:
+    try:
+        return bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
+    except Exception:
+        return False
+
+
 def guess_currency(country_code: str) -> str:
     """Guess currency based on country code"""
     if not country_code:
@@ -1224,9 +1231,11 @@ class BaseScraper:
         Returns:
             Total number of jobs saved across all websites
         """
-        if not self.supabase:
-            print(f"❌ Supabase není dostupné. Scrapování {self.country_code} zrušeno.")
+        if not self.supabase and not jobs_postgres_write_available():
+            print(f"❌ Supabase ani Jobs Postgres nejsou dostupné. Scrapování {self.country_code} zrušeno.")
             return 0
+        if not self.supabase and jobs_postgres_write_available():
+            print(f"ℹ️ {self.country_code} scraper běží v postgres-only režimu bez Supabase klienta.")
         
         grand_total = 0
         print(f"\n🚀 Spouštím {self.country_code} scraper: {now_iso()}")

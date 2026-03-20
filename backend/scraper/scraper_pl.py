@@ -47,6 +47,68 @@ class PolandScraper(BaseScraper):
         if any(tok in text for tok in ["stacjonarn", "on-site", "onsite", "biuro"]):
             return "onsite"
         return None
+
+    def _extract_nofluff_postings_from_state(self, data):
+        postings = []
+
+        def _walk(obj):
+            nonlocal postings
+            if postings:
+                return
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if key == "postings" and isinstance(value, list):
+                        postings = [item for item in value if isinstance(item, dict)]
+                        return
+                    if (
+                        isinstance(value, list)
+                        and value
+                        and isinstance(value[0], dict)
+                        and (
+                            ("title" in value[0] and ("id" in value[0] or "url" in value[0]))
+                            or ("name" in value[0] and ("postingId" in value[0] or "url" in value[0]))
+                        )
+                    ):
+                        postings = value
+                        return
+                    _walk(value)
+            elif isinstance(obj, list):
+                for item in obj:
+                    _walk(item)
+
+        _walk(data)
+        return postings
+
+    def _extract_nofluff_postings_from_html(self, soup):
+        postings = []
+        seen_urls = set()
+
+        for a in soup.find_all('a', href=True):
+            href = (a.get('href') or '').strip()
+            if not href or '/job/' not in href:
+                continue
+
+            url = urljoin('https://nofluffjobs.com', href).split('#')[0].split('?')[0]
+            if url in seen_urls:
+                continue
+
+            title = norm_text(a.get_text(" ", strip=True))
+            if not title:
+                container = a.find_parent(['article', 'li', 'div'])
+                if container:
+                    heading = container.find(['h2', 'h3', 'h4'])
+                    if heading:
+                        title = norm_text(heading.get_text(" ", strip=True))
+            if not title:
+                continue
+
+            seen_urls.add(url)
+            postings.append({
+                'title': title,
+                'url': url,
+            })
+
+        return postings
     
     def scrape_page_jobs(self, soup, site_name):
         """Route to appropriate site scraper"""
@@ -534,130 +596,130 @@ class PolandScraper(BaseScraper):
         return jobs_saved
     
     def scrape_nofluffjobs(self, soup):
-        """Scrape NoFluffJobs.com (via #serverApp-state)"""
+        """Scrape NoFluffJobs.com with state-script and anchor fallbacks"""
         jobs_saved = 0
-        
-        state_script = soup.select_one('#serverApp-state')
-        if not state_script:
-            print("    ⚠️ NoFluff: serverApp-state not found")
-            return 0
-            
-        try:
-            # The script content is usually properly escaped JSON content
-            # Angular Universal transfer state
-            content = state_script.get_text()
-            # Unescape if needed (often &qout; etc are resolved by BeautifulSoup get_text automatically)
-            
-            data = json.loads(content)
-            
-            postings = []
-            
-            # Find the key holding the list of positions
-            # Heuristic: search for list values where items have 'id' and 'title' or 'name'
-            for key, value in data.items():
-                if isinstance(value, dict) and 'postings' in value:
-                     # sometimes data structure is { ... 'postings': [...] }
-                     postings = value['postings']
-                     break
-                if isinstance(value, list) and len(value) > 0:
-                     if isinstance(value[0], dict) and 'title' in value[0] and 'id' in value[0]:
-                         postings = value
-                         break
-                         
-            # Fallback: check map entries
-            if not postings:
-                 # Check if any value looks like a search result
-                 for key, value in data.items():
-                     if 'posting' in key.lower() and isinstance(value, list):
-                         postings = value
-                         break
 
+        postings = []
+        state_script = soup.select_one('#serverApp-state, #__NEXT_DATA__')
+
+        try:
+            if state_script:
+                data = json.loads(state_script.get_text())
+                postings = self._extract_nofluff_postings_from_state(data)
+        except Exception as e:
+            print(f"    ⚠️ NoFluff: nepodařilo se načíst state JSON: {e}")
+
+        if not postings:
+            postings = self._extract_nofluff_postings_from_html(soup)
+            if postings:
+                print(f"    ℹ️ NoFluff fallback přes HTML odkazy: {len(postings)} nabídek.")
+            else:
+                print("    ⚠️ NoFluff: nenašel jsem state JSON ani job odkazy.")
+                return 0
+
+        try:
             print(f"    ℹ️ Nalezeno {len(postings)} nabídek v NoFluff datech.")
 
             for job in postings:
                 try:
                     title = job.get('title') or job.get('name')
                     job_id = job.get('id') or job.get('postingId')
-                    
-                    if not title or not job_id:
+                    raw_url = job.get('url') or job.get('offerUrl') or job.get('slug')
+
+                    if not title and not raw_url:
                         continue
-                        
-                    # Build URL
-                    # Pattern: https://nofluffjobs.com/pl/job/<slug>
-                    slug = job.get('url', '')
-                    if not slug:
-                        slug = f"{title.lower().replace(' ', '-')}-{job_id}"
-                    
-                    if not slug.startswith('http'):
-                        url = f"https://nofluffjobs.com/pl/job/{slug}"
+
+                    if isinstance(raw_url, str) and raw_url:
+                        if raw_url.startswith('http'):
+                            url = raw_url
+                        elif '/job/' in raw_url:
+                            url = urljoin('https://nofluffjobs.com', raw_url)
+                        else:
+                            url = f"https://nofluffjobs.com/pl/job/{raw_url.lstrip('/')}"
+                    elif job_id:
+                        slug_source = title or str(job_id)
+                        slug = re.sub(r"[^a-z0-9-]+", "-", slug_source.lower()).strip("-")
+                        url = f"https://nofluffjobs.com/pl/job/{slug}-{job_id}"
                     else:
-                        url = slug
-                        
+                        continue
+
+                    url = url.split('#')[0].split('?')[0]
                     if self.is_duplicate(url):
                         continue
-                        
-                    print(f"    📄 Zpracovávám: {title}")
-                    
-                    company = job.get('company', {}).get('name', 'Unknown') if isinstance(job.get('company'), dict) else job.get('name', 'Unknown')
-                    
+
+                    print(f"    📄 Zpracovávám: {title or url}")
+
+                    company = "Unknown"
+                    if isinstance(job.get('company'), dict):
+                        company = job.get('company', {}).get('name', 'Unknown')
+                    elif isinstance(job.get('companyName'), str) and job.get('companyName'):
+                        company = job.get('companyName')
+
                     # Location
-                    location_list = job.get('location', {}).get('places', [])
                     location = "Poland"
-                    if location_list:
-                        # format: [{'city': 'Warsaw', ...}]
-                        location = location_list[0].get('city', 'Poland')
-                        
+                    location_obj = job.get('location')
+                    if isinstance(location_obj, dict):
+                        location_list = location_obj.get('places', [])
+                        if location_list and isinstance(location_list[0], dict):
+                            location = location_list[0].get('city', 'Poland')
+                        elif location_obj.get('city'):
+                            location = location_obj.get('city')
+                    elif isinstance(job.get('locations'), list) and job.get('locations'):
+                        first_loc = job['locations'][0]
+                        if isinstance(first_loc, dict):
+                            location = first_loc.get('city') or location
+                        elif isinstance(first_loc, str) and first_loc.strip():
+                            location = first_loc.strip()
+
                     # Salary
-                    # usually in 'salary' object
                     salary_from, salary_to = None, None
                     salary_obj = job.get('salary', {})
                     if salary_obj:
                         salary_from = salary_obj.get('from')
                         salary_to = salary_obj.get('to')
-                        if salary_obj.get('currency') != 'PLN':
-                             # simple conversion or ignore? keeping straightforward for now
-                             pass
-                             
-                    # Extract description from HTML details is still best if JSON doesn't provide full html
-                    # But NoFluff JSON often has 'description' field? Not always in list view.
-                    
-                    # Fetch detail to be safe and get full description
+                        if isinstance(salary_obj.get('salaryFrom'), (int, float)) and salary_from is None:
+                            salary_from = salary_obj.get('salaryFrom')
+                        if isinstance(salary_obj.get('salaryTo'), (int, float)) and salary_to is None:
+                            salary_to = salary_obj.get('salaryTo')
+
                     detail_soup = scrape_page(url)
                     description = "Popis není dostupný"
                     benefits = []
-                    contract_type = "B2B/Contract"  # NoFluff default often
-                    
+                    contract_type = "B2B/Contract"
+
                     if detail_soup:
-                         # Try JSON-LD first
-                         json_ld = None
-                         scripts = detail_soup.find_all('script', type='application/ld+json')
-                         for s in scripts:
-                             try:
-                                 ld = json.loads(s.get_text())
-                                 if isinstance(ld, list):
-                                     for item in ld:
-                                         if item.get('@type') == 'JobPosting':
-                                             json_ld = item
-                                             break
-                                 elif ld.get('@type') == 'JobPosting':
-                                     json_ld = ld
-                                     break
-                             except: pass
-                         
-                         if json_ld and 'description' in json_ld and json_ld['description']:
-                             desc_html = json_ld['description']
-                             desc_soup = BeautifulSoup(desc_html, 'html.parser')
-                             parts = []
-                             for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
-                                 txt = norm_text(elem.get_text())
-                                 if len(txt) > 2:
-                                     if elem.name == 'li': parts.append(f"- {txt}")
-                                     elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
-                                     else: parts.append(txt)
-                             description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
-                         else:
-                             # Enhanced selectors for NoFluffJobs
-                             description = build_description(
+                        json_ld = None
+                        scripts = detail_soup.find_all('script', type='application/ld+json')
+                        for s in scripts:
+                            try:
+                                ld = json.loads(s.get_text())
+                                if isinstance(ld, list):
+                                    for item in ld:
+                                        if item.get('@type') == 'JobPosting':
+                                            json_ld = item
+                                            break
+                                elif ld.get('@type') == 'JobPosting':
+                                    json_ld = ld
+                                    break
+                            except Exception:
+                                pass
+
+                        if json_ld and 'description' in json_ld and json_ld['description']:
+                            desc_html = json_ld['description']
+                            desc_soup = BeautifulSoup(desc_html, 'html.parser')
+                            parts = []
+                            for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                                txt = norm_text(elem.get_text())
+                                if len(txt) > 2:
+                                    if elem.name == 'li':
+                                        parts.append(f"- {txt}")
+                                    elif elem.name in ['h2', 'h3']:
+                                        parts.append(f"\n### {txt}")
+                                    else:
+                                        parts.append(txt)
+                            description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
+                        else:
+                            description = build_description(
                                 detail_soup,
                                 {
                                     'paragraphs': [
@@ -680,30 +742,32 @@ class PolandScraper(BaseScraper):
                                     ]
                                 }
                             )
-                         
-                         # Last resort fallback
-                         if not description or description == "Popis není dostupný" or len(description) < 100:
-                             candidates = []
-                             for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
-                                 txt = div.get_text(strip=True)
-                                 if 200 < len(txt) < 15000 and "cookies" not in txt.lower():
-                                     score = len(txt)
-                                     candidates.append((div, score))
-                             
-                             if candidates:
-                                 candidates.sort(key=lambda x: x[1], reverse=True)
-                                 best_div = candidates[0][0]
-                                 parts = []
-                                 for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
-                                     txt = norm_text(elem.get_text())
-                                     if len(txt) > 2:
-                                         if elem.name == 'li': parts.append(f"- {txt}")
-                                         elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
-                                         else: parts.append(txt)
-                                 if parts:
-                                     description = filter_out_junk("\n\n".join(parts))
-                         
-                         benefits = extract_benefits(detail_soup, [
+
+                        if not description or description == "Popis není dostupný" or len(description) < 100:
+                            candidates = []
+                            for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                                txt = div.get_text(strip=True)
+                                if 200 < len(txt) < 15000 and "cookies" not in txt.lower():
+                                    score = len(txt)
+                                    candidates.append((div, score))
+
+                            if candidates:
+                                candidates.sort(key=lambda x: x[1], reverse=True)
+                                best_div = candidates[0][0]
+                                parts = []
+                                for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                                    txt = norm_text(elem.get_text())
+                                    if len(txt) > 2:
+                                        if elem.name == 'li':
+                                            parts.append(f"- {txt}")
+                                        elif elem.name in ['h2', 'h3']:
+                                            parts.append(f"\n### {txt}")
+                                        else:
+                                            parts.append(txt)
+                                if parts:
+                                    description = filter_out_junk("\n\n".join(parts))
+
+                        benefits = extract_benefits(detail_soup, [
                             'nfj-posting-benefits li', 
                             '.benefits-list li',
                             '[data-cy="posting-benefits"] li',
@@ -711,7 +775,7 @@ class PolandScraper(BaseScraper):
                             '.benefits li',
                             '[data-test="benefits"] li'
                         ])
-                    
+
                     work_type = 'On-site'
                     if job.get('fullyRemote'):
                         work_type = 'Remote'

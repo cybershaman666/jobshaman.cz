@@ -1049,6 +1049,9 @@ class GermanyScraper(BaseScraper):
                         contract_type = "Teilzeit"
 
                 work_type = detect_work_type(title, description, location)
+                work_model = self._detect_work_model_de(
+                    " ".join([title or "", location or "", description or ""])
+                )
 
                 benefits = extract_benefits(detail_soup, [
                     "[data-testid*='benefit'] li",
@@ -1122,7 +1125,7 @@ def run_germany_scraper():
         {
             'name': 'Stellenanzeigen.de',
             # Full market (no keyword filter)
-            'base_url': 'https://www.stellenanzeigen.de/suche/?q=',
+            'base_url': 'https://www.stellenanzeigen.de/jobs/',
             'max_pages': 10
         },
         {
@@ -1134,7 +1137,7 @@ def run_germany_scraper():
         {
             'name': 'Willhaben.at',
             # Full market listing
-            'base_url': 'https://www.willhaben.at/jobs/suche',
+            'base_url': 'https://www.willhaben.at/jobs/',
             'max_pages': 10
         }
     ]
