@@ -4454,7 +4454,7 @@
       "stats_jobs_label": "Jetzt in der Datenbank",
       "stats_jobs_body": "Gesamtzahl aktiver Stellen in der gesamten Datenbank.",
       "stats_live_label": "Gerade in Challenges",
-      "stats_live_body": "Geschätzte Zahl an Kandidaten, die sich gerade Challenges ansehen.",
+      "stats_live_body": "Anzahl der Kandidaten, die sich gerade Stellen ansehen.",
       "ai_bullets": [
         "liest Zielrolle und Seniorität",
         "zeigt warum du das siehst",

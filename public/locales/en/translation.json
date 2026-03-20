@@ -4432,7 +4432,7 @@
       "stats_jobs_label": "In the database now",
       "stats_jobs_body": "Total active job count across the whole database.",
       "stats_live_label": "Browsing challenges now",
-      "stats_live_body": "Estimated candidates currently looking through challenges.",
+      "stats_live_body": "Candidates currently browsing job offers.",
       "ai_bullets": [
         "reads target role and seniority",
         "shows why you are seeing this",

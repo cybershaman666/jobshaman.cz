@@ -4421,7 +4421,7 @@
       "stats_jobs_label": "V databáze práve",
       "stats_jobs_body": "Celkový počet aktívnych ponúk naprieč databázou.",
       "stats_live_label": "Práve vo výzvach",
-      "stats_live_body": "Odhad uchádzačov, ktorí si práve prezerajú výzvy.",
+      "stats_live_body": "Počet uchádzačov, ktorí si práve prezerajú ponuky.",
       "ai_bullets": [
         "číta cieľ a senioritu",
         "ukazuje prečo to vidíš",
