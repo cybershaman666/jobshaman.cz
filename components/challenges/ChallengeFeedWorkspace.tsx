@@ -126,10 +126,23 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   );
   const simulatedActiveCandidates = React.useMemo(() => {
     const now = new Date();
-    const slotSeed = Math.floor(now.getTime() / (1000 * 60 * 30));
-    const base = 18 + (slotSeed % 17);
-    const trafficLift = Math.min(34, Math.floor(visibleJobsCount / 180));
-    return base + trafficLift;
+    const daySeed = Number(
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    );
+    const base = 16 + (daySeed % 8);
+    const trafficLift = Math.min(22, Math.floor(visibleJobsCount / 320));
+    const hour = now.getHours();
+    const hourAdjustment = hour >= 20
+      ? -7
+      : hour >= 18
+        ? -4
+        : hour >= 9 && hour <= 17
+          ? 3
+          : hour >= 6 && hour < 9
+            ? 1
+            : -2;
+    const weekendAdjustment = now.getDay() === 0 || now.getDay() === 6 ? -3 : 0;
+    return Math.max(8, base + trafficLift + hourAdjustment + weekendAdjustment);
   }, [visibleJobsCount]);
   const formattedActiveCandidates = React.useMemo(
     () => new Intl.NumberFormat(activeLocale).format(simulatedActiveCandidates),
