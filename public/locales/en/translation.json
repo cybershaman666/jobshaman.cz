@@ -4429,8 +4429,9 @@
       "swipe_body": "Tap opens details, left and right swipes help you sort through roles quickly without friction.",
       "ai_title": "This is not just about finding a job.",
       "ai_body": "It is about making the right decision.",
-      "stats_jobs_label": "In the database now",
-      "stats_jobs_body": "Total active job count across the whole database.",
+      "stats_jobs_sentence": "We currently have {{formattedCount}} active job offers in the database.",
+      "stats_jobs_label": "We currently have",
+      "stats_jobs_body": "active job offers in the database.",
       "stats_live_label": "Browsing challenges now",
       "stats_live_body": "Candidates currently browsing job offers.",
       "ai_bullets": [

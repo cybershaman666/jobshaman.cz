@@ -37,7 +37,7 @@ from ..services.search_intelligence import enrich_search_query
 from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobspy_storage_health, import_jobspy_jobs, jobspy_mongo_enabled, search_jobspy_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
-from ..services.jobs_postgres_store import delete_job_by_id, ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
+from ..services.jobs_postgres_store import count_active_main_jobs, delete_job_by_id, ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, jobs_postgres_main_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
 from ..core import config
@@ -107,6 +107,30 @@ _EXTERNAL_PROVIDER_HEALTH: dict[str, dict[str, Any]] = {
     "weworkremotely": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
     "arbeitnow": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
 }
+
+
+@router.get("/jobs/stats/active-count")
+async def jobs_active_count():
+    if not jobs_postgres_main_enabled():
+        return {
+            "total_count": 0,
+            "source": "jobs_postgres_disabled",
+        }
+    try:
+        return {
+            "total_count": int(count_active_main_jobs() or 0),
+            "source": "jobs_postgres",
+        }
+    except Exception as exc:
+        print(f"⚠️ Failed to read Jobs Postgres active-count: {exc}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "total_count": 0,
+                "source": "jobs_postgres_error",
+                "error": "jobs_postgres_active_count_unavailable",
+            },
+        )
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:

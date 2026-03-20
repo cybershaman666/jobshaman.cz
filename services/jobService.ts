@@ -716,6 +716,36 @@ export const getJobCount = async (): Promise<number> => {
     }
 };
 
+export const getMainDatabaseJobCount = async (): Promise<number> => {
+    const backendBases = resolveHybridBackendBases();
+    if (!backendBases.length) {
+        return 0;
+    }
+
+    for (const baseUrl of backendBases) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(`${baseUrl}/jobs/stats/active-count`, {
+                method: 'GET',
+                signal: controller.signal,
+            }).finally(() => clearTimeout(timeoutId));
+            if (!response.ok) {
+                continue;
+            }
+            const payload = await response.json();
+            return Math.max(0, Number(payload?.total_count || 0));
+        } catch (error) {
+            if (isAbortFetchError(error)) {
+                throw error;
+            }
+            console.warn('Main Jobs Postgres count unavailable:', error);
+        }
+    }
+
+    return 0;
+};
+
 export const getTodayAnalyzedCount = async (): Promise<number> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");

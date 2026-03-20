@@ -4463,8 +4463,9 @@
       "swipe_body": "Na mobilu začněte swipem. Klepnutí otevře detail, tah vlevo nebo vpravo rychle třídí role.",
       "ai_title": "Nejde jen o hledání práce.",
       "ai_body": "Jde o to, udělat správné rozhodnutí.",
-      "stats_jobs_label": "V databázi právě",
-      "stats_jobs_body": "Celkový počet aktivních nabídek napříč databází.",
+      "stats_jobs_sentence": "V databázi právě máme {{formattedCount}} aktivních nabídek.",
+      "stats_jobs_label": "V databázi právě máme",
+      "stats_jobs_body": "aktivních nabídek.",
       "stats_live_label": "Právě ve výzvách",
       "stats_live_body": "Počet uchazečů, kteří si právě prohlížejí nabídky.",
       "ai_bullets": [

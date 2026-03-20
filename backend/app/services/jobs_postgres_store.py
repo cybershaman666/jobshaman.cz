@@ -640,6 +640,28 @@ def query_jobs_for_hybrid_search(
     return jobs
 
 
+def count_active_main_jobs() -> int:
+    if not jobs_postgres_main_enabled():
+        return 0
+    _ensure_schema()
+    conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT COUNT(*) AS total_count
+            FROM {config.JOBS_POSTGRES_JOBS_TABLE}
+            WHERE COALESCE(legality_status, 'legal') = 'legal'
+              AND COALESCE(status, 'active') = 'active'
+              AND COALESCE(is_active, TRUE) = TRUE
+              AND {cutoff_sql}
+            """,
+            cutoff_params,
+        )
+        row = cur.fetchone() or {}
+    return max(0, int((row or {}).get("total_count") or 0))
+
+
 def get_job_by_id(job_id: Any) -> dict[str, Any] | None:
     if not jobs_postgres_main_enabled():
         return None

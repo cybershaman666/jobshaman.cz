@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Job, SearchDiagnosticsMeta, UserProfile } from '../../types';
-import { getJobCount } from '../../services/jobService';
+import { getMainDatabaseJobCount } from '../../services/jobService';
 import ChallengeEditorialFeed from './ChallengeEditorialFeed';
 import MiniChallengesRail from './MiniChallengesRail';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
@@ -98,7 +98,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
       // Ignore storage issues and continue with live fetch.
     }
 
-    void getJobCount()
+    void getMainDatabaseJobCount()
       .then((count) => {
         if (cancelled || !Number.isFinite(count) || count < 0) return;
         setDatabaseJobCount(count);
@@ -109,7 +109,9 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
         }
       })
       .catch(() => {
-        // Keep cached value if live fetch fails.
+        if (!cancelled) {
+          setDatabaseJobCount((current) => current ?? 0);
+        }
       });
 
     return () => {
@@ -228,13 +230,13 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                      {t('workspace.feed.stats_jobs_label', { defaultValue: 'Aktivní pozice' })}
+                      {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
                     </div>
                     <div className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
                       {formattedJobsCount}
                     </div>
                     <p className="text-xs leading-5 text-[var(--text-muted)]">
-                      {t('workspace.feed.stats_jobs_body', { defaultValue: 'Nabídek, které teď držíme ve feedu a databázi.' })}
+                      {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
                     </p>
                   </div>
                   <div className="rounded-[12px] bg-white/80 p-2 text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:bg-white/10">

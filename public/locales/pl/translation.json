@@ -4443,8 +4443,9 @@
       "swipe_body": "Dotknięcie otwiera szczegóły, a przesunięcia szybko sortują oferty bez skakania po ekranach.",
       "ai_title": "Nie chodzi tylko o znalezienie pracy.",
       "ai_body": "Chodzi o podjęcie właściwej decyzji.",
-      "stats_jobs_label": "Teraz w bazie",
-      "stats_jobs_body": "Łączna liczba aktywnych ofert w całej bazie danych.",
+      "stats_jobs_sentence": "W bazie mamy obecnie {{formattedCount}} aktywnych ofert.",
+      "stats_jobs_label": "W bazie mamy obecnie",
+      "stats_jobs_body": "aktywnych ofert.",
       "stats_live_label": "Teraz w wyzwaniach",
       "stats_live_body": "Liczba kandydatów, którzy właśnie przeglądają oferty.",
       "ai_bullets": [

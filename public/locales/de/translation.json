@@ -4451,8 +4451,9 @@
       "swipe_body": "Auf dem Handy am besten direkt per Swipe starten. Tippen öffnet das Detail, Wischen sortiert Rollen sofort vor.",
       "ai_title": "Es geht nicht nur darum, einen Job zu finden.",
       "ai_body": "Es geht darum, die richtige Entscheidung zu treffen.",
-      "stats_jobs_label": "Jetzt in der Datenbank",
-      "stats_jobs_body": "Gesamtzahl aktiver Stellen in der gesamten Datenbank.",
+      "stats_jobs_sentence": "Aktuell haben wir {{formattedCount}} aktive Stellen in der Datenbank.",
+      "stats_jobs_label": "Aktuell haben wir",
+      "stats_jobs_body": "aktive Stellen in der Datenbank.",
       "stats_live_label": "Gerade in Challenges",
       "stats_live_body": "Anzahl der Kandidaten, die sich gerade Stellen ansehen.",
       "ai_bullets": [
