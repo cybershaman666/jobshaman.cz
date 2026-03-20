@@ -9,6 +9,7 @@ interface AppViewportShellProps {
   header?: React.ReactNode;
   banner?: React.ReactNode;
   scene: React.ReactNode;
+  footer?: React.ReactNode;
   floatingAction?: React.ReactNode;
   overlays?: React.ReactNode;
 }
@@ -20,6 +21,7 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
   header,
   banner,
   scene,
+  footer,
   floatingAction,
   overlays,
 }) => {
@@ -38,6 +40,7 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
         >
           <div className="flex-1 flex flex-col relative overflow-y-auto">
             {scene}
+            {footer}
           </div>
         </main>
       </div>

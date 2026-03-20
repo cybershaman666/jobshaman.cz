@@ -6,6 +6,7 @@ const OchranaSoukromi = () => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const isCsLike = locale === 'cs' || locale === 'sk';
+  const backLink = `/${locale}/`;
 
   const copy = isCsLike
     ? {
@@ -84,7 +85,7 @@ const OchranaSoukromi = () => {
       };
 
   return (
-    <LegalPage title={copy.pageTitle} icon={Shield} backLabel={copy.backLabel}>
+    <LegalPage title={copy.pageTitle} icon={Shield} backLabel={copy.backLabel} backLink={backLink}>
       <div className="prose prose-slate dark:prose-invert max-w-none">
         <h2>{copy.mainTitle}</h2>
 

@@ -57,6 +57,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   const { t, i18n } = useTranslation();
   const [mobileMode, setMobileMode] = React.useState<'swipe' | 'feed'>('swipe');
   const [databaseJobCount, setDatabaseJobCount] = React.useState<number | null>(null);
+  const [liveCandidateDelta, setLiveCandidateDelta] = React.useState(0);
   const activeLocale = String(i18n.resolvedLanguage || i18n.language || locale || 'en');
   const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
 
@@ -144,9 +145,26 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
     const weekendAdjustment = now.getDay() === 0 || now.getDay() === 6 ? -3 : 0;
     return Math.max(8, base + trafficLift + hourAdjustment + weekendAdjustment);
   }, [visibleJobsCount]);
+  React.useEffect(() => {
+    const intervalMs = 45_000 + Math.floor(Math.random() * 20_000);
+    const intervalId = window.setInterval(() => {
+      setLiveCandidateDelta((current) => {
+        const drift = Math.random() < 0.55 ? 1 : -1;
+        const next = current + drift;
+        if (next > 4) return 3;
+        if (next < -4) return -3;
+        return next;
+      });
+    }, intervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+  const liveCandidatesNow = Math.max(6, simulatedActiveCandidates + liveCandidateDelta);
   const formattedActiveCandidates = React.useMemo(
-    () => new Intl.NumberFormat(activeLocale).format(simulatedActiveCandidates),
-    [activeLocale, simulatedActiveCandidates]
+    () => new Intl.NumberFormat(activeLocale).format(liveCandidatesNow),
+    [activeLocale, liveCandidatesNow]
   );
 
   return (
@@ -265,7 +283,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
                       {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.16)]" />
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.16)] animate-pulse" />
                       <div className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
                         {formattedActiveCandidates}
                       </div>

@@ -11,6 +11,7 @@ import CompanyOnboarding from './components/CompanyOnboarding';
 import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CookieBanner from './components/CookieBanner';
 import GuestDiscoveryTourOverlay from './components/GuestDiscoveryTourOverlay';
+import SiteFooter from './components/SiteFooter';
 import { fetchJobsByIds } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
 import { checkPaymentStatus } from './services/stripeService';
@@ -40,8 +41,12 @@ import {
     getNormalizedAppPath,
     getPathPartsWithoutLocale,
     isExternalStandalonePath,
+    resolvePreferredLocale,
 } from './utils/appRouting';
 import { AlertCircle, ArrowUp } from 'lucide-react';
+import PodminkyUziti from './pages/PodminkyUziti';
+import OchranaSoukromi from './pages/OchranaSoukromi';
+import AboutUsPage from './pages/AboutUsPage';
 
 type PendingApplyFollowup = {
     jobId: number;
@@ -86,16 +91,21 @@ type CandidateOnboardingStepKey = 'location' | 'preferences' | 'cv' | 'done';
 export default function App() {
     const { t, i18n } = useTranslation();
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
+    const getSystemTheme = () => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light' as const;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' as const : 'light' as const;
+    };
+    const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
+        if (typeof window === 'undefined') return 'system';
+        const stored = localStorage.getItem('theme');
+        if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+        return 'system';
+    });
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('theme');
-            if (stored === 'dark') {
-                document.documentElement.classList.add('dark');
-                return 'dark';
-            }
-        }
-        document.documentElement.classList.remove('dark');
-        return 'light';
+        if (typeof window === 'undefined') return 'light';
+        const stored = localStorage.getItem('theme');
+        if (stored === 'light' || stored === 'dark') return stored;
+        return getSystemTheme();
     });
     useHeaderOffsets();
 
@@ -168,6 +178,24 @@ export default function App() {
     const normalizedPath = useMemo(() => {
         return getNormalizedAppPath(window.location.pathname);
     }, [window.location.pathname]);
+
+    useEffect(() => {
+        const explicitLocale = getLocaleFromPathname(window.location.pathname, '');
+        if (explicitLocale) return;
+
+        const preferredLocale = resolvePreferredLocale((i18n.resolvedLanguage || i18n.language || 'cs').split('-')[0].toLowerCase());
+        const pathWithoutLocale = getPathPartsWithoutLocale(window.location.pathname).join('/');
+        const nextPath = `/${preferredLocale}${pathWithoutLocale ? `/${pathWithoutLocale}` : '/'}`.replace(/\/{2,}/g, '/');
+        const currentPathWithQuery = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const nextPathWithQuery = `${nextPath}${window.location.search}${window.location.hash}`;
+
+        if (currentPathWithQuery !== nextPathWithQuery) {
+            window.history.replaceState({}, '', nextPathWithQuery);
+        }
+        if ((i18n.resolvedLanguage || i18n.language || '').split('-')[0].toLowerCase() !== preferredLocale) {
+            i18n.changeLanguage(preferredLocale);
+        }
+    }, [i18n, i18n.language, i18n.resolvedLanguage]);
 
     const isImmersiveAssessmentRoute = useMemo(() => {
         if (viewState === ViewState.JCFPM || viewState === ViewState.ASSESSMENT) return true;
@@ -1251,14 +1279,34 @@ export default function App() {
     }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t]);
 
     useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
+        if (themeMode !== 'system') {
+            setTheme(themeMode);
+            return;
         }
-    }, [theme]);
+
+        const syncSystemTheme = () => {
+            setTheme(getSystemTheme());
+        };
+
+        syncSystemTheme();
+
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => syncSystemTheme();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', handleChange);
+            return () => mediaQuery.removeEventListener('change', handleChange);
+        }
+
+        mediaQuery.addListener(handleChange);
+        return () => mediaQuery.removeListener(handleChange);
+    }, [themeMode]);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        localStorage.setItem('theme', themeMode);
+    }, [theme, themeMode]);
 
     useEffect(() => {
         setIsApplyModalOpen(false);
@@ -1618,8 +1666,9 @@ export default function App() {
             companyProfile={companyProfile}
             setCompanyProfile={setCompanyProfile}
             handleAuthAction={handleAuthAction}
-            toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
             theme={theme}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
             setIsOnboardingCompany={setIsOnboardingCompany}
             onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
             discoveryLane={discoveryLane}
@@ -1657,6 +1706,20 @@ export default function App() {
             }}
         />
     ) : null;
+
+    const standalonePageNode = useMemo(() => {
+        if (normalizedPath === '/terms' || normalizedPath === '/podminky-uziti') {
+            return <PodminkyUziti />;
+        }
+        if (normalizedPath === '/privacy-policy' || normalizedPath === '/ochrana-osobnich-udaju') {
+            return <OchranaSoukromi />;
+        }
+        if (normalizedPath === '/about' || normalizedPath === '/about-us') {
+            return <AboutUsPage />;
+        }
+        return null;
+    }, [normalizedPath]);
+    const isStandaloneRoute = standalonePageNode !== null;
 
     const bannerNode = !isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation ? (
         <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
@@ -1971,10 +2034,11 @@ export default function App() {
         <AppViewportShell
             isImmersive={isImmersiveAssessmentRoute}
             theme={theme}
-            usePageScrollLayout={usePageScrollLayout}
+            usePageScrollLayout={usePageScrollLayout || isStandaloneRoute}
             header={headerNode}
-            banner={bannerNode}
-            scene={sceneNode}
+            banner={isStandaloneRoute ? null : bannerNode}
+            scene={standalonePageNode ?? sceneNode}
+            footer={!isImmersiveAssessmentRoute ? <SiteFooter /> : null}
             floatingAction={floatingActionNode}
             overlays={overlayNodes}
         />

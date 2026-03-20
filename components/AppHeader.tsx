@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Check,
   ChevronDown,
   MapPin,
   Menu,
+  Monitor,
   Moon,
   Search,
+  SlidersHorizontal,
   Sun,
   X,
   Building2
@@ -27,8 +30,9 @@ interface AppHeaderProps {
   companyProfile: CompanyProfile | null;
   setCompanyProfile: (profile: CompanyProfile | null) => void;
   handleAuthAction: (mode?: 'login' | 'register') => void;
-  toggleTheme: () => void;
   theme: 'light' | 'dark';
+  themeMode: 'light' | 'dark' | 'system';
+  setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
   setIsOnboardingCompany: (show: boolean) => void;
   onIntentionalListClick?: () => void;
   discoveryLane?: 'challenges' | 'imports';
@@ -63,8 +67,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   setShowCompanyLanding,
   userProfile,
   handleAuthAction,
-  toggleTheme,
   theme,
+  themeMode,
+  setThemeMode,
   setIsOnboardingCompany,
   onIntentionalListClick,
   discoveryLane = 'challenges',
@@ -88,7 +93,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [utilityMenuOpen, setUtilityMenuOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const currentLanguageCode = useMemo(() => {
@@ -243,7 +248,25 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     aiBadge: t('header.shell.ai_badge'),
     lightMode: t('header.shell.light_mode'),
     darkMode: t('header.shell.dark_mode'),
+    systemMode: t('header.system_mode', { defaultValue: 'System' }),
+    preferences: t('header.preferences', { defaultValue: 'Preferences' }),
+    appearance: t('header.appearance', { defaultValue: 'Appearance' }),
+    language: t('header.language', { defaultValue: 'Language' }),
+    pages: t('header.pages', { defaultValue: 'Pages' }),
+    about: t('footer.about', { defaultValue: 'About Us' }),
+    terms: t('footer.terms', { defaultValue: 'Terms of Use' }),
+    privacy: t('footer.privacy', { defaultValue: 'Privacy Policy' }),
   };
+  const legalLinks = [
+    { href: `${getLocalePrefix()}/about`, label: headerUiCopy.about },
+    { href: `${getLocalePrefix()}/terms`, label: headerUiCopy.terms },
+    { href: `${getLocalePrefix()}/privacy-policy`, label: headerUiCopy.privacy },
+  ];
+  const themeOptions = [
+    { key: 'system' as const, label: headerUiCopy.systemMode, icon: Monitor },
+    { key: 'light' as const, label: headerUiCopy.lightMode, icon: Sun },
+    { key: 'dark' as const, label: headerUiCopy.darkMode, icon: Moon },
+  ];
 
   const submitDiscoverySearch = () => {
     if (leaveDemoHandshakeRoute()) return;
@@ -288,7 +311,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   }, [theme, viewState]);
   const headerInputClass = 'app-header-input w-full py-3 pl-11 pr-4 text-sm outline-none transition';
   const headerControlClass = 'app-header-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors';
-  const headerIconButtonClass = 'app-header-control hidden h-10 w-10 items-center justify-center lg:inline-flex';
   const headerNavItemClass = 'app-header-control px-4 py-2 text-sm font-semibold';
   const headerFilterClass = 'app-header-control px-3.5 py-2 text-xs font-semibold';
 
@@ -383,41 +405,84 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 {headerUiCopy.companies}
               </button>
 
-              <div className="flex items-center gap-1.5">
+              <div className="relative z-[80] hidden lg:block">
                 <button
                   type="button"
-                  onClick={toggleTheme}
-                  className={headerIconButtonClass}
+                  onClick={() => setUtilityMenuOpen((prev) => !prev)}
+                  className={headerControlClass}
                 >
-                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                  <SlidersHorizontal size={14} />
+                  {headerUiCopy.preferences}
+                  <ChevronDown size={12} />
                 </button>
-                <div className="relative z-[80]">
-                  <button
-                    type="button"
-                    onClick={() => setLanguageMenuOpen((prev) => !prev)}
-                    className={headerControlClass}
-                  >
-                    {(languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode).toUpperCase()}
-                    <ChevronDown size={12} />
-                  </button>
-                  {languageMenuOpen && (
-                    <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-32 overflow-hidden rounded-2xl p-1 shadow-xl">
+                {utilityMenuOpen && (
+                  <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-[19rem] overflow-hidden rounded-2xl p-2 shadow-xl">
+                    <div className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {headerUiCopy.appearance}
+                    </div>
+                    <div className="grid gap-1">
+                      {themeOptions.map((option) => {
+                        const Icon = option.icon;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => setThemeMode(option.key)}
+                            className={cn(
+                              'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                              themeMode === option.key
+                                ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                                : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <Icon size={16} />
+                              {option.label}
+                            </span>
+                            {themeMode === option.key ? <Check size={15} /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 border-t border-[var(--border-subtle)] px-2 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {headerUiCopy.language}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
                       {languages.map((lang) => (
                         <button
                           key={lang.code}
-                          onClick={() => { changeLanguage(lang.code); setLanguageMenuOpen(false); }}
+                          type="button"
+                          onClick={() => {
+                            changeLanguage(lang.code);
+                            setUtilityMenuOpen(false);
+                          }}
                           className={cn(
-                            "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition",
-                            currentLanguageCode === lang.code ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text)] hover:bg-[var(--surface-muted)]"
+                            'flex items-center justify-center rounded-xl px-2 py-2 text-xs font-semibold transition',
+                            currentLanguageCode === lang.code
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
                           )}
                         >
-                          <img src={`https://flagcdn.com/w20/${lang.flagCode}.png`} alt="" className="h-3 w-4 rounded-sm" />
                           {lang.name}
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
+                    <div className="mt-3 border-t border-[var(--border-subtle)] px-2 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {headerUiCopy.pages}
+                    </div>
+                    <div className="grid gap-1">
+                      {legalLinks.map((item) => (
+                        <a
+                          key={item.href}
+                          href={item.href}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
+                        >
+                          {item.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* User Profile / Auth */}
@@ -546,13 +611,35 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   {item.label}
                 </button>
               ))}
-              <div className="mt-2 flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
-                <button onClick={toggleTheme} className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
-                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                  {theme === 'dark' ? headerUiCopy.lightMode : headerUiCopy.darkMode}
-                </button>
-                <div className="flex gap-2">
-                  {languages.map(l => (
+              <div className="mt-2 grid gap-2 border-t border-[var(--border-subtle)] pt-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                  {headerUiCopy.appearance}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {themeOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.key}
+                        onClick={() => setThemeMode(option.key)}
+                        className={cn(
+                          'app-header-control justify-center gap-2 px-3 py-2 text-xs font-bold',
+                          themeMode === option.key ? 'app-header-control-active' : null
+                        )}
+                      >
+                        <Icon size={15} />
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="mt-2 grid gap-2 border-t border-[var(--border-subtle)] pt-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                  {headerUiCopy.language}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {languages.map((l) => (
                     <button
                       key={l.code}
                       onClick={() => changeLanguage(l.code)}
@@ -562,6 +649,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="mt-2 grid gap-2 border-t border-[var(--border-subtle)] pt-4">
+                {legalLinks.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="app-header-control w-full justify-start px-4 py-3 text-left text-sm font-semibold transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                ))}
               </div>
             </div>
           </div>

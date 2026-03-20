@@ -1080,6 +1080,10 @@
     "logout": "Abmelden",
     "menu": "Menü",
     "language": "Sprache",
+    "preferences": "Einstellungen",
+    "appearance": "Darstellung",
+    "pages": "Seiten",
+    "system_mode": "System",
     "more": "Mehr",
     "switch_to_candidate": "Zu Bewerber wechseln",
     "open_profile": "Profil öffnen",
@@ -4113,6 +4117,8 @@
     "default": "Dies ist nur eine Orientierung. Die finale Entscheidung trifft ein Mensch."
   },
   "footer": {
+    "about": "Über uns",
+    "contact": "Kontakt",
     "privacy": "Datenschutz",
     "rights_reserved": "© 2026 JobShaman. Alle Rechte vorbehalten.",
     "terms": "Nutzungsbedingungen"
