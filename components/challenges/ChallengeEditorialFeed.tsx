@@ -970,6 +970,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     }
 
     const hero = take(standardSorted, 1);
+    const heroCompanion = take(standardSorted, 1);
 
     const spotlightCandidates = standardSorted
       .slice()
@@ -1016,7 +1017,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
         subtitle: { cs: feedCopy.heroSubtitle, en: feedCopy.heroSubtitle },
         layout: 'hero',
         tone: 'match',
-        jobs: hero,
+        jobs: [...hero, ...heroCompanion],
       });
     }
     if (spotlight.length) {
@@ -1073,7 +1074,12 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     return indexes;
   }, [sections]);
 
-  const visibleRemaining = useMemo(() => remaining.slice(0, 24), [remaining]);
+  const compactFeatureJob = useMemo(() => compactJobs[0] || null, [compactJobs]);
+  const compactRemainingJobs = useMemo(() => compactJobs.slice(1), [compactJobs]);
+  const compactHighlightIndexes = useMemo(() => (
+    pickChunkHighlightIndexes(compactRemainingJobs, 8, 2)
+  ), [compactRemainingJobs]);
+  const visibleRemaining = useMemo(() => remaining, [remaining]);
   const remainingHighlightIndexes = useMemo(
     () => pickChunkHighlightIndexes(visibleRemaining, 6, 2),
     [visibleRemaining]
@@ -1093,21 +1099,42 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     }
 
     return (
-      <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
-        {compactJobs.map((job) => (
-          <OfferCard
-            key={job.id}
-            job={job}
-            selected={job.id === selectedJobId}
-            saved={savedJobIds.includes(job.id)}
-            language={language}
-            variant="default"
-            className="md:col-span-3 xl:col-span-4"
-            onSelect={() => onSelect(job.id)}
-            onOpen={() => onOpen(job.id)}
-            onToggleSave={() => onToggleSave(job.id)}
-          />
-        ))}
+      <div className="space-y-5">
+        {compactFeatureJob ? (
+          <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
+            <OfferCard
+              key={compactFeatureJob.id}
+              job={compactFeatureJob}
+              selected={compactFeatureJob.id === selectedJobId}
+              saved={savedJobIds.includes(compactFeatureJob.id)}
+              language={language}
+              variant="large"
+              contrast
+              className="md:col-span-6 xl:col-span-8"
+              onSelect={() => onSelect(compactFeatureJob.id)}
+              onOpen={() => onOpen(compactFeatureJob.id)}
+              onToggleSave={() => onToggleSave(compactFeatureJob.id)}
+            />
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
+          {compactRemainingJobs.map((job, index, list) => (
+            <OfferCard
+              key={job.id}
+              job={job}
+              selected={job.id === selectedJobId}
+              saved={savedJobIds.includes(job.id)}
+              language={language}
+              variant="default"
+              contrast={compactHighlightIndexes.has(index)}
+              className={getBalancedGridSpanClass(index, list.length)}
+              onSelect={() => onSelect(job.id)}
+              onOpen={() => onOpen(job.id)}
+              onToggleSave={() => onToggleSave(job.id)}
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1128,11 +1155,12 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
         if (section.layout === 'hero') {
           const job = section.jobs[0];
+          const companionJob = section.jobs[1];
           if (!job) return null;
           return (
             <div key={section.key} className="space-y-5">
               <SectionHeader title={title} subtitle={subtitle} tone={section.tone} />
-              <div className="grid grid-cols-1 xl:grid-cols-12">
+              <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
                 <OfferCard
                   job={job}
                   selected={job.id === selectedJobId}
@@ -1140,11 +1168,24 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
                   language={language}
                   variant="hero"
                   contrast
-                  className="xl:col-span-12"
+                  className="md:col-span-4 xl:col-span-8"
                   onSelect={() => onSelect(job.id)}
                   onOpen={() => onOpen(job.id)}
                   onToggleSave={() => onToggleSave(job.id)}
                 />
+                {companionJob ? (
+                  <OfferCard
+                    job={companionJob}
+                    selected={companionJob.id === selectedJobId}
+                    saved={savedJobIds.includes(companionJob.id)}
+                    language={language}
+                    variant="default"
+                    className="md:col-span-2 xl:col-span-4"
+                    onSelect={() => onSelect(companionJob.id)}
+                    onOpen={() => onOpen(companionJob.id)}
+                    onToggleSave={() => onToggleSave(companionJob.id)}
+                  />
+                ) : null}
               </div>
             </div>
           );

@@ -138,7 +138,10 @@ export const useDiscoveryFilters = ({
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCity, setFilterCity] = useState('');
     const [filterMaxDistance, setFilterMaxDistance] = useState<number>(() => userProfile.preferences?.searchProfile?.defaultMaxDistanceKm ?? 50);
-    const [enableCommuteFilter, setEnableCommuteFilter] = useState(() => userProfile.preferences?.searchProfile?.defaultEnableCommuteFilter ?? false);
+    // Keep the preferred radius ready in the UI, but don't silently hard-enable the
+    // commute filter on first load. Otherwise the default feed can collapse to a tiny
+    // local subset before the user intentionally narrows the search.
+    const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
     const [filterDate, setFilterDate] = useState<string>('all');

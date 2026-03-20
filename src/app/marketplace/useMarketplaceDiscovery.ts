@@ -36,6 +36,7 @@ export const useMarketplaceDiscovery = ({
 }: UseMarketplaceDiscoveryProps) => {
   const discovery = usePaginatedJobs({
     userProfile: effectiveUserProfile,
+    initialPageSize: 50,
     enabled,
     microJobsOnly: discoveryMode === 'micro_jobs',
     remoteOnly: challengeRemoteOnly,

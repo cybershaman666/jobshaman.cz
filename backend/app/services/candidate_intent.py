@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import os
 import json
 import unicodedata
 
@@ -18,9 +19,51 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def _candidate_taxonomy_path_candidates() -> List[Path]:
+    env_override = str(os.getenv("CANDIDATE_INTENT_TAXONOMY_PATH") or "").strip()
+    current = Path(__file__).resolve()
+    candidates: List[Path] = []
+
+    if env_override:
+        candidates.append(Path(env_override).expanduser())
+
+    for parent in [current.parent, *current.parents]:
+        candidates.append(parent / "shared" / "candidate_intent_taxonomy.json")
+
+    # Common deploy layouts.
+    candidates.extend([
+        _repo_root() / "shared" / "candidate_intent_taxonomy.json",
+        Path("/app/shared/candidate_intent_taxonomy.json"),
+        Path("/workspace/shared/candidate_intent_taxonomy.json"),
+        Path("/shared/candidate_intent_taxonomy.json"),
+    ])
+
+    deduped: List[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(candidate)
+    return deduped
+
+
+def _resolve_taxonomy_path() -> Path:
+    for candidate in _candidate_taxonomy_path_candidates():
+        if candidate.is_file():
+            return candidate
+
+    searched = ", ".join(str(path) for path in _candidate_taxonomy_path_candidates())
+    raise FileNotFoundError(
+        "candidate_intent_taxonomy.json not found. "
+        f"Searched: {searched}"
+    )
+
+
 @lru_cache(maxsize=1)
 def _load_taxonomy() -> Dict[str, Any]:
-    taxonomy_path = _repo_root() / "shared" / "candidate_intent_taxonomy.json"
+    taxonomy_path = _resolve_taxonomy_path()
     with taxonomy_path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
