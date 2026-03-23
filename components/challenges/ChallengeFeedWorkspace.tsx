@@ -269,14 +269,14 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
       <MetricTile
         label={t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
         value={(
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-[var(--text-strong)]">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.14)] animate-pulse" />
-            <span>{formattedActiveCandidates}</span>
+            <span className="text-[var(--text-strong)]">{formattedActiveCandidates}</span>
           </div>
         )}
         helper={t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
-        tone="accent"
-        className="h-full border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(255,255,255,0.84)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:bg-[rgba(9,19,28,0.72)]"
+        tone="muted"
+        className="h-full border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(255,255,255,0.84)] text-[var(--text-strong)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:bg-[rgba(9,19,28,0.72)]"
       />
     </div>
   );

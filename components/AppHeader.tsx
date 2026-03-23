@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  BrainCircuit,
   Check,
   ChevronDown,
   MapPin,
@@ -338,8 +339,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               onClick={navigateToShellHome}
               className="relative z-10 flex shrink-0 items-center gap-3 px-1 py-1 transition opacity-95 hover:opacity-100"
             >
-              <span className="flex h-9 w-9 items-center justify-center">
-                <img src="/logo-alt.png" alt="JobShaman" className="h-6 w-auto sm:h-7" />
+              <span className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_18%),linear-gradient(180deg,rgba(10,18,29,0.96),rgba(14,24,36,0.92))] text-[var(--accent)] shadow-[0_18px_34px_-24px_rgba(2,8,23,0.42),0_0_22px_rgba(var(--accent-rgb),0.12)]">
+                <BrainCircuit size={20} strokeWidth={2.1} aria-hidden />
               </span>
               <span className="flex items-center gap-2">
                 <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
@@ -430,7 +431,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   <ChevronDown size={12} />
                 </button>
                 {utilityMenuOpen && (
-                  <div className="app-frost-panel absolute right-0 top-full z-[90] mt-2 w-[19rem] overflow-hidden rounded-2xl p-2 shadow-xl">
+                  <div className="app-header-menu absolute right-0 top-full z-[90] mt-2 w-[19rem] overflow-hidden rounded-2xl p-2 shadow-xl">
                     <div className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                       {headerUiCopy.appearance}
                     </div>
@@ -539,7 +540,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Mobile Search/Nav */}
         {mobileMenuOpen && (
-          <div className="app-frost-panel mt-2 overflow-hidden rounded-[28px] lg:hidden">
+          <div className="app-header-menu mt-2 overflow-hidden rounded-[28px] lg:hidden">
             <div className="grid gap-2 p-4">
               {/* Unified Search for Mobile */}
               <div className="relative mb-2">
