@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../ui/primitives';
 import { computeCandidateAnnotations } from '../../services/candidateIntentService';
 import { Job, SearchDiagnosticsMeta, UserProfile } from '../../types';
-import ChallengeHandshakeCard from './ChallengeHandshakeCard';
 import ChallengeSidebar, { type DiscoveryMode } from './ChallengeSidebar';
 import CreateMiniChallengeModal from './CreateMiniChallengeModal';
 import ChallengeFeedWorkspace from './ChallengeFeedWorkspace';
@@ -28,7 +26,6 @@ interface ChallengeControlCenterProps {
   handleToggleSave: (jobId: string) => void;
   loadMoreJobs: () => void;
   goToPage: (page: number) => void;
-  theme: 'light' | 'dark';
   filterMinSalary: number;
   setFilterMinSalary: (salary: number) => void;
   filterBenefits: string[];
@@ -63,7 +60,6 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
   handleToggleSave,
   loadMoreJobs,
   goToPage,
-  theme,
   filterMinSalary,
   setFilterMinSalary,
   filterBenefits,
@@ -162,24 +158,6 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     setLane('imports');
   }, [discoveryMode, importedJobs.length, lane, nativeJobs.length, setLane]);
 
-  const forestAccentStyle = useMemo((): React.CSSProperties => {
-    const isDark = theme === 'dark';
-    const accent = isDark ? '#22d3ee' : '#0ea5c9';
-    const accentRgb = isDark ? '34, 211, 238' : '14, 165, 201';
-    const accentGreen = isDark ? '#14b8a6' : '#0f766e';
-    const accentGreenRgb = isDark ? '20, 184, 166' : '15, 118, 110';
-    const accentSky = isDark ? '#0d9488' : '#38bdf8';
-    const accentSkyRgb = isDark ? '13, 148, 136' : '56, 189, 248';
-    return {
-      ['--accent' as any]: accent,
-      ['--accent-rgb' as any]: accentRgb,
-      ['--accent-green' as any]: accentGreen,
-      ['--accent-green-rgb' as any]: accentGreenRgb,
-      ['--accent-sky' as any]: accentSky,
-      ['--accent-sky-rgb' as any]: accentSkyRgb,
-    };
-  }, [theme]);
-
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() => {
@@ -213,25 +191,44 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     }
   }, [isMobileViewport]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--app-atmosphere-image', 'none');
+    root.style.setProperty('--app-atmosphere-opacity', '0');
+    root.style.setProperty('--app-atmosphere-blur', '0');
+    root.style.setProperty(
+      '--app-atmosphere-overlay-light',
+      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.07), transparent 22%), radial-gradient(circle at 84% 12%, rgba(var(--accent-gold-rgb), 0.05), transparent 20%), linear-gradient(180deg, rgba(255,255,255,0.48), transparent 20%), linear-gradient(rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
+      );
+    root.style.setProperty(
+      '--app-atmosphere-overlay-dark',
+      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.08), transparent 22%), linear-gradient(180deg, rgba(6, 13, 20, 0.68) 0%, rgba(6, 13, 20, 0.82) 100%)'
+    );
+
+    return () => {
+      root.style.setProperty('--app-atmosphere-image', 'none');
+      root.style.setProperty('--app-atmosphere-opacity', '0');
+      root.style.setProperty('--app-atmosphere-blur', '96px');
+      root.style.setProperty(
+        '--app-atmosphere-overlay-light',
+        'linear-gradient(180deg, rgba(243, 246, 251, 0.82) 0%, rgba(243, 246, 251, 0.9) 36%, rgba(243, 246, 251, 0.96) 100%)'
+      );
+      root.style.setProperty(
+        '--app-atmosphere-overlay-dark',
+        'linear-gradient(180deg, rgba(6, 13, 20, 0.7) 0%, rgba(6, 13, 20, 0.82) 36%, rgba(6, 13, 20, 0.92) 100%)'
+      );
+    };
+  }, []);
+
 
   return (
     <section
-      style={forestAccentStyle}
-      className="relative min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden bg-[var(--bg)] dark:bg-slate-950"
+      className="app-shell-bg app-shell-bg-clean relative min-h-[calc(100dvh-var(--app-header-height))] overflow-visible"
     >
-      <div
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute inset-0 -z-10',
-          'bg-[linear-gradient(180deg,#f7f9fc_0%,#f4f7fb_100%)]',
-          'dark:bg-slate-950'
-        )}
-      />
-
-      <div className="flex h-full w-full flex-col px-0 py-3 lg:px-3">
+      <div className="relative mx-auto flex h-full w-full max-w-[1720px] flex-col px-3 pb-4 pt-2 sm:px-4 sm:pt-2.5 lg:px-5 lg:pt-3">
         <div className={cn(
           "grid flex-1 items-start transition-all duration-300",
-          "gap-5 lg:grid-cols-[312px_minmax(0,1fr)] lg:gap-7"
+          "gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-5"
         )}>
           {!isMobileViewport && (
             <div className="h-full lg:self-start">
@@ -262,35 +259,37 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
             </div>
           )}
 
-          <div className="h-full overflow-y-auto space-y-4 pb-6">
-            <ChallengeFeedWorkspace
-              jobs={laneScopedJobs}
-              selectedJobId={selectedJobId}
-              savedJobIds={savedJobIds}
-              locale={locale}
-              userProfile={userProfile}
-              searchDiagnostics={searchDiagnostics}
-              totalCount={totalCount}
-              isLoadingJobs={isLoadingJobs}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              handleJobSelect={handleJobSelect}
-              handleToggleSave={handleToggleSave}
-              loadMoreJobs={loadMoreJobs}
-              goToPage={goToPage}
-              onOpenProfile={onOpenProfile}
-              onOpenAuth={onOpenAuth}
-              onCreateMiniChallenge={() => {
-                if (userProfile.isLoggedIn) {
-                  setIsCreateModalOpen(true);
-                } else {
-                  onOpenAuth('register');
-                }
-              }}
-              isMobileViewport={isMobileViewport}
-            />
+          <div className="app-workspace-stage app-workspace-stage-flat min-w-0 p-0">
+            <div className="space-y-4 rounded-[calc(var(--radius-hero)+2px)] px-1 pb-6 sm:px-2">
+              <ChallengeFeedWorkspace
+                jobs={laneScopedJobs}
+                selectedJobId={selectedJobId}
+                savedJobIds={savedJobIds}
+                locale={locale}
+                userProfile={userProfile}
+                searchDiagnostics={searchDiagnostics}
+                totalCount={totalCount}
+                isLoadingJobs={isLoadingJobs}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                handleJobSelect={handleJobSelect}
+                handleToggleSave={handleToggleSave}
+                loadMoreJobs={loadMoreJobs}
+                goToPage={goToPage}
+                onOpenProfile={onOpenProfile}
+                onOpenAuth={onOpenAuth}
+                onCreateMiniChallenge={() => {
+                  if (userProfile.isLoggedIn) {
+                    setIsCreateModalOpen(true);
+                  } else {
+                    onOpenAuth('register');
+                  }
+                }}
+                isMobileViewport={isMobileViewport}
+              />
+            </div>
           </div>
         </div>
 
@@ -309,11 +308,11 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
       {/* Independent Job Detail Overlay / Drawer */}
       {mobileMenuOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[rgba(8,12,10,0.44)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="h-full w-[min(88vw,360px)] overflow-y-auto bg-[var(--bg)] p-4 shadow-2xl"
+            className="h-full w-[min(88vw,360px)] overflow-y-auto bg-[var(--surface-cosmic-strong)] p-4 shadow-[var(--shadow-overlay)]"
             onClick={(event) => event.stopPropagation()}
           >
             <ChallengeSidebar
@@ -352,35 +351,6 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
           </div>
         </div>
       ) : null}
-
-      {selectedJobId && selectedJob && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-end bg-black/40 backdrop-blur-sm transition-all"
-          onClick={() => handleJobSelect(null)}
-        >
-          <div
-            className="h-full w-full max-w-3xl overflow-y-auto bg-[var(--bg-app)] shadow-2xl animate-in slide-in-from-right duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative p-6 lg:p-10">
-              <button
-                onClick={() => handleJobSelect(null)}
-                className="absolute right-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-[var(--accent)] shadow-lg backdrop-blur hover:bg-white/20"
-              >
-                <ArrowRight className="rotate-180" size={20} />
-              </button>
-
-              <ChallengeHandshakeCard
-                job={selectedJob}
-                userProfile={userProfile}
-                isSaved={selectedJob ? savedJobIds.includes(selectedJob.id) : false}
-                onToggleSave={handleToggleSave}
-                onOpen={(jobId) => handleJobSelect(jobId)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

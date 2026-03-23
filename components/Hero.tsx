@@ -41,12 +41,12 @@ const Hero: React.FC<HeroProps> = ({
             </div>
 
             <div className="max-w-4xl mx-auto text-center relative z-20">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-solarpunk-green/10 text-solarpunk-green border border-solarpunk-green/20 text-xs font-bold uppercase tracking-widest mb-6 animate-solarpunk-pulse">
+                <div className="app-eyebrow mb-6">
                     <Sparkles size={14} />
                     {t('hero.new_way_to_work', { defaultValue: 'Work is how we shape the world' })}
                 </div>
 
-                <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[var(--text-strong)] mb-6 leading-[1.1]">
+                <h1 className="app-display text-4xl sm:text-6xl font-extrabold tracking-tight text-[var(--text-strong)] mb-6 leading-[1.1]">
                     {t('hero.title', { defaultValue: 'Najdi problém, který stojí za řešení.' })}
                 </h1>
 
@@ -55,9 +55,9 @@ const Hero: React.FC<HeroProps> = ({
                 </p>
 
                 {/* Integrated Search Bar */}
-                <div className="max-w-3xl mx-auto p-2 sm:p-3 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-[var(--border)] backdrop-blur-md">
+                <div className="app-frost-panel max-w-3xl mx-auto rounded-[2rem] border p-2 sm:p-3 shadow-[var(--shadow-card)]">
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                        <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 rounded-full bg-[var(--surface-muted)] dark:bg-slate-800/50 border border-transparent focus-within:border-[var(--accent)] transition-all">
+                        <div className="app-command-field flex-1 w-full rounded-full border-transparent bg-[var(--surface-muted)]">
                             <Search size={20} className="text-[var(--text-faint)]" />
                             <input
                                 type="text"
@@ -69,7 +69,7 @@ const Hero: React.FC<HeroProps> = ({
                             />
                         </div>
 
-                        <div className="flex-1 w-full flex items-center gap-3 px-4 py-3 rounded-full bg-[var(--surface-muted)] dark:bg-slate-800/50 border border-transparent focus-within:border-[var(--accent)] transition-all">
+                        <div className="app-command-field flex-1 w-full rounded-full border-transparent bg-[var(--surface-muted)]">
                             <MapPin size={20} className="text-[var(--text-faint)]" />
                             <input
                                 type="text"
@@ -83,7 +83,7 @@ const Hero: React.FC<HeroProps> = ({
 
                         <button
                             onClick={handleSearch}
-                            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[var(--accent)] text-white font-bold hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)] transition-all active:scale-95"
+                            className="app-button-primary w-full sm:w-auto px-8 py-3.5 rounded-full font-bold"
                         >
                             {t('hero.search_cta', { defaultValue: 'Hledat' })}
                         </button>

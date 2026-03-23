@@ -19,9 +19,9 @@ import { getNormalizedAppPath, isExternalStandalonePath } from '../utils/appRout
 
 interface AppHeaderProps {
   viewState: ViewState;
-  setViewState: (view: ViewState) => void;
+  setViewState: React.Dispatch<React.SetStateAction<ViewState>>;
   selectedJobId: string | null;
-  setSelectedJobId: (id: string | null) => void;
+  setSelectedJobId: React.Dispatch<React.SetStateAction<string | null>> | ((id: string | null) => void);
   isBlogOpen?: boolean;
   setIsBlogOpen?: (open: boolean) => void;
   setSelectedBlogPostSlug?: (slug: string | null) => void;
@@ -48,13 +48,6 @@ interface AppHeaderProps {
   filterCity: string;
   setFilterCity: (city: string) => void;
   performSearch: (term: string) => void;
-  remoteOnly?: boolean;
-  setRemoteOnly?: (enabled: boolean) => void;
-  enableCommuteFilter?: boolean;
-  setEnableCommuteFilter?: (enabled: boolean) => void;
-  filterMaxDistance?: number;
-  filterMinSalary?: number;
-  setFilterMinSalary?: (salary: number) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -84,13 +77,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   filterCity,
   setFilterCity,
   performSearch,
-  remoteOnly = false,
-  setRemoteOnly,
-  enableCommuteFilter = false,
-  setEnableCommuteFilter,
-  filterMaxDistance = 50,
-  filterMinSalary = 0,
-  setFilterMinSalary,
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -256,11 +242,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   };
   const headerUiCopy = {
     companies: t('header.shell.companies'),
-    remoteOnly: t('header.shell.remote_only'),
-    commuteMax: t('header.shell.commute_max', { km: filterMaxDistance }),
-    atLeast: t('header.shell.at_least'),
-    aiLine: t('header.shell.ai_line'),
-    aiBadge: t('header.shell.ai_badge'),
     lightMode: t('header.shell.light_mode'),
     darkMode: t('header.shell.dark_mode'),
     systemMode: t('header.system_mode', { defaultValue: 'System' }),
@@ -325,16 +306,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       ['--accent-sky-rgb' as any]: accentSkyRgb,
     };
   }, [theme, viewState]);
-  const headerInputClass = 'app-header-input w-full py-3 pl-11 pr-4 text-sm outline-none transition';
-  const headerControlClass = 'app-header-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors';
-  const headerNavItemClass = 'app-header-control px-4 py-2 text-sm font-semibold';
-  const headerFilterClass = 'app-header-control px-3.5 py-2 text-xs font-semibold';
+  const headerInputClass = 'app-header-input h-11 w-full pl-11 pr-4 text-sm outline-none transition';
+  const headerControlClass = 'app-header-control inline-flex h-11 items-center gap-2 px-4 text-sm font-semibold transition-colors';
+  const headerNavItemClass = 'app-header-control inline-flex h-11 items-center px-4 text-sm font-semibold';
 
   return (
     <header
       style={discoveryAccentStyle}
       className={cn(
-        'sticky top-0 z-50 w-full py-1.5',
+        'sticky top-0 z-50 w-full py-2',
         'relative overflow-visible px-2 sm:px-4 lg:px-0'
       )}
     >
@@ -348,7 +328,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       >
         <div
           className={cn(
-            "app-topnav relative z-40 flex w-full flex-col gap-3 overflow-visible rounded-[18px] px-4 py-2.5 sm:px-6"
+            "app-topnav relative z-40 flex w-full flex-col gap-2 overflow-visible rounded-[24px] px-4 py-3 sm:px-6"
           )}
         >
           <div className="relative z-30 flex w-full items-center gap-3">
@@ -371,8 +351,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </span>
             </button>
 
+            {showMarketplaceHeaderControls ? (
+              <div className="hidden xl:flex items-center gap-2">
+                {navItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.onClick}
+                    className={cn(
+                      headerNavItemClass,
+                      item.active ? 'app-header-control-active' : null
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             {/* Desktop Search - Single Row */}
-            <div className="mx-auto hidden max-w-5xl flex-1 lg:flex">
+            <div className="mx-auto hidden min-w-0 max-w-5xl flex-1 lg:flex">
               <div className="flex w-full items-center gap-2">
                 <div className="relative flex-1">
                   <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
@@ -402,7 +400,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <button
                   type="button"
                   onClick={submitDiscoverySearch}
-                  className="app-header-search-cta px-4 py-2.5 text-sm font-semibold"
+                  className="app-header-search-cta inline-flex h-11 items-center justify-center px-5 text-sm font-semibold whitespace-nowrap"
                 >
                   {searchUiCopy.submit}
                 </button>
@@ -522,10 +520,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               ) : (
                 <button
                   onClick={() => handleAuthAction('login')}
-                  className="app-button-primary app-organic-cta !px-5 !py-2"
-                >
-                  {t('auth.login_button')}
-                </button>
+                  className="app-button-primary !px-5 !py-2"
+              >
+                {t('auth.login_button')}
+              </button>
               )}
 
               {/* Mobile Menu Toggle */}
@@ -537,68 +535,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </button>
             </div>
           </div>
-
-          {showMarketplaceHeaderControls ? (
-            <div className="relative z-10 hidden w-full border-t border-[var(--border)]/80 pt-3 lg:block">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={item.onClick}
-                      className={cn(
-                        headerNavItemClass,
-                        item.active
-                          ? 'app-header-control-active'
-                          : null
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRemoteOnly?.(!remoteOnly)}
-                    className={cn(
-                      headerFilterClass,
-                      remoteOnly
-                        ? 'app-header-control-active'
-                        : null
-                    )}
-                  >
-                    {headerUiCopy.remoteOnly}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEnableCommuteFilter?.(!enableCommuteFilter)}
-                    className={cn(
-                      headerFilterClass,
-                      enableCommuteFilter
-                        ? 'app-header-control-active'
-                        : null
-                    )}
-                  >
-                    {headerUiCopy.commuteMax}
-                  </button>
-                  <label className={cn(headerFilterClass, 'flex items-center gap-2')}>
-                    <span>{headerUiCopy.atLeast}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      value={filterMinSalary || 0}
-                      onChange={(e) => setFilterMinSalary?.(Number(e.target.value || 0))}
-                      className="w-24 bg-transparent text-xs font-semibold text-[var(--text-strong)] outline-none"
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {/* Mobile Search/Nav */}

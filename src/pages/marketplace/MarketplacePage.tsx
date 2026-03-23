@@ -26,7 +26,6 @@ export interface MarketplacePageProps {
   loadMoreJobs: () => void;
   goToPage: (page: number) => void;
   onOpenProfile: () => void;
-  theme: 'light' | 'dark';
   filterMinSalary: number;
   setFilterMinSalary: (salary: number) => void;
   filterBenefits: string[];
@@ -61,7 +60,6 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   loadMoreJobs,
   goToPage,
   onOpenProfile,
-  theme,
   filterMinSalary,
   setFilterMinSalary,
   filterBenefits,
@@ -75,7 +73,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   onOpenAuth,
 }) => {
   return (
-    <div className="space-y-5 bg-white dark:bg-slate-950">
+    <div className="space-y-6">
       <div id="marketplace-workspace">
         <ChallengeControlCenter
           jobs={jobs}
@@ -96,7 +94,6 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           handleToggleSave={handleToggleSave}
           loadMoreJobs={loadMoreJobs}
           goToPage={goToPage}
-          theme={theme}
           filterMinSalary={filterMinSalary}
           setFilterMinSalary={setFilterMinSalary}
           filterBenefits={filterBenefits}

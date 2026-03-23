@@ -10,7 +10,12 @@ from ..core.limiter import limiter
 from ..core.security import verify_subscription
 from ..core.database import supabase
 from ..services.subscription_access import fetch_latest_subscription_by, is_active_subscription, user_has_allowed_subscription
-from ..models.requests import AIGuidedProfileRequest, AIGuidedProfileRequestV2, AIExecuteRequest
+from ..models.requests import (
+    AIGuidedProfileRequest,
+    AIGuidedProfileRequestV2,
+    AIExecuteRequest,
+    CandidateOnboardingEvaluateRequest,
+)
 from ..models.responses import AIGuidedProfileResponse, AIGuidedProfileResponseV2
 
 router = APIRouter()
@@ -384,6 +389,16 @@ Job: {job_description[:6000]}
     raise HTTPException(status_code=400, detail=f"Unsupported AI action: {action}")
 
 
+def _build_candidate_onboarding_scenario_context(scenario_id: str) -> str:
+    scenarios = {
+        "product_dropoff": "You walk into a place and something feels slightly off. What do you notice first?",
+        "broken_process": "People are trying, but things keep slipping between them. What would you try to change first?",
+        "signal_analysis": "Nothing is openly broken, but something is not working. What signal would you trust first?",
+        "team_handoff": "Different people see the same situation differently. How would you create movement without forcing it?",
+    }
+    return scenarios.get(scenario_id, scenario_id)
+
+
 @router.post("/ai/profile/generate", response_model=AIGuidedProfileResponseV2)
 @limiter.limit("8/minute")
 async def profile_generate_v2(
@@ -496,3 +511,58 @@ async def ai_execute_public(
 ):
     action = (payload.action or "").strip()
     raise HTTPException(status_code=403, detail="Public AI execution disabled")
+
+
+@router.post("/candidate-onboarding/evaluate")
+@limiter.limit("20/minute")
+async def evaluate_candidate_onboarding(
+    payload: CandidateOnboardingEvaluateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    scenario_context = _build_candidate_onboarding_scenario_context(payload.scenario_id)
+    prompt = f"""
+Evaluate a short candidate answer from a task-first onboarding flow.
+
+Scenario:
+{scenario_context}
+
+Candidate answer:
+{payload.answer}
+
+Return STRICT JSON with this exact shape:
+{{
+  "summary": "string",
+  "strengths": ["string"],
+  "misses": ["string"],
+  "role_signals": ["string"],
+  "reality_check": "string",
+  "intent_hints": ["explore_options" | "compare_offers" | "try_real_work"]
+}}
+
+Rules:
+- No scores, no percentages, no exam language.
+- Keep every bullet short, concrete, and human.
+- "summary" should sound like a useful observation for the candidate, not a personality label.
+- "strengths" and "misses" should each contain 2-3 items.
+- "role_signals" should name work directions, environments, or ways of contributing, not formal job titles or vague archetypes.
+- "reality_check" should be one sentence with a gentle contrast and practical meaning.
+- "intent_hints" must use only the allowed enum values.
+- Focus on how the person notices, interprets, and moves, and translate that into useful work context without matching them to a profession too early.
+""".strip()
+
+    try:
+        parsed, meta = _ai_json(prompt, "candidate_onboarding_reflect")
+        return {"evaluation": parsed, "meta": meta}
+    except HTTPException:
+        raise
+    except AIClientError as e:
+        raise HTTPException(status_code=503, detail=f"AI provider unavailable: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"AI response invalid: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI processing failed: {str(e)}")

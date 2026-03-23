@@ -561,8 +561,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
     advancedFilterCount > 0;
 
   return (
-    <aside className="lg:sticky lg:top-[calc(var(--app-sticky-stack-offset)+10px)] lg:max-h-[calc(100dvh-var(--app-sticky-stack-offset)-28px)] lg:overflow-y-auto">
-      <SurfaceCard className="app-sidebar-shell space-y-4 rounded-[16px] border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.14)] dark:bg-[rgba(15,23,42,0.92)] lg:p-5" variant="default">
+    <aside className="lg:sticky lg:top-[calc(var(--app-header-offset)+0.2rem)]">
+      <SurfaceCard className="app-sidebar-shell space-y-4 rounded-[24px] p-4 lg:p-5" variant="dock">
         <div className="space-y-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
@@ -576,7 +576,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
             <button
               type="button"
               onClick={onOpenProfile}
-              className="rounded-[11px] border border-[rgba(148,163,184,0.12)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[rgba(148,163,184,0.16)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)] dark:border-white/8"
+              className="rounded-[13px] border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[rgba(var(--accent-rgb),0.18)] hover:bg-[rgba(var(--accent-rgb),0.08)] hover:text-[var(--text-strong)]"
             >
               {copy.profile}
             </button>
@@ -584,7 +584,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="inline-flex items-center gap-2 rounded-[11px] border border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[rgba(148,163,184,0.14)] hover:text-[var(--text-strong)] dark:border-white/8"
+                className="inline-flex items-center gap-2 rounded-[13px] border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[rgba(var(--accent-rgb),0.18)] hover:text-[var(--text-strong)]"
               >
                 <RotateCcw size={12} />
                 {copy.resetAll}
@@ -615,10 +615,10 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                   type="button"
                   onClick={item.onClick}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-[13px] border px-3 py-2.5 text-left text-sm font-semibold transition group cursor-pointer relative z-10 shadow-[0_8px_22px_-22px_rgba(15,23,42,0.16)]",
+                    "flex w-full items-center gap-2 rounded-[16px] border px-3 py-3 text-left text-sm font-semibold transition group cursor-pointer relative z-10 shadow-[0_8px_22px_-22px_rgba(0,0,0,0.3)]",
                     item.active
-                      ? "border-[rgba(var(--accent-rgb),0.12)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--text-strong)]"
-                      : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text)] hover:border-[rgba(148,163,184,0.14)] hover:bg-[var(--surface)] dark:border-white/6"
+                      ? "border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--text-strong)]"
+                      : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)] hover:bg-[rgba(255,255,255,0.08)]"
                   )}
                 >
                   <span className={cn("text-[var(--text-faint)] group-active:scale-95 transition-transform", item.active && "text-[var(--accent)]")}>
@@ -630,7 +630,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
             </div>
           </div>
         ))}
-        <div className="app-sidebar-shell rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] dark:bg-[rgba(15,23,42,0.88)] space-y-3">
+        <div className="app-sidebar-shell rounded-[20px] border border-[var(--glass-stroke)] bg-[var(--shell-pane-soft)] p-3.5 space-y-3">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.quickReality}</div>
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.salary}</div>
@@ -656,8 +656,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                 className={cn(
                   "rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                   filterMinSalary === value
-                    ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                    : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                    ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                    : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                 )}
                 title={copy.salaryPresets}
               >
@@ -667,7 +667,7 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
           </div>
         </div>
 
-        <div className="app-sidebar-shell grid gap-3 rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] dark:bg-[rgba(15,23,42,0.88)]">
+        <div className="app-sidebar-shell grid gap-3 rounded-[20px] border border-[var(--glass-stroke)] bg-[var(--shell-pane-soft)] p-3.5">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.distance}</div>
             <div className="text-sm font-semibold text-[var(--text-strong)]">{enableCommuteFilter ? `${filterMaxDistance} km` : copy.off}</div>
@@ -695,8 +695,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                 className={cn(
                   "rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                   enableCommuteFilter && filterMaxDistance === value
-                    ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                    : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                    ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                    : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                 )}
                 title={copy.distancePresets}
               >
@@ -742,8 +742,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterBenefits.includes(benefit.key)
-                          ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                          : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                          ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                          : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                       )}
                     >
                       <span className="opacity-80">{benefit.icon}</span>
@@ -779,8 +779,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                       className={cn(
                         "rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterDomains.includes(dom.key)
-                          ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                          : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                          ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                          : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                       )}
                     >
                       {dom.label}
@@ -805,8 +805,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                       className={cn(
                         "rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterSeniorities.includes(s.key)
-                          ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                          : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                          ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                          : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                       )}
                     >
                       {s.label}
@@ -831,8 +831,8 @@ const ChallengeSidebar: React.FC<ChallengeSidebarProps> = ({
                       className={cn(
                         "rounded-[11px] border px-2.5 py-1 text-[11px] font-semibold transition",
                         filterContractTypes.includes(c.key)
-                          ? "border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)] dark:bg-[rgba(var(--accent-rgb),0.14)]"
-                          : "border-[rgba(148,163,184,0.10)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[rgba(148,163,184,0.14)] dark:border-white/6"
+                          ? "border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)]"
+                          : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] text-[var(--text-muted)] hover:border-[rgba(var(--accent-rgb),0.16)]"
                       )}
                     >
                       {c.label}

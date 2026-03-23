@@ -82,33 +82,33 @@ export const SolarpunkGlassHero: React.FC<SolarpunkGlassHeroProps> = ({
   backgroundContent,
 }) => {
   return (
-    <div className={cn('solarpunk-glass-hero solarpunk-hero-bg', className)}>
-      {/* Optional background content (illustration, subtle patterns) */}
+    <div className={cn('app-hero-cosmic relative overflow-hidden rounded-[calc(var(--radius-hero)+8px)] shadow-[var(--shadow-overlay)]', className)}>
       {backgroundContent && (
         <div className="absolute inset-0 opacity-40 pointer-events-none">
           {backgroundContent}
         </div>
       )}
-      
-      {/* Glass panel content */}
-      <div className="solarpunk-glass-hero-content">
-        {/* Headline section */}
-        <div>
-          <h1 className="solarpunk-glass-hero-headline">
-            {headline}
-          </h1>
-          
-          <p className="solarpunk-glass-hero-subline">
-            {subheading}
-          </p>
-          
-          {/* Action buttons */}
+
+      <div className="relative grid gap-6 p-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:p-8">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="app-eyebrow">
+              <span>JobShaman</span>
+            </div>
+            <h1 className="app-display max-w-4xl text-[2.4rem] font-semibold tracking-[-0.05em] text-[var(--text-strong)] sm:text-[3.4rem] sm:leading-[0.98]">
+              {headline}
+            </h1>
+            <p className="max-w-2xl text-sm leading-7 text-[var(--text-muted)] sm:text-base">
+              {subheading}
+            </p>
+          </div>
+
           {(primaryAction || secondaryAction) && (
-            <div className="solarpunk-glass-hero-actions">
+            <div className="flex flex-wrap items-center gap-3">
               {primaryAction && (
                 <button
                   onClick={primaryAction.onClick}
-                  className="solarpunk-glass-hero-btn solarpunk-glass-hero-btn-primary"
+                  className="app-button-primary inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold"
                   type="button"
                 >
                   {primaryAction.icon && (
@@ -121,7 +121,7 @@ export const SolarpunkGlassHero: React.FC<SolarpunkGlassHeroProps> = ({
               {secondaryAction && (
                 <button
                   onClick={secondaryAction.onClick}
-                  className="solarpunk-glass-hero-btn solarpunk-glass-hero-btn-secondary"
+                  className="app-button-secondary inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold"
                   type="button"
                 >
                   {secondaryAction.icon && (
@@ -133,17 +133,16 @@ export const SolarpunkGlassHero: React.FC<SolarpunkGlassHeroProps> = ({
             </div>
           )}
         </div>
-        
-        {/* Search panel & metrics in lower section */}
-        <div className="space-y-4">
+
+        <div className="space-y-4 lg:self-end">
           {searchPanel && (
-            <div className="solarpunk-glass-search-panel">
+            <div className="app-frost-panel rounded-[var(--radius-surface)] border p-4 shadow-[var(--shadow-card)]">
               {searchPanel}
             </div>
           )}
-          
+
           {metrics && (
-            <div className="text-sm text-[var(--text-muted)]">
+            <div className="app-organic-panel-soft rounded-[var(--radius-panel)] border border-[var(--border-cosmic)] bg-[var(--surface-frost)] px-4 py-3 text-sm text-[var(--text-muted)]">
               {metrics}
             </div>
           )}

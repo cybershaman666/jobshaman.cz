@@ -117,16 +117,16 @@ export const DemoSolarpunkPark: React.FC = () => {
 
       {/* ====== LAYER 3: VÝZVY (CHALLENGES) ====== */}
       <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6 py-12">
-        <div className="solarpunk-section">
-          <h2 className="solarpunk-section-title">
+        <div className="space-y-6">
+          <h2 className="app-section-title">
             Výzvy, které firmy právě řeší
           </h2>
 
-          <div className="solarpunk-challenges-grid">
+          <div className="grid gap-4 lg:grid-cols-3">
             {challenges.map((challenge) => (
               <div
                 key={challenge.id}
-                className="solarpunk-challenge-card"
+                className="app-organic-surface rounded-[var(--radius-surface)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)] transition-all hover:-translate-y-0.5 hover:border-[rgba(var(--accent-rgb),0.22)] hover:shadow-[var(--shadow-card)]"
                 role="button"
                 tabIndex={0}
               >
@@ -169,8 +169,8 @@ export const DemoSolarpunkPark: React.FC = () => {
 
       {/* ====== LAYER 4: MINI VÝZVY (SEEDS) ====== */}
       <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6 py-12">
-        <div className="solarpunk-section">
-          <h2 className="solarpunk-section-title flex items-center gap-2">
+        <div className="space-y-6">
+          <h2 className="app-section-title">
             <span>🌱 Mini výzvy</span>
             <span className="text-sm font-normal text-[var(--text-muted)]">Seeds of work</span>
           </h2>
@@ -179,11 +179,11 @@ export const DemoSolarpunkPark: React.FC = () => {
             Malé projekty, velké příležitosti. Ideální pro rozjezd nebo vedlejší činnost.
           </p>
 
-          <div className="solarpunk-mini-challenges-grid">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {miniChallenges.map((mini) => (
               <div
                 key={mini.id}
-                className="solarpunk-mini-challenge-card"
+                className="app-organic-panel-soft rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 shadow-[var(--shadow-soft)] transition-all hover:border-[rgba(var(--accent-rgb),0.22)] hover:bg-[var(--surface)]"
                 role="button"
                 tabIndex={0}
               >
@@ -211,8 +211,8 @@ export const DemoSolarpunkPark: React.FC = () => {
 
       {/* ====== LAYER 5: REALITY SIMULATOR ====== */}
       <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6 py-12">
-        <div className="solarpunk-section">
-          <h2 className="solarpunk-section-title">
+        <div className="space-y-6">
+          <h2 className="app-section-title">
             Jak se role vejde do tvého života?
           </h2>
 
@@ -242,7 +242,7 @@ export const DemoSolarpunkPark: React.FC = () => {
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="solarpunk-accent-bg rounded-[var(--radius-lg)] p-4 space-y-3"
+                className="company-surface-soft app-organic-panel-soft rounded-[var(--radius-panel)] border p-4 space-y-3"
               >
                 <h3 className="font-semibold text-sm text-[var(--text-strong)]">
                   {item.role}
@@ -277,15 +277,15 @@ export const DemoSolarpunkPark: React.FC = () => {
 
       {/* ====== LAYER 6: COMMUNITY ACTIVITY ====== */}
       <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6 py-12">
-        <div className="solarpunk-section">
-          <h2 className="solarpunk-section-title">
+        <div className="space-y-6">
+          <h2 className="app-section-title">
             Právě se děje
           </h2>
 
-          <div className="solarpunk-activity-feed space-y-3">
+          <div className="space-y-3">
             {activityItems.map((item, idx) => (
-              <div key={idx} className="solarpunk-activity-item">
-                <div className="solarpunk-activity-pulse-dot" />
+              <div key={idx} className="app-organic-panel-soft flex items-center gap-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 shadow-[var(--shadow-soft)]">
+                <div className="h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.45)] animate-pulse" />
                 <span className="text-sm text-[var(--text)]">{item}</span>
               </div>
             ))}

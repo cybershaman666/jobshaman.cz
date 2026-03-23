@@ -23,12 +23,20 @@ export const normalizeSearchLanguageCodes = (codes: string[] | undefined | null)
   return Array.from(new Set(next));
 };
 
+const normalizePreferredWorkArrangement = (value: unknown): CandidateSearchProfile['preferredWorkArrangement'] => {
+  if (value === 'remote' || value === 'hybrid' || value === 'onsite') {
+    return value;
+  }
+  return null;
+};
+
 export const resolveCandidateSearchProfile = (profile?: UserProfile | null): CandidateSearchProfile => {
   const source = profile?.preferences?.searchProfile;
   const defaults = createDefaultCandidateSearchProfile();
   return {
     ...defaults,
     ...(source || {}),
+    preferredWorkArrangement: normalizePreferredWorkArrangement(source?.preferredWorkArrangement) || (source?.wantsRemoteRoles ? 'remote' : defaults.preferredWorkArrangement),
     remoteLanguageCodes: normalizeSearchLanguageCodes(source?.remoteLanguageCodes),
     preferredBenefitKeys: Array.from(
       new Set((source?.preferredBenefitKeys || defaults.preferredBenefitKeys || []).map((value) => String(value || '').trim()).filter(Boolean))
@@ -69,6 +77,7 @@ export const buildCandidateSearchPresets = (
     globalSearch: searchProfile.nearBorder,
     abroadOnly: false,
     remoteOnly: searchProfile.wantsRemoteRoles,
+    filterWorkArrangement: searchProfile.wantsRemoteRoles ? 'remote' : (searchProfile.preferredWorkArrangement || 'all'),
   };
 
   const hasCombinedSignals =
@@ -131,6 +140,25 @@ export const buildCandidateSearchPresets = (
       filters: {
         remoteOnly: true,
         filterLanguageCodes: searchProfile.remoteLanguageCodes,
+      },
+    });
+  }
+
+  if (!searchProfile.wantsRemoteRoles && (searchProfile.preferredWorkArrangement === 'hybrid' || searchProfile.preferredWorkArrangement === 'onsite')) {
+    const arrangementName = isCsLike
+      ? (searchProfile.preferredWorkArrangement === 'hybrid' ? 'Hybrid' : 'Na místě')
+      : (searchProfile.preferredWorkArrangement === 'hybrid' ? 'Hybrid' : 'On-site');
+    presets.push({
+      id: 'work-arrangement',
+      name: arrangementName,
+      description: isCsLike
+        ? `Upřednostní nabídky ve stylu ${arrangementName.toLowerCase()}.`
+        : `Prioritizes ${arrangementName.toLowerCase()} opportunities.`,
+      filters: {
+        remoteOnly: false,
+        filterWorkArrangement: searchProfile.preferredWorkArrangement,
+        enableCommuteFilter: searchProfile.defaultEnableCommuteFilter,
+        filterMaxDistance: searchProfile.defaultEnableCommuteFilter ? searchProfile.defaultMaxDistanceKm : undefined,
       },
     });
   }

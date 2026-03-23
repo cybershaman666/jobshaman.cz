@@ -22,7 +22,6 @@ interface MobileSwipeJobBrowserProps {
     isLoading?: boolean;
     hasMore: boolean;
     onLoadMore: () => void;
-    theme: 'light' | 'dark';
     fullscreen?: boolean;
 }
 
@@ -99,11 +98,9 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     isLoading = false,
     hasMore,
     onLoadMore,
-    theme,
     fullscreen = false
 }) => {
     const { t, i18n } = useTranslation();
-    void theme;
     const [currentIndex, setCurrentIndex] = useState(0);
     const [processedJobIds, setProcessedJobIds] = useState<string[]>([]);
     const [swipeState, setSwipeState] = useState<SwipeState>({

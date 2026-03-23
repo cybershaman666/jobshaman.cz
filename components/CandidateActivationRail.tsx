@@ -19,7 +19,9 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
 
   const nextStep = getNextActivationStep(state);
   const nextStepLabel =
-    nextStep === 'location'
+    nextStep === 'onboarding'
+      ? t('activation.step_onboarding', { defaultValue: 'Dokončete první reálný scénář' })
+      : nextStep === 'location'
       ? t('activation.step_location', { defaultValue: 'Doplňte lokaci' })
       : nextStep === 'skills'
         ? t('activation.step_skills', { defaultValue: 'Potvrďte top 3 skills' })
@@ -31,6 +33,7 @@ const CandidateActivationRail: React.FC<CandidateActivationRailProps> = ({
 
   const etaMinutes = state.completion_percent >= 80 ? 1 : state.completion_percent >= 50 ? 2 : 3;
   const checklist = [
+    { id: 'A0', label: t('activation.item_onboarding', { defaultValue: 'První reálný scénář dokončen' }), done: Boolean(state.onboarding_completed_at) },
     { id: 'A1', label: t('activation.item_location', { defaultValue: 'Lokalita ověřena' }), done: state.location_verified },
     { id: 'A2', label: t('activation.item_cv', { defaultValue: 'Podklad nebo AI draft připraven' }), done: state.cv_ready },
     { id: 'A3', label: t('activation.item_skills', { defaultValue: '3+ klíčové skills' }), done: state.skills_confirmed_count >= 3 },

@@ -22,7 +22,7 @@ interface CandidateIntentTaxonomy {
   domains: Record<CandidateDomainKey, DomainDefinition>;
 }
 
-const candidateIntentTaxonomy = candidateIntentTaxonomyRaw as CandidateIntentTaxonomy;
+const candidateIntentTaxonomy = ((candidateIntentTaxonomyRaw as any)?.default || candidateIntentTaxonomyRaw) as CandidateIntentTaxonomy;
 const TAXONOMY_DOMAINS = candidateIntentTaxonomy.domains;
 const DOMAIN_KEYS = Object.keys(TAXONOMY_DOMAINS) as CandidateDomainKey[];
 
@@ -125,6 +125,7 @@ export const getCandidateIntentRoleSeedKeyword = (role: unknown): string => {
 
 const collectCandidateTextChunks = (profile: UserProfile): string[] => {
   const chunks: string[] = [];
+  pushIfPresent(chunks, profile.preferences?.candidate_onboarding_v2?.interest_reveal);
   pushIfPresent(chunks, profile.preferences?.desired_role);
   pushIfPresent(chunks, profile.jobTitle);
   pushIfPresent(chunks, profile.cvText);
@@ -133,6 +134,11 @@ const collectCandidateTextChunks = (profile: UserProfile): string[] => {
   (profile.skills || []).forEach((item) => pushIfPresent(chunks, item));
   (profile.inferredSkills || []).forEach((item) => pushIfPresent(chunks, item));
   (profile.strengths || []).forEach((item) => pushIfPresent(chunks, item));
+  (profile.motivations || []).forEach((item) => pushIfPresent(chunks, item));
+  (profile.sideProjects || []).forEach((item) => pushIfPresent(chunks, item));
+  (profile.hobbies || []).forEach((item) => pushIfPresent(chunks, item));
+  (profile.values || []).forEach((item) => pushIfPresent(chunks, item));
+  (profile.workPreferences || []).forEach((item) => pushIfPresent(chunks, item));
   (profile.workHistory || []).forEach((item) => {
     pushIfPresent(chunks, item.role);
     pushIfPresent(chunks, item.company);
@@ -260,25 +266,36 @@ export const getCandidateIntentDomainSeedKeyword = (domain: CandidateDomainKey |
 
 export const resolveCandidateIntentProfile = (profile: UserProfile): CandidateIntentProfile => {
   const searchProfile = profile.preferences?.searchProfile || ({} as CandidateSearchProfile);
+  const onboardingInterest = normalizeTargetRole(profile.preferences?.candidate_onboarding_v2?.interest_reveal);
+  const onboardingChunks = uniqueStrings([
+    onboardingInterest,
+    ...(profile.motivations || []),
+    ...(profile.sideProjects || []),
+    ...(profile.hobbies || []),
+  ]);
   const candidateChunks = collectCandidateTextChunks(profile);
+  const onboardingDomainScores = onboardingChunks.length > 0 ? scoreDomains(onboardingChunks) : [];
   const inferredDomainScores = scoreDomains(candidateChunks);
-  const inferredPrimaryDomain = searchProfile.inferredPrimaryDomain || inferredDomainScores[0]?.domain || null;
-  const inferredSecondaryDomains = uniqueDomains(inferredDomainScores.slice(1, 3).map((item) => item.domain));
+  const inferredPrimaryDomain = searchProfile.inferredPrimaryDomain || onboardingDomainScores[0]?.domain || inferredDomainScores[0]?.domain || null;
+  const inferredSecondaryDomains = uniqueDomains(
+    (onboardingDomainScores.length > 0 ? onboardingDomainScores : inferredDomainScores)
+      .slice(1, 3)
+      .map((item) => item.domain)
+  );
+  const allowHistoryRoleFallback = !onboardingInterest || Boolean(normalizeTargetRole(searchProfile.targetRole) || normalizeTargetRole(profile.preferences?.desired_role));
 
   const explicitRole =
     normalizeTargetRole(searchProfile.targetRole) ||
     normalizeTargetRole(profile.preferences?.desired_role) ||
-    normalizeTargetRole(profile.jobTitle) ||
-    getFallbackRoleFromHistory(profile);
+    (allowHistoryRoleFallback ? normalizeTargetRole(profile.jobTitle) || getFallbackRoleFromHistory(profile) : '');
 
   const inferredRole =
     normalizeTargetRole(searchProfile.inferredTargetRole) ||
-    normalizeTargetRole(profile.jobTitle) ||
     normalizeTargetRole(profile.preferences?.desired_role) ||
-    getFallbackRoleFromHistory(profile);
+    (allowHistoryRoleFallback ? normalizeTargetRole(profile.jobTitle) || getFallbackRoleFromHistory(profile) : '');
 
   const inferredSeniority =
-    inferSeniorityFromText(explicitRole, profile.cvAiText, profile.cvText, profile.story) ||
+    inferSeniorityFromText(explicitRole, profile.cvAiText, profile.cvText, profile.story, onboardingInterest) ||
     null;
 
   const manualPrimaryDomain = searchProfile.primaryDomain || null;
@@ -296,6 +313,9 @@ export const resolveCandidateIntentProfile = (profile: UserProfile): CandidateIn
   const inferenceConfidence = searchProfile.inferenceConfidence ?? Math.min(100, Math.round((inferredDomainScores[0]?.score || 0) * 10));
   const inferenceSource =
     searchProfile.inferenceSource ||
+    (onboardingInterest
+      ? 'onboarding'
+      : undefined) ||
     (profile.cvAiText || profile.cvText
       ? 'cv'
       : profile.workHistory?.length

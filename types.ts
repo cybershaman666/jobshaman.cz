@@ -51,7 +51,7 @@ export type CandidateDomainKey =
   | 'security'
   | 'telecom_network';
 export type CandidateSeniority = 'entry' | 'junior' | 'medior' | 'senior' | 'lead';
-export type CandidateInferenceSource = 'manual' | 'profile' | 'cv' | 'history' | 'skills' | 'mixed' | 'none';
+export type CandidateInferenceSource = 'manual' | 'profile' | 'cv' | 'history' | 'skills' | 'onboarding' | 'mixed' | 'none';
 export type CandidateMatchBucket = 'best_fit' | 'adjacent' | 'broader';
 export type SearchMode = 'manual_query' | 'manual_filters' | 'discovery_default';
 export type SearchResultSource = 'native' | 'cached_external' | 'live_external';
@@ -268,6 +268,7 @@ export interface CandidateSearchProfile {
   wantsContractorRoles: boolean;
   wantsDogFriendlyOffice: boolean;
   wantsRemoteRoles: boolean;
+  preferredWorkArrangement?: Exclude<JobWorkArrangementFilter, 'all'> | null;
   remoteLanguageCodes: SearchLanguageCode[];
   preferredBenefitKeys: string[];
   defaultEnableCommuteFilter: boolean;
@@ -1401,6 +1402,7 @@ export interface UserProfile {
     portfolio?: string;
     github?: string;
     activation_v1?: CandidateActivationStateV1;
+    candidate_onboarding_v2?: CandidateOnboardingProgressV2;
     jcfpm_v1?: JcfpmSnapshotV1;
     jcfpm_jhi_adjustment_v1?: JcfpmJhiAdjustmentV1;
   };
@@ -1423,13 +1425,96 @@ export interface UserProfile {
 }
 
 export interface CandidateActivationStateV1 {
+  onboarding_started_at?: string;
+  onboarding_completed_at?: string;
+  profile_nudge_completed_at?: string;
   location_verified: boolean;
   cv_ready: boolean;
   skills_confirmed_count: number;
   preferences_ready: boolean;
   first_quality_action_at?: string;
   completion_percent: number;
-  last_prompted_step?: 'location' | 'skills' | 'preferences' | 'cv' | 'quality_action' | 'done';
+  last_prompted_step?: 'onboarding' | 'location' | 'skills' | 'preferences' | 'cv' | 'quality_action' | 'done';
+}
+
+export type CandidateOnboardingFlowStep =
+  | 'entry'
+  | 'scenario_select'
+  | 'micro_task'
+  | 'processing'
+  | 'reflection'
+  | 'reality_check'
+  | 'interest_reveal'
+  | 'intent'
+  | 'real_task_pick'
+  | 'slot_reserve'
+  | 'trial_task'
+  | 'decision'
+  | 'profile_nudge'
+  | 'done';
+
+export type CandidateOnboardingScenarioId =
+  | 'product_dropoff'
+  | 'broken_process'
+  | 'signal_analysis'
+  | 'team_handoff';
+
+export type CandidateOnboardingIntent =
+  | 'explore_options'
+  | 'compare_offers'
+  | 'try_real_work';
+
+export type CandidateOnboardingProfileNudgeKey =
+  | 'location'
+  | 'skills'
+  | 'preferences'
+  | 'supporting_context';
+
+export interface CandidateOnboardingEvaluation {
+  summary: string;
+  strengths: string[];
+  misses: string[];
+  role_signals: string[];
+  reality_check: string;
+  intent_hints: CandidateOnboardingIntent[];
+}
+
+export interface CandidateOnboardingTaskCard {
+  id: string;
+  job_id: string;
+  company: string;
+  title: string;
+  problem: string;
+  time_label: string;
+  reward_label: string;
+  slots_total: number;
+  slots_taken: number;
+  dialogue_window_label?: string | null;
+}
+
+export interface CandidateOnboardingSessionV2 {
+  started_at?: string;
+  current_step: CandidateOnboardingFlowStep;
+  scenario_id: CandidateOnboardingScenarioId | null;
+  answer_draft: string;
+  interest_reveal_draft: string;
+  evaluation: CandidateOnboardingEvaluation | null;
+  selected_intent: CandidateOnboardingIntent | null;
+  selected_task_id: string | null;
+  slot_reserved_at?: string;
+  trial_started_at?: string;
+  trial_completed_at?: string;
+  profile_nudge_completed_at?: string;
+  completed_at?: string;
+}
+
+export interface CandidateOnboardingProgressV2 {
+  started_at?: string;
+  completed_at?: string;
+  last_step?: CandidateOnboardingFlowStep;
+  selected_intent?: CandidateOnboardingIntent | null;
+  interest_reveal?: string;
+  profile_nudge_completed_at?: string;
 }
 
 export type JcfpmDimensionId =

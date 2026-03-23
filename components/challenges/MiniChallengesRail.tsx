@@ -88,9 +88,9 @@ const MiniChallengesRail: React.FC<MiniChallengesRailProps> = ({
           };
 
   return (
-    <SurfaceCard className="space-y-3 rounded-[24px] p-4 shadow-none" variant="frost">
+    <SurfaceCard className="space-y-4 rounded-[var(--radius-surface)] p-4 shadow-[var(--shadow-soft)]" variant="frost">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-[var(--text-strong)]">
+        <div className="text-sm font-semibold tracking-[-0.02em] text-[var(--text-strong)]">
           {copy.railTitle}
         </div>
         <div className="flex items-center gap-3">
@@ -103,7 +103,7 @@ const MiniChallengesRail: React.FC<MiniChallengesRailProps> = ({
             <button
               id="create-mini-challenge-btn"
               onClick={onCreateTask}
-              className="rounded-full border border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.1)] px-3 py-1 text-[11px] font-bold text-[var(--accent)] transition hover:bg-[rgba(var(--accent-rgb),0.2)]"
+              className="app-button-spotlight inline-flex items-center rounded-full px-3 py-2 text-[11px] font-bold"
             >
               <Zap size={14} className="mr-1 inline-block" />
               {copy.postBtnLabel}
@@ -124,8 +124,8 @@ const MiniChallengesRail: React.FC<MiniChallengesRailProps> = ({
                     "w-full text-left",
                     "rounded-[22px] border p-4 backdrop-blur-xl transition hover:-translate-y-[1px]",
                     selected
-                      ? "border-[rgba(var(--accent-green-rgb),0.28)] bg-[rgba(var(--accent-green-rgb),0.08)]"
-                      : "border-[rgba(var(--accent-rgb),0.1)] bg-white/80 dark:bg-white/5 dark:hover:bg-white/10"
+                      ? "border-[rgba(var(--accent-green-rgb),0.28)] bg-[rgba(var(--accent-green-rgb),0.1)] shadow-[var(--shadow-soft)]"
+                      : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[rgba(var(--accent-sky-rgb),0.22)] hover:bg-[var(--surface-elevated)]"
                   )}
                   onClick={() => onSelect?.(job.id)}
                 >
@@ -134,18 +134,18 @@ const MiniChallengesRail: React.FC<MiniChallengesRailProps> = ({
                       <div className="truncate text-sm font-semibold text-[var(--text-strong)]">{job.title}</div>
                       <div className="mt-1 truncate text-xs text-[var(--text-faint)]">{job.company}</div>
                     </div>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-green-rgb),0.22)] bg-[rgba(var(--accent-green-rgb),0.10)] px-3 py-1 text-[11px] font-semibold text-[var(--accent-green)]">
+                    <span className="company-pill-surface inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold text-[var(--accent-green)]">
                       <Leaf size={12} />
                       {isCsLike ? 'MINI' : 'MINI'}
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {job.micro_job_time_estimate ? (
-                      <span className="rounded-full border border-[rgba(var(--accent-rgb),0.14)] bg-white/60 px-3 py-1 text-[11px] font-semibold text-[var(--text-muted)] dark:bg-white/6">
+                      <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
                         {job.micro_job_time_estimate}
                       </span>
                     ) : null}
-                    <span className="rounded-full border border-[rgba(var(--accent-rgb),0.14)] bg-white/60 px-3 py-1 text-[11px] font-semibold text-[var(--text-muted)] dark:bg-white/6">
+                    <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
                       {job.salaryRange || Number(job.salary_from || 0) || Number(job.salary_to || 0)
                         ? formatSalary(job, locale || 'en', isCsLike)
                         : copy.budgetMissing}
@@ -170,7 +170,7 @@ const MiniChallengesRail: React.FC<MiniChallengesRailProps> = ({
           })}
         </div>
       ) : (
-        <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--border-subtle)] bg-white/40 dark:bg-white/5">
+        <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-soft)]">
           <p className="text-xs text-[var(--text-faint)]">
             {copy.empty}
           </p>

@@ -29,6 +29,7 @@ export const createDefaultCandidateSearchProfile = (): CandidateSearchProfile =>
   wantsContractorRoles: false,
   wantsDogFriendlyOffice: false,
   wantsRemoteRoles: false,
+  preferredWorkArrangement: null,
   remoteLanguageCodes: ['cs'],
   preferredBenefitKeys: [],
   defaultEnableCommuteFilter: false,

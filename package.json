@@ -12,7 +12,13 @@
     "dev:full": "sh ./scripts/dev-full.sh",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit:css-contract": "node ./scripts/css_contract_audit.mjs",
+    "audit:jdl": "node ./scripts/ui_i18n_audit.mjs",
+    "audit:i18n": "node ./scripts/i18n_parity.mjs",
+    "audit:i18n:strict": "node ./scripts/i18n_parity.mjs --strict",
+    "audit:baseline": "node ./scripts/ui_i18n_audit.mjs --write-baseline",
+    "verify:jdl": "npm run audit:css-contract && npm run audit:jdl && npm run audit:i18n && npm run typecheck"
   },
   "dependencies": {
     "@google/genai": "^0.2.0",

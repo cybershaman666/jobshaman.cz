@@ -45,7 +45,7 @@ import { getCurrentSubscription, getPushPermission, isPushSupported, registerPus
 
 import TransportModeSelector from './TransportModeSelector';
 import { createDefaultCandidateSearchProfile, createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
-import { enrichSearchProfileWithInference, getCandidateIntentDomainLabel, getCandidateIntentDomainOptions, resolveCandidateIntentProfile } from '../services/candidateIntentService';
+import { enrichSearchProfileWithInference, getCandidateIntentDomainLabel, getCandidateIntentDomainOptions, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 import { simulateHappinessAudit } from '../services/assessmentThreeService';
 import { fetchJobsByIds } from '../services/jobService';
@@ -668,6 +668,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'Potřebuji role vhodné pro rodiče',
       avoidShift: 'Chci se vyhýbat směnnému a nočnímu provozu',
       remote: 'Chci mít připravené hledání práce na dálku',
+      workArrangement: 'Preferovaný režim práce',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybrid',
+      onsiteOption: 'Na místě',
       languages: 'Jazyky nabídky',
       commuteTitle: 'Dojíždění a způsob dopravy',
       commuteIntro: 'Toto nastavení se použije při výchozím filtrování dojezdu a při vyhodnocení, zda je nabídka z hlediska cesty pro vás reálně zvládnutelná.',
@@ -692,6 +696,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'Potrebujem roly vhodné pre rodičov',
       avoidShift: 'Chcem sa vyhýbať zmenovej a nočnej prevádzke',
       remote: 'Chcem mať pripravené hľadanie práce na diaľku',
+      workArrangement: 'Preferovaný režim práce',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybrid',
+      onsiteOption: 'Na mieste',
       languages: 'Jazyky ponuky',
       commuteTitle: 'Dochádzanie a spôsob dopravy',
       commuteIntro: 'Toto nastavenie sa použije pri predvolenom filtrovaní dochádzania a pri vyhodnotení, či je ponuka z pohľadu cesty pre vás reálne zvládnuteľná.',
@@ -716,6 +724,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'Ich brauche familienfreundliche Rollen',
       avoidShift: 'Schicht- und Nachtdienste vermeiden',
       remote: 'Ein Remote-Preset bereithalten',
+      workArrangement: 'Bevorzugtes Arbeitsmodell',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybrid',
+      onsiteOption: 'Vor Ort',
       languages: 'Sprachen der Anzeige',
       commuteTitle: 'Pendeln und Verkehrsmittel',
       commuteIntro: 'Diese Einstellung wird für den Standard-Pendelfilter und für die Einschätzung verwendet, ob ein Angebot realistisch erreichbar ist.',
@@ -740,6 +752,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'Ich brauche familienfreundliche Rollen',
       avoidShift: 'Schicht- und Nachtdienste vermeiden',
       remote: 'Ein Remote-Preset bereithalten',
+      workArrangement: 'Bevorzugtes Arbeitsmodell',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybrid',
+      onsiteOption: 'Vor Ort',
       languages: 'Sprachen der Anzeige',
       commuteTitle: 'Pendeln und Verkehrsmittel',
       commuteIntro: 'Diese Einstellung wird für den Standard-Pendelfilter und für die Einschätzung verwendet, ob ein Angebot realistisch erreichbar ist.',
@@ -764,6 +780,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'Potrzebuję ról przyjaznych rodzicom',
       avoidShift: 'Unikaj pracy zmianowej i nocnej',
       remote: 'Miej gotowy preset pod pracę zdalną',
+      workArrangement: 'Preferowany tryb pracy',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybryda',
+      onsiteOption: 'Na miejscu',
       languages: 'Języki ogłoszenia',
       commuteTitle: 'Dojazd i środek transportu',
       commuteIntro: 'To ustawienie będzie używane przy domyślnym filtrowaniu dojazdu i przy ocenie, czy oferta jest realnie osiągalna.',
@@ -788,6 +808,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       childFriendly: 'I need parent-friendly / child-friendly roles',
       avoidShift: 'Avoid shift-based and night roles',
       remote: 'Keep a remote-focused preset ready',
+      workArrangement: 'Preferred work arrangement',
+      remoteOption: 'Remote',
+      hybridOption: 'Hybrid',
+      onsiteOption: 'On-site',
       languages: 'Listing languages',
       commuteTitle: 'Commute and transport mode',
       commuteIntro: 'This becomes part of your commute preset and marketplace reality checks.',
@@ -1422,6 +1446,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     formData.searchProfile.wantsDogFriendlyOffice,
     formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support'),
     formData.searchProfile.wantsRemoteRoles,
+    formData.searchProfile.preferredWorkArrangement,
     formData.searchProfile.remoteLanguageCodes.length > 0,
     formData.searchProfile.defaultEnableCommuteFilter,
     formData.jhiPreferences.hardConstraints.excludeShift,
@@ -1443,6 +1468,18 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       searchProfile: formData.searchProfile,
     },
   });
+  const onboardingSignal = String(profile.preferences?.candidate_onboarding_v2?.interest_reveal || '').trim();
+  const onboardingIntentSignals = getCandidateIntentSignals({
+    ...profile,
+    jobTitle: formData.personal.jobTitle,
+    workHistory: formData.experience,
+    education: formData.education,
+    skills: formData.skills,
+    preferences: {
+      ...profile.preferences,
+      searchProfile: formData.searchProfile,
+    },
+  }, i18n.language || 'en').slice(0, 3);
   const inferredIntentAvailable = Boolean(resolvedIntentProfile.inferredPrimaryDomain || resolvedIntentProfile.inferredTargetRole);
   const hasManualIntent = Boolean(formData.searchProfile.primaryDomain || formData.searchProfile.targetRole || formData.searchProfile.seniority);
   const focusIntentSetup = () => {
@@ -1490,6 +1527,48 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       </div>
 
       <div className="p-5 space-y-5">
+        {onboardingSignal ? (
+          <div className="rounded-[1rem] border border-[rgba(var(--accent-rgb),0.18)] bg-white/85 p-4 dark:bg-slate-900/70">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {t('profile.onboarding_signal.label', { defaultValue: 'Signál z onboardingu' })}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {t('profile.onboarding_signal.title', { defaultValue: 'Tady zůstává zachycené, co tě přirozeně táhne.' })}
+                  </h3>
+                  <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {onboardingSignal}
+                  </p>
+                </div>
+                {onboardingIntentSignals.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {onboardingIntentSignals.map((signal) => (
+                      <span
+                        key={signal}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              {isPremium ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAIGuide(true)}
+                  className="app-button-secondary"
+                >
+                  {t('profile.onboarding_signal.cta', { defaultValue: 'Rozpracovat v AI guide' })}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           {[
             t('profile.ai_guide.value_1', { defaultValue: 'Vytáhne silné stránky a skryté talenty' }),
@@ -1960,6 +2039,32 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               />
               <span>{searchProfileCopy.avoidShift}</span>
             </label>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.workArrangement}</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'remote', label: searchProfileCopy.remoteOption },
+                { key: 'hybrid', label: searchProfileCopy.hybridOption },
+                { key: 'onsite', label: searchProfileCopy.onsiteOption },
+              ].map((option) => {
+                const active = formData.searchProfile.preferredWorkArrangement === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => handleSearchProfileChange('preferredWorkArrangement', active ? null : option.key as CandidateSearchProfile['preferredWorkArrangement'])}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-4 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
@@ -2468,6 +2573,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     if (field === 'remoteLanguageCodes') {
       const uniqueCodes = Array.from(new Set((value as SearchLanguageCode[]) || []));
       nextSearchProfile.remoteLanguageCodes = (uniqueCodes.length > 0 ? uniqueCodes : ['cs']) as SearchLanguageCode[];
+    }
+
+    if (field === 'wantsRemoteRoles') {
+      const wantsRemoteRoles = Boolean(value);
+      nextSearchProfile.wantsRemoteRoles = wantsRemoteRoles;
+      nextSearchProfile.preferredWorkArrangement = wantsRemoteRoles
+        ? 'remote'
+        : (nextSearchProfile.preferredWorkArrangement === 'remote' ? null : nextSearchProfile.preferredWorkArrangement);
+    }
+
+    if (field === 'preferredWorkArrangement') {
+      const arrangement = value as CandidateSearchProfile['preferredWorkArrangement'];
+      nextSearchProfile.preferredWorkArrangement = arrangement;
+      nextSearchProfile.wantsRemoteRoles = arrangement === 'remote';
+      if (arrangement === 'remote') {
+        nextSearchProfile.defaultEnableCommuteFilter = false;
+      }
     }
 
     if (field === 'preferredBenefitKeys') {
@@ -4931,7 +5053,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       {solutionSnapshots.map((snapshot, idx) => (
                         <div
                           key={snapshot.id}
-                          className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)] transition-all hover:shadow-[var(--shadow-card)] solarpunk-interactive"
+                          className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)] transition-all hover:border-[rgba(var(--accent-rgb),0.2)] hover:bg-[var(--surface)] hover:shadow-[var(--shadow-card)]"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>

@@ -6,7 +6,7 @@ import { MetricTile, SurfaceCard, cn } from '../ui/primitives';
 
 export const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex items-center gap-3">
-    <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+    <div className="h-[10px] w-[10px] rounded-[3px] bg-[rgba(var(--accent-rgb),0.7)] shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.08)]" />
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{title}</div>
     <div className="h-px flex-1 bg-[var(--border-subtle)]" />
   </div>
@@ -19,10 +19,10 @@ export const NarrativeCard: React.FC<{ title: string; body: string; tone?: 'defa
 }) => (
   <div
     className={cn(
-      'rounded-[6px] border px-5 py-4',
+      'app-data-tile rounded-[var(--radius-panel)] px-5 py-4',
       tone === 'accent'
-        ? 'border-[rgba(var(--accent-rgb),0.16)] bg-white dark:bg-slate-950'
-        : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+        ? 'border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.05)]'
+        : 'border-[var(--border-subtle)] bg-[var(--surface-soft)]'
     )}
   >
     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{title}</div>
@@ -43,16 +43,16 @@ export const HumanContextPersonCard: React.FC<{
   person,
   fallbackRole
 }) => (
-  <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 dark:bg-slate-950">
+  <div className="app-data-tile rounded-[var(--radius-panel)] p-4">
     <div className="flex items-start gap-3">
       {person.avatar_url ? (
         <img
           src={person.avatar_url}
           alt={person.display_name}
-          className="h-12 w-12 rounded-[6px] object-cover"
+          className="h-12 w-12 rounded-[12px] object-cover"
         />
       ) : (
-        <div className="flex h-12 w-12 items-center justify-center rounded-[6px] bg-[var(--surface)] text-sm font-semibold text-[var(--accent)] dark:bg-slate-900">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[var(--surface-card)] text-sm font-semibold text-[var(--accent)]">
           {getInitials(person.display_name)}
         </div>
       )}
@@ -92,7 +92,7 @@ export const ChallengeHumanContextSection: React.FC<ChallengeHumanContextSection
   if (!hasContent) return null;
 
   return (
-    <div className="space-y-4 rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 dark:bg-slate-950">
+    <div className="space-y-4 rounded-[var(--radius-surface)] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]">
       {humanContext?.publisher ? (
         <div className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.publisherLabel}</div>
@@ -122,7 +122,7 @@ export const ChallengeHumanContextSection: React.FC<ChallengeHumanContextSection
             {trustLabels.map((label) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-2 rounded-[999px] border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] dark:bg-slate-950"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]"
               >
                 <Users size={13} className="text-[var(--accent)]" />
                 {label}
@@ -235,7 +235,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
         <MetricTile label={copy.realValue} value={`${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`} tone="accent" />
       </div>
 
-      <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm leading-6 text-[var(--text-muted)] dark:bg-slate-950">
+      <div className="app-data-tile rounded-[var(--radius-panel)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
         {copy.financialFormula
           .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
           .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
@@ -249,7 +249,7 @@ export const ChallengeFinancialSection: React.FC<ChallengeFinancialSectionProps>
       </div>
 
       {salaryBenchmark && !salaryBenchmark.insufficient_data ? (
-        <div className="grid gap-3 rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 sm:grid-cols-2 dark:bg-slate-950">
+        <div className="app-data-tile grid gap-3 rounded-[var(--radius-panel)] p-4 sm:grid-cols-2">
           <MetricTile
             label={copy.marketMedian}
             value={`${(salaryBenchmark.p50 || 0).toLocaleString(locale)} ${salaryBenchmark.currency || commuteAnalysis.financialReality.currency}`}
@@ -295,7 +295,7 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
         }}
         disabled={!job.company_id}
         className={cn(
-          'flex w-full items-center justify-between rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]',
+          'flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:border-[rgba(var(--accent-rgb),0.22)] hover:bg-[var(--surface)]',
           !job.company_id && 'cursor-not-allowed opacity-50'
         )}
       >
@@ -308,7 +308,7 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
       <button
         type="button"
         onClick={onOpenSupportingContext}
-        className="flex w-full items-center justify-between rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+        className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-medium text-[var(--text)] transition-colors hover:border-[rgba(var(--accent-rgb),0.22)] hover:bg-[var(--surface)]"
       >
         <span className="inline-flex items-center gap-2">
           <Compass size={16} />
@@ -320,7 +320,7 @@ export const ChallengeRealityActions: React.FC<ChallengeRealityActionsProps> = (
         <button
           type="button"
           onClick={onOpenImportedListing}
-          className="flex w-full items-center justify-between rounded-[14px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3 text-sm font-medium text-[var(--text-strong)] transition-colors hover:bg-[rgba(var(--accent-rgb),0.1)]"
+          className="flex w-full items-center justify-between rounded-[var(--radius-control)] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-4 py-3 text-sm font-medium text-[var(--text-strong)] transition-colors hover:bg-[rgba(var(--accent-rgb),0.12)]"
         >
           <span className="inline-flex items-center gap-2">
             <Sparkles size={16} />

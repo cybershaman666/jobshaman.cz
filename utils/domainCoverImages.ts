@@ -36,7 +36,7 @@ const DOMAIN_COVER_IMAGES: Partial<Record<CandidateDomainKey, string[]>> = {
   ],
   engineering: [
     'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=1200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1581092919535-7146ff1a5902?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop',
   ],
   finance: [
     'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop',
@@ -140,6 +140,15 @@ const COVER_IMAGE_FALLBACKS = [
   'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop',
 ];
 
+const WORKSPACE_ATMOSPHERE_IMAGES = [
+  'https://images.unsplash.com/photo-1521737711867-e3b97375f902?q=80&w=1600&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1600&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1600&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1600&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1600&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1497215842964-222b430dc094?q=80&w=1600&auto=format&fit=crop',
+];
+
 const hashSeed = (value: string): number => {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -157,4 +166,9 @@ export const getStockCoverForDomain = (
   const options = DOMAIN_COVER_IMAGES[normalized] || COVER_IMAGE_FALLBACKS;
   const key = String(seed || normalized || 'fallback');
   return options[hashSeed(key) % options.length];
+};
+
+export const getRotatingWorkspaceBackdrop = (seed?: string | null): string => {
+  const key = String(seed || 'workspace');
+  return WORKSPACE_ATMOSPHERE_IMAGES[hashSeed(key) % WORKSPACE_ATMOSPHERE_IMAGES.length];
 };

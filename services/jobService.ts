@@ -3006,10 +3006,11 @@ export const fetchJobsWithFilters = async (
         (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
     const hasSemanticIntent =
         compactSearchLength >= 2;
+    const hasSpatialIntent = safeRadiusKm !== null;
     const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL && (
         hasSemanticIntent ||
-        hasFilteringIntent ||
-        (dedicatedSearchRuntime && isSearchV2Enabled())
+        (!hasSpatialIntent && hasFilteringIntent) ||
+        (dedicatedSearchRuntime && isSearchV2Enabled() && !hasSpatialIntent)
     );
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);

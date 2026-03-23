@@ -189,7 +189,7 @@ const JobCard: React.FC<JobCardProps> = ({
         const airDistanceKm = Math.floor(rawAir * 10) / 10;
         const badgeLabel = `${airDistanceKm} km`;
         distanceBadge = (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-solarpunk-sky/10 text-solarpunk-sky border border-solarpunk-sky/20 text-[11px] font-semibold">
+          <div className="flex items-center gap-1.5 rounded-full border border-[rgba(var(--accent-sky-rgb),0.2)] bg-[rgba(var(--accent-sky-rgb),0.1)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent-sky)]">
             <Car size={13} />
             <span>{badgeLabel}</span>
           </div>
@@ -304,8 +304,8 @@ const JobCard: React.FC<JobCardProps> = ({
       </div>
 
       <div className="app-organic-content mb-6">
-        <h3 className="font-bold text-xl leading-snug text-[var(--text-strong)] group-hover:text-solarpunk-green transition-colors mb-2">{job.title}</h3>
-        <p className="text-base font-medium text-solarpunk-green/80">{job.company}</p>
+        <h3 className="mb-2 text-xl font-bold leading-snug text-[var(--text-strong)] transition-colors group-hover:text-[var(--accent)]">{job.title}</h3>
+        <p className="text-base font-medium text-[rgba(var(--accent-rgb),0.84)]">{job.company}</p>
 
         {challengePreview && (
           <p className="mt-4 text-[14px] leading-relaxed text-[var(--text-muted)] italic line-clamp-3">

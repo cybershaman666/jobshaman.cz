@@ -4,7 +4,6 @@ import { cn } from '../../../components/ui/primitives';
 
 interface AppViewportShellProps {
   isImmersive: boolean;
-  theme: 'light' | 'dark';
   usePageScrollLayout: boolean;
   header?: React.ReactNode;
   banner?: React.ReactNode;
@@ -16,7 +15,6 @@ interface AppViewportShellProps {
 
 const AppViewportShell: React.FC<AppViewportShellProps> = ({
   isImmersive,
-  theme,
   usePageScrollLayout,
   header,
   banner,
@@ -25,8 +23,63 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
   floatingAction,
   overlays,
 }) => {
+  const [atmosphereSrc, setAtmosphereSrc] = React.useState<string | null>(null);
+  const [atmosphereOpacity, setAtmosphereOpacity] = React.useState(0);
+  const [atmosphereBlur, setAtmosphereBlur] = React.useState(96);
+  const visibleAtmosphereBlur = Math.max(16, atmosphereBlur * 0.24);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const parseUrlValue = (value: string): string | null => {
+      const normalized = String(value || '').trim();
+      if (!normalized || normalized === 'none') return null;
+      const match = normalized.match(/^url\((['"]?)(.*)\1\)$/);
+      return match?.[2] || null;
+    };
+
+    const syncAtmosphere = () => {
+      const styles = window.getComputedStyle(document.documentElement);
+      const src = parseUrlValue(styles.getPropertyValue('--app-atmosphere-image'));
+      const opacity = Number.parseFloat(styles.getPropertyValue('--app-atmosphere-opacity')) || 0;
+      const blur = Number.parseFloat(styles.getPropertyValue('--app-atmosphere-blur')) || 96;
+      setAtmosphereSrc(src);
+      setAtmosphereOpacity(opacity);
+      setAtmosphereBlur(blur);
+    };
+
+    syncAtmosphere();
+
+    const observer = new MutationObserver(syncAtmosphere);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className={`flex min-h-screen flex-col ${isImmersive ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-shell-bg app-aurora-shell text-[var(--text)] dark:text-[var(--text)]'} font-sans transition-colors duration-300`}>
+    <div
+      className={cn(
+        'flex min-h-screen flex-col overflow-x-clip font-sans text-[var(--text)] transition-colors duration-[var(--motion-enter)]',
+        isImmersive ? 'app-mr-shell app-immersive-shell' : 'app-mr-shell app-shell-bg app-shell-bg-clean'
+      )}
+    >
+      {atmosphereSrc ? (
+        <div aria-hidden className="app-shell-atmosphere-layer">
+          <img
+            src={atmosphereSrc}
+            alt=""
+            className="app-shell-atmosphere-image"
+            style={{
+              opacity: atmosphereOpacity,
+              filter: `blur(${visibleAtmosphereBlur}px) saturate(1.08) contrast(1.08) brightness(1)`,
+            }}
+          />
+        </div>
+      ) : null}
+
       {header}
       {banner}
 

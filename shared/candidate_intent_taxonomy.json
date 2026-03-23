@@ -3,7 +3,7 @@
   "domains": {
     "product_management": {
       "labels": { "cs": "Product management", "sk": "Product management", "en": "Product management", "de": "Produktmanagement", "pl": "Product management" },
-      "keywords": ["product manager", "product owner", "produktovy manager", "produkt manager", "produkt owner", "roadmap", "discovery", "go to market", "backlog", "product strategy", "pricing strategy", "ux research"],
+      "keywords": ["product manager", "product owner", "produktovy manager", "produkt manager", "produkt owner", "roadmap", "discovery", "go to market", "backlog", "product strategy", "pricing strategy", "ux research", "prototype", "prototyping", "prototyp", "systems design", "system design"],
       "related": ["operations", "marketing", "customer_support", "sales"]
     },
     "hospitality": {
@@ -38,12 +38,12 @@
     },
     "it": {
       "labels": { "cs": "IT a software", "sk": "IT a software", "en": "IT & software", "de": "IT & Software", "pl": "IT i software" },
-      "keywords": ["developer", "engineer", "software", "backend", "frontend", "fullstack", "python", "java", "react", "devops", "qa", "tester", "it support", "data engineer"],
+      "keywords": ["developer", "engineer", "software", "backend", "frontend", "fullstack", "python", "java", "react", "devops", "qa", "tester", "it support", "data engineer", "prototype", "prototyp", "maker", "electronics", "hardware", "automation"],
       "related": ["engineering", "product_management", "customer_support"]
     },
     "engineering": {
       "labels": { "cs": "Technika a inženýring", "sk": "Technika a inžiniering", "en": "Engineering", "de": "Ingenieurwesen", "pl": "Inżynieria" },
-      "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automechanik", "auto mechanik", "mechanik", "mechanik vozidel", "servisni technik", "technik udrzby", "udrzbar", "udrzba", "maintenance", "maintenance technician", "field service", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer"],
+      "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automechanik", "auto mechanik", "mechanik", "mechanik vozidel", "servisni technik", "technik udrzby", "udrzbar", "udrzba", "maintenance", "maintenance technician", "field service", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer", "prototype", "prototyp", "invention", "vynalez", "electronics", "hardware", "maker"],
       "related": ["manufacturing", "it", "operations"]
     },
     "healthcare": {

@@ -209,14 +209,6 @@ const generateWhyItFitsReasons = (job: Job, language: string): string[] => {
   return reasons.slice(0, 4); // Limit to 4 reasons
 };
 
-const whySectionTitle = (language: string): string => localeText(language, {
-  cs: 'Proč to vidíš',
-  sk: 'Prečo to vidíš',
-  de: 'Warum du das siehst',
-  pl: 'Dlaczego to widzisz',
-  en: 'Why you are seeing this',
-});
-
 const getExternalSourceLabel = (job: Job, language: string): string | null => {
   const haystack = `${job.source || ''} ${job.url || ''}`.toLowerCase();
   if (haystack.includes('jooble')) return 'Jooble';
@@ -284,11 +276,19 @@ const getCardVerdict = (job: Job, language: string) => {
   };
 };
 
+const decisionMakerTitle = (language: string): string => localeText(language, {
+  cs: 'Rozhodovací signál',
+  sk: 'Rozhodovací signál',
+  de: 'Entscheidungssignal',
+  pl: 'Sygnał decyzji',
+  en: 'Decision signal',
+});
+
 type FeedSection = {
   key: string;
   title: { cs: string; en: string };
   subtitle?: { cs: string; en: string };
-  layout: 'hero' | 'grid' | 'grid_large';
+  layout: 'grid' | 'grid_large';
   tone?: 'default' | 'match';
   jobs: Job[];
 };
@@ -394,20 +394,7 @@ const getBalancedGridSpanClass = (index: number, total: number): string => {
   return `${tabletSpan} xl:col-span-4`;
 };
 
-const getSectionSpanClass = (layout: FeedSection['layout'], index: number, total: number): string => {
-  if (layout === 'grid_large') {
-    if (total === 3) {
-      if (index < 2) return 'md:col-span-3 xl:col-span-6';
-      return 'md:col-span-6 xl:col-span-12';
-    }
-    if (index === 0) return 'md:col-span-6 xl:col-span-6';
-    return getBalancedGridSpanClass(index - 1, Math.max(0, total - 1)).replace(/^md:col-span-/, 'md:col-span-').replace(/\bxl:col-span-(\d+)\b/, (_, span) => {
-      if (span === '12') return 'xl:col-span-6';
-      if (span === '6') return 'xl:col-span-3';
-      return 'xl:col-span-3';
-    });
-  }
-
+const getSectionSpanClass = (_layout: FeedSection['layout'], index: number, total: number): string => {
   return getBalancedGridSpanClass(index, total);
 };
 
@@ -415,30 +402,30 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; count?: number
   <div className="flex flex-wrap items-end justify-between gap-3 px-1 py-1">
     <div className="min-w-0">
       <div className={cn(
-        'app-organic-pill inline-flex items-center gap-2 px-4 py-2 shadow-sm ring-1 ring-inset',
+        'app-organic-pill inline-flex items-center gap-2 px-4 py-2 shadow-sm ring-1 ring-inset backdrop-blur-xl',
         tone === 'match'
-          ? 'bg-[rgba(var(--accent-rgb),0.16)] ring-[rgba(var(--accent-rgb),0.24)]'
-          : 'bg-[rgba(var(--accent-rgb),0.16)] ring-[rgba(var(--accent-rgb),0.24)]'
+          ? 'bg-[rgba(var(--accent-rgb),0.12)] ring-[rgba(var(--accent-rgb),0.2)]'
+          : 'bg-[rgba(255,255,255,0.04)] ring-[rgba(255,255,255,0.08)]'
       )}>
         <span className={cn(
           'h-2 w-2 rounded-full',
           tone === 'match'
             ? 'bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.42)]'
-            : 'bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.42)]'
+            : 'bg-[var(--accent)] shadow-[0_0_16px_rgba(var(--accent-rgb),0.3)]'
         )} />
         <div className={cn(
           'text-[13px] font-black uppercase tracking-[0.2em]',
-          tone === 'match' ? 'text-[var(--accent)]' : 'text-[var(--accent)]'
+          tone === 'match' ? 'text-[var(--accent)]' : 'text-[var(--text-strong)]'
         )}>{title}</div>
       </div>
       {subtitle ? <div className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">{subtitle}</div> : null}
     </div>
     {count !== undefined ? (
       <div className={cn(
-        'app-organic-pill px-3.5 py-2 text-[12px] font-black shadow-sm ring-1 ring-inset',
+        'app-organic-pill px-3.5 py-2 text-[12px] font-black shadow-sm ring-1 ring-inset backdrop-blur-xl',
         tone === 'match'
-          ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.22)] dark:bg-[rgba(var(--accent-rgb),0.16)]'
-          : 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.22)] dark:bg-[rgba(var(--accent-rgb),0.16)]'
+          ? 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.2)]'
+          : 'bg-[rgba(255,255,255,0.04)] text-[var(--text-strong)] ring-[rgba(255,255,255,0.08)]'
       )}>{count}</div>
     ) : null}
   </div>
@@ -447,7 +434,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; count?: number
 const LoadingCardSkeleton: React.FC<{ large?: boolean }> = ({ large = false }) => (
   <div
     className={cn(
-      'overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--surface-elevated)] p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)] animate-pulse',
+      'overflow-hidden rounded-[22px] border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.04)] p-4 shadow-[0_18px_40px_-34px_rgba(0,0,0,0.28)] animate-pulse backdrop-blur-xl',
       large ? 'min-h-[20rem] sm:min-h-[22rem]' : 'min-h-[18rem] sm:min-h-[20rem]'
     )}
   >
@@ -624,17 +611,29 @@ const OfferCard: React.FC<{
   const narrativeLine = [firstStep, goal]
     .filter((value): value is string => Boolean(String(value || '').trim()))
     .join(' • ');
+  const decisionSupport = primaryInsight || secondaryInsight || narrativeLine || supportLine;
   const topMatchLabel = variant === 'hero'
     ? localeText(language, { cs: 'Top shoda', sk: 'Top zhoda', de: 'Top-Match', pl: 'Top dopasowanie', en: 'Top match' })
     : variant === 'large'
       ? localeText(language, { cs: 'Silná shoda', sk: 'Silná zhoda', de: 'Starker Match', pl: 'Mocne dopasowanie', en: 'Strong match' })
       : '';
-  const titleTextClass = isFeatureCard ? 'text-slate-50' : 'text-[var(--text-strong)]';
-  const mutedTextClass = isFeatureCard ? 'text-slate-300' : 'text-[var(--text-muted)]';
-  const faintTextClass = isFeatureCard ? 'text-slate-400' : 'text-[var(--text-faint)]';
+  const titleTextClass = isFeatureCard ? 'text-[var(--text-strong)]' : 'text-[var(--text-strong)]';
+  const mutedTextClass = isFeatureCard ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]';
+  const faintTextClass = isFeatureCard ? 'text-[var(--text-faint)]' : 'text-[var(--text-faint)]';
   const matchBadgeClass = isFeatureCard
-    ? 'border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.18)] text-white shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.34)]'
+    ? 'border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.14)] text-[var(--text-strong)]'
     : 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.16)]';
+  const decisionPanelClass = verdict.tone === 'good'
+    ? isFeatureCard
+      ? 'border-emerald-300/18 bg-emerald-400/10 text-emerald-50'
+      : 'border-emerald-500/18 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100'
+    : verdict.tone === 'bad'
+      ? isFeatureCard
+        ? 'border-amber-300/18 bg-amber-400/10 text-amber-50'
+        : 'border-amber-500/18 bg-amber-500/10 text-amber-900 dark:text-amber-100'
+      : isFeatureCard
+        ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--text-strong)]'
+        : 'border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--text-strong)]';
   return (
     <div
       role="button"
@@ -648,43 +647,31 @@ const OfferCard: React.FC<{
       }}
       className={cn(
         'app-surface flex self-stretch flex-col border',
-        'group relative overflow-hidden text-left shadow-[0_18px_40px_-28px_rgba(15,23,42,0.24)] transition hover:-translate-y-[1px] hover:shadow-[0_24px_54px_-34px_rgba(15,23,42,0.26)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.30)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]',
+        'group relative overflow-hidden text-left shadow-[0_12px_30px_-24px_rgba(0,0,0,0.28)] transition hover:-translate-y-[1px] hover:shadow-[0_16px_36px_-26px_rgba(0,0,0,0.34)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(var(--accent-rgb),0.24)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
         cardRadiusClass,
         cardHeightClass,
         cardPadding,
         isFeatureCard
-          ? 'border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#0b2f38)] text-slate-50 shadow-[0_36px_90px_-56px_rgba(8,23,37,0.72)]'
+          ? 'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--shell-pane-strong)] text-[var(--text-strong)]'
           : selected
-            ? 'border-[rgba(var(--accent-green-rgb),0.24)] bg-[rgba(255,255,255,0.98)] dark:bg-[rgba(15,23,42,0.96)]'
-            : 'border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.98)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(15,23,42,0.94)]',
-        isFeatureCard && selected && 'border-[rgba(var(--accent-rgb),0.42)] shadow-[0_0_0_1px_rgba(var(--accent-rgb),0.18),0_40px_96px_-52px_rgba(8,23,37,0.82)]',
+            ? 'border-[rgba(var(--accent-green-rgb),0.22)] bg-[var(--shell-pane-soft)]'
+            : 'border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)]',
+        isFeatureCard && selected && 'border-[rgba(var(--accent-rgb),0.3)]',
         className,
         !selected && !isFeatureCard && 'hover:border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.16)]',
-        isFeatureCard && 'hover:border-[rgba(var(--accent-rgb),0.28)] hover:shadow-[0_40px_96px_-52px_rgba(8,23,37,0.8)]'
+        isFeatureCard && 'hover:border-[rgba(var(--accent-rgb),0.24)]'
       )}
       style={cardStyle}
     >
       {isFeatureCard ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_18%,rgba(var(--accent-rgb),0.22),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(var(--accent-sky-rgb),0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(var(--accent-rgb),0.14),transparent_28%)]"
         />
       ) : null}
-      {isFeatureCard ? (
-        <div
-          aria-hidden
-          className={cn(
-            'absolute inset-x-0 top-0 h-1.5',
-            variant === 'hero'
-              ? 'bg-[linear-gradient(90deg,rgba(var(--accent-rgb),0.92),rgba(var(--accent-sky-rgb),0.7))]'
-              : 'bg-[linear-gradient(90deg,rgba(var(--accent-rgb),0.6),rgba(var(--accent-sky-rgb),0.42))]'
-          )}
-        />
-      ) : null}
-      <div aria-hidden className={cn('pointer-events-none absolute inset-x-0 top-0 h-12 bg-[linear-gradient(180deg,rgba(var(--card-accent-rgb,var(--accent-rgb)),0.05),transparent)]', isFeatureCard ? 'opacity-90' : 'dark:opacity-70')} />
 
-      <div className={cn("relative w-full mb-4 overflow-hidden bg-slate-100 dark:bg-slate-800", coverHeightClass, coverRadiusClass)}>
+      <div className={cn("relative mb-4 w-full overflow-hidden bg-[var(--shell-pane-soft)]", coverHeightClass, coverRadiusClass)}>
         <img
           src={coverImageUrl}
           onError={(e) => {
@@ -694,14 +681,14 @@ const OfferCard: React.FC<{
           alt={effectiveDomain || job.company || 'Challenge cover'}
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/28 via-black/6 to-transparent opacity-60 transition-opacity group-hover:opacity-42" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/26 via-black/8 to-transparent opacity-56 transition-opacity group-hover:opacity-42" />
         <div className="absolute left-3 top-3">
           {domainAccent ? (
-            <span className="inline-flex items-center rounded-md bg-black/45 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-md bg-[rgba(0,0,0,0.45)] px-2 py-1 text-[11px] font-medium text-[var(--text-strong)] backdrop-blur-sm">
               {language === 'cs' || language === 'sk' ? domainAccent.label.cs : domainAccent.label.en}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-md bg-black/45 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-md bg-[rgba(0,0,0,0.45)] px-2 py-1 text-[11px] font-medium text-[var(--text-strong)] backdrop-blur-sm">
               {isImported
                 ? localeText(language, { cs: 'Import', sk: 'Import', de: 'Import', pl: 'Import', en: 'Import' })
                 : isMicro
@@ -722,8 +709,8 @@ const OfferCard: React.FC<{
                   className={cn(
                     'flex shrink-0 items-center justify-center rounded-xl border text-sm font-bold shadow-sm',
                     isFeatureCard
-                      ? 'border-white/12 bg-white/10 text-white'
-                      : 'border-white/70 bg-[rgba(var(--card-accent-rgb,var(--accent-rgb)),0.10)] text-[var(--text-strong)] dark:text-white',
+                      ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.1)] text-[var(--text-strong)]'
+                      : 'border-[rgba(255,255,255,0.7)] bg-[rgba(var(--card-accent-rgb,var(--accent-rgb)),0.10)] text-[var(--text-strong)]',
                     variant === 'hero' ? 'h-14 w-14' : 'h-12 w-12'
                   )}
                 >
@@ -735,7 +722,7 @@ const OfferCard: React.FC<{
                   alt={job.company}
                   className={cn(
                     'shrink-0 rounded-xl border object-cover shadow-sm',
-                    isFeatureCard ? 'border-white/12' : 'border-white/70',
+                    isFeatureCard ? 'border-[rgba(255,255,255,0.12)]' : 'border-[rgba(255,255,255,0.7)]',
                     variant === 'hero' ? 'h-14 w-14' : 'h-12 w-12'
                   )}
                   loading="lazy"
@@ -746,7 +733,7 @@ const OfferCard: React.FC<{
               <div className="flex flex-wrap items-center gap-2">
                 <div className={cn('min-w-0 truncate text-[13px] font-semibold uppercase tracking-[0.08em]', faintTextClass)}>{job.company}</div>
                 {isFeatureCard && topMatchLabel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.28)] bg-[rgba(var(--accent-rgb),0.18)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-white shadow-[0_16px_36px_-24px_rgba(var(--accent-rgb),0.36)]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.12)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-[var(--text-strong)]">
                     <Sparkles size={12} className="opacity-80" />
                     {topMatchLabel}
                   </span>
@@ -777,8 +764,8 @@ const OfferCard: React.FC<{
               saved
                 ? 'border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.18)] bg-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.08)] text-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.92)]'
                 : isFeatureCard
-                  ? 'border-white/12 bg-white/8 text-slate-300 hover:bg-white/12 hover:text-white'
-                  : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-strong)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5',
+                  ? 'border-[rgba(255,255,255,0.12)] bg-[var(--shell-pane-soft)] text-[var(--text-muted)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--text-strong)]'
+                  : 'border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)] text-[var(--text-muted)] hover:text-[var(--text-strong)]',
               isFeatureCard ? 'mt-1.5' : ''
             )}
             title={saved
@@ -806,60 +793,48 @@ const OfferCard: React.FC<{
             ))}
           </div>
         ) : null}
-        {primaryInsight ? (
-          <div className={cn('border-l-2 pl-3', isFeatureCard ? 'border-[rgba(var(--accent-rgb),0.44)]' : 'border-[rgba(var(--accent-rgb),0.35)]')}>
-            <div className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', faintTextClass)}>
-              {whySectionTitle(language)}
-            </div>
-            <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', mutedTextClass)}>
-              {primaryInsight}
-            </div>
-            {secondaryInsight ? (
-              <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', faintTextClass)}>
-                {secondaryInsight}
+        {verdict.label ? (
+          <div className={cn('rounded-[18px] border px-3.5 py-3.5', decisionPanelClass)}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className={cn('text-[10px] font-semibold uppercase tracking-[0.16em]', isFeatureCard ? 'text-current/70' : faintTextClass)}>
+                  {decisionMakerTitle(language)}
+                </div>
+                <div className="mt-1.5 text-sm font-semibold leading-5">
+                  {verdict.label}
+                </div>
               </div>
-            ) : narrativeLine ? (
-              <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.55]', faintTextClass)}>
-                {narrativeLine}
+              {matchScore > 0 ? (
+                <span className={cn('shrink-0 rounded-[999px] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ring-inset', matchBadgeClass)}>
+                  {matchScore}%
+                </span>
+              ) : null}
+            </div>
+            {decisionSupport ? (
+              <div className={cn('mt-2 line-clamp-2 text-[12px] leading-[1.55]', isFeatureCard ? 'text-current/80' : mutedTextClass)}>
+                {decisionSupport}
+              </div>
+            ) : null}
+            {!decisionSupport && primaryMeta ? (
+              <div className={cn('mt-2 line-clamp-1 text-[12px] leading-[1.55]', isFeatureCard ? 'text-current/70' : faintTextClass)}>
+                {primaryMeta}
               </div>
             ) : null}
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset',
-              verdict.tone === 'good'
-                ? isFeatureCard ? 'bg-emerald-400/14 text-emerald-200 ring-emerald-300/20' : 'bg-emerald-500/12 text-emerald-700 ring-emerald-500/18 dark:text-emerald-300'
-                : verdict.tone === 'bad'
-                  ? isFeatureCard ? 'bg-amber-400/14 text-amber-200 ring-amber-300/20' : 'bg-amber-500/12 text-amber-700 ring-amber-500/18 dark:text-amber-300'
-                  : isFeatureCard ? 'bg-[rgba(var(--accent-rgb),0.18)] text-white ring-[rgba(var(--accent-rgb),0.24)]' : 'bg-[rgba(var(--accent-rgb),0.10)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.14)]'
-            )}
-            title={bullshit.summary || bullshit.greenSummary || ''}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
-            {verdict.label}
-          </span>
-          {!isFeatureCard && matchScore > 0 ? (
-            <span className={cn('inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ring-inset', matchBadgeClass)}>
-              {matchLabel}
-            </span>
-          ) : null}
-        </div>
-
         <div className="grid grid-cols-1 gap-2 pt-1.5 sm:grid-cols-2">
-          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full')}>
             <MapPin size={13} />
             <span className="truncate">{primaryMeta}</span>
           </span>
           {relativePostedAt ? (
-            <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5')}>
+            <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]')}>
               <Clock size={13} />
               <span className="truncate">{relativePostedAt}</span>
             </span>
           ) : null}
-          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-white/12 !bg-white/8 !text-slate-100 dark:!border-white/12 dark:!bg-white/8' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
             {salary}
           </span>
           {isFeatureCard ? (
@@ -873,8 +848,8 @@ const OfferCard: React.FC<{
                       : jhiScore >= 75
                         ? 'border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.14)] text-[var(--accent)] shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.26)]'
                         : jhiScore >= 55
-                          ? 'border border-white/12 bg-white/8 text-slate-100'
-                          : 'border border-white/10 bg-white/6 text-slate-400'
+                          ? 'border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-[var(--text-strong)]'
+                          : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.06)] text-[var(--text-faint)]'
                   )}
                   title={matchScore > 0
                     ? localeText(language, { cs: 'Shoda s profilem', sk: 'Zhoda s profilom', de: 'Profil-Match', pl: 'Dopasowanie do profilu', en: 'Profile match' })
@@ -889,7 +864,7 @@ const OfferCard: React.FC<{
         </div>
         </div>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2">
           <button
             type="button"
             onClick={(e) => {
@@ -899,8 +874,8 @@ const OfferCard: React.FC<{
             className={cn(
               'inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm transition',
               isFeatureCard
-                ? 'bg-[var(--accent)] font-bold text-slate-950 shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.5)] hover:brightness-110'
-                : 'bg-[var(--text-strong)] font-semibold text-white hover:bg-[var(--accent)] dark:bg-white dark:text-slate-950 dark:hover:bg-[var(--accent)]'
+                ? 'border border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.16)] font-bold text-[var(--text-strong)] shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.3)] hover:bg-[rgba(var(--accent-rgb),0.22)]'
+                : 'border border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)] font-semibold text-[var(--text-strong)] hover:border-[rgba(var(--accent-rgb),0.16)] hover:bg-[rgba(var(--accent-rgb),0.1)]'
             )}
           >
             <span className="flex items-center gap-2">
@@ -969,9 +944,6 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       };
     }
 
-    const hero = take(standardSorted, 1);
-    const heroCompanion = take(standardSorted, 1);
-
     const spotlightCandidates = standardSorted
       .slice()
       .sort((a: any, b: any) => {
@@ -1010,16 +982,6 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const sectionsList: FeedSection[] = [];
 
-    if (hero.length) {
-      sectionsList.push({
-        key: 'hero',
-        title: { cs: feedCopy.heroTitle, en: feedCopy.heroTitle },
-        subtitle: { cs: feedCopy.heroSubtitle, en: feedCopy.heroSubtitle },
-        layout: 'hero',
-        tone: 'match',
-        jobs: [...hero, ...heroCompanion],
-      });
-    }
     if (spotlight.length) {
       sectionsList.push({
         key: 'spotlight',
@@ -1049,17 +1011,12 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const remainingJobs = sorted.filter((job) => job?.id && !used.has(job.id) && !isMicro(job));
     return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[] };
-  }, [compactLayout, feedCopy.fastTitle, feedCopy.heroSubtitle, feedCopy.heroTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
+  }, [compactLayout, feedCopy.fastTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
 
   const sectionHighlightIndexes = useMemo(() => {
     const indexes = new Map<string, number | null>();
 
     sections.forEach((section) => {
-      if (section.key === 'hero') {
-        indexes.set(section.key, 0);
-        return;
-      }
-
       const preferredIndex = section.key === 'spotlight'
         ? 1
         : section.key === 'remote'
@@ -1074,11 +1031,10 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     return indexes;
   }, [sections]);
 
-  const compactFeatureJob = useMemo(() => compactJobs[0] || null, [compactJobs]);
-  const compactRemainingJobs = useMemo(() => compactJobs.slice(1), [compactJobs]);
+  const compactDisplayJobs = useMemo(() => compactJobs, [compactJobs]);
   const compactHighlightIndexes = useMemo(() => (
-    pickChunkHighlightIndexes(compactRemainingJobs, 8, 2)
-  ), [compactRemainingJobs]);
+    pickChunkHighlightIndexes(compactDisplayJobs, 6, 2)
+  ), [compactDisplayJobs]);
   const visibleRemaining = useMemo(() => remaining, [remaining]);
   const remainingHighlightIndexes = useMemo(
     () => pickChunkHighlightIndexes(visibleRemaining, 6, 2),
@@ -1100,26 +1056,8 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     return (
       <div className="space-y-5">
-        {compactFeatureJob ? (
-          <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
-            <OfferCard
-              key={compactFeatureJob.id}
-              job={compactFeatureJob}
-              selected={compactFeatureJob.id === selectedJobId}
-              saved={savedJobIds.includes(compactFeatureJob.id)}
-              language={language}
-              variant="large"
-              contrast
-              className="md:col-span-6 xl:col-span-8"
-              onSelect={() => onSelect(compactFeatureJob.id)}
-              onOpen={() => onOpen(compactFeatureJob.id)}
-              onToggleSave={() => onToggleSave(compactFeatureJob.id)}
-            />
-          </div>
-        ) : null}
-
         <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
-          {compactRemainingJobs.map((job, index, list) => (
+          {compactDisplayJobs.map((job, index, list) => (
             <OfferCard
               key={job.id}
               job={job}
@@ -1152,44 +1090,6 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       {sections.map((section) => {
         const title = section.title.cs;
         const subtitle = section.subtitle ? section.subtitle.cs : undefined;
-
-        if (section.layout === 'hero') {
-          const job = section.jobs[0];
-          const companionJob = section.jobs[1];
-          if (!job) return null;
-          return (
-            <div key={section.key} className="space-y-5">
-              <SectionHeader title={title} subtitle={subtitle} tone={section.tone} />
-              <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
-                <OfferCard
-                  job={job}
-                  selected={job.id === selectedJobId}
-                  saved={savedJobIds.includes(job.id)}
-                  language={language}
-                  variant="hero"
-                  contrast
-                  className="md:col-span-4 xl:col-span-8"
-                  onSelect={() => onSelect(job.id)}
-                  onOpen={() => onOpen(job.id)}
-                  onToggleSave={() => onToggleSave(job.id)}
-                />
-                {companionJob ? (
-                  <OfferCard
-                    job={companionJob}
-                    selected={companionJob.id === selectedJobId}
-                    saved={savedJobIds.includes(companionJob.id)}
-                    language={language}
-                    variant="default"
-                    className="md:col-span-2 xl:col-span-4"
-                    onSelect={() => onSelect(companionJob.id)}
-                    onOpen={() => onOpen(companionJob.id)}
-                    onToggleSave={() => onToggleSave(companionJob.id)}
-                  />
-                ) : null}
-              </div>
-            </div>
-          );
-        }
 
         return (
           <div key={section.key} className="space-y-5">

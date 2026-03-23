@@ -26,10 +26,24 @@ const buildProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
 });
 
 describe('candidateActivationService', () => {
+  it('starts with onboarding as the first activation milestone', () => {
+    const profile = buildProfile();
+    const state = deriveActivationState(profile);
+    expect(getNextActivationStep(state)).toBe('onboarding');
+  });
+
   it('derives location and cv milestones', () => {
     const profile = buildProfile({
       address: 'Praha',
       cvText: 'a'.repeat(220),
+      preferences: {
+        ...BASE_PROFILE.preferences,
+        candidate_onboarding_v2: {
+          started_at: '2026-03-20T10:00:00.000Z',
+          completed_at: '2026-03-20T10:05:00.000Z',
+          last_step: 'decision',
+        },
+      },
     });
     const state = deriveActivationState(profile);
     expect(state.location_verified).toBe(true);
@@ -42,6 +56,11 @@ describe('candidateActivationService', () => {
       preferences: {
         ...BASE_PROFILE.preferences,
         desired_role: 'Data Analyst',
+        candidate_onboarding_v2: {
+          started_at: '2026-03-20T10:00:00.000Z',
+          completed_at: '2026-03-20T10:05:00.000Z',
+          last_step: 'decision',
+        },
       },
     });
     const state = deriveActivationState(profile);
@@ -59,6 +78,11 @@ describe('candidateActivationService', () => {
         ...BASE_PROFILE.preferences,
         desired_role: 'Data Analyst',
         desired_salary_min: 55000,
+        candidate_onboarding_v2: {
+          started_at: '2026-03-20T10:00:00.000Z',
+          completed_at: '2026-03-20T10:05:00.000Z',
+          last_step: 'decision',
+        },
       },
     });
 

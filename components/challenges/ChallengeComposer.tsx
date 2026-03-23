@@ -17,6 +17,7 @@ interface ChallengeComposerProps {
   userProfile: UserProfile;
   onRequireAuth: () => void;
   onOpenSupportingContext: () => void;
+  onDialogueOpened?: (dialogueId: string) => void;
 }
 
 const getSnapshotAvatarUrl = (value?: string | null): string | undefined => {
@@ -34,7 +35,8 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
   job,
   userProfile,
   onRequireAuth,
-  onOpenSupportingContext
+  onOpenSupportingContext,
+  onDialogueOpened,
 }) => {
   const { i18n } = useTranslation();
   const storageKey = useMemo(() => `jobshaman_challenge_draft:${normalizeJobId(job.id)}`, [job.id]);
@@ -337,6 +339,7 @@ const ChallengeComposer: React.FC<ChallengeComposerProps> = ({
         setDraft('');
         setSupportingNote('');
         window.localStorage.removeItem(storageKey);
+        onDialogueOpened?.(dialogueId);
       }
     } finally {
       setSubmitting(false);

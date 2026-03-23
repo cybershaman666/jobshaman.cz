@@ -227,6 +227,14 @@ export const runFilteredFetchPipeline = async ({
         visibleJobs.length === 0 &&
         (!!String(searchTerm || '').trim() || !!String(filterCity || '').trim());
 
+    if (visibleJobs.length === 0 && effectiveRadiusKm && result.totalCount > 0) {
+        console.warn('⚠️ Spatial filter returned zero visible jobs despite non-zero totalCount; backend path may be inconsistent.', {
+            radius_km: effectiveRadiusKm,
+            total_count: result.totalCount,
+            page,
+        });
+    }
+
     if (shouldRunExternalRecovery) {
         try {
             const recoveryJobs = await fetchExternalOverlayJobs({

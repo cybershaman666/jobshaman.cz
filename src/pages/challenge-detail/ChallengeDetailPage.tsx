@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import Markdown from 'markdown-to-jsx';
 import { ArrowLeft, CarFront, Compass, Handshake, MapPin, Sparkles, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Badge, SurfaceCard, cn } from '../../../components/ui/primitives';
 import type { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, UserProfile } from '../../../types';
 import ChallengeComposer from '../../../components/challenges/ChallengeComposer';
+import FormattedJobDescription from '../../../components/challenges/FormattedJobDescription';
 import JHIChart from '../../../components/JHIChart';
 import {
   ChallengeHumanContextSection,
@@ -62,10 +62,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     [effectiveDomain, job.company, job.id, job.title],
   );
   const domainAccent = useMemo(() => getDomainAccent(effectiveDomain), [effectiveDomain]);
-  const isDarkTheme = useMemo(() => {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.classList.contains('dark');
-  }, []);
 
   const copy = getChallengeDetailPageCopy(language);
 
@@ -114,6 +110,35 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       setCommuteAnalysis(null);
     }
   }, [isCsLike, job, remoteRole, userProfile]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--app-atmosphere-image', 'none');
+    root.style.setProperty('--app-atmosphere-opacity', '0');
+    root.style.setProperty('--app-atmosphere-blur', '0');
+    root.style.setProperty(
+      '--app-atmosphere-overlay-light',
+      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.07), transparent 22%), radial-gradient(circle at 84% 12%, rgba(var(--accent-gold-rgb), 0.05), transparent 20%), linear-gradient(180deg, rgba(255,255,255,0.48), transparent 20%), linear-gradient(rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
+    );
+    root.style.setProperty(
+      '--app-atmosphere-overlay-dark',
+      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.08), transparent 22%), linear-gradient(180deg, rgba(6, 13, 20, 0.68) 0%, rgba(6, 13, 20, 0.82) 100%)'
+    );
+
+    return () => {
+      root.style.setProperty('--app-atmosphere-image', 'none');
+      root.style.setProperty('--app-atmosphere-opacity', '0');
+      root.style.setProperty('--app-atmosphere-blur', '96px');
+      root.style.setProperty(
+        '--app-atmosphere-overlay-light',
+        'linear-gradient(180deg, rgba(243, 246, 251, 0.82) 0%, rgba(243, 246, 251, 0.9) 36%, rgba(243, 246, 251, 0.96) 100%)'
+      );
+      root.style.setProperty(
+        '--app-atmosphere-overlay-dark',
+        'linear-gradient(180deg, rgba(6, 13, 20, 0.7) 0%, rgba(6, 13, 20, 0.82) 36%, rgba(6, 13, 20, 0.92) 100%)'
+      );
+    };
+  }, []);
 
   const displayedSalary = job.salaryRange
     || (Number(job.salary_from || 0) && Number(job.salary_to || 0)
@@ -218,52 +243,81 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     };
   }, [commuteAnalysis, copy, job.jhi?.score, remoteRole]);
   const heroLead = isImported ? copy.heroLeadImported : copy.heroLeadNative;
-  const heroPanelClass = 'border-[var(--border-subtle)] bg-[var(--surface)] dark:bg-slate-950';
-  const heroPanelSoftClass = 'border-[var(--border-subtle)] bg-[var(--surface-muted)] dark:bg-slate-950';
-  const heroStrongTextClass = 'text-slate-900 dark:text-white';
-  const heroMutedTextClass = 'text-slate-600 dark:text-slate-300';
-
+  const editorialPanelClass = 'rounded-[30px] border border-[rgba(16,32,51,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.86)_0%,rgba(248,250,253,0.8)_100%)] text-[var(--text-strong)] shadow-[0_26px_60px_-40px_rgba(16,32,51,0.16)] backdrop-blur-2xl dark:border-[rgba(255,255,255,0.08)] dark:bg-[linear-gradient(180deg,rgba(9,17,26,0.92)_0%,rgba(10,18,29,0.84)_100%)] dark:shadow-[0_34px_84px_-44px_rgba(0,0,0,0.72)]';
+  const darkPanelClass = 'rounded-[30px] border border-[rgba(16,32,51,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(245,248,252,0.82)_100%)] text-[var(--text-strong)] shadow-[0_26px_60px_-40px_rgba(16,32,51,0.16)] backdrop-blur-2xl dark:border-[rgba(255,255,255,0.08)] dark:bg-[linear-gradient(180deg,rgba(8,15,24,0.94)_0%,rgba(11,18,28,0.88)_100%)] dark:shadow-[0_34px_84px_-44px_rgba(0,0,0,0.82)]';
+  const warmPanelClass = 'rounded-[28px] border border-[rgba(201,165,106,0.18)] bg-[linear-gradient(180deg,rgba(255,251,244,0.9)_0%,rgba(248,243,235,0.84)_100%)] shadow-[0_24px_54px_-36px_rgba(108,82,42,0.16)] backdrop-blur-2xl dark:border-[rgba(240,217,184,0.18)] dark:bg-[linear-gradient(180deg,rgba(14,22,30,0.92)_0%,rgba(17,24,31,0.86)_100%)] dark:shadow-[0_26px_58px_-36px_rgba(0,0,0,0.72)]';
+  const importedDetailLabels = {
+    teaser: language === 'cs' ? 'Rychlý přehled bez vaty' : language === 'sk' ? 'Rýchly prehľad bez vaty' : language === 'de' || language === 'at' ? 'Schneller Überblick ohne Floskeln' : language === 'pl' ? 'Szybki przegląd bez waty' : 'Quick read without the fluff',
+    rawToggle: language === 'cs' ? 'Ukázat celý syrový text inzerátu' : language === 'sk' ? 'Ukázať celý surový text inzerátu' : language === 'de' || language === 'at' ? 'Kompletten Rohtext anzeigen' : language === 'pl' ? 'Pokaż pełny surowy tekst ogłoszenia' : 'Show full raw listing text',
+    rawClose: language === 'cs' ? 'Skrýt celý syrový text' : language === 'sk' ? 'Skryť celý surový text' : language === 'de' || language === 'at' ? 'Rohtext ausblenden' : language === 'pl' ? 'Ukryj pełny surowy tekst' : 'Hide full raw text',
+  };
+  const aiToneStyles = decisionVerdict.tone === 'success'
+      ? {
+        panel: 'border-emerald-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(244,251,248,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#131d29_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(34,211,238,0.14)]',
+        chip: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/16 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/16',
+        soft: 'border-[rgba(16,32,51,0.08)] bg-[rgba(255,255,255,0.72)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(255,255,255,0.05)]',
+        label: 'text-[var(--text-faint)]',
+        chartAccent: 'cyan' as const,
+        bar: 'bg-cyan-300',
+      }
+    : decisionVerdict.tone === 'warning'
+      ? {
+          panel: 'border-amber-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(252,248,243,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#19151b_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(244,63,94,0.12)]',
+          chip: 'bg-amber-500/10 text-amber-700 ring-amber-500/16 dark:bg-rose-400/10 dark:text-rose-200 dark:ring-rose-400/16',
+          soft: 'border-[rgba(16,32,51,0.08)] bg-[rgba(255,255,255,0.72)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(255,255,255,0.05)]',
+          label: 'text-[var(--text-faint)]',
+          chartAccent: 'cyan' as const,
+          bar: 'bg-cyan-300',
+        }
+      : {
+          panel: 'border-[rgba(var(--accent-rgb),0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(243,249,252,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#151b23_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(34,211,238,0.12)]',
+          chip: 'bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.16)] dark:bg-cyan-400/10 dark:text-cyan-200 dark:ring-cyan-400/16',
+          soft: 'border-[rgba(16,32,51,0.08)] bg-[rgba(255,255,255,0.72)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(255,255,255,0.05)]',
+          label: 'text-[var(--text-faint)]',
+          chartAccent: 'cyan' as const,
+          bar: 'bg-cyan-300',
+        };
   return (
-    <div className="space-y-5">
-      <div className="mx-auto w-full max-w-[1480px] space-y-5 pb-8">
+    <section className="app-shell-bg app-aurora-shell relative isolate min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden">
+      <div className="mx-auto w-full max-w-[1520px] space-y-5 px-3 py-4 pb-8 lg:px-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-[6px] border border-[var(--border-subtle)] bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+          className="app-button-dock inline-flex items-center gap-2 rounded-[14px] px-3.5 py-2.5 text-sm font-medium"
         >
           <ArrowLeft size={16} />
           {copy.back}
         </button>
 
-        <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
-          <div className="relative min-h-[180px] overflow-hidden rounded-[16px] bg-[var(--surface)]">
+        <div className="app-workspace-stage overflow-hidden rounded-[30px] p-2.5 sm:p-3">
+          <div className="relative min-h-[300px] overflow-hidden rounded-[24px] bg-[rgba(255,255,255,0.18)] dark:bg-[rgba(8,14,22,0.4)] sm:min-h-[340px] lg:min-h-[380px]">
             <img
               src={coverImageUrl}
               alt={job.company}
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.26] saturate-[0.94] dark:opacity-[0.3]"
+              className="pointer-events-none absolute inset-0 h-full w-full scale-[1.02] object-cover opacity-[0.62] saturate-[1.02]"
               loading="lazy"
             />
-
-            <div className="relative flex h-full min-h-[180px] flex-col justify-between p-5 sm:p-6 lg:p-7">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-[999px] border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(var(--accent-rgb),0.14),transparent_28%),radial-gradient(circle_at_88%_14%,rgba(var(--accent-gold-rgb),0.12),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.18))] dark:bg-[radial-gradient(circle_at_12%_18%,rgba(var(--accent-rgb),0.18),transparent_28%),radial-gradient(circle_at_88%_14%,rgba(var(--accent-gold-rgb),0.12),transparent_24%),linear-gradient(180deg,rgba(5,9,14,0.08),rgba(5,9,14,0.42))]" />
+            <div className="relative flex h-full min-h-[300px] flex-col justify-between p-5 sm:min-h-[340px] sm:p-6 lg:min-h-[380px] lg:p-8">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-[999px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.08)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-strong)] backdrop-blur-xl">
                     <Sparkles size={12} />
                     {listingBadge}
                   </span>
                   {matchScore > 0 ? (
                     <span className={cn(
-                      'inline-flex items-center gap-2 rounded-[999px] border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em]',
+                      'inline-flex items-center gap-2 rounded-[999px] border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] backdrop-blur-xl',
                       isImported
-                        ? 'border-slate-200 bg-white text-slate-700'
-                        : 'border-slate-300 bg-white text-slate-900 dark:bg-slate-950 dark:text-white'
+                        ? 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.08)] text-[var(--text-strong)]'
+                        : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.08)] text-[var(--text-strong)]'
                     )}>
                       <Sparkles size={11} />
                       {matchScore}% {copy.matchUpper}
                     </span>
                   ) : null}
                   {domainAccent ? (
-                    <Badge variant="outline" className="border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                    <Badge variant="outline" className="border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.08)] text-[var(--text-strong)] backdrop-blur-xl">
                       {language === 'cs' || language === 'sk' ? domainAccent.label.cs : domainAccent.label.en}
                     </Badge>
                   ) : null}
@@ -271,18 +325,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className={cn(
-                  'space-y-4 rounded-[18px] border p-4 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.12)] sm:p-5',
-                  heroPanelClass
-                )}>
-                  <div className={cn(
-                    'inline-flex max-w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 shadow-none',
-                    heroPanelSoftClass
-                  )}>
+                <div className="space-y-4 rounded-[24px] bg-[rgba(255,255,255,0.56)] p-4 backdrop-blur-xl dark:bg-[rgba(9,16,24,0.34)] sm:p-5">
+                  <div className="inline-flex max-w-full items-center gap-3 px-0.5 py-0.5">
                     {usePublisherMonogram ? (
                       <div className={cn(
                         'flex h-12 w-12 items-center justify-center rounded-[10px] text-sm font-bold ring-1',
-                        'bg-slate-100 text-slate-900 ring-slate-200 dark:bg-slate-900 dark:text-white dark:ring-slate-700'
+                        'bg-[rgba(255,255,255,0.1)] text-[var(--text-strong)] ring-[rgba(255,255,255,0.12)]'
                       )}>
                         {publisherInitials}
                       </div>
@@ -290,67 +338,52 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       <img
                         src={publisherAvatar}
                         alt={publisherName}
-                        className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                        className="h-12 w-12 rounded-[10px] object-cover ring-1 ring-[rgba(255,255,255,0.12)]"
                         loading="lazy"
                       />
                     )}
                     <div>
-                      <div className={cn('text-sm font-semibold', heroStrongTextClass)}>{publisherName}</div>
-                      <div className={cn('text-sm', heroMutedTextClass)}>{publisherRole}</div>
+                      <div className="text-sm font-semibold text-[var(--text-strong)]">{publisherName}</div>
+                      <div className="text-sm text-[var(--text-muted)]">{publisherRole}</div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <h1 className={cn(
-                      'max-w-4xl text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[2.2rem] lg:text-[2.5rem]',
-                      heroStrongTextClass
-                    )}>
+                    <h1 className="max-w-4xl text-[1.95rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--text-strong)] sm:text-[2.35rem] lg:text-[2.75rem]">
                       {job.title}
                     </h1>
-                    <div className={cn(
-                      'inline-flex max-w-2xl rounded-[14px] border px-4 py-3 shadow-none',
-                      heroPanelSoftClass
-                    )}>
-                      <p className={cn('text-sm leading-6 sm:text-base', heroMutedTextClass)}>
+                    <div className="inline-flex max-w-2xl px-0.5 py-0.5">
+                      <p className="text-sm leading-6 text-[var(--text)] sm:text-base">
                         {heroLead}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className={cn(
-                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
-                      heroPanelSoftClass
-                    )}>
-                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <MapPin size={13} />
                         {copy.location}
                       </div>
-                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
+                      <div className="mt-2 text-sm leading-6 break-words text-[var(--text-strong)]">
                         {locationValue}
                       </div>
                     </div>
-                    <div className={cn(
-                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
-                      heroPanelSoftClass
-                    )}>
-                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <Compass size={13} />
                         {copy.workModel}
                       </div>
-                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
+                      <div className="mt-2 text-sm leading-6 break-words text-[var(--text-strong)]">
                         {workModelValue}
                       </div>
                     </div>
-                    <div className={cn(
-                      'min-w-0 rounded-[14px] border px-3.5 py-3 shadow-none',
-                      heroPanelSoftClass
-                    )}>
-                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <Wallet size={13} />
                         {copy.salary}
                       </div>
-                      <div className="mt-2 text-sm leading-6 break-words text-slate-800 dark:text-slate-100">
+                      <div className="mt-2 text-sm leading-6 break-words text-[var(--text-strong)]">
                         {displayedSalary}
                       </div>
                     </div>
@@ -361,7 +394,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       <button
                         type="button"
                         onClick={onOpenImportedListing}
-                        className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
                         <Sparkles size={15} />
                         {copy.importedButton}
@@ -369,7 +402,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     ) : (
                       <a
                         href="#challenge-handshake"
-                        className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
                         <Handshake size={15} />
                         {copy.handshakeCta}
@@ -379,7 +412,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       <button
                         type="button"
                         onClick={() => onOpenCompanyPage(job.company_id!)}
-                        className="inline-flex items-center gap-2 rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+                        className="app-button-dock inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
                         <Compass size={15} />
                         {copy.companyCta}
@@ -388,13 +421,10 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   </div>
                 </div>
 
-                <div className={cn(
-                  'self-end rounded-[18px] border p-4 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.12)]',
-                  `${heroPanelClass} ${heroStrongTextClass}`
-                )}>
-                  <div className={cn('mt-4 grid gap-3', isImported ? 'grid-cols-1' : matchScore > 0 ? 'sm:grid-cols-2 lg:grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-1')}>
+                <div className="self-end rounded-[22px] bg-[rgba(255,255,255,0.58)] p-4 text-[var(--text-strong)] backdrop-blur-xl dark:bg-[rgba(9,16,24,0.34)]">
+                  <div className={cn('grid gap-3', isImported ? 'grid-cols-1' : matchScore > 0 ? 'sm:grid-cols-2 lg:grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-1')}>
                     {matchScore > 0 ? (
-                      <div className="rounded-[14px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950">
+                      <div className="rounded-[16px] bg-[rgba(255,255,255,0.68)] px-4 py-4 dark:bg-[rgba(255,255,255,0.05)]">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.match}</div>
                         <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{matchScore}%</div>
                       </div>
@@ -406,12 +436,11 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className={`rounded-[14px] border px-4 py-4 ${heroPanelSoftClass}`}
+                        className="rounded-[16px] bg-[rgba(255,255,255,0.68)] px-4 py-4 dark:bg-[rgba(255,255,255,0.05)]"
                       >
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{item.label}</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{item.label}</div>
                         <div className={cn(
-                          'mt-2 font-semibold tracking-[-0.03em]',
-                          heroStrongTextClass,
+                          'mt-2 font-semibold tracking-[-0.03em] text-[var(--text-strong)]',
                           item.label === copy.location || item.label === copy.workModel ? 'text-sm leading-6 break-words' : 'text-lg'
                         )}>{item.value}</div>
                       </div>
@@ -419,14 +448,14 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   </div>
 
                   {isImported ? (
-                    <div className={`mt-4 rounded-[14px] border p-3.5 ${heroPanelSoftClass}`}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    <div className="mt-4 rounded-[16px] bg-[rgba(255,255,255,0.68)] p-3.5 dark:bg-[rgba(255,255,255,0.05)]">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         {copy.response}
                       </div>
                       <button
                         type="button"
                         onClick={onOpenImportedListing}
-                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[6px] bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="app-button-primary mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3 text-sm font-semibold"
                       >
                         <Sparkles size={15} />
                         {copy.importedButton}
@@ -441,7 +470,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
         {isImported ? (
           <div className="mx-auto w-full max-w-[1480px]">
-            <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
+            <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 rounded-[24px]" variant="dock">
               <div>
                 <div className="text-sm font-semibold text-[var(--text-strong)]">
                   {copy.importedContinue}
@@ -453,7 +482,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               <button
                 type="button"
                 onClick={onOpenImportedListing}
-                className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 whitespace-nowrap"
+                className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold whitespace-nowrap"
               >
                 {copy.importedButton}
               </button>
@@ -463,38 +492,38 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
         <div className="mx-auto w-full max-w-[1480px]">
           <div className="space-y-5">
-            <SurfaceCard className="space-y-5 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
+            <SurfaceCard className={cn('space-y-5 border-transparent p-5 sm:p-6', editorialPanelClass)} variant="spatial">
               <SectionTitle title={copy.insideTitle} />
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="space-y-4">
-                  <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white p-5 dark:bg-slate-950">
+                  <div className="space-y-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                       {isImported ? copy.importedSnapshot : copy.mission}
                     </div>
-                    <p className="mt-3 text-sm leading-7 text-[var(--text)]">{missionBody}</p>
+                    <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{missionBody}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-3 dark:bg-slate-950">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.firstStep}</div>
+                      <div className="rounded-[16px] bg-[rgba(var(--accent-rgb),0.1)] px-4 py-3 dark:bg-[rgba(var(--accent-rgb),0.08)]">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] dark:text-cyan-200/70">{copy.firstStep}</div>
                         <div className="mt-2 text-sm leading-6 text-[var(--text)]">{firstStep || challenge.firstStepPrompt}</div>
                       </div>
                       {riskBody ? (
-                        <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-3 dark:bg-slate-950">
+                        <div className="rounded-[16px] bg-[rgba(255,255,255,0.68)] px-4 py-3 dark:bg-[rgba(255,255,255,0.05)]">
                           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.risk}</div>
-                          <div className="mt-2 text-sm leading-6 text-[var(--text)]">{riskBody}</div>
+                          <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{riskBody}</div>
                         </div>
                       ) : null}
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 dark:bg-slate-950">
+                  <div className="rounded-[18px] bg-[rgba(255,255,255,0.04)] p-4">
                     <div className="flex items-center gap-3">
                       {usePublisherMonogram ? (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-[6px] bg-[var(--surface)] text-sm font-bold text-[var(--text-strong)] dark:bg-slate-900">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-[rgba(255,255,255,0.08)] text-sm font-bold text-[var(--text-strong)]">
                           {publisherInitials}
                         </div>
                       ) : (
-                        <img src={publisherAvatar} alt={publisherName} className="h-14 w-14 rounded-[6px] object-cover" loading="lazy" />
+                        <img src={publisherAvatar} alt={publisherName} className="h-14 w-14 rounded-[14px] object-cover" loading="lazy" />
                       )}
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-[var(--text-strong)]">{publisherName}</div>
@@ -522,34 +551,48 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
             </SurfaceCard>
 
             {isImported ? (
-              <details open className="group overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
+              <details open className={cn('group overflow-hidden', warmPanelClass)}>
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-left">
                   <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.importedDetail}</div>
-                  <div className="rounded-[999px] bg-[var(--surface-muted)] px-3 py-1 text-sm font-semibold text-[var(--text-muted)]">
+                  <div className="rounded-[999px] bg-[rgba(255,255,255,0.06)] px-3 py-1 text-sm font-semibold text-[var(--text-muted)]">
                     <span className="group-open:hidden">+</span>
                     <span className="hidden group-open:inline">−</span>
                   </div>
                 </summary>
-                <div className="border-t border-[var(--border-subtle)] px-5 py-4">
-                  <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-p:text-[var(--text)] dark:prose-li:text-[var(--text)] dark:prose-strong:text-[var(--text-strong)]">
-                    {formattedDescription ? (
-                      <Markdown>{formattedDescription}</Markdown>
-                    ) : (
-                      <p className="text-sm text-[var(--text-muted)]">
-                        {copy.roleDetailUnavailable}
-                      </p>
-                    )}
-                    <p className="mt-4 text-xs leading-5 text-[var(--text-faint)]">
-                      {copy.rawImportNote}
-                    </p>
+                <div className="border-t border-[rgba(191,161,106,0.18)] bg-transparent px-5 py-5">
+                  <div className="mb-4 rounded-[16px] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      {importedDetailLabels.teaser}
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.rawImportNote}</p>
                   </div>
+                  <FormattedJobDescription
+                    text={formattedDescription}
+                    fallback={copy.roleDetailUnavailable}
+                    maxSections={4}
+                    maxParagraphLength={260}
+                    maxListItems={4}
+                  />
+                  <details className="group mt-4 rounded-[16px] bg-[rgba(255,255,255,0.04)]">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-[var(--text-strong)]">
+                      <span className="group-open:hidden">{importedDetailLabels.rawToggle}</span>
+                      <span className="hidden group-open:inline">{importedDetailLabels.rawClose}</span>
+                      <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
+                    </summary>
+                    <div className="border-t border-[var(--border-subtle)] px-4 py-4">
+                      <FormattedJobDescription
+                        text={formattedDescription}
+                        fallback={copy.roleDetailUnavailable}
+                      />
+                    </div>
+                  </details>
                 </div>
               </details>
             ) : null}
 
             {!isImported ? (
               <div id="challenge-handshake">
-                <SurfaceCard className="space-y-5 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
+                <SurfaceCard className="space-y-5 rounded-[24px] p-5 sm:p-6" variant="dock">
                   <SectionTitle title={copy.handshakeTitle} />
                   <ChallengeComposer
                     job={job}
@@ -561,59 +604,59 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
             ) : null}
 
-            <SurfaceCard className="space-y-4 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
+            <SurfaceCard className={cn('space-y-4 border-transparent p-5 text-[var(--text-strong)] sm:p-6', darkPanelClass)} variant="dock">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <SectionTitle title={copy.aiWandTitle} />
                 <div className="flex flex-wrap items-center gap-2">
                   {matchScore > 0 ? (
-                    <div className="rounded-[999px] bg-white px-3.5 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700">
+                    <div className={cn('rounded-[999px] px-3.5 py-2 text-xs font-black uppercase tracking-[0.14em] ring-1 ring-inset', aiToneStyles.chip)}>
                       {matchScore}% {copy.match}
                     </div>
                   ) : null}
-                  <div className="rounded-[999px] bg-white px-3.5 py-2 text-xs font-bold text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700">
+                  <div className={cn('rounded-[999px] px-3.5 py-2 text-xs font-bold ring-1 ring-inset', aiToneStyles.chip)}>
                     {decisionVerdict.title}
                   </div>
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 shadow-none dark:bg-slate-950">
+                <div className={cn('rounded-[22px] border p-4 shadow-none backdrop-blur-sm', aiToneStyles.soft)}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.financialTitle}</div>
+                      <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', aiToneStyles.label)}>{copy.financialTitle}</div>
                       <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                         {decisionVerdict.body}
                       </div>
                     </div>
-                    <div className="relative hidden h-12 w-24 shrink-0 overflow-hidden rounded-[999px] bg-slate-100 md:block dark:bg-slate-900">
-                      <div className="absolute inset-x-3 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-slate-300 dark:border-slate-700" />
-                      <CarFront className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
-                      <MapPin className="absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <div className="relative hidden h-12 w-24 shrink-0 overflow-hidden rounded-[999px] bg-[rgba(255,255,255,0.06)] md:block">
+                      <div className="absolute inset-x-3 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-[rgba(255,255,255,0.12)]" />
+                      <CarFront className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                      <MapPin className="absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-faint)]" />
                     </div>
                   </div>
 
                   {isMicroJobRole ? (
-                    <div className="mt-4 rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 text-sm leading-6 text-[var(--text-muted)] dark:bg-slate-950">
+                    <div className="mt-4 rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] px-4 py-4 text-sm leading-6 text-[var(--text-muted)] backdrop-blur-xl">
                       {copy.financialNoteBody}
                     </div>
                   ) : !userProfile.isLoggedIn ? (
-                    <div className="mt-4 rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950">
+                    <div className="mt-4 rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] px-4 py-4 backdrop-blur-xl">
                       <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.loginPrompt}</p>
                       <button
                         type="button"
                         onClick={onRequireAuth}
-                        className="mt-4 inline-flex items-center gap-2 rounded-[6px] bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="app-button-primary mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
                         {copy.signInCreate}
                       </button>
                     </div>
                   ) : (!userProfile.address && !userProfile.coordinates && !remoteRole) ? (
-                    <div className="mt-4 rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-4 dark:bg-slate-950">
+                    <div className="mt-4 rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] px-4 py-4 backdrop-blur-xl">
                       <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.addressPrompt}</p>
                       <button
                         type="button"
                         onClick={onOpenProfile}
-                        className="mt-4 inline-flex items-center gap-2 rounded-[6px] border border-[var(--border-subtle)] bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+                        className="app-button-dock mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
                         {copy.openProfile}
                       </button>
@@ -622,10 +665,10 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     <>
                       <div className="mt-4 grid grid-cols-2 gap-2">
                         <div className={cn(
-                          'rounded-[6px] border px-3 py-3',
+                          'rounded-[16px] border px-3 py-3 shadow-none',
                           commuteAnalysis && Number(commuteAnalysis.financialReality.finalRealMonthlyValue || 0) > 0
-                            ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
-                            : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                            ? aiToneStyles.soft
+                            : aiToneStyles.soft
                         )}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.takeHome}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
@@ -633,12 +676,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                           </div>
                         </div>
                         <div className={cn(
-                          'rounded-[6px] border px-3 py-3',
+                          'rounded-[16px] border px-3 py-3 shadow-none',
                           remoteRole || ((commuteAnalysis?.timeMinutes || 0) * 2) <= 90
-                            ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                            ? aiToneStyles.soft
                             : ((commuteAnalysis?.timeMinutes || 0) * 2) >= 180
-                              ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
-                              : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                              ? aiToneStyles.soft
+                              : aiToneStyles.soft
                         )}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.commuteTime}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
@@ -646,12 +689,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                           </div>
                         </div>
                         <div className={cn(
-                          'rounded-[6px] border px-3 py-3',
+                          'rounded-[16px] border px-3 py-3 shadow-none',
                           remoteRole || Number(commuteAnalysis?.financialReality.commuteCost || 0) <= 3000
-                            ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                            ? aiToneStyles.soft
                             : Number(commuteAnalysis?.financialReality.commuteCost || 0) >= 10000
-                              ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
-                              : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                              ? aiToneStyles.soft
+                              : aiToneStyles.soft
                         )}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.commuteCost}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
@@ -659,10 +702,10 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                           </div>
                         </div>
                         <div className={cn(
-                          'rounded-[6px] border px-3 py-3',
+                          'rounded-[16px] border px-3 py-3 shadow-none',
                           Number(commuteAnalysis?.jhiImpact || 0) >= 0
-                            ? 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
-                            : 'border-[var(--border-subtle)] bg-white dark:bg-slate-950'
+                            ? aiToneStyles.soft
+                            : aiToneStyles.soft
                         )}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.jhiImpact}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
@@ -672,7 +715,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       </div>
 
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-3.5 py-3.5 dark:bg-slate-950">
+                        <div className={cn('rounded-[18px] border px-3.5 py-3.5', aiToneStyles.soft)}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.realValue}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
                             {commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary}
@@ -690,7 +733,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                             {copy.benefitsReserve}
                           </div>
                         </div>
-                        <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-3.5 py-3.5 dark:bg-slate-950">
+                        <div className={cn('rounded-[18px] border px-3.5 py-3.5', aiToneStyles.soft)}>
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.commuteTime}</div>
                           <div className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
                             {remoteRole ? '0 min' : commuteAnalysis ? `${commuteAnalysis.timeMinutes * 2} min` : '—'}
@@ -709,7 +752,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       </div>
 
                       {bullshitAnalysis.signals.length > 0 ? (
-                        <div className="mt-3 rounded-[6px] border border-rose-200 bg-rose-50/70 px-3.5 py-3.5 dark:border-rose-900/60 dark:bg-rose-950/20">
+                        <div className="mt-3 rounded-[18px] border border-rose-200 bg-rose-50/70 px-3.5 py-3.5 dark:border-rose-900/60 dark:bg-rose-950/20">
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">
                             {copy.bullshitTitle}
                           </div>
@@ -747,7 +790,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       ) : null}
 
                       {bullshitAnalysis.greenFlags.length > 0 ? (
-                        <div className="mt-3 rounded-[6px] border border-emerald-200 bg-emerald-50/70 px-3.5 py-3.5 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                        <div className="mt-3 rounded-[18px] border border-emerald-200 bg-emerald-50/70 px-3.5 py-3.5 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
                             {copy.greenTitle}
                           </div>
@@ -773,15 +816,10 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   )}
                 </div>
 
-                <div className={cn(
-                  'rounded-[6px] border bg-white p-4 shadow-none dark:bg-slate-950',
-                  matchScore > 0
-                    ? 'border-[var(--border-subtle)]'
-                    : 'border-[var(--border-subtle)]'
-                )}>
+                <div className={cn('rounded-[22px] border p-4 shadow-none backdrop-blur-sm', aiToneStyles.soft)}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.compatibility}</div>
+                      <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', aiToneStyles.label)}>{copy.compatibility}</div>
                       <div className="mt-1.5 text-3xl font-semibold tracking-[-0.05em] text-[var(--text-strong)]">
                         {Math.round(job.jhi?.score || 0)}/100
                       </div>
@@ -789,12 +827,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     <div className={cn(
                       'rounded-[999px] px-3 py-1.5 text-xs font-bold ring-1 ring-inset',
                       matchScore > 0
-                        ? 'bg-white text-slate-700 ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700'
+                        ? aiToneStyles.chip
                         : commuteAnalysis
                         ? (commuteAnalysis.jhiImpact >= 0
-                          ? 'bg-white text-slate-700 ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700'
-                          : 'bg-white text-slate-700 ring-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:ring-slate-700')
-                        : 'bg-white text-[var(--text-muted)] ring-[var(--border-subtle)] dark:bg-slate-950'
+                          ? aiToneStyles.chip
+                          : aiToneStyles.chip)
+                        : aiToneStyles.chip
                     )}>
                       {matchScore > 0
                         ? `${matchScore}% ${copy.match}`
@@ -802,19 +840,19 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="mt-3 rounded-[6px] border border-[var(--border-subtle)] bg-white p-2.5 dark:bg-slate-950">
-                    <JHIChart jhi={job.jhi} theme={isDarkTheme ? 'dark' : 'light'} compact />
+                  <div className={cn('mt-3 rounded-[18px] border p-2.5', aiToneStyles.soft, 'bg-[#0b1220]/66')}>
+                    <JHIChart jhi={job.jhi} theme="dark" accent={aiToneStyles.chartAccent} compact />
                   </div>
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {jhiDimensions.map((dimension) => (
-                      <div key={dimension.key} className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-3 py-3 shadow-none dark:bg-slate-950">
+                      <div key={dimension.key} className={cn('rounded-[16px] border px-3 py-3 shadow-none', aiToneStyles.soft)}>
                         <div className="text-xs font-medium text-[var(--text-muted)]">{dimension.label}</div>
                         <div className="mt-1 flex items-end justify-between gap-3">
                           <span className="text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{Math.round(dimension.value)}/100</span>
-                          <span className="h-2.5 w-20 overflow-hidden rounded-[999px] bg-slate-200 dark:bg-white/8">
+                          <span className="h-2.5 w-20 overflow-hidden rounded-[999px] bg-[rgba(255,255,255,0.08)]">
                             <span
-                              className="block h-full rounded-[999px] bg-slate-900 dark:bg-slate-200"
+                              className={cn('block h-full rounded-[999px]', aiToneStyles.bar)}
                               style={{ width: `${Math.max(8, Math.min(100, Math.round(dimension.value)))}%` }}
                             />
                           </span>
@@ -830,7 +868,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

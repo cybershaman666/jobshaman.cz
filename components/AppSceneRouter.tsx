@@ -492,7 +492,6 @@ export default function AppSceneRouter({
                                 hasMore={hasMore}
                                 currentPage={currentPage}
                                 pageSize={pageSize}
-                                theme={theme}
                                 loadMoreJobs={onLoadMoreJobs}
                                 goToPage={onGoToJobsPage}
                                 filterMinSalary={filterMinSalary}

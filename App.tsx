@@ -84,11 +84,12 @@ const CompanyRegistrationModal = lazy(() => import('./components/CompanyRegistra
 const ApplicationModal = lazy(() => import('./components/ApplicationModal'));
 const PremiumUpgradeModal = lazy(() => import('./components/PremiumUpgradeModal'));
 
-type CandidateOnboardingStepKey = 'location' | 'preferences' | 'cv' | 'done';
+type CandidateOnboardingStepKey = 'entry' | 'location' | 'preferences' | 'cv' | 'done';
 
 // JHI and formatting utilities now imported from utils/
 
 export default function App() {
+    const ONBOARDING_ENABLED = false;
     const { t, i18n } = useTranslation();
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
     const getSystemTheme = () => {
@@ -343,6 +344,19 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        if (!ONBOARDING_ENABLED) {
+            onboardingDismissedRef.current = true;
+            postAuthCandidateOnboardingRef.current = null;
+            setCandidateOnboardingInitialStepOverride(null);
+            if (showCandidateOnboarding) {
+                setShowCandidateOnboarding(false);
+            }
+            if (isOnboardingCompany) {
+                setIsOnboardingCompany(false);
+            }
+            return;
+        }
+
         if (!userProfile.isLoggedIn) {
             onboardingDismissedRef.current = false;
             postAuthCandidateOnboardingRef.current = null;
@@ -362,12 +376,13 @@ export default function App() {
         }
 
         const activationState = deriveActivationState(userProfile);
+        const onboardingComplete = Boolean(activationState.onboarding_completed_at);
         const needsCoreOnboarding =
             !activationState.location_verified ||
             !activationState.cv_ready ||
             activationState.skills_confirmed_count < 3 ||
             !activationState.preferences_ready;
-        const shouldShow = needsCoreOnboarding && !onboardingDismissedRef.current;
+        const shouldShow = (!onboardingComplete || needsCoreOnboarding) && !onboardingDismissedRef.current;
 
         if (shouldShow) {
             setShowCandidateOnboarding(true);
@@ -378,18 +393,22 @@ export default function App() {
         if (postAuthCandidateOnboardingRef.current) {
             const requestedStep = postAuthCandidateOnboardingRef.current;
             const resolvedStep: CandidateOnboardingStepKey =
-                requestedStep === 'location' && !activationState.location_verified
+                requestedStep === 'entry'
+                    ? 'entry'
+                    : requestedStep === 'location' && !activationState.location_verified
                     ? 'location'
                     : requestedStep === 'preferences' && !activationState.preferences_ready
                         ? 'preferences'
-                        : requestedStep === 'cv' && !activationState.cv_ready
-                            ? 'cv'
-                            : !activationState.location_verified
+                            : requestedStep === 'cv' && !activationState.cv_ready
+                                ? 'cv'
+                                : !activationState.onboarding_completed_at
+                                    ? 'entry'
+                                    : !activationState.location_verified
                                 ? 'location'
                                 : activationState.skills_confirmed_count < 3 || !activationState.preferences_ready
                                     ? 'preferences'
-                                    : !activationState.cv_ready
-                                        ? 'cv'
+                                        : !activationState.cv_ready
+                                            ? 'cv'
                                         : 'done';
 
             onboardingDismissedRef.current = false;
@@ -398,6 +417,8 @@ export default function App() {
             postAuthCandidateOnboardingRef.current = null;
         }
     }, [
+        ONBOARDING_ENABLED,
+        isOnboardingCompany,
         userProfile.isLoggedIn,
         userProfile.role,
         userProfile,
@@ -461,7 +482,7 @@ export default function App() {
         [userProfile]
     );
     const activationNextStep = useMemo(
-        () => getNextActivationStep(candidateActivationState) || 'location',
+        () => getNextActivationStep(candidateActivationState) || 'entry',
         [candidateActivationState]
     );
     const activationMilestonesRef = useRef<Set<string>>(new Set());
@@ -470,6 +491,9 @@ export default function App() {
         if (!userProfile.isLoggedIn || userProfile.role === 'recruiter' || !userProfile.id) return;
         const current = userProfile.preferences?.activation_v1 || null;
         const sameState = current
+            && current.onboarding_started_at === candidateActivationState.onboarding_started_at
+            && current.onboarding_completed_at === candidateActivationState.onboarding_completed_at
+            && current.profile_nudge_completed_at === candidateActivationState.profile_nudge_completed_at
             && current.location_verified === candidateActivationState.location_verified
             && current.cv_ready === candidateActivationState.cv_ready
             && current.skills_confirmed_count === candidateActivationState.skills_confirmed_count
@@ -490,6 +514,7 @@ export default function App() {
     useEffect(() => {
         if (!userProfile.isLoggedIn || userProfile.role === 'recruiter') return;
         const reached = [
+            ['A0', Boolean(candidateActivationState.onboarding_completed_at)],
             ['A1', candidateActivationState.location_verified],
             ['A2', candidateActivationState.cv_ready],
             ['A3', candidateActivationState.skills_confirmed_count >= 3],
@@ -526,10 +551,12 @@ export default function App() {
         if (!userProfile.isLoggedIn || userProfile.role === 'recruiter' || !userProfile.id) return;
         if (viewState !== ViewState.PROFILE) return;
         if (isActivationComplete(candidateActivationState)) return;
+        const isMissingOnboarding = !candidateActivationState.onboarding_completed_at;
         const isMissingA3 = candidateActivationState.skills_confirmed_count < 3;
-        const nudgeKey = `jobshaman_activation_nudge_at:${userProfile.id}:${isMissingA3 ? 'A3' : 'A5'}`;
+        const nudgeStep = isMissingOnboarding ? 'A0' : isMissingA3 ? 'A3' : 'A5';
+        const nudgeKey = `jobshaman_activation_nudge_at:${userProfile.id}:${nudgeStep}`;
         const now = Date.now();
-        const cooldownMs = isMissingA3 ? 24 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000;
+        const cooldownMs = isMissingOnboarding || isMissingA3 ? 24 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000;
         try {
             const last = Number(localStorage.getItem(nudgeKey) || '0');
             if (Number.isFinite(last) && last > 0 && now - last < cooldownMs) return;
@@ -544,7 +571,7 @@ export default function App() {
             metadata: {
                 source: 'activation_rail',
                 next_step: activationNextStep,
-                nudge_type: isMissingA3 ? 'missing_A3' : 'missing_A5',
+                nudge_type: isMissingOnboarding ? 'missing_A0' : isMissingA3 ? 'missing_A3' : 'missing_A5',
             },
         });
     }, [activationNextStep, candidateActivationState, userProfile.id, userProfile.isLoggedIn, userProfile.role, viewState]);
@@ -1669,7 +1696,7 @@ export default function App() {
             theme={theme}
             themeMode={themeMode}
             setThemeMode={setThemeMode}
-            setIsOnboardingCompany={setIsOnboardingCompany}
+            setIsOnboardingCompany={ONBOARDING_ENABLED ? setIsOnboardingCompany : () => {}}
             onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
             discoveryLane={discoveryLane}
             setDiscoveryLane={setDiscoveryLane}
@@ -1682,13 +1709,6 @@ export default function App() {
             filterCity={filterCity}
             setFilterCity={setFilterCity}
             performSearch={performSearch}
-            remoteOnly={challengeRemoteOnly}
-            setRemoteOnly={setChallengeRemoteOnly}
-            enableCommuteFilter={enableCommuteFilter}
-            setEnableCommuteFilter={setEnableCommuteFilter}
-            filterMaxDistance={filterMaxDistance}
-            filterMinSalary={filterMinSalary}
-            setFilterMinSalary={setFilterMinSalary}
             onOpenDiscoverySearch={() => {
                 userIntentionallyClickedListRef.current = true;
                 setDiscoverySearchMode(true);
@@ -1820,7 +1840,7 @@ export default function App() {
                 onSetShowCompanyLanding={setShowCompanyLanding}
                 onSetCompanyRegistrationOpen={setIsCompanyRegistrationOpen}
                 onSetApplyModalOpen={setIsApplyModalOpen}
-                onSetShowCandidateOnboarding={setShowCandidateOnboarding}
+                onSetShowCandidateOnboarding={ONBOARDING_ENABLED ? setShowCandidateOnboarding : () => {}}
                 onOpenAuth={handleAuthAction}
                 onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
                 onHandleCompanyPageSelect={handleCompanyPageSelect}
@@ -1868,14 +1888,18 @@ export default function App() {
 
     const overlayNodes = (
         <>
+            {ONBOARDING_ENABLED ? (
             <Suspense fallback={null}>
                 <CandidateOnboardingModal
                     isOpen={showCandidateOnboarding}
                     profile={userProfile}
+                    jobs={jobsForDisplay}
                     initialStep={
                         candidateOnboardingInitialStepOverride
                         || (
-                            activationNextStep === 'skills'
+                            activationNextStep === 'onboarding'
+                                ? 'entry'
+                                : activationNextStep === 'skills'
                                 ? 'preferences'
                                 : activationNextStep === 'quality_action'
                                     ? 'done'
@@ -1932,6 +1956,7 @@ export default function App() {
                     onRefreshProfile={refreshUserProfile}
                 />
             </Suspense>
+            ) : null}
 
             <ApplyFollowupModal
                 isOpen={showApplyFollowup}
@@ -1967,7 +1992,7 @@ export default function App() {
                         clearPasswordRecoveryPending();
                         setAuthModalMode('login');
                         if (successMode === 'register') {
-                            postAuthCandidateOnboardingRef.current = 'location';
+                            postAuthCandidateOnboardingRef.current = 'entry';
                             onboardingDismissedRef.current = false;
                             setSelectedJobId(null);
                             setSelectedBlogPostSlug(null);
@@ -1989,8 +2014,7 @@ export default function App() {
                     }}
                 />
             </Suspense>
-
-            {isOnboardingCompany && userProfile.id && (
+            {ONBOARDING_ENABLED && isOnboardingCompany && userProfile.id && (
                 <CompanyOnboarding
                     userId={userProfile.id}
                     onComplete={handleCompanyOnboardingComplete}
@@ -2014,7 +2038,6 @@ export default function App() {
 
             {showCookieBanner && (
                 <CookieBanner
-                    theme={theme}
                     onAccept={handleCookieAccept}
                     onCustomize={handleCookieCustomize}
                 />
@@ -2033,7 +2056,6 @@ export default function App() {
     return (
         <AppViewportShell
             isImmersive={isImmersiveAssessmentRoute}
-            theme={theme}
             usePageScrollLayout={usePageScrollLayout || isStandaloneRoute}
             header={headerNode}
             banner={isStandaloneRoute ? null : bannerNode}

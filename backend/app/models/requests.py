@@ -52,6 +52,12 @@ class AIExecuteRequest(BaseModel):
     action: str = Field(..., min_length=1, max_length=64)
     params: Optional[dict] = None
 
+
+class CandidateOnboardingEvaluateRequest(BaseModel):
+    scenario_id: Literal["product_dropoff", "broken_process", "signal_analysis", "team_handoff"]
+    answer: str = Field(..., min_length=40, max_length=12000)
+    locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
+
 class AssessmentInvitationRequest(BaseModel):
     assessment_id: str
     candidate_email: str

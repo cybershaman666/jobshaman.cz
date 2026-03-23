@@ -85,7 +85,7 @@ export const CareerPathLine: React.FC<CareerPathLineProps> = ({
     <svg
       viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
       preserveAspectRatio="none"
-      className={`solarpunk-career-path-svg ${className}`}
+      className={className}
       role="presentation"
       aria-hidden="true"
     >
@@ -110,8 +110,9 @@ export const CareerPathLine: React.FC<CareerPathLineProps> = ({
       {/* Main path line with glow */}
       <path
         d={generatePath}
-        className="solarpunk-path-stroke"
         filter="url(#pathGlow)"
+        stroke="url(#pathGradient)"
+        fill="none"
         strokeOpacity="0.6"
         strokeWidth="1.5"
       />

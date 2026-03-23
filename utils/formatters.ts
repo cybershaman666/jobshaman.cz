@@ -1224,6 +1224,15 @@ export const formatJobDescription = (description: string): string => {
         return pieces.length ? pieces : [text];
     };
 
+    const shouldRenderInlineListAsBullets = (parsed: ParsedInlineList): boolean => {
+        const items = parsed.items.map((item) => item.trim()).filter(Boolean);
+        if (items.length < 2) return false;
+        const shortItems = items.filter((item) => item.length <= 90 && item.split(/\s+/).filter(Boolean).length <= 10).length;
+        const sentenceLikeItems = items.filter((item) => /[.!?]$/.test(item) || item.length > 120).length;
+        const introLooksNarrative = Boolean(parsed.intro && (parsed.intro.length > 120 || /[.!?]$/.test(parsed.intro)));
+        return shortItems >= Math.ceil(items.length * 0.7) && sentenceLikeItems === 0 && !introLooksNarrative;
+    };
+
     const pushParagraph = (chunk: string[]) => {
         if (!chunk.length) return;
         if (output.length > 0) output.push('');
@@ -1254,11 +1263,16 @@ export const formatJobDescription = (description: string): string => {
             const shortCount = texts.filter(isShortToken).length;
             const sentenceCount = texts.filter(looksLikeSentence).length;
             const requirementLikeCount = texts.filter(looksLikeRequirementLine).length;
-            const hasList =
-                isListHeading(header) ||
+            const headingSuggestsList = isListHeading(header);
+            const strongListSignal =
                 bulletCount >= 2 ||
                 requirementLikeCount >= Math.ceil(texts.length * 0.5) ||
                 (texts.length >= 4 && shortCount >= Math.ceil(texts.length * 0.6) && sentenceCount === 0);
+            const weakListSignal =
+                bulletCount >= 1 ||
+                requirementLikeCount >= 2 ||
+                (texts.length >= 3 && shortCount >= Math.ceil(texts.length * 0.6) && sentenceCount <= 1);
+            const hasList = strongListSignal || (headingSuggestsList && weakListSignal);
             const isTagCloud = isTagHeading(header) || (texts.length >= 8 && shortCount >= Math.ceil(texts.length * 0.7) && sentenceCount === 0);
             if (output.length > 0) output.push('');
             // Format as markdown heading (### ) instead of bold to properly render as headings
@@ -1316,7 +1330,7 @@ export const formatJobDescription = (description: string): string => {
         }
         const paragraphText = paragraph.join(' ');
         const inlineParagraph = parseInlineList(paragraphText);
-        if (inlineParagraph) {
+        if (inlineParagraph && shouldRenderInlineListAsBullets(inlineParagraph)) {
             if (inlineParagraph.intro) {
                 pushParagraph([inlineParagraph.intro]);
             }

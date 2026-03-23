@@ -6,22 +6,36 @@ import JHIMethodologyTooltip from './JHIMethodologyTooltip';
 interface JHIChartProps {
   jhi: JHI;
   theme?: 'light' | 'dark';
+  accent?: 'cyan' | 'green' | 'amber' | 'red';
   highlightGrowth?: boolean; // Highlight "Růst" axis when courses are available
   compact?: boolean;
 }
 
-const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrowth = false, compact = false }) => {
+const JHIChart: React.FC<JHIChartProps> = ({
+  jhi,
+  theme = 'light',
+  accent = 'cyan',
+  highlightGrowth = false,
+  compact = false
+}) => {
   const { t } = useTranslation();
   const isDark = theme === 'dark';
+  const accentPalette = {
+    cyan: { stroke: '#67e8f9', fill: '#22d3ee', highlight: '#67e8f9' },
+    green: { stroke: '#4ade80', fill: '#22c55e', highlight: '#86efac' },
+    amber: { stroke: '#fbbf24', fill: '#f59e0b', highlight: '#fcd34d' },
+    red: { stroke: '#f87171', fill: '#ef4444', highlight: '#fca5a5' },
+  }[accent];
 
   const colors = {
-    grid: isDark ? '#334155' : '#cbd5e1',
-    text: isDark ? '#cbd5e1' : '#334155',
-    textHalo: isDark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.9)',
-    stroke: isDark ? '#22d3ee' : '#0f766e',
-    fill: isDark ? '#06b6d4' : '#14b8a6',
+    grid: isDark ? 'rgba(148,163,184,0.18)' : '#cbd5e1',
+    text: isDark ? 'rgba(226,232,240,0.88)' : '#334155',
+    textHalo: isDark ? 'rgba(2,6,23,0.28)' : 'rgba(255,255,255,0.9)',
+    stroke: isDark ? accentPalette.stroke : '#0f766e',
+    fill: isDark ? accentPalette.fill : '#14b8a6',
     tooltipBg: '#1e293b',
-    tooltipText: '#f8fafc'
+    tooltipText: '#f8fafc',
+    highlight: accentPalette.highlight,
   };
 
   const data = [
@@ -41,7 +55,7 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
       <text
         x={x}
         y={y}
-        fill={isHighlighted ? '#22d3ee' : colors.text}
+        fill={isHighlighted ? colors.highlight : colors.text}
         stroke={colors.textHalo}
         strokeWidth={compact ? 3 : 2}
         paintOrder="stroke"
@@ -62,7 +76,7 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius={compact ? '70%' : '70%'} data={data}>
-          <PolarGrid stroke={colors.grid} strokeOpacity={compact ? 0.9 : 0.7} />
+          <PolarGrid stroke={colors.grid} strokeOpacity={isDark ? (compact ? 0.75 : 0.55) : compact ? 0.9 : 0.7} />
           <PolarAngleAxis
             dataKey="subject"
             tick={<CustomTick />}
@@ -74,7 +88,7 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
             stroke={colors.stroke}
             strokeWidth={compact ? 2.5 : 2}
             fill={colors.fill}
-            fillOpacity={isDark ? (compact ? 0.4 : 0.3) : (compact ? 0.5 : 0.4)}
+            fillOpacity={isDark ? (compact ? 0.22 : 0.18) : (compact ? 0.5 : 0.4)}
           />
           <Tooltip
             contentStyle={{

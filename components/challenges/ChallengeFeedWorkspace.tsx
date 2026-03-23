@@ -6,8 +6,8 @@ import { getMainDatabaseJobCount } from '../../services/jobService';
 import ChallengeEditorialFeed from './ChallengeEditorialFeed';
 import MiniChallengesRail from './MiniChallengesRail';
 import MobileSwipeJobBrowser from '../MobileSwipeJobBrowser';
-import { FilterChip, SurfaceCard } from '../ui/primitives';
-import { Database, MapPin, Sparkles, Users } from 'lucide-react';
+import { Button, FilterChip, MetricTile, SectionPanel, SurfaceCard } from '../ui/primitives';
+import { MapPin, Sparkles } from 'lucide-react';
 
 interface ChallengeFeedWorkspaceProps {
   jobs: Job[];
@@ -84,6 +84,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   const showAuthPrompt = isMobileViewport && !userProfile.isLoggedIn;
   const showAddressPrompt = isMobileViewport && userProfile.isLoggedIn && !hasAddress;
   const useCompactSearchLayout = searchDiagnostics?.search_mode === 'manual_query';
+  const shouldUseCompactEditorialLayout = !isMobileViewport || useCompactSearchLayout;
   React.useEffect(() => {
     let cancelled = false;
 
@@ -166,63 +167,133 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
     () => new Intl.NumberFormat(activeLocale).format(liveCandidatesNow),
     [activeLocale, liveCandidatesNow]
   );
+  const mobileSupportPanel = showAuthPrompt ? (
+    <SurfaceCard className="space-y-3" variant="spatial" tone="muted">
+      <div className="app-eyebrow w-fit">
+        <Sparkles size={12} />
+        {copy.aiTitle}
+      </div>
+      <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.authBody}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="hero" onClick={() => onOpenAuth('register')}>
+          <Sparkles size={15} />
+          {copy.authCta}
+        </Button>
+        <Button variant="quiet" onClick={() => setMobileMode('swipe')}>
+          {copy.later}
+        </Button>
+      </div>
+    </SurfaceCard>
+  ) : showAddressPrompt ? (
+    <SurfaceCard className="space-y-3" variant="spatial" tone="muted">
+      <div className="app-eyebrow w-fit">
+        <MapPin size={12} />
+        {copy.addressTitle}
+      </div>
+      <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.addressBody}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="hero" onClick={onOpenProfile}>
+          {copy.addressCta}
+        </Button>
+        <Button variant="quiet" onClick={() => setMobileMode('swipe')}>
+          {copy.later}
+        </Button>
+      </div>
+    </SurfaceCard>
+  ) : (
+    <SurfaceCard className="space-y-3" variant="spatial">
+      <div className="app-eyebrow w-fit">
+        <Sparkles size={12} />
+        {copy.aiTitle}
+      </div>
+      <p className="text-sm leading-6 text-[var(--text-muted)]">
+        {copy.postLead}{' '}
+        <button type="button" onClick={onOpenProfile} className="font-semibold text-[var(--accent)] hover:text-[var(--text-strong)]">
+          {copy.profile}
+        </button>{' '}
+        {copy.postTail}
+      </p>
+    </SurfaceCard>
+  );
+  const paginationPanel = hasMore || totalCount > jobs.length ? (
+    <SectionPanel className="space-y-3" variant="dock">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm leading-6 text-[var(--text-muted)]">
+          {`${Math.min(jobs.length, totalCount)} / ${Math.max(totalCount, jobs.length)}`}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="quiet"
+            disabled={currentPage === 0}
+            onClick={() => goToPage(Math.max(0, currentPage - 1))}
+          >
+            {t('workspace.feed.previous_page', { defaultValue: 'Předchozí' })}
+          </Button>
+          <Button
+            variant="hero"
+            disabled={loadingMore || !hasMore}
+            onClick={loadMoreJobs}
+          >
+            {loadingMore
+              ? t('workspace.feed.loading_more', { defaultValue: 'Načítám další nabídky…' })
+              : t('workspace.feed.load_more', { defaultValue: 'Načíst další nabídky' })}
+          </Button>
+          <Button
+            variant="quiet"
+            disabled={!hasMore}
+            onClick={() => goToPage(currentPage + 1)}
+          >
+            {t('workspace.feed.next_page', { defaultValue: 'Další stránka' })}
+          </Button>
+        </div>
+      </div>
+      <div className="mt-2 text-xs text-[var(--text-faint)]">
+        {t('workspace.feed.page_status', {
+          defaultValue: `Strana ${currentPage + 1}, velikost dávky ${pageSize}`,
+          page: currentPage + 1,
+          pageSize,
+        })}
+      </div>
+    </SectionPanel>
+  ) : null;
+
+  const statsPanel = (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <MetricTile
+        label={t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
+        value={formattedJobsCount}
+        helper={t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
+        tone="muted"
+        className="h-full border-[rgba(16,32,51,0.08)] bg-[rgba(255,255,255,0.82)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(10,17,25,0.66)]"
+      />
+      <MetricTile
+        label={t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
+        value={(
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(var(--accent-rgb),0.14)] animate-pulse" />
+            <span>{formattedActiveCandidates}</span>
+          </div>
+        )}
+        helper={t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
+        tone="accent"
+        className="h-full border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(255,255,255,0.84)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:bg-[rgba(9,19,28,0.72)]"
+      />
+    </div>
+  );
 
   return (
-    <div className="space-y-6 lg:space-y-7">
+    <div className="space-y-5 lg:space-y-6">
       {isMobileViewport ? (
         <div className="space-y-4 lg:hidden">
-          <SurfaceCard className="space-y-4 rounded-[18px] border-[var(--border)] bg-white shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)] dark:border-[rgba(255,255,255,0.08)] dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1.5">
-                <div className="app-eyebrow w-fit">
-                  <Sparkles size={12} />
-                  {copy.swipeTitle}
-                </div>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.swipeBody}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip active={mobileMode === 'swipe'} onClick={() => setMobileMode('swipe')}>
-                  {copy.swipe}
-                </FilterChip>
-                <FilterChip active={mobileMode === 'feed'} onClick={() => setMobileMode('feed')}>
-                  {copy.feed}
-                </FilterChip>
-              </div>
-            </div>
-
-            {showAuthPrompt ? (
-              <div className="flex flex-col gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
-                <p className="text-sm leading-6 text-[var(--text)]">{copy.authBody}</p>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" className="app-button-primary app-organic-cta" onClick={() => onOpenAuth('register')}>
-                    <Sparkles size={15} />
-                    {copy.authCta}
-                  </button>
-                  <button type="button" className="app-button-secondary" onClick={() => setMobileMode('swipe')}>
-                    {copy.later}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {showAddressPrompt ? (
-              <div className="flex flex-col gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-strong)]">
-                  <MapPin size={16} className="text-[var(--accent)]" />
-                  {copy.addressTitle}
-                </div>
-                <p className="text-sm leading-6 text-[var(--text)]">{copy.addressBody}</p>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" className="app-button-primary app-organic-cta" onClick={onOpenProfile}>
-                    {copy.addressCta}
-                  </button>
-                  <button type="button" className="app-button-secondary" onClick={() => setMobileMode('swipe')}>
-                    {copy.later}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </SurfaceCard>
+          {statsPanel}
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={mobileMode === 'swipe'} onClick={() => setMobileMode('swipe')}>
+              {copy.swipe}
+            </FilterChip>
+            <FilterChip active={mobileMode === 'feed'} onClick={() => setMobileMode('feed')}>
+              {copy.feed}
+            </FilterChip>
+          </div>
 
           {mobileMode === 'swipe' ? (
             <MobileSwipeJobBrowser
@@ -239,7 +310,6 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
               isLoading={false}
               hasMore={hasMore}
               onLoadMore={loadMoreJobs}
-              theme="light"
               fullscreen={true}
             />
           ) : null}
@@ -247,137 +317,87 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
       ) : null}
 
       <div className={isMobileViewport && mobileMode === 'swipe' ? 'hidden lg:block' : ''}>
-        <SurfaceCard className="mb-5 rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <div className="app-eyebrow w-fit">
-                <Sparkles size={12} />
-                {copy.aiTitle}
-              </div>
-              <p className="max-w-2xl text-sm leading-6 text-[var(--text-muted)]">{copy.aiBody}</p>
+        {isMobileViewport ? (
+          <div className="space-y-4">
+            <div className="space-y-4">
+              <ChallengeEditorialFeed
+                jobs={jobs}
+                loading={isLoadingJobs}
+                selectedJobId={selectedJobId}
+                savedJobIds={savedJobIds}
+                locale={activeLocale}
+                compactLayout={shouldUseCompactEditorialLayout}
+                onSelect={(jobId: string) => handleJobSelect(jobId)}
+                onOpen={(jobId: string) => handleJobSelect(jobId)}
+                onToggleSave={(jobId: string) => handleToggleSave(jobId)}
+              />
             </div>
-            <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-[29rem]">
-              <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.2)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                      {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
-                    </div>
-                    <div className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                      {formattedJobsCount}
-                    </div>
-                    <p className="text-xs leading-5 text-[var(--text-muted)]">
-                      {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
-                    </p>
-                  </div>
-                  <div className="rounded-[12px] bg-white/80 p-2 text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:bg-white/10">
-                    <Database size={18} />
-                  </div>
-                </div>
-              </div>
 
-              <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.2)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                      {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.16)] animate-pulse" />
-                      <div className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                        {formattedActiveCandidates}
-                      </div>
-                    </div>
-                    <p className="text-xs leading-5 text-[var(--text-muted)]">
-                      {t('workspace.feed.stats_live_body', { defaultValue: 'Odhad uchazečů, kteří si právě prohlížejí výzvy.' })}
-                    </p>
-                  </div>
-                  <div className="rounded-[12px] bg-white/80 p-2 text-emerald-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:bg-white/10">
-                    <Users size={18} />
-                  </div>
+            {mobileMode === 'feed' ? mobileSupportPanel : null}
+            {paginationPanel}
+
+            <MiniChallengesRail
+              jobs={jobs}
+              onOpen={(jobId) => handleJobSelect(jobId)}
+              onSelect={(jobId) => handleJobSelect(jobId)}
+              selectedJobId={selectedJobId}
+              locale={activeLocale}
+              onCreateTask={onCreateMiniChallenge}
+              hidePostBtn={true}
+              postInfo={
+                <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
+                  {copy.postLead}{' '}
+                  <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
+                    {copy.profile}
+                  </button>{' '}
+                  {copy.postTail}
                 </div>
-              </div>
-            </div>
+              }
+            />
           </div>
-        </SurfaceCard>
-
-        <div className="relative rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 lg:p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.12)]">
-          <ChallengeEditorialFeed
-            jobs={jobs}
-            loading={isLoadingJobs}
-            selectedJobId={selectedJobId}
-            savedJobIds={savedJobIds}
-            locale={activeLocale}
-            compactLayout={useCompactSearchLayout}
-            onSelect={(jobId: string) => handleJobSelect(jobId)}
-            onOpen={(jobId: string) => handleJobSelect(jobId)}
-            onToggleSave={(jobId: string) => handleToggleSave(jobId)}
-          />
-        </div>
-
-        {hasMore || totalCount > jobs.length ? (
-          <SurfaceCard className="rounded-[18px] border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm leading-6 text-[var(--text-muted)]">
-                {`${Math.min(jobs.length, totalCount)} / ${Math.max(totalCount, jobs.length)}`}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="app-button-secondary"
-                  disabled={currentPage === 0}
-                  onClick={() => goToPage(Math.max(0, currentPage - 1))}
-                >
-                  {t('workspace.feed.previous_page', { defaultValue: 'Předchozí' })}
-                </button>
-                <button
-                  type="button"
-                  className="app-button-primary app-organic-cta"
-                  disabled={loadingMore || !hasMore}
-                  onClick={loadMoreJobs}
-                >
-                  {loadingMore
-                    ? t('workspace.feed.loading_more', { defaultValue: 'Načítám další nabídky…' })
-                    : t('workspace.feed.load_more', { defaultValue: 'Načíst další nabídky' })}
-                </button>
-                <button
-                  type="button"
-                  className="app-button-secondary"
-                  disabled={!hasMore}
-                  onClick={() => goToPage(currentPage + 1)}
-                >
-                  {t('workspace.feed.next_page', { defaultValue: 'Další stránka' })}
-                </button>
-              </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] xl:items-start">
+              {statsPanel}
+              {mobileSupportPanel}
             </div>
-            <div className="mt-2 text-xs text-[var(--text-faint)]">
-              {t('workspace.feed.page_status', {
-                defaultValue: `Strana ${currentPage + 1}, velikost dávky ${pageSize}`,
-                page: currentPage + 1,
-                pageSize,
-              })}
-            </div>
-          </SurfaceCard>
-        ) : null}
 
-        <MiniChallengesRail
-          jobs={jobs}
-          onOpen={(jobId) => handleJobSelect(jobId)}
-          onSelect={(jobId) => handleJobSelect(jobId)}
-          selectedJobId={selectedJobId}
-          locale={activeLocale}
-          onCreateTask={onCreateMiniChallenge}
-          hidePostBtn={true}
-          postInfo={
-            <div className="max-w-[160px] text-[10px] leading-tight text-slate-500 dark:text-slate-400">
-              {copy.postLead}{' '}
-              <button onClick={onOpenProfile} className="text-teal-600 hover:underline">
-                {copy.profile}
-              </button>{' '}
-              {copy.postTail}
+            <div className="space-y-4">
+              <ChallengeEditorialFeed
+                jobs={jobs}
+                loading={isLoadingJobs}
+                selectedJobId={selectedJobId}
+                savedJobIds={savedJobIds}
+                locale={activeLocale}
+                compactLayout={shouldUseCompactEditorialLayout}
+                onSelect={(jobId: string) => handleJobSelect(jobId)}
+                onOpen={(jobId: string) => handleJobSelect(jobId)}
+                onToggleSave={(jobId: string) => handleToggleSave(jobId)}
+              />
             </div>
-          }
-        />
+
+            {paginationPanel}
+
+            <MiniChallengesRail
+              jobs={jobs}
+              onOpen={(jobId) => handleJobSelect(jobId)}
+              onSelect={(jobId) => handleJobSelect(jobId)}
+              selectedJobId={selectedJobId}
+              locale={activeLocale}
+              onCreateTask={onCreateMiniChallenge}
+              hidePostBtn={true}
+              postInfo={
+                <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
+                  {copy.postLead}{' '}
+                  <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
+                    {copy.profile}
+                  </button>{' '}
+                  {copy.postTail}
+                </div>
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );

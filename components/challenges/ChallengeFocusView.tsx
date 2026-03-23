@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import Markdown from 'markdown-to-jsx';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -13,6 +12,7 @@ import { fetchJobHumanContext } from '../../services/jobService';
 import { formatJobDescription } from '../../utils/formatters';
 import { CommuteAnalysis, Job, JobHumanContext, MicroJobCollaborationMode, MicroJobLongTermPotential, SalaryBenchmarkResolved, UserProfile } from '../../types';
 import ChallengeComposer from './ChallengeComposer';
+import FormattedJobDescription from './FormattedJobDescription';
 import { MetricTile, PageHeader, SurfaceCard } from '../ui/primitives';
 import {
   ChallengeFinancialSection,
@@ -24,11 +24,26 @@ import {
 import { getChallengeFocusCopy, getMicroJobCopy } from './challengeDetailCopy';
 
 const DetailFact: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-3 py-2.5 dark:bg-slate-950">
+  <div className="app-data-tile rounded-[var(--radius-panel)] px-3 py-3">
     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{label}</div>
-    <div className="mt-1 text-sm font-medium text-[var(--text-strong)]">{value}</div>
+    <div className="app-data-value mt-1 text-sm font-medium text-[var(--text-strong)]">{value}</div>
   </div>
 );
+
+const SignalMeter: React.FC<{ label: string; value: number }> = ({ label, value }) => {
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-medium text-[var(--text-muted)]">{label}</div>
+        <div className="app-data-value text-xs font-semibold text-[var(--text-strong)]">{clamped}/100</div>
+      </div>
+      <div className="app-signal-track h-2">
+        <div className="app-signal-fill h-full" style={{ width: `${clamped}%` }} />
+      </div>
+    </div>
+  );
+};
 
 interface ChallengeFocusViewProps {
   job: Job;
@@ -170,6 +185,10 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
 
   const copy = getChallengeFocusCopy(language, isImported);
   const microJobCopy = getMicroJobCopy(language);
+  const rawListingLabels = {
+    open: language === 'cs' ? 'Ukázat celý syrový text inzerátu' : language === 'sk' ? 'Ukázať celý surový text inzerátu' : language === 'de' || language === 'at' ? 'Kompletten Rohtext anzeigen' : language === 'pl' ? 'Pokaż pełny surowy tekst ogłoszenia' : 'Show full raw listing text',
+    close: language === 'cs' ? 'Skrýt celý syrový text' : language === 'sk' ? 'Skryť celý surový text' : language === 'de' || language === 'at' ? 'Rohtext ausblenden' : language === 'pl' ? 'Ukryj pełny surowy tekst' : 'Hide full raw text',
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -410,6 +429,60 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
     </div>
   );
 
+  const companyIntelCard = !isImported ? (
+    <SurfaceCard className="space-y-5" variant="quiet">
+      <SectionTitle title={copy.company} />
+      <div className="space-y-4">
+        <NarrativeCard title={copy.companySignal} body={companySignal} />
+        {humanContextSection}
+        {!isMicroJobRole ? (
+          <div className="space-y-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
+            <div className="flex flex-wrap items-start gap-2">
+              {benefitChips.length > 0 ? (
+                benefitChips.map((benefit) => (
+                  <span
+                    key={benefit}
+                    title={benefit}
+                    className="max-w-full rounded-full border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs font-medium text-[var(--text-muted)]"
+                  >
+                    <span className="block max-w-[280px] truncate">{benefit}</span>
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-[var(--text-faint)]">—</span>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </SurfaceCard>
+  ) : null;
+
+  const originalListingCard = (
+    <SurfaceCard className="space-y-5" variant="quiet">
+      <SectionTitle title={copy.originalListing} />
+      <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
+      <FormattedJobDescription
+        text={formattedDescription}
+        fallback={copy.noDescription}
+        maxSections={4}
+        maxParagraphLength={260}
+        maxListItems={4}
+      />
+      <details className="group rounded-[var(--radius-panel)] border border-[var(--border-subtle)] bg-[var(--surface-soft)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-[var(--text-strong)]">
+          <span className="group-open:hidden">{rawListingLabels.open}</span>
+          <span className="hidden group-open:inline">{rawListingLabels.close}</span>
+          <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
+        </summary>
+        <div className="border-t border-[var(--border-subtle)] px-4 py-4">
+          <FormattedJobDescription text={formattedDescription} fallback={copy.noDescription} />
+        </div>
+      </details>
+    </SurfaceCard>
+  );
+
   return (
     <div className="mx-auto w-full max-w-[1720px] space-y-5 pb-8">
       <button type="button" onClick={onBack} className="app-button-secondary !px-3.5 !py-2.5">
@@ -421,8 +494,8 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         eyebrow={isMicroJobRole ? `${microJobCopy.badge} • ${copy.eyebrow}` : copy.eyebrow}
         title={job.title}
         body={isImported ? copy.importedRealityBody : copy.body}
-        className="rounded-[8px] bg-white shadow-none dark:bg-slate-950"
-        variant="default"
+        className="overflow-hidden"
+        variant="immersive"
         actions={
           <div className="hidden gap-2 md:grid md:grid-cols-2 xl:grid-cols-4">
             <DetailFact label={copy.fit} value={`${Math.round(job.jhi?.score || 0)}/100`} />
@@ -434,11 +507,11 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
       >
         {isImported ? (
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
-            <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-5 py-4 dark:bg-slate-950">
+            <div className="app-data-tile px-5 py-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedRealityTitle}</div>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{importedHeroLead}</p>
             </div>
-            <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-5 py-4 dark:bg-slate-950">
+            <div className="app-data-tile px-5 py-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedHandshakeHintTitle}</div>
               <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{copy.importedHandshakeHintBody}</p>
               {job.url ? (
@@ -451,7 +524,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
           </div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-            <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-5 py-4 dark:bg-slate-950">
+            <div className="app-data-tile px-5 py-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                 {humanContext?.publisher ? copy.publisherLabel : copy.decision}
               </div>
@@ -459,7 +532,7 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
                 {humanContext?.publisher?.short_context || nativeHeroLead}
               </p>
             </div>
-            <div className="rounded-[6px] border border-[var(--border-subtle)] bg-white px-5 py-4 dark:bg-slate-950">
+            <div className="app-data-tile px-5 py-4">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                 {humanContext?.publisher ? humanContext.publisher.display_name : copy.company}
               </div>
@@ -471,51 +544,54 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
         )}
       </PageHeader>
 
-      {!isImported ? (
-      <div className="grid gap-4">
-        <>
-          <SurfaceCard className="space-y-4 rounded-[8px] bg-white shadow-none dark:bg-slate-950">
-            <SectionTitle title={copy.quickInsights} />
-            <div className="grid gap-2 sm:grid-cols-2">
-              {mobilePrimaryInsights.map((item, index) => (
-                <DetailFact key={`${item.label}-${index}`} label={item.label} value={item.value} />
-              ))}
+      <SurfaceCard className="space-y-5" variant="frost">
+        <SectionTitle title={copy.quickInsights} />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {mobilePrimaryInsights.map((item, index) => (
+            <MetricTile
+              key={`${item.label}-${index}`}
+              label={item.label}
+              value={item.value}
+              tone={item.tone || 'default'}
+            />
+          ))}
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+          <div className="grid gap-3 md:grid-cols-2">
+            {mobileSecondaryInsights.map((item, index) => (
+              <MetricTile key={`${item.label}-secondary-${index}`} label={item.label} value={item.value} />
+            ))}
+          </div>
+          <div className="app-data-tile rounded-[var(--radius-surface)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.jhiTopSignals}</div>
+              <div className="app-data-value text-sm font-semibold text-[var(--text-strong)]">{Math.round(job.jhi?.score || 0)}/100</div>
             </div>
-            <div className="grid gap-2">
-              {mobileSecondaryInsights.map((item, index) => (
-                <DetailFact key={`${item.label}-secondary-${index}`} label={item.label} value={item.value} />
-              ))}
+            <div className="mt-4 space-y-3">
+              {jhiDimensions.length > 0 ? (
+                jhiDimensions.map((dimension) => (
+                  <SignalMeter key={dimension.key} label={dimension.label} value={dimension.value} />
+                ))
+              ) : (
+                <SignalMeter label={copy.fit} value={Number(job.jhi?.score || 0)} />
+              )}
             </div>
-          </SurfaceCard>
+          </div>
+        </div>
+      </SurfaceCard>
 
-          <ChallengeRealityActions
-            copy={{
-              reality: copy.reality,
-              openCompany: copy.openCompany,
-              openContext: copy.openContext,
-              openListing: copy.openListing,
-            }}
-            job={job}
-            onOpenCompanyPage={onOpenCompanyPage}
-            onOpenSupportingContext={onOpenSupportingContext}
-            onOpenImportedListing={onOpenImportedListing}
-          />
-        </>
-      </div>
-      ) : null}
-
-      <div className="grid gap-5 xl:grid-cols-1">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
-          <SurfaceCard className="space-y-5">
+          <SurfaceCard className="space-y-5" variant="quiet">
             <SectionTitle title={isImported ? copy.importedDecision : copy.decision} />
             {isImported ? (
-              <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-strong:text-[var(--text-strong)]">
-                {formattedDescription ? (
-                  <Markdown>{formattedDescription}</Markdown>
-                ) : (
-                  <p className="text-sm text-[var(--text-muted)]">{copy.noDescription}</p>
-                )}
-              </div>
+              <FormattedJobDescription
+                text={formattedDescription}
+                fallback={copy.noDescription}
+                maxSections={4}
+                maxParagraphLength={260}
+                maxListItems={4}
+              />
             ) : (
               <div className="space-y-5">
                 <div className="space-y-3">
@@ -531,9 +607,9 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
                 </div>
 
                 {showFirstContactGuide ? (
-                  <SurfaceCard className="space-y-4 rounded-[8px] border-[var(--border-subtle)] bg-white shadow-none dark:bg-slate-950">
+                  <SurfaceCard className="space-y-4 border-[var(--border-subtle)]" variant="frost">
                     <div className="space-y-2">
-                      <div className="app-eyebrow w-fit bg-[var(--surface)] text-[var(--text-faint)] border-[var(--border-subtle)]">
+                      <div className="app-eyebrow w-fit border-[var(--border-subtle)] bg-[var(--surface-soft)] text-[var(--text-faint)]">
                         <Sparkles size={12} />
                         {copy.firstContactGuideTitle}
                       </div>
@@ -568,103 +644,25 @@ const ChallengeFocusView: React.FC<ChallengeFocusViewProps> = ({
             )}
           </SurfaceCard>
 
-          {!isImported ? (
-            <>
-          {financialSection}
-
-          {isImported ? renderImportedDecisionRail() : null}
-
-              <SurfaceCard className="hidden space-y-5 rounded-[8px] bg-white shadow-none md:block dark:bg-slate-950">
-                <SectionTitle title={copy.company} />
-                <div className="space-y-4">
-                  <NarrativeCard title={copy.companySignal} body={companySignal} />
-                  {humanContextSection}
-                  {!isMicroJobRole ? (
-                    <div className="space-y-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
-                      <div className="flex flex-wrap items-start gap-2">
-                      {benefitChips.length > 0 ? (
-                        benefitChips.map((benefit) => (
-                          <span
-                            key={benefit}
-                            title={benefit}
-                            className="max-w-full rounded-[999px] border border-[var(--border-subtle)] bg-white px-3 py-1 text-xs font-medium text-[var(--text-muted)] dark:bg-slate-950"
-                          >
-                            <span className="block max-w-[280px] truncate">{benefit}</span>
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-[var(--text-faint)]">—</span>
-                      )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </SurfaceCard>
-
-              <details className="group rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 shadow-none md:hidden dark:bg-slate-950">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-strong)]">
-                  <span>{copy.moreCompany}</span>
-                  <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <NarrativeCard title={copy.companySignal} body={companySignal} />
-                  {humanContextSection}
-                  {!isMicroJobRole ? (
-                    <div className="space-y-3">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefitsList}</div>
-                      <div className="flex flex-wrap items-start gap-2">
-                        {benefitChips.length > 0 ? (
-                          benefitChips.map((benefit) => (
-                            <span
-                              key={`mobile-${benefit}`}
-                              title={benefit}
-                              className="max-w-full rounded-[999px] border border-[var(--border-subtle)] bg-white px-3 py-1 text-xs font-medium text-[var(--text-muted)] dark:bg-slate-950"
-                            >
-                              <span className="block max-w-[280px] truncate">{benefit}</span>
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-sm text-[var(--text-faint)]">—</span>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </details>
-
-              <SurfaceCard className="hidden space-y-5 rounded-[8px] bg-white shadow-none md:block dark:bg-slate-950">
-                <SectionTitle title={copy.originalListing} />
-                <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
-                <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-strong:text-[var(--text-strong)]">
-                  {formattedDescription ? (
-                    <Markdown>{formattedDescription}</Markdown>
-                  ) : (
-                    <p className="text-sm text-[var(--text-muted)]">{copy.noDescription}</p>
-                  )}
-                </div>
-              </SurfaceCard>
-
-              <details className="group rounded-[6px] border border-[var(--border-subtle)] bg-white p-4 shadow-none md:hidden dark:bg-slate-950">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-strong)]">
-                  <span>{copy.moreOriginal}</span>
-                  <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <p className="text-sm leading-7 text-[var(--text-muted)]">{copy.originalBody}</p>
-                  <div className="prose prose-slate max-w-none prose-headings:tracking-[-0.03em] prose-headings:text-[var(--text-strong)] prose-p:text-[var(--text)] prose-li:text-[var(--text)] prose-strong:text-[var(--text-strong)] dark:prose-headings:text-[var(--text-strong)] dark:prose-strong:text-[var(--text-strong)]">
-                    {formattedDescription ? (
-                      <Markdown>{formattedDescription}</Markdown>
-                    ) : (
-                      <p className="text-sm text-[var(--text-muted)]">{copy.noDescription}</p>
-                    )}
-                  </div>
-                </div>
-              </details>
-            </>
-          ) : null}
+          {originalListingCard}
         </div>
 
+        <div className="space-y-5 xl:sticky xl:top-[calc(var(--app-toolbar-offset)+4px)] xl:self-start">
+          {isImported ? renderImportedDecisionRail() : financialSection}
+          {companyIntelCard}
+          <ChallengeRealityActions
+            copy={{
+              reality: copy.reality,
+              openCompany: copy.openCompany,
+              openContext: copy.openContext,
+              openListing: copy.openListing,
+            }}
+            job={job}
+            onOpenCompanyPage={onOpenCompanyPage}
+            onOpenSupportingContext={onOpenSupportingContext}
+            onOpenImportedListing={onOpenImportedListing}
+          />
+        </div>
       </div>
     </div>
   );

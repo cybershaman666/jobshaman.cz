@@ -6,12 +6,15 @@ type ActivationStep = CandidateActivationStateV1['last_prompted_step'];
 // but product-wise this now means "supporting context is ready".
 const MIN_SUPPORTING_TEXT_LENGTH = 180;
 const DEFAULT_COMPLETION_STATE: CandidateActivationStateV1 = {
+  onboarding_started_at: undefined,
+  onboarding_completed_at: undefined,
+  profile_nudge_completed_at: undefined,
   location_verified: false,
   cv_ready: false,
   skills_confirmed_count: 0,
   preferences_ready: false,
   completion_percent: 0,
-  last_prompted_step: 'location',
+  last_prompted_step: 'onboarding',
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -38,6 +41,7 @@ const resolvePreferencesReady = (profile: UserProfile): boolean => {
 };
 
 export const getNextActivationStep = (state: CandidateActivationStateV1): ActivationStep => {
+  if (!state.onboarding_completed_at) return 'onboarding';
   if (!state.location_verified) return 'location';
   if (state.skills_confirmed_count < 3) return 'skills';
   if (!state.preferences_ready) return 'preferences';
@@ -48,11 +52,13 @@ export const getNextActivationStep = (state: CandidateActivationStateV1): Activa
 
 export const deriveActivationState = (profile: UserProfile): CandidateActivationStateV1 => {
   const existing = getCurrentActivationState(profile);
+  const onboardingProgress = profile.preferences?.candidate_onboarding_v2;
   const locationVerified = Boolean(profile.coordinates || (profile.address || '').trim());
   const supportingContextReady = resolveSupportingContextReady(profile);
   const skillsConfirmedCount = resolveSkillsCount(profile);
   const preferencesReady = resolvePreferencesReady(profile);
   const completed = [
+    Boolean(onboardingProgress?.completed_at),
     locationVerified,
     supportingContextReady,
     skillsConfirmedCount >= 3,
@@ -61,14 +67,20 @@ export const deriveActivationState = (profile: UserProfile): CandidateActivation
   ].filter(Boolean).length;
 
   return {
+    onboarding_started_at: onboardingProgress?.started_at,
+    onboarding_completed_at: onboardingProgress?.completed_at,
+    profile_nudge_completed_at: onboardingProgress?.profile_nudge_completed_at,
     location_verified: locationVerified,
     cv_ready: supportingContextReady,
     skills_confirmed_count: skillsConfirmedCount,
     preferences_ready: preferencesReady,
     first_quality_action_at: existing.first_quality_action_at,
-    completion_percent: clamp(Math.round((completed / 5) * 100), 0, 100),
+    completion_percent: clamp(Math.round((completed / 6) * 100), 0, 100),
     last_prompted_step: getNextActivationStep({
       ...existing,
+      onboarding_started_at: onboardingProgress?.started_at,
+      onboarding_completed_at: onboardingProgress?.completed_at,
+      profile_nudge_completed_at: onboardingProgress?.profile_nudge_completed_at,
       location_verified: locationVerified,
       cv_ready: supportingContextReady,
       skills_confirmed_count: skillsConfirmedCount,

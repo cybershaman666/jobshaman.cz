@@ -1,3 +1,83 @@
+import { jest } from '@jest/globals';
+
+jest.mock('../shared/candidate_intent_taxonomy.json', () => ({
+  default: {
+    version: 'candidate-intent-v1',
+    domains: {
+      product_management: {
+        labels: { cs: 'Product management', sk: 'Product management', en: 'Product management', de: 'Produktmanagement', pl: 'Product management' },
+        keywords: ['product manager', 'product owner', 'prototype', 'systems design'],
+        related: ['operations', 'marketing', 'customer_support', 'sales'],
+      },
+      hospitality: {
+        labels: { cs: 'Gastro a hospitality', sk: 'Gastro a hospitality', en: 'Hospitality', de: 'Hotellerie & Gastro', pl: 'Hospitality i gastro' },
+        keywords: ['hotel', 'reception', 'housekeeping', 'guest', 'hospitality', 'recepcni', 'waiter', 'cisnik'],
+        related: ['operations', 'customer_support', 'retail'],
+      },
+      customer_support: {
+        labels: { cs: 'Zákaznická péče', sk: 'Zákaznícka podpora', en: 'Customer support', de: 'Kundenservice', pl: 'Obsługa klienta' },
+        keywords: ['customer support', 'support specialist', 'helpdesk', 'customer success'],
+        related: ['sales', 'operations', 'hospitality', 'retail'],
+      },
+      operations: {
+        labels: { cs: 'Provoz a operations', sk: 'Prevádzka a operations', en: 'Operations', de: 'Operations', pl: 'Operacje' },
+        keywords: ['operations', 'project manager', 'provoz', 'process manager', 'delivery lead', 'office manager'],
+        related: ['product_management', 'logistics', 'customer_support', 'sales'],
+      },
+      sales: {
+        labels: { cs: 'Obchod', sk: 'Obchod', en: 'Sales', de: 'Vertrieb', pl: 'Sprzedaż' },
+        keywords: ['sales', 'account executive', 'business development'],
+        related: ['marketing', 'customer_support', 'operations', 'retail'],
+      },
+      marketing: {
+        labels: { cs: 'Marketing', sk: 'Marketing', en: 'Marketing', de: 'Marketing', pl: 'Marketing' },
+        keywords: ['marketing', 'content', 'seo', 'campaign'],
+        related: ['sales', 'product_management', 'customer_support'],
+      },
+      finance: {
+        labels: { cs: 'Finance a účetnictví', sk: 'Financie a účtovníctvo', en: 'Finance & accounting', de: 'Finanzen & Buchhaltung', pl: 'Finanse i księgowość' },
+        keywords: ['finance', 'accountant', 'controller'],
+        related: ['operations', 'sales'],
+      },
+      it: {
+        labels: { cs: 'IT a software', sk: 'IT a software', en: 'IT & software', de: 'IT & Software', pl: 'IT i software' },
+        keywords: ['developer', 'engineer', 'software', 'backend', 'frontend', 'react', 'python', 'prototype', 'electronics', 'hardware'],
+        related: ['engineering', 'product_management', 'customer_support'],
+      },
+      engineering: {
+        labels: { cs: 'Technika a inženýring', sk: 'Technika a inžiniering', en: 'Engineering', de: 'Ingenieurwesen', pl: 'Inżynieria' },
+        keywords: ['engineer', 'mechanical', 'electrical', 'technik', 'automechanik', 'prototype', 'electronics', 'hardware', 'maker'],
+        related: ['manufacturing', 'it', 'operations'],
+      },
+      healthcare: {
+        labels: { cs: 'Zdravotnictví a péče', sk: 'Zdravotníctvo a starostlivosť', en: 'Healthcare & care', de: 'Gesundheit & Pflege', pl: 'Zdrowie i opieka' },
+        keywords: ['nurse', 'medical', 'healthcare', 'sestra', 'ambulance'],
+        related: ['education', 'hospitality'],
+      },
+      education: {
+        labels: { cs: 'Vzdělávání', sk: 'Vzdelávanie', en: 'Education', de: 'Bildung', pl: 'Edukacja' },
+        keywords: ['teacher', 'trainer', 'education', 'ucitel'],
+        related: ['healthcare', 'operations', 'customer_support'],
+      },
+      logistics: {
+        labels: { cs: 'Logistika a doprava', sk: 'Logistika a doprava', en: 'Logistics', de: 'Logistik', pl: 'Logistyka' },
+        keywords: ['logistics', 'warehouse', 'driver', 'ridic', 'sklad'],
+        related: ['operations', 'manufacturing', 'retail'],
+      },
+      manufacturing: {
+        labels: { cs: 'Výroba', sk: 'Výroba', en: 'Manufacturing', de: 'Produktion', pl: 'Produkcja' },
+        keywords: ['production', 'operator', 'assembly', 'manufacturing', 'vyroba'],
+        related: ['engineering', 'logistics', 'operations'],
+      },
+      retail: {
+        labels: { cs: 'Retail a provoz prodeje', sk: 'Retail a prevádzka predaja', en: 'Retail', de: 'Einzelhandel', pl: 'Retail' },
+        keywords: ['retail', 'store', 'cashier', 'shop assistant', 'prodejna', 'pokladni'],
+        related: ['sales', 'hospitality', 'customer_support', 'logistics'],
+      },
+    },
+  },
+}));
+
 import { annotateJobsForCandidate, computeCandidateAnnotations, sortJobsForDiscovery } from './candidateIntentService';
 import type { Job, UserProfile } from '../types';
 
@@ -42,7 +122,7 @@ const candidateProfile = {
   },
   jhiPreferences: {},
   taxProfile: { countryCode: 'CZ' },
-} as UserProfile;
+} as unknown as UserProfile;
 
 describe('candidate intent discovery helpers', () => {
   test('computeCandidateAnnotations preserves incoming order for manual modes', () => {
@@ -111,7 +191,7 @@ describe('candidate intent discovery helpers', () => {
           includeAdjacentDomains: true,
         },
       },
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const jobs = [
       baseJob({
@@ -150,7 +230,7 @@ describe('candidate intent discovery helpers', () => {
           includeAdjacentDomains: true,
         },
       },
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = computeCandidateAnnotations([
       baseJob({ id: 'near', title: 'Operations Specialist', location: 'Brno', description: 'Operations specialist role.' }),
@@ -174,7 +254,7 @@ describe('candidate intent discovery helpers', () => {
           includeAdjacentDomains: true,
         },
       },
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = annotateJobsForCandidate([
       baseJob({
@@ -217,7 +297,7 @@ describe('candidate intent discovery helpers', () => {
           avoidDomains: ['manufacturing', 'hospitality'],
         },
       },
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = annotateJobsForCandidate([
       baseJob({
@@ -253,7 +333,7 @@ describe('candidate intent discovery helpers', () => {
       },
       skills: ['product discovery', 'operations design', 'AI systems'],
       cvText: 'Senior product and operations background. No driving license details.',
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = annotateJobsForCandidate([
       baseJob({
@@ -290,7 +370,7 @@ describe('candidate intent discovery helpers', () => {
       },
       cvText: 'Senior product operations, AI systems architecture, roadmap ownership.',
       skills: ['product strategy', 'AI systems', 'operations design'],
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = annotateJobsForCandidate([
       baseJob({
@@ -331,7 +411,7 @@ describe('candidate intent discovery helpers', () => {
         },
       },
       cvText: 'Operations specialist with process orchestration and systems delivery background.',
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     const annotated = computeCandidateAnnotations([
       baseJob({
@@ -344,5 +424,53 @@ describe('candidate intent discovery helpers', () => {
     ], profile, 'cs');
 
     expect(annotated[0].matchReasons || []).not.toContain('Gastro a hospitality');
+  });
+
+  test('onboarding interest reveal can override stale history-first direction in discovery ranking', () => {
+    const profile = {
+      ...candidateProfile,
+      jobTitle: 'Hotel Receptionist',
+      preferences: {
+        ...candidateProfile.preferences,
+        searchProfile: {
+          includeAdjacentDomains: true,
+        },
+        candidate_onboarding_v2: {
+          completed_at: '2026-03-21T12:00:00.000Z',
+          interest_reveal: 'Technology, electronics, building prototypes, invention, systems design.',
+        },
+      },
+      story: '',
+      motivations: ['building prototypes', 'understanding systems'],
+      sideProjects: ['electronics prototype'],
+      skills: [],
+      workHistory: [
+        {
+          id: 'w1',
+          role: 'Receptionist',
+          company: 'Hotel',
+          duration: '2 years',
+          description: 'Front desk and guest support.',
+        },
+      ],
+    } as unknown as UserProfile;
+
+    const annotated = annotateJobsForCandidate([
+      baseJob({
+        id: 'hotel',
+        title: 'Recepční',
+        description: 'Front office, guest care, check-in and reservations.',
+        location: 'Brno',
+      }),
+      baseJob({
+        id: 'prototype',
+        title: 'Prototype Technician',
+        description: 'Prototype builds, electronics, hardware testing and systems iteration.',
+        location: 'Brno',
+      }),
+    ], profile, 'en');
+
+    expect(annotated[0].id).toBe('prototype');
+    expect((annotated[0].priorityScore || 0)).toBeGreaterThan(annotated[1].priorityScore || 0);
   });
 });
