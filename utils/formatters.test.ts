@@ -39,4 +39,25 @@ describe('formatJobDescription', () => {
     expect(output).not.toContain('\n- onboarding');
     expect(output).toContain('The role spans onboarding - activation - retention');
   });
+
+  it('cleans escaped markdown noise from imported listings', () => {
+    const input = [
+      '### **',
+      'Job Description',
+      '###',
+      '',
+      'Digital Marketer**',
+      'Working on joined\\-up campaigns and content.',
+      'Keywords:** Digital Marketing, Analytics, Content Strategy',
+    ].join('\n');
+
+    const output = formatJobDescription(input);
+
+    expect(output).toContain('### Job Description');
+    expect(output).toContain('Digital Marketer');
+    expect(output).toContain('joined-up campaigns');
+    expect(output).toContain('Keywords: Digital Marketing, Analytics, Content Strategy');
+    expect(output).not.toContain('### **');
+    expect(output).not.toContain('\\-');
+  });
 });

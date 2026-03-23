@@ -22,21 +22,32 @@ interface FormattedJobDescriptionProps {
 
 const normalizeLine = (value: string): string =>
   value
+    .replace(/\\([\\`*_{}\[\]()#+\-.!>~])/g, '$1')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/__(.*?)__/g, '$1')
-    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/__/g, '')
+    .replace(/`{1,3}([^`]+)`{1,3}/g, '$1')
     .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+    .replace(/\s*#{1,6}\s*$/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
     .trim();
 
+const isNoiseOnlyLine = (value: string): boolean => {
+  const normalized = normalizeLine(value);
+  if (!normalized) return true;
+  return /^[#*_`>|~\-\s]+$/.test(normalized);
+};
+
 const isHeadingLine = (line: string): boolean => {
-  const normalized = line.replace(/^#{1,6}\s*/, '').trim();
+  const normalized = normalizeLine(line.replace(/^#{1,6}\s*/, '').replace(/\s*#{1,6}\s*$/g, ''));
   if (!normalized) return false;
   if (/:\s*$/.test(line) && normalized.length <= 90) return true;
   return /^#{1,6}\s+/.test(line);
 };
 
 const getHeadingText = (line: string): string =>
-  normalizeLine(line.replace(/^#{1,6}\s*/, '').replace(/:\s*$/, ''));
+  normalizeLine(line.replace(/^#{1,6}\s*/, '').replace(/:\s*$/, '').replace(/\s*#{1,6}\s*$/g, ''));
 
 const getBulletText = (line: string): string => normalizeLine(line.replace(/^[-*]\s+/, ''));
 
@@ -51,6 +62,8 @@ export const parseFormattedJobDescriptionSections = (text: string): DescriptionS
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
+    .map((line) => normalizeLine(line))
+    .filter((line) => !isNoiseOnlyLine(line))
     .filter((line, index, arr) => line.length > 0 || (index > 0 && arr[index - 1].length > 0));
 
   const sections: DescriptionSection[] = [];

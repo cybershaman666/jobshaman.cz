@@ -1,6 +1,13 @@
 export const formatJobDescription = (description: string): string => {
     if (!description) return '';
 
+    const sanitizedDescription = description
+        .replace(/\\([\\`*_{}\[\]()#+\-.!>~])/g, '$1')
+        .replace(/\*\*/g, '')
+        .replace(/__/g, '')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n');
+
     const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const INLINE_HEADINGS = [
         'Nabízíme',
@@ -389,7 +396,7 @@ export const formatJobDescription = (description: string): string => {
         };
     };
 
-    const rawLines = description
+    const rawLines = sanitizedDescription
         // Repair common OCR/scrape issue: missing space after sentence punctuation.
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')

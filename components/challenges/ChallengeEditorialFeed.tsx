@@ -45,6 +45,19 @@ const getCompanyInitials = (companyName: string): string => {
   return parts.map((part) => part.charAt(0).toUpperCase()).join('');
 };
 
+const toSentence = (value: string): string => {
+  const trimmed = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!trimmed) return '';
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+};
+
+const truncateSentence = (value: string, maxLength = 88): string => {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  if (normalized.length <= maxLength) return toSentence(normalized);
+  return `${normalized.slice(0, maxLength).replace(/[,:;.\s]+$/, '')}…`;
+};
+
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
   const from = Number(job.salary_from || 0);
@@ -283,6 +296,94 @@ const decisionMakerTitle = (language: string): string => localeText(language, {
   pl: 'Sygnał decyzji',
   en: 'Decision signal',
 });
+
+const getWorkModeLabel = (job: Job, language: string): string => {
+  const raw = String(job.work_model || job.type || '').trim().toLowerCase();
+  if (raw.includes('remote')) return localeText(language, { cs: 'Remote', sk: 'Remote', de: 'Remote', pl: 'Remote', en: 'Remote' });
+  if (raw.includes('hybrid')) return localeText(language, { cs: 'Hybrid', sk: 'Hybrid', de: 'Hybrid', pl: 'Hybrid', en: 'Hybrid' });
+  if (raw.includes('on-site') || raw.includes('onsite')) {
+    return localeText(language, { cs: 'Na místě', sk: 'Na mieste', de: 'Vor Ort', pl: 'Na miejscu', en: 'On-site' });
+  }
+  return String(job.work_model || job.type || '').trim();
+};
+
+const isTemplatedFirstStep = (value: string): boolean => {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!normalized) return false;
+
+  return [
+    'jak bys v prvních dnech zjistil',
+    'jak by si v prvých dňoch zistil',
+    'how would you identify in the first days',
+    'wie würdest du in den ersten tagen herausfinden',
+    'jak w pierwszych dniach sprawdzisz',
+    'kde má role',
+    'where the role',
+  ].some((pattern) => normalized.includes(pattern));
+};
+
+const getMeaningHook = (job: Job, language: string): string => {
+  const goal = String(job.companyGoal || '').trim();
+  const firstStep = String(job.firstStepPrompt || '').trim();
+  const meaningfulFirstStep = !isTemplatedFirstStep(firstStep) ? firstStep : '';
+  const firstReason = String(job.aiMatchReasons?.[0] || job.matchReasons?.[0] || '').trim();
+  const challenge = String(job.challenge || '').trim();
+  const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
+  const salaryTop = Number(job.salary_to || job.salary_from || job.aiEstimatedSalary?.max || job.aiEstimatedSalary?.min || 0);
+  const remote = (() => {
+    try {
+      return isRemoteJob(job) || String(job.type || '').toLowerCase() === 'remote';
+    } catch {
+      return String(job.type || '').toLowerCase() === 'remote';
+    }
+  })();
+
+  if (goal) return truncateSentence(goal, 84);
+  if (firstReason) {
+    return localeText(language, {
+      cs: `Mohl by tě sem táhnout hlavně ${firstReason}.`,
+      sk: `Mohlo by ťa sem ťahať hlavne ${firstReason}.`,
+      de: `Hier könnte dich vor allem ${firstReason} hinziehen.`,
+      pl: `Może cię tu przyciągać głównie ${firstReason}.`,
+      en: `What could pull you here most is ${firstReason}.`,
+    });
+  }
+  if (challenge) return truncateSentence(challenge, 84);
+  if (meaningfulFirstStep) {
+    return localeText(language, {
+      cs: `Hned na začátku bys řešil: ${truncateSentence(meaningfulFirstStep, 68)}`,
+      sk: `Hneď na začiatku by si riešil: ${truncateSentence(meaningfulFirstStep, 68)}`,
+      de: `Direkt zum Start würdest du lösen: ${truncateSentence(meaningfulFirstStep, 68)}`,
+      pl: `Na starcie zajmiesz się: ${truncateSentence(meaningfulFirstStep, 68)}`,
+      en: `You would tackle this early on: ${truncateSentence(meaningfulFirstStep, 68)}`,
+    });
+  }
+  if (remote && jhiScore >= 70) {
+    return localeText(language, {
+      cs: 'Tohle může fungovat i v reálném dni, ne jen na papíře.',
+      sk: 'Toto môže fungovať aj v reálnom dni, nielen na papieri.',
+      de: 'Das könnte auch im Alltag funktionieren, nicht nur auf dem Papier.',
+      pl: 'To może działać także w codziennym życiu, nie tylko na papierze.',
+      en: 'This could work in real life, not just on paper.',
+    });
+  }
+  if (salaryTop >= 70000) {
+    return localeText(language, {
+      cs: 'Tohle není zajímavé jen titulkem, ale i finančně.',
+      sk: 'Toto nie je zaujímavé len titulkom, ale aj finančne.',
+      de: 'Das ist nicht nur vom Titel her interessant, sondern auch finanziell.',
+      pl: 'To jest ciekawe nie tylko z nazwy, ale też finansowo.',
+      en: 'This is not only interesting by title, but financially too.',
+    });
+  }
+  return localeText(language, {
+    cs: 'Tohle není jen další role. Má důvod, proč ji otevřít.',
+    sk: 'Toto nie je len ďalšia rola. Má dôvod, prečo ju otvoriť.',
+    de: 'Das ist nicht nur eine weitere Rolle. Es gibt einen Grund, sie zu öffnen.',
+    pl: 'To nie jest kolejna rola. Jest powód, żeby ją otworzyć.',
+    en: 'This is not just another role. There is a reason to open it.',
+  });
+};
 
 type FeedSection = {
   key: string;
@@ -574,6 +675,8 @@ const OfferCard: React.FC<{
     return tags.filter(Boolean).slice(0, 1);
   }, [isMicro, job, language]);
   const showFairListingBadge = bullshit.tone === 'clean' && bullshit.greenFlags.length > 0;
+  const meaningHook = useMemo(() => getMeaningHook(job, language), [job, language]);
+  const workModeLabel = useMemo(() => getWorkModeLabel(job, language), [job, language]);
   const quickSummary = useMemo(() => {
     const sourceText = String(job.challenge || firstStep || goal || '').replace(/\s+/g, ' ').trim();
     if (!sourceText) return '';
@@ -602,6 +705,10 @@ const OfferCard: React.FC<{
   const supportLabels = [externalSourceLabel, ...compactTags, qualityLabel]
     .filter((label): label is string => Boolean(label))
     .slice(0, 2);
+  const contextLine = [workModeLabel, String(job.location || '').trim()]
+    .filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index)
+    .slice(0, 2)
+    .join(' · ');
   const insightReasons = (isFeatureCard ? visibleWhyReasons : visibleWhyReasons.slice(0, 1))
     .map((reason) => reason.replace(/^✔\s*/, ''))
     .slice(0, isFeatureCard ? 2 : 1);
@@ -684,11 +791,11 @@ const OfferCard: React.FC<{
         <div className="absolute inset-0 bg-gradient-to-t from-black/26 via-black/8 to-transparent opacity-56 transition-opacity group-hover:opacity-42" />
         <div className="absolute left-3 top-3">
           {domainAccent ? (
-            <span className="inline-flex items-center rounded-md bg-[rgba(0,0,0,0.45)] px-2 py-1 text-[11px] font-medium text-[var(--text-strong)] backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-md border border-white/14 bg-[rgba(7,12,20,0.76)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_10px_22px_-14px_rgba(0,0,0,0.52)] backdrop-blur-md">
               {language === 'cs' || language === 'sk' ? domainAccent.label.cs : domainAccent.label.en}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-md bg-[rgba(0,0,0,0.45)] px-2 py-1 text-[11px] font-medium text-[var(--text-strong)] backdrop-blur-sm">
+            <span className="inline-flex items-center rounded-md border border-white/14 bg-[rgba(7,12,20,0.76)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_10px_22px_-14px_rgba(0,0,0,0.52)] backdrop-blur-md">
               {isImported
                 ? localeText(language, { cs: 'Import', sk: 'Import', de: 'Import', pl: 'Import', en: 'Import' })
                 : isMicro
@@ -740,9 +847,9 @@ const OfferCard: React.FC<{
                 ) : null}
               </div>
               <div className={cn('mt-1.5 break-words text-[1.08rem] font-semibold leading-[1.3] tracking-[-0.03em]', titleTextClass, variant === 'hero' && 'text-[1.26rem] sm:text-[1.4rem]', titleClamp)}>{job.title}</div>
-              {supportLine ? (
+              {contextLine ? (
                 <div className={cn('mt-2 text-[12px] leading-5', faintTextClass)}>
-                  {supportLine}
+                  {contextLine}
                 </div>
               ) : null}
               {isFeatureCard ? (
@@ -776,7 +883,15 @@ const OfferCard: React.FC<{
           </button>
         </div>
 
-        {quickSummary ? (
+        {meaningHook ? (
+          <div className="space-y-1">
+            <div className={cn('break-words overflow-hidden text-[13px] font-medium leading-[1.75] line-clamp-2', isFeatureCard ? 'text-cyan-50/92' : 'text-[var(--text-strong)]')}>
+              {meaningHook}
+            </div>
+          </div>
+        ) : null}
+
+        {!meaningHook && quickSummary ? (
           <div className="space-y-1">
             <div className={cn('break-words text-[13px] leading-[1.75] overflow-hidden', mutedTextClass, 'line-clamp-4')}>
               {quickSummary}
@@ -905,17 +1020,21 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
   const language = String(locale || 'en').split('-')[0].toLowerCase();
   const feedCopy = useMemo(() => ({
     empty: localeText(language, { cs: 'Teď tu nic rozumného neleží. Zkus povolit filtry nebo hrábnout jinam.', sk: 'Teraz tu nič rozumné neleží. Skús povoliť filtre alebo zájsť inam.', de: 'Gerade liegt hier nichts Brauchbares. Lockere die Filter oder geh anders ran.', pl: 'Na razie nie ma tu nic sensownego. Poluzuj filtry albo poszukaj inaczej.', en: 'Nothing solid here right now. Loosen the filters or search from another angle.' }),
-    heroTitle: localeText(language, { cs: '🔥 TADY BYCH ZAČAL', sk: '🔥 TU BY SOM ZAČAL', de: '🔥 HIER WÜRDE ICH STARTEN', pl: '🔥 TU BYM ZACZĄŁ', en: '🔥 START HERE' }),
-    heroSubtitle: localeText(language, { cs: 'Nejsilnější shoda hned na prvním scrollu.', sk: 'Najsilnejšia zhoda hneď na prvom skrolle.', de: 'Der stärkste Match direkt im ersten Scroll.', pl: 'Najmocniejsze dopasowanie już na pierwszym scrollu.', en: 'The strongest match on the first scroll.' }),
-    spotlightTitle: localeText(language, { cs: '⚡ STOJÍ ZA KLIK', sk: '⚡ STOJÍ ZA KLIK', de: '⚡ LOHNT DEN KLICK', pl: '⚡ WARTO KLIKNĄĆ', en: '⚡ WORTH THE CLICK' }),
-    spotlightSubtitle: localeText(language, { cs: 'Shoda, realita a dopad. Bez vatových řečí okolo.', sk: 'Zhoda, realita a dopad. Bez vatových rečí okolo.', de: 'Match, Realität und Wirkung. Ohne Floskeln drumherum.', pl: 'Dopasowanie, realia i efekt. Bez lania wody.', en: 'Match, reality, and impact. No fluffy filler.' }),
-    remoteTitle: localeText(language, { cs: '🏠 BEZ DOJÍŽDĚNÍ', sk: '🏠 BEZ DOCHÁDZANIA', de: '🏠 OHNE PENDELN', pl: '🏠 BEZ DOJAZDU', en: '🏠 NO COMMUTE' }),
-    fastTitle: localeText(language, { cs: '💬 TADY FAKT ODEPISUJÍ', sk: '💬 TU FAKT ODPISUJÚ', de: '💬 DIE ANTWORTEN WIRKLICH', pl: '💬 TU NAPRAWDĘ ODPISUJĄ', en: '💬 THEY REALLY REPLY' }),
+    heroTitle: localeText(language, { cs: 'Dnes by tě mohlo posunout', sk: 'Dnes by ťa mohlo posunúť', de: 'Heute könnte dich das weiterbringen', pl: 'Dziś może cię to popchnąć dalej', en: 'This could move you forward today' }),
+    heroSubtitle: localeText(language, { cs: '1 silná příležitost', sk: '1 silná príležitosť', de: '1 starke Gelegenheit', pl: '1 mocna okazja', en: '1 strong opportunity' }),
+    recommendationTitle: localeText(language, { cs: '🎯 DOPORUČENÍ', sk: '🎯 ODPORÚČANIA', de: '🎯 EMPFOHLEN', pl: '🎯 POLECANE', en: '🎯 RECOMMENDED' }),
+    recommendationSubtitle: localeText(language, { cs: 'Tady je druhá vlna věcí, které dávají nejsilnější smysl otevřít.', sk: 'Tu je druhá vlna vecí, ktoré dávajú najsilnejší zmysel otvoriť.', de: 'Hier kommt die zweite Welle von Dingen, die sich am ehesten zu öffnen lohnen.', pl: 'To druga fala rzeczy, które najbardziej warto otworzyć.', en: 'Here is the second wave of roles most worth opening.' }),
+    surpriseTitle: localeText(language, { cs: '🌱 MOŽNÁ TĚ PŘEKVAPÍ', sk: '🌱 MOŽNO ŤA PREKVAPÍ', de: '🌱 KÖNNTE DICH ÜBERRASCHEN', pl: '🌱 MOŻE CIĘ ZASKOCZYĆ', en: '🌱 MIGHT SURPRISE YOU' }),
+    surpriseSubtitle: localeText(language, { cs: 'Není to nejzřejmější match, ale něco na tom stojí za druhý pohled.', sk: 'Nie je to najzrejmejší match, ale niečo na tom stojí za druhý pohľad.', de: 'Nicht der offensichtlichste Match, aber etwas daran verdient einen zweiten Blick.', pl: 'To nie jest najbardziej oczywiste dopasowanie, ale coś tu zasługuje na drugi rzut oka.', en: 'Not the most obvious match, but something here deserves a second look.' }),
+    guidanceTitle: localeText(language, { cs: '🧭 SMĚROVÁNÍ', sk: '🧭 SMEROVANIE', de: '🧭 ORIENTIERUNG', pl: '🧭 KIERUNEK', en: '🧭 GUIDANCE' }),
+    guidanceSubtitle: localeText(language, { cs: 'Role, kde je jasnější co bys řešil, s kým a jak rychle se to může pohnout.', sk: 'Roly, kde je jasnejšie čo by si riešil, s kým a ako rýchlo sa to môže pohnúť.', de: 'Rollen, bei denen klarer ist, was du lösen würdest, mit wem und wie schnell es sich bewegt.', pl: 'Role, w których jaśniej widać, co będziesz robić, z kim i jak szybko to może ruszyć.', en: 'Roles where it is clearer what you would solve, with whom, and how fast it can move.' }),
+    classicTitle: localeText(language, { cs: '🧩 KLASICKÁ ROLE', sk: '🧩 KLASICKÁ ROLA', de: '🧩 KLASSISCHE ROLLE', pl: '🧩 KLASYCZNA ROLA', en: '🧩 CLASSIC ROLE' }),
+    classicSubtitle: localeText(language, { cs: 'Čistší nabídky bez extra wow momentu, ale pořád ve hře.', sk: 'Čistejšie ponuky bez extra wow momentu, ale stále v hre.', de: 'Sauberere Rollen ohne großen Wow-Moment, aber immer noch im Spiel.', pl: 'Czystsze oferty bez wielkiego wow, ale nadal w grze.', en: 'Cleaner roles without a big wow moment, but still in play.' }),
     remainingTitle: localeText(language, { cs: 'DALŠÍ VE HŘE', sk: 'ĎALŠIE V HRE', de: 'MEHR IM SPIEL', pl: 'KOLEJNE W GRZE', en: 'MORE IN PLAY' }),
-    remainingSubtitle: localeText(language, { cs: 'Zbytek feedu bez zbytečně chytrých škatulek.', sk: 'Zvyšok feedu bez zbytočne múdrych škatuliek.', de: 'Der Rest des Feeds ohne überkluge Schubladen.', pl: 'Reszta feedu bez przekombinowanych szufladek.', en: 'The rest of the feed without over-clever buckets.' }),
+    remainingSubtitle: localeText(language, { cs: 'Zbytek kompozice pro chvíli, kdy chceš procházet dál.', sk: 'Zvyšok kompozície pre chvíľu, keď chceš prechádzať ďalej.', de: 'Der Rest der Komposition für den Moment, in dem du weiterstöbern willst.', pl: 'Reszta kompozycji na moment, gdy chcesz przeglądać dalej.', en: 'The rest of the composition for when you want to keep browsing.' }),
   }), [language]);
 
-  const { sections, remaining, compactJobs } = useMemo(() => {
+  const { sections, remaining, compactJobs, heroJob } = useMemo(() => {
     const pool = Array.isArray(jobs) ? jobs.slice() : [];
     const sorted = compactLayout ? pool : sortJobsForDiscovery(pool);
     const used = new Set<string>();
@@ -935,93 +1054,136 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const isMicro = (job: Job) => job.challenge_format === 'micro_job';
     const standardSorted = sorted.filter((job) => !isMicro(job));
+    const heroCandidate = standardSorted.length
+      ? standardSorted
+        .slice()
+        .sort((left, right) => getFeatureScore(right) - getFeatureScore(left))[0]
+      : null;
+
+    if (heroCandidate?.id) {
+      used.add(heroCandidate.id);
+    }
 
     if (compactLayout) {
       return {
         sections: [] as FeedSection[],
         remaining: [] as Job[],
-        compactJobs: standardSorted,
+        compactJobs: standardSorted.filter((job) => job.id !== heroCandidate?.id),
+        heroJob: heroCandidate,
       };
     }
 
-    const spotlightCandidates = standardSorted
+    const recommendationCandidates = standardSorted
       .slice()
       .sort((a: any, b: any) => {
         const scoreA = Number(a.priorityScore || 0) + Number(a.jhi?.score || 0) + salaryAnchor(a) / 1000 - Number(a.distanceKm || 0) / 8;
         const scoreB = Number(b.priorityScore || 0) + Number(b.jhi?.score || 0) + salaryAnchor(b) / 1000 - Number(b.distanceKm || 0) / 8;
         return scoreB - scoreA;
       });
-    const spotlight: Job[] = [];
-    const hasImportedCandidates = spotlightCandidates.some((job) => isImportedListing(job));
-    spotlight.push(...take(spotlightCandidates.filter((job) => !isImportedListing(job)), hasImportedCandidates ? 2 : 3));
+    const recommendation: Job[] = [];
+    const hasImportedCandidates = recommendationCandidates.some((job) => isImportedListing(job));
+    recommendation.push(...take(recommendationCandidates.filter((job) => !isImportedListing(job)), hasImportedCandidates ? 2 : 3));
     if (hasImportedCandidates) {
-      spotlight.push(...take(spotlightCandidates.filter((job) => isImportedListing(job)), 1));
+      recommendation.push(...take(recommendationCandidates.filter((job) => isImportedListing(job)), 1));
     }
-    if (spotlight.length < 3) {
-      spotlight.push(...take(spotlightCandidates, 3 - spotlight.length));
+    if (recommendation.length < 3) {
+      recommendation.push(...take(recommendationCandidates, 3 - recommendation.length));
     }
 
-    const remoteCandidates = standardSorted
+    const surpriseCandidates = standardSorted
       .filter((job) => {
-        try {
-          return isRemoteJob(job) || String(job.type || '').toLowerCase() === 'remote';
-        } catch {
-          return String(job.type || '').toLowerCase() === 'remote';
-        }
+        const matchScore = clamp(Math.round(Number(job.aiMatchScore || 0)), 0, 100);
+        const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
+        return job.matchBucket === 'adjacent' || isImportedListing(job) || (matchScore < 62 && jhiScore >= 58);
       })
       .slice()
-      .sort((a, b: any) => Number(b.priorityScore || 0) - Number(a.priorityScore || 0));
-    const remote = take(remoteCandidates, 3);
+      .sort((a: any, b: any) => getFeatureScore(b) - getFeatureScore(a));
+    const surprise = take(surpriseCandidates, 3);
 
-    const fastCandidates = standardSorted
-      .map((job) => ({ job, hours: reactionWindowHours(job) }))
-      .filter((item) => item.hours !== null)
-      .sort((a, b: any) => Number(a.hours) - Number(b.hours))
-      .map((item) => item.job);
-    const fast = take(fastCandidates, 3);
+    const guidanceCandidates = standardSorted
+      .slice()
+      .sort((left, right) => {
+        const leftContext = (left.firstStepPrompt ? 2 : 0) + (left.companyGoal ? 2 : 0) + (reactionWindowHours(left) !== null ? 1 : 0);
+        const rightContext = (right.firstStepPrompt ? 2 : 0) + (right.companyGoal ? 2 : 0) + (reactionWindowHours(right) !== null ? 1 : 0);
+        if (rightContext !== leftContext) return rightContext - leftContext;
+        return getFeatureScore(right) - getFeatureScore(left);
+      });
+    const guidance = take(guidanceCandidates, 3);
+
+    const classicCandidates = standardSorted
+      .slice()
+      .sort((left, right) => {
+        const leftScore = Math.abs(clamp(Math.round(Number(left.aiMatchScore || left.jhi?.score || 0)), 0, 100) - 62);
+        const rightScore = Math.abs(clamp(Math.round(Number(right.aiMatchScore || right.jhi?.score || 0)), 0, 100) - 62);
+        if (leftScore !== rightScore) return leftScore - rightScore;
+        return getFeatureScore(right) - getFeatureScore(left);
+      });
+    const classic = take(classicCandidates, 4);
 
     const sectionsList: FeedSection[] = [];
 
-    if (spotlight.length) {
+    if (recommendation.length) {
       sectionsList.push({
-        key: 'spotlight',
-        title: { cs: feedCopy.spotlightTitle, en: feedCopy.spotlightTitle },
-        subtitle: { cs: feedCopy.spotlightSubtitle, en: feedCopy.spotlightSubtitle },
+        key: 'recommendation',
+        title: { cs: feedCopy.recommendationTitle, en: feedCopy.recommendationTitle },
+        subtitle: { cs: feedCopy.recommendationSubtitle, en: feedCopy.recommendationSubtitle },
         layout: 'grid_large',
         tone: 'match',
-        jobs: spotlight,
+        jobs: recommendation,
       });
     }
-    if (remote.length) {
+    if (surprise.length) {
       sectionsList.push({
-        key: 'remote',
-        title: { cs: feedCopy.remoteTitle, en: feedCopy.remoteTitle },
+        key: 'surprise',
+        title: { cs: feedCopy.surpriseTitle, en: feedCopy.surpriseTitle },
+        subtitle: { cs: feedCopy.surpriseSubtitle, en: feedCopy.surpriseSubtitle },
         layout: 'grid',
-        jobs: remote,
+        jobs: surprise,
       });
     }
-    if (fast.length) {
+    if (guidance.length) {
       sectionsList.push({
-        key: 'fast',
-        title: { cs: feedCopy.fastTitle, en: feedCopy.fastTitle },
+        key: 'guidance',
+        title: { cs: feedCopy.guidanceTitle, en: feedCopy.guidanceTitle },
+        subtitle: { cs: feedCopy.guidanceSubtitle, en: feedCopy.guidanceSubtitle },
         layout: 'grid',
-        jobs: fast,
+        jobs: guidance,
+      });
+    }
+    if (classic.length) {
+      sectionsList.push({
+        key: 'classic',
+        title: { cs: feedCopy.classicTitle, en: feedCopy.classicTitle },
+        subtitle: { cs: feedCopy.classicSubtitle, en: feedCopy.classicSubtitle },
+        layout: 'grid',
+        jobs: classic,
       });
     }
 
     const remainingJobs = sorted.filter((job) => job?.id && !used.has(job.id) && !isMicro(job));
-    return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[] };
-  }, [compactLayout, feedCopy.fastTitle, feedCopy.remoteTitle, feedCopy.spotlightSubtitle, feedCopy.spotlightTitle, jobs]);
+    return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[], heroJob: heroCandidate };
+  }, [
+    compactLayout,
+    feedCopy.classicSubtitle,
+    feedCopy.classicTitle,
+    feedCopy.guidanceSubtitle,
+    feedCopy.guidanceTitle,
+    feedCopy.recommendationSubtitle,
+    feedCopy.recommendationTitle,
+    feedCopy.surpriseSubtitle,
+    feedCopy.surpriseTitle,
+    jobs,
+  ]);
 
   const sectionHighlightIndexes = useMemo(() => {
     const indexes = new Map<string, number | null>();
 
     sections.forEach((section) => {
-      const preferredIndex = section.key === 'spotlight'
+      const preferredIndex = section.key === 'recommendation'
         ? 1
-        : section.key === 'remote'
+        : section.key === 'surprise'
           ? 0
-          : section.key === 'fast'
+          : section.key === 'guidance'
             ? Math.min(2, Math.max(0, section.jobs.length - 1))
             : 0;
 
@@ -1056,6 +1218,33 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     return (
       <div className="space-y-5">
+        {heroJob ? (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+              <div>
+                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                  {feedCopy.heroTitle}
+                </div>
+                <div className="mt-2 inline-flex items-center rounded-[999px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-strong)]">
+                  {feedCopy.heroSubtitle}
+                </div>
+              </div>
+            </div>
+            <OfferCard
+              key={heroJob.id}
+              job={heroJob}
+              selected={heroJob.id === selectedJobId}
+              saved={savedJobIds.includes(heroJob.id)}
+              language={language}
+              variant="hero"
+              contrast={true}
+              className="w-full"
+              onSelect={() => onSelect(heroJob.id)}
+              onOpen={() => onOpen(heroJob.id)}
+              onToggleSave={() => onToggleSave(heroJob.id)}
+            />
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
           {compactDisplayJobs.map((job, index, list) => (
             <OfferCard
@@ -1087,6 +1276,33 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
   return (
     <div className="space-y-10">
+      {heroJob ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+            <div>
+              <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                {feedCopy.heroTitle}
+              </div>
+              <div className="mt-2 inline-flex items-center rounded-[999px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-strong)]">
+                {feedCopy.heroSubtitle}
+              </div>
+            </div>
+          </div>
+          <OfferCard
+            key={heroJob.id}
+            job={heroJob}
+            selected={heroJob.id === selectedJobId}
+            saved={savedJobIds.includes(heroJob.id)}
+            language={language}
+            variant="hero"
+            contrast={true}
+            className="w-full"
+            onSelect={() => onSelect(heroJob.id)}
+            onOpen={() => onOpen(heroJob.id)}
+            onToggleSave={() => onToggleSave(heroJob.id)}
+          />
+        </div>
+      ) : null}
       {sections.map((section) => {
         const title = section.title.cs;
         const subtitle = section.subtitle ? section.subtitle.cs : undefined;
