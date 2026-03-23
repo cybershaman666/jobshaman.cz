@@ -198,8 +198,8 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     root.style.setProperty('--app-atmosphere-blur', '0');
     root.style.setProperty(
       '--app-atmosphere-overlay-light',
-      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.07), transparent 22%), radial-gradient(circle at 84% 12%, rgba(var(--accent-gold-rgb), 0.05), transparent 20%), linear-gradient(180deg, rgba(255,255,255,0.48), transparent 20%), linear-gradient(rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
-      );
+      'linear-gradient(180deg, rgba(255,255,255,0.62), transparent 22%), linear-gradient(rgba(16,32,51,0.038) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.038) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
+    );
     root.style.setProperty(
       '--app-atmosphere-overlay-dark',
       'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.08), transparent 22%), linear-gradient(180deg, rgba(6, 13, 20, 0.68) 0%, rgba(6, 13, 20, 0.82) 100%)'

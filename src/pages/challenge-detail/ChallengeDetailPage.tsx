@@ -118,7 +118,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     root.style.setProperty('--app-atmosphere-blur', '0');
     root.style.setProperty(
       '--app-atmosphere-overlay-light',
-      'radial-gradient(circle at 16% 10%, rgba(var(--accent-rgb), 0.07), transparent 22%), radial-gradient(circle at 84% 12%, rgba(var(--accent-gold-rgb), 0.05), transparent 20%), linear-gradient(180deg, rgba(255,255,255,0.48), transparent 20%), linear-gradient(rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.04) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
+      'linear-gradient(180deg, rgba(255,255,255,0.62), transparent 22%), linear-gradient(rgba(16,32,51,0.038) 1px, transparent 1px), linear-gradient(90deg, rgba(16,32,51,0.038) 1px, transparent 1px), linear-gradient(180deg, rgba(243,246,251,0.96) 0%, rgba(239,244,250,0.98) 100%)'
     );
     root.style.setProperty(
       '--app-atmosphere-overlay-dark',
@@ -278,7 +278,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
           bar: 'bg-cyan-300',
         };
   return (
-    <section className="app-shell-bg app-aurora-shell relative isolate min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden">
+    <section className="app-shell-bg app-shell-bg-clean relative isolate min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden">
       <div className="mx-auto w-full max-w-[1520px] space-y-5 px-3 py-4 pb-8 lg:px-4">
         <button
           type="button"
