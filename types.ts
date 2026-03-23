@@ -499,6 +499,7 @@ export interface CompanyProfile {
   tone: string; // e.g., "Professional but friendly", "Technical and dry"
   values: string[]; // e.g., ["Transparency", "Async-first"]
   philosophy: string; // Short mission statement
+  gallery_urls?: string[];
   ico?: string;
   dic?: string;
   address?: string;

@@ -22,6 +22,28 @@ const getMemberInitials = (member: RecruiterMember): string => {
     return parts.map((part) => part[0]?.toUpperCase() || '').join('');
 };
 
+const normalizeGalleryUrlsFromText = (value: string): string[] => {
+    const seen = new Set<string>();
+    return value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((line) => {
+            try {
+                const parsed = new URL(line);
+                const normalized = parsed.toString();
+                if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || seen.has(normalized)) {
+                    return false;
+                }
+                seen.add(normalized);
+                return true;
+            } catch {
+                return false;
+            }
+        })
+        .slice(0, 6);
+};
+
 const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDeleteAccount }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'dna' | 'team'>('dna');
@@ -33,6 +55,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [logoUploading, setLogoUploading] = useState(false);
+    const [galleryDraft, setGalleryDraft] = useState((profile.gallery_urls || []).join('\n'));
 
     // Team Management State
     const [inviteEmail, setInviteEmail] = useState('');
@@ -41,6 +64,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     useEffect(() => {
         setLocalProfile(profile);
         setMembers(profile.members || []);
+        setGalleryDraft((profile.gallery_urls || []).join('\n'));
     }, [profile]);
     const profileReadinessFields = [
         localProfile.name,
@@ -55,6 +79,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const filledProfileFields = profileReadinessFields.filter((value) => String(value || '').trim().length > 0).length;
     const profileReadinessPercent = Math.round((filledProfileFields / profileReadinessFields.length) * 100);
     const valuesCount = Array.isArray(localProfile.values) ? localProfile.values.length : 0;
+    const galleryUrls = normalizeGalleryUrlsFromText(galleryDraft);
     const summaryCards = [
         {
             id: 'profile',
@@ -99,13 +124,17 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            const nextGalleryUrls = normalizeGalleryUrlsFromText(galleryDraft);
+            const nextProfile = { ...localProfile, gallery_urls: nextGalleryUrls };
             if (profile.id) {
-                const updated = await updateCompanyProfile(profile.id, { ...localProfile, members });
+                const updated = await updateCompanyProfile(profile.id, { ...nextProfile, members });
                 setLocalProfile(updated);
+                setGalleryDraft((updated.gallery_urls || []).join('\n'));
                 setMembers(updated.members || members);
                 await onSave({ ...updated, members: updated.members || members });
             } else {
-                await onSave({ ...localProfile, members });
+                setLocalProfile(nextProfile);
+                await onSave({ ...nextProfile, members });
             }
         } finally {
             setIsSaving(false);
@@ -200,7 +229,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                     email: result.email || inviteEmail.trim().toLowerCase()
                 }
             ];
-            const updated = await updateCompanyProfile(profile.id, { members: nextMembers });
+            const updated = await updateCompanyProfile(profile.id, { members: nextMembers, gallery_urls: localProfile.gallery_urls });
             setMembers(updated.members || nextMembers);
             setLocalProfile((prev) => ({
                 ...prev,
@@ -236,7 +265,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 return;
             }
             const nextMembers = members.filter((item) => item.id !== member.id);
-            const updated = await updateCompanyProfile(profile.id, { members: nextMembers });
+            const updated = await updateCompanyProfile(profile.id, { members: nextMembers, gallery_urls: localProfile.gallery_urls });
             setMembers(updated.members || nextMembers);
             setLocalProfile((prev) => ({
                 ...prev,
@@ -518,6 +547,50 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
                                     placeholder={t('company.settings.mission_placeholder')}
                                 />
+                            </div>
+
+                            <div>
+                                <label htmlFor="company-gallery-urls" className="app-field-label">
+                                    <Sparkles size={16} /> {t('company.settings.gallery_title', { defaultValue: 'Company gallery' })}
+                                </label>
+                                <div className="mb-2 text-xs leading-5 text-[var(--text-muted)]">
+                                    {t('company.settings.gallery_body', { defaultValue: 'Paste 3-6 image URLs that show your office, team, product, or work atmosphere. Native role detail will use these photos first.' })}
+                                </div>
+                                <textarea
+                                    id="company-gallery-urls"
+                                    name="company-gallery-urls"
+                                    className="app-input-field min-h-[120px]"
+                                    value={galleryDraft}
+                                    onChange={(e) => {
+                                        const nextValue = e.target.value;
+                                        setGalleryDraft(nextValue);
+                                        setLocalProfile({
+                                            ...localProfile,
+                                            gallery_urls: normalizeGalleryUrlsFromText(nextValue)
+                                        });
+                                    }}
+                                    placeholder={'https://images.example.com/office-1.jpg\nhttps://images.example.com/team-2.jpg\nhttps://images.example.com/product-3.jpg'}
+                                />
+                                <div className="mt-2 text-[11px] text-[var(--text-faint)]">
+                                    {t('company.settings.gallery_hint', { defaultValue: 'One image URL per line. We keep the first 6 valid http/https links.' })}
+                                </div>
+                                {galleryUrls.length > 0 ? (
+                                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                        {galleryUrls.map((imageUrl, index) => (
+                                            <div key={imageUrl} className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-muted)]">
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={`${localProfile.name || 'Company'} gallery ${index + 1}`}
+                                                    className="h-28 w-full object-cover"
+                                                    loading="lazy"
+                                                />
+                                                <div className="truncate px-3 py-2 text-[11px] text-[var(--text-muted)]">
+                                                    {new URL(imageUrl).host.replace(/^www\./, '')}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : null}
                             </div>
 
                             {/* Tone of Voice */}

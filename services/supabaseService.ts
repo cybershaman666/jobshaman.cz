@@ -128,6 +128,48 @@ type CompanyTeamMemberProfileRecord = {
 const isRecord = (value: unknown): value is Record<string, any> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 const trimText = (value: unknown, limit = 240): string => String(value ?? '').trim().slice(0, limit);
+const COMPANY_GALLERY_META_KEY = '__company_gallery_urls';
+
+const normalizeCompanyGalleryUrls = (value: unknown, limit = 6): string[] => {
+    const rawItems = Array.isArray(value)
+        ? value
+        : typeof value === 'string'
+            ? value.split(/[\n,]/)
+            : [];
+    const urls: string[] = [];
+    for (const item of rawItems) {
+        const candidate = trimText(item, 500);
+        if (!candidate) continue;
+        try {
+            const parsed = new URL(candidate);
+            if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && !urls.includes(parsed.toString())) {
+                urls.push(parsed.toString());
+            }
+        } catch {
+            continue;
+        }
+        if (urls.length >= limit) break;
+    }
+    return urls;
+};
+
+const readCompanyGalleryUrls = (value: unknown): string[] => {
+    if (Array.isArray(value) || typeof value === 'string') {
+        return normalizeCompanyGalleryUrls(value);
+    }
+    if (!isRecord(value)) return [];
+    return normalizeCompanyGalleryUrls(value[COMPANY_GALLERY_META_KEY]);
+};
+
+const mergeCompanyGalleryIntoTeamProfiles = (value: unknown, galleryUrls: string[]): Record<string, any> => {
+    const next = isRecord(value) ? { ...value } : {};
+    if (galleryUrls.length > 0) {
+        next[COMPANY_GALLERY_META_KEY] = galleryUrls;
+    } else {
+        delete next[COMPANY_GALLERY_META_KEY];
+    }
+    return next;
+};
 
 const normalizeCompanyTeamMemberProfiles = (value: unknown): Record<string, CompanyTeamMemberProfileRecord> => {
     if (!isRecord(value)) return {};
@@ -957,22 +999,25 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     let data: any = null;
     let error: any = null;
 
-    const primary = await supabase
-        .from('companies')
-        .select(`${baseSelection}, team_member_profiles`)
-        .eq('id', userId)
-        .single();
-    data = primary.data;
-    error = primary.error;
+    const selections = [
+        `${baseSelection}, gallery_urls, team_member_profiles`,
+        `${baseSelection}, gallery_urls`,
+        `${baseSelection}, team_member_profiles`,
+        baseSelection
+    ];
 
-    if (error && isMissingColumnError(error, 'team_member_profiles')) {
-        const fallback = await supabase
+    for (const selection of selections) {
+        const response = await supabase
             .from('companies')
-            .select(baseSelection)
+            .select(selection)
             .eq('id', userId)
             .single();
-        data = fallback.data;
-        error = fallback.error;
+        data = response.data;
+        error = response.error;
+        if (!error) break;
+        const missingGallery = isMissingColumnError(error, 'gallery_urls');
+        const missingTeamProfiles = isMissingColumnError(error, 'team_member_profiles');
+        if (!missingGallery && !missingTeamProfiles) break;
     }
 
     if (error) {
@@ -983,9 +1028,12 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     }
 
     const members = await hydrateCompanyMembers(data);
+    const galleryUrls = normalizeCompanyGalleryUrls(data?.gallery_urls);
+    const fallbackGalleryUrls = galleryUrls.length > 0 ? galleryUrls : readCompanyGalleryUrls(data?.team_member_profiles);
 
     return {
         ...data,
+        gallery_urls: fallbackGalleryUrls,
         members,
         subscription: {
             tier: data.subscription_tier || 'starter',
@@ -1926,15 +1974,41 @@ export const uploadCompanyLogo = async (companyId: string, file: File): Promise<
 export const updateCompanyProfile = async (companyId: string, updates: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error("Supabase not configured");
 
-    const { members, subscription, subscriptions, team_member_profiles, ...rest } = updates as any;
+    const { members, subscription, subscriptions, team_member_profiles, gallery_urls, ...rest } = updates as any;
     const payload: any = { ...rest };
-    const nextTeamProfiles = team_member_profiles
+    const normalizedGalleryUrls = gallery_urls === undefined ? undefined : normalizeCompanyGalleryUrls(gallery_urls);
+
+    let existingTeamProfiles: Record<string, any> | null = null;
+    if (team_member_profiles !== undefined || Array.isArray(members) || gallery_urls !== undefined) {
+        const current = await supabase
+            .from('companies')
+            .select('team_member_profiles')
+            .eq('id', companyId)
+            .maybeSingle();
+        if (!current.error && isRecord(current.data?.team_member_profiles)) {
+            existingTeamProfiles = { ...current.data.team_member_profiles };
+        }
+    }
+
+    const nextTeamMemberProfiles = team_member_profiles !== undefined
         ? normalizeCompanyTeamMemberProfiles(team_member_profiles)
         : Array.isArray(members)
             ? serializeCompanyTeamMembers(members)
             : undefined;
+    const nextTeamProfiles = nextTeamMemberProfiles !== undefined || gallery_urls !== undefined
+        ? mergeCompanyGalleryIntoTeamProfiles(
+            {
+                ...(existingTeamProfiles || {}),
+                ...(nextTeamMemberProfiles || {})
+            },
+            normalizedGalleryUrls ?? readCompanyGalleryUrls(existingTeamProfiles)
+        )
+        : undefined;
     if (nextTeamProfiles !== undefined) {
         payload.team_member_profiles = nextTeamProfiles;
+    }
+    if (normalizedGalleryUrls !== undefined) {
+        payload.gallery_urls = normalizedGalleryUrls;
     }
 
     if (payload.address !== undefined) {
@@ -1964,22 +2038,35 @@ export const updateCompanyProfile = async (companyId: string, updates: Partial<R
             .eq('id', companyId)
             .select('*')
             .single();
-        if (response.error && payload.team_member_profiles !== undefined && isMissingColumnError(response.error, 'team_member_profiles')) {
-            const { team_member_profiles: _ignored, ...fallbackPayload } = payload;
-            if (Object.keys(fallbackPayload).length === 0) {
-                response = await supabase
-                    .from('companies')
-                    .select('*')
-                    .eq('id', companyId)
-                    .single();
-            } else {
-                response = await supabase
-                    .from('companies')
-                    .update(fallbackPayload)
-                    .eq('id', companyId)
-                    .select('*')
-                    .single();
+        while (response.error) {
+            const missingGallery = payload.gallery_urls !== undefined && isMissingColumnError(response.error, 'gallery_urls');
+            const missingTeamProfiles = payload.team_member_profiles !== undefined && isMissingColumnError(response.error, 'team_member_profiles');
+            if (!missingGallery && !missingTeamProfiles) {
+                break;
             }
+
+            if (missingGallery) {
+                delete payload.gallery_urls;
+            }
+            if (missingTeamProfiles) {
+                delete payload.team_member_profiles;
+            }
+
+            if (Object.keys(payload).length === 0) {
+                response = await supabase
+                    .from('companies')
+                    .select('*')
+                    .eq('id', companyId)
+                    .single();
+                break;
+            }
+
+            response = await supabase
+                .from('companies')
+                .update(payload)
+                .eq('id', companyId)
+                .select('*')
+                .single();
         }
         data = response.data;
         error = response.error;
@@ -1998,9 +2085,18 @@ export const updateCompanyProfile = async (companyId: string, updates: Partial<R
         throw error;
     }
 
+    const resolvedGalleryUrls = normalizedGalleryUrls !== undefined
+        ? normalizedGalleryUrls
+        : (() => {
+            const storedGalleryUrls = normalizeCompanyGalleryUrls(data?.gallery_urls);
+            if (storedGalleryUrls.length > 0) return storedGalleryUrls;
+            return readCompanyGalleryUrls(nextTeamProfiles ?? data?.team_member_profiles);
+        })();
+
     const resolvedCompany = {
         ...data,
-        team_member_profiles: nextTeamProfiles ?? data?.team_member_profiles ?? null
+        team_member_profiles: nextTeamProfiles ?? data?.team_member_profiles ?? null,
+        gallery_urls: resolvedGalleryUrls
     };
     const hydratedMembers = Array.isArray(members) ? members : await hydrateCompanyMembers(resolvedCompany);
 

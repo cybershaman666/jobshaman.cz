@@ -168,6 +168,24 @@ export const getStockCoverForDomain = (
   return options[hashSeed(key) % options.length];
 };
 
+export const getStockGalleryForDomain = (
+  domain: CandidateDomainKey | string | null | undefined,
+  seed?: string | null,
+  count = 3,
+): string[] => {
+  const normalized = String(domain || '').trim() as CandidateDomainKey;
+  const options = DOMAIN_COVER_IMAGES[normalized] || COVER_IMAGE_FALLBACKS;
+  const targetCount = Math.max(1, Math.min(6, count));
+  if (options.length === 0) return COVER_IMAGE_FALLBACKS.slice(0, targetCount);
+
+  const startIndex = hashSeed(String(seed || normalized || 'gallery')) % options.length;
+  const ordered = Array.from({ length: Math.max(targetCount, options.length) }, (_, index) => (
+    options[(startIndex + index) % options.length]
+  ));
+
+  return Array.from(new Set(ordered)).slice(0, targetCount);
+};
+
 export const getRotatingWorkspaceBackdrop = (seed?: string | null): string => {
   const key = String(seed || 'workspace');
   return WORKSPACE_ATMOSPHERE_IMAGES[hashSeed(key) % WORKSPACE_ATMOSPHERE_IMAGES.length];
