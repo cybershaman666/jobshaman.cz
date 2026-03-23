@@ -239,7 +239,9 @@ const getExternalSourceLabel = (job: Job, language: string): string | null => {
   return null;
 };
 
-const getCardVerdict = (job: Job, language: string) => {
+type CardVerdictTone = 'good' | 'neutral' | 'bad';
+
+const getCardVerdictTone = (job: Job): CardVerdictTone => {
   const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
   const distance = Number(job.distanceKm || 0);
   const isRemote = (() => {
@@ -252,6 +254,20 @@ const getCardVerdict = (job: Job, language: string) => {
   const salaryTop = Number(job.salary_to || job.salary_from || 0);
 
   if ((jhiScore >= 72 && (isRemote || distance === 0 || distance <= 35)) || (jhiScore >= 78 && salaryTop >= 60000)) {
+    return 'good';
+  }
+
+  if (jhiScore < 55 || (!isRemote && distance >= 80)) {
+    return 'bad';
+  }
+
+  return 'neutral';
+};
+
+const getCardVerdict = (job: Job, language: string) => {
+  const tone = getCardVerdictTone(job);
+
+  if (tone === 'good') {
     return {
       label: localeText(language, {
         cs: 'Stojí za handshake',
@@ -260,11 +276,11 @@ const getCardVerdict = (job: Job, language: string) => {
         pl: 'Warto podać rękę',
         en: 'Worth a handshake',
       }),
-      tone: 'good' as const,
+      tone,
     };
   }
 
-  if (jhiScore < 55 || (!isRemote && distance >= 80)) {
+  if (tone === 'bad') {
     return {
       label: localeText(language, {
         cs: 'Spíš ne',
@@ -273,7 +289,7 @@ const getCardVerdict = (job: Job, language: string) => {
         pl: 'Raczej nie',
         en: 'Probably skip',
       }),
-      tone: 'bad' as const,
+      tone,
     };
   }
 
@@ -285,7 +301,7 @@ const getCardVerdict = (job: Job, language: string) => {
       pl: 'Sprawdź bliżej',
       en: 'Check more closely',
     }),
-    tone: 'neutral' as const,
+    tone,
   };
 };
 
@@ -435,6 +451,21 @@ const isFeatureEligible = (job: Job): boolean => {
     matchScore >= 60 ||
     jhiScore >= 70
   );
+};
+
+const placeBadVerdictsLater = (jobs: Job[]): Job[] => {
+  const keepUpFront: Job[] = [];
+  const badLater: Job[] = [];
+
+  jobs.forEach((job) => {
+    if (getCardVerdictTone(job) === 'bad') {
+      badLater.push(job);
+      return;
+    }
+    keepUpFront.push(job);
+  });
+
+  return [...keepUpFront, ...badLater];
 };
 
 const pickHighlightIndex = (
@@ -1054,8 +1085,10 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const isMicro = (job: Job) => job.challenge_format === 'micro_job';
     const standardSorted = sorted.filter((job) => !isMicro(job));
-    const heroCandidate = standardSorted.length
-      ? standardSorted
+    const topDeckCandidates = standardSorted.filter((job) => getCardVerdictTone(job) !== 'bad');
+    const prioritisedCandidates = topDeckCandidates.length ? topDeckCandidates : standardSorted;
+    const heroCandidate = prioritisedCandidates.length
+      ? prioritisedCandidates
         .slice()
         .sort((left, right) => getFeatureScore(right) - getFeatureScore(left))[0]
       : null;
@@ -1068,12 +1101,12 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       return {
         sections: [] as FeedSection[],
         remaining: [] as Job[],
-        compactJobs: standardSorted.filter((job) => job.id !== heroCandidate?.id),
+        compactJobs: placeBadVerdictsLater(standardSorted.filter((job) => job.id !== heroCandidate?.id)),
         heroJob: heroCandidate,
       };
     }
 
-    const recommendationCandidates = standardSorted
+    const recommendationCandidates = prioritisedCandidates
       .slice()
       .sort((a: any, b: any) => {
         const scoreA = Number(a.priorityScore || 0) + Number(a.jhi?.score || 0) + salaryAnchor(a) / 1000 - Number(a.distanceKm || 0) / 8;
@@ -1090,7 +1123,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       recommendation.push(...take(recommendationCandidates, 3 - recommendation.length));
     }
 
-    const surpriseCandidates = standardSorted
+    const surpriseCandidates = prioritisedCandidates
       .filter((job) => {
         const matchScore = clamp(Math.round(Number(job.aiMatchScore || 0)), 0, 100);
         const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
@@ -1100,7 +1133,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       .sort((a: any, b: any) => getFeatureScore(b) - getFeatureScore(a));
     const surprise = take(surpriseCandidates, 3);
 
-    const guidanceCandidates = standardSorted
+    const guidanceCandidates = prioritisedCandidates
       .slice()
       .sort((left, right) => {
         const leftContext = (left.firstStepPrompt ? 2 : 0) + (left.companyGoal ? 2 : 0) + (reactionWindowHours(left) !== null ? 1 : 0);
@@ -1110,7 +1143,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       });
     const guidance = take(guidanceCandidates, 3);
 
-    const classicCandidates = standardSorted
+    const classicCandidates = prioritisedCandidates
       .slice()
       .sort((left, right) => {
         const leftScore = Math.abs(clamp(Math.round(Number(left.aiMatchScore || left.jhi?.score || 0)), 0, 100) - 62);
@@ -1160,7 +1193,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       });
     }
 
-    const remainingJobs = sorted.filter((job) => job?.id && !used.has(job.id) && !isMicro(job));
+    const remainingJobs = placeBadVerdictsLater(sorted.filter((job) => job?.id && !used.has(job.id) && !isMicro(job)));
     return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[], heroJob: heroCandidate };
   }, [
     compactLayout,
