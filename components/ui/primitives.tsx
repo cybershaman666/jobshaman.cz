@@ -21,7 +21,7 @@ const SURFACE_VARIANTS: Record<JdlSurfaceVariant, string> = {
 const TONE_CLASSES: Record<JdlTone, string> = {
   default: '',
   muted: 'bg-[var(--surface-muted)]',
-  accent: 'border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.08)]',
+  accent: 'app-tone-accent',
   success: 'border-[rgba(var(--accent-green-rgb),0.28)] bg-[rgba(var(--accent-green-rgb),0.08)]',
   warning: 'border-[rgba(var(--accent-gold-rgb),0.30)] bg-[rgba(var(--accent-gold-rgb),0.12)]',
   danger: 'border-[rgba(var(--danger-rgb),0.24)] bg-[rgba(var(--danger-rgb),0.08)]',
@@ -241,7 +241,7 @@ export const MetricTile: React.FC<{
       'app-data-tile min-w-0 rounded-[var(--radius-panel)] px-4 py-4',
       tone === 'default' && 'bg-[var(--surface-muted)] border-[var(--border)]',
       tone === 'muted' && 'bg-[var(--surface-soft)] border-[var(--border-soft)]',
-      tone === 'accent' && 'border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.08)]',
+      tone === 'accent' && 'app-metric-accent',
       tone === 'success' && 'border-[rgba(var(--accent-green-rgb),0.24)] bg-[rgba(var(--accent-green-rgb),0.08)]',
       tone === 'warning' && 'border-[rgba(var(--accent-gold-rgb),0.3)] bg-[rgba(var(--accent-gold-rgb),0.12)]',
       tone === 'danger' && 'border-[rgba(var(--danger-rgb),0.22)] bg-[rgba(var(--danger-rgb),0.08)]',

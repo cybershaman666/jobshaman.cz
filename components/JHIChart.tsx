@@ -21,18 +21,18 @@ const JHIChart: React.FC<JHIChartProps> = ({
   const { t } = useTranslation();
   const isDark = theme === 'dark';
   const accentPalette = {
-    cyan: { stroke: '#67e8f9', fill: '#22d3ee', highlight: '#67e8f9' },
-    green: { stroke: '#4ade80', fill: '#22c55e', highlight: '#86efac' },
-    amber: { stroke: '#fbbf24', fill: '#f59e0b', highlight: '#fcd34d' },
-    red: { stroke: '#f87171', fill: '#ef4444', highlight: '#fca5a5' },
+    cyan: { stroke: '#79c9d6', fill: '#57b7c5', highlight: '#b6ebf2' },
+    green: { stroke: '#78c98f', fill: '#5fb07b', highlight: '#b9e8c7' },
+    amber: { stroke: '#d7b46a', fill: '#bf9550', highlight: '#ebcf96' },
+    red: { stroke: '#d78a8a', fill: '#c86d6d', highlight: '#efb4b4' },
   }[accent];
 
   const colors = {
-    grid: isDark ? 'rgba(148,163,184,0.18)' : '#cbd5e1',
-    text: isDark ? 'rgba(226,232,240,0.88)' : '#334155',
-    textHalo: isDark ? 'rgba(2,6,23,0.28)' : 'rgba(255,255,255,0.9)',
-    stroke: isDark ? accentPalette.stroke : '#0f766e',
-    fill: isDark ? accentPalette.fill : '#14b8a6',
+    grid: isDark ? 'rgba(203,213,225,0.34)' : 'rgba(100,116,139,0.24)',
+    text: isDark ? 'rgba(241,245,249,0.92)' : '#334155',
+    textHalo: isDark ? 'rgba(2,6,23,0.42)' : 'rgba(255,255,255,0.94)',
+    stroke: accentPalette.stroke,
+    fill: accentPalette.fill,
     tooltipBg: '#1e293b',
     tooltipText: '#f8fafc',
     highlight: accentPalette.highlight,
@@ -76,9 +76,10 @@ const JHIChart: React.FC<JHIChartProps> = ({
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius={compact ? '70%' : '70%'} data={data}>
-          <PolarGrid stroke={colors.grid} strokeOpacity={isDark ? (compact ? 0.75 : 0.55) : compact ? 0.9 : 0.7} />
+          <PolarGrid stroke={colors.grid} strokeOpacity={isDark ? (compact ? 0.95 : 0.78) : compact ? 0.82 : 0.68} />
           <PolarAngleAxis
             dataKey="subject"
+            tickLine={false}
             tick={<CustomTick />}
           />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
@@ -86,9 +87,9 @@ const JHIChart: React.FC<JHIChartProps> = ({
             name={t('jhi.series_score')}
             dataKey="A"
             stroke={colors.stroke}
-            strokeWidth={compact ? 2.5 : 2}
+            strokeWidth={compact ? 2.25 : 2}
             fill={colors.fill}
-            fillOpacity={isDark ? (compact ? 0.22 : 0.18) : (compact ? 0.5 : 0.4)}
+            fillOpacity={isDark ? (compact ? 0.16 : 0.14) : (compact ? 0.28 : 0.24)}
           />
           <Tooltip
             contentStyle={{
