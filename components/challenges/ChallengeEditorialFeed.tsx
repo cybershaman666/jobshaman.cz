@@ -617,11 +617,11 @@ const OfferCard: React.FC<{
     : variant === 'large'
       ? localeText(language, { cs: 'Silná shoda', sk: 'Silná zhoda', de: 'Starker Match', pl: 'Mocne dopasowanie', en: 'Strong match' })
       : '';
-  const titleTextClass = isFeatureCard ? 'text-[var(--text-strong)]' : 'text-[var(--text-strong)]';
-  const mutedTextClass = isFeatureCard ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]';
-  const faintTextClass = isFeatureCard ? 'text-[var(--text-faint)]' : 'text-[var(--text-faint)]';
+  const titleTextClass = isFeatureCard ? 'text-slate-50' : 'text-[var(--text-strong)]';
+  const mutedTextClass = isFeatureCard ? 'text-slate-200/88' : 'text-[var(--text-muted)]';
+  const faintTextClass = isFeatureCard ? 'text-slate-300/72' : 'text-[var(--text-faint)]';
   const matchBadgeClass = isFeatureCard
-    ? 'border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.14)] text-[var(--text-strong)]'
+    ? 'border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.18)] text-slate-50'
     : 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] ring-[rgba(var(--accent-rgb),0.18)] dark:bg-[rgba(var(--accent-rgb),0.16)]';
   const decisionPanelClass = verdict.tone === 'good'
     ? isFeatureCard
@@ -653,7 +653,7 @@ const OfferCard: React.FC<{
         cardHeightClass,
         cardPadding,
         isFeatureCard
-          ? 'border-[rgba(var(--accent-rgb),0.18)] bg-[var(--shell-pane-strong)] text-[var(--text-strong)]'
+          ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[linear-gradient(180deg,rgba(11,19,29,0.96)_0%,rgba(14,24,36,0.92)_100%)] text-slate-50 shadow-[0_24px_56px_-30px_rgba(2,8,23,0.5)]'
           : selected
             ? 'border-[rgba(var(--accent-green-rgb),0.22)] bg-[var(--shell-pane-soft)]'
             : 'border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)]',
@@ -671,7 +671,7 @@ const OfferCard: React.FC<{
         />
       ) : null}
 
-      <div className={cn("relative mb-4 w-full overflow-hidden bg-[var(--shell-pane-soft)]", coverHeightClass, coverRadiusClass)}>
+      <div className={cn("relative mb-4 w-full overflow-hidden bg-[var(--shell-pane-soft)]", isFeatureCard && 'bg-[rgba(255,255,255,0.04)]', coverHeightClass, coverRadiusClass)}>
         <img
           src={coverImageUrl}
           onError={(e) => {
@@ -709,7 +709,7 @@ const OfferCard: React.FC<{
                   className={cn(
                     'flex shrink-0 items-center justify-center rounded-xl border text-sm font-bold shadow-sm',
                     isFeatureCard
-                      ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.1)] text-[var(--text-strong)]'
+                      ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-slate-50'
                       : 'border-[rgba(255,255,255,0.7)] bg-[rgba(var(--card-accent-rgb,var(--accent-rgb)),0.10)] text-[var(--text-strong)]',
                     variant === 'hero' ? 'h-14 w-14' : 'h-12 w-12'
                   )}
@@ -733,7 +733,7 @@ const OfferCard: React.FC<{
               <div className="flex flex-wrap items-center gap-2">
                 <div className={cn('min-w-0 truncate text-[13px] font-semibold uppercase tracking-[0.08em]', faintTextClass)}>{job.company}</div>
                 {isFeatureCard && topMatchLabel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.12)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-[var(--text-strong)]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.16)] px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-slate-50">
                     <Sparkles size={12} className="opacity-80" />
                     {topMatchLabel}
                   </span>
@@ -746,7 +746,7 @@ const OfferCard: React.FC<{
                 </div>
               ) : null}
               {isFeatureCard ? (
-                <div className="mt-2 text-[12px] font-medium text-[var(--accent)]">
+                <div className="mt-2 text-[12px] font-medium text-cyan-200">
                   {matchLabel}
                 </div>
               ) : null}
@@ -764,7 +764,7 @@ const OfferCard: React.FC<{
               saved
                 ? 'border-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.18)] bg-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.08)] text-[rgba(var(--card-accent-rgb, var(--accent-rgb)),0.92)]'
                 : isFeatureCard
-                  ? 'border-[rgba(255,255,255,0.12)] bg-[var(--shell-pane-soft)] text-[var(--text-muted)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--text-strong)]'
+                  ? 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] text-slate-300/80 hover:bg-[rgba(255,255,255,0.1)] hover:text-slate-50'
                   : 'border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)] text-[var(--text-muted)] hover:text-[var(--text-strong)]',
               isFeatureCard ? 'mt-1.5' : ''
             )}
@@ -824,17 +824,17 @@ const OfferCard: React.FC<{
         ) : null}
 
         <div className="grid grid-cols-1 gap-2 pt-1.5 sm:grid-cols-2">
-          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[rgba(255,255,255,0.06)] !text-slate-100' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full')}>
             <MapPin size={13} />
             <span className="truncate">{primaryMeta}</span>
           </span>
           {relativePostedAt ? (
-            <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]')}>
+            <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[rgba(255,255,255,0.06)] !text-slate-100' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]')}>
               <Clock size={13} />
               <span className="truncate">{relativePostedAt}</span>
             </span>
           ) : null}
-          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[var(--shell-pane-soft)] !text-[var(--text-strong)]' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
+          <span className={cn('badge-base rounded-lg px-3 py-2', isFeatureCard ? '!border-[rgba(255,255,255,0.12)] !bg-[rgba(255,255,255,0.06)] !text-slate-100' : 'border-[rgba(15,23,42,0.08)] bg-[var(--surface-muted)] dark:border-[rgba(255,255,255,0.08)] dark:bg-[var(--shell-pane-soft)]', isDefaultCard && 'max-w-full', !relativePostedAt && 'sm:col-span-2')}>
             {salary}
           </span>
           {isFeatureCard ? (
@@ -874,7 +874,7 @@ const OfferCard: React.FC<{
             className={cn(
               'inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm transition',
               isFeatureCard
-                ? 'border border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.16)] font-bold text-[var(--text-strong)] shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.3)] hover:bg-[rgba(var(--accent-rgb),0.22)]'
+                ? 'border border-[rgba(var(--accent-rgb),0.24)] bg-[rgba(var(--accent-rgb),0.2)] font-bold text-slate-50 shadow-[0_18px_36px_-18px_rgba(var(--accent-rgb),0.26)] hover:bg-[rgba(var(--accent-rgb),0.26)]'
                 : 'border border-[rgba(255,255,255,0.08)] bg-[var(--shell-pane-soft)] font-semibold text-[var(--text-strong)] hover:border-[rgba(var(--accent-rgb),0.16)] hover:bg-[rgba(var(--accent-rgb),0.1)]'
             )}
           >
