@@ -258,7 +258,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   ) : null;
 
   const statsPanel = (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 xl:max-w-[540px]">
       <MetricTile
         label={t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
         value={formattedJobsCount}
@@ -357,7 +357,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] xl:items-start">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,540px)_minmax(420px,1fr)] xl:items-start">
               {statsPanel}
               {mobileSupportPanel}
             </div>
