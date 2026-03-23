@@ -632,7 +632,7 @@ const OfferCard: React.FC<{
         ? 'border-amber-300/18 bg-amber-400/10 text-amber-50'
         : 'border-amber-500/18 bg-amber-500/10 text-amber-900 dark:text-amber-100'
       : isFeatureCard
-        ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.12)] text-[var(--text-strong)]'
+        ? 'border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.14)] text-slate-50'
         : 'border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--text-strong)]';
   return (
     <div
@@ -846,10 +846,10 @@ const OfferCard: React.FC<{
                     matchScore > 0
                       ? matchBadgeClass
                       : jhiScore >= 75
-                        ? 'border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.14)] text-[var(--accent)] shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.26)]'
+                        ? 'border border-[rgba(var(--accent-rgb),0.22)] bg-[rgba(var(--accent-rgb),0.18)] text-cyan-50 shadow-[0_16px_36px_-22px_rgba(var(--accent-rgb),0.26)]'
                         : jhiScore >= 55
-                          ? 'border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-[var(--text-strong)]'
-                          : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.06)] text-[var(--text-faint)]'
+                          ? 'border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.10)] text-slate-50'
+                          : 'border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.07)] text-slate-200/82'
                   )}
                   title={matchScore > 0
                     ? localeText(language, { cs: 'Shoda s profilem', sk: 'Zhoda s profilom', de: 'Profil-Match', pl: 'Dopasowanie do profilu', en: 'Profile match' })
