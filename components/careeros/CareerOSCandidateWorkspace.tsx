@@ -1242,8 +1242,11 @@ const buildMiniChallengeCards = (jobs: Job[], profileChallenges: Job[], userProf
     return t('careeros.mini.short_collaboration', { defaultValue: 'Short collaboration' });
   };
 
+  const ownProfileChallengeIds = new Set(profileChallenges.map((job) => String(job.id || '')).filter(Boolean));
+
   const source = jobs
     .filter(isLikelyMiniChallenge)
+    .filter((job) => !ownProfileChallengeIds.has(String(job.id || '')))
     .sort((left, right) => Number((right as any)?.jhi?.score || 0) - Number((left as any)?.jhi?.score || 0));
 
   const profileJobCards = profileChallenges
@@ -1274,7 +1277,9 @@ const buildMiniChallengeCards = (jobs: Job[], profileChallenges: Job[], userProf
     action: 'open_challenge' as const,
   }));
 
-  return [...profileJobCards, ...jobCards].slice(0, 6);
+  return [...profileJobCards, ...jobCards]
+    .filter((card, index, cards) => cards.findIndex((item) => item.id === card.id) === index)
+    .slice(0, 6);
 };
 
 const hasCareerPathProfileSignal = (userProfile: UserProfile): boolean => {
@@ -3599,7 +3604,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const { t, i18n } = useTranslation();
   const activeLocale = String(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
   const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
-  const careerPathRequiresSetup = !userProfile.isLoggedIn || !hasCareerPathProfileSignal(userProfile);
+  const learningPathRequiresSetup = !hasCareerPathProfileSignal(userProfile);
   const isGuestCareerPath = !userProfile.isLoggedIn;
 
   const pathNodes = useMemo(
@@ -4077,18 +4082,6 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   };
 
   const renderMainLayer = () => {
-    if (activeLayer === 'career_path') {
-      if (careerPathRequiresSetup) {
-        return (
-          <CareerPathSetupState
-            isGuest={isGuestCareerPath}
-            onOpenAuth={onOpenAuth}
-            onOpenProfile={onOpenProfile}
-          />
-        );
-      }
-    }
-
     if (activeLayer === 'career_path' || !selectedPath) {
       return (
         <CareerPathStage
@@ -4144,6 +4137,15 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     }
 
     if (activeLayer === 'learning_path') {
+      if (learningPathRequiresSetup) {
+        return (
+          <CareerPathSetupState
+            isGuest={isGuestCareerPath}
+            onOpenAuth={onOpenAuth}
+            onOpenProfile={onOpenProfile}
+          />
+        );
+      }
       return <LearningPathView analysis={learningGapAnalysis} onOpenProfile={onOpenProfile} />;
     }
 
@@ -4275,7 +4277,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       <PathPanel
         node={selectedPath}
-        visible={!careerPathRequiresSetup && !panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
+        visible={!panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
         expanded={expandedPathId === selectedPath?.id}
         onClose={() => setPanelDismissed(true)}
         onToggleExpand={() => {
