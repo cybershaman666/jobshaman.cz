@@ -1,6 +1,6 @@
 import { BACKEND_URL } from '../constants';
 import type { CompanyApplicationRow, DialogueDossier, DialogueMessage, Job } from '../types';
-import { fetchJobsByIds } from './jobService';
+import { mapJobs } from './jobService';
 import { authenticatedFetch } from './csrfService';
 import type { DialogueMessageCreatePayload } from './jobApplicationService';
 import { supabase } from './supabaseService';
@@ -187,8 +187,7 @@ const fetchLinkedProfiles = async (
 const isRawMicroJob = (row: any): boolean => String(row?.description || '').includes('jobshaman:challenge_format=micro_job');
 
 const mapPublisherListJobs = async (rawJobs: any[]): Promise<Job[]> => {
-  const ids = rawJobs.map((row) => String(row?.id || '')).filter(Boolean);
-  const jobs = await fetchJobsByIds(ids);
+  const jobs = mapJobs(rawJobs, undefined, undefined, true, true);
   return mergePublisherJobMeta(jobs, rawJobs);
 };
 
@@ -321,6 +320,8 @@ const createProfileMiniChallengeFallback = async (input: ProfileMiniChallengeCre
     recruiter_id: identity.userId,
     contact_email: identity.contactEmail,
     country_code: identity.countryCode,
+    legality_status: 'legal',
+    verification_notes: 'publisher_profile_mini_challenge',
     status: 'active',
     is_active: true,
     updated_at: nowIso(),

@@ -5662,8 +5662,26 @@ async def list_publisher_mini_challenges(
         metadata, _cleaned = _extract_job_description_metadata(row.get("description"))
         if metadata.get("challenge_format") != "micro_job":
             continue
-        published_rows.append(row)
         normalized_job_id = _normalize_job_id(row.get("id"))
+        repair_payload: dict[str, Any] = {}
+        if str(row.get("legality_status") or "").strip().lower() != "legal":
+            repair_payload["legality_status"] = "legal"
+        if str(row.get("status") or "").strip().lower() == "active" and row.get("is_active") is not True:
+            repair_payload["is_active"] = True
+        if not str(row.get("source") or "").strip():
+            repair_payload["source"] = _NATIVE_JOB_SOURCE
+        if repair_payload and isinstance(normalized_job_id, int):
+            repair_payload["updated_at"] = now_iso()
+            try:
+                supabase.table("jobs").update(repair_payload).eq("id", normalized_job_id).execute()
+                row = {**row, **repair_payload}
+                try:
+                    update_job_fields(normalized_job_id, repair_payload)
+                except Exception:
+                    pass
+            except Exception as exc:
+                print(f"⚠️ Failed to repair publisher mini challenge visibility fields: {exc}")
+        published_rows.append(row)
         if isinstance(normalized_job_id, int):
             job_ids.append(normalized_job_id)
 
@@ -5763,6 +5781,8 @@ async def create_publisher_mini_challenge(
         "work_type": work_type,
         "work_model": work_type.lower(),
         "source": _NATIVE_JOB_SOURCE,
+        "legality_status": "legal",
+        "verification_notes": "publisher_profile_mini_challenge",
         "scraped_at": now_iso(),
         "posted_by": user_id,
         "recruiter_id": user_id,

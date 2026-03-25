@@ -4570,7 +4570,7 @@ export const fetchRealJobs = async (
 };
 
 // Synchronous job mapper - simple and reliable like the original working version
-const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: boolean = true, skipQualityFilter: boolean = false): Job[] => {
+export const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: boolean = true, skipQualityFilter: boolean = false): Job[] => {
     const mappedJobs = data.map((item: any): Job | null => {
         try {
             const scraped = item as ScrapedJob;
