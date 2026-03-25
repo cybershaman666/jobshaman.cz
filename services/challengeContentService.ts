@@ -138,20 +138,29 @@ const isJobShamanSource = (source?: string | null): boolean => {
 };
 
 export const deriveChallengeFields = (source: ChallengeSource): ChallengeFields => {
-  const description = normalizeText(source.description);
+  const rawDescription = String(source.description || '');
+  const description = normalizeText(rawDescription);
+  const explicitRoleSummary = normalizeText(
+    source.role_summary ||
+      extractMarkdownSection(rawDescription, ['Role Summary', 'Summary']) ||
+      extractMarkdownSection(description, ['Role Summary', 'Summary'])
+  );
   const explicitChallenge = normalizeText(
     source.company_truth_hard ||
+      extractMarkdownSection(rawDescription, ['Company Truth: What Is Actually Hard?', 'Challenge', 'The Challenge']) ||
       extractMarkdownSection(description, ['Company Truth: What Is Actually Hard?', 'Challenge', 'The Challenge'])
   );
   const explicitRisk = normalizeText(
     source.company_truth_fail ||
+      extractMarkdownSection(rawDescription, ['Company Truth: Who Typically Struggles?', 'Risk', 'The Risk']) ||
       extractMarkdownSection(description, ['Company Truth: Who Typically Struggles?', 'Risk', 'The Risk'])
   );
   const explicitPrompt = normalizeText(
     source.first_reply_prompt ||
+      extractMarkdownSection(rawDescription, ['First Reply', 'First Step']) ||
       extractMarkdownSection(description, ['First Reply', 'First Step'])
   );
-  const roleSummary = normalizeText(source.role_summary);
+  const roleSummary = explicitRoleSummary;
   const roleSummarySentence = firstSentence(roleSummary);
   const usableRoleSummary =
     roleSummarySentence && !isPromotionalSentence(roleSummarySentence) ? roleSummary : '';

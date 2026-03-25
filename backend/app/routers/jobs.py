@@ -1167,7 +1167,10 @@ def _enforce_company_role_open_limit(company_id: str, user: dict) -> None:
         )
 
 def _normalize_job_id(job_id: str):
-    return int(job_id) if str(job_id).isdigit() else job_id
+    raw = str(job_id or "").strip()
+    if raw.startswith("db-"):
+        raw = raw[3:]
+    return int(raw) if raw.isdigit() else raw
 
 
 def _canonical_job_id(job_id) -> str:

@@ -267,9 +267,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         if (isLoadMore) setLoadingMore(true);
         if (!isLoadMore && pendingHardRefreshRef.current) {
             pendingHardRefreshRef.current = false;
-            setJobs([]);
-            setHasMore(false);
-            setTotalCount(0);
         }
 
         try {
@@ -599,9 +596,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             pendingHardRefreshRef.current = true;
             setLoading(true);
             setLoadingMore(false);
-            setJobs([]);
-            setHasMore(false);
-            setTotalCount(0);
         }
         hasRunFilterEffectRef.current = true;
 
@@ -633,9 +627,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         pendingHardRefreshRef.current = true;
         setLoading(true);
         setLoadingMore(false);
-        setJobs([]);
-        setHasMore(false);
-        setTotalCount(0);
         setCurrentPage(0);
         fetchFilteredJobs(0, false);
     }, [sortBy, fetchFilteredJobs, enabled]);

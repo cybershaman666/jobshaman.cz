@@ -36,7 +36,7 @@ const resolveLearningResourceBackends = (): string[] => {
     .map((value) => normalizeBackendBaseUrl(value))
     .filter((base): base is string => !!base);
   return Array.from(
-    new Set([...fallbackBases, searchBase, coreBase].filter((base): base is string => !!base))
+    new Set([searchBase, coreBase, ...fallbackBases].filter((base): base is string => !!base))
   ).filter((base) => !/code\.run/i.test(base));
 };
 
@@ -152,8 +152,6 @@ export const fetchLearningResources = async (options?: LearningResourceQueryOpti
     try {
       const response = await fetch(`${base}/learning-resources${buildQueryString(options)}`, {
         method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
       });
       if (response.ok) {
         clearUnavailableMarker();
