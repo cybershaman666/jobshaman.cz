@@ -11,6 +11,7 @@ const DOMAIN_ACCENTS: Record<CandidateDomainKey, DomainAccent> = {
   agriculture: { key: 'agriculture', rgb: '34, 197, 94', hex: '#22c55e', label: { cs: 'Zemědělství', en: 'Agriculture' } },
   ai_data: { key: 'ai_data', rgb: '139, 92, 246', hex: '#8b5cf6', label: { cs: 'AI & Data', en: 'AI & Data' } },
   aviation: { key: 'aviation', rgb: '14, 165, 233', hex: '#0ea5e9', label: { cs: 'Letectví', en: 'Aviation' } },
+  automotive: { key: 'automotive', rgb: '239, 68, 68', hex: '#ef4444', label: { cs: 'Automotive', en: 'Automotive' } },
   construction: { key: 'construction', rgb: '180, 83, 9', hex: '#b45309', label: { cs: 'Stavebnictví', en: 'Construction' } },
   creative_media: { key: 'creative_media', rgb: '236, 72, 153', hex: '#ec4899', label: { cs: 'Média & Kreativa', en: 'Creative & Media' } },
   customer_support: { key: 'customer_support', rgb: '56, 189, 248', hex: '#38bdf8', label: { cs: 'Podpora', en: 'Support' } },
@@ -70,6 +71,7 @@ export const resolveJobDomain = (job: Job): CandidateDomainKey | null => {
   const hasAny = (...patterns: RegExp[]): boolean => patterns.some((pattern) => pattern.test(combined));
 
   if (hasAny(/\bstaveb\w*/i, /\brozpo[cč]t[aá]ř\w*/i, /\bstavby?\b/i, /\bconstruction\b/i)) return 'construction';
+  if (hasAny(/\bautomotive\b/i, /\bautomechanik\b/i, /\bauto mechanik\b/i, /\bautoservis\b/i, /\bservis vozidel\b/i, /\bmechanik vozidel\b/i, /\bautotechnik\b/i, /\bkfz\b/i, /\bcar service\b/i, /\bvehicle service\b/i, /\bdealership\b/i, /\bcar dealer\b/i)) return 'automotive';
   if (hasAny(/\bobchod\w*/i, /\bsales\b/i, /\bbroker\b/i, /\baccount manager\b/i)) return 'sales';
   if (hasAny(/\bit\b/i, /\bk[oó]d\w*/i, /\bv[yý]voj\w*/i, /\bsoftware\b/i, /\bdeveloper\b/i, /\bprogram[aá]tor\b/i, /\bengineer\b/i, /\bfrontend\b/i, /\bbackend\b/i, /\bfullstack\b/i)) return 'it';
   if (hasAny(/\bfinance\b/i, /\b[uú]čet\w*/i, /\baudit\b/i, /\bekonom\w*/i, /\bcontroller\b/i)) return 'finance';

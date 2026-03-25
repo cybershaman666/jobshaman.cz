@@ -75,6 +75,7 @@ type AppSceneRouterProps = {
     activationNextStep: string;
     applyInteractionState: (jobId: string, state: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
     onDeleteAccount: () => Promise<boolean>;
+    onSignOut: () => Promise<void>;
     onSetCompanyProfile: (profile: CompanyProfile | null) => void;
     onSetViewState: (state: ViewState) => void;
     onProfileUpdate: (profile: UserProfile, persist?: boolean) => void | Promise<void>;
@@ -166,6 +167,7 @@ export default function AppSceneRouter({
     candidateActivationState,
     activationNextStep,
     onDeleteAccount,
+    onSignOut,
     onSetCompanyProfile,
     onSetViewState,
     onProfileUpdate,
@@ -413,6 +415,7 @@ export default function AppSceneRouter({
                         onChange={(p, persist) => onProfileUpdate(p, persist)}
                         onSave={onProfileSave}
                         onRefreshProfile={onRefreshProfile}
+                        onSignOut={onSignOut}
                         onDeleteAccount={onDeleteAccount}
                         savedJobs={resolvedSavedJobs}
                         savedJobIds={savedJobIds}

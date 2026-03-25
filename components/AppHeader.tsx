@@ -9,6 +9,7 @@ import {
   Menu,
   Monitor,
   Moon,
+  LogOut,
   Search,
   Sun,
   X,
@@ -569,22 +570,35 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
               {/* User Profile / Auth */}
               {userProfile.isLoggedIn ? (
-                <button
-                  onClick={() => {
-                    setShowCompanyLanding(false);
-                    setViewState(ViewState.PROFILE);
-                  }}
-                  className="group flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                    {userProfile.photo && !avatarFailed ? (
-                      <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
-                    ) : (
-                      <span>{userProfile.name?.charAt(0) || userProfile.email?.charAt(0)}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setShowCompanyLanding(false);
+                      setViewState(ViewState.PROFILE);
+                    }}
+                    className="group flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900"
+                  >
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      {userProfile.photo && !avatarFailed ? (
+                        <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+                      ) : (
+                        <span>{userProfile.name?.charAt(0) || userProfile.email?.charAt(0)}</span>
+                      )}
+                    </div>
+                    <span className="hidden text-sm font-semibold text-slate-800 dark:text-slate-100 lg:block">{userProfile.name || userProfile.email}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAuthAction('login')}
+                    className={cn(
+                      'hidden h-9 w-9 items-center justify-center rounded-full border border-rose-200/80 bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50 lg:inline-flex'
                     )}
-                  </div>
-                  <span className="hidden text-sm font-semibold text-slate-800 dark:text-slate-100 lg:block">{userProfile.name || userProfile.email}</span>
-                </button>
+                    title={t('common.logout', { defaultValue: 'Logout' })}
+                    aria-label={t('common.logout', { defaultValue: 'Logout' })}
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => handleAuthAction('login')}
@@ -672,6 +686,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </div>
               </div>
               <div className="mt-2 grid gap-2 border-t border-[var(--border-subtle)] pt-4">
+                {userProfile.isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleAuthAction('login');
+                    }}
+                    className="app-header-control w-full justify-start px-4 py-3 text-left text-sm font-semibold transition-colors"
+                  >
+                    <LogOut size={16} />
+                    {t('common.logout', { defaultValue: 'Logout' })}
+                  </button>
+                ) : null}
                 {legalLinks.map((item) => (
                   <a
                     key={item.href}

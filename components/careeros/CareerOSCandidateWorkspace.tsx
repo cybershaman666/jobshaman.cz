@@ -48,6 +48,8 @@ import MarketplacePage, { type MarketplacePageProps } from '../../src/pages/mark
 const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
 const DEBUG_CAREER_OS =
   import.meta.env.DEV || String(import.meta.env.VITE_DEBUG_CAREER_OS || '').toLowerCase() === 'true';
+const MARKET_TRENDS_ENABLED =
+  String(import.meta.env.VITE_ENABLE_CAREEROS_MARKET_TRENDS || 'false').toLowerCase() === 'true';
 
 interface CareerOSCandidateWorkspaceProps extends MarketplacePageProps {
   onOpenCompanyPage: (companyId: string) => void;
@@ -127,6 +129,11 @@ interface OfferNode {
   y: number;
   textPos: 'left' | 'right';
   labelPlacement: 'left' | 'right' | 'top' | 'bottom';
+}
+
+interface RemapDomainOption {
+  value: string;
+  label?: string;
 }
 
 export interface CareerOSNotification {
@@ -229,7 +236,9 @@ const sidebarLayers: Array<{ id: CareerOSLayer; icon: React.ComponentType<{ clas
   { id: 'marketplace', icon: Briefcase },
   { id: 'mini_challenges', icon: Sparkles },
   { id: 'learning_path', icon: BookOpen },
-  { id: 'market_trends', icon: BarChart3 },
+  ...(MARKET_TRENDS_ENABLED
+    ? [{ id: 'market_trends' as CareerOSLayer, icon: BarChart3 }]
+    : []),
 ];
 
 const pathLayoutPresets: Record<number, Array<{ x: number; y: number }>> = {
@@ -382,6 +391,7 @@ const domainLabelMap: Record<string, string> = {
   agriculture: 'Agriculture',
   ai_data: 'AI & Data',
   aviation: 'Aviation',
+  automotive: 'Automotive',
   construction: 'Construction',
   creative_media: 'Creative & Media',
   customer_support: 'Customer Support',
@@ -417,10 +427,28 @@ const domainLabelMap: Record<string, string> = {
   general: 'General',
 };
 
+const REMAP_PRIORITY_DOMAIN_OPTIONS: RemapDomainOption[] = [
+  { value: 'logistics' },
+  { value: 'healthcare' },
+  { value: 'retail' },
+  { value: 'automotive' },
+  { value: 'education', label: 'Učitelé' },
+  { value: 'customer_support', label: 'Customer support' },
+];
+
 const getLocalizedDomainLabel = (domain: string, t: TFunction): string =>
   t(`careeros.domains.${domain}`, {
     defaultValue: domainLabelMap[domain] || domain.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
   });
+
+const normalizeRemapQuery = (value: string): string =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s/+.-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const normalizeRoleClusterTitle = (value: string): string => {
   const normalized = String(value || '')
@@ -434,6 +462,26 @@ const normalizeRoleClusterTitle = (value: string): string => {
 
 const getChallengePrimaryDomain = (challenge: CareerOSChallenge, job?: Job | null): string =>
   challenge.matchedDomains?.[0] || resolveJobDomain(job || ({} as Job)) || 'general';
+
+const challengeMatchesCustomDomainQuery = (challenge: CareerOSChallenge, customDomainQuery: string): boolean => {
+  const normalizedQuery = normalizeRemapQuery(customDomainQuery);
+  if (!normalizedQuery) return true;
+
+  const tokens = normalizedQuery.split(' ').filter((token) => token.length >= 2);
+  const searchableText = normalizeRemapQuery([
+    challenge.title,
+    challenge.company,
+    challenge.challengeSummary,
+    challenge.companyGoal,
+    challenge.location,
+    ...challenge.requiredSkills,
+    ...challenge.topTags,
+  ].filter(Boolean).join(' '));
+
+  if (!searchableText) return false;
+  if (searchableText.includes(normalizedQuery)) return true;
+  return tokens.length > 0 && tokens.every((token) => searchableText.includes(token));
+};
 
 const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: TFunction): RoleNode[] => {
   const grouped = new Map<string, CareerOSChallenge[]>();
@@ -755,6 +803,7 @@ const buildPathNodes = (
   userProfile: UserProfile,
   t: TFunction,
   selectedDomains: string[] = [],
+  customDomainQuery = '',
 ): PathNode[] => {
   const grouped = new Map<string, CareerOSChallenge[]>();
   const jobsById = new Map(jobs.map((job) => [String(job.id), job]));
@@ -762,8 +811,10 @@ const buildPathNodes = (
     userProfile.preferences?.searchProfile?.primaryDomain || '',
     ...(userProfile.preferences?.searchProfile?.secondaryDomains || []),
   ]);
+  const normalizedCustomDomainQuery = normalizeRemapQuery(customDomainQuery);
 
   challenges.forEach((challenge) => {
+    if (!challengeMatchesCustomDomainQuery(challenge, normalizedCustomDomainQuery)) return;
     const fallbackJob = jobsById.get(String(challenge.id)) || null;
     const domainKey = getChallengePrimaryDomain(challenge, fallbackJob);
     const bucket = grouped.get(domainKey) || [];
@@ -781,13 +832,14 @@ const buildPathNodes = (
         : preferredDomains.includes(domainKey)
           ? 24
           : 0;
+      const customQueryBoost = normalizedCustomDomainQuery ? Math.min(24, sorted.length * 4) : 0;
       const genericPenalty = domainKey === 'general' ? 36 : 0;
       return {
         domainKey,
         items: sorted,
         roleNodes,
         featuredChallenge,
-        score: averageNumber(sorted.map((item) => item.jhiScore)) + roleNodes.length * 4 + sorted.length + preferenceBoost - genericPenalty,
+        score: averageNumber(sorted.map((item) => item.jhiScore)) + roleNodes.length * 4 + sorted.length + preferenceBoost + customQueryBoost - genericPenalty,
       };
     })
     .filter((item) => item.featuredChallenge && item.roleNodes.length > 0)
@@ -2018,9 +2070,11 @@ export const NotificationInbox: React.FC<{
 const DomainRemapPanel: React.FC<{
   remapOpen: boolean;
   setRemapOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  availableDomains: string[];
+  availableDomains: RemapDomainOption[];
   manualDomainSelection: string[];
   setManualDomainSelection: React.Dispatch<React.SetStateAction<string[]>>;
+  manualDomainQuery: string;
+  setManualDomainQuery: React.Dispatch<React.SetStateAction<string>>;
   className?: string;
 }> = ({
   remapOpen,
@@ -2028,9 +2082,12 @@ const DomainRemapPanel: React.FC<{
   availableDomains,
   manualDomainSelection,
   setManualDomainSelection,
+  manualDomainQuery,
+  setManualDomainQuery,
   className,
 }) => {
   const { t } = useTranslation();
+  const activeFilterCount = manualDomainSelection.length + (manualDomainQuery.trim() ? 1 : 0);
 
   return (
     <div className={cn('rounded-[24px] border border-slate-200/80 bg-white/92 p-4 shadow-[0_22px_58px_-30px_rgba(15,23,42,0.48)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-950/88 dark:shadow-[0_28px_70px_-34px_rgba(2,6,23,0.82)]', className)}>
@@ -2056,18 +2113,33 @@ const DomainRemapPanel: React.FC<{
 
       {remapOpen ? (
         <>
+          <div className="mt-4">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              {t('careeros.map.custom_domain_label', { defaultValue: 'Custom domain' })}
+            </label>
+            <input
+              type="text"
+              value={manualDomainQuery}
+              onChange={(event) => setManualDomainQuery(event.target.value)}
+              placeholder={t('careeros.map.custom_domain_placeholder', { defaultValue: 'Např. HR, právo, farmacie, učitelé...' })}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-cyan-500/60 dark:focus:ring-cyan-900/40"
+            />
+            <div className="mt-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+              {t('careeros.map.custom_domain_hint', { defaultValue: 'Váš vlastní obor prohledá názvy rolí, shrnutí, firmy i skill tagy a podle toho mapu přesměruje.' })}
+            </div>
+          </div>
           <div className="mt-4 flex max-h-[220px] flex-wrap gap-2 overflow-y-auto pr-1">
             {availableDomains.map((domain) => {
-              const active = manualDomainSelection.includes(domain);
+              const active = manualDomainSelection.includes(domain.value);
               return (
                 <button
-                  key={domain}
+                  key={domain.value}
                   type="button"
                   onClick={() => {
                     setManualDomainSelection((current) => {
-                      if (current.includes(domain)) return current.filter((item) => item !== domain);
-                      if (current.length >= 5) return [...current.slice(1), domain];
-                      return [...current, domain];
+                      if (current.includes(domain.value)) return current.filter((item) => item !== domain.value);
+                      if (current.length >= 5) return [...current.slice(1), domain.value];
+                      return [...current, domain.value];
                     });
                   }}
                   className={cn(
@@ -2077,20 +2149,23 @@ const DomainRemapPanel: React.FC<{
                       : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
                   )}
                 >
-                  {getLocalizedDomainLabel(domain, t)}
+                  {domain.label || getLocalizedDomainLabel(domain.value, t)}
                 </button>
               );
             })}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="text-xs text-slate-500 dark:text-slate-400">
-              {manualDomainSelection.length > 0
-                ? t('careeros.map.remap_active', { defaultValue: '{{count}} domain filters active', count: manualDomainSelection.length })
+              {activeFilterCount > 0
+                ? t('careeros.map.remap_active', { defaultValue: '{{count}} filters active', count: activeFilterCount })
                 : t('careeros.map.remap_system_default', { defaultValue: 'System default is active' })}
             </div>
             <button
               type="button"
-              onClick={() => setManualDomainSelection([])}
+              onClick={() => {
+                setManualDomainSelection([]);
+                setManualDomainQuery('');
+              }}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -2100,8 +2175,8 @@ const DomainRemapPanel: React.FC<{
         </>
       ) : (
         <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-          {manualDomainSelection.length > 0
-            ? t('careeros.map.remap_active', { defaultValue: '{{count}} domain filters active', count: manualDomainSelection.length })
+          {activeFilterCount > 0
+            ? t('careeros.map.remap_active', { defaultValue: '{{count}} filters active', count: activeFilterCount })
             : t('careeros.map.remap_system_default', { defaultValue: 'System default is active' })}
         </div>
       )}
@@ -2196,11 +2271,13 @@ const CareerPathStage: React.FC<{
   showDefaultHud: boolean;
   remapOpen: boolean;
   setRemapOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  availableDomains: string[];
+  availableDomains: RemapDomainOption[];
   manualDomainSelection: string[];
   setManualDomainSelection: React.Dispatch<React.SetStateAction<string[]>>;
+  manualDomainQuery: string;
+  setManualDomainQuery: React.Dispatch<React.SetStateAction<string>>;
   interactive?: boolean;
-}> = ({ userLabel, headline, userProfilePhoto, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, interactive = true }) => {
+}> = ({ userLabel, headline, userProfilePhoto, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, interactive = true }) => {
   const { t } = useTranslation();
   const expandedNode = nodes.find((node) => node.id === expandedPathId) || null;
   const expandedChildren = useMemo(() => buildExpandedClusterChildren(expandedNode), [expandedNode]);
@@ -2404,6 +2481,8 @@ const CareerPathStage: React.FC<{
           availableDomains={availableDomains}
           manualDomainSelection={manualDomainSelection}
           setManualDomainSelection={setManualDomainSelection}
+          manualDomainQuery={manualDomainQuery}
+          setManualDomainQuery={setManualDomainQuery}
           className="absolute bottom-6 right-6 z-[32] w-[min(26rem,calc(100vw-3rem))]"
         />
         <CanvasControls
@@ -3352,6 +3431,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [domainRemapOpen, setDomainRemapOpen] = useState(false);
   const [manualDomainSelection, setManualDomainSelection] = useState<string[]>([]);
+  const [manualDomainQuery, setManualDomainQuery] = useState('');
   const [learningResources, setLearningResources] = useState<LearningResource[]>([]);
   const [learningResourcesLoading, setLearningResourcesLoading] = useState(false);
 
@@ -3399,8 +3479,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const { t, i18n } = useTranslation();
 
   const pathNodes = useMemo(
-    () => buildPathNodes(jobs, workspace.challenges, userProfile, t, manualDomainSelection),
-    [jobs, manualDomainSelection, t, workspace.challenges, userProfile],
+    () => buildPathNodes(jobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
+    [jobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
   );
 
   const selectedPath = useMemo(
@@ -3424,9 +3504,26 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         ...(userProfile.preferences?.searchProfile?.secondaryDomains || []).map((domain) => String(domain || '')),
       ].filter(Boolean);
 
-      return Array.from(new Set([...preferred, ...discovered]))
-        .filter((domain) => domain !== 'general')
-        .sort((left, right) => getLocalizedDomainLabel(left, t).localeCompare(getLocalizedDomainLabel(right, t), i18n.language || 'cs'));
+      const labelsByValue = new Map<string, string>();
+      REMAP_PRIORITY_DOMAIN_OPTIONS.forEach((option) => {
+        labelsByValue.set(option.value, option.label || getLocalizedDomainLabel(option.value, t));
+      });
+      [...preferred, ...discovered]
+        .filter((domain) => domain && domain !== 'general')
+        .forEach((domain) => {
+          if (!labelsByValue.has(domain)) {
+            labelsByValue.set(domain, getLocalizedDomainLabel(domain, t));
+          }
+        });
+
+      const prioritized = REMAP_PRIORITY_DOMAIN_OPTIONS
+        .map((option) => ({ value: option.value, label: labelsByValue.get(option.value) || option.label || getLocalizedDomainLabel(option.value, t) }));
+      const remaining = Array.from(labelsByValue.entries())
+        .filter(([value]) => !REMAP_PRIORITY_DOMAIN_OPTIONS.some((option) => option.value === value))
+        .map(([value, label]) => ({ value, label }))
+        .sort((left, right) => left.label.localeCompare(right.label, i18n.language || 'cs'));
+
+      return [...prioritized, ...remaining];
     },
     [jobs, t, i18n.language, userProfile.preferences?.searchProfile?.primaryDomain, userProfile.preferences?.searchProfile?.secondaryDomains],
   );
@@ -3557,6 +3654,12 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       selectedPathChallenges: selectedPath?.challenges.length || 0,
     });
   }, [jobs.length, pathNodes.length, selectedPath?.challenges.length, selectedPathId, workspace.challenges.length]);
+
+  useEffect(() => {
+    if (activeLayer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
+      setActiveLayer('career_path');
+    }
+  }, [activeLayer]);
 
   useEffect(() => {
     if (!selectedPathId && pathNodes[0]) {
@@ -3735,6 +3838,13 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
   const handleSidebarNavigate = (layer: CareerOSLayer) => {
     setPanelDismissed(false);
+    if (layer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
+      setActiveLayer('career_path');
+      setExpandedPathId(null);
+      setPanelDismissed(true);
+      setPanelChallenge(null);
+      return;
+    }
     if (layer === 'career_path') {
       setActiveLayer('career_path');
       setExpandedPathId(null);
@@ -3784,6 +3894,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           availableDomains={availableDomains}
           manualDomainSelection={manualDomainSelection}
           setManualDomainSelection={setManualDomainSelection}
+          manualDomainQuery={manualDomainQuery}
+          setManualDomainQuery={setManualDomainQuery}
         />
       );
     }
@@ -3862,7 +3974,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       return <MiniChallengesView cards={miniChallengeCards} onOpenChallenge={handleJobSelect} onOpenProfile={onOpenProfile} />;
     }
 
-    if (activeLayer === 'market_trends') {
+    if (activeLayer === 'market_trends' && MARKET_TRENDS_ENABLED) {
       return <MarketTrendsView analysis={marketTrendAnalysis} onOpenLearningPath={() => setActiveLayer('learning_path')} />;
     }
 

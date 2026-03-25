@@ -26,7 +26,8 @@ import {
   Calculator,
   SlidersHorizontal,
   Zap,
-  ArrowRight
+  ArrowRight,
+  LogOut
 } from 'lucide-react';
 import CreateMiniChallengeModal from './challenges/CreateMiniChallengeModal';
 import { updateCurrentUserPassword, uploadProfilePhoto } from '../services/supabaseService';
@@ -81,6 +82,7 @@ interface ProfileEditorProps {
   onChange: (profile: UserProfile, persist?: boolean) => void | Promise<void>;
   onSave: () => void | Promise<boolean>;
   onRefreshProfile?: () => void | Promise<void>;
+  onSignOut?: () => void | Promise<void>;
   savedJobs?: Job[];
   savedJobIds?: string[];
   onToggleSave?: (jobId: string) => void;
@@ -109,6 +111,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   onChange,
   onSave,
   onRefreshProfile,
+  onSignOut,
   savedJobs = [],
   savedJobIds = [],
   onToggleSave,
@@ -998,6 +1001,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordForm, setPasswordForm] = useState({ nextPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -3185,6 +3189,18 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   };
 
+  const handleSignOutClick = async () => {
+    if (!onSignOut || isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await onSignOut();
+    } catch (error) {
+      console.error('Profile sign out failed:', error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
 
   const handlePasswordChange = async () => {
     if (isChangingPassword) return;
@@ -3308,14 +3324,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={handleSaveClick}
-                disabled={isSavingProfile}
-                className={`${profilePrimaryButtonClass} w-full px-6 py-3`}
-              >
-                <Save size={18} />
-                {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={handleSignOutClick}
+                  disabled={!onSignOut || isSigningOut}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <LogOut size={17} />
+                  {isSigningOut ? t('app.loading', { defaultValue: 'Loading...' }) : t('common.logout', { defaultValue: 'Logout' })}
+                </button>
+                <button
+                  onClick={handleSaveClick}
+                  disabled={isSavingProfile}
+                  className={`${profilePrimaryButtonClass} w-full px-6 py-3`}
+                >
+                  <Save size={18} />
+                  {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
+                </button>
+              </div>
             </div>
           </div>
           {saveFeedback && (

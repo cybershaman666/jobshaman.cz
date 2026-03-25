@@ -37,6 +37,7 @@ interface CandidateCareerSignals {
 }
 
 const domainLabels: Partial<Record<CandidateDomainKey, string>> = {
+  automotive: 'Automotive',
   customer_support: 'Customer support',
   education: 'Education',
   engineering: 'Engineering',

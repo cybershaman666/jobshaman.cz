@@ -1995,6 +1995,7 @@ export default function App() {
                 activationNextStep={activationNextStep}
                 applyInteractionState={applyInteractionState}
                 onDeleteAccount={deleteAccount}
+                onSignOut={signOut}
                 onSetCompanyProfile={setCompanyProfile}
                 onSetViewState={setViewState}
                 onProfileUpdate={handleProfileUpdate}

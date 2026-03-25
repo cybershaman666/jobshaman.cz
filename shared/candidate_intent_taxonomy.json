@@ -46,6 +46,11 @@
       "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automechanik", "auto mechanik", "mechanik", "mechanik vozidel", "servisni technik", "technik udrzby", "udrzbar", "udrzba", "maintenance", "maintenance technician", "field service", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer", "prototype", "prototyp", "invention", "vynalez", "electronics", "hardware", "maker"],
       "related": ["manufacturing", "it", "operations"]
     },
+    "automotive": {
+      "labels": { "cs": "Automotive", "sk": "Automotive", "en": "Automotive", "de": "Automotive", "pl": "Automotive" },
+      "keywords": ["automotive", "automechanik", "auto mechanik", "autoservis", "servis vozidel", "mechanik vozidel", "autotechnik", "car service", "vehicle service", "fleet service", "kfz", "dealership", "car dealer"],
+      "related": ["engineering", "manufacturing", "logistics", "retail"]
+    },
     "healthcare": {
       "labels": { "cs": "Zdravotnictví a péče", "sk": "Zdravotníctvo a starostlivosť", "en": "Healthcare & care", "de": "Gesundheit & Pflege", "pl": "Zdrowie i opieka" },
       "keywords": ["nurse", "nursing", "medical", "clinic", "doctor", "healthcare", "caregiver", "social care", "sestra", "prakticka sestra", "zdravotni sestra", "zdravotni bratr", "pecovatel", "terapeut", "ambulance", "sanitar", "zachranar", "paramedik"],

@@ -20,6 +20,7 @@ export type CandidateDomainKey =
   | 'agriculture'
   | 'ai_data'
   | 'aviation'
+  | 'automotive'
   | 'construction'
   | 'creative_media'
   | 'customer_support'
