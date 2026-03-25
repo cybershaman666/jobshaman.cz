@@ -388,6 +388,13 @@ const compactText = (value: string, max = 40): string => {
   return `${value.slice(0, Math.max(1, max - 1)).trim()}…`;
 };
 
+const twoLineClampStyle: React.CSSProperties = {
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+};
+
 const domainLabelMap: Record<string, string> = {
   agriculture: 'Agriculture',
   ai_data: 'AI & Data',
@@ -2448,7 +2455,7 @@ const CareerPathStage: React.FC<{
                     disabled={!interactive}
                     className={cn(
                       'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-all duration-200 hover:scale-105',
-                      elevated ? 'h-[166px] w-[210px]' : 'h-[154px] w-[190px]',
+                      elevated ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
                       active ? 'scale-105' : '',
                     )}
                   >
@@ -2494,11 +2501,17 @@ const CareerPathStage: React.FC<{
                     <div
                       className={cn(
                         'mt-2 w-full rounded-2xl border text-center shadow-sm backdrop-blur-md transition-colors',
-                        elevated ? 'px-4 py-3.5' : 'px-3.5 py-3',
+                        elevated ? 'px-4 py-3.5' : 'px-3.5 py-3.5',
                         active ? 'border-cyan-200 bg-white/95 dark:border-cyan-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
                       )}
                     >
-                      <div className="text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100">{compactText(node.title, elevated ? 34 : 30)}</div>
+                      <div
+                        className="min-h-[2.5rem] text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100"
+                        style={twoLineClampStyle}
+                        title={node.title}
+                      >
+                        {node.title}
+                      </div>
                       <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-cyan-600 dark:text-cyan-300">
                         {t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
                       </div>
@@ -2644,8 +2657,14 @@ const CareerPathStage: React.FC<{
                     className="relative flex items-center"
                   >
                     {child.textPos === 'left' ? (
-                      <div className="pointer-events-none absolute right-full mr-4 hidden max-w-[180px] text-right xl:block">
-                        <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{compactText(child.role.title, 24)}</div>
+                      <div className="pointer-events-none absolute right-full mr-4 hidden w-[220px] text-right xl:block">
+                        <div
+                          className="text-[13px] font-semibold leading-5 text-slate-800 dark:text-slate-100"
+                          style={twoLineClampStyle}
+                          title={child.role.title}
+                        >
+                          {child.role.title}
+                        </div>
                         <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{child.role.subtitle}</div>
                       </div>
                     ) : null}
@@ -2669,8 +2688,14 @@ const CareerPathStage: React.FC<{
                     </button>
 
                     {child.textPos === 'right' ? (
-                      <div className="pointer-events-none absolute left-full ml-4 hidden max-w-[180px] text-left xl:block">
-                        <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{compactText(child.role.title, 24)}</div>
+                      <div className="pointer-events-none absolute left-full ml-4 hidden w-[220px] text-left xl:block">
+                        <div
+                          className="text-[13px] font-semibold leading-5 text-slate-800 dark:text-slate-100"
+                          style={twoLineClampStyle}
+                          title={child.role.title}
+                        >
+                          {child.role.title}
+                        </div>
                         <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{child.role.subtitle}</div>
                       </div>
                     ) : null}
