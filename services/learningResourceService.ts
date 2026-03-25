@@ -15,6 +15,8 @@ const LEARNING_RESOURCE_BACKEND_FALLBACKS = [
 ];
 const LEARNING_RESOURCES_UNAVAILABLE_KEY = 'jobshaman_learning_resources_unavailable_until';
 const LEARNING_RESOURCES_UNAVAILABLE_TTL_MS = 5 * 60 * 1000;
+const DEBUG_LEARNING_RESOURCES =
+  import.meta.env.DEV || String(import.meta.env.VITE_DEBUG_LEARNING_RESOURCES || '').toLowerCase() === 'true';
 
 const normalizeBackendBaseUrl = (value?: string): string | null => {
   if (!value) return null;
@@ -38,6 +40,11 @@ const resolveLearningResourceBackends = (): string[] => {
   return Array.from(
     new Set([searchBase, coreBase, ...fallbackBases].filter((base): base is string => !!base))
   ).filter((base) => !/code\.run/i.test(base));
+};
+
+const resolveLearningResourceReadBackend = (): string | null => {
+  const candidates = resolveLearningResourceBackends();
+  return candidates[0] || null;
 };
 
 const mapLearningResourceRow = (row: any): LearningResource => ({
@@ -145,34 +152,34 @@ const clearUnavailableMarker = (): void => {
 
 export const fetchLearningResources = async (options?: LearningResourceQueryOptions): Promise<LearningResource[]> => {
   if (readUnavailableUntil() > Date.now()) return [];
-  const bases = resolveLearningResourceBackends();
-  if (!bases.length) return [];
+  const base = resolveLearningResourceReadBackend();
+  if (!base) return [];
   let lastError: Error | null = null;
-  for (const base of bases) {
-    try {
-      const response = await fetch(`${base}/learning-resources${buildQueryString(options)}`, {
-        method: 'GET',
-      });
-      if (response.ok) {
-        clearUnavailableMarker();
-        return await parseListResponse(response);
-      }
-      if (shouldTryNextBackend(response)) {
-        lastError = new Error(await response.text().catch(() => `Learning resources request failed with ${response.status}`));
-        continue;
-      }
+  try {
+    const response = await fetch(`${base}/learning-resources${buildQueryString(options)}`, {
+      method: 'GET',
+    });
+    if (response.ok) {
+      clearUnavailableMarker();
       return await parseListResponse(response);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error || 'Learning resources request failed'));
-      continue;
     }
+    lastError = new Error(await response.text().catch(() => `Learning resources request failed with ${response.status}`));
+    if (!shouldTryNextBackend(response)) {
+      return await parseListResponse(response);
+    }
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error(String(error || 'Learning resources request failed'));
   }
   if (lastError && isLikelyCorsOrNetworkError(lastError)) {
     markTemporarilyUnavailable();
-    console.warn('[Learning resources] backend temporarily unavailable, suppressing repeated fetches for this session window.');
+    if (DEBUG_LEARNING_RESOURCES) {
+      console.warn('[Learning resources] backend temporarily unavailable, suppressing repeated fetches for this session window.');
+    }
     return [];
   }
-  console.error('Learning resources fetch error:', lastError || new Error('Learning resources request failed'));
+  if (DEBUG_LEARNING_RESOURCES) {
+    console.error('Learning resources fetch error:', lastError || new Error('Learning resources request failed'));
+  }
   return [];
 };
 
@@ -203,10 +210,14 @@ export const fetchLearningResourcesByPartner = async (partnerId: string): Promis
   }
   if (lastError && isLikelyCorsOrNetworkError(lastError)) {
     markTemporarilyUnavailable();
-    console.warn('[Learning resources] partner backend temporarily unavailable, suppressing repeated fetches for this session window.');
+    if (DEBUG_LEARNING_RESOURCES) {
+      console.warn('[Learning resources] partner backend temporarily unavailable, suppressing repeated fetches for this session window.');
+    }
     return [];
   }
-  console.error('Learning resources by partner fetch error:', lastError || new Error('Learning resources request failed'));
+  if (DEBUG_LEARNING_RESOURCES) {
+    console.error('Learning resources by partner fetch error:', lastError || new Error('Learning resources request failed'));
+  }
   return [];
 };
 

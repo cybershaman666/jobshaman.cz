@@ -46,6 +46,8 @@ import { buildCareerOSNotificationFeed } from '../../src/app/careeros/model/noti
 import MarketplacePage, { type MarketplacePageProps } from '../../src/pages/marketplace/MarketplacePage';
 
 const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
+const DEBUG_CAREER_OS =
+  import.meta.env.DEV || String(import.meta.env.VITE_DEBUG_CAREER_OS || '').toLowerCase() === 'true';
 
 interface CareerOSCandidateWorkspaceProps extends MarketplacePageProps {
   onOpenCompanyPage: (companyId: string) => void;
@@ -3477,14 +3479,13 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       setLearningResourcesLoading(true);
       try {
-        const resourceCollections = await Promise.all(
-          learningResourceSearchTerms.map((skillName) =>
-            fetchLearningResources({
-              skillName,
-              status: 'active',
-            }),
-          ),
-        );
+        const mergedQuery = Array.from(new Set(learningResourceSearchTerms.map((item) => item.trim()).filter(Boolean))).join(' | ');
+        const resourceCollections = mergedQuery ? [
+          await fetchLearningResources({
+            skillName: mergedQuery,
+            status: 'active',
+          }),
+        ] : [];
         const merged = Array.from(
           new Map(
             resourceCollections
@@ -3547,6 +3548,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
 
   useEffect(() => {
+    if (!DEBUG_CAREER_OS) return;
     console.log('[CareerOS] Workspace graph diagnostics:', {
       jobs: jobs.length,
       workspaceChallenges: workspace.challenges.length,
