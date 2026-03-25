@@ -1207,9 +1207,11 @@ const buildMiniChallengeCards = (jobs: Job[], profileChallenges: Job[], userProf
   const resolveScope = (job: Job): string => {
     if (Array.isArray(job.micro_job_collaboration_modes) && job.micro_job_collaboration_modes.length > 0) {
       return job.micro_job_collaboration_modes
-        .map((mode) => String(mode || '').replace(/_/g, ' ').trim())
+        .map((mode) => String(mode || '').trim().toLowerCase())
         .filter(Boolean)
-        .map((value) => value.charAt(0).toUpperCase() + value.slice(1))
+        .map((value) => t(`company.job_editor.micro_job_collaboration_options.${value}`, {
+          defaultValue: value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
+        }))
         .join(' • ');
     }
 
@@ -1265,6 +1267,23 @@ const buildMiniChallengeCards = (jobs: Job[], profileChallenges: Job[], userProf
   }));
 
   return [...profileJobCards, ...jobCards].slice(0, 6);
+};
+
+const hasCareerPathProfileSignal = (userProfile: UserProfile): boolean => {
+  const searchProfile = userProfile.preferences?.searchProfile;
+  return Boolean(
+    String(searchProfile?.primaryDomain || '').trim()
+    || String(searchProfile?.inferredPrimaryDomain || '').trim()
+    || String(searchProfile?.targetRole || '').trim()
+    || String(userProfile.preferences?.desired_role || '').trim()
+    || String(userProfile.jobTitle || '').trim()
+    || String(userProfile.story || '').trim()
+    || String(userProfile.cvText || '').trim()
+    || String(userProfile.cvAiText || '').trim()
+    || (Array.isArray(userProfile.skills) && userProfile.skills.length > 0)
+    || (Array.isArray(userProfile.inferredSkills) && userProfile.inferredSkills.length > 0)
+    || (Array.isArray(userProfile.workHistory) && userProfile.workHistory.length > 0)
+  );
 };
 
 const NeuralCircuitTexture: React.FC<{
@@ -2639,6 +2658,52 @@ const CareerPathStage: React.FC<{
   );
 };
 
+const CareerPathSetupState: React.FC<{
+  isGuest: boolean;
+  onOpenAuth: () => void;
+  onOpenProfile: () => void;
+}> = ({ isGuest, onOpenAuth, onOpenProfile }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <StageBackground accent="emerald" />
+      <div className="absolute inset-0 flex items-center justify-center p-6 lg:p-10">
+        <div className="w-full max-w-2xl rounded-[32px] border border-white/70 bg-white/90 p-6 text-center shadow-[0_32px_90px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-950/88 dark:shadow-[0_36px_96px_-44px_rgba(2,6,23,0.72)] sm:p-8">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 text-cyan-600 shadow-sm dark:bg-cyan-950/50 dark:text-cyan-300">
+            <Bot className="h-7 w-7" />
+          </div>
+          <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+            {t('careeros.map.setup_badge', { defaultValue: 'Rozvojová cesta' })}
+          </div>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+            {isGuest
+              ? t('careeros.map.guest_locked_title', { defaultValue: 'Aby rozvojová cesta dávala smysl, potřebujeme nejdřív váš profil' })
+              : t('careeros.map.profile_locked_title', { defaultValue: 'Doplňte profil a my pak připravíme smysluplnou rozvojovou cestu' })}
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-[15px]">
+            {isGuest
+              ? t('careeros.map.guest_locked_body', { defaultValue: 'Bez přihlášení a vyplněného profilu bychom jen hádali podle obecných nabídek. Přihlaste se, doplňte pár informací o sobě a pak vám ukážeme směry, které budou vycházet z vašich zkušeností, preferencí a cílů.' })
+              : t('careeros.map.profile_locked_body', { defaultValue: 'Zatím nemáme dost podkladů, abychom vám ukázali relevantní směry. Stačí doplnit cílovou roli, obor nebo pár zkušeností a systém bude mít z čeho vycházet.' })}
+          </p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={isGuest ? onOpenAuth : onOpenProfile}
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-500"
+            >
+              {isGuest
+                ? t('careeros.map.guest_locked_cta', { defaultValue: 'Přihlásit se a začít' })
+                : t('careeros.map.profile_locked_cta', { defaultValue: 'Doplnit profil' })}
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const JobOffersStage: React.FC<{
   selectedPath: PathNode;
   selectedRole: RoleNode;
@@ -3477,6 +3542,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [panelDismissed, setPanelDismissed] = useState<boolean>(initialNavigationState?.panelDismissed ?? true);
   const [canvasZoom, setCanvasZoom] = useState(initialCanvasZoom);
   const { t, i18n } = useTranslation();
+  const careerPathRequiresSetup = !userProfile.isLoggedIn || !hasCareerPathProfileSignal(userProfile);
+  const isGuestCareerPath = !userProfile.isLoggedIn;
 
   const pathNodes = useMemo(
     () => buildPathNodes(jobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
@@ -3866,6 +3933,18 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   };
 
   const renderMainLayer = () => {
+    if (activeLayer === 'career_path') {
+      if (careerPathRequiresSetup) {
+        return (
+          <CareerPathSetupState
+            isGuest={isGuestCareerPath}
+            onOpenAuth={onOpenAuth}
+            onOpenProfile={onOpenProfile}
+          />
+        );
+      }
+    }
+
     if (activeLayer === 'career_path' || !selectedPath) {
       return (
         <CareerPathStage
@@ -4050,7 +4129,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       <PathPanel
         node={selectedPath}
-        visible={!panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
+        visible={!careerPathRequiresSetup && !panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
         expanded={expandedPathId === selectedPath?.id}
         onClose={() => setPanelDismissed(true)}
         onToggleExpand={() => {
