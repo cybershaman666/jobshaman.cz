@@ -28,6 +28,8 @@ import AppViewportShell from './src/app/layout/AppViewportShell';
 import useHeaderOffsets from './src/app/layout/useHeaderOffsets';
 import useMarketplaceDiscovery from './src/app/marketplace/useMarketplaceDiscovery';
 import useMarketplaceSceneState from './src/app/marketplace/useMarketplaceSceneState';
+import type { CareerOSNotification } from './components/careeros/CareerOSCandidateWorkspace';
+import { buildCareerOSNotificationFeed } from './src/app/careeros/model/notificationFeed';
 import {
     deriveActivationState,
     getNextActivationStep,
@@ -612,6 +614,8 @@ export default function App() {
         setFilterMaxDistance,
         setEnableCommuteFilter,
         setFilterMinSalary,
+        filterWorkArrangement,
+        setFilterWorkArrangement,
         toggleBenefitFilter,
         toggleContractTypeFilter,
         globalSearch,
@@ -727,6 +731,115 @@ export default function App() {
         }
         return scopedJobs;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey, discoveryMode]);
+    const benefitCandidates = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    jobsForDisplay
+                        .flatMap((job) => [...(Array.isArray(job.benefits) ? job.benefits : []), ...(Array.isArray(job.tags) ? job.tags : [])])
+                        .map((item) => String(item || '').trim())
+                        .filter(Boolean)
+                )
+            ).slice(0, 6),
+        [jobsForDisplay]
+    );
+    const [headerNotifications, setHeaderNotifications] = useState<CareerOSNotification[]>([]);
+    const notificationStorageKey = useMemo(
+        () => `careeros.notifications.read.${userProfile.id || 'guest'}`,
+        [userProfile.id]
+    );
+    const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+    const [notificationsStorageHydrated, setNotificationsStorageHydrated] = useState(false);
+    const notificationMatchCandidates = useMemo(
+        () =>
+            jobsForDisplay.map((job) => {
+                const aliases = getSavedJobIdAliases(job.id);
+                return {
+                    id: job.id,
+                    title: String(job.title || '').trim() || t('careeros.notifications.untitled_role', { defaultValue: 'Untitled role' }),
+                    company: String(job.company || '').trim() || t('common.company', { defaultValue: 'Company' }),
+                    score: Math.round(Number((job as any)?.jhi?.score || 0)),
+                    location: String(job.location || '').trim(),
+                    salary: String(job.salaryRange || '').trim(),
+                    isSaved: aliases.some((id) => savedJobIds.includes(id)),
+                };
+            }),
+        [jobsForDisplay, savedJobIds, t]
+    );
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const buildHeaderNotificationFeed = async () => {
+            const items = await buildCareerOSNotificationFeed({
+                locale: i18n.language || userProfile.preferredLocale || 'cs',
+                matchCandidates: notificationMatchCandidates,
+                userProfile: {
+                    id: userProfile.id,
+                    dailyDigestEnabled: userProfile.dailyDigestEnabled,
+                    dailyDigestLastSentAt: userProfile.dailyDigestLastSentAt,
+                    dailyDigestPushEnabled: userProfile.dailyDigestPushEnabled,
+                    dailyDigestTime: userProfile.dailyDigestTime,
+                    dailyDigestTimezone: userProfile.dailyDigestTimezone,
+                },
+                t,
+                maxItems: 8,
+            });
+
+            if (!cancelled) {
+                setHeaderNotifications(items);
+            }
+        };
+
+        void buildHeaderNotificationFeed();
+        const intervalId = window.setInterval(() => {
+            void buildHeaderNotificationFeed();
+        }, userProfile.id ? 90_000 : 180_000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [
+        i18n.language,
+        notificationMatchCandidates,
+        t,
+        userProfile.dailyDigestEnabled,
+        userProfile.dailyDigestLastSentAt,
+        userProfile.dailyDigestPushEnabled,
+        userProfile.dailyDigestTime,
+        userProfile.dailyDigestTimezone,
+        userProfile.id,
+        userProfile.preferredLocale,
+    ]);
+    const unreadHeaderNotificationCount = useMemo(
+        () => headerNotifications.filter((notification) => !readNotificationIds.includes(notification.id)).length,
+        [headerNotifications, readNotificationIds]
+    );
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        setNotificationsStorageHydrated(false);
+        try {
+            const raw = window.localStorage.getItem(notificationStorageKey);
+            setReadNotificationIds(raw ? JSON.parse(raw) : []);
+        } catch {
+            setReadNotificationIds([]);
+        }
+        setNotificationsStorageHydrated(true);
+    }, [notificationStorageKey]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || !notificationsStorageHydrated) return;
+        try {
+            const raw = window.localStorage.getItem(notificationStorageKey);
+            const storedIds = raw ? JSON.parse(raw) : [];
+            const mergedIds = Array.from(new Set([...(Array.isArray(storedIds) ? storedIds : []), ...readNotificationIds]));
+            window.localStorage.setItem(notificationStorageKey, JSON.stringify(mergedIds));
+        } catch {
+            window.localStorage.setItem(notificationStorageKey, JSON.stringify(readNotificationIds));
+        }
+    }, [notificationStorageKey, notificationsStorageHydrated, readNotificationIds]);
 
     const savedJobsCacheKey = useMemo(
         () => `${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`,
@@ -1709,6 +1822,54 @@ export default function App() {
             filterCity={filterCity}
             setFilterCity={setFilterCity}
             performSearch={performSearch}
+            remoteOnly={challengeRemoteOnly}
+            setRemoteOnly={setChallengeRemoteOnly}
+            filterWorkArrangement={filterWorkArrangement}
+            setFilterWorkArrangement={(value) => setFilterWorkArrangement(value, 'user_toggle')}
+            globalSearch={globalSearch}
+            setGlobalSearch={setGlobalSearch}
+            abroadOnly={abroadOnly}
+            setAbroadOnly={setAbroadOnly}
+            enableCommuteFilter={enableCommuteFilter}
+            setEnableCommuteFilter={setEnableCommuteFilter}
+            filterMinSalary={filterMinSalary}
+            setFilterMinSalary={setFilterMinSalary}
+            filterMaxDistance={filterMaxDistance}
+            setFilterMaxDistance={(value) => setFilterMaxDistance(value, 'user_toggle')}
+            transportMode={userProfile.transportMode || 'public'}
+            setTransportMode={(mode) => {
+                const nextProfile = { ...userProfileRef.current, transportMode: mode };
+                userProfileRef.current = nextProfile;
+                setUserProfile(nextProfile);
+            }}
+            discoveryFilterMode={discoveryMode}
+            setDiscoveryFilterMode={setDiscoveryMode}
+            filterContractType={filterContractType}
+            setFilterContractType={(values) => setFilterContractType(values, 'user_toggle')}
+            filterExperience={filterExperience}
+            setFilterExperience={(values) => setFilterExperience(values, 'user_toggle')}
+            filterLanguageCodes={filterLanguageCodes}
+            setFilterLanguageCodes={(values) => setFilterLanguageCodes(values, 'user_toggle')}
+            filterBenefits={filterBenefits}
+            setFilterBenefits={(values) => setFilterBenefits(values, 'user_toggle')}
+            benefitCandidates={benefitCandidates}
+            notifications={headerNotifications}
+            readNotificationIds={readNotificationIds}
+            notificationCount={unreadHeaderNotificationCount}
+            onMarkNotificationRead={(notificationId) => {
+                setReadNotificationIds((current) => Array.from(new Set([...current, notificationId])));
+            }}
+            onMarkAllNotificationsRead={() => {
+                setReadNotificationIds((current) => Array.from(new Set([...current, ...headerNotifications.map((item) => item.id)])));
+            }}
+            onNotificationAction={(notification) => {
+                setReadNotificationIds((current) => Array.from(new Set([...current, notification.id])));
+                if (notification.challengeId) {
+                    handleJobSelect(notification.challengeId);
+                    return;
+                }
+                setViewState(ViewState.PROFILE);
+            }}
             onOpenDiscoverySearch={() => {
                 userIntentionallyClickedListRef.current = true;
                 setDiscoverySearchMode(true);
@@ -1740,6 +1901,14 @@ export default function App() {
         return null;
     }, [normalizedPath]);
     const isStandaloneRoute = standalonePageNode !== null;
+    const isPrimaryCareerOSHome =
+        !isImmersiveAssessmentRoute
+        && !isStandaloneRoute
+        && viewState === ViewState.LIST
+        && !selectedJobId
+        && !selectedCompanyId
+        && !isBlogOpen
+        && !showCompanyLanding;
 
     const bannerNode = !isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation ? (
         <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
@@ -1806,6 +1975,7 @@ export default function App() {
                 filterMinSalary={filterMinSalary}
                 filterBenefits={filterBenefits}
                 remoteOnly={challengeRemoteOnly}
+                filterWorkArrangement={filterWorkArrangement}
                 globalSearch={globalSearch}
                 abroadOnly={abroadOnly}
                 countryCodes={countryCodes}
@@ -1856,6 +2026,7 @@ export default function App() {
                 onSetFilterBenefits={setFilterBenefits}
                 onToggleBenefitFilter={toggleBenefitFilter}
                 onSetRemoteOnly={setChallengeRemoteOnly}
+                onSetFilterWorkArrangement={setFilterWorkArrangement}
                 onSetGlobalSearch={setGlobalSearch}
                 onSetAbroadOnly={setAbroadOnly}
                 onSetCountryCodes={setCountryCodes}
@@ -2056,12 +2227,12 @@ export default function App() {
     return (
         <AppViewportShell
             isImmersive={isImmersiveAssessmentRoute}
-            usePageScrollLayout={usePageScrollLayout || isStandaloneRoute}
+            usePageScrollLayout={isPrimaryCareerOSHome ? false : (usePageScrollLayout || isStandaloneRoute)}
             header={headerNode}
-            banner={isStandaloneRoute ? null : bannerNode}
+            banner={isPrimaryCareerOSHome || isStandaloneRoute ? null : bannerNode}
             scene={standalonePageNode ?? sceneNode}
-            footer={!isImmersiveAssessmentRoute ? <SiteFooter /> : null}
-            floatingAction={floatingActionNode}
+            footer={!isImmersiveAssessmentRoute && !isPrimaryCareerOSHome ? <SiteFooter /> : null}
+            floatingAction={isPrimaryCareerOSHome ? null : floatingActionNode}
             overlays={overlayNodes}
         />
     );

@@ -37,6 +37,8 @@ export interface MarketplacePageProps {
   filterMaxDistance: number;
   setFilterMaxDistance: (distance: number) => void;
   onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
+  showSidebar?: boolean;
+  embeddedInCareerOS?: boolean;
 }
 
 const MarketplacePage: React.FC<MarketplacePageProps> = ({
@@ -71,6 +73,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   filterMaxDistance,
   setFilterMaxDistance,
   onOpenAuth,
+  showSidebar = true,
+  embeddedInCareerOS = false,
 }) => {
   return (
     <div className="space-y-6">
@@ -107,6 +111,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           onOpenProfile={onOpenProfile}
           onOpenAuth={onOpenAuth}
           selectedJobId={selectedJobId}
+          showSidebar={showSidebar}
+          embeddedInCareerOS={embeddedInCareerOS}
         />
       </div>
     </div>

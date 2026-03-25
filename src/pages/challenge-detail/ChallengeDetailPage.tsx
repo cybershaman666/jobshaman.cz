@@ -162,6 +162,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   }, []);
 
   const displayedSalary = job.salaryRange
+    || job.micro_job_reward
     || (Number(job.salary_from || 0) && Number(job.salary_to || 0)
       ? `${Number(job.salary_from).toLocaleString(locale)} - ${Number(job.salary_to).toLocaleString(locale)} ${(job as any).salary_currency || (language === 'cs' ? 'CZK' : 'EUR')}`
       : Number(job.salary_from || 0) || Number(job.salary_to || 0)

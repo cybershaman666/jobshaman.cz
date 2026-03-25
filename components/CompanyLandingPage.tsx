@@ -15,6 +15,7 @@ import {
   Target
 } from 'lucide-react';
 import AnalyticsService from '../services/analyticsService';
+import AppShellAtmosphere from './ui/AppShellAtmosphere';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
@@ -646,7 +647,9 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     'app-button-secondary rounded-full px-4 py-2 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
 
   return (
-    <div className="mx-auto w-full max-w-[1680px] px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+      <AppShellAtmosphere />
+      <div className="relative mx-auto w-full max-w-[1680px] px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
       <div className="app-aurora-shell mx-auto flex w-full max-w-[1480px] flex-col gap-6 lg:gap-7">
         <div className="flex justify-end">
           <button onClick={() => handleLogin('topbar')} className={landingTopbarButtonClass}>
@@ -874,6 +877,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
           </div>
         </section>
+      </div>
       </div>
     </div>
   );

@@ -285,6 +285,18 @@ export interface CandidateSearchProfile {
   inferenceConfidence?: number | null;
 }
 
+export interface UserPostedMiniChallenge {
+  id: string;
+  title: string;
+  problem: string;
+  timeEstimate?: string;
+  reward?: string;
+  location?: string;
+  challenge_format: 'micro_job';
+  created_at: string;
+  status?: 'active' | 'completed' | 'archived';
+}
+
 export interface CandidateIntentProfile {
   primaryDomain: CandidateDomainKey | null;
   secondaryDomains: CandidateDomainKey[];
@@ -338,6 +350,7 @@ export interface DiscoveryFilterSourceMap {
   globalSearch?: DiscoveryFilterSource;
   abroadOnly?: DiscoveryFilterSource;
   remoteOnly?: DiscoveryFilterSource;
+  filterWorkArrangement?: DiscoveryFilterSource;
 }
 
 export interface SearchProviderStatus {
@@ -708,6 +721,7 @@ export interface CompanyHumanContextPersonOption {
 export interface Job {
   id: string;
   company_id?: string;
+  posted_by?: string | null;
   title: string;
   company: string;
   companyGoal?: string | null;
@@ -761,11 +775,14 @@ export interface Job {
   language_code?: string;
   hiring_stage?: JobHiringStage | null;
   challenge_format?: JobChallengeFormat;
+  status?: 'active' | 'paused' | 'closed' | 'archived';
   micro_job_kind?: MicroJobKind | null;
   micro_job_time_estimate?: string | null;
+  micro_job_reward?: string | null;
   micro_job_collaboration_modes?: MicroJobCollaborationMode[];
   micro_job_long_term_potential?: MicroJobLongTermPotential | null;
   open_dialogues_count?: number;
+  reply_count?: number;
   dialogue_capacity_limit?: number;
   reaction_window_hours?: number;
   reaction_window_days?: number;
@@ -1406,6 +1423,7 @@ export interface UserProfile {
     candidate_onboarding_v2?: CandidateOnboardingProgressV2;
     jcfpm_v1?: JcfpmSnapshotV1;
     jcfpm_jhi_adjustment_v1?: JcfpmJhiAdjustmentV1;
+    postedMiniChallenges?: UserPostedMiniChallenge[];
   };
   taxProfile?: TaxProfile;
   jhiPreferences?: JHIPreferences;
@@ -1924,6 +1942,7 @@ export interface LearningResource {
   lng?: number;
   status?: 'active' | 'draft' | 'archived';
   partner_name?: string;
+  partner_id?: string | null;
 }
 
 // Duplicate AssessmentResult removed

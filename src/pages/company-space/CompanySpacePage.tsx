@@ -1,6 +1,6 @@
 import React from 'react';
 
-import PublicCompanyProfilePage from '../../../components/challenges/PublicCompanyProfilePage';
+import CareerOSPublicCompanySpace from '../../../components/careeros/CareerOSPublicCompanySpace';
 
 export interface CompanySpacePageProps {
   companyId: string;
@@ -14,7 +14,7 @@ const CompanySpacePage: React.FC<CompanySpacePageProps> = ({
   onOpenChallenge,
 }) => {
   return (
-    <PublicCompanyProfilePage
+    <CareerOSPublicCompanySpace
       companyId={companyId}
       onBack={onBack}
       onOpenChallenge={onOpenChallenge}

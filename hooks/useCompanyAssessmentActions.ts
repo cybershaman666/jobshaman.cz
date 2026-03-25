@@ -1,4 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
+import type { CompanyDashboardTab } from './useCompanyDashboardNavigation';
 import { Assessment, DialogueDossier, Job } from '../types';
 
 interface AssessmentContext {
@@ -27,7 +28,7 @@ interface UseCompanyAssessmentActionsArgs {
   ) => void | Promise<void>;
   setAssessmentJobId: Dispatch<SetStateAction<string | undefined>>;
   setAssessmentContext: Dispatch<SetStateAction<AssessmentContext | null>>;
-  setActiveTab: Dispatch<SetStateAction<'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments'>>;
+  setActiveTab: Dispatch<SetStateAction<CompanyDashboardTab>>;
   setShowInvitationModal: Dispatch<SetStateAction<boolean>>;
 }
 

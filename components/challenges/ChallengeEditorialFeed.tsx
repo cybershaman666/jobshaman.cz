@@ -60,6 +60,7 @@ const truncateSentence = (value: string, maxLength = 88): string => {
 
 const formatSalary = (job: Job, locale: string, isCsLike: boolean): string => {
   if (job.salaryRange) return job.salaryRange;
+  if (job.micro_job_reward) return job.micro_job_reward;
   const from = Number(job.salary_from || 0);
   const to = Number(job.salary_to || 0);
   const currency = (job as any).salary_currency || (isCsLike ? 'CZK' : 'EUR');

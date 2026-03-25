@@ -23,6 +23,7 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
   floatingAction,
   overlays,
 }) => {
+  const hasHeader = Boolean(header);
   const [atmosphereSrc, setAtmosphereSrc] = React.useState<string | null>(null);
   const [atmosphereOpacity, setAtmosphereOpacity] = React.useState(0);
   const [atmosphereBlur, setAtmosphereBlur] = React.useState(96);
@@ -87,8 +88,13 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
         <main
           id="app-viewport"
           className={cn(
-            'flex w-full flex-col min-h-[calc(100vh-var(--app-header-height))]',
-            usePageScrollLayout ? 'h-auto' : 'h-[calc(100vh-var(--app-header-height))] overflow-hidden'
+            'flex w-full flex-col',
+            hasHeader ? 'min-h-[calc(100vh-var(--app-header-height))]' : 'min-h-screen',
+            usePageScrollLayout
+              ? 'h-auto'
+              : hasHeader
+                ? 'h-[calc(100vh-var(--app-header-height))] overflow-hidden'
+                : 'h-screen overflow-hidden'
           )}
         >
           <div className="flex-1 flex flex-col relative overflow-y-auto">

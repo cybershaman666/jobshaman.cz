@@ -131,9 +131,9 @@ const CreateMiniChallengeModal: React.FC<CreateMiniChallengeModalProps> = ({
     return (
         <div className="app-modal-backdrop">
             <div className="absolute inset-0" onClick={onClose}></div>
-            <div className="app-modal-panel max-w-lg animate-in zoom-in-95 duration-300">
+            <div className="app-modal-panel max-w-lg max-h-[min(88vh,860px)] overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="app-modal-topline" />
-                <div className="p-6 sm:p-8">
+                <div className="max-h-[min(88vh,860px)] overflow-y-auto p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 rounded-xl bg-[rgba(var(--accent-green-rgb),0.1)] text-[var(--accent-green)]">
@@ -149,6 +149,7 @@ const CreateMiniChallengeModal: React.FC<CreateMiniChallengeModalProps> = ({
                             </div>
                         </div>
                         <button
+                            type="button"
                             onClick={onClose}
                             className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition text-[var(--text-faint)] hover:text-[var(--text-strong)]"
                         >
@@ -185,7 +186,7 @@ const CreateMiniChallengeModal: React.FC<CreateMiniChallengeModalProps> = ({
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                             <div className="space-y-1.5">
                                 <label className="app-modal-label">
                                     {copy.time}

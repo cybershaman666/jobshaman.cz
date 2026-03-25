@@ -17,10 +17,10 @@ __all__ = [
     "career_map",
     "email",
     "jobs",
+    "learning_resources",
     "profile",
     "push",
     "scraper",
     "stripe",
     "tests",
 ]
-

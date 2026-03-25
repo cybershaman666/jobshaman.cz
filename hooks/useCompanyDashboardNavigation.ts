@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type CompanyDashboardTab = 'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments';
+export type CompanyDashboardTab = 'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments' | 'learning_resources';
 
 export const useCompanyDashboardNavigation = () => {
   const [activeTab, setActiveTab] = useState<CompanyDashboardTab>('overview');

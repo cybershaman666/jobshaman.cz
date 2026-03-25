@@ -8,6 +8,7 @@ from typing import Any
 from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -107,6 +108,18 @@ _EXTERNAL_PROVIDER_HEALTH: dict[str, dict[str, Any]] = {
     "weworkremotely": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
     "arbeitnow": {"failures": 0, "circuit_open_until": None, "last_error": None, "last_failure_at": None, "last_success_at": None},
 }
+
+
+class ProfileMiniChallengeCreateRequest(BaseModel):
+    title: str
+    problem: str
+    timeEstimate: str | None = None
+    reward: str | None = None
+    location: str | None = None
+    first_reply_prompt: str | None = None
+    micro_job_kind: str | None = None
+    collaboration_modes: list[str] | None = None
+    long_term_potential: str | None = None
 
 
 @router.get("/jobs/stats/active-count")
@@ -2828,6 +2841,88 @@ def _fetch_candidate_profile_for_draft(user_id: str) -> dict[str, Any]:
         return {}
 
 
+def _fetch_profile_identity(user_id: str) -> dict[str, Any]:
+    if not supabase or not user_id:
+        return {}
+    try:
+        resp = supabase.table("profiles").select("id,full_name,email").eq("id", user_id).maybe_single().execute()
+        return resp.data if isinstance(resp.data, dict) else {}
+    except Exception as exc:
+        print(f"⚠️ Failed to fetch profile identity for mini challenge publisher: {exc}")
+        return {}
+
+
+def _derive_profile_mini_challenge_label(user: dict, candidate_profile: dict[str, Any], profile_identity: dict[str, Any]) -> tuple[str, str | None]:
+    full_name = _trimmed_text(profile_identity.get("full_name"), 160)
+    email = _trimmed_text(profile_identity.get("email") or user.get("email"), 200)
+    headline = _trimmed_text(candidate_profile.get("job_title"), 160)
+    company_label = full_name or headline or (email.split("@", 1)[0] if email and "@" in email else None) or "JobShaman member"
+    return company_label, email or None
+
+
+def _derive_profile_first_reply_prompt(title: str, problem: str) -> str:
+    cleaned_problem = _clip_text(str(problem or "").strip(), 260)
+    if cleaned_problem:
+        return f"What would you do first to solve \"{title}\" and what trade-off would you watch most closely?\n\nContext: {cleaned_problem}"
+    return f"What would you do first to solve \"{title}\", and what trade-off would you watch most closely?"
+
+
+def _normalize_profile_mini_challenge_reward(raw: Any) -> str | None:
+    reward = re.sub(r"\s+", " ", str(raw or "")).strip()
+    return reward[:160] if reward else None
+
+
+def _parse_profile_mini_challenge_budget(raw: Any) -> tuple[int | None, int | None]:
+    text = str(raw or "").strip()
+    if not text:
+        return (None, None)
+    numbers = [int(match.replace(" ", "")) for match in re.findall(r"\d[\d\s]{0,8}", text)]
+    if not numbers:
+        return (None, None)
+    if len(numbers) == 1:
+        return (numbers[0], numbers[0])
+    ordered = sorted(numbers[:2])
+    return (ordered[0], ordered[-1])
+
+
+def _build_profile_mini_challenge_description(
+    *,
+    title: str,
+    problem: str,
+    time_estimate: str | None,
+    reward: str | None,
+    first_reply_prompt: str,
+    micro_job_kind: str | None,
+    collaboration_modes: list[str],
+    long_term_potential: str | None,
+) -> str:
+    draft = {
+        "title": title,
+        "role_summary": problem,
+        "company_goal": "",
+        "responsibilities": problem,
+        "application_instructions": "Reply in the handshake with your first approach, the most important risk you see, and how you would keep the work grounded in reality.",
+        "editor_state": {
+            "hiring_stage": "collecting_cvs",
+            "micro_job": {
+                "challenge_format": "micro_job",
+                "kind": micro_job_kind or "one_off_task",
+                "time_estimate": time_estimate or "",
+                "collaboration_modes": collaboration_modes,
+                "long_term_potential": long_term_potential or "maybe",
+            },
+            "handshake": {
+                "first_reply_prompt": first_reply_prompt,
+            },
+        },
+        "first_reply_prompt": first_reply_prompt,
+    }
+    description = _compose_job_description_from_draft(draft)
+    if reward:
+        description = f"{description}\n\n### Reward\n{reward}".strip()
+    return description
+
+
 def _fetch_cv_document_for_draft(user_id: str, cv_document_id: str | None) -> dict[str, Any] | None:
     if not supabase or not user_id or not cv_document_id:
         return None
@@ -3840,14 +3935,37 @@ def _require_job_access(user: dict, job_id: str):
     """Ensure the current user is authorized to manage the given job."""
     job_id_norm = _normalize_job_id(job_id)
 
-    job_resp = supabase.table("jobs").select("id, company_id, title, status").eq("id", job_id_norm).maybe_single().execute()
+    job_resp = supabase.table("jobs").select("id, company_id, posted_by, recruiter_id, title, status").eq("id", job_id_norm).maybe_single().execute()
     if not job_resp.data:
         raise HTTPException(status_code=404, detail="Job not found")
 
     company_id = job_resp.data.get("company_id")
-    require_company_access(user, company_id)
+    if company_id:
+        require_company_access(user, company_id)
+        return job_resp.data
 
-    return job_resp.data
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    posted_by = str(job_resp.data.get("posted_by") or "").strip()
+    recruiter_id = str(job_resp.data.get("recruiter_id") or "").strip()
+    if user_id and user_id in {posted_by, recruiter_id}:
+        return job_resp.data
+
+    raise HTTPException(status_code=403, detail="Unauthorized")
+
+
+def _require_dialogue_publisher_access(user: dict, row: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+
+    company_id = str(row.get("company_id") or "").strip()
+    if company_id:
+        require_company_access(user, company_id)
+        return _read_job_record(row.get("job_id")) or {}
+
+    job_id = row.get("job_id")
+    if job_id is None:
+        raise HTTPException(status_code=404, detail="Dialogue is missing a linked role.")
+    return _require_job_access(user, str(job_id))
 
 @router.get("/")
 async def root(request: Request):
@@ -4291,9 +4409,15 @@ async def create_dialogue_legacy(
 
     company_id = None
     try:
-        job_resp = supabase.table("jobs").select("company_id").eq("id", job_id).maybe_single().execute()
-        company_id = (job_resp.data or {}).get("company_id") if job_resp else None
+        job_resp = supabase.table("jobs").select("company_id,posted_by").eq("id", job_id).maybe_single().execute()
+        job_row = job_resp.data or {}
+        company_id = job_row.get("company_id") if job_resp else None
+        posted_by = str(job_row.get("posted_by") or "").strip()
+        if posted_by and posted_by == str(user_id):
+            raise HTTPException(status_code=409, detail="You cannot open a dialogue on your own mini challenge.")
     except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise
         print(f"⚠️ Failed to resolve company for job {job_id}: {exc}")
 
     if company_id:
@@ -5503,6 +5627,482 @@ async def list_my_solution_snapshots(
             if serialized is not None
         ]
     }
+
+
+@router.get("/publisher/mini-challenges")
+@limiter.limit("60/minute")
+async def list_publisher_mini_challenges(
+    request: Request,
+    limit: int = Query(80, ge=1, le=200),
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    resp = (
+        supabase
+        .table("jobs")
+        .select("*")
+        .eq("posted_by", user_id)
+        .order("updated_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    published_rows: list[dict[str, Any]] = []
+    job_ids: list[int] = []
+    for row in rows:
+        metadata, _cleaned = _extract_job_description_metadata(row.get("description"))
+        if metadata.get("challenge_format") != "micro_job":
+            continue
+        published_rows.append(row)
+        normalized_job_id = _normalize_job_id(row.get("id"))
+        if isinstance(normalized_job_id, int):
+            job_ids.append(normalized_job_id)
+
+    stats_by_job_id: dict[int, dict[str, int]] = {}
+    if job_ids:
+        try:
+            applications_resp = (
+                supabase
+                .table("job_applications")
+                .select("job_id,status")
+                .in_("job_id", job_ids)
+                .limit(max(200, len(job_ids) * 40))
+                .execute()
+            )
+            for row in applications_resp.data or []:
+                if not isinstance(row, dict):
+                    continue
+                normalized_job_id = _normalize_job_id(row.get("job_id"))
+                if not isinstance(normalized_job_id, int):
+                    continue
+                stats = stats_by_job_id.setdefault(normalized_job_id, {"reply_count": 0, "open_dialogues_count": 0})
+                stats["reply_count"] += 1
+                if _is_active_dialogue_status(row.get("status")):
+                    stats["open_dialogues_count"] += 1
+        except Exception as exc:
+            print(f"⚠️ Failed to load publisher mini challenge dialogue counts: {exc}")
+
+    enriched_rows: list[dict[str, Any]] = []
+    for row in published_rows:
+        normalized_job_id = _normalize_job_id(row.get("id"))
+        stats = stats_by_job_id.get(normalized_job_id if isinstance(normalized_job_id, int) else -1, {})
+        enriched = dict(row)
+        enriched["reply_count"] = int(stats.get("reply_count") or 0)
+        enriched["open_dialogues_count"] = int(stats.get("open_dialogues_count") or 0)
+        enriched_rows.append(enriched)
+
+    return {"jobs": enriched_rows}
+
+
+@router.post("/publisher/mini-challenges")
+@limiter.limit("30/minute")
+async def create_publisher_mini_challenge(
+    payload: ProfileMiniChallengeCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    title = _trimmed_text(payload.title, 180)
+    problem = _trimmed_text(payload.problem, 4000)
+    if not title or not problem:
+        raise HTTPException(status_code=400, detail="Title and problem are required.")
+
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
+    profile_identity = _fetch_profile_identity(user_id)
+    company_label, contact_email = _derive_profile_mini_challenge_label(user, candidate_profile, profile_identity)
+    reward = _normalize_profile_mini_challenge_reward(payload.reward)
+    salary_from, salary_to = _parse_profile_mini_challenge_budget(reward)
+    location = _trimmed_text(payload.location, 160) or "Remote"
+    time_estimate = _normalize_micro_job_time_estimate(payload.timeEstimate) or None
+    micro_job_kind = _normalize_micro_job_kind(payload.micro_job_kind) or "one_off_task"
+    collaboration_modes = _normalize_micro_job_collaboration_modes(payload.collaboration_modes or ["async"])
+    if not collaboration_modes:
+        collaboration_modes = ["async"]
+    long_term_potential = _normalize_micro_job_long_term_potential(payload.long_term_potential) or "maybe"
+    first_reply_prompt = _trimmed_text(payload.first_reply_prompt, 2000) or _derive_profile_first_reply_prompt(title, problem)
+    preferred_country = str(_safe_dict(candidate_profile.get("preferences")).get("preferredCountryCode") or candidate_profile.get("preferred_country_code") or "").strip().lower()
+    country_code = preferred_country if preferred_country in {"cs", "cz", "sk", "pl", "de", "at"} else "cz"
+    work_type = "Remote" if "remote" in location.lower() else "Hybrid"
+    description = _build_profile_mini_challenge_description(
+        title=title,
+        problem=problem,
+        time_estimate=time_estimate,
+        reward=reward,
+        first_reply_prompt=first_reply_prompt,
+        micro_job_kind=micro_job_kind,
+        collaboration_modes=collaboration_modes,
+        long_term_potential=long_term_potential,
+    )
+
+    insert_payload = {
+        "title": title,
+        "company": company_label,
+        "location": location,
+        "description": description,
+        "salary_from": salary_from,
+        "salary_to": salary_to,
+        "salary_currency": "CZK",
+        "salary_timeframe": "project_total",
+        "work_type": work_type,
+        "work_model": work_type.lower(),
+        "source": _NATIVE_JOB_SOURCE,
+        "scraped_at": now_iso(),
+        "posted_by": user_id,
+        "recruiter_id": user_id,
+        "contact_email": contact_email,
+        "country_code": country_code,
+        "status": "active",
+        "is_active": True,
+        "updated_at": now_iso(),
+    }
+
+    try:
+        job_resp = supabase.table("jobs").insert(insert_payload).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to create publisher mini challenge: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
+
+    job_row = (job_resp.data or [None])[0]
+    if not isinstance(job_row, dict):
+        raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
+
+    sync_row = dict(job_row)
+    sync_row.update(insert_payload)
+    sync_row["id"] = job_row.get("id")
+    _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
+    return {"job": sync_row}
+
+
+@router.patch("/publisher/mini-challenges/{job_id}/lifecycle")
+@limiter.limit("30/minute")
+async def update_publisher_mini_challenge_lifecycle(
+    job_id: str,
+    payload: JobLifecycleUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    job_row = _require_job_access(user, job_id)
+    normalized_job_id = _normalize_job_id(job_id)
+    update_payload = {
+        "status": payload.status,
+        "is_active": payload.status == "active",
+        "updated_at": now_iso(),
+    }
+    supabase.table("jobs").update(update_payload).eq("id", normalized_job_id).execute()
+    try:
+        update_job_fields(normalized_job_id, update_payload)
+    except Exception:
+        pass
+    return {"status": "success"}
+
+
+@router.get("/publisher/mini-challenges/{job_id}/dialogues")
+@limiter.limit("60/minute")
+async def list_publisher_mini_challenge_dialogues(
+    job_id: str,
+    request: Request,
+    limit: int = Query(200, ge=1, le=1000),
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    normalized_job_id = _normalize_job_id(job_id)
+    _require_job_access(user, job_id)
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .eq("job_id", normalized_job_id)
+            .order("submitted_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+    except Exception as exc:
+        order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "created_at"
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*")
+            .eq("job_id", normalized_job_id)
+            .order(order_column, desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
+    return {"dialogues": [_serialize_dialogue_record(_serialize_company_application_row(row)) for row in rows]}
+
+
+@router.get("/publisher/dialogues/{dialogue_id}")
+@limiter.limit("60/minute")
+async def get_publisher_dialogue_detail(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    row = resp.data if resp else None
+    if not isinstance(row, dict):
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    row = _expire_dialogue_if_needed(row)
+    _require_dialogue_publisher_access(user, row)
+    application = _serialize_application_dossier(row)
+    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
+    return {"dialogue": _serialize_dialogue_record(application)}
+
+
+@router.get("/publisher/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def list_publisher_dialogue_messages(
+    dialogue_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,status,application_payload")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load dialogue")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,status")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    app_row = app_resp.data if app_resp else None
+    if not isinstance(app_row, dict):
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    app_row = _expire_dialogue_if_needed(app_row)
+    _require_dialogue_publisher_access(user, app_row)
+
+    try:
+        resp = (
+            supabase
+            .table("application_messages")
+            .select("*")
+            .eq("application_id", dialogue_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            return {"messages": []}
+        raise HTTPException(status_code=500, detail="Failed to load messages")
+
+    rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    unread_ids = [str(row.get("id") or "") for row in rows if str(row.get("sender_role") or "") == "candidate" and not row.get("read_by_company_at")]
+    if unread_ids:
+        try:
+            supabase.table("application_messages").update({"read_by_company_at": now_iso()}).in_("id", unread_ids).execute()
+        except Exception:
+            pass
+        for row in rows:
+            if str(row.get("id") or "") in unread_ids:
+                row["read_by_company_at"] = now_iso()
+    return {"messages": [_serialize_dialogue_message(row) for row in rows]}
+
+
+@router.post("/publisher/dialogues/{dialogue_id}/messages")
+@limiter.limit("60/minute")
+async def create_publisher_dialogue_message(
+    dialogue_id: str,
+    payload: ApplicationMessageCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    try:
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,candidate_id,status,application_payload")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load dialogue")
+        app_resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,candidate_id,status")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    app_row = app_resp.data if app_resp else None
+    if not isinstance(app_row, dict):
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    app_row = _expire_dialogue_if_needed(app_row)
+    _require_dialogue_publisher_access(user, app_row)
+    if not _is_active_dialogue_status(app_row.get("status")):
+        raise HTTPException(status_code=409, detail="Dialogue is closed")
+
+    body = str(payload.body or "").strip()
+    attachments = _sanitize_application_message_attachments(payload.attachments)
+    asset_ids = _extract_attachment_asset_ids(attachments)
+    if not body and not attachments:
+        raise HTTPException(status_code=400, detail="Message body or attachment required")
+
+    sender_user_id = user.get("id") or user.get("auth_id")
+    insert_payload = {
+        "application_id": dialogue_id,
+        "company_id": app_row.get("company_id"),
+        "candidate_id": app_row.get("candidate_id"),
+        "sender_user_id": sender_user_id,
+        "sender_role": "recruiter",
+        "body": body,
+        "attachments": attachments,
+        "asset_ids": asset_ids,
+        "created_at": now_iso(),
+        "read_by_candidate_at": None,
+        "read_by_company_at": now_iso(),
+    }
+    try:
+        try:
+            resp = supabase.table("application_messages").insert(insert_payload).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "asset_ids"):
+                fallback_payload = dict(insert_payload)
+                fallback_payload.pop("asset_ids", None)
+                resp = supabase.table("application_messages").insert(fallback_payload).execute()
+            else:
+                raise
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            raise HTTPException(status_code=503, detail="Messaging not available")
+        raise HTTPException(status_code=500, detail="Failed to send message")
+
+    row = (resp.data or [insert_payload])[0]
+    _schedule_dialogue_timeout(app_row, current_turn="candidate")
+    return {"message": _serialize_dialogue_message(row)}
+
+
+@router.patch("/publisher/dialogues/{dialogue_id}/status")
+@limiter.limit("60/minute")
+async def update_publisher_dialogue_status(
+    dialogue_id: str,
+    payload: JobApplicationStatusUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,status,application_payload")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "application_payload"):
+            raise HTTPException(status_code=500, detail="Failed to load dialogue")
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("id,job_id,company_id,status")
+            .eq("id", dialogue_id)
+            .maybe_single()
+            .execute()
+        )
+    row = resp.data if resp else None
+    if not isinstance(row, dict):
+        raise HTTPException(status_code=404, detail="Dialogue not found")
+    row = _expire_dialogue_if_needed(row)
+    _require_dialogue_publisher_access(user, row)
+    if not _is_active_dialogue_status(row.get("status")):
+        return {"status": str(row.get("status") or "closed")}
+
+    try:
+        try:
+            supabase.table("job_applications").update({"status": payload.status, "updated_at": now_iso(), "reviewed_at": now_iso()}).eq("id", dialogue_id).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "updated_at") or _is_missing_column_error(exc, "reviewed_at"):
+                supabase.table("job_applications").update({"status": payload.status}).eq("id", dialogue_id).execute()
+            else:
+                raise
+    except Exception as exc:
+        print(f"⚠️ Failed to update publisher dialogue status: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to update dialogue status")
+
+    updated_row = dict(row)
+    updated_row["status"] = payload.status
+    if _is_active_dialogue_status(payload.status):
+        _schedule_dialogue_timeout(updated_row, current_turn="candidate")
+    else:
+        _persist_dialogue_state(
+            dialogue_id,
+            application_payload=_build_closed_dialogue_payload(
+                updated_row.get("application_payload"),
+                close_reason=str(payload.status or "closed"),
+            ),
+            status=payload.status,
+        )
+    return {"status": "success"}
 
 
 @router.get("/company/dialogues")

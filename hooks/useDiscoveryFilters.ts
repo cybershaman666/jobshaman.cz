@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
     DiscoveryFilterSource,
     DiscoveryFilterSourceMap,
+    JobWorkArrangementFilter,
     JobSearchFilters,
     SearchLanguageCode,
     UserProfile,
@@ -97,6 +98,7 @@ export const DEFAULT_FILTER_SOURCES: DiscoveryFilterSourceMap = {
     globalSearch: 'default',
     abroadOnly: 'default',
     remoteOnly: 'default',
+    filterWorkArrangement: 'default',
 };
 
 type DiscoveryFilterField = keyof DiscoveryFilterSourceMap;
@@ -153,6 +155,7 @@ export const useDiscoveryFilters = ({
     const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
     const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0);
     const [abroadOnly, setAbroadOnly] = useState(false);
+    const [filterWorkArrangement, setFilterWorkArrangement] = useState<JobWorkArrangementFilter>('all');
     const [sortBy, setSortBy] = useState<string>('newest');
     const [filterSources, setFilterSources] = useState<DiscoveryFilterSourceMap>(DEFAULT_FILTER_SOURCES);
 
@@ -204,6 +207,7 @@ export const useDiscoveryFilters = ({
             filterLanguageCodes.length > 0 ||
             abroadOnly ||
             remoteOnly ||
+            filterWorkArrangement !== 'all' ||
             hasCountryOverride;
         if (globalSearch) return [];
         if (hasAnyFilters) return [];
@@ -222,6 +226,7 @@ export const useDiscoveryFilters = ({
         filterExperience,
         filterLanguageCodes,
         filterMinSalary,
+        filterWorkArrangement,
         globalSearch,
         marketBaselineCountryCodes,
         remoteOnly,
@@ -246,6 +251,7 @@ export const useDiscoveryFilters = ({
             globalSearch,
             abroadOnly,
             remoteOnly,
+            filterWorkArrangement,
             countryCodes,
             defaultCountryCodes: marketBaselineCountryCodes,
         }),
@@ -260,6 +266,7 @@ export const useDiscoveryFilters = ({
             filterExperience,
             filterLanguageCodes,
             filterMinSalary,
+            filterWorkArrangement,
             filterSources,
             globalSearch,
             marketBaselineCountryCodes,
@@ -359,6 +366,11 @@ export const useDiscoveryFilters = ({
         updateFilterSource('abroadOnly', source);
     }, [updateFilterSource]);
 
+    const setFilterWorkArrangementTracked = useCallback((value: JobWorkArrangementFilter, source: DiscoveryFilterSource = 'user_toggle') => {
+        setFilterWorkArrangement((prev) => (prev === value ? prev : value));
+        updateFilterSource('filterWorkArrangement', source);
+    }, [updateFilterSource]);
+
     const applyDiscoveryDefaults = useCallback((filters: JobSearchFilters, force = false) => {
         if ((force || filterSources.searchTerm !== 'user_toggle') && filters.searchTerm !== undefined) {
             setSearchTermTracked(filters.searchTerm || '', 'default');
@@ -396,6 +408,9 @@ export const useDiscoveryFilters = ({
         if ((force || filterSources.abroadOnly !== 'user_toggle') && filters.abroadOnly !== undefined) {
             setAbroadOnlyTracked(Boolean(filters.abroadOnly), 'default');
         }
+        if ((force || filterSources.filterWorkArrangement !== 'user_toggle') && filters.filterWorkArrangement !== undefined) {
+            setFilterWorkArrangementTracked(filters.filterWorkArrangement || 'all', 'default');
+        }
     }, [
         filterSources,
         setAbroadOnlyTracked,
@@ -408,6 +423,7 @@ export const useDiscoveryFilters = ({
         setFilterLanguageCodesTracked,
         setFilterMaxDistanceTracked,
         setFilterMinSalaryTracked,
+        setFilterWorkArrangementTracked,
         setGlobalSearchTracked,
         setSearchTermTracked,
     ]);
@@ -425,6 +441,7 @@ export const useDiscoveryFilters = ({
         setEnableAutoLanguageGuard(true);
         setEnableCommuteFilterTracked(false, 'default');
         setAbroadOnlyTracked(false, 'default');
+        setFilterWorkArrangementTracked('all', 'default');
         setCountryCodesSafe([]);
         setGlobalSearchTracked(true, 'default');
         setFilterSources(DEFAULT_FILTER_SOURCES);
@@ -440,6 +457,7 @@ export const useDiscoveryFilters = ({
         setFilterLanguageCodesTracked,
         setFilterMaxDistanceTracked,
         setFilterMinSalaryTracked,
+        setFilterWorkArrangementTracked,
         setGlobalSearchTracked,
         setSearchTermTracked,
     ]);
@@ -460,6 +478,7 @@ export const useDiscoveryFilters = ({
         filterLanguageCodes,
         filterMaxDistance,
         filterMinSalary,
+        filterWorkArrangement,
         filterSources,
         globalSearch,
         hasExplicitLanguageFilter,
@@ -482,6 +501,7 @@ export const useDiscoveryFilters = ({
         setFilterLanguageCodes: setFilterLanguageCodesTracked,
         setFilterMaxDistance: setFilterMaxDistanceTracked,
         setFilterMinSalary: setFilterMinSalaryTracked,
+        setFilterWorkArrangement: setFilterWorkArrangementTracked,
         setFilterSources,
         setGlobalSearch: setGlobalSearchTracked,
         setSearchTerm: setSearchTermTracked,

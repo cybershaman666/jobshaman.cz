@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, SearchLanguageCode, UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1, SolutionSnapshot } from '../types';
+import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, CompanyApplicationRow, DialogueDossier, SearchLanguageCode, UserProfile, UserPostedMiniChallenge, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1, SolutionSnapshot } from '../types';
 import {
   User,
   Upload,
@@ -26,8 +26,7 @@ import {
   Calculator,
   SlidersHorizontal,
   Zap,
-  ArrowRight,
-  PlusCircle
+  ArrowRight
 } from 'lucide-react';
 import CreateMiniChallengeModal from './challenges/CreateMiniChallengeModal';
 import { updateCurrentUserPassword, uploadProfilePhoto } from '../services/supabaseService';
@@ -61,7 +60,19 @@ import JcfpmReportPanel from './jcfpm/JcfpmReportPanel';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 import { fetchMySolutionSnapshots } from '../services/jobApplicationService';
+import {
+  createProfileMiniChallenge,
+  fetchProfileMiniChallengeDialogueDetail,
+  fetchProfileMiniChallengeDialogues,
+  fetchProfileMiniChallengeDialogueMessages,
+  listProfileMiniChallenges,
+  sendProfileMiniChallengeDialogueMessage,
+  updateProfileMiniChallengeDialogueStatus,
+  updateProfileMiniChallengeLifecycle,
+} from '../services/profileMiniChallengeService';
 import { GrowthSignal } from './ui/primitives';
+import AppShellAtmosphere from './ui/AppShellAtmosphere';
+import ApplicationMessageCenter from './ApplicationMessageCenter';
 
 import { useTranslation } from 'react-i18next';
 
@@ -83,6 +94,7 @@ const ProfileJobManager = lazy(() => import('./ProfileJobManager'));
 type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'challenges' | 'settings' | 'saved';
 type ProfileLocale = 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en';
 type ProfileLocaleLabels = { cs: string; en: string; sk?: string; de?: string; at?: string; pl?: string };
+const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
 
 const getProfileLocale = (localeBase: string): ProfileLocale => (
   ['cs', 'sk', 'de', 'at', 'pl'].includes(localeBase) ? (localeBase as ProfileLocale) : 'en'
@@ -990,6 +1002,131 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [passwordForm, setPasswordForm] = useState({ nextPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [publishedMiniChallenges, setPublishedMiniChallenges] = useState<Job[]>([]);
+  const [publishedMiniChallengesLoading, setPublishedMiniChallengesLoading] = useState(false);
+  const [publishedMiniChallengesError, setPublishedMiniChallengesError] = useState<string | null>(null);
+  const [selectedPublishedMiniChallengeId, setSelectedPublishedMiniChallengeId] = useState<string | null>(null);
+  const [selectedPublishedDialogueId, setSelectedPublishedDialogueId] = useState<string | null>(null);
+  const [publishedMiniChallengeDialogues, setPublishedMiniChallengeDialogues] = useState<Record<string, CompanyApplicationRow[]>>({});
+  const [publishedMiniChallengeDialogueDetail, setPublishedMiniChallengeDialogueDetail] = useState<DialogueDossier | null>(null);
+  const [publishedMiniChallengeDialogueLoading, setPublishedMiniChallengeDialogueLoading] = useState(false);
+  const [publishedMiniChallengeUpdatingIds, setPublishedMiniChallengeUpdatingIds] = useState<Record<string, boolean>>({});
+  const postedMiniChallenges = (Array.isArray(profile.preferences?.postedMiniChallenges)
+    ? [...profile.preferences.postedMiniChallenges]
+    : []
+  )
+    .filter((challenge): challenge is UserPostedMiniChallenge => Boolean(challenge?.id && challenge?.title))
+    .sort((left, right) => new Date(right.created_at || 0).getTime() - new Date(left.created_at || 0).getTime());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const requestedTab = window.sessionStorage.getItem(PROFILE_INITIAL_TAB_STORAGE_KEY);
+      if (requestedTab === 'personal' || requestedTab === 'cv' || requestedTab === 'jcfpm' || requestedTab === 'challenges' || requestedTab === 'settings' || requestedTab === 'saved') {
+        setActiveTab(requestedTab);
+      }
+      window.sessionStorage.removeItem(PROFILE_INITIAL_TAB_STORAGE_KEY);
+    } catch {
+      // Ignore storage issues and keep the default profile tab.
+    }
+  }, []);
+
+  const loadPublishedMiniChallenges = async (options?: { focusJobId?: string | null }) => {
+    if (!profile.isLoggedIn) {
+      setPublishedMiniChallenges([]);
+      setPublishedMiniChallengeDialogues({});
+      setPublishedMiniChallengeDialogueDetail(null);
+      return;
+    }
+    setPublishedMiniChallengesLoading(true);
+    setPublishedMiniChallengesError(null);
+    try {
+      const jobs = await listProfileMiniChallenges();
+      setPublishedMiniChallenges(jobs);
+      const focusJobId = options?.focusJobId || selectedPublishedMiniChallengeId || jobs[0]?.id || null;
+      setSelectedPublishedMiniChallengeId(focusJobId);
+      if (focusJobId) {
+        const dialogues = await fetchProfileMiniChallengeDialogues(focusJobId);
+        setPublishedMiniChallengeDialogues((current) => ({ ...current, [focusJobId]: dialogues }));
+        const nextDialogueId = selectedPublishedDialogueId && dialogues.some((item) => item.id === selectedPublishedDialogueId)
+          ? selectedPublishedDialogueId
+          : dialogues[0]?.id || null;
+        setSelectedPublishedDialogueId(nextDialogueId);
+        if (nextDialogueId) {
+          setPublishedMiniChallengeDialogueLoading(true);
+          try {
+            const detail = await fetchProfileMiniChallengeDialogueDetail(nextDialogueId);
+            setPublishedMiniChallengeDialogueDetail(detail);
+          } finally {
+            setPublishedMiniChallengeDialogueLoading(false);
+          }
+        } else {
+          setPublishedMiniChallengeDialogueDetail(null);
+        }
+      } else {
+        setSelectedPublishedDialogueId(null);
+        setPublishedMiniChallengeDialogueDetail(null);
+      }
+    } catch (error) {
+      console.error('Failed to load published mini challenges:', error);
+      setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Failed to load mini challenges.');
+    } finally {
+      setPublishedMiniChallengesLoading(false);
+    }
+  };
+
+  const openPublishedMiniChallenge = async (jobId: string) => {
+    setSelectedPublishedMiniChallengeId(jobId);
+    setPublishedMiniChallengeDialogueLoading(true);
+    setPublishedMiniChallengeDialogueDetail(null);
+    try {
+      const dialogues = await fetchProfileMiniChallengeDialogues(jobId);
+      setPublishedMiniChallengeDialogues((current) => ({ ...current, [jobId]: dialogues }));
+      const nextDialogueId = dialogues[0]?.id || null;
+      setSelectedPublishedDialogueId(nextDialogueId);
+      if (nextDialogueId) {
+        const detail = await fetchProfileMiniChallengeDialogueDetail(nextDialogueId);
+        setPublishedMiniChallengeDialogueDetail(detail);
+      }
+    } catch (error) {
+      console.error('Failed to open mini challenge replies:', error);
+      setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Failed to load replies.');
+    } finally {
+      setPublishedMiniChallengeDialogueLoading(false);
+    }
+  };
+
+  const openPublishedDialogue = async (dialogueId: string) => {
+    setSelectedPublishedDialogueId(dialogueId);
+    setPublishedMiniChallengeDialogueLoading(true);
+    try {
+      const detail = await fetchProfileMiniChallengeDialogueDetail(dialogueId);
+      setPublishedMiniChallengeDialogueDetail(detail);
+    } catch (error) {
+      console.error('Failed to load mini challenge reply detail:', error);
+      setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Failed to load reply detail.');
+    } finally {
+      setPublishedMiniChallengeDialogueLoading(false);
+    }
+  };
+
+  const setMiniChallengeUpdating = (id: string, value: boolean) => {
+    setPublishedMiniChallengeUpdatingIds((current) => ({ ...current, [id]: value }));
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'challenges' || !profile.isLoggedIn) return;
+    void loadPublishedMiniChallenges();
+  }, [activeTab, profile.isLoggedIn]);
+
+  const activePublishedMiniChallenges = publishedMiniChallenges.filter((challenge) => {
+    const status = String(challenge.status || 'active').toLowerCase();
+    return status === 'active' || status === 'paused';
+  });
+  const closedPublishedMiniChallenges = publishedMiniChallenges.filter((challenge) => {
+    const status = String(challenge.status || 'active').toLowerCase();
+    return status === 'closed' || status === 'archived';
+  });
   const [activeExperienceId, setActiveExperienceId] = useState<string | null>(null);
   const [activeEducationId, setActiveEducationId] = useState<string | null>(null);
   const [happinessAuditInput, setHappinessAuditInput] = useState<HappinessAuditInput>({
@@ -3098,6 +3235,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   return (
     <div className="app-shell-bg relative min-h-screen overflow-x-clip bg-white dark:bg-slate-950">
+      <AppShellAtmosphere />
       <div className="relative mx-auto w-full max-w-[1680px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
         {/* Header */}
         <div className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)] sm:p-7">
@@ -4643,64 +4781,312 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
 
                 <div className="p-6 space-y-8">
-                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center dark:border-slate-800">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
-                      <Briefcase className="h-8 w-8 text-slate-400" />
+                  {publishedMiniChallengesError ? (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                      {publishedMiniChallengesError}
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {t('profile.mini_challenges.empty_title', { defaultValue: 'Moje zadané výzvy' })}
-                    </h3>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      {t('profile.mini_challenges.empty_desc', { defaultValue: 'Zatím jste nezadali žádnou vlastní výzvu pro ostatní.' })}
-                    </p>
-                    <button
-                      onClick={() => setIsProfileChallengeModalOpen(true)}
-                      className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-teal-600 hover:text-teal-700"
-                    >
-                      {t('profile.mini_challenges.first_btn', { defaultValue: 'Vytvořit novou výzvu' })}
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
+                  ) : null}
 
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-                      {t('profile.mini_challenges.completed_title', { defaultValue: 'Dokončené výzvy k přidání do referencí' })}
-                    </h3>
+                  {publishedMiniChallengesLoading && publishedMiniChallenges.length === 0 ? (
+                    <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
+                      {t('profile.mini_challenges.loading', { defaultValue: 'Načítám živé mini výzvy…' })}
+                    </div>
+                  ) : null}
+
+                  {activePublishedMiniChallenges.length === 0 && !publishedMiniChallengesLoading ? (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center dark:border-slate-800">
+                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900">
+                        <Briefcase className="h-8 w-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {t('profile.mini_challenges.empty_title', { defaultValue: 'Moje zadané výzvy' })}
+                      </h3>
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        {t('profile.mini_challenges.empty_desc', { defaultValue: 'Zatím jste nezadali žádnou vlastní výzvu pro ostatní.' })}
+                      </p>
+                      <button
+                        onClick={() => setIsProfileChallengeModalOpen(true)}
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-teal-600 hover:text-teal-700"
+                      >
+                        {t('profile.mini_challenges.first_btn', { defaultValue: 'Vytvořit novou výzvu' })}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  ) : (
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                      {/* Mock completed challenge for demonstration */}
-                      <div className="rounded-[1.1rem] border border-slate-200 bg-teal-50/30 p-4 dark:border-slate-700 dark:bg-teal-900/10">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="text-sm font-bold text-slate-900 dark:text-white">Tvorba Solarpunk Mapy</div>
-                            <div className="text-xs text-slate-500">Zadal: EnergoHub o.s.</div>
+                      {activePublishedMiniChallenges.map((challenge) => {
+                        const isPaused = challenge.status === 'paused';
+                        const rewardLabel = challenge.micro_job_reward || challenge.salaryRange || null;
+                        const selected = selectedPublishedMiniChallengeId === challenge.id;
+                        const updating = Boolean(publishedMiniChallengeUpdatingIds[challenge.id]);
+                        return (
+                          <div key={challenge.id} className={`rounded-[1.1rem] border p-4 shadow-sm transition ${selected ? 'border-teal-300 bg-teal-50/60 dark:border-teal-700 dark:bg-teal-950/20' : 'border-slate-200 bg-white/85 dark:border-slate-700 dark:bg-slate-900/70'}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-bold text-slate-900 dark:text-white">{challenge.title}</div>
+                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  {new Date(challenge.scrapedAt || Date.now()).toLocaleDateString(i18n.language || localeBase)}
+                                </div>
+                              </div>
+                              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${isPaused ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'}`}>
+                                {isPaused
+                                  ? t('profile.mini_challenges.status_paused', { defaultValue: 'POZASTAVENO' })
+                                  : t('profile.mini_challenges.status_active', { defaultValue: 'AKTIVNÍ' })}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                              {challenge.challenge || challenge.description}
+                            </p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {challenge.micro_job_time_estimate ? (
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+                                  {challenge.micro_job_time_estimate}
+                                </span>
+                              ) : null}
+                              {challenge.location ? (
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+                                  {challenge.location}
+                                </span>
+                              ) : null}
+                              {rewardLabel ? (
+                                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300">
+                                  {rewardLabel}
+                                </span>
+                              ) : null}
+                              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300">
+                                {t('profile.mini_challenges.reply_count', { defaultValue: '{{count}} replies', count: challenge.reply_count || 0 })}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300">
+                                {t('profile.mini_challenges.open_dialogues', { defaultValue: '{{count}} active', count: challenge.open_dialogues_count || 0 })}
+                              </span>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => void openPublishedMiniChallenge(challenge.id)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-teal-700"
+                              >
+                                {t('profile.mini_challenges.manage_replies', { defaultValue: 'Spravovat reakce' })}
+                              </button>
+                              <button
+                                disabled={updating}
+                                onClick={async () => {
+                                  setMiniChallengeUpdating(challenge.id, true);
+                                  try {
+                                    await updateProfileMiniChallengeLifecycle(challenge.id, isPaused ? 'active' : 'paused');
+                                    await loadPublishedMiniChallenges({ focusJobId: challenge.id });
+                                  } catch (error) {
+                                    setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Lifecycle update failed.');
+                                  } finally {
+                                    setMiniChallengeUpdating(challenge.id, false);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                              >
+                                {isPaused
+                                  ? t('profile.mini_challenges.reopen', { defaultValue: 'Znovu otevřít' })
+                                  : t('profile.mini_challenges.pause', { defaultValue: 'Pozastavit' })}
+                              </button>
+                              <button
+                                disabled={updating}
+                                onClick={async () => {
+                                  setMiniChallengeUpdating(challenge.id, true);
+                                  try {
+                                    await updateProfileMiniChallengeLifecycle(challenge.id, 'closed');
+                                    await loadPublishedMiniChallenges();
+                                  } catch (error) {
+                                    setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Lifecycle update failed.');
+                                  } finally {
+                                    setMiniChallengeUpdating(challenge.id, false);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
+                              >
+                                {t('profile.mini_challenges.close', { defaultValue: 'Uzavřít' })}
+                              </button>
+                            </div>
                           </div>
-                          <span className="rounded-full bg-teal-100 px-2 py-1 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
-                            DOKONČENO
-                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {selectedPublishedMiniChallengeId ? (
+                    <div className="rounded-[1.15rem] border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/75">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">
+                            {publishedMiniChallenges.find((item) => item.id === selectedPublishedMiniChallengeId)?.title || t('profile.mini_challenges.manage_replies', { defaultValue: 'Spravovat reakce' })}
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {t('profile.mini_challenges.replies_desc', { defaultValue: 'Tady vidíte reálné handshaky a můžete na ně navázat další odpovědí nebo změnou stavu.' })}
+                          </p>
                         </div>
-                        <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
-                          Implementace interaktivního SVG propojení mezi karierními cestami v solarpunkovém vizuálu.
-                        </p>
-                        <button
-                          onClick={() => alert(localeBase === 'cs' ? 'Přidáno do vašich referencí v sekci Vyřešené situace.' : 'Added to your references in Solved Situations.')}
-                          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-teal-200 py-2 text-xs font-bold text-teal-700 transition hover:bg-teal-50 dark:bg-slate-800 dark:border-slate-700 dark:text-teal-300"
-                        >
-                          <PlusCircle size={14} />
-                          {t('profile.mini_challenges.add_reference', { defaultValue: 'Přidat do portfolia' })}
-                        </button>
+                      </div>
+
+                      {(publishedMiniChallengeDialogues[selectedPublishedMiniChallengeId] || []).length === 0 ? (
+                        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                          {t('profile.mini_challenges.no_replies_yet', { defaultValue: 'Zatím sem nepřišla žádná reakce.' })}
+                        </div>
+                      ) : (
+                        <div className="mt-4 grid gap-4 lg:grid-cols-[280px,minmax(0,1fr)]">
+                          <div className="space-y-2">
+                            {(publishedMiniChallengeDialogues[selectedPublishedMiniChallengeId] || []).map((dialogue) => (
+                              <button
+                                key={dialogue.id}
+                                type="button"
+                                onClick={() => void openPublishedDialogue(dialogue.id)}
+                                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${selectedPublishedDialogueId === dialogue.id ? 'border-teal-300 bg-teal-50/70 dark:border-teal-700 dark:bg-teal-950/20' : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950/30 dark:hover:bg-slate-900/60'}`}
+                              >
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white">{dialogue.candidate_name || t('profile.mini_challenges.candidate_fallback', { defaultValue: 'Kandidát' })}</div>
+                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{dialogue.candidateHeadline || dialogue.candidate_email || '—'}</div>
+                                <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">{dialogue.status}</div>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="space-y-4">
+                            {publishedMiniChallengeDialogueLoading ? (
+                              <div className="rounded-2xl border border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                {t('profile.mini_challenges.loading_reply', { defaultValue: 'Načítám detail reakce…' })}
+                              </div>
+                            ) : publishedMiniChallengeDialogueDetail ? (
+                              <>
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+                                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                    {publishedMiniChallengeDialogueDetail.candidate_name || t('profile.mini_challenges.candidate_fallback', { defaultValue: 'Kandidát' })}
+                                  </div>
+                                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {publishedMiniChallengeDialogueDetail.candidate_email || publishedMiniChallengeDialogueDetail.candidate_profile_snapshot?.email || '—'}
+                                  </div>
+                                  {publishedMiniChallengeDialogueDetail.cover_letter ? (
+                                    <div className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                      {publishedMiniChallengeDialogueDetail.cover_letter}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    {(['reviewed', 'shortlisted', 'rejected', 'hired'] as const).map((status) => (
+                                      <button
+                                        key={status}
+                                        onClick={async () => {
+                                          if (!selectedPublishedMiniChallengeId || !selectedPublishedDialogueId) return;
+                                          setMiniChallengeUpdating(selectedPublishedDialogueId, true);
+                                          try {
+                                            await updateProfileMiniChallengeDialogueStatus(selectedPublishedDialogueId, status);
+                                            const dialogues = await fetchProfileMiniChallengeDialogues(selectedPublishedMiniChallengeId);
+                                            setPublishedMiniChallengeDialogues((current) => ({ ...current, [selectedPublishedMiniChallengeId]: dialogues }));
+                                            const detail = await fetchProfileMiniChallengeDialogueDetail(selectedPublishedDialogueId);
+                                            setPublishedMiniChallengeDialogueDetail(detail);
+                                            await loadPublishedMiniChallenges({ focusJobId: selectedPublishedMiniChallengeId });
+                                          } catch (error) {
+                                            setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Status update failed.');
+                                          } finally {
+                                            setMiniChallengeUpdating(selectedPublishedDialogueId, false);
+                                          }
+                                        }}
+                                        disabled={Boolean(publishedMiniChallengeUpdatingIds[selectedPublishedDialogueId || ''])}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                                      >
+                                        {status}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <ApplicationMessageCenter
+                                  dialogueId={publishedMiniChallengeDialogueDetail.id}
+                                  storageOwnerId={profile.id || null}
+                                  viewerRole="recruiter"
+                                  dialogueStatus={publishedMiniChallengeDialogueDetail.status}
+                                  dialogueDeadlineAt={publishedMiniChallengeDialogueDetail.dialogue_deadline_at || null}
+                                  dialogueTimeoutHours={publishedMiniChallengeDialogueDetail.dialogue_timeout_hours ?? null}
+                                  dialogueCurrentTurn={publishedMiniChallengeDialogueDetail.dialogue_current_turn || null}
+                                  dialogueClosedReason={publishedMiniChallengeDialogueDetail.dialogue_closed_reason || null}
+                                  dialogueIsOverdue={Boolean(publishedMiniChallengeDialogueDetail.dialogue_is_overdue)}
+                                  heading={t('profile.mini_challenges.reply_thread', { defaultValue: 'Vlákno reakce' })}
+                                  subtitle={t('profile.mini_challenges.reply_thread_desc', { defaultValue: 'Navážete na handshake stejně jako v recruiter inboxu.' })}
+                                  fetchMessages={fetchProfileMiniChallengeDialogueMessages}
+                                  sendMessage={sendProfileMiniChallengeDialogueMessage}
+                                />
+                              </>
+                            ) : (
+                              <div className="rounded-2xl border border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                {t('profile.mini_challenges.select_reply', { defaultValue: 'Vyberte reakci vlevo a zobrazí se detail dialogu.' })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {closedPublishedMiniChallenges.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                        {t('profile.mini_challenges.closed_title', { defaultValue: 'Uzavřené mini výzvy' })}
+                      </h3>
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        {closedPublishedMiniChallenges.map((challenge) => (
+                          <div key={challenge.id} className="rounded-[1.1rem] border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/30">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-bold text-slate-900 dark:text-white">{challenge.title}</div>
+                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{challenge.status}</div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  setMiniChallengeUpdating(challenge.id, true);
+                                  try {
+                                    await updateProfileMiniChallengeLifecycle(challenge.id, 'active');
+                                    await loadPublishedMiniChallenges({ focusJobId: challenge.id });
+                                  } catch (error) {
+                                    setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Lifecycle update failed.');
+                                  } finally {
+                                    setMiniChallengeUpdating(challenge.id, false);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                              >
+                                {t('profile.mini_challenges.reopen', { defaultValue: 'Znovu otevřít' })}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  ) : null}
+
+                  {postedMiniChallenges.length > 0 ? (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                        {t('profile.mini_challenges.legacy_title', { defaultValue: 'Starší lokální návrhy' })}
+                      </h3>
+                      <div className="rounded-[1.1rem] border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                        {t('profile.mini_challenges.legacy_desc', { defaultValue: 'Tyto starší mini výzvy byly uložené jen lokálně v profilu. Nově vytvořené výzvy už jdou do reálného handshake flow.' })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <CreateMiniChallengeModal
                   isOpen={isProfileChallengeModalOpen}
                   onClose={() => setIsProfileChallengeModalOpen(false)}
                   isCsLike={localeBase === 'cs' || localeBase === 'sk'}
-                  onSubmit={(data) => {
-                    console.log('Profile: New Mini Challenge created:', data);
-                    setIsProfileChallengeModalOpen(false);
-                    alert(localeBase === 'cs' ? 'Výzva byla vytvořena.' : 'Challenge created.');
+                  locale={i18n.language || localeBase}
+                  onSubmit={async (data) => {
+                    try {
+                      const created = await createProfileMiniChallenge({
+                        title: String(data?.title || '').trim(),
+                        problem: String(data?.problem || '').trim(),
+                        timeEstimate: String(data?.timeEstimate || '').trim() || undefined,
+                        reward: String(data?.reward || '').trim() || undefined,
+                        location: String(data?.location || '').trim() || undefined,
+                      });
+                      setIsProfileChallengeModalOpen(false);
+                      await loadPublishedMiniChallenges({ focusJobId: created.id });
+                      alert(localeBase === 'cs' ? 'Mini výzva byla publikována a je otevřená pro reálné reakce.' : 'Mini challenge published and ready for real replies.');
+                    } catch (error) {
+                      setPublishedMiniChallengesError(error instanceof Error ? error.message : 'Failed to publish mini challenge.');
+                    }
                   }}
                 />
               </div>

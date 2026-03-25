@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
@@ -12,6 +13,30 @@ from ..core import config
 _conn = None
 _schema_ready = False
 _lock = Lock()
+_search_diag_lock = Lock()
+_search_diag_state: dict[str, Any] = {
+    "last_query_at": None,
+    "last_latency_ms": None,
+    "last_row_count": None,
+    "last_filters": {},
+    "slow_query_count": 0,
+    "last_slow_query": None,
+    "last_explain_summary": None,
+}
+
+_JOBS_POSTGRES_SEARCH_VECTOR_SQL = """
+(
+    setweight(to_tsvector('simple', COALESCE(title, '')), 'A')
+    ||
+    setweight(to_tsvector('simple', COALESCE(company, '')), 'A')
+    ||
+    setweight(to_tsvector('simple', COALESCE(location, '')), 'B')
+    ||
+    setweight(to_tsvector('simple', COALESCE(role_summary, '')), 'B')
+    ||
+    setweight(to_tsvector('simple', COALESCE(description, '')), 'C')
+)
+""".strip()
 
 
 def jobs_postgres_enabled() -> bool:
@@ -67,6 +92,161 @@ def _load_psycopg():
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _safe_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def _count_truthy_items(items: list[str] | None) -> int:
+    return len([item for item in (items or []) if str(item or "").strip()])
+
+
+def _extract_explain_payload(row: Any) -> list[dict[str, Any]] | None:
+    if isinstance(row, dict):
+        for key in ("QUERY PLAN", "query_plan"):
+            value = row.get(key)
+            if isinstance(value, list):
+                return value
+    return None
+
+
+def _walk_plan_nodes(node: Any, *, node_types: set[str], index_names: set[str]) -> None:
+    if not isinstance(node, dict):
+        return
+    node_type = str(node.get("Node Type") or "").strip()
+    if node_type:
+        node_types.add(node_type)
+    index_name = str(node.get("Index Name") or "").strip()
+    if index_name:
+        index_names.add(index_name)
+    plans = node.get("Plans")
+    if isinstance(plans, list):
+        for child in plans:
+            _walk_plan_nodes(child, node_types=node_types, index_names=index_names)
+
+
+def _summarize_explain_payload(explain_rows: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    if not explain_rows:
+        return None
+    root = explain_rows[0] if explain_rows else None
+    if not isinstance(root, dict):
+        return None
+    plan_root = root.get("Plan")
+    node_types: set[str] = set()
+    index_names: set[str] = set()
+    _walk_plan_nodes(plan_root, node_types=node_types, index_names=index_names)
+    return {
+        "execution_time_ms": _safe_int(root.get("Execution Time")),
+        "planning_time_ms": _safe_int(root.get("Planning Time")),
+        "plan_rows": _safe_int((plan_root or {}).get("Plan Rows")) if isinstance(plan_root, dict) else None,
+        "actual_rows": _safe_int((plan_root or {}).get("Actual Rows")) if isinstance(plan_root, dict) else None,
+        "shared_hit_blocks": _safe_int((plan_root or {}).get("Shared Hit Blocks")) if isinstance(plan_root, dict) else None,
+        "shared_read_blocks": _safe_int((plan_root or {}).get("Shared Read Blocks")) if isinstance(plan_root, dict) else None,
+        "top_node": (plan_root or {}).get("Node Type") if isinstance(plan_root, dict) else None,
+        "node_types": sorted(node_types),
+        "indexes": sorted(index_names),
+    }
+
+
+def _record_search_diagnostics(
+    *,
+    latency_ms: int,
+    row_count: int,
+    filters_summary: dict[str, Any],
+    explain_summary: dict[str, Any] | None = None,
+) -> None:
+    query_at = _utcnow().isoformat()
+    is_slow = latency_ms >= int(config.JOBS_POSTGRES_SEARCH_SLOW_MS)
+    with _search_diag_lock:
+        _search_diag_state["last_query_at"] = query_at
+        _search_diag_state["last_latency_ms"] = latency_ms
+        _search_diag_state["last_row_count"] = row_count
+        _search_diag_state["last_filters"] = dict(filters_summary)
+        if explain_summary is not None:
+            _search_diag_state["last_explain_summary"] = dict(explain_summary)
+        if is_slow:
+            _search_diag_state["slow_query_count"] = int(_search_diag_state.get("slow_query_count") or 0) + 1
+            _search_diag_state["last_slow_query"] = {
+                "at": query_at,
+                "latency_ms": latency_ms,
+                "row_count": row_count,
+                "filters": dict(filters_summary),
+                "explain_summary": dict(explain_summary) if explain_summary else None,
+            }
+
+
+def _build_hybrid_search_filters_summary(
+    *,
+    normalized_search_term: str,
+    normalized_filter_city: str,
+    cutoff_iso: str | None,
+    country_codes: list[str] | None,
+    language_codes: list[str] | None,
+    min_salary: int | None,
+    limit: int,
+) -> dict[str, Any]:
+    return {
+        "search_term_present": bool(normalized_search_term),
+        "search_term_length": len(normalized_search_term),
+        "city_filter_present": bool(normalized_filter_city),
+        "cutoff_present": bool(cutoff_iso),
+        "country_code_count": _count_truthy_items(country_codes),
+        "language_code_count": _count_truthy_items(language_codes),
+        "min_salary_present": bool(min_salary),
+        "limit": limit,
+    }
+
+
+def _log_search_timing(
+    *,
+    latency_ms: int,
+    row_count: int,
+    filters_summary: dict[str, Any],
+    explain_summary: dict[str, Any] | None = None,
+) -> None:
+    should_log = bool(config.JOBS_POSTGRES_SEARCH_TIMING_LOG_ENABLED) or latency_ms >= int(config.JOBS_POSTGRES_SEARCH_SLOW_MS)
+    if not should_log:
+        return
+    label = "slow" if latency_ms >= int(config.JOBS_POSTGRES_SEARCH_SLOW_MS) else "ok"
+    print(
+        "🕒 [Jobs Postgres Search] "
+        f"status={label} latency_ms={latency_ms} rows={row_count} "
+        f"search={filters_summary.get('search_term_present')} city={filters_summary.get('city_filter_present')} "
+        f"cutoff={filters_summary.get('cutoff_present')} countries={filters_summary.get('country_code_count')} "
+        f"languages={filters_summary.get('language_code_count')} salary={filters_summary.get('min_salary_present')} "
+        f"limit={filters_summary.get('limit')}"
+    )
+    if explain_summary:
+        print(
+            "🧪 [Jobs Postgres Search Explain] "
+            f"execution_ms={explain_summary.get('execution_time_ms')} "
+            f"planning_ms={explain_summary.get('planning_time_ms')} "
+            f"top_node={explain_summary.get('top_node')} "
+            f"nodes={','.join(explain_summary.get('node_types') or []) or '-'} "
+            f"indexes={','.join(explain_summary.get('indexes') or []) or '-'} "
+            f"shared_hit={explain_summary.get('shared_hit_blocks')} "
+            f"shared_read={explain_summary.get('shared_read_blocks')}"
+        )
+
+
+def _explain_query_plan(sql: str, params: list[Any]) -> dict[str, Any] | None:
+    if not bool(config.JOBS_POSTGRES_SEARCH_EXPLAIN_ENABLED):
+        return None
+    try:
+        conn = _connect()
+        with conn.cursor() as cur:
+            cur.execute(f"EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {sql}", params)
+            row = cur.fetchone() or {}
+        return _summarize_explain_payload(_extract_explain_payload(row))
+    except Exception as exc:
+        return {
+            "error": exc.__class__.__name__,
+            "message": str(exc),
+        }
 
 
 def _normalize_main_source_kind(doc: dict[str, Any]) -> str:
@@ -197,6 +377,74 @@ def _ensure_schema() -> None:
             cur.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_source_kind ON {config.JOBS_POSTGRES_JOBS_TABLE} (source_kind)"
             )
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_main_active_scraped_at
+                ON {config.JOBS_POSTGRES_JOBS_TABLE} (scraped_at DESC)
+                WHERE COALESCE(status, 'active') = 'active'
+                  AND COALESCE(is_active, TRUE) = TRUE
+                  AND COALESCE(legality_status, 'legal') = 'legal'
+                """
+            )
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_country_scraped_at
+                ON {config.JOBS_POSTGRES_JOBS_TABLE} (country_code, scraped_at DESC)
+                WHERE COALESCE(status, 'active') = 'active'
+                  AND COALESCE(is_active, TRUE) = TRUE
+                  AND COALESCE(legality_status, 'legal') = 'legal'
+                """
+            )
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_language_scraped_at
+                ON {config.JOBS_POSTGRES_JOBS_TABLE} (language_code, scraped_at DESC)
+                WHERE COALESCE(status, 'active') = 'active'
+                  AND COALESCE(is_active, TRUE) = TRUE
+                  AND COALESCE(legality_status, 'legal') = 'legal'
+                """
+            )
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_salary_scraped_at
+                ON {config.JOBS_POSTGRES_JOBS_TABLE} (salary_from DESC, scraped_at DESC)
+                WHERE COALESCE(status, 'active') = 'active'
+                  AND COALESCE(is_active, TRUE) = TRUE
+                  AND COALESCE(legality_status, 'legal') = 'legal'
+                """
+            )
+            cur.execute(
+                f"""
+                CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_search_fts
+                ON {config.JOBS_POSTGRES_JOBS_TABLE}
+                USING GIN ({_JOBS_POSTGRES_SEARCH_VECTOR_SQL})
+                """
+            )
+            try:
+                cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_title_trgm
+                    ON {config.JOBS_POSTGRES_JOBS_TABLE}
+                    USING GIN (LOWER(title) gin_trgm_ops)
+                    """
+                )
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_company_trgm
+                    ON {config.JOBS_POSTGRES_JOBS_TABLE}
+                    USING GIN (LOWER(company) gin_trgm_ops)
+                    """
+                )
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBS_TABLE}_location_trgm
+                    ON {config.JOBS_POSTGRES_JOBS_TABLE}
+                    USING GIN (LOWER(location) gin_trgm_ops)
+                    """
+                )
+            except Exception as exc:
+                print(f"⚠️ [Jobs Postgres] pg_trgm indexes unavailable: {exc}")
             cur.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS {config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE} (
@@ -593,6 +841,8 @@ def query_jobs_for_hybrid_search(
     country_codes: list[str] | None = None,
     language_codes: list[str] | None = None,
     min_salary: int | None = None,
+    search_term: str | None = None,
+    filter_city: str | None = None,
 ) -> list[dict[str, Any]]:
     if not jobs_postgres_main_enabled():
         return []
@@ -605,6 +855,14 @@ def query_jobs_for_hybrid_search(
         cutoff_sql.strip(),
     ]
     params: list[Any] = list(cutoff_params)
+    normalized_search_term = str(search_term or "").strip()
+    if normalized_search_term:
+        where_parts.append(f"{_JOBS_POSTGRES_SEARCH_VECTOR_SQL} @@ websearch_to_tsquery('simple', %s)")
+        params.append(normalized_search_term)
+    normalized_filter_city = str(filter_city or "").strip().lower()
+    if normalized_filter_city:
+        where_parts.append("LOWER(COALESCE(location, '')) LIKE %s")
+        params.append(f"%{normalized_filter_city}%")
     if cutoff_iso:
         where_parts.append("scraped_at >= %s")
         params.append(_coerce_timestamp(cutoff_iso))
@@ -620,23 +878,56 @@ def query_jobs_for_hybrid_search(
         where_parts.append("COALESCE(salary_from, 0) >= %s")
         params.append(int(min_salary))
     where_sql = " AND ".join(where_parts)
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""
+    safe_limit = max(1, int(limit or 300))
+    order_sql = "scraped_at DESC"
+    if normalized_search_term:
+        order_sql = (
+            f"ts_rank_cd({_JOBS_POSTGRES_SEARCH_VECTOR_SQL}, websearch_to_tsquery('simple', %s)) DESC, "
+            "scraped_at DESC"
+        )
+        params.append(normalized_search_term)
+    sql = f"""
             SELECT payload_json
             FROM {config.JOBS_POSTGRES_JOBS_TABLE}
             WHERE {where_sql}
-            ORDER BY scraped_at DESC
+            ORDER BY {order_sql}
             LIMIT %s
-            """,
-            [*params, max(1, int(limit or 300))],
-        )
+            """
+    query_params = [*params, safe_limit]
+    filters_summary = _build_hybrid_search_filters_summary(
+        normalized_search_term=normalized_search_term,
+        normalized_filter_city=normalized_filter_city,
+        cutoff_iso=cutoff_iso,
+        country_codes=country_codes,
+        language_codes=language_codes,
+        min_salary=min_salary,
+        limit=safe_limit,
+    )
+    started = time.perf_counter()
+    with conn.cursor() as cur:
+        cur.execute(sql, query_params)
         rows = cur.fetchall() or []
+    latency_ms = int((time.perf_counter() - started) * 1000)
     jobs: list[dict[str, Any]] = []
     for row in rows:
         payload = _json_load((row or {}).get("payload_json"), {})
         if isinstance(payload, dict):
             jobs.append(dict(payload))
+    explain_summary = None
+    if latency_ms >= int(config.JOBS_POSTGRES_SEARCH_SLOW_MS):
+        explain_summary = _explain_query_plan(sql, query_params)
+    _record_search_diagnostics(
+        latency_ms=latency_ms,
+        row_count=len(jobs),
+        filters_summary=filters_summary,
+        explain_summary=explain_summary,
+    )
+    _log_search_timing(
+        latency_ms=latency_ms,
+        row_count=len(jobs),
+        filters_summary=filters_summary,
+        explain_summary=explain_summary,
+    )
     return jobs
 
 
@@ -1004,6 +1295,8 @@ def backfill_jobs_from_documents(documents: list[dict[str, Any]]) -> dict[str, i
 
 
 def get_jobs_postgres_health() -> dict[str, Any]:
+    with _search_diag_lock:
+        recent_search_diag = dict(_search_diag_state)
     info: dict[str, Any] = {
         "enabled": jobs_postgres_enabled(),
         "url_configured": bool(config.JOBS_POSTGRES_URL),
@@ -1014,6 +1307,12 @@ def get_jobs_postgres_health() -> dict[str, Any]:
         "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
         "native_retention_days": int(config.JOBS_POSTGRES_NATIVE_RETENTION_DAYS),
         "imported_retention_days": int(config.JOBS_POSTGRES_IMPORTED_RETENTION_DAYS),
+        "search_diagnostics": {
+            "timing_log_enabled": bool(config.JOBS_POSTGRES_SEARCH_TIMING_LOG_ENABLED),
+            "slow_ms": int(config.JOBS_POSTGRES_SEARCH_SLOW_MS),
+            "explain_enabled": bool(config.JOBS_POSTGRES_SEARCH_EXPLAIN_ENABLED),
+            "recent": recent_search_diag,
+        },
     }
     if not jobs_postgres_enabled():
         return info

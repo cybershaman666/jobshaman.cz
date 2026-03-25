@@ -19,8 +19,10 @@ import CompanyAssessmentsWorkspace from './company/CompanyAssessmentsWorkspace';
 import CompanyDashboardContent from './company/CompanyDashboardContent';
 import CompanyCandidatesWorkspace from './company/CompanyCandidatesWorkspace';
 import CompanyDashboardShell from './company/CompanyDashboardShell';
+import CompanyLearningResourcesWorkspace from './company/CompanyLearningResourcesWorkspace';
 import CompanyOverviewWorkspace from './company/CompanyOverviewWorkspace';
 import CompanyJobsWorkspace from './company/CompanyJobsWorkspace';
+import { mapCompanyProfileToCareerOSCompanyWorkspace } from '../src/app/careeros/model/viewModels';
 import {
     buildOverviewHeaderState,
     buildOverviewMetrics,
@@ -510,8 +512,30 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         />
     );
 
+    const renderLearningResources = () => (
+        <CompanyLearningResourcesWorkspace
+            companyProfile={companyProfile}
+        />
+    );
+
+    const companyWorkspaceModel = mapCompanyProfileToCareerOSCompanyWorkspace({
+        companyProfile: effectiveCompanyProfile,
+        activeTab,
+        visibleJobs: visibleJobs.length,
+        openApplications: openApplications.length,
+        assessmentLibrary: assessmentLibrary.length,
+        candidates: candidates.length,
+    });
+
     return (
-        <CompanyDashboardShell activeTab={activeTab} onTabChange={setActiveTab}>
+        <CompanyDashboardShell
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            companyName={companyWorkspaceModel.companyName}
+            subscriptionLabel={companyWorkspaceModel.subscriptionLabel}
+            statusLine={companyWorkspaceModel.statusLine}
+            metrics={companyWorkspaceModel.metrics}
+        >
             <CompanyDashboardContent
                 activeTab={activeTab}
                 overview={renderWorkspaceOverview}
@@ -521,6 +545,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 applications={renderApplications}
                 assessments={renderAssessments}
                 candidates={renderCandidates}
+                learningResources={renderLearningResources}
             />
             <PlanUpgradeModal
                 isOpen={showUpgradeModal.open}

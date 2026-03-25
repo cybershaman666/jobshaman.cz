@@ -1,22 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Bell,
   BrainCircuit,
   Check,
   ChevronDown,
+  Globe2,
   MapPin,
   Menu,
   Monitor,
   Moon,
   Search,
-  SlidersHorizontal,
   Sun,
   X,
   Building2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CompanyProfile, UserProfile, ViewState } from '../types';
+import { CompanyProfile, JobWorkArrangementFilter, SearchLanguageCode, TransportMode, UserProfile, ViewState } from '../types';
 import { cn } from './ui/primitives';
 import { getNormalizedAppPath, isExternalStandalonePath } from '../utils/appRouting';
+import { NotificationInbox, SearchCockpit, type CareerOSNotification } from './careeros/CareerOSCandidateWorkspace';
 
 interface AppHeaderProps {
   viewState: ViewState;
@@ -49,6 +51,39 @@ interface AppHeaderProps {
   filterCity: string;
   setFilterCity: (city: string) => void;
   performSearch: (term: string) => void;
+  remoteOnly: boolean;
+  setRemoteOnly: (enabled: boolean) => void;
+  filterWorkArrangement: JobWorkArrangementFilter;
+  setFilterWorkArrangement: (value: JobWorkArrangementFilter) => void;
+  globalSearch: boolean;
+  setGlobalSearch: (enabled: boolean) => void;
+  abroadOnly: boolean;
+  setAbroadOnly: (enabled: boolean) => void;
+  enableCommuteFilter: boolean;
+  setEnableCommuteFilter: (enabled: boolean) => void;
+  filterMinSalary: number;
+  setFilterMinSalary: (salary: number) => void;
+  filterMaxDistance: number;
+  setFilterMaxDistance: (distance: number) => void;
+  transportMode: TransportMode;
+  setTransportMode: (mode: TransportMode) => void;
+  discoveryFilterMode?: 'all' | 'micro_jobs';
+  setDiscoveryFilterMode?: (mode: 'all' | 'micro_jobs') => void;
+  filterContractType: string[];
+  setFilterContractType: (values: string[]) => void;
+  filterExperience: string[];
+  setFilterExperience: (values: string[]) => void;
+  filterLanguageCodes: SearchLanguageCode[];
+  setFilterLanguageCodes: (values: SearchLanguageCode[]) => void;
+  filterBenefits: string[];
+  setFilterBenefits: (values: string[]) => void;
+  benefitCandidates: string[];
+  notifications?: CareerOSNotification[];
+  readNotificationIds?: string[];
+  notificationCount?: number;
+  onNotificationAction?: (notification: CareerOSNotification) => void;
+  onMarkNotificationRead?: (notificationId: string) => void;
+  onMarkAllNotificationsRead?: () => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -78,10 +113,44 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   filterCity,
   setFilterCity,
   performSearch,
+  remoteOnly,
+  setRemoteOnly,
+  filterWorkArrangement,
+  setFilterWorkArrangement,
+  globalSearch,
+  setGlobalSearch,
+  abroadOnly,
+  setAbroadOnly,
+  enableCommuteFilter,
+  setEnableCommuteFilter,
+  filterMinSalary,
+  setFilterMinSalary,
+  filterMaxDistance,
+  setFilterMaxDistance,
+  transportMode,
+  setTransportMode,
+  discoveryFilterMode = 'all',
+  setDiscoveryFilterMode,
+  filterContractType,
+  setFilterContractType,
+  filterExperience,
+  setFilterExperience,
+  filterLanguageCodes,
+  setFilterLanguageCodes,
+  filterBenefits,
+  setFilterBenefits,
+  benefitCandidates,
+  notifications = [],
+  readNotificationIds = [],
+  notificationCount = 0,
+  onNotificationAction,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [utilityMenuOpen, setUtilityMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const locale = (i18n.language || 'en').split('-')[0].toLowerCase();
   const currentLanguageCode = useMemo(() => {
@@ -287,8 +356,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }, 0);
   };
 
-  const hasDesktopLeftRail = viewState !== ViewState.LIST;
-  const showMarketplaceHeaderControls = viewState === ViewState.LIST && !showCompanyLanding && !isBlogOpen;
   const discoveryAccentStyle = useMemo((): React.CSSProperties | undefined => {
     if (viewState !== ViewState.LIST) return undefined;
     const isDark = theme === 'dark';
@@ -309,13 +376,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   }, [theme, viewState]);
   const headerInputClass = 'app-header-input h-11 w-full pl-11 pr-4 text-sm outline-none transition';
   const headerControlClass = 'app-header-control inline-flex h-11 items-center gap-2 px-4 text-sm font-semibold transition-colors';
-  const headerNavItemClass = 'app-header-control inline-flex h-11 items-center px-4 text-sm font-semibold';
 
   return (
     <header
       style={discoveryAccentStyle}
       className={cn(
-        'sticky top-0 z-50 w-full py-2',
+        'sticky top-0 z-50 w-full py-1.5',
         'relative overflow-visible px-2 sm:px-4 lg:px-0'
       )}
     >
@@ -324,12 +390,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       <div
         className={cn(
           'w-full',
-          hasDesktopLeftRail ? 'lg:pl-24 lg:pr-6' : 'lg:px-3'
+          'lg:px-3'
         )}
       >
         <div
           className={cn(
-            "app-topnav relative z-40 flex w-full flex-col gap-2 overflow-visible rounded-[24px] px-4 py-3 sm:px-6"
+            "app-topnav relative z-40 flex w-full flex-col gap-2 overflow-visible rounded-[26px] border border-slate-200/75 bg-white/78 px-4 py-3 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-5"
           )}
         >
           <div className="relative z-30 flex w-full items-center gap-3">
@@ -339,42 +405,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               onClick={navigateToShellHome}
               className="relative z-10 flex shrink-0 items-center gap-3 px-1 py-1 transition opacity-95 hover:opacity-100"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_18%),linear-gradient(180deg,rgba(10,18,29,0.96),rgba(14,24,36,0.92))] text-[var(--accent)] shadow-[0_18px_34px_-24px_rgba(2,8,23,0.42),0_0_22px_rgba(var(--accent-rgb),0.12)]">
-                <BrainCircuit size={20} strokeWidth={2.1} aria-hidden />
+              <span className="flex h-8 w-8 items-center justify-center rounded-[12px] border border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_18%),linear-gradient(180deg,rgba(10,18,29,0.96),rgba(14,24,36,0.92))] text-[var(--accent)] shadow-[0_18px_34px_-24px_rgba(2,8,23,0.42),0_0_22px_rgba(var(--accent-rgb),0.12)]">
+                <BrainCircuit size={18} strokeWidth={2.1} aria-hidden />
               </span>
-              <span className="flex items-center gap-2">
-                <span className="hidden text-xl font-bold tracking-tight text-[var(--text-strong)] sm:block">
-                  Job<span className="text-[var(--accent)]">Shaman</span>
-                </span>
-                <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.10)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] sm:text-[11px]">
-                  Beta
-                </span>
+              <span className="hidden text-[1.05rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100 sm:block">
+                Jobshaman
               </span>
             </button>
-
-            {showMarketplaceHeaderControls ? (
-              <div className="hidden xl:flex items-center gap-2">
-                {navItems.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={item.onClick}
-                    className={cn(
-                      headerNavItemClass,
-                      item.active ? 'app-header-control-active' : null
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
 
             {/* Desktop Search - Single Row */}
             <div className="mx-auto hidden min-w-0 max-w-5xl flex-1 lg:flex">
               <div className="flex w-full items-center gap-2">
                 <div className="relative flex-1">
-                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
                     <Search size={18} />
                   </div>
                   <input
@@ -382,18 +425,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                    onFocus={() => setDiscoverySearchMode?.(true)}
                     placeholder={searchUiCopy.searchPlaceholder}
                     className={headerInputClass}
                   />
                 </div>
                 <div className="relative flex-[0.7]">
-                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--text-faint)]">
+                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
                     <MapPin size={18} />
                   </div>
                   <input
                     value={filterCity}
                     onChange={(e) => setFilterCity(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
+                    onFocus={() => setDiscoverySearchMode?.(true)}
                     placeholder={searchUiCopy.locationPlaceholder}
                     className={headerInputClass}
                   />
@@ -401,7 +446,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <button
                   type="button"
                   onClick={submitDiscoverySearch}
-                  className="app-header-search-cta inline-flex h-11 items-center justify-center px-5 text-sm font-semibold whitespace-nowrap"
+                  className="app-header-search-cta inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold whitespace-nowrap"
                 >
                   {searchUiCopy.submit}
                 </button>
@@ -410,29 +455,64 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* Right Actions */}
             <div className="relative z-10 flex items-center gap-2 sm:gap-4">
-              {/* Pro firmy link */}
-              <button
-                type="button"
-                onClick={() => setShowCompanyLanding(true)}
-                className={cn(headerControlClass, 'hidden lg:flex')}
-              >
-                <Building2 size={15} />
-                {headerUiCopy.companies}
-              </button>
+              <div className="relative z-[80] hidden lg:block">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotificationsOpen((prev) => !prev);
+                    setUtilityMenuOpen(false);
+                  }}
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-cyan-200 hover:bg-cyan-50/60 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900"
+                  aria-label={t('careeros.notifications.title', { defaultValue: 'Notifications' })}
+                >
+                  <Bell size={17} />
+                  {notificationCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-cyan-500 px-1.5 py-0.5 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(8,145,178,0.28)]">
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
 
               <div className="relative z-[80] hidden lg:block">
                 <button
                   type="button"
-                  onClick={() => setUtilityMenuOpen((prev) => !prev)}
-                  className={headerControlClass}
+                  onClick={() => {
+                    setUtilityMenuOpen((prev) => !prev);
+                    setNotificationsOpen(false);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-200 hover:bg-emerald-50/60 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900"
                 >
-                  <SlidersHorizontal size={14} />
-                  {headerUiCopy.preferences}
+                  <Globe2 size={15} />
+                  {languages.find((lang) => lang.code === currentLanguageCode)?.name || currentLanguageCode.toUpperCase()}
                   <ChevronDown size={12} />
                 </button>
                 {utilityMenuOpen && (
-                  <div className="app-header-menu absolute right-0 top-full z-[90] mt-2 w-[19rem] overflow-hidden rounded-2xl p-2 shadow-xl">
+                  <div className="app-header-menu absolute right-0 top-full z-[90] mt-2 w-[20rem] overflow-hidden rounded-2xl p-2 shadow-xl">
                     <div className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      Offer market
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => {
+                            changeLanguage(lang.code);
+                            setUtilityMenuOpen(false);
+                          }}
+                          className={cn(
+                            'flex items-center justify-center rounded-xl px-2 py-2 text-xs font-semibold transition',
+                            currentLanguageCode === lang.code
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
+                          )}
+                        >
+                          {lang.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 border-t border-[var(--border-subtle)] px-2 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                       {headerUiCopy.appearance}
                     </div>
                     <div className="grid gap-1">
@@ -460,29 +540,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                       })}
                     </div>
                     <div className="mt-3 border-t border-[var(--border-subtle)] px-2 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                      {headerUiCopy.language}
-                    </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      {languages.map((lang) => (
-                        <button
-                          key={lang.code}
-                          type="button"
-                          onClick={() => {
-                            changeLanguage(lang.code);
-                            setUtilityMenuOpen(false);
-                          }}
-                          className={cn(
-                            'flex items-center justify-center rounded-xl px-2 py-2 text-xs font-semibold transition',
-                            currentLanguageCode === lang.code
-                              ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                              : 'text-[var(--text)] hover:bg-[var(--surface-muted)]'
-                          )}
-                        >
-                          {lang.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="mt-3 border-t border-[var(--border-subtle)] px-2 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                       {headerUiCopy.pages}
                     </div>
                     <div className="grid gap-1">
@@ -500,6 +557,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 )}
               </div>
 
+              {/* Pro firmy link */}
+              <button
+                type="button"
+                onClick={() => setShowCompanyLanding(true)}
+                className={cn(headerControlClass, 'hidden lg:flex')}
+              >
+                <Building2 size={15} />
+                {headerUiCopy.companies}
+              </button>
+
               {/* User Profile / Auth */}
               {userProfile.isLoggedIn ? (
                 <button
@@ -507,16 +574,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     setShowCompanyLanding(false);
                     setViewState(ViewState.PROFILE);
                   }}
-                  className="app-header-control group flex items-center gap-2 p-1 pr-3 transition-colors"
+                  className="group flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-xs font-bold text-[var(--accent)]">
+                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-slate-200 bg-white text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                     {userProfile.photo && !avatarFailed ? (
                       <img src={userProfile.photo} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
                     ) : (
-                      <span>{userProfile.name?.charAt(0)}</span>
+                      <span>{userProfile.name?.charAt(0) || userProfile.email?.charAt(0)}</span>
                     )}
                   </div>
-                  <span className="hidden text-sm font-semibold lg:block">{userProfile.name}</span>
+                  <span className="hidden text-sm font-semibold text-slate-800 dark:text-slate-100 lg:block">{userProfile.name || userProfile.email}</span>
                 </button>
               ) : (
                 <button
@@ -548,6 +615,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setDiscoverySearchMode?.(true)}
                   placeholder={searchUiCopy.searchPlaceholder}
                   className={headerInputClass}
                 />
@@ -617,6 +685,59 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
           </div>
         )}
+
+        <div className="relative z-[85]">
+          <NotificationInbox
+            open={notificationsOpen}
+            notifications={notifications}
+            readNotificationIds={readNotificationIds}
+            onClose={() => setNotificationsOpen(false)}
+            onAction={(notification) => {
+              setNotificationsOpen(false);
+              onMarkNotificationRead?.(notification.id);
+              onNotificationAction?.(notification);
+            }}
+            onMarkRead={onMarkNotificationRead}
+            onMarkAllRead={onMarkAllNotificationsRead}
+            className="right-4 lg:right-[23rem] xl:right-[25rem] 2xl:right-[27rem]"
+          />
+          <SearchCockpit
+            open={Boolean(discoverySearchMode)}
+            onClose={() => setDiscoverySearchMode?.(false)}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterCity={filterCity}
+            setFilterCity={setFilterCity}
+            remoteOnly={remoteOnly}
+            setRemoteOnly={setRemoteOnly}
+            filterWorkArrangement={filterWorkArrangement}
+            setFilterWorkArrangement={setFilterWorkArrangement}
+            globalSearch={globalSearch}
+            setGlobalSearch={setGlobalSearch}
+            abroadOnly={abroadOnly}
+            setAbroadOnly={setAbroadOnly}
+            enableCommuteFilter={enableCommuteFilter}
+            setEnableCommuteFilter={setEnableCommuteFilter}
+            filterMinSalary={filterMinSalary}
+            setFilterMinSalary={setFilterMinSalary}
+            filterMaxDistance={filterMaxDistance}
+            setFilterMaxDistance={setFilterMaxDistance}
+            transportMode={transportMode}
+            setTransportMode={setTransportMode}
+            discoveryMode={discoveryFilterMode}
+            setDiscoveryMode={(value) => setDiscoveryFilterMode?.(value)}
+            filterContractType={filterContractType}
+            setFilterContractType={setFilterContractType}
+            filterExperience={filterExperience}
+            setFilterExperience={setFilterExperience}
+            filterLanguageCodes={filterLanguageCodes}
+            setFilterLanguageCodes={setFilterLanguageCodes}
+            filterBenefits={filterBenefits}
+            setFilterBenefits={setFilterBenefits}
+            benefitCandidates={benefitCandidates}
+            onSubmit={submitDiscoverySearch}
+          />
+        </div>
       </div>
     </header>
   );

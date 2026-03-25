@@ -1,13 +1,13 @@
-import { lazy, Suspense, type MutableRefObject } from 'react';
+import { lazy, Suspense, useState, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
-import { CompanyProfile, DiscoveryFilterSource, Job, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
+import { CompanyProfile, DiscoveryFilterSource, Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
 import PodminkyUziti from '../pages/PodminkyUziti';
 import OchranaSoukromi from '../pages/OchranaSoukromi';
 import EnterpriseSignup from './EnterpriseSignup';
 import CandidateActivationRail from './CandidateActivationRail';
-import ChallengeMarketplace from './challenges/ChallengeMarketplace';
 import BlogSection from './BlogSection';
+import CareerOSCandidateWorkspace, { type CareerOSNavigationState } from './careeros/CareerOSCandidateWorkspace';
 import { mapJcfpmToJhiPreferencesWithExplanation } from '../services/jcfpmService';
 import { createDefaultJHIPreferences } from '../services/profileDefaults';
 import { trackAnalyticsEvent } from '../services/supabaseService';
@@ -55,6 +55,7 @@ type AppSceneRouterProps = {
     filterMinSalary: number;
     filterBenefits: string[];
     remoteOnly: boolean;
+    filterWorkArrangement: JobWorkArrangementFilter;
     globalSearch: boolean;
     abroadOnly: boolean;
     countryCodes: string[];
@@ -106,6 +107,7 @@ type AppSceneRouterProps = {
     onSetFilterBenefits: (benefits: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
     onToggleBenefitFilter: (benefit: string) => void;
     onSetRemoteOnly: (value: boolean) => void;
+    onSetFilterWorkArrangement: (value: JobWorkArrangementFilter, source?: DiscoveryFilterSource) => void;
     onSetGlobalSearch: (value: boolean) => void;
     onSetAbroadOnly: (value: boolean) => void;
     onSetCountryCodes: (value: string[] | ((prev: string[]) => string[])) => void;
@@ -145,11 +147,19 @@ export default function AppSceneRouter({
     currentPage,
     pageSize,
     totalCount,
+    searchTerm,
+    filterCity,
     filterMinSalary,
     filterBenefits,
     remoteOnly,
+    filterWorkArrangement,
+    globalSearch,
+    abroadOnly,
     enableCommuteFilter,
     filterMaxDistance,
+    filterContractType,
+    filterExperience,
+    filterLanguageCodes,
     discoveryLane,
     discoveryMode,
     searchDiagnostics,
@@ -179,14 +189,25 @@ export default function AppSceneRouter({
     onGoToJobsPage,
     onSetDiscoveryLane,
     onSetDiscoveryMode,
+    onSetSearchTerm,
+    onPerformSearch,
+    onSetFilterCity,
     onSetFilterMinSalary,
     onSetFilterBenefits,
     onSetRemoteOnly,
+    onSetFilterWorkArrangement,
+    onSetGlobalSearch,
+    onSetAbroadOnly,
     onSetEnableCommuteFilter,
     onSetFilterMaxDistance,
+    onSetFilterContractType,
+    onSetFilterExperience,
+    onSetFilterLanguageCodes,
     getLocalePrefix,
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
+    const [careerOSNavigationState, setCareerOSNavigationState] = useState<CareerOSNavigationState | null>(null);
+
     if (normalizedPath === '/admin') {
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -441,8 +462,8 @@ export default function AppSceneRouter({
     return (
         <>
             {vercelAnalyticsEnabled && <Analytics />}
-            <div className="col-span-1 lg:col-span-12">
-                <div className="space-y-6">
+            <div className="col-span-1 lg:col-span-12 h-full">
+                <div className={selectedCompanyId || selectedJob ? 'space-y-6' : 'h-full'}>
                     {selectedCompanyId ? (
                         <CompanySpacePage
                             companyId={selectedCompanyId}
@@ -474,8 +495,8 @@ export default function AppSceneRouter({
                             onOpenImportedListing={() => onApplyToJob(selectedJob)}
                         />
                     ) : (
-                        <div id="challenge-discovery">
-                            <ChallengeMarketplace
+                        <div id="challenge-discovery" className="relative h-full min-h-[calc(100vh-var(--app-header-height))]">
+                            <CareerOSCandidateWorkspace
                                 hasNativeChallenges={hasNativeChallenges}
                                 jobs={jobsForDisplay}
                                 selectedJobId={selectedJobId}
@@ -500,14 +521,41 @@ export default function AppSceneRouter({
                                 setFilterBenefits={(benefits) => onSetFilterBenefits(benefits, 'user_toggle')}
                                 remoteOnly={remoteOnly}
                                 setRemoteOnly={onSetRemoteOnly}
+                                filterWorkArrangement={filterWorkArrangement}
+                                setFilterWorkArrangement={(value) => onSetFilterWorkArrangement(value, 'user_toggle')}
+                                globalSearch={globalSearch}
+                                setGlobalSearch={onSetGlobalSearch}
+                                abroadOnly={abroadOnly}
+                                setAbroadOnly={onSetAbroadOnly}
                                 enableCommuteFilter={enableCommuteFilter}
                                 setEnableCommuteFilter={onSetEnableCommuteFilter}
                                 filterMaxDistance={filterMaxDistance}
                                 setFilterMaxDistance={onSetFilterMaxDistance}
+                                filterContractType={filterContractType}
+                                setFilterContractType={(values) => onSetFilterContractType(values, 'user_toggle')}
+                                filterExperience={filterExperience}
+                                setFilterExperience={(values) => onSetFilterExperience(values, 'user_toggle')}
+                                filterLanguageCodes={filterLanguageCodes}
+                                setFilterLanguageCodes={(values) => onSetFilterLanguageCodes(values, 'user_toggle')}
                                 handleJobSelect={onHandleJobSelect}
                                 handleToggleSave={onToggleSave}
                                 onOpenProfile={() => onSetViewState(ViewState.PROFILE)}
                                 onOpenAuth={onOpenAuth}
+                                onOpenCompanyPage={onHandleCompanyPageSelect}
+                                onOpenCompaniesLanding={() => {
+                                    onSetSelectedJobId(null);
+                                    onSetSelectedCompanyId(null);
+                                    onSetSelectedBlogPostSlug(null);
+                                    onSetShowCompanyLanding(true);
+                                    onSetViewState(ViewState.LIST);
+                                }}
+                                initialNavigationState={careerOSNavigationState}
+                                onNavigationStateChange={setCareerOSNavigationState}
+                                searchTerm={searchTerm}
+                                setSearchTerm={(value) => onSetSearchTerm(value, 'user_toggle')}
+                                filterCity={filterCity}
+                                setFilterCity={onSetFilterCity}
+                                performSearch={onPerformSearch}
                             />
                         </div>
                     )}

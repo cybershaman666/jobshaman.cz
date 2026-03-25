@@ -1,4 +1,4 @@
-import type { DiscoveryFilterSourceMap, SearchLanguageCode, SearchMode } from '../types';
+import type { DiscoveryFilterSourceMap, JobWorkArrangementFilter, SearchLanguageCode, SearchMode } from '../types';
 
 const normalizeCountryCodes = (codes: string[]): string[] => {
   if (!codes || codes.length === 0) return [];
@@ -31,6 +31,7 @@ export type ResolveSearchModeInput = {
   globalSearch: boolean;
   abroadOnly: boolean;
   remoteOnly: boolean;
+  filterWorkArrangement?: JobWorkArrangementFilter;
   countryCodes: string[];
   defaultCountryCodes: string[];
 };
@@ -49,6 +50,7 @@ export const resolveSearchMode = ({
   globalSearch,
   abroadOnly,
   remoteOnly,
+  filterWorkArrangement = 'all',
   countryCodes,
   defaultCountryCodes,
 }: ResolveSearchModeInput): SearchMode => {
@@ -62,6 +64,7 @@ export const resolveSearchMode = ({
     !sameCountryCodeSet(countryCodes, defaultCountryCodes);
   const hasManualFilters =
     remoteOnly ||
+    (filterSources.filterWorkArrangement === 'user_toggle' && filterWorkArrangement !== 'all') ||
     hasCountryOverride ||
     (filterSources.filterCity === 'user_toggle' && Boolean(String(filterCity || '').trim())) ||
     (filterSources.filterContractTypes === 'user_toggle' && filterContractType.length > 0) ||

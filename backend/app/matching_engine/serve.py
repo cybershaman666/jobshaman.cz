@@ -536,6 +536,8 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
                 country_codes=list(country_codes),
                 language_codes=list(language_codes),
                 min_salary=min_salary,
+                search_term=search_term,
+                filter_city=filter_city,
             )
         if not supabase:
             return []

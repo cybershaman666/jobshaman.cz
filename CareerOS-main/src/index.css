@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-mesh {
+    background-color: #e8f5ed;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(160, 50%, 85%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(40, 70%, 85%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(160, 50%, 85%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(40, 70%, 85%, 0.8) 0px, transparent 50%);
+  }
+  .glass-panel {
+    @apply bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)];
+  }
+  .glass-node {
+    @apply bg-gradient-to-br from-white/80 to-white/20 backdrop-blur-md border border-white/50 shadow-lg;
+  }
+  .clip-hexagon {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+}

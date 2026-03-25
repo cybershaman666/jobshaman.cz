@@ -1,8 +1,9 @@
 import * as mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Set worker path
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Use the bundled pdf.js worker instead of the legacy public copy.
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 // Extract text from various file formats
 const extractTextFromFile = async (file: File): Promise<string> => {

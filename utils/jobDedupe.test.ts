@@ -41,6 +41,16 @@ describe('dedupeJobsList', () => {
     expect(deduped).toHaveLength(1);
   });
 
+  test('does not collapse same role at the same company across different locations', () => {
+    const jobs = [
+      { id: '1', title: 'Store Manager', company: 'Retail Co', location: 'Prague', url: 'https://example.com/jobs/prague' },
+      { id: '2', title: 'Store Manager', company: 'Retail Co', location: 'Brno', url: 'https://example.com/jobs/brno' },
+    ];
+
+    const deduped = dedupeJobsList(jobs);
+    expect(deduped).toHaveLength(2);
+  });
+
   test('dedupes urls with only tracking params differing', () => {
     const jobs = [
       { id: '1', title: '', company: '', url: 'https://example.com/jobs/123?utm_source=a&gclid=x' },

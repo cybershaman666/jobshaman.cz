@@ -39,6 +39,8 @@ interface ChallengeControlCenterProps {
   onOpenProfile: () => void;
   onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
   selectedJobId: string | null;
+  showSidebar?: boolean;
+  embeddedInCareerOS?: boolean;
 }
 
 const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
@@ -73,6 +75,8 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
   onOpenProfile,
   onOpenAuth,
   selectedJobId,
+  showSidebar = true,
+  embeddedInCareerOS = false,
 }) => {
   const { i18n } = useTranslation();
   const isImportedListing = (job: Job): boolean =>
@@ -192,6 +196,9 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
   }, [isMobileViewport]);
 
   useEffect(() => {
+    if (embeddedInCareerOS) {
+      return undefined;
+    }
     const root = document.documentElement;
     root.style.setProperty('--app-atmosphere-image', 'none');
     root.style.setProperty('--app-atmosphere-opacity', '0');
@@ -223,14 +230,22 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
 
   return (
     <section
-      className="app-shell-bg app-shell-bg-clean relative min-h-[calc(100dvh-var(--app-header-height))] overflow-visible"
+      className={cn(
+        'relative overflow-visible',
+        embeddedInCareerOS
+          ? 'min-h-full bg-transparent'
+          : 'app-shell-bg app-shell-bg-clean min-h-[calc(100dvh-var(--app-header-height))]'
+      )}
     >
-      <div className="relative mx-auto flex h-full w-full max-w-[1720px] flex-col px-3 pb-4 pt-2 sm:px-4 sm:pt-2.5 lg:px-5 lg:pt-3">
+      <div className={cn(
+        'relative mx-auto flex h-full w-full flex-col px-3 pb-4 pt-2 sm:px-4 sm:pt-2.5 lg:px-5 lg:pt-3',
+        embeddedInCareerOS ? 'max-w-[1720px]' : 'max-w-[1720px]'
+      )}>
         <div className={cn(
           "grid flex-1 items-start transition-all duration-300",
-          "gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-5"
+          showSidebar ? "gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-5" : "gap-4"
         )}>
-          {!isMobileViewport && (
+          {showSidebar && !isMobileViewport && (
             <div className="h-full lg:self-start">
               <ChallengeSidebar
                 userProfile={userProfile}
@@ -306,7 +321,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
       </div>
 
       {/* Independent Job Detail Overlay / Drawer */}
-      {mobileMenuOpen ? (
+      {showSidebar && mobileMenuOpen ? (
         <div
           className="fixed inset-0 z-40 bg-[rgba(8,12,10,0.44)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}

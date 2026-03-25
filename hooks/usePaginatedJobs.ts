@@ -121,6 +121,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         filterLanguageCodes,
         filterMaxDistance,
         filterMinSalary,
+        filterWorkArrangement,
         filterSources,
         globalSearch,
         hasExplicitLanguageFilter,
@@ -143,6 +144,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterLanguageCodes: setFilterLanguageCodesTracked,
         setFilterMaxDistance: setFilterMaxDistanceTracked,
         setFilterMinSalary: setFilterMinSalaryTracked,
+        setFilterWorkArrangement: setFilterWorkArrangementTracked,
         setFilterSources,
         setGlobalSearch: setGlobalSearchTracked,
         setSearchTerm: setSearchTermTracked,
@@ -306,6 +308,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 hasExplicitLanguageFilter ||
                 abroadOnly ||
                 remoteOnly ||
+                filterWorkArrangement !== 'all' ||
                 hasCountryOverride;
             const retrievalLanguageCodes = hasExplicitLanguageFilter
                 ? filterLanguageCodes
@@ -332,6 +335,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 excludeCountryCodes,
                 retrievalLanguageCodes,
                 remoteOnly,
+                filterWorkArrangement,
                 filterCity,
                 enableCommuteFilter: effectiveEnableCommuteFilter,
                 filterMaxDistance,
@@ -438,6 +442,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 excludeCountryCodes,
                 retrievalLanguageCodes,
                 remoteOnly,
+                filterWorkArrangement,
                 externalSearchSeedTerm,
                 microJobsOnly,
                 abortSignal: fetchController.signal,
@@ -481,6 +486,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     reordered_by_profile: filteredResult.diagnostics.reordered_by_profile,
                     sort_mode: sortBy,
                     remote_only: remoteOnly,
+                    work_arrangement: filterWorkArrangement,
                     commute_enabled: effectiveEnableCommuteFilter,
                     implicit_commute_suppressed: suppressImplicitCommuteForManualQuery,
                     radius_km: effectiveRadiusKm ?? null,
@@ -579,7 +585,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     }, [
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, userProfile.preferences?.searchProfile?.defaultMaxDistanceKm, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes, filterSources.enableCommuteFilter
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, userProfile.preferences?.searchProfile?.defaultMaxDistanceKm, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, filterWorkArrangement, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes, filterSources.enableCommuteFilter
     ]);
 
 
@@ -613,7 +619,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         enabled, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
         filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, microJobsOnly, remoteOnly,
-        searchMode, hasExplicitLanguageFilter, filterSources.filterLanguageCodes, filterSources.globalSearch, filterSources.abroadOnly
+        filterWorkArrangement, searchMode, hasExplicitLanguageFilter, filterSources.filterLanguageCodes, filterSources.globalSearch, filterSources.abroadOnly
     ]);
 
     // Re-apply sorting when sort option changes
@@ -802,6 +808,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         filterContractType,
         filterDate,
         filterMinSalary,
+        filterWorkArrangement,
         filterExperience,
         filterLanguageCodes,
         hasExplicitLanguageFilter,
@@ -833,6 +840,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         setFilterContractType: setFilterContractTypeTracked,
         setFilterDate: setFilterDateTracked,
         setFilterMinSalary: setFilterMinSalaryTracked,
+        setFilterWorkArrangement: setFilterWorkArrangementTracked,
         setFilterExperience: setFilterExperienceTracked,
         setFilterLanguageCodes: setFilterLanguageCodesTracked,
         setEnableAutoLanguageGuard,

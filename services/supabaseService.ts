@@ -2187,13 +2187,28 @@ export const checkCompanyAssessment = async (companyId: string): Promise<boolean
     return (data && data.length > 0);
 };
 
-export const fetchLearningResources = async (skillName?: string) => {
+export const fetchLearningResources = async (options?: {
+    skillName?: string;
+    status?: 'active' | 'draft' | 'archived' | 'all';
+    partnerId?: string;
+}) => {
     if (!supabase) return [];
+    const skillName = options?.skillName;
+    const status = options?.status || 'active';
+    const partnerId = options?.partnerId;
 
     let query = supabase.from('learning_resources').select('*');
 
     if (skillName) {
         query = query.contains('skill_name', [skillName]);
+    }
+
+    if (partnerId) {
+        query = query.eq('partner_id', partnerId);
+    }
+
+    if (status !== 'all') {
+        query = query.eq('status', status);
     }
 
     const { data, error } = await query.order('relevance_score', { ascending: false });
@@ -2203,7 +2218,7 @@ export const fetchLearningResources = async (skillName?: string) => {
         return [];
     }
 
-    return data || [];
+    return (data || []).map(mapLearningResourceRow);
 };
 
 const mapLearningResourceRow = (row: any) => {

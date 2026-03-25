@@ -27,7 +27,7 @@ import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 import { estimateNoise } from '../utils/noise';
-import { deriveChallengeFields } from './challengeContentService';
+import { deriveChallengeFields, extractMarkdownSection } from './challengeContentService';
 import { dedupeJobsList, getJobDedupKeys } from '../utils/jobDedupe';
 
 type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number; meta?: SearchDiagnosticsMeta };
@@ -563,6 +563,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         company_truth_hard: scrapedJob.company_truth_hard,
         company_truth_fail: scrapedJob.company_truth_fail
     });
+    const microJobReward = extractMarkdownSection(fullDesc, ['Reward']) || extractMarkdownSection(String(scrapedJob.description || ''), ['Reward']);
     const openDialoguesCount = safeParseInt(scrapedJob.open_dialogues_count);
     const dialogueCapacityLimit = safeParseInt(scrapedJob.dialogue_capacity_limit);
     const reactionWindowHours = safeParseInt(scrapedJob.reaction_window_hours);
@@ -584,6 +585,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     return {
         id: String(scrapedJob.id),
         company_id: scrapedJob.company_id ? String(scrapedJob.company_id) : undefined,
+        posted_by: scrapedJob.posted_by ? String(scrapedJob.posted_by) : null,
         title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
         company: scrapedJob.company || 'Neznámá společnost',
         companyGoal: (scrapedJob as any).company_goal ?? (scrapedJob as any).companyGoal ?? null,
@@ -594,8 +596,10 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         description: fullDesc,
         hiring_stage: hiringStage,
         challenge_format: challengeFormat,
+        status: typeof scrapedJob.status === 'string' ? scrapedJob.status : 'active',
         micro_job_kind: extractedDescription.microJobKind || null,
         micro_job_time_estimate: extractedDescription.microJobTimeEstimate || null,
+        micro_job_reward: microJobReward || null,
         micro_job_collaboration_modes: extractedDescription.microJobCollaborationModes,
         micro_job_long_term_potential: extractedDescription.microJobLongTermPotential || null,
         postedAt: getRelativeTime(scrapedJob.scraped_at),
@@ -637,6 +641,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         // Map cached AI analysis if present
         aiAnalysis: scrapedJob.ai_analysis,
         ...(openDialoguesCount !== undefined ? { open_dialogues_count: openDialoguesCount } : {}),
+        ...(safeParseInt(scrapedJob.reply_count) !== undefined ? { reply_count: safeParseInt(scrapedJob.reply_count) } : {}),
         ...(dialogueCapacityLimit !== undefined ? { dialogue_capacity_limit: dialogueCapacityLimit } : {}),
         ...(reactionWindowHours !== undefined ? { reaction_window_hours: reactionWindowHours } : {}),
         ...(reactionWindowDays !== undefined ? { reaction_window_days: reactionWindowDays } : {})
@@ -3726,20 +3731,32 @@ export const fetchJobsWithFilters = async (
         const textSelect = includeJhi
             ? '*'
             : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
-        const orFilters = dedupeSearchTokens([
+        const dedupedSearchTerms = dedupeSearchTokens([
             fallbackMatcher.normalizedQuery,
             ...fallbackQueryTokens
-        ]).flatMap((token) => ([
+        ]);
+        const orFilters = dedupedSearchTerms.flatMap((token) => ([
             `title.ilike.%${token}%`,
             `company.ilike.%${token}%`,
             `location.ilike.%${token}%`,
             `description.ilike.%${token}%`
         ])).join(',');
+        const canUseFullTextFallback = dedupedSearchTerms.every((token) => token.length >= 3);
         let query = supabase
             .from('jobs')
             .select(textSelect, { count: 'exact' })
-            .eq('legality_status', 'legal')
-            .or(orFilters)
+            .eq('legality_status', 'legal');
+
+        if (canUseFullTextFallback) {
+            query = query.textSearch('search_text', dedupedSearchTerms.join(' '), {
+                type: 'websearch',
+                config: 'simple'
+            });
+        } else {
+            query = query.or(orFilters);
+        }
+
+        query = query
             .order('scraped_at', { ascending: false })
             .range(from, to);
 
@@ -4872,6 +4889,54 @@ export const isValidJobPosting = (job: Job): boolean => {
     return true;
 };
 
+const getJobQualityFailureReasons = (job: Job): string[] => {
+    const reasons: string[] = [];
+
+    if (!job.title ||
+        job.title.toLowerCase().includes('neznámá pozice') ||
+        job.title.toLowerCase().includes('unknown position') ||
+        job.title.trim().length === 0) {
+        reasons.push('invalid_title');
+    }
+
+    if (!job.location ||
+        job.location.toLowerCase().includes('neznámá lokalita') ||
+        job.location.toLowerCase().includes('unknown location') ||
+        job.location.toLowerCase().includes('nepřesná lokalita') ||
+        job.location.toLowerCase().includes('bez lokality') ||
+        job.location.trim().length === 0) {
+        reasons.push('invalid_location');
+    }
+
+    const minDescriptionLength = job.listingKind === 'imported' ? 120 : 200;
+    if (!job.description ||
+        typeof job.description !== 'string' ||
+        job.description.trim().length < minDescriptionLength) {
+        reasons.push('short_description');
+    }
+
+    if (!job.company || job.company.trim().length === 0) {
+        reasons.push('missing_company');
+    }
+
+    return reasons;
+};
+
+const isMinimallyRenderableJobPosting = (job: Job): boolean => {
+    const hasTitle = typeof job.title === 'string' && job.title.trim().length >= 3;
+    const hasCompany = typeof job.company === 'string' && job.company.trim().length >= 2;
+    const hasUsableLocation = typeof job.location === 'string' && job.location.trim().length >= 2;
+    const hasUsableUrl = typeof job.url === 'string' && job.url.trim().length >= 8;
+    const descriptionLength = typeof job.description === 'string' ? job.description.trim().length : 0;
+    const hasRenderableContent =
+        descriptionLength >= 40 ||
+        Boolean(job.challenge?.trim()) ||
+        Boolean(job.risk?.trim()) ||
+        Boolean(job.firstStepPrompt?.trim());
+
+    return hasTitle && hasCompany && (hasUsableLocation || hasUsableUrl) && hasRenderableContent;
+};
+
 /**
  * Filters jobs to remove low-quality postings and duplicates
  */
@@ -4882,10 +4947,34 @@ export const filterJobsByQuality = (jobs: Job[]): Job[] => {
     // Then remove duplicates - keep first occurrence
     const uniqueJobs = dedupeJobsList(validJobs);
 
+    const invalidJobs = jobs.filter((job) => !isValidJobPosting(job));
+    if (invalidJobs.length > 0) {
+        const reasonCounts = invalidJobs.reduce<Record<string, number>>((counts, job) => {
+            getJobQualityFailureReasons(job).forEach((reason) => {
+                counts[reason] = (counts[reason] || 0) + 1;
+            });
+            return counts;
+        }, {});
+        console.log('🧪 Quality filter diagnostics:', reasonCounts);
+    }
+
     if (uniqueJobs.length === 0 && jobs.length > 0) {
         const failOpenJobs = dedupeJobsList(jobs);
         console.warn(`⚠️ Quality filter fail-open: all ${jobs.length} jobs were filtered out, returning ${failOpenJobs.length} raw jobs instead.`);
         return failOpenJobs;
+    }
+
+    const shouldRelaxForSparseFeed =
+        jobs.length >= 8 &&
+        uniqueJobs.length <= 1 &&
+        uniqueJobs.length < Math.ceil(jobs.length * 0.25);
+
+    if (shouldRelaxForSparseFeed) {
+        const minimallyRenderable = dedupeJobsList(jobs.filter(isMinimallyRenderableJobPosting));
+        if (minimallyRenderable.length > uniqueJobs.length) {
+            console.warn(`⚠️ Quality filter relax-mode: strict filter kept ${uniqueJobs.length}/${jobs.length}, returning ${minimallyRenderable.length} minimally renderable jobs instead.`);
+            return minimallyRenderable;
+        }
     }
 
     const filtered = jobs.length - uniqueJobs.length;

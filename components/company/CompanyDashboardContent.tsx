@@ -9,6 +9,7 @@ interface CompanyDashboardContentProps {
   applications: () => React.ReactNode;
   assessments: () => React.ReactNode;
   candidates: () => React.ReactNode;
+  learningResources: () => React.ReactNode;
   settings: () => React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ const CompanyDashboardContent: React.FC<CompanyDashboardContentProps> = ({
   applications,
   assessments,
   candidates,
+  learningResources,
   settings
 }) => {
   switch (activeTab) {
@@ -33,6 +35,8 @@ const CompanyDashboardContent: React.FC<CompanyDashboardContentProps> = ({
       return <>{assessments()}</>;
     case 'candidates':
       return <>{candidates()}</>;
+    case 'learning_resources':
+      return <>{learningResources()}</>;
     case 'settings':
       return <>{settings()}</>;
     default:

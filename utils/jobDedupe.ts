@@ -153,19 +153,14 @@ export const getJobDedupKeys = (job: Partial<Job>): string[] => {
   const company = normalizeDedupText(job.company);
   const companyCore = normalizeCompanyCoreForDedup(job.company ?? null);
   const location = normalizeDedupText(job.location);
-  const source = normalizeDedupText(job.source);
   const url = normalizeDedupUrl(job.url);
 
   if (id) keys.add(`id:${id}`);
   if (url) keys.add(`url:${url}`);
 
   if (title && company) {
-    keys.add(`role:${title}|${company}`);
     if (location) {
       keys.add(`role-location:${title}|${company}|${location}`);
-    }
-    if (source) {
-      keys.add(`role-source:${title}|${company}|${source}`);
     }
     if (url) {
       keys.add(`role-url:${title}|${company}|${url}`);
@@ -175,12 +170,8 @@ export const getJobDedupKeys = (job: Partial<Job>): string[] => {
   // Extra, more tolerant keys to catch near-identical listings coming from different scrapers/sources.
   // Keep these as additive keys so we don't accidentally *weaken* existing dedupe behavior.
   if (titleCore && companyCore) {
-    keys.add(`role-core:${titleCore}|${companyCore}`);
     if (location) {
       keys.add(`role-core-location:${titleCore}|${companyCore}|${location}`);
-    }
-    if (source) {
-      keys.add(`role-core-source:${titleCore}|${companyCore}|${source}`);
     }
     if (url) {
       keys.add(`role-core-url:${titleCore}|${companyCore}|${url}`);

@@ -2,7 +2,7 @@ import { dedupeJobsList, fetchExternalOverlayJobs, fetchJobsPaginated, fetchJobs
 import { geocodeWithCaching, getStaticCoordinates } from '../../services/geocodingService';
 import { isRemoteJob } from '../../services/commuteService';
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
-import type { Job, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile } from '../../types';
+import type { Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile } from '../../types';
 
 interface ResolveDiscoveryCoordinatesArgs {
     userProfile: UserProfile;
@@ -43,6 +43,7 @@ interface RunFilteredFetchArgs {
     excludeCountryCodes?: string[];
     retrievalLanguageCodes?: SearchLanguageCode[];
     remoteOnly: boolean;
+    filterWorkArrangement: JobWorkArrangementFilter;
     externalSearchSeedTerm?: string;
     microJobsOnly: boolean;
     abortSignal: AbortSignal;
@@ -179,6 +180,7 @@ export const runFilteredFetchPipeline = async ({
     excludeCountryCodes,
     retrievalLanguageCodes,
     remoteOnly,
+    filterWorkArrangement,
     externalSearchSeedTerm,
     microJobsOnly,
     abortSignal,
@@ -208,6 +210,7 @@ export const runFilteredFetchPipeline = async ({
         excludeCountryCodes,
         filterLanguageCodes: retrievalLanguageCodes,
         remoteOnly,
+        filterWorkArrangement,
         jhiPreferences: userProfile.jhiPreferences,
         userTaxProfile: userProfile.taxProfile,
         externalSearchSeedTerm: searchTerm ? undefined : externalSearchSeedTerm,
@@ -315,6 +318,7 @@ export const applyExternalOverlayJobFilters = ({
     excludeCountryCodes,
     retrievalLanguageCodes,
     remoteOnly,
+    filterWorkArrangement,
     filterCity,
     enableCommuteFilter,
     filterMaxDistance,
@@ -331,6 +335,7 @@ export const applyExternalOverlayJobFilters = ({
     excludeCountryCodes?: string[];
     retrievalLanguageCodes?: SearchLanguageCode[];
     remoteOnly: boolean;
+    filterWorkArrangement: JobWorkArrangementFilter;
     filterCity: string;
     enableCommuteFilter: boolean;
     filterMaxDistance: number;
@@ -342,6 +347,15 @@ export const applyExternalOverlayJobFilters = ({
     calculateDistanceKm: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
     defaultMaxDistanceKm?: number;
 }) => jobs.filter((job) => {
+    const normalizedWorkArrangement = (() => {
+        if (isRemoteJob(job)) return 'remote';
+        const haystack = `${job.work_model || ''} ${(job.tags || []).join(' ')} ${job.title || ''} ${job.description || ''}`.toLowerCase();
+        if (haystack.includes('hybrid')) return 'hybrid';
+        if (haystack.includes('onsite') || haystack.includes('on-site') || haystack.includes('on site') || haystack.includes('presential')) {
+            return 'onsite';
+        }
+        return 'onsite';
+    })();
     const normalizedJobCountry = inferJobCountryCode(job);
     if (effectiveCountryCodes && effectiveCountryCodes.length > 0) {
         const allowed = normalizeCountryCodes(effectiveCountryCodes);
@@ -363,6 +377,9 @@ export const applyExternalOverlayJobFilters = ({
         }
     }
     if (remoteOnly && !isRemoteJob(job)) {
+        return false;
+    }
+    if (!remoteOnly && filterWorkArrangement !== 'all' && normalizedWorkArrangement !== filterWorkArrangement) {
         return false;
     }
     if (filterCity.trim()) {
