@@ -34,6 +34,7 @@ import {
 import type { Job, JobWorkArrangementFilter, LearningResource, SearchLanguageCode, TransportMode, UserProfile } from '../../types';
 import { fetchLearningResources } from '../../services/learningResourceService';
 import { listProfileMiniChallenges } from '../../services/profileMiniChallengeService';
+import { getMainDatabaseJobCount } from '../../services/jobService';
 import { cn } from '../ui/primitives';
 import TransportModeSelector from '../TransportModeSelector';
 import { resolveJobDomain } from '../../utils/domainAccents';
@@ -2277,6 +2278,8 @@ const CareerPathStage: React.FC<{
   userLabel: string;
   headline: string;
   userProfilePhoto: string | null;
+  formattedJobsCount: string;
+  formattedActiveCandidates: string;
   nodes: PathNode[];
   selectedPathId: string | null;
   expandedPathId: string | null;
@@ -2296,7 +2299,7 @@ const CareerPathStage: React.FC<{
   manualDomainQuery: string;
   setManualDomainQuery: React.Dispatch<React.SetStateAction<string>>;
   interactive?: boolean;
-}> = ({ userLabel, headline, userProfilePhoto, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, interactive = true }) => {
+}> = ({ userLabel, headline, userProfilePhoto, formattedJobsCount, formattedActiveCandidates, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, interactive = true }) => {
   const { t } = useTranslation();
   const expandedNode = nodes.find((node) => node.id === expandedPathId) || null;
   const expandedChildren = useMemo(() => buildExpandedClusterChildren(expandedNode), [expandedNode]);
@@ -2370,8 +2373,33 @@ const CareerPathStage: React.FC<{
             </svg>
 
             {!expandedNode && showDefaultHud ? (
-              <div className="pointer-events-none absolute right-6 top-6 z-[32] rounded-[18px] border border-white/70 bg-white/88 px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-950/82 dark:text-slate-400">
-                {t('careeros.map.title', { defaultValue: 'Neural Career Map' })}
+              <div className="pointer-events-none absolute right-6 top-6 z-[32] min-w-[240px] rounded-[18px] border border-white/70 bg-white/88 px-4 py-3 text-right shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-950/82">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  {t('careeros.map.title', { defaultValue: 'Neural Career Map' })}
+                </div>
+                <div className="mt-3 grid gap-2">
+                  <div className="rounded-2xl border border-slate-200/80 bg-white/78 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/72">
+                    <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedJobsCount}</div>
+                    <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                      {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                      {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-3 py-2 dark:border-cyan-900/60 dark:bg-cyan-950/18">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="inline-block h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)] dark:bg-cyan-300" />
+                      <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedActiveCandidates}</div>
+                    </div>
+                    <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                      {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                      {t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : null}
 
@@ -3497,6 +3525,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [domainRemapOpen, setDomainRemapOpen] = useState(false);
   const [manualDomainSelection, setManualDomainSelection] = useState<string[]>([]);
   const [manualDomainQuery, setManualDomainQuery] = useState('');
+  const [databaseJobCount, setDatabaseJobCount] = useState<number | null>(null);
+  const [liveCandidateDelta, setLiveCandidateDelta] = useState(0);
   const [learningResources, setLearningResources] = useState<LearningResource[]>([]);
   const [learningResourcesLoading, setLearningResourcesLoading] = useState(false);
 
@@ -3542,6 +3572,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [panelDismissed, setPanelDismissed] = useState<boolean>(initialNavigationState?.panelDismissed ?? true);
   const [canvasZoom, setCanvasZoom] = useState(initialCanvasZoom);
   const { t, i18n } = useTranslation();
+  const activeLocale = String(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
+  const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
   const careerPathRequiresSetup = !userProfile.isLoggedIn || !hasCareerPathProfileSignal(userProfile);
   const isGuestCareerPath = !userProfile.isLoggedIn;
 
@@ -3560,6 +3592,36 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
 
   const benefitCandidates = useMemo(() => topFilterCandidates(jobs), [jobs]);
+  const visibleJobsCount = Math.max(0, databaseJobCount ?? 0);
+  const formattedJobsCount = useMemo(
+    () => (databaseJobCount === null ? '...' : new Intl.NumberFormat(activeLocale).format(visibleJobsCount)),
+    [activeLocale, databaseJobCount, visibleJobsCount],
+  );
+  const simulatedActiveCandidates = useMemo(() => {
+    const now = new Date();
+    const daySeed = Number(
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`,
+    );
+    const base = 16 + (daySeed % 8);
+    const trafficLift = Math.min(22, Math.floor(visibleJobsCount / 320));
+    const hour = now.getHours();
+    const hourAdjustment = hour >= 20
+      ? -7
+      : hour >= 18
+        ? -4
+        : hour >= 9 && hour <= 17
+          ? 3
+          : hour >= 6 && hour < 9
+            ? 1
+            : -2;
+    const weekendAdjustment = now.getDay() === 0 || now.getDay() === 6 ? -3 : 0;
+    return Math.max(8, base + trafficLift + hourAdjustment + weekendAdjustment);
+  }, [visibleJobsCount]);
+  const liveCandidatesNow = Math.max(6, simulatedActiveCandidates + liveCandidateDelta);
+  const formattedActiveCandidates = useMemo(
+    () => new Intl.NumberFormat(activeLocale).format(liveCandidatesNow),
+    [activeLocale, liveCandidatesNow],
+  );
   const availableDomains = useMemo(
     () => {
       const discovered = jobs
@@ -3628,6 +3690,63 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     },
     [selectedPath, t, userProfile.certifications, userProfile.inferredSkills, userProfile.preferences?.desired_role, userProfile.preferences?.searchProfile, userProfile.skills, userProfile.strengths, workspace.challenges],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = window.sessionStorage.getItem(dbCountCacheKey);
+        if (cached) {
+          const parsed = Number(cached);
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            setDatabaseJobCount(parsed);
+          }
+        }
+      } catch {
+        // Ignore storage issues and continue with live fetch.
+      }
+    }
+
+    void getMainDatabaseJobCount()
+      .then((count) => {
+        if (cancelled || !Number.isFinite(count) || count < 0) return;
+        setDatabaseJobCount(count);
+        if (typeof window !== 'undefined') {
+          try {
+            window.sessionStorage.setItem(dbCountCacheKey, String(count));
+          } catch {
+            // Ignore storage issues.
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDatabaseJobCount((current) => current ?? 0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dbCountCacheKey]);
+
+  useEffect(() => {
+    const intervalMs = 45_000 + Math.floor(Math.random() * 20_000);
+    const intervalId = window.setInterval(() => {
+      setLiveCandidateDelta((current) => {
+        const drift = Math.random() < 0.55 ? 1 : -1;
+        const next = current + drift;
+        if (next > 4) return 3;
+        if (next < -4) return -3;
+        return next;
+      });
+    }, intervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -3951,6 +4070,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           userLabel={workspace.userLabel}
           headline={workspace.headline}
           userProfilePhoto={safeImage(userProfile.photo)}
+          formattedJobsCount={formattedJobsCount}
+          formattedActiveCandidates={formattedActiveCandidates}
           nodes={pathNodes}
           selectedPathId={selectedPath?.id || null}
           expandedPathId={expandedPathId}
