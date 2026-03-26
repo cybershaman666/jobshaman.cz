@@ -73,6 +73,9 @@ _INTERACTION_STATE_CACHE_TTL_SECONDS = 20
 _INTERACTION_STATE_CACHE: dict[tuple[str, int], tuple[datetime, tuple[list[str], list[str]]]] = {}
 _MY_DIALOGUES_CACHE_TTL_SECONDS = 20
 _MY_DIALOGUES_CACHE: dict[tuple[str, int], tuple[datetime, dict[str, Any]]] = {}
+_JOB_DIALOGUE_PREVIEW_CACHE_TTL_SECONDS = 30
+_JOB_DIALOGUE_PREVIEW_CACHE: dict[str, tuple[float, int]] = {}
+_JOB_DIALOGUE_PREVIEW_CACHE_LOCK = Lock()
 _HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS = 15
 # Empty result sets are especially likely to be spammed by idle clients (same filters, same page).
 # Use a longer TTL to avoid repeated Supabase RPC calls when the feed is empty.
@@ -1271,7 +1274,7 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
         return jobs
 
     jobs_by_id: dict[str, list[dict]] = {}
-    normalized_job_ids: list[int] = []
+    numeric_job_ids_by_key: dict[str, int] = {}
     for job in jobs:
         if not isinstance(job, dict):
             continue
@@ -1282,17 +1285,33 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
         # External live listings often use URL-like ids. dialogue metrics are stored for our
         # internal job_applications (job_id bigint), so only query when the id is numeric.
         normalized = _normalize_job_id(canonical)
-        if isinstance(normalized, int) and normalized not in normalized_job_ids:
-            normalized_job_ids.append(normalized)
+        if isinstance(normalized, int):
+            numeric_job_ids_by_key.setdefault(canonical, normalized)
 
     open_counts: dict[str, int] = {key: 0 for key in jobs_by_id.keys()}
-    if supabase and normalized_job_ids:
+    numeric_job_ids = list(dict.fromkeys(numeric_job_ids_by_key.values()))
+    stale_keys: list[str] = []
+    numeric_ids_to_fetch: list[int] = []
+    cache_now = time.monotonic()
+
+    if numeric_job_ids_by_key:
+        with _JOB_DIALOGUE_PREVIEW_CACHE_LOCK:
+            for key, numeric_id in numeric_job_ids_by_key.items():
+                cached = _JOB_DIALOGUE_PREVIEW_CACHE.get(key)
+                if cached and (cache_now - cached[0]) <= _JOB_DIALOGUE_PREVIEW_CACHE_TTL_SECONDS:
+                    open_counts[key] = max(0, int(cached[1] or 0))
+                    continue
+                stale_keys.append(key)
+                numeric_ids_to_fetch.append(numeric_id)
+
+    if supabase and numeric_ids_to_fetch:
         try:
+            fetched_counts: dict[str, int] = {key: 0 for key in stale_keys}
             app_rows_resp = (
                 supabase
                 .table("job_applications")
                 .select("job_id,status")
-                .in_("job_id", normalized_job_ids)
+                .in_("job_id", list(dict.fromkeys(numeric_ids_to_fetch)))
                 .limit(5000)
                 .execute()
             )
@@ -1300,8 +1319,14 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
                 if not _is_active_dialogue_status(row.get("status")):
                     continue
                 row_key = _canonical_job_id(row.get("job_id"))
-                if row_key in open_counts:
-                    open_counts[row_key] = open_counts.get(row_key, 0) + 1
+                if row_key in fetched_counts:
+                    fetched_counts[row_key] = fetched_counts.get(row_key, 0) + 1
+            with _JOB_DIALOGUE_PREVIEW_CACHE_LOCK:
+                cached_at = time.monotonic()
+                for key in stale_keys:
+                    opened = max(0, int(fetched_counts.get(key, 0) or 0))
+                    open_counts[key] = opened
+                    _JOB_DIALOGUE_PREVIEW_CACHE[key] = (cached_at, opened)
         except Exception as exc:
             print(f"⚠️ Failed to compute per-role dialogue preview metrics: {exc}")
 
