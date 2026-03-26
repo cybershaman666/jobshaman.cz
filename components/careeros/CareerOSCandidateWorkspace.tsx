@@ -2737,7 +2737,7 @@ const CareerPathStage: React.FC<{
   const guestCenterOverlay = isGuest ? (
     <div className="pointer-events-none absolute left-1/2 top-1/2 z-[34] -translate-x-1/2 -translate-y-1/2">
       <div className="relative h-[148px] w-[148px]">
-        <button
+        <motion.button
           type="button"
           aria-label={guestCenterCopy.title}
           onPointerDown={(event) => {
@@ -2747,22 +2747,34 @@ const CareerPathStage: React.FC<{
             event.stopPropagation();
             void onOpenAuth('register');
           }}
+          whileHover={{ scale: 1.018 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 24 }}
           className="pointer-events-auto group relative flex h-[148px] w-[148px] items-center justify-center rounded-full"
         >
-          <span className="pointer-events-none absolute inset-[-22px] rounded-full border border-cyan-300/25 dark:border-cyan-300/20" />
-          <span className="pointer-events-none absolute inset-[-8px] rounded-full border border-sky-300/30 dark:border-sky-300/20" />
-          <span className="pointer-events-none absolute inset-[-44px] rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.26),rgba(16,185,129,0.14),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(34,211,238,0.22),rgba(16,185,129,0.14),transparent_72%)]" />
-          <span className="pointer-events-none absolute inset-[8px] rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,211,238,0.18),rgba(125,211,252,0.22),rgba(16,185,129,0.24),rgba(34,211,238,0.18))] blur-md transition duration-300 group-hover:scale-105" />
-          <span className="pointer-events-none absolute inset-[18px] rounded-full border border-white/60 dark:border-slate-200/10" />
-          <span className="pointer-events-none absolute inset-[22px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(207,250,254,0.98)_28%,rgba(125,211,252,0.92)_56%,rgba(16,185,129,0.84)_100%)] shadow-[0_0_44px_rgba(34,211,238,0.28)] dark:shadow-[0_0_54px_rgba(34,211,238,0.24)]" />
-          <span className="pointer-events-none absolute inset-[36px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(240,253,250,0.94)_34%,rgba(165,243,252,0.84)_62%,transparent_100%)] opacity-90" />
-          <span className="relative z-10 flex flex-col items-center justify-center text-slate-950">
-            <Star className="h-8 w-8 fill-current drop-shadow-[0_3px_10px_rgba(255,255,255,0.35)]" />
-            <span className="mt-2 text-[11px] font-black uppercase tracking-[0.22em] text-slate-950/88">
+          <motion.span
+            aria-hidden="true"
+            animate={{ opacity: [0.34, 0.58, 0.34], scale: [0.97, 1.03, 0.97] }}
+            transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+            className="pointer-events-none absolute inset-[-40px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_74%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(255,255,255,0.08),rgba(34,211,238,0.08),transparent_74%)]"
+          />
+          <span className="pointer-events-none absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
+          <span className="pointer-events-none absolute inset-[0px] rounded-full border border-transparent border-b-slate-300/34 border-l-slate-300/24 dark:border-b-slate-700/60 dark:border-l-slate-700/44" />
+          <motion.span
+            aria-hidden="true"
+            animate={{ scale: [0.985, 1.035, 0.985], opacity: [0.62, 0.9, 0.62] }}
+            transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
+            className="pointer-events-none absolute inset-[18px] rounded-full border border-white/90 bg-white/12 shadow-[0_0_34px_rgba(255,255,255,0.32)] backdrop-blur-[2px] dark:border-white/18 dark:bg-slate-950/10 dark:shadow-[0_0_42px_rgba(34,211,238,0.12)]"
+          />
+          <span className="pointer-events-none absolute inset-[36px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),transparent_72%)]" />
+          <span className="pointer-events-none absolute right-[22px] top-[28px] h-1.5 w-1.5 rounded-full bg-cyan-300/56 dark:bg-cyan-200/48" />
+          <span className="pointer-events-none absolute left-[26px] top-[80px] h-1.5 w-1.5 rounded-full bg-slate-300/56 dark:bg-slate-600/64" />
+          <span className="relative z-10 flex h-full items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/62 bg-white/58 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-colors duration-200 group-hover:border-cyan-200/80 group-hover:text-cyan-700 dark:border-slate-700/68 dark:bg-slate-950/56 dark:text-slate-300 dark:group-hover:border-cyan-500/28 dark:group-hover:text-cyan-200">
               {guestCenterCopy.cta}
+              <ChevronRight className="h-3.5 w-3.5 text-cyan-500/90 dark:text-cyan-300/90" />
             </span>
           </span>
-        </button>
+        </motion.button>
         <div className="absolute left-1/2 top-[calc(100%+16px)] w-[280px] -translate-x-1/2 rounded-[24px] border border-white/60 bg-white/92 px-5 py-4 text-center shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/92 dark:shadow-[0_28px_90px_-40px_rgba(2,6,23,0.82)]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
             {guestCenterCopy.badge}
@@ -2897,16 +2909,30 @@ const CareerPathStage: React.FC<{
 
             <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <div className="flex flex-col items-center">
-            <div className="pointer-events-none absolute inset-[-110px] rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.22),rgba(34,211,238,0.12),transparent_70%)] blur-3xl" />
-            <div className="pointer-events-none absolute inset-[-52px] rounded-full border border-cyan-200/20 dark:border-cyan-400/15" />
+            <div className={cn(
+              'pointer-events-none absolute inset-[-110px] blur-3xl',
+              isGuest
+                ? 'rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.06),rgba(34,211,238,0.08),transparent_72%)]'
+                : 'rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.22),rgba(34,211,238,0.12),transparent_70%)]',
+            )} />
+            <div className={cn(
+              'pointer-events-none absolute inset-[-52px] rounded-full',
+              isGuest
+                ? 'border border-white/34 dark:border-white/10'
+                : 'border border-cyan-200/20 dark:border-cyan-400/15',
+            )} />
             {isGuest ? (
-              <div
+              <motion.div
                 aria-hidden="true"
-                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full border border-cyan-300/20 bg-white/30 shadow-[0_0_40px_rgba(34,211,238,0.14)] backdrop-blur-sm dark:border-cyan-300/15 dark:bg-slate-950/35 dark:shadow-[0_0_60px_rgba(34,211,238,0.14)]"
+                animate={{ scale: [0.98, 1.025, 0.98], opacity: [0.84, 1, 0.84] }}
+                transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full"
               >
-                <div className="absolute inset-3 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.96),rgba(207,250,254,0.92)_34%,rgba(34,211,238,0.6)_100%)]" />
-                <Star className="relative z-10 h-5 w-5 fill-white text-white/90" />
-              </div>
+                <div className="absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
+                <div className="absolute inset-[4px] rounded-full border border-transparent border-b-slate-300/42 border-l-slate-300/28 dark:border-b-slate-700/64 dark:border-l-slate-700/48" />
+                <div className="absolute inset-[14px] rounded-full border border-white/28 bg-white/18 backdrop-blur-sm dark:border-slate-800/38 dark:bg-slate-950/24" />
+                <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/82 shadow-[0_0_0_8px_rgba(34,211,238,0.10),0_0_22px_rgba(34,211,238,0.22)] dark:bg-cyan-300/78 dark:shadow-[0_0_0_8px_rgba(103,232,249,0.05),0_0_24px_rgba(34,211,238,0.14)]" />
+              </motion.div>
             ) : (
               <>
                 <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
@@ -2938,6 +2964,9 @@ const CareerPathStage: React.FC<{
             const attracted = node.gravityPull >= 0.84;
             const restingScale = 0.9 + node.gravityPull * 0.07;
             const elevatedScale = Math.max(restingScale + 0.06, 0.98 + node.gravityPull * 0.04);
+            const driftX = (index % 2 === 0 ? 1 : -1) * (4 + node.gravityPull * 3);
+            const driftY = (index % 3 === 0 ? -1 : 1) * (3 + node.gravityPull * 2.5);
+            const shouldDrift = isGuest && !active && hoveredPathId !== node.id;
 
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
@@ -2947,85 +2976,94 @@ const CareerPathStage: React.FC<{
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 220, damping: 18 }}
                   className="relative flex flex-col items-center"
                 >
-                  <button
-                    type="button"
-                    onClick={() => onNodeClick(node)}
-                    onMouseEnter={() => interactive && setHoveredPathId(node.id)}
-                    onMouseLeave={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
-                    onFocus={() => interactive && setHoveredPathId(node.id)}
-                    onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
-                    disabled={!interactive}
-                    className={cn(
-                      'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-all duration-200 hover:scale-105',
-                      elevated || attracted ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
-                      active ? 'scale-105' : '',
-                    )}
+                  <motion.div
+                    animate={shouldDrift ? { x: [0, driftX, 0, -driftX * 0.72, 0], y: [0, -driftY, 0, driftY * 0.65, 0] } : { x: 0, y: 0 }}
+                    transition={shouldDrift ? {
+                      duration: 12 + index * 0.45,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    } : { type: 'spring', stiffness: 260, damping: 24 }}
+                    className="relative flex flex-col items-center"
                   >
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => onNodeClick(node)}
+                      onMouseEnter={() => interactive && setHoveredPathId(node.id)}
+                      onMouseLeave={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
+                      onFocus={() => interactive && setHoveredPathId(node.id)}
+                      onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
+                      disabled={!interactive}
                       className={cn(
-                        'relative flex items-center justify-center rounded-full border bg-white/88 backdrop-blur-md transition-all duration-200 group-hover:scale-110 dark:bg-slate-950/82',
-                        elevated || attracted ? 'h-[92px] w-[92px]' : 'h-[80px] w-[80px]',
-                        tone.ring,
-                        tone.glow,
-                        active ? 'border-emerald-400 shadow-[0_0_34px_rgba(16,185,129,0.28)]' : '',
-                      )}
-                    >
-                      <div className={cn('absolute inset-1 rounded-full blur-md', node.tone === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500', attracted ? 'opacity-35' : 'opacity-20')} />
-                    {node.challengeCount > 1 ? (
-                      <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[68px] w-[68px]' : 'h-[58px] w-[58px]')}>
-                        <NodeImage
-                          src={node.imageUrl}
-                          alt={node.title}
-                          fallback={initials(node.title)}
-                          className="h-full w-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-slate-900/26" />
-                        <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1 text-white">
-                          <Layers className="h-3.5 w-3.5" />
-                          <span className="text-[10px] font-bold">{node.challengeCount}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[66px] w-[66px]' : 'h-[56px] w-[56px]')}>
-                        <NodeImage
-                          src={node.imageUrl}
-                          alt={node.title}
-                          fallback={initials(node.title)}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
-                      <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
-                        {node.challengeCount}
-                      </div>
-                    </div>
-
-                    <div
-                      className={cn(
-                        'mt-2 w-full rounded-2xl border text-center shadow-sm backdrop-blur-md transition-colors',
-                        elevated ? 'px-4 py-3.5' : 'px-3.5 py-3.5',
-                        active ? 'border-cyan-200 bg-white/95 dark:border-cyan-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
+                        'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-all duration-200 hover:scale-105',
+                        elevated || attracted ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
+                        active ? 'scale-105' : '',
                       )}
                     >
                       <div
-                        className="min-h-[2.5rem] text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100"
-                        style={twoLineClampStyle}
-                        title={node.title}
+                        className={cn(
+                          'relative flex items-center justify-center rounded-full border bg-white/88 backdrop-blur-md transition-all duration-200 group-hover:scale-110 dark:bg-slate-950/82',
+                          elevated || attracted ? 'h-[92px] w-[92px]' : 'h-[80px] w-[80px]',
+                          tone.ring,
+                          tone.glow,
+                          active ? 'border-emerald-400 shadow-[0_0_34px_rgba(16,185,129,0.28)]' : '',
+                        )}
                       >
-                        {node.title}
+                        <div className={cn('absolute inset-1 rounded-full blur-md', node.tone === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500', attracted ? 'opacity-35' : 'opacity-20')} />
+                        {node.challengeCount > 1 ? (
+                          <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[68px] w-[68px]' : 'h-[58px] w-[58px]')}>
+                            <NodeImage
+                              src={node.imageUrl}
+                              alt={node.title}
+                              fallback={initials(node.title)}
+                              className="h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-slate-900/26" />
+                            <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1 text-white">
+                              <Layers className="h-3.5 w-3.5" />
+                              <span className="text-[10px] font-bold">{node.challengeCount}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[66px] w-[66px]' : 'h-[56px] w-[56px]')}>
+                            <NodeImage
+                              src={node.imageUrl}
+                              alt={node.title}
+                              fallback={initials(node.title)}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                          {node.challengeCount}
+                        </div>
                       </div>
-                      <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-cyan-600 dark:text-cyan-300">
-                        {t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
-                      </div>
-                      <div className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        {node.subtitle}
-                      </div>
-                      <div className="mt-2 text-[10px] leading-4 text-slate-600 dark:text-slate-300">
-                        {compactText(node.preview || node.summary, elevated ? 84 : 64)}
-                      </div>
-                    </div>
-                  </button>
 
+                      <div
+                        className={cn(
+                          'mt-2 w-full rounded-2xl border text-center shadow-sm backdrop-blur-md transition-colors',
+                          elevated ? 'px-4 py-3.5' : 'px-3.5 py-3.5',
+                          active ? 'border-cyan-200 bg-white/95 dark:border-cyan-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
+                        )}
+                      >
+                        <div
+                          className="min-h-[2.5rem] text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100"
+                          style={twoLineClampStyle}
+                          title={node.title}
+                        >
+                          {node.title}
+                        </div>
+                        <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-cyan-600 dark:text-cyan-300">
+                          {t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
+                        </div>
+                        <div className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                          {node.subtitle}
+                        </div>
+                        <div className="mt-2 text-[10px] leading-4 text-slate-600 dark:text-slate-300">
+                          {compactText(node.preview || node.summary, elevated ? 84 : 64)}
+                        </div>
+                      </div>
+                    </button>
+                  </motion.div>
                 </motion.div>
               </div>
             );
