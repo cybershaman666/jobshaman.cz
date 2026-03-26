@@ -18,7 +18,7 @@ except Exception:
 
 from .core.limiter import limiter
 from .core.security import add_security_headers
-from .routers import admin, ai, analytics, assets, assessments, auth, benchmarks, billing, career_map, email, jobs, learning_resources, profile, push, scraper, stripe, tests
+from .routers import admin, ai, analytics, assets, assessments, auth, benchmarks, billing, career_map, dialogues, email, jobs, company_jobs, learning_resources, profile, publisher_challenges, push, scraper, signal_boost, stripe, tests
 from .runtime import start_background_scheduler, stop_background_scheduler
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -187,6 +187,10 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(email.router, tags=["Email"])
     app.include_router(push.router, tags=["Push"])
     app.include_router(profile.router, tags=["Profile"])
+    app.include_router(dialogues.router, tags=["Dialogues"])
+    app.include_router(company_jobs.router, tags=["CompanyJobs"])
+    app.include_router(publisher_challenges.router, tags=["PublisherChallenges"])
+    app.include_router(signal_boost.router, tags=["SignalBoost"])
     app.include_router(learning_resources.router, tags=["LearningResources"])
     app.include_router(analytics.router, tags=["Analytics"])
     app.include_router(benchmarks.router, tags=["Benchmarks"])

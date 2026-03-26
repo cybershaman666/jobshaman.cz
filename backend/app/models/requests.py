@@ -63,9 +63,15 @@ class JobSignalBoostBriefRequest(BaseModel):
     locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
 
 
+class JobSignalBoostStarterRequest(BaseModel):
+    locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
+    response_payload: Dict[str, str] = Field(default_factory=dict)
+
+
 class JobSignalBoostOutputRequest(BaseModel):
     locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
     response_payload: Dict[str, str] = Field(default_factory=dict)
+    scenario_payload: Optional[Dict[str, Any]] = None
     status: Literal["draft", "published"] = "published"
 
 

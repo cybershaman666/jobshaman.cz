@@ -54,6 +54,7 @@ export const publishSignalBoostOutput = async (
   payload: {
     locale: string;
     responsePayload: Record<string, string>;
+    scenarioPayload?: JobSignalBoostBrief | null;
     status?: 'draft' | 'published';
   },
 ): Promise<{ output: JobSignalBoostOutput; qualityFlags: JobSignalBoostQualityFlags }> => {
@@ -63,6 +64,7 @@ export const publishSignalBoostOutput = async (
     body: JSON.stringify({
       locale: payload.locale,
       response_payload: payload.responsePayload,
+      scenario_payload: payload.scenarioPayload || null,
       status: payload.status || 'published',
     }),
   });
@@ -84,6 +86,33 @@ export const publishSignalBoostOutput = async (
   return {
     output: mapOutput(data?.output),
     qualityFlags: data?.quality_flags as JobSignalBoostQualityFlags,
+  };
+};
+
+export const generateSignalBoostStarter = async (
+  jobId: string | number,
+  payload: {
+    locale: string;
+    responsePayload: Record<string, string>;
+  },
+): Promise<{ responsePayload: Record<string, string>; meta?: { used_ai?: boolean } }> => {
+  const response = await authenticatedFetch(`${BACKEND_URL}/jobs/${jobId}/signal-boost/starter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      locale: payload.locale,
+      response_payload: payload.responsePayload,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, 'Failed to generate a Signal Boost starter.'));
+  }
+
+  const data = await response.json();
+  return {
+    responsePayload: data?.response_payload && typeof data.response_payload === 'object' ? data.response_payload : {},
+    meta: data?.meta && typeof data.meta === 'object' ? data.meta : undefined,
   };
 };
 
@@ -128,6 +157,7 @@ export const updateSignalBoostOutput = async (
   payload: {
     locale: string;
     responsePayload: Record<string, string>;
+    scenarioPayload?: JobSignalBoostBrief | null;
     status?: 'draft' | 'published';
   },
 ): Promise<{ output: JobSignalBoostOutput; qualityFlags: JobSignalBoostQualityFlags }> => {
@@ -137,6 +167,7 @@ export const updateSignalBoostOutput = async (
     body: JSON.stringify({
       locale: payload.locale,
       response_payload: payload.responsePayload,
+      scenario_payload: payload.scenarioPayload || null,
       status: payload.status || 'published',
     }),
   });

@@ -40,47 +40,52 @@ const getSignalBoostPendingKey = (jobId: string | number) => `jobshaman_signal_b
 const signalBoostEntryCopy = {
   cs: {
     eyebrow: 'Signal Boost',
-    title: 'Chcete vystoupit z řady podobných CV?',
-    body: 'Vytvořte krátký 20minutový output k této roli a pošlete recruiterovi link, kde uvidí, jak přemýšlíte.',
-    cta: 'Vytvořit 20minutový output',
+    aiBadge: 'AI zadání',
+    title: 'Pošli místo dalšího CV krátkou ukázku, jak přemýšlíš',
+    body: 'Za 15 až 20 minut odpovíš na jednu reálnou situaci z role. Vznikne link, který můžeš přiložit k přihlášce a recruiter hned uvidí tvůj první krok, priority a otázky.',
+    cta: 'Vytvořit ukázku myšlení',
     timebox: '15 až 20 minut',
-    stepOne: 'Krátký output k roli',
-    stepTwo: 'Link pošlete s přihláškou',
+    stepOne: 'Vyplníš 4 krátké bloky',
+    stepTwo: 'Pošleš link s přihláškou',
   },
   sk: {
     eyebrow: 'Signal Boost',
-    title: 'Chcete vystúpiť z radu podobných CV?',
-    body: 'Vytvorte krátky 20-minútový output k tejto role a pošlite recruiterovi link, kde uvidí, ako premýšľate.',
-    cta: 'Vytvoriť 20-minútový output',
+    aiBadge: 'AI zadanie',
+    title: 'Pošli namiesto ďalšieho CV krátku ukážku toho, ako premýšľaš',
+    body: 'Za 15 až 20 minút odpovieš na jednu reálnu situáciu z role. Vznikne link, ktorý môžeš priložiť k prihláške a náborár hneď uvidí tvoj prvý krok, priority a otázky.',
+    cta: 'Vytvoriť ukážku premýšľania',
     timebox: '15 až 20 minút',
-    stepOne: 'Krátky output k role',
-    stepTwo: 'Link pošlite s prihláškou',
+    stepOne: 'Vyplníš 4 krátke bloky',
+    stepTwo: 'Pošleš link s prihláškou',
   },
   de: {
     eyebrow: 'Signal Boost',
-    title: 'Möchten Sie sich von ähnlichen CVs abheben?',
-    body: 'Erstellen Sie einen kurzen 20-Minuten-Output zu dieser Rolle und senden Sie dem Recruiter einen Link, der zeigt, wie Sie denken.',
-    cta: '20-Minuten-Output erstellen',
+    aiBadge: 'AI Aufgabe',
+    title: 'Senden Sie statt eines weiteren CVs einen kurzen Einblick in Ihr Denken',
+    body: 'In 15 bis 20 Minuten beantworten Sie eine reale Situation aus der Rolle. Daraus entsteht ein Link, den Sie Ihrer Bewerbung beilegen können, damit Recruiting sofort Ihren ersten Schritt, Ihre Prioritäten und offenen Fragen sieht.',
+    cta: 'Kurzen Denkbeitrag erstellen',
     timebox: '15 bis 20 Minuten',
-    stepOne: 'Kurzer Output zur Rolle',
+    stepOne: '4 kurze Felder ausfüllen',
     stepTwo: 'Link mit der Bewerbung senden',
   },
   pl: {
     eyebrow: 'Signal Boost',
-    title: 'Chcesz wyróżnić się wśród podobnych CV?',
-    body: 'Stwórz krótki 20-minutowy output do tej roli i wyślij rekruterowi link pokazujący, jak myślisz.',
-    cta: 'Stwórz 20-minutowy output',
+    aiBadge: 'AI zadanie',
+    title: 'Zamiast kolejnego CV pokaż krótko, jak myślisz',
+    body: 'W 15 do 20 minut odpowiesz na jedną realną sytuację z tej roli. Powstanie link, który dołączysz do zgłoszenia, a rekruter od razu zobaczy Twój pierwszy krok, priorytety i pytania.',
+    cta: 'Stwórz krótką próbkę myślenia',
     timebox: '15 do 20 minut',
-    stepOne: 'Krótki output do roli',
-    stepTwo: 'Wyślij link ze zgłoszeniem',
+    stepOne: 'Uzupełnisz 4 krótkie pola',
+    stepTwo: 'Wyślesz link ze zgłoszeniem',
   },
   en: {
     eyebrow: 'Signal Boost',
-    title: 'Want to stand out from similar CVs?',
-    body: 'Create a short 20-minute output for this role and send the recruiter a link that shows how you think.',
-    cta: 'Create 20-minute output',
+    aiBadge: 'AI task',
+    title: 'Send a short proof of how you think, not just another CV',
+    body: 'In 15 to 20 minutes, you respond to one real situation from the role. The result is a link you can attach to your application so the hiring team sees your first move, priorities, and questions right away.',
+    cta: 'Create thinking sample',
     timebox: '15 to 20 minutes',
-    stepOne: 'Short role-specific output',
+    stepOne: 'Fill in 4 short blocks',
     stepTwo: 'Send the link with your application',
   },
 } as const;
@@ -114,14 +119,14 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     ...signalBoostBaseCopy,
     body: isImported
       ? normalizedSignalBoostLocale === 'cs'
-        ? 'Vytvořte krátký 20minutový output k této roli, normálně se přihlaste a pošlete recruiterovi link jako lepší signál než samotné CV.'
+        ? 'Odpovíš na jednu konkrétní situaci z role, normálně se přihlásíš a link pošleš spolu s přihláškou. Náborář tak neuvidí jen CV, ale i to, jak bys začal(a) pracovat.'
         : normalizedSignalBoostLocale === 'sk'
-          ? 'Vytvorte krátky 20-minútový output k tejto role, normálne sa prihláste a pošlite recruiterovi link ako silnejší signál než samotné CV.'
+          ? 'Odpovieš na jednu konkrétnu situáciu z role, normálne sa prihlásiš a link pošleš spolu s prihláškou. Náborár tak neuvidí len CV, ale aj to, ako by si začal(a) pracovať.'
           : normalizedSignalBoostLocale === 'de'
-            ? 'Erstellen Sie einen kurzen 20-Minuten-Output zu dieser Rolle, bewerben Sie sich normal und senden Sie dem Recruiter den Link als stärkeres Signal als nur den Lebenslauf.'
+            ? 'Sie reagieren auf eine konkrete Situation aus der Rolle, bewerben sich ganz normal und senden den Link mit. So sieht Recruiting nicht nur Ihren CV, sondern auch, wie Sie anfangen würden zu arbeiten.'
             : normalizedSignalBoostLocale === 'pl'
-              ? 'Stwórz krótki 20-minutowy output do tej roli, zgłoś się normalnie i wyślij rekruterowi link jako mocniejszy sygnał niż samo CV.'
-              : 'Create a short 20-minute output for this role, apply normally, and send the recruiter the link as a stronger signal than a CV alone.'
+              ? 'Odpowiadasz na jedną konkretną sytuację z roli, zgłaszasz się normalnie i wysyłasz link razem ze zgłoszeniem. Rekruter widzi wtedy nie tylko CV, ale też jak zaczynasz myśleć o pracy.'
+              : 'Respond to one concrete situation from the role, apply normally, and send the link with your application. The hiring team sees more than a CV: they see how you would start working.'
       : signalBoostBaseCopy.body,
   };
   const signalBoostPendingKey = useMemo(() => getSignalBoostPendingKey(job.id), [job.id]);
@@ -957,8 +962,13 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   <div className="rounded-[20px] border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.05)] p-4 dark:bg-[rgba(var(--accent-rgb),0.11)]">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                          {signalBoostCopy.eyebrow}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                            {signalBoostCopy.eyebrow}
+                          </div>
+                          <span className="inline-flex items-center rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-white/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-strong)] dark:bg-slate-950/60">
+                            {signalBoostCopy.aiBadge}
+                          </span>
                         </div>
                         <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
                           {signalBoostCopy.title}
@@ -983,7 +993,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       <button
                         type="button"
                         onClick={handleOpenSignalBoost}
-                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold whitespace-normal text-left"
                       >
                         <Sparkles size={15} />
                         {signalBoostCopy.cta}
@@ -992,7 +1002,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         <button
                           type="button"
                           onClick={onOpenImportedListing}
-                          className="app-button-secondary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+                          className="app-button-secondary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold whitespace-normal text-left"
                         >
                           <ExternalLink size={15} />
                           {copy.importedButton}

@@ -25,13 +25,15 @@ const pageCopy = {
     recruiterNext: 'Co dál',
     openLinkedin: 'LinkedIn profil',
     seeRealInteraction: 'Podívat se na reálnou interakci',
-    exploreHiring: 'Prozkoumat JobShaman pro hiring',
+    exploreHiring: 'Prozkoumat JobShaman pro nábor',
     openOriginal: 'Otevřít původní nabídku',
     backHome: 'Zpět na JobShaman',
     readTime: 'Čitelné za 2 až 3 minuty',
     targetRole: 'Cílová role',
     company: 'Firma',
     location: 'Lokalita',
+    candidateFallback: 'Kandidát JobShamanu',
+    roleFallback: 'Role',
   },
   sk: {
     loading: 'Načítavam verejný Signal Boost…',
@@ -46,20 +48,22 @@ const pageCopy = {
     recruiterNext: 'Čo ďalej',
     openLinkedin: 'LinkedIn profil',
     seeRealInteraction: 'Pozrieť si reálnu interakciu',
-    exploreHiring: 'Preskúmať JobShaman pre hiring',
+    exploreHiring: 'Preskúmať JobShaman pre nábor',
     openOriginal: 'Otvoriť pôvodnú ponuku',
     backHome: 'Späť na JobShaman',
     readTime: 'Čitateľné za 2 až 3 minúty',
     targetRole: 'Cieľová rola',
     company: 'Firma',
     location: 'Lokalita',
+    candidateFallback: 'Kandidát JobShamanu',
+    roleFallback: 'Rola',
   },
   de: {
     loading: 'Öffentlicher Signal Boost wird geladen…',
     missingTitle: 'Dieser Signal Boost ist nicht mehr verfügbar',
     missingBody: 'Der Link könnte abgelaufen, archiviert oder nie veröffentlicht worden sein.',
     createdVia: 'Erstellt mit JobShaman',
-    subtleNote: 'Ein kurzes Arbeitssignal. Keine polierte Endlösung, sondern die Art zu denken in den ersten Minuten realer Arbeit.',
+    subtleNote: 'Ein kurzes Arbeitssignal. Keine polierte Endlösung, sondern sichtbar gemachtes Denken in den ersten Minuten realer Arbeit.',
     candidate: 'Kandidat',
     scenario: 'Ausgangssituation',
     output: 'So denkt die Person darüber nach',
@@ -67,20 +71,22 @@ const pageCopy = {
     recruiterNext: 'Nächster Schritt',
     openLinkedin: 'LinkedIn-Profil',
     seeRealInteraction: 'Reale Interaktion ansehen',
-    exploreHiring: 'JobShaman für Hiring ansehen',
+    exploreHiring: 'JobShaman für Recruiting ansehen',
     openOriginal: 'Originalanzeige öffnen',
     backHome: 'Zurück zu JobShaman',
     readTime: 'In 2 bis 3 Minuten lesbar',
     targetRole: 'Zielrolle',
     company: 'Unternehmen',
     location: 'Standort',
+    candidateFallback: 'JobShaman-Kandidat',
+    roleFallback: 'Rolle',
   },
   pl: {
     loading: 'Ładuję publiczny Signal Boost…',
     missingTitle: 'Ten Signal Boost nie jest już dostępny',
     missingBody: 'Link mógł wygasnąć, zostać zarchiwizowany albo nigdy nie został opublikowany.',
     createdVia: 'Utworzone przez JobShaman',
-    subtleNote: 'Krótki sygnał pracy. Nie dopracowane finalne rozwiązanie, ale sposób myślenia w pierwszych minutach realnej pracy.',
+    subtleNote: 'Krótki sygnał pracy. Nie dopracowane finalne rozwiązanie, ale pokazany sposób myślenia w pierwszych minutach realnej pracy.',
     candidate: 'Kandydat',
     scenario: 'Sytuacja wyjściowa',
     output: 'Jak kandydat o tym myśli',
@@ -88,13 +94,15 @@ const pageCopy = {
     recruiterNext: 'Co dalej',
     openLinkedin: 'Profil LinkedIn',
     seeRealInteraction: 'Zobacz realną interakcję',
-    exploreHiring: 'Poznaj JobShaman dla hiringu',
+    exploreHiring: 'Poznaj JobShaman do rekrutacji',
     openOriginal: 'Otwórz oryginalne ogłoszenie',
     backHome: 'Wróć do JobShaman',
     readTime: 'Do przeczytania w 2 do 3 minut',
     targetRole: 'Rola docelowa',
     company: 'Firma',
     location: 'Lokalizacja',
+    candidateFallback: 'Kandydat JobShaman',
+    roleFallback: 'Rola',
   },
   en: {
     loading: 'Loading public Signal Boost…',
@@ -116,6 +124,8 @@ const pageCopy = {
     targetRole: 'Target role',
     company: 'Company',
     location: 'Location',
+    candidateFallback: 'JobShaman candidate',
+    roleFallback: 'Role',
   },
 } as const;
 
@@ -227,7 +237,7 @@ const SignalBoostPublicPage: React.FC = () => {
                 {copy.createdVia}
               </div>
               <h1 className="mt-4 text-[2rem] font-semibold tracking-[-0.05em] text-[var(--text-strong)] sm:text-[2.6rem]">
-                {output.candidate_snapshot?.name || 'JobShaman member'}
+                {output.candidate_snapshot?.name || copy.candidateFallback}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.subtleNote}</p>
             </div>
@@ -254,7 +264,7 @@ const SignalBoostPublicPage: React.FC = () => {
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
-                      {output.candidate_snapshot?.name || 'JobShaman member'}
+                      {output.candidate_snapshot?.name || copy.candidateFallback}
                     </div>
                     {output.candidate_snapshot?.jobTitle ? (
                       <div className="mt-1 text-sm text-[var(--text-muted)]">{output.candidate_snapshot.jobTitle}</div>
@@ -303,7 +313,7 @@ const SignalBoostPublicPage: React.FC = () => {
             <div className="space-y-5">
               <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.targetRole}</div>
-                <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{output.job_snapshot?.title || 'Role'}</div>
+                <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{output.job_snapshot?.title || copy.roleFallback}</div>
                 <div className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
                   {output.job_snapshot?.company ? <div><span className="font-semibold text-[var(--text-strong)]">{copy.company}:</span> {output.job_snapshot.company}</div> : null}
                   {output.job_snapshot?.location ? <div><span className="font-semibold text-[var(--text-strong)]">{copy.location}:</span> {output.job_snapshot.location}</div> : null}

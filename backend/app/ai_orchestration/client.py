@@ -236,8 +236,10 @@ def call_model_with_retry(
     model_name: str,
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
+    provider_override: Optional[str] = None,
 ) -> AIClientResult:
-    if resolve_ai_provider() == "mistral":
+    provider = (provider_override or resolve_ai_provider()).strip().lower()
+    if provider == "mistral":
         return _call_mistral_chat_completion(
             prompt,
             model_name,
@@ -258,9 +260,11 @@ def call_primary_with_fallback(
     fallback_model: Optional[str],
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
+    provider_override: Optional[str] = None,
 ) -> tuple[AIClientResult, bool]:
     default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
-    if resolve_ai_provider() == "mistral":
+    provider = (provider_override or resolve_ai_provider()).strip().lower()
+    if provider == "mistral":
         default_rescue = "mistral-small-latest"
 
     rescue_raw = os.getenv("AI_RESCUE_MODELS") or os.getenv("GEMINI_RESCUE_MODELS") or default_rescue
@@ -285,6 +289,7 @@ def call_primary_with_fallback(
                 model_name,
                 max_retries=max_retries,
                 generation_config=generation_config,
+                provider_override=provider,
             ), (index > 0)
         except Exception as exc:
             last_error = exc

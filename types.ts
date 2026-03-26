@@ -696,6 +696,8 @@ export interface JobSignalBoostSection {
   optional?: boolean;
   min_chars?: number;
   soft_max_chars?: number;
+  starter_prompts?: string[];
+  placeholder?: string;
 }
 
 export interface JobSignalBoostBrief {
@@ -704,6 +706,11 @@ export interface JobSignalBoostBrief {
   candidate_note: string;
   anti_generic_hint: string;
   cta_hint: string;
+  how_to_title?: string;
+  deliverable_title?: string;
+  how_to_steps?: string[];
+  job_excerpt_title?: string;
+  job_excerpt?: string | null;
   scenario_title: string;
   scenario_context: string;
   core_problem: string;
@@ -715,6 +722,17 @@ export interface JobSignalBoostBrief {
     domain_key?: string | null;
     canonical_role?: string | null;
     used_ai_fallback?: boolean;
+    ai_provider?: string | null;
+    ai_model_requested?: string | null;
+    ai_model_used?: string | null;
+    ai_requested?: boolean;
+    ai_used_brief?: boolean;
+    ai_fallback_used?: boolean;
+    ai_skip_reason?: string | null;
+    ai_error?: string | null;
+    ai_tokens_in?: number | null;
+    ai_tokens_out?: number | null;
+    ai_latency_ms?: number | null;
   } | null;
 }
 

@@ -4,17 +4,16 @@ import time
 import json
 import hashlib
 from statistics import median
-from typing import Any
+from typing import Any, cast
 from importlib import import_module
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, JobApplicationStatusUpdateRequest, DialogueSolutionSnapshotUpsertRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest, JobSignalBoostBriefRequest, JobSignalBoostOutputRequest, JobSignalBoostEventRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationDraftRequest, DialogueSolutionSnapshotUpsertRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest
 from ..models.responses import JobCheckResponse, JobApplicationDraftResponse
 from ..services.legality import check_legality_rules
 from ..services.asset_service import load_assets_metadata, serialize_asset_metadata
@@ -24,7 +23,6 @@ from ..matching_engine.feature_store import extract_candidate_features, extract_
 from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings, fetch_recent_jobs
 from ..matching_engine.scoring import score_from_embeddings, score_job
 from ..services.email import send_application_notification_email, send_review_email, send_recruiter_legality_email
-from ..services.dialogue_composer import build_dialogue_enrichment
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import (
@@ -39,9 +37,6 @@ from ..services.jobspy_jobs import backfill_jobspy_postgres_from_mongo, get_jobs
 from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
 from ..services.jobs_postgres_store import count_active_main_jobs, delete_job_by_id, ensure_jobs_postgres_schema, get_job_by_id, get_jobs_postgres_health, jobs_postgres_enabled, jobs_postgres_main_enabled, list_company_jobs, read_external_cache_jobs, update_job_fields, upsert_external_cache_snapshot
-from ..services.job_signal_boost import build_signal_boost_brief, build_signal_boost_summary, evaluate_signal_boost_quality
-from ..services.job_signal_boost_notifications import notify_candidate_of_signal_boost_interest
-from ..services.job_signal_boost_store import create_signal_output, get_latest_signal_output_for_job, get_signal_output_by_id, get_signal_output_by_share_slug, list_recent_signal_outputs_for_candidate, record_signal_output_event, signal_boost_store_enabled, update_signal_output
 from ..utils.helpers import now_iso
 from ..utils.request_urls import get_request_base_url
 from ..core import config
@@ -113,16 +108,70 @@ _EXTERNAL_PROVIDER_HEALTH: dict[str, dict[str, Any]] = {
 }
 
 
-class ProfileMiniChallengeCreateRequest(BaseModel):
-    title: str
-    problem: str
-    timeEstimate: str | None = None
-    reward: str | None = None
-    location: str | None = None
-    first_reply_prompt: str | None = None
-    micro_job_kind: str | None = None
-    collaboration_modes: list[str] | None = None
-    long_term_potential: str | None = None
+async def create_job_application(*args, **kwargs):
+    from .dialogues import create_dialogue_legacy
+
+    return await create_dialogue_legacy(*args, **kwargs)
+
+
+async def list_my_job_applications(*args, **kwargs):
+    from .dialogues import list_my_dialogues_legacy
+
+    return await list_my_dialogues_legacy(*args, **kwargs)
+
+
+async def get_my_job_application_detail(*args, **kwargs):
+    from .dialogues import get_my_dialogue_detail_legacy
+
+    return await get_my_dialogue_detail_legacy(*args, **kwargs)
+
+
+async def withdraw_my_job_application(*args, **kwargs):
+    from .dialogues import withdraw_my_dialogue_legacy
+
+    return await withdraw_my_dialogue_legacy(*args, **kwargs)
+
+
+async def list_my_application_messages(*args, **kwargs):
+    from .dialogues import list_my_dialogue_messages_legacy
+
+    return await list_my_dialogue_messages_legacy(*args, **kwargs)
+
+
+async def create_my_application_message(*args, **kwargs):
+    from .dialogues import create_my_dialogue_message_legacy
+
+    return await create_my_dialogue_message_legacy(*args, **kwargs)
+
+
+async def list_company_applications(*args, **kwargs):
+    from .dialogues import list_company_dialogues_legacy
+
+    return await list_company_dialogues_legacy(*args, **kwargs)
+
+
+async def get_company_application_detail(*args, **kwargs):
+    from .dialogues import get_company_dialogue_detail_legacy
+
+    return await get_company_dialogue_detail_legacy(*args, **kwargs)
+
+
+async def list_company_application_messages(*args, **kwargs):
+    from .dialogues import list_company_dialogue_messages_legacy
+
+    return await list_company_dialogue_messages_legacy(*args, **kwargs)
+
+
+async def create_company_application_message(*args, **kwargs):
+    from .dialogues import create_company_dialogue_message_legacy
+
+    return await create_company_dialogue_message_legacy(*args, **kwargs)
+
+
+async def update_company_application_status(*args, **kwargs):
+    from .dialogues import update_company_dialogue_status_legacy
+
+    return await update_company_dialogue_status_legacy(*args, **kwargs)
 
 
 @router.get("/jobs/stats/active-count")
@@ -319,7 +368,7 @@ def _read_cached_external_jobs(
                 .limit(120)
                 .execute()
             )
-            rows = response.data or []
+            rows = _safe_rows(response.data if response else None)
         except Exception as exc:
             if not _is_missing_table_error(exc, _EXTERNAL_LIVE_SEARCH_CACHE_TABLE):
                 print(f"⚠️ Failed to read external live cache: {exc}")
@@ -357,8 +406,8 @@ def _read_cached_external_jobs(
                         str(item.get("company") or ""),
                         str(item.get("location") or ""),
                         str(item.get("description") or ""),
-                        " ".join(item.get("tags") or []) if isinstance(item.get("tags"), list) else "",
-                        " ".join(item.get("benefits") or []) if isinstance(item.get("benefits"), list) else "",
+                        " ".join(_string_list_from_json(item.get("tags"))),
+                        " ".join(_string_list_from_json(item.get("benefits"))),
                     ]
                 )
             )
@@ -612,7 +661,7 @@ def _count_company_active_jobs(company_id: str, exclude_job_id=None) -> int:
     if not supabase or not company_id:
         return 0
     resp = supabase.table("jobs").select("id,status").eq("company_id", company_id).execute()
-    rows = resp.data or []
+    rows = _safe_rows(resp.data if resp else None)
     normalized_exclude = _normalize_job_id(exclude_job_id) if exclude_job_id is not None else None
     total = 0
     for row in rows:
@@ -659,8 +708,9 @@ def _sync_company_active_jobs_usage(company_id: str) -> None:
             .limit(1)
             .execute()
         )
-        if usage_resp.data:
-            supabase.table("subscription_usage").update({"active_jobs_count": active_jobs}).eq("id", usage_resp.data[0]["id"]).execute()
+        usage_rows = _safe_rows(usage_resp.data if usage_resp else None)
+        if usage_rows:
+            supabase.table("subscription_usage").update({"active_jobs_count": active_jobs}).eq("id", usage_rows[0]["id"]).execute()
     except Exception as exc:
         print(f"⚠️ Failed to sync active job usage for company {company_id}: {exc}")
 
@@ -696,7 +746,8 @@ def _get_latest_usage_row_for_subscription(subscription_id: str) -> dict | None:
             .limit(1)
             .execute()
         )
-        return usage_resp.data[0] if usage_resp.data else None
+        rows = _safe_rows(usage_resp.data if usage_resp else None)
+        return rows[0] if rows else None
     except Exception:
         return None
 
@@ -1009,7 +1060,7 @@ def _count_candidate_active_dialogues(candidate_id: str) -> int:
                 .execute()
             )
         total = 0
-        for row in resp.data or []:
+        for row in _safe_rows(resp.data if resp else None):
             normalized_row = _expire_dialogue_if_needed(row, sync_company_usage=False)
             if _is_active_dialogue_status((normalized_row or {}).get("status")):
                 total += 1
@@ -1088,7 +1139,7 @@ def _count_company_active_dialogues(company_id: str) -> int:
                 .execute()
             )
         total = 0
-        for row in resp.data or []:
+        for row in _safe_rows(resp.data if resp else None):
             normalized_row = _expire_dialogue_if_needed(row, sync_company_usage=False)
             if _is_active_dialogue_status((normalized_row or {}).get("status")):
                 total += 1
@@ -1169,7 +1220,7 @@ def _enforce_company_role_open_limit(company_id: str, user: dict) -> None:
             detail=f"Current plan allows up to {limit} role opens in the current billing period",
         )
 
-def _normalize_job_id(job_id: str):
+def _normalize_job_id(job_id: Any) -> int | str:
     raw = str(job_id or "").strip()
     if raw.startswith("db-"):
         raw = raw[3:]
@@ -1185,7 +1236,7 @@ def _canonical_job_id(job_id) -> str:
     return value
 
 
-def _safe_int(value: Any, fallback: int) -> int:
+def _safe_positive_int(value: Any, fallback: int) -> int:
     try:
         parsed = int(value)
     except Exception:
@@ -1203,7 +1254,7 @@ def _resolve_role_dialogue_limit(job: dict) -> int:
     ):
         raw = job.get(key)
         if raw is not None and str(raw).strip() != "":
-            return _safe_int(raw, _ROLE_DIALOGUE_PREVIEW_LIMIT)
+            return _safe_positive_int(raw, _ROLE_DIALOGUE_PREVIEW_LIMIT)
     return _ROLE_DIALOGUE_PREVIEW_LIMIT
 
 
@@ -1211,7 +1262,7 @@ def _resolve_reaction_window_hours(job: dict) -> int:
     for key in ("reaction_window_hours", "dialogue_timeout_hours", "dialogue_response_timeout_hours"):
         raw = job.get(key)
         if raw is not None and str(raw).strip() != "":
-            return _safe_int(raw, _DIALOGUE_RESPONSE_TIMEOUT_HOURS)
+            return _safe_positive_int(raw, _DIALOGUE_RESPONSE_TIMEOUT_HOURS)
     return _DIALOGUE_RESPONSE_TIMEOUT_HOURS
 
 
@@ -1245,9 +1296,7 @@ def _attach_job_dialogue_preview_metrics(jobs: list[dict]) -> list[dict]:
                 .limit(5000)
                 .execute()
             )
-            for row in (app_rows_resp.data or []):
-                if not isinstance(row, dict):
-                    continue
+            for row in _safe_rows(app_rows_resp.data if app_rows_resp else None):
                 if not _is_active_dialogue_status(row.get("status")):
                     continue
                 row_key = _canonical_job_id(row.get("job_id"))
@@ -1285,7 +1334,7 @@ def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[lis
             .limit(max(1, min(20000, int(limit))))
             .execute()
         )
-        rows = resp.data or []
+        rows = _safe_rows(resp.data if resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to fetch interaction state for user {user_id}: {exc}")
         return [], []
@@ -1358,7 +1407,7 @@ def _filter_existing_job_ids(job_ids: set[str]) -> set[str]:
                 .limit(len(chunk))
                 .execute()
             )
-            for row in resp.data or []:
+            for row in _safe_rows(resp.data if resp else None):
                 job_id = _canonical_job_id((row or {}).get("id"))
                 if job_id:
                     existing.add(job_id)
@@ -1381,8 +1430,24 @@ def _is_missing_relationship_error(exc: Exception, left_table: str, right_table:
     return f"relationship between '{left}' and '{right}'" in msg or f"relationship between '{right}' and '{left}'" in msg
 
 
-def _safe_dict(value) -> dict:
+def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _safe_row(value: Any) -> dict[str, Any] | None:
+    return value if isinstance(value, dict) else None
+
+
+def _safe_rows(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _string_list_from_json(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
 
 
 def _read_job_record(job_id: Any) -> dict[str, Any] | None:
@@ -1394,8 +1459,7 @@ def _read_job_record(job_id: Any) -> dict[str, Any] | None:
         return None
     try:
         resp = supabase.table("jobs").select("*").eq("id", normalized_job_id).maybe_single().execute()
-        row = resp.data if resp else None
-        return row if isinstance(row, dict) else None
+        return _safe_row(resp.data if resp else None)
     except Exception:
         return None
 
@@ -1496,7 +1560,7 @@ def _fetch_company_team_context(company_id: str) -> tuple[str | None, dict[str, 
             if not _is_missing_column_error(exc, "team_member_profiles"):
                 raise
             resp = supabase.table("companies").select("owner_id").eq("id", company_id).maybe_single().execute()
-        row = resp.data or {}
+        row = _safe_dict(resp.data if resp else None)
         owner_id = str(row.get("owner_id") or "").strip() or None
         team_profiles = _normalize_company_team_member_profiles(row.get("team_member_profiles"))
         return owner_id, team_profiles
@@ -1534,7 +1598,7 @@ def _fetch_company_member_rows(company_id: str) -> list[dict[str, Any]]:
                 .limit(500)
                 .execute()
             )
-        return [row for row in (resp.data or []) if isinstance(row, dict)]
+        return _safe_rows(resp.data if resp else None)
     except Exception as exc:
         if not _is_missing_table_error(exc, "company_members"):
             print(f"⚠️ Failed to load company members for human context ({company_id}): {exc}")
@@ -1590,7 +1654,7 @@ def _fetch_profiles_map(user_ids: set[str]) -> dict[str, dict[str, Any]]:
                 .limit(len(chunk))
                 .execute()
             )
-            for row in (resp.data or []):
+            for row in _safe_rows(resp.data if resp else None):
                 row_id = str((row or {}).get("id") or "").strip()
                 if row_id:
                     profiles_by_id[row_id] = row
@@ -1777,7 +1841,7 @@ def _load_valid_job_public_people(job_id: Any, company_id: str) -> list[dict[str
 
     allowed_user_ids = _fetch_company_public_member_ids(company_id)
     rows: list[dict[str, Any]] = []
-    for row in (resp.data or []):
+    for row in _safe_rows(resp.data if resp else None):
         kind = _normalize_public_person_kind((row or {}).get("person_kind"))
         user_id = str((row or {}).get("user_id") or "").strip()
         if not kind or not user_id or user_id not in allowed_user_ids:
@@ -1816,7 +1880,7 @@ def _compute_company_human_context_trust(company_id: str) -> dict[str, Any]:
         count_resp = (
             supabase
             .table("job_applications")
-            .select("id", count="exact")
+            .select("id", count=cast(Any, "exact"))
             .eq("company_id", company_id)
             .gte("created_at", since_iso)
             .limit(1)
@@ -1839,7 +1903,7 @@ def _compute_company_human_context_trust(company_id: str) -> dict[str, Any]:
             .limit(5000)
             .execute()
         )
-        application_rows = app_resp.data or []
+        application_rows = _safe_rows(app_resp.data if app_resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to load human-context dialogue rows for company {company_id}: {exc}")
         application_rows = []
@@ -1874,7 +1938,7 @@ def _compute_company_human_context_trust(company_id: str) -> dict[str, Any]:
                 break
             print(f"⚠️ Failed to load human-context message rows for company {company_id}: {exc}")
             continue
-        for row in (message_resp.data or []):
+        for row in _safe_rows(message_resp.data if message_resp else None):
             application_id = str((row or {}).get("application_id") or "").strip()
             created_at = _parse_iso_datetime(str((row or {}).get("created_at") or ""))
             if not application_id or created_at is None or application_id in first_message_by_application:
@@ -1948,124 +2012,6 @@ def _serialize_solution_snapshot(row: dict | None) -> dict[str, Any] | None:
     }
 
 
-def _load_signal_boost_job_row(job_id: str) -> dict[str, Any] | None:
-    normalized_job_id = _normalize_job_id(job_id)
-    postgres_row = get_job_by_id(normalized_job_id)
-    if isinstance(postgres_row, dict) and postgres_row:
-        return postgres_row
-    if not supabase:
-        return None
-    try:
-        resp = (
-            supabase
-            .table("jobs")
-            .select("*")
-            .eq("id", normalized_job_id)
-            .maybe_single()
-            .execute()
-        )
-        row = resp.data if resp else None
-        return row if isinstance(row, dict) else None
-    except Exception as exc:
-        print(f"⚠️ Failed to load Signal Boost job row for {job_id}: {exc}")
-        return None
-
-
-def _build_signal_boost_candidate_snapshot(user: dict, user_id: str) -> dict[str, Any]:
-    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
-    profile_identity = _fetch_profile_identity(user_id)
-    full_name = _trimmed_text(profile_identity.get("full_name"), 160)
-    email = _trimmed_text(profile_identity.get("email") or user.get("email"), 200)
-    headline = _trimmed_text(candidate_profile.get("job_title"), 160)
-    avatar_url = _trimmed_text(candidate_profile.get("avatar_url"), 500) or None
-    linkedin = _trimmed_text(candidate_profile.get("linkedin"), 500) or None
-    return {
-        "name": full_name or (email.split("@", 1)[0] if email and "@" in email else "JobShaman member"),
-        "jobTitle": headline or None,
-        "avatar_url": avatar_url,
-        "linkedin": linkedin,
-        "skills": _safe_string_list(candidate_profile.get("skills"), limit=10),
-        "preferredCountryCode": str(_safe_dict(candidate_profile.get("preferences")).get("preferredCountryCode") or candidate_profile.get("preferred_country_code") or "").strip().upper() or None,
-    }
-
-
-def _build_signal_boost_job_snapshot(job_row: dict[str, Any]) -> dict[str, Any]:
-    listing_kind = str(job_row.get("listingKind") or job_row.get("source_kind") or "").strip().lower()
-    source = str(job_row.get("source") or "").strip().lower()
-    source_kind = "native" if "jobshaman" in source or listing_kind == "challenge" or str(job_row.get("company_id") or "").strip() else "imported"
-    return {
-        "id": str(job_row.get("id") or "").strip(),
-        "title": _trimmed_text(job_row.get("title"), 200),
-        "company": _trimmed_text(job_row.get("company"), 200),
-        "location": _trimmed_text(job_row.get("location"), 160) or None,
-        "url": _trimmed_text(job_row.get("url"), 800) or None,
-        "company_id": _trimmed_text(job_row.get("company_id"), 120) or None,
-        "source": _trimmed_text(job_row.get("source"), 120) or None,
-        "source_kind": source_kind,
-    }
-
-
-def _signal_boost_share_url(locale: str, share_slug: str) -> str:
-    normalized_locale = str(locale or "en").split("-")[0].strip().lower() or "en"
-    if normalized_locale == "at":
-        normalized_locale = "de"
-    return f"{config.APP_PUBLIC_URL.rstrip('/')}/{normalized_locale}/signal/{share_slug}"
-
-
-def _serialize_signal_output_owner(row: dict[str, Any] | None) -> dict[str, Any] | None:
-    source = row or {}
-    if not source:
-        return None
-    locale = str(source.get("locale") or "en").strip() or "en"
-    share_slug = str(source.get("share_slug") or "").strip()
-    return {
-        "id": str(source.get("id") or "").strip(),
-        "share_slug": share_slug,
-        "share_url": _signal_boost_share_url(locale, share_slug),
-        "locale": locale,
-        "status": str(source.get("status") or "draft").strip() or "draft",
-        "job_snapshot": _safe_dict(source.get("job_snapshot")),
-        "candidate_snapshot": _safe_dict(source.get("candidate_snapshot")),
-        "scenario_payload": _safe_dict(source.get("scenario_payload")),
-        "response_payload": _safe_dict(source.get("response_payload")),
-        "signal_summary": _safe_dict(source.get("signal_summary")) or None,
-        "quality_flags": _safe_dict(source.get("quality_flags")),
-        "analytics": _safe_dict(source.get("analytics")),
-        "created_at": source.get("created_at"),
-        "updated_at": source.get("updated_at"),
-        "published_at": source.get("published_at"),
-    }
-
-
-def _serialize_signal_output_public(row: dict[str, Any] | None) -> dict[str, Any] | None:
-    source = row or {}
-    if not source:
-        return None
-    candidate = _safe_dict(source.get("candidate_snapshot"))
-    job_snapshot = _safe_dict(source.get("job_snapshot"))
-    locale = str(source.get("locale") or "en").strip() or "en"
-    share_slug = str(source.get("share_slug") or "").strip()
-    return {
-        "id": str(source.get("id") or "").strip(),
-        "share_slug": share_slug,
-        "share_url": _signal_boost_share_url(locale, share_slug),
-        "locale": locale,
-        "job_snapshot": job_snapshot,
-        "candidate_snapshot": {
-            "name": _trimmed_text(candidate.get("name"), 160) or "JobShaman member",
-            "jobTitle": _trimmed_text(candidate.get("jobTitle"), 160) or None,
-            "avatar_url": _trimmed_text(candidate.get("avatar_url"), 500) or None,
-            "linkedin": _trimmed_text(candidate.get("linkedin"), 500) or None,
-        },
-        "scenario_payload": _safe_dict(source.get("scenario_payload")),
-        "response_payload": _safe_dict(source.get("response_payload")),
-        "signal_summary": _safe_dict(source.get("signal_summary")) or None,
-        "quality_flags": _safe_dict(source.get("quality_flags")),
-        "created_at": source.get("created_at"),
-        "published_at": source.get("published_at"),
-    }
-
-
 def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any] | None:
     if not supabase or not dialogue_id:
         return None
@@ -2078,8 +2024,7 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
             .maybe_single()
             .execute()
         )
-        row = resp.data if resp else None
-        return row if isinstance(row, dict) else None
+        return _safe_row(resp.data if resp else None)
     except Exception as exc:
         if not (
             _is_missing_relationship_error(exc, "job_applications", "jobs")
@@ -2095,8 +2040,8 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
         .maybe_single()
         .execute()
     )
-    row = base_resp.data if base_resp else None
-    if not isinstance(row, dict):
+    row = _safe_row(base_resp.data if base_resp else None)
+    if not row:
         return None
 
     normalized_job_id = _normalize_job_id(row.get("job_id"))
@@ -2110,7 +2055,7 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
                 .maybe_single()
                 .execute()
             )
-            row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
+            row["jobs"] = _safe_dict(job_resp.data if job_resp else None)
         except Exception:
             row["jobs"] = {}
 
@@ -2125,7 +2070,7 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
                 .maybe_single()
                 .execute()
             )
-            row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
+            row["companies"] = _safe_dict(company_resp.data if company_resp else None)
         except Exception:
             row["companies"] = {}
     return row
@@ -2143,8 +2088,7 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
             .maybe_single()
             .execute()
         )
-        row = resp.data if resp else None
-        return row if isinstance(row, dict) else None
+        return _safe_row(resp.data if resp else None)
     except Exception as exc:
         if _is_missing_table_error(exc, "job_solution_snapshots"):
             return None
@@ -2162,8 +2106,8 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
         .maybe_single()
         .execute()
     )
-    row = base_resp.data if base_resp else None
-    if not isinstance(row, dict):
+    row = _safe_row(base_resp.data if base_resp else None)
+    if not row:
         return None
 
     normalized_job_id = _normalize_job_id(row.get("job_id"))
@@ -2177,7 +2121,7 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
                 .maybe_single()
                 .execute()
             )
-            row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
+            row["jobs"] = _safe_dict(job_resp.data if job_resp else None)
         except Exception:
             row["jobs"] = {}
 
@@ -2192,7 +2136,7 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
                 .maybe_single()
                 .execute()
             )
-            row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
+            row["companies"] = _safe_dict(company_resp.data if company_resp else None)
         except Exception:
             row["companies"] = {}
     return row
@@ -2409,7 +2353,7 @@ def _public_activity_language(value: Any) -> str:
     return "en"
 
 
-def _safe_int(value: Any) -> int | None:
+def _parse_optional_int(value: Any) -> int | None:
     try:
         if value is None or value == "":
             return None
@@ -2431,9 +2375,7 @@ def _fetch_rows_by_ids(table: str, columns: str, ids: list[Any]) -> list[dict[st
         chunk = unique_ids[index:index + chunk_size]
         try:
             resp = supabase.table(table).select(columns).in_("id", chunk).limit(len(chunk)).execute()
-            for row in resp.data or []:
-                if isinstance(row, dict):
-                    rows.append(row)
+            rows.extend(_safe_rows(resp.data if resp else None))
         except Exception:
             continue
     return rows
@@ -2697,7 +2639,7 @@ def _build_public_activity_payload(language: str, limit: int = 5) -> dict[str, A
             return {"stats": {}, "events": [], "meta": {"generated_at": now.isoformat(), "window_hours": 168}}
         raise HTTPException(status_code=500, detail="Failed to load public activity")
 
-    raw_rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    raw_rows = _safe_rows(resp.data if resp else None)
     if not raw_rows:
         return {"stats": {}, "events": [], "meta": {"generated_at": now.isoformat(), "window_hours": 168}}
 
@@ -2723,9 +2665,10 @@ def _build_public_activity_payload(language: str, limit: int = 5) -> dict[str, A
             candidate_ids.append(candidate_id)
 
     jobs_by_id = {
-        int(row.get("id")): row
+        parsed_job_id: row
         for row in _fetch_rows_by_ids("jobs", "id,title,location,country_code,description", job_ids)
-        if _safe_int(row.get("id")) is not None
+        for parsed_job_id in [_parse_optional_int(row.get("id"))]
+        if parsed_job_id is not None
     }
     companies_by_id = {
         str(row.get("id") or ""): row
@@ -2748,9 +2691,10 @@ def _build_public_activity_payload(language: str, limit: int = 5) -> dict[str, A
 
     if job_ids:
         jobs_by_id.update({
-            int(row.get("id")): row
+            parsed_job_id: row
             for row in _fetch_rows_by_ids("jobs", "id,title,location,country_code,description", job_ids)
-            if _safe_int(row.get("id")) is not None
+            for parsed_job_id in [_parse_optional_int(row.get("id"))]
+            if parsed_job_id is not None
         })
     candidate_by_id = {
         str(row.get("id") or ""): row
@@ -2966,7 +2910,7 @@ def _fetch_candidate_profile_for_draft(user_id: str) -> dict[str, Any]:
         return {}
     try:
         resp = supabase.table("candidate_profiles").select("*").eq("id", user_id).maybe_single().execute()
-        return resp.data if isinstance(resp.data, dict) else {}
+        return _safe_dict(resp.data if resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to fetch candidate profile for draft: {exc}")
         return {}
@@ -2977,7 +2921,7 @@ def _fetch_profile_identity(user_id: str) -> dict[str, Any]:
         return {}
     try:
         resp = supabase.table("profiles").select("id,full_name,email").eq("id", user_id).maybe_single().execute()
-        return resp.data if isinstance(resp.data, dict) else {}
+        return _safe_dict(resp.data if resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to fetch profile identity for mini challenge publisher: {exc}")
         return {}
@@ -3067,7 +3011,7 @@ def _fetch_cv_document_for_draft(user_id: str, cv_document_id: str | None) -> di
             .maybe_single()
             .execute()
         )
-        return resp.data if isinstance(resp.data, dict) else None
+        return _safe_row(resp.data if resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to fetch CV document for draft: {exc}")
         return None
@@ -3164,8 +3108,9 @@ def _derive_fit_signals(job: dict[str, Any], candidate_profile: dict[str, Any], 
         desired_salary_value = float(desired_salary) if desired_salary is not None else None
     except Exception:
         desired_salary_value = None
+    salary_raw = salary_to if salary_to is not None else salary_from
     try:
-        salary_value = float(salary_to or salary_from) if (salary_to or salary_from) is not None else None
+        salary_value = float(salary_raw) if salary_raw is not None else None
     except Exception:
         salary_value = None
     if desired_salary_value is not None and salary_value is not None and salary_value < desired_salary_value:
@@ -3508,7 +3453,7 @@ def _sanitize_dialogue_message_attachments(raw: Any) -> list[dict]:
         url = str(item.get("url") or "").strip()
         if not name or not url:
             continue
-        attachment = {
+        attachment: dict[str, Any] = {
             "name": name[:255],
             "url": url[:2000],
         }
@@ -3681,7 +3626,7 @@ _hydrate_application_message_attachments = _hydrate_dialogue_message_attachments
 _serialize_application_message = _serialize_dialogue_message
 
 
-def _serialize_dialogue_message(row: dict | None) -> dict:
+def _serialize_dialogue_message_record(row: dict | None) -> dict:
     source = row or {}
     out = dict(source)
     out["dialogue_id"] = str(source.get("dialogue_id") or source.get("application_id") or "")
@@ -3704,7 +3649,7 @@ def _probe_schema_select(table_name: str, select_clause: str) -> dict:
         resp = supabase.table(table_name).select(select_clause).limit(2).execute()
         return {
             "ready": True,
-            "sample_rows": len(resp.data or []),
+            "sample_rows": len(_safe_rows(resp.data if resp else None)),
             "issue": None,
         }
     except Exception as exc:
@@ -4067,19 +4012,20 @@ def _require_job_access(user: dict, job_id: str):
     job_id_norm = _normalize_job_id(job_id)
 
     job_resp = supabase.table("jobs").select("id, company_id, posted_by, recruiter_id, title, status").eq("id", job_id_norm).maybe_single().execute()
-    if not job_resp.data:
+    job_row = _safe_row(job_resp.data if job_resp else None)
+    if not job_row:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    company_id = job_resp.data.get("company_id")
+    company_id = job_row.get("company_id")
     if company_id:
         require_company_access(user, company_id)
-        return job_resp.data
+        return job_row
 
     user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    posted_by = str(job_resp.data.get("posted_by") or "").strip()
-    recruiter_id = str(job_resp.data.get("recruiter_id") or "").strip()
+    posted_by = str(job_row.get("posted_by") or "").strip()
+    recruiter_id = str(job_row.get("recruiter_id") or "").strip()
     if user_id and user_id in {posted_by, recruiter_id}:
-        return job_resp.data
+        return job_row
 
     raise HTTPException(status_code=403, detail="Unauthorized")
 
@@ -4166,10 +4112,11 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
         # 2. Notify Recruiter (fetch email from DB first)
         try:
             job_data = supabase.table("jobs").select("contact_email, title").eq("id", job.id).single().execute()
-            if job_data.data and job_data.data.get("contact_email"):
-                rec_email = job_data.data["contact_email"]
+            job_row = _safe_row(job_data.data if job_data else None)
+            if job_row and job_row.get("contact_email"):
+                rec_email = str(job_row["contact_email"])
                 print("📧 Sending status update to recruiter.")
-                send_recruiter_legality_email(rec_email, job_data.data["title"], result)
+                send_recruiter_legality_email(rec_email, str(job_row.get("title") or ""), result)
             else:
                 print(f"⚠️ Could not find recruiter email for job {job.id}")
         except Exception as e:
@@ -4451,7 +4398,7 @@ async def get_company_job_views(
     if job_id:
         jobs_query = jobs_query.eq("id", _normalize_job_id(job_id))
     jobs_resp = jobs_query.execute()
-    job_rows = jobs_resp.data or []
+    job_rows = _safe_rows(jobs_resp.data if jobs_resp else None)
     job_ids = [row.get("id") for row in job_rows if row.get("id")]
     if not job_ids:
         return {"company_id": company_id, "window_days": window_days, "total": 0, "job_views": []}
@@ -4467,7 +4414,7 @@ async def get_company_job_views(
         .limit(50000)
         .execute()
     )
-    view_rows = views_resp.data or []
+    view_rows = _safe_rows(views_resp.data if views_resp else None)
     counts: dict[str, int] = {}
     for row in view_rows:
         jid = _canonical_job_id(row.get("job_id"))
@@ -4483,2918 +4430,6 @@ async def get_company_job_views(
         "total": total,
         "job_views": job_views,
     }
-
-
-@router.post("/jobs/applications")
-@limiter.limit("60/minute")
-async def create_dialogue_legacy(
-    payload: JobApplicationCreateRequest,
-    request: Request,
-    background_tasks: BackgroundTasks = None,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    job_id = _normalize_job_id(payload.job_id)
-    if job_id is None:
-        raise HTTPException(status_code=400, detail="Invalid job ID")
-
-    requested_share_level = _normalize_jcfpm_share_level(payload.jcfpm_share_level, _safe_dict(payload.shared_jcfpm_payload))
-    if requested_share_level != "do_not_share" and not _user_has_direct_premium(user):
-        requested_share_level = "do_not_share"
-    cv_snapshot = _sanitize_cv_snapshot(payload.cv_snapshot)
-    candidate_profile_snapshot = _sanitize_candidate_profile_snapshot(payload.candidate_profile_snapshot)
-    shared_jcfpm_payload = _sanitize_jcfpm_payload(requested_share_level, payload.shared_jcfpm_payload)
-    application_payload = _build_dialogue_timeout_payload(_safe_dict(payload.metadata), current_turn="company")
-
-    try:
-        existing = (
-            supabase
-            .table("job_applications")
-            .select("*")
-            .eq("job_id", job_id)
-            .eq("candidate_id", user_id)
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        if existing.data:
-            row = _expire_dialogue_if_needed(existing.data[0])
-            return {
-                "status": "exists",
-                "application_id": row.get("id"),
-                "created_at": row.get("created_at"),
-                "application": _serialize_application_dossier(row),
-                "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-            }
-    except Exception as exc:
-        print(f"⚠️ Failed to check existing application: {exc}")
-
-    _enforce_candidate_dialogue_limit(user_id, user=user)
-
-    company_id = None
-    try:
-        job_resp = supabase.table("jobs").select("company_id,posted_by").eq("id", job_id).maybe_single().execute()
-        job_row = job_resp.data or {}
-        company_id = job_row.get("company_id") if job_resp else None
-        posted_by = str(job_row.get("posted_by") or "").strip()
-        if posted_by and posted_by == str(user_id):
-            raise HTTPException(status_code=409, detail="You cannot open a dialogue on your own mini challenge.")
-    except Exception as exc:
-        if isinstance(exc, HTTPException):
-            raise
-        print(f"⚠️ Failed to resolve company for job {job_id}: {exc}")
-
-    if company_id:
-        _enforce_company_dialogue_slot_limit(str(company_id), user)
-
-    insert_payload = {
-        "job_id": job_id,
-        "candidate_id": user_id,
-        "company_id": company_id,
-        "status": "pending",
-        "source": payload.source or "application_modal",
-        "applied_at": now_iso(),
-        "submitted_at": now_iso(),
-        "updated_at": now_iso(),
-        "cover_letter": payload.cover_letter,
-        "cv_document_id": payload.cv_document_id,
-        "cv_snapshot": cv_snapshot,
-        "candidate_profile_snapshot": candidate_profile_snapshot,
-        "jcfpm_share_level": requested_share_level,
-        "shared_jcfpm_payload": shared_jcfpm_payload,
-        "application_payload": application_payload,
-    }
-    try:
-        res = supabase.table("job_applications").insert(insert_payload).execute()
-        app_id = None
-        row = None
-        if res.data:
-            app_id = res.data[0].get("id")
-            row = res.data[0]
-        if _safe_dict(payload.metadata).get("application_draft_used"):
-            _write_analytics_event(
-                event_type="application_draft_used_on_submit",
-                user_id=user_id,
-                company_id=str(company_id or "") or None,
-                feature="candidate_copilot",
-                tier=(user.get("subscription_tier") or "").lower() or None,
-                metadata={
-                    "job_id": job_id,
-                    "application_id": app_id,
-                    "source": payload.source or "application_modal",
-                    "cv_document_id": payload.cv_document_id,
-                },
-            )
-        if company_id:
-            _sync_company_dialogue_slots_usage(str(company_id))
-        _invalidate_my_dialogues_cache(user_id)
-        if background_tasks is not None:
-            background_tasks.add_task(
-                send_application_notification_email,
-                candidate_profile=candidate_profile_snapshot,
-                metadata=_safe_dict(payload.metadata),
-                cover_letter=payload.cover_letter,
-                cv_snapshot=cv_snapshot,
-            )
-        return {
-            "status": "created",
-            "application_id": app_id,
-            "application": _serialize_application_dossier(row or insert_payload),
-            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-        }
-    except Exception as exc:
-        if any(_is_missing_column_error(exc, col) for col in [
-            "source",
-            "submitted_at",
-            "updated_at",
-            "cover_letter",
-            "cv_document_id",
-            "cv_snapshot",
-            "candidate_profile_snapshot",
-            "jcfpm_share_level",
-            "shared_jcfpm_payload",
-            "application_payload",
-        ]):
-            try:
-                fallback_payload = {
-                    "job_id": job_id,
-                    "candidate_id": user_id,
-                    "company_id": company_id,
-                    "status": "pending",
-                    "applied_at": now_iso(),
-                }
-                res = supabase.table("job_applications").insert(fallback_payload).execute()
-                app_id = res.data[0].get("id") if res.data else None
-                if _safe_dict(payload.metadata).get("application_draft_used"):
-                    _write_analytics_event(
-                        event_type="application_draft_used_on_submit",
-                        user_id=user_id,
-                        company_id=str(company_id or "") or None,
-                        feature="candidate_copilot",
-                        tier=(user.get("subscription_tier") or "").lower() or None,
-                        metadata={
-                            "job_id": job_id,
-                            "application_id": app_id,
-                            "source": payload.source or "application_modal",
-                            "cv_document_id": payload.cv_document_id,
-                            "legacy_fallback": True,
-                        },
-                    )
-                if company_id:
-                    _sync_company_dialogue_slots_usage(str(company_id))
-                return {
-                    "status": "created",
-                    "application_id": app_id,
-                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-                }
-            except Exception as fallback_exc:
-                print(f"⚠️ Fallback create application also failed: {fallback_exc}")
-        print(f"⚠️ Failed to create application: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to create application")
-
-
-@router.get("/jobs/applications/me")
-@limiter.limit("60/minute")
-async def list_my_dialogues_legacy(
-    request: Request,
-    limit: int = Query(80, ge=1, le=200),
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    cached = _get_cached_my_dialogues(user_id, limit)
-    if cached is not None:
-        return cached
-
-    # Candidate dialogue hub should degrade to an empty state instead of 500
-    # when older environments are missing optional columns.
-    select_attempts: list[tuple[str, str]] = [
-        (
-            "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
-            "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
-            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source,contact_email),"
-            "companies(name,website)",
-            "submitted_at",
-        ),
-        (
-            "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
-            "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
-            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source),"
-            "companies(name,website)",
-            "submitted_at",
-        ),
-        (
-            "id,job_id,company_id,status,created_at,applied_at,updated_at,"
-            "source,cover_letter,cv_document_id,cv_snapshot,"
-            "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source),"
-            "companies(name,website)",
-            "applied_at",
-        ),
-        (
-            "id,job_id,company_id,status,created_at,applied_at,updated_at,"
-            "source,cover_letter,cv_document_id,cv_snapshot,"
-            "application_payload,"
-            "jobs(title,company,location,url,source),"
-            "companies(name,website)",
-            "applied_at",
-        ),
-        (
-            "id,job_id,company_id,status,created_at,applied_at,updated_at,source,"
-            "application_payload,"
-            "jobs(title,company,location,url,source),"
-            "companies(name,website)",
-            "applied_at",
-        ),
-        (
-            "id,job_id,company_id,status,created_at,updated_at,source,"
-            "application_payload,"
-            "jobs(title,company,location,url,source),"
-            "companies(name,website)",
-            "created_at",
-        ),
-    ]
-
-    resp = None
-    last_error: Exception | None = None
-    for select_clause, order_column in select_attempts:
-        try:
-            resp = (
-                supabase
-                .table("job_applications")
-                .select(select_clause)
-                .eq("candidate_id", user_id)
-                .order(order_column, desc=True)
-                .limit(limit)
-                .execute()
-            )
-            last_error = None
-            break
-        except Exception as exc:
-            last_error = exc
-            continue
-
-    if resp is None:
-        if last_error and _is_missing_relationship_error(last_error, "job_applications", "jobs"):
-            try:
-                base_resp = (
-                    supabase
-                    .table("job_applications")
-                    .select(
-                        "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
-                        "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
-                        "shared_jcfpm_payload,jcfpm_share_level,application_payload"
-                    )
-                    .eq("candidate_id", user_id)
-                    .order("submitted_at", desc=True)
-                    .limit(limit)
-                    .execute()
-                )
-            except Exception as fallback_exc:
-                print(f"⚠️ Failed to load candidate dialogues for {user_id}: {fallback_exc}")
-                payload = {
-                    "applications": [],
-                    "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-                }
-                _set_cached_my_dialogues(user_id, limit, payload)
-                return payload
-
-            base_rows = [r for r in (base_resp.data or []) if isinstance(r, dict)]
-            job_ids = [_canonical_job_id(r.get("job_id")) for r in base_rows if _canonical_job_id(r.get("job_id"))]
-            company_ids = [str(r.get("company_id") or "").strip() for r in base_rows if str(r.get("company_id") or "").strip()]
-
-            jobs_by_id: dict[str, dict] = {}
-            if job_ids:
-                try:
-                    jobs_resp = (
-                        supabase
-                        .table("jobs")
-                        .select("id,title,company,location,url,source,contact_email")
-                        .in_("id", list({int(x) for x in job_ids if x.isdigit()} or job_ids))
-                        .limit(len(job_ids))
-                        .execute()
-                    )
-                    for job in jobs_resp.data or []:
-                        if isinstance(job, dict):
-                            jid = _canonical_job_id(job.get("id"))
-                            if jid:
-                                jobs_by_id[jid] = job
-                except Exception as exc:
-                    print(f"⚠️ Candidate dialogues fallback: failed to hydrate jobs: {exc}")
-
-            companies_by_id: dict[str, dict] = {}
-            if company_ids:
-                try:
-                    companies_resp = (
-                        supabase
-                        .table("companies")
-                        .select("id,name,website")
-                        .in_("id", list(dict.fromkeys(company_ids)))
-                        .limit(len(company_ids))
-                        .execute()
-                    )
-                    for company in companies_resp.data or []:
-                        if isinstance(company, dict):
-                            cid = str(company.get("id") or "").strip()
-                            if cid:
-                                companies_by_id[cid] = company
-                except Exception as exc:
-                    print(f"⚠️ Candidate dialogues fallback: failed to hydrate companies: {exc}")
-
-            resp = base_resp
-            rows = []
-            for row in base_rows:
-                enriched = dict(row)
-                jid = _canonical_job_id(row.get("job_id"))
-                cid = str(row.get("company_id") or "").strip()
-                if jid:
-                    enriched["jobs"] = jobs_by_id.get(jid) or {}
-                if cid:
-                    enriched["companies"] = companies_by_id.get(cid) or {}
-                rows.append(enriched)
-            rows = [_expire_dialogue_if_needed(row) for row in rows if isinstance(row, dict)]
-            payload = {
-                "applications": [_serialize_candidate_application_row(row) for row in rows],
-                "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows, user=user),
-            }
-            _set_cached_my_dialogues(user_id, limit, payload)
-            return payload
-
-        print(f"⚠️ Failed to load candidate dialogues for {user_id}: {last_error}")
-        payload = {
-            "applications": [],
-            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-        }
-        _set_cached_my_dialogues(user_id, limit, payload)
-        return payload
-
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
-    payload = {
-        "applications": [_serialize_candidate_application_row(row) for row in rows],
-        "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows, user=user),
-    }
-    _set_cached_my_dialogues(user_id, limit, payload)
-    return payload
-
-
-@router.get("/jobs/applications/{application_id}")
-@limiter.limit("60/minute")
-async def get_my_dialogue_detail_legacy(
-    application_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title,company,location,url,source,contact_email),companies(id,name,website)")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_relationship_error(exc, "job_applications", "jobs"):
-            base = (
-                supabase
-                .table("job_applications")
-                .select("*")
-                .eq("id", application_id)
-                .eq("candidate_id", user_id)
-                .maybe_single()
-                .execute()
-            )
-            row = base.data if base else None
-            if not isinstance(row, dict):
-                raise HTTPException(status_code=404, detail="Application not found")
-            jid = _canonical_job_id(row.get("job_id"))
-            cid = str(row.get("company_id") or "").strip()
-            if jid:
-                try:
-                    job_resp = (
-                        supabase
-                        .table("jobs")
-                        .select("id,title,company,location,url,source,contact_email")
-                        .eq("id", int(jid) if jid.isdigit() else jid)
-                        .maybe_single()
-                        .execute()
-                    )
-                    row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
-                except Exception:
-                    row["jobs"] = {}
-            if cid:
-                try:
-                    company_resp = (
-                        supabase
-                        .table("companies")
-                        .select("id,name,website")
-                        .eq("id", cid)
-                        .maybe_single()
-                        .execute()
-                    )
-                    row["companies"] = company_resp.data if company_resp and isinstance(company_resp.data, dict) else {}
-                except Exception:
-                    row["companies"] = {}
-            resp = type("Resp", (), {"data": row})()
-        else:
-            if not _is_missing_column_error(exc, "contact_email"):
-                raise HTTPException(status_code=500, detail="Failed to load application detail")
-            resp = (
-                supabase
-                .table("job_applications")
-                .select("*,jobs(id,title,company,location,url,source),companies(id,name,website)")
-                .eq("id", application_id)
-                .eq("candidate_id", user_id)
-                .maybe_single()
-                .execute()
-            )
-    row = resp.data if resp else None
-    if not row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    row = _expire_dialogue_if_needed(row)
-
-    application = _serialize_candidate_application_row(row)
-    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
-    return {"application": application}
-
-
-@router.post("/jobs/applications/{application_id}/withdraw")
-@limiter.limit("30/minute")
-async def withdraw_my_dialogue_legacy(
-    application_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status,application_payload")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    row = resp.data if resp else None
-    if not row:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    row = _expire_dialogue_if_needed(row)
-    current_status = str(row.get("status") or "pending")
-    if not _is_active_dialogue_status(current_status):
-        return {
-            "status": current_status,
-            "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-        }
-
-    try:
-        try:
-            supabase.table("job_applications").update({
-                "status": "withdrawn",
-                "updated_at": now_iso(),
-            }).eq("id", application_id).eq("candidate_id", user_id).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "updated_at"):
-                supabase.table("job_applications").update({
-                    "status": "withdrawn",
-                }).eq("id", application_id).eq("candidate_id", user_id).execute()
-            else:
-                raise
-    except Exception as exc:
-        print(f"⚠️ Failed to withdraw application: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to withdraw application")
-
-    _write_company_activity_log(
-        company_id=str(row.get("company_id") or ""),
-        event_type="application_withdrawn",
-        payload=_build_dialogue_activity_payload(
-            application_id=application_id,
-            status="withdrawn",
-            close_reason="withdrawn",
-        ),
-        actor_user_id=user_id,
-        subject_type="application",
-        subject_id=application_id,
-    )
-
-    if row.get("company_id"):
-        _sync_company_dialogue_slots_usage(str(row.get("company_id")))
-
-    _persist_dialogue_state(
-        application_id,
-        application_payload=_build_closed_dialogue_payload(
-            row.get("application_payload"),
-            close_reason="withdrawn",
-        ),
-        status="withdrawn",
-    )
-    _invalidate_my_dialogues_cache(user_id)
-
-    return {
-        "status": "withdrawn",
-        "candidate_capacity": _serialize_candidate_dialogue_capacity(user_id, user=user),
-    }
-
-
-@router.get("/jobs/applications/{application_id}/messages")
-@limiter.limit("60/minute")
-async def list_my_dialogue_messages_legacy(
-    application_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status,application_payload")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not app_row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-
-    try:
-        resp = (
-            supabase
-            .table("application_messages")
-            .select("*")
-            .eq("application_id", application_id)
-            .order("created_at", desc=False)
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            return {"messages": []}
-        raise HTTPException(status_code=500, detail="Failed to load messages")
-
-    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
-    unread_ids = [str(r.get("id") or "") for r in rows if str(r.get("sender_role") or "") == "recruiter" and not r.get("read_by_candidate_at")]
-    if unread_ids:
-        try:
-            supabase.table("application_messages").update({"read_by_candidate_at": now_iso()}).in_("id", unread_ids).execute()
-        except Exception:
-            pass
-        for row in rows:
-            if str(row.get("id") or "") in unread_ids:
-                row["read_by_candidate_at"] = now_iso()
-
-    request_base_url = get_request_base_url(request)
-    return {"messages": [_serialize_application_message(row, request_base_url) for row in rows]}
-
-
-@router.post("/jobs/applications/{application_id}/messages")
-@limiter.limit("60/minute")
-async def create_my_dialogue_message_legacy(
-    application_id: str,
-    payload: ApplicationMessageCreateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status,application_payload")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,candidate_id,company_id,status")
-            .eq("id", application_id)
-            .eq("candidate_id", user_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not app_row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-    if not _is_active_dialogue_status(app_row.get("status")):
-        raise HTTPException(status_code=409, detail="Dialogue is closed")
-
-    body = str(payload.body or "").strip()
-    attachments = _sanitize_application_message_attachments(payload.attachments)
-    asset_ids = _extract_attachment_asset_ids(attachments)
-    if not body and not attachments:
-        raise HTTPException(status_code=400, detail="Message body or attachment required")
-
-    insert_payload = {
-        "application_id": application_id,
-        "company_id": app_row.get("company_id"),
-        "candidate_id": user_id,
-        "sender_user_id": user_id,
-        "sender_role": "candidate",
-        "body": body,
-        "attachments": attachments,
-        "asset_ids": asset_ids,
-        "created_at": now_iso(),
-        "read_by_candidate_at": now_iso(),
-        "read_by_company_at": None,
-    }
-    try:
-        try:
-            resp = supabase.table("application_messages").insert(insert_payload).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "asset_ids"):
-                fallback_payload = dict(insert_payload)
-                fallback_payload.pop("asset_ids", None)
-                resp = supabase.table("application_messages").insert(fallback_payload).execute()
-            else:
-                raise
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            raise HTTPException(status_code=503, detail="Messaging not available")
-        raise HTTPException(status_code=500, detail="Failed to send message")
-
-    row = (resp.data or [insert_payload])[0]
-    _schedule_dialogue_timeout(app_row, current_turn="company")
-    _write_company_activity_log(
-        company_id=str(app_row.get("company_id") or ""),
-        event_type="application_message_from_candidate",
-        payload={
-            "application_id": application_id,
-            "message_id": str(row.get("id") or ""),
-            "has_attachments": bool(attachments),
-        },
-        actor_user_id=user_id,
-        subject_type="application",
-        subject_id=application_id,
-    )
-    _invalidate_my_dialogues_cache(user_id)
-    return {"message": _serialize_application_message(row, get_request_base_url(request))}
-
-
-@router.get("/company/applications")
-@limiter.limit("60/minute")
-async def list_company_dialogues_legacy(
-    request: Request,
-    company_id: str = Query(...),
-    job_id: str | None = Query(None),
-    limit: int = Query(500, ge=1, le=2000),
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    require_company_access(user, company_id)
-    resp = None
-    try:
-        query = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
-            .eq("company_id", company_id)
-            .order("submitted_at", desc=True)
-            .limit(limit)
-        )
-        if job_id:
-            query = query.eq("job_id", _normalize_job_id(job_id))
-        resp = query.execute()
-    except Exception as exc:
-        try:
-            order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "created_at"
-            legacy_query = (
-                supabase
-                .table("job_applications")
-                .select("*")
-                .eq("company_id", company_id)
-                .order(order_column, desc=True)
-                .limit(limit)
-            )
-            if job_id:
-                legacy_query = legacy_query.eq("job_id", _normalize_job_id(job_id))
-            resp = legacy_query.execute()
-        except Exception:
-            return {"company_id": company_id, "applications": []}
-
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
-    out = []
-    for row in rows:
-        out.append(_serialize_company_application_row(row))
-
-    return {"company_id": company_id, "applications": out}
-
-
-@router.get("/company/applications/{application_id}")
-@limiter.limit("60/minute")
-async def get_company_dialogue_detail_legacy(
-    application_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        try:
-            resp = (
-                supabase
-                .table("job_applications")
-                .select("*")
-                .eq("id", application_id)
-                .maybe_single()
-                .execute()
-            )
-        except Exception:
-            raise HTTPException(status_code=500, detail="Failed to load application detail")
-    row = resp.data if resp else None
-    if not row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    row = _expire_dialogue_if_needed(row)
-    require_company_access(user, str(row.get("company_id") or ""))
-    application = _serialize_application_dossier(row)
-    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
-    return {"application": application}
-
-
-@router.get("/company/applications/{application_id}/messages")
-@limiter.limit("60/minute")
-async def list_company_dialogue_messages_legacy(
-    application_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,status,application_payload")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,status")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not app_row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-
-    require_company_access(user, str(app_row.get("company_id") or ""))
-
-    try:
-        resp = (
-            supabase
-            .table("application_messages")
-            .select("*")
-            .eq("application_id", application_id)
-            .order("created_at", desc=False)
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            return {"messages": []}
-        raise HTTPException(status_code=500, detail="Failed to load messages")
-
-    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
-    unread_ids = [str(r.get("id") or "") for r in rows if str(r.get("sender_role") or "") == "candidate" and not r.get("read_by_company_at")]
-    if unread_ids:
-        try:
-            supabase.table("application_messages").update({"read_by_company_at": now_iso()}).in_("id", unread_ids).execute()
-        except Exception:
-            pass
-        for row in rows:
-            if str(row.get("id") or "") in unread_ids:
-                row["read_by_company_at"] = now_iso()
-
-    request_base_url = get_request_base_url(request)
-    return {"messages": [_serialize_application_message(row, request_base_url) for row in rows]}
-
-
-@router.post("/company/applications/{application_id}/messages")
-@limiter.limit("60/minute")
-async def create_company_dialogue_message_legacy(
-    application_id: str,
-    payload: ApplicationMessageCreateRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,candidate_id,status,application_payload")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,candidate_id,status")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not app_row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-
-    company_id = str(app_row.get("company_id") or "")
-    require_company_access(user, company_id)
-    if not _is_active_dialogue_status(app_row.get("status")):
-        raise HTTPException(status_code=409, detail="Dialogue is closed")
-
-    body = str(payload.body or "").strip()
-    attachments = _sanitize_application_message_attachments(payload.attachments)
-    asset_ids = _extract_attachment_asset_ids(attachments)
-    if not body and not attachments:
-        raise HTTPException(status_code=400, detail="Message body or attachment required")
-
-    sender_user_id = user.get("id") or user.get("auth_id")
-    insert_payload = {
-        "application_id": application_id,
-        "company_id": app_row.get("company_id"),
-        "candidate_id": app_row.get("candidate_id"),
-        "sender_user_id": sender_user_id,
-        "sender_role": "recruiter",
-        "body": body,
-        "attachments": attachments,
-        "asset_ids": asset_ids,
-        "created_at": now_iso(),
-        "read_by_candidate_at": None,
-        "read_by_company_at": now_iso(),
-    }
-    try:
-        try:
-            resp = supabase.table("application_messages").insert(insert_payload).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "asset_ids"):
-                fallback_payload = dict(insert_payload)
-                fallback_payload.pop("asset_ids", None)
-                resp = supabase.table("application_messages").insert(fallback_payload).execute()
-            else:
-                raise
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            raise HTTPException(status_code=503, detail="Messaging not available")
-        raise HTTPException(status_code=500, detail="Failed to send message")
-
-    row = (resp.data or [insert_payload])[0]
-    _schedule_dialogue_timeout(app_row, current_turn="candidate")
-    _write_company_activity_log(
-        company_id=company_id,
-        event_type="application_message_from_company",
-        payload={
-            "application_id": application_id,
-            "message_id": str(row.get("id") or ""),
-            "has_attachments": bool(attachments),
-        },
-        actor_user_id=str(sender_user_id or ""),
-        subject_type="application",
-        subject_id=application_id,
-    )
-    return {"message": _serialize_application_message(row, get_request_base_url(request))}
-
-
-@router.patch("/company/applications/{application_id}/status")
-@limiter.limit("60/minute")
-async def update_company_dialogue_status_legacy(
-    application_id: str,
-    payload: JobApplicationStatusUpdateRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,status,application_payload")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load application")
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,company_id,status")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
-    row = resp.data if resp else None
-    if not row:
-        raise HTTPException(status_code=404, detail="Application not found")
-    row = _expire_dialogue_if_needed(row)
-
-    require_company_access(user, str(row.get("company_id") or ""))
-    if not _is_active_dialogue_status(row.get("status")):
-        return {"status": str(row.get("status") or "closed")}
-
-    try:
-        try:
-            supabase.table("job_applications").update({"status": payload.status, "updated_at": now_iso(), "reviewed_at": now_iso()}).eq("id", application_id).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "updated_at") or _is_missing_column_error(exc, "reviewed_at"):
-                supabase.table("job_applications").update({"status": payload.status}).eq("id", application_id).execute()
-            else:
-                raise
-    except Exception as exc:
-        print(f"⚠️ Failed to update application status: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to update application status")
-
-    _write_company_activity_log(
-        company_id=str(row.get("company_id") or ""),
-        event_type="application_status_changed",
-        payload=_build_dialogue_activity_payload(
-            application_id=application_id,
-            status=payload.status,
-            close_reason=payload.status if not _is_active_dialogue_status(payload.status) else None,
-        ),
-        actor_user_id=user.get("id") or user.get("auth_id"),
-        subject_type="application",
-        subject_id=application_id,
-    )
-
-    if row.get("company_id"):
-        _sync_company_dialogue_slots_usage(str(row.get("company_id")))
-
-    updated_row = dict(row)
-    updated_row["status"] = payload.status
-    if _is_active_dialogue_status(payload.status):
-        _schedule_dialogue_timeout(updated_row, current_turn="candidate")
-    else:
-        _persist_dialogue_state(
-            application_id,
-            application_payload=_build_closed_dialogue_payload(
-                updated_row.get("application_payload"),
-                close_reason=str(payload.status or "closed"),
-            ),
-            status=payload.status,
-        )
-
-    return {"status": "success"}
-
-
-# Compatibility aliases during the route-handler transition.
-create_job_application = create_dialogue_legacy
-list_my_job_applications = list_my_dialogues_legacy
-get_my_job_application_detail = get_my_dialogue_detail_legacy
-withdraw_my_job_application = withdraw_my_dialogue_legacy
-list_my_application_messages = list_my_dialogue_messages_legacy
-create_my_application_message = create_my_dialogue_message_legacy
-list_company_applications = list_company_dialogues_legacy
-get_company_application_detail = get_company_dialogue_detail_legacy
-list_company_application_messages = list_company_dialogue_messages_legacy
-create_company_application_message = create_company_dialogue_message_legacy
-update_company_application_status = update_company_dialogue_status_legacy
-
-
-@router.post("/dialogues")
-@limiter.limit("60/minute")
-async def create_dialogue(
-    payload: JobApplicationCreateRequest,
-    request: Request,
-    background_tasks: BackgroundTasks = None,
-    user: dict = Depends(get_current_user),
-):
-    response = await create_dialogue_legacy(payload=payload, request=request, background_tasks=background_tasks, user=user)
-    dialogue = response.get("application")
-    out = {
-        "status": response.get("status"),
-        "dialogue_id": str(response.get("application_id") or ""),
-    }
-    if response.get("candidate_capacity") is not None:
-        out["candidate_capacity"] = response.get("candidate_capacity")
-    if dialogue is not None:
-        out["dialogue"] = _serialize_dialogue_record(dialogue)
-    return out
-
-
-@router.get("/dialogues/me")
-@limiter.limit("60/minute")
-async def list_my_dialogues(
-    request: Request,
-    limit: int = Query(80, ge=1, le=200),
-    user: dict = Depends(get_current_user),
-):
-    response = await list_my_dialogues_legacy(request=request, limit=limit, user=user)
-    rows = response.get("applications") or []
-    dialogues: list[dict[str, Any]] = []
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        dialogue = dict(row)
-        dialogue["dialogue_id"] = str(dialogue.get("dialogue_id") or dialogue.get("id") or "")
-        if dialogue.get("role_id") is None and dialogue.get("job_id") is not None:
-            dialogue["role_id"] = str(dialogue.get("job_id") or "")
-        if dialogue.get("role_title") is None and dialogue.get("job_title") is not None:
-            dialogue["role_title"] = dialogue.get("job_title")
-        dialogues.append(dialogue)
-    return {
-        "dialogues": dialogues,
-        "candidate_capacity": response.get("candidate_capacity"),
-    }
-
-
-@router.get("/dialogues/{dialogue_id}")
-@limiter.limit("60/minute")
-async def get_my_dialogue_detail(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    response = await get_my_dialogue_detail_legacy(application_id=dialogue_id, request=request, user=user)
-    return {"dialogue": _serialize_dialogue_record(response.get("application"))}
-
-
-@router.post("/dialogues/{dialogue_id}/withdraw")
-@limiter.limit("30/minute")
-async def withdraw_my_dialogue(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    return await withdraw_my_dialogue_legacy(application_id=dialogue_id, request=request, user=user)
-
-
-@router.get("/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def list_my_dialogue_messages(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    response = await list_my_dialogue_messages_legacy(application_id=dialogue_id, request=request, user=user)
-    rows = response.get("messages") or []
-    return {"messages": [_serialize_dialogue_message(row) for row in rows if isinstance(row, dict)]}
-
-
-@router.post("/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def create_my_dialogue_message(
-    dialogue_id: str,
-    payload: ApplicationMessageCreateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    response = await create_my_dialogue_message_legacy(
-        application_id=dialogue_id,
-        payload=payload,
-        request=request,
-        user=user,
-    )
-    return {"message": _serialize_dialogue_message(response.get("message"))}
-
-
-@router.get("/solution-snapshots/me")
-@limiter.limit("60/minute")
-async def list_my_solution_snapshots(
-    request: Request,
-    limit: int = Query(12, ge=1, le=50),
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    try:
-        resp = (
-            supabase
-            .table("job_solution_snapshots")
-            .select("*,jobs(id,title),companies(id,name)")
-            .eq("candidate_id", user_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        rows = [row for row in (resp.data or []) if isinstance(row, dict)]
-    except Exception as exc:
-        if _is_missing_table_error(exc, "job_solution_snapshots"):
-            return {"snapshots": []}
-        if not (
-            _is_missing_relationship_error(exc, "job_solution_snapshots", "jobs")
-            or _is_missing_relationship_error(exc, "job_solution_snapshots", "companies")
-        ):
-            raise HTTPException(status_code=500, detail="Failed to load solution snapshots")
-
-        fallback_resp = (
-            supabase
-            .table("job_solution_snapshots")
-            .select("*")
-            .eq("candidate_id", user_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        rows = [row for row in (fallback_resp.data or []) if isinstance(row, dict)]
-        job_ids = [int(jid) for jid in {_normalize_job_id(row.get("job_id")) for row in rows} if isinstance(jid, int)]
-        company_ids = [cid for cid in {str((row or {}).get("company_id") or "").strip() for row in rows} if cid]
-        jobs_by_id: dict[int, dict[str, Any]] = {}
-        companies_by_id: dict[str, dict[str, Any]] = {}
-
-        if job_ids:
-            try:
-                jobs_resp = (
-                    supabase
-                    .table("jobs")
-                    .select("id,title")
-                    .in_("id", job_ids)
-                    .limit(len(job_ids))
-                    .execute()
-                )
-                jobs_by_id = {
-                    int(row.get("id")): row
-                    for row in (jobs_resp.data or [])
-                    if isinstance(row, dict) and isinstance(row.get("id"), int)
-                }
-            except Exception:
-                jobs_by_id = {}
-
-        if company_ids:
-            try:
-                companies_resp = (
-                    supabase
-                    .table("companies")
-                    .select("id,name")
-                    .in_("id", company_ids)
-                    .limit(len(company_ids))
-                    .execute()
-                )
-                companies_by_id = {
-                    str(row.get("id") or ""): row
-                    for row in (companies_resp.data or [])
-                    if isinstance(row, dict)
-                }
-            except Exception:
-                companies_by_id = {}
-
-        for row in rows:
-            normalized_job_id = _normalize_job_id(row.get("job_id"))
-            if isinstance(normalized_job_id, int):
-                row["jobs"] = jobs_by_id.get(normalized_job_id, {})
-            company_id = str(row.get("company_id") or "").strip()
-            if company_id:
-                row["companies"] = companies_by_id.get(company_id, {})
-
-    return {
-        "snapshots": [
-            serialized
-            for serialized in (_serialize_solution_snapshot(row) for row in rows)
-            if serialized is not None
-        ]
-    }
-
-
-@router.get("/publisher/mini-challenges")
-@limiter.limit("60/minute")
-async def list_publisher_mini_challenges(
-    request: Request,
-    limit: int = Query(80, ge=1, le=200),
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    resp = (
-        supabase
-        .table("jobs")
-        .select("*")
-        .eq("posted_by", user_id)
-        .order("updated_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    rows = [row for row in (resp.data or []) if isinstance(row, dict)]
-    published_rows: list[dict[str, Any]] = []
-    job_ids: list[int] = []
-    for row in rows:
-        metadata, _cleaned = _extract_job_description_metadata(row.get("description"))
-        if metadata.get("challenge_format") != "micro_job":
-            continue
-        normalized_job_id = _normalize_job_id(row.get("id"))
-        repair_payload: dict[str, Any] = {}
-        if str(row.get("legality_status") or "").strip().lower() != "legal":
-            repair_payload["legality_status"] = "legal"
-        if str(row.get("status") or "").strip().lower() == "active" and row.get("is_active") is not True:
-            repair_payload["is_active"] = True
-        if not str(row.get("source") or "").strip():
-            repair_payload["source"] = _NATIVE_JOB_SOURCE
-        if repair_payload and isinstance(normalized_job_id, int):
-            repair_payload["updated_at"] = now_iso()
-            try:
-                supabase.table("jobs").update(repair_payload).eq("id", normalized_job_id).execute()
-                row = {**row, **repair_payload}
-                try:
-                    update_job_fields(normalized_job_id, repair_payload)
-                except Exception:
-                    pass
-            except Exception as exc:
-                print(f"⚠️ Failed to repair publisher mini challenge visibility fields: {exc}")
-        published_rows.append(row)
-        if isinstance(normalized_job_id, int):
-            job_ids.append(normalized_job_id)
-
-    stats_by_job_id: dict[int, dict[str, int]] = {}
-    if job_ids:
-        try:
-            applications_resp = (
-                supabase
-                .table("job_applications")
-                .select("job_id,status")
-                .in_("job_id", job_ids)
-                .limit(max(200, len(job_ids) * 40))
-                .execute()
-            )
-            for row in applications_resp.data or []:
-                if not isinstance(row, dict):
-                    continue
-                normalized_job_id = _normalize_job_id(row.get("job_id"))
-                if not isinstance(normalized_job_id, int):
-                    continue
-                stats = stats_by_job_id.setdefault(normalized_job_id, {"reply_count": 0, "open_dialogues_count": 0})
-                stats["reply_count"] += 1
-                if _is_active_dialogue_status(row.get("status")):
-                    stats["open_dialogues_count"] += 1
-        except Exception as exc:
-            print(f"⚠️ Failed to load publisher mini challenge dialogue counts: {exc}")
-
-    enriched_rows: list[dict[str, Any]] = []
-    for row in published_rows:
-        normalized_job_id = _normalize_job_id(row.get("id"))
-        stats = stats_by_job_id.get(normalized_job_id if isinstance(normalized_job_id, int) else -1, {})
-        enriched = dict(row)
-        enriched["reply_count"] = int(stats.get("reply_count") or 0)
-        enriched["open_dialogues_count"] = int(stats.get("open_dialogues_count") or 0)
-        enriched_rows.append(enriched)
-
-    return {"jobs": enriched_rows}
-
-
-@router.post("/publisher/mini-challenges")
-@limiter.limit("30/minute")
-async def create_publisher_mini_challenge(
-    payload: ProfileMiniChallengeCreateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    title = _trimmed_text(payload.title, 180)
-    problem = _trimmed_text(payload.problem, 4000)
-    if not title or not problem:
-        raise HTTPException(status_code=400, detail="Title and problem are required.")
-
-    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
-    profile_identity = _fetch_profile_identity(user_id)
-    company_label, contact_email = _derive_profile_mini_challenge_label(user, candidate_profile, profile_identity)
-    reward = _normalize_profile_mini_challenge_reward(payload.reward)
-    salary_from, salary_to = _parse_profile_mini_challenge_budget(reward)
-    location = _trimmed_text(payload.location, 160) or "Remote"
-    time_estimate = _normalize_micro_job_time_estimate(payload.timeEstimate) or None
-    micro_job_kind = _normalize_micro_job_kind(payload.micro_job_kind) or "one_off_task"
-    collaboration_modes = _normalize_micro_job_collaboration_modes(payload.collaboration_modes or ["async"])
-    if not collaboration_modes:
-        collaboration_modes = ["async"]
-    long_term_potential = _normalize_micro_job_long_term_potential(payload.long_term_potential) or "maybe"
-    first_reply_prompt = _trimmed_text(payload.first_reply_prompt, 2000) or _derive_profile_first_reply_prompt(title, problem)
-    preferred_country = str(_safe_dict(candidate_profile.get("preferences")).get("preferredCountryCode") or candidate_profile.get("preferred_country_code") or "").strip().lower()
-    country_code = preferred_country if preferred_country in {"cs", "cz", "sk", "pl", "de", "at"} else "cz"
-    work_type = "Remote" if "remote" in location.lower() else "Hybrid"
-    description = _build_profile_mini_challenge_description(
-        title=title,
-        problem=problem,
-        time_estimate=time_estimate,
-        reward=reward,
-        first_reply_prompt=first_reply_prompt,
-        micro_job_kind=micro_job_kind,
-        collaboration_modes=collaboration_modes,
-        long_term_potential=long_term_potential,
-    )
-
-    insert_payload = {
-        "title": title,
-        "company": company_label,
-        "location": location,
-        "description": description,
-        "salary_from": salary_from,
-        "salary_to": salary_to,
-        "salary_currency": "CZK",
-        "salary_timeframe": "project_total",
-        "work_type": work_type,
-        "work_model": work_type.lower(),
-        "source": _NATIVE_JOB_SOURCE,
-        "legality_status": "legal",
-        "verification_notes": "publisher_profile_mini_challenge",
-        "scraped_at": now_iso(),
-        "posted_by": user_id,
-        "recruiter_id": user_id,
-        "contact_email": contact_email,
-        "country_code": country_code,
-        "status": "active",
-        "is_active": True,
-        "updated_at": now_iso(),
-    }
-
-    try:
-        job_resp = supabase.table("jobs").insert(insert_payload).execute()
-    except Exception as exc:
-        print(f"⚠️ Failed to create publisher mini challenge: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
-
-    job_row = (job_resp.data or [None])[0]
-    if not isinstance(job_row, dict):
-        raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
-
-    sync_row = dict(job_row)
-    sync_row.update(insert_payload)
-    sync_row["id"] = job_row.get("id")
-    _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
-    return {"job": sync_row}
-
-
-@router.patch("/publisher/mini-challenges/{job_id}/lifecycle")
-@limiter.limit("30/minute")
-async def update_publisher_mini_challenge_lifecycle(
-    job_id: str,
-    payload: JobLifecycleUpdateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    job_row = _require_job_access(user, job_id)
-    normalized_job_id = _normalize_job_id(job_id)
-    update_payload = {
-        "status": payload.status,
-        "is_active": payload.status == "active",
-        "updated_at": now_iso(),
-    }
-    supabase.table("jobs").update(update_payload).eq("id", normalized_job_id).execute()
-    try:
-        update_job_fields(normalized_job_id, update_payload)
-    except Exception:
-        pass
-    return {"status": "success"}
-
-
-@router.get("/publisher/mini-challenges/{job_id}/dialogues")
-@limiter.limit("60/minute")
-async def list_publisher_mini_challenge_dialogues(
-    job_id: str,
-    request: Request,
-    limit: int = Query(200, ge=1, le=1000),
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    normalized_job_id = _normalize_job_id(job_id)
-    _require_job_access(user, job_id)
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
-            .eq("job_id", normalized_job_id)
-            .order("submitted_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-    except Exception as exc:
-        order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "created_at"
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*")
-            .eq("job_id", normalized_job_id)
-            .order(order_column, desc=True)
-            .limit(limit)
-            .execute()
-        )
-
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
-    return {"dialogues": [_serialize_dialogue_record(_serialize_company_application_row(row)) for row in rows]}
-
-
-@router.get("/publisher/dialogues/{dialogue_id}")
-@limiter.limit("60/minute")
-async def get_publisher_dialogue_detail(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    row = resp.data if resp else None
-    if not isinstance(row, dict):
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    row = _expire_dialogue_if_needed(row)
-    _require_dialogue_publisher_access(user, row)
-    application = _serialize_application_dossier(row)
-    application.update(build_dialogue_enrichment(str(application.get("id") or "")))
-    return {"dialogue": _serialize_dialogue_record(application)}
-
-
-@router.get("/publisher/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def list_publisher_dialogue_messages(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,status,application_payload")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load dialogue")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,status")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not isinstance(app_row, dict):
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-    _require_dialogue_publisher_access(user, app_row)
-
-    try:
-        resp = (
-            supabase
-            .table("application_messages")
-            .select("*")
-            .eq("application_id", dialogue_id)
-            .order("created_at", desc=False)
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            return {"messages": []}
-        raise HTTPException(status_code=500, detail="Failed to load messages")
-
-    rows = [row for row in (resp.data or []) if isinstance(row, dict)]
-    unread_ids = [str(row.get("id") or "") for row in rows if str(row.get("sender_role") or "") == "candidate" and not row.get("read_by_company_at")]
-    if unread_ids:
-        try:
-            supabase.table("application_messages").update({"read_by_company_at": now_iso()}).in_("id", unread_ids).execute()
-        except Exception:
-            pass
-        for row in rows:
-            if str(row.get("id") or "") in unread_ids:
-                row["read_by_company_at"] = now_iso()
-    return {"messages": [_serialize_dialogue_message(row) for row in rows]}
-
-
-@router.post("/publisher/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def create_publisher_dialogue_message(
-    dialogue_id: str,
-    payload: ApplicationMessageCreateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    try:
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,candidate_id,status,application_payload")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load dialogue")
-        app_resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,candidate_id,status")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    app_row = app_resp.data if app_resp else None
-    if not isinstance(app_row, dict):
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    app_row = _expire_dialogue_if_needed(app_row)
-    _require_dialogue_publisher_access(user, app_row)
-    if not _is_active_dialogue_status(app_row.get("status")):
-        raise HTTPException(status_code=409, detail="Dialogue is closed")
-
-    body = str(payload.body or "").strip()
-    attachments = _sanitize_application_message_attachments(payload.attachments)
-    asset_ids = _extract_attachment_asset_ids(attachments)
-    if not body and not attachments:
-        raise HTTPException(status_code=400, detail="Message body or attachment required")
-
-    sender_user_id = user.get("id") or user.get("auth_id")
-    insert_payload = {
-        "application_id": dialogue_id,
-        "company_id": app_row.get("company_id"),
-        "candidate_id": app_row.get("candidate_id"),
-        "sender_user_id": sender_user_id,
-        "sender_role": "recruiter",
-        "body": body,
-        "attachments": attachments,
-        "asset_ids": asset_ids,
-        "created_at": now_iso(),
-        "read_by_candidate_at": None,
-        "read_by_company_at": now_iso(),
-    }
-    try:
-        try:
-            resp = supabase.table("application_messages").insert(insert_payload).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "asset_ids"):
-                fallback_payload = dict(insert_payload)
-                fallback_payload.pop("asset_ids", None)
-                resp = supabase.table("application_messages").insert(fallback_payload).execute()
-            else:
-                raise
-    except Exception as exc:
-        if _is_missing_table_error(exc, "application_messages"):
-            raise HTTPException(status_code=503, detail="Messaging not available")
-        raise HTTPException(status_code=500, detail="Failed to send message")
-
-    row = (resp.data or [insert_payload])[0]
-    _schedule_dialogue_timeout(app_row, current_turn="candidate")
-    return {"message": _serialize_dialogue_message(row)}
-
-
-@router.patch("/publisher/dialogues/{dialogue_id}/status")
-@limiter.limit("60/minute")
-async def update_publisher_dialogue_status(
-    dialogue_id: str,
-    payload: JobApplicationStatusUpdateRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    try:
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,status,application_payload")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    except Exception as exc:
-        if not _is_missing_column_error(exc, "application_payload"):
-            raise HTTPException(status_code=500, detail="Failed to load dialogue")
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("id,job_id,company_id,status")
-            .eq("id", dialogue_id)
-            .maybe_single()
-            .execute()
-        )
-    row = resp.data if resp else None
-    if not isinstance(row, dict):
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    row = _expire_dialogue_if_needed(row)
-    _require_dialogue_publisher_access(user, row)
-    if not _is_active_dialogue_status(row.get("status")):
-        return {"status": str(row.get("status") or "closed")}
-
-    try:
-        try:
-            supabase.table("job_applications").update({"status": payload.status, "updated_at": now_iso(), "reviewed_at": now_iso()}).eq("id", dialogue_id).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "updated_at") or _is_missing_column_error(exc, "reviewed_at"):
-                supabase.table("job_applications").update({"status": payload.status}).eq("id", dialogue_id).execute()
-            else:
-                raise
-    except Exception as exc:
-        print(f"⚠️ Failed to update publisher dialogue status: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to update dialogue status")
-
-    updated_row = dict(row)
-    updated_row["status"] = payload.status
-    if _is_active_dialogue_status(payload.status):
-        _schedule_dialogue_timeout(updated_row, current_turn="candidate")
-    else:
-        _persist_dialogue_state(
-            dialogue_id,
-            application_payload=_build_closed_dialogue_payload(
-                updated_row.get("application_payload"),
-                close_reason=str(payload.status or "closed"),
-            ),
-            status=payload.status,
-        )
-    return {"status": "success"}
-
-
-@router.get("/company/dialogues")
-@limiter.limit("60/minute")
-async def list_company_dialogues(
-    request: Request,
-    company_id: str = Query(...),
-    role_id: str | None = Query(None),
-    job_id: str | None = Query(None),
-    limit: int = Query(500, ge=1, le=2000),
-    user: dict = Depends(verify_subscription),
-):
-    response = await list_company_dialogues_legacy(
-        request=request,
-        company_id=company_id,
-        job_id=role_id or job_id,
-        limit=limit,
-        user=user,
-    )
-    rows = response.get("applications") or []
-    return {
-        "company_id": company_id,
-        "dialogues": [_serialize_dialogue_record(row) for row in rows if isinstance(row, dict)],
-    }
-
-
-@router.get("/company/dialogues/{dialogue_id}")
-@limiter.limit("60/minute")
-async def get_company_dialogue_detail(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await get_company_dialogue_detail_legacy(application_id=dialogue_id, request=request, user=user)
-    return {"dialogue": _serialize_dialogue_record(response.get("application"))}
-
-
-@router.get("/company/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def list_company_dialogue_messages(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await list_company_dialogue_messages_legacy(application_id=dialogue_id, request=request, user=user)
-    rows = response.get("messages") or []
-    return {"messages": [_serialize_dialogue_message(row) for row in rows if isinstance(row, dict)]}
-
-
-@router.post("/company/dialogues/{dialogue_id}/messages")
-@limiter.limit("60/minute")
-async def create_company_dialogue_message(
-    dialogue_id: str,
-    payload: ApplicationMessageCreateRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await create_company_dialogue_message_legacy(
-        application_id=dialogue_id,
-        payload=payload,
-        request=request,
-        user=user,
-    )
-    return {"message": _serialize_dialogue_message(response.get("message"))}
-
-
-@router.patch("/company/dialogues/{dialogue_id}/status")
-@limiter.limit("60/minute")
-async def update_company_dialogue_status(
-    dialogue_id: str,
-    payload: JobApplicationStatusUpdateRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    return await update_company_dialogue_status_legacy(
-        application_id=dialogue_id,
-        payload=payload,
-        request=request,
-        user=user,
-    )
-
-
-@router.get("/company/dialogues/{dialogue_id}/solution-snapshot")
-@limiter.limit("60/minute")
-async def get_company_dialogue_solution_snapshot(
-    dialogue_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    dialogue_row = _load_dialogue_solution_snapshot_context(dialogue_id)
-    if not dialogue_row:
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    require_company_access(user, str(dialogue_row.get("company_id") or ""))
-
-    snapshot_row = _load_dialogue_solution_snapshot(dialogue_id)
-    return _build_company_dialogue_solution_snapshot_state(dialogue_row, snapshot_row)
-
-
-@router.put("/company/dialogues/{dialogue_id}/solution-snapshot")
-@limiter.limit("30/minute")
-async def upsert_company_dialogue_solution_snapshot(
-    dialogue_id: str,
-    payload: DialogueSolutionSnapshotUpsertRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    dialogue_row = _load_dialogue_solution_snapshot_context(dialogue_id)
-    if not dialogue_row:
-        raise HTTPException(status_code=404, detail="Dialogue not found")
-    require_company_access(user, str(dialogue_row.get("company_id") or ""))
-
-    existing_snapshot = _load_dialogue_solution_snapshot(dialogue_id)
-    state = _build_company_dialogue_solution_snapshot_state(dialogue_row, existing_snapshot)
-    if state.get("reason") == "missing_job":
-        raise HTTPException(status_code=409, detail="This dialogue is missing a linked role.")
-    if state.get("reason") == "not_micro_job":
-        raise HTTPException(status_code=409, detail="Solution snapshots are available only for micro jobs.")
-    if state.get("reason") == "awaiting_completion":
-        raise HTTPException(status_code=409, detail="Mark the micro job as hired first to save a solution snapshot.")
-
-    timestamp = now_iso()
-    base_payload = {
-        "dialogue_id": dialogue_id,
-        "job_id": dialogue_row.get("job_id"),
-        "company_id": dialogue_row.get("company_id"),
-        "candidate_id": dialogue_row.get("candidate_id"),
-        "problem": _trimmed_text(payload.problem, 2000),
-        "solution": _trimmed_text(payload.solution, 3000),
-        "result": _trimmed_text(payload.result, 2000),
-        "problem_tags": _normalize_solution_snapshot_tags(payload.problem_tags),
-        "solution_tags": _normalize_solution_snapshot_tags(payload.solution_tags),
-        "is_public": bool(payload.is_public),
-        "share_slug": _trimmed_text((existing_snapshot or {}).get("share_slug"), 120) or uuid4().hex[:16],
-        "updated_at": timestamp,
-    }
-
-    try:
-        if existing_snapshot:
-            save_resp = (
-                supabase
-                .table("job_solution_snapshots")
-                .update(base_payload)
-                .eq("id", existing_snapshot.get("id"))
-                .select("*")
-                .single()
-                .execute()
-            )
-        else:
-            insert_payload = dict(base_payload)
-            insert_payload["created_at"] = timestamp
-            insert_payload["created_by"] = user.get("id") or user.get("auth_id")
-            save_resp = (
-                supabase
-                .table("job_solution_snapshots")
-                .insert(insert_payload)
-                .select("*")
-                .single()
-                .execute()
-            )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "job_solution_snapshots"):
-            raise HTTPException(status_code=409, detail="Solution snapshots unavailable")
-        print(f"⚠️ Failed to save solution snapshot for dialogue {dialogue_id}: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to save solution snapshot")
-
-    snapshot_row = save_resp.data if save_resp and isinstance(save_resp.data, dict) else None
-    if not snapshot_row:
-        raise HTTPException(status_code=500, detail="Failed to save solution snapshot")
-
-    snapshot_row["jobs"] = _safe_dict(dialogue_row.get("jobs"))
-    snapshot_row["companies"] = _safe_dict(dialogue_row.get("companies"))
-
-    _write_company_activity_log(
-        company_id=str(dialogue_row.get("company_id") or ""),
-        event_type="solution_snapshot_saved",
-        payload={
-            "dialogue_id": dialogue_id,
-            "job_id": dialogue_row.get("job_id"),
-            "candidate_id": dialogue_row.get("candidate_id"),
-            "job_title": _trimmed_text(_safe_dict(dialogue_row.get("jobs")).get("title"), 200) or None,
-        },
-        actor_user_id=user.get("id") or user.get("auth_id"),
-        subject_type="dialogue",
-        subject_id=dialogue_id,
-    )
-
-    return {"snapshot": _serialize_solution_snapshot(snapshot_row)}
-
-
-@router.post("/jobs/{job_id}/signal-boost/brief")
-@limiter.limit("30/minute")
-async def generate_job_signal_boost_brief(
-    job_id: str,
-    payload: JobSignalBoostBriefRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    job_row = _load_signal_boost_job_row(job_id)
-    if not job_row:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    locale = _normalize_locale(payload.locale or job_row.get("language_code") or "en")
-    brief = build_signal_boost_brief(job_row, locale)
-    void_meta = {
-        "job_id": str(job_row.get("id") or job_id),
-        "source_kind": _build_signal_boost_job_snapshot(job_row).get("source_kind"),
-    }
-    return {"brief": brief, "meta": void_meta}
-
-
-@router.post("/jobs/{job_id}/signal-boost/outputs")
-@limiter.limit("20/minute")
-async def publish_job_signal_boost_output(
-    job_id: str,
-    payload: JobSignalBoostOutputRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    job_row = _load_signal_boost_job_row(job_id)
-    if not job_row:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    locale = _normalize_locale(payload.locale or job_row.get("language_code") or "en")
-    brief = build_signal_boost_brief(job_row, locale)
-    response_payload = {
-        key: _trimmed_text(value, 4000)
-        for key, value in dict(payload.response_payload or {}).items()
-        if _trimmed_text(value, 4000)
-    }
-    quality = evaluate_signal_boost_quality(response_payload, locale)
-    if payload.status == "published" and not quality.get("publish_ready"):
-        raise HTTPException(status_code=409, detail={"quality_flags": quality, "message": "Signal Boost needs a bit more substance before publishing."})
-
-    summary = build_signal_boost_summary(response_payload, locale, quality)
-    output = create_signal_output(
-        {
-            "id": uuid4().hex,
-            "share_slug": uuid4().hex[:16],
-            "candidate_id": user_id,
-            "job_id": str(job_row.get("id") or job_id),
-            "source_kind": _build_signal_boost_job_snapshot(job_row).get("source_kind") or "imported",
-            "locale": locale,
-            "status": payload.status,
-            "job_snapshot": _build_signal_boost_job_snapshot(job_row),
-            "candidate_snapshot": _build_signal_boost_candidate_snapshot(user, user_id),
-            "scenario_payload": brief,
-            "response_payload": response_payload,
-            "signal_summary": summary,
-            "quality_flags": quality,
-            "analytics": {"view": 0, "share_copy": 0, "recruiter_cta_click": 0, "open_original_listing": 0},
-            "published_at": now_iso() if payload.status == "published" else None,
-        }
-    )
-
-    return {
-        "output": _serialize_signal_output_owner(output),
-        "quality_flags": quality,
-    }
-
-
-@router.get("/jobs/{job_id}/signal-boost/output")
-@limiter.limit("60/minute")
-async def get_latest_job_signal_boost_output(
-    job_id: str,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    output = get_latest_signal_output_for_job(candidate_id=user_id, job_id=job_id)
-    if not output:
-        raise HTTPException(status_code=404, detail="Signal Boost output not found")
-    return {"output": _serialize_signal_output_owner(output)}
-
-
-@router.get("/signal-boost/me")
-@limiter.limit("60/minute")
-async def get_my_signal_boost_outputs(
-    request: Request,
-    limit: int = Query(12, ge=1, le=50),
-    user: dict = Depends(get_current_user),
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    outputs = list_recent_signal_outputs_for_candidate(candidate_id=user_id, limit=limit)
-    return {"items": [_serialize_signal_output_owner(output) for output in outputs if output]}
-
-
-@router.put("/signal-boost/{output_id}")
-@limiter.limit("20/minute")
-async def update_job_signal_boost_output(
-    output_id: str,
-    payload: JobSignalBoostOutputRequest,
-    request: Request,
-    user: dict = Depends(get_current_user),
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User not authenticated")
-
-    existing = get_signal_output_by_id(output_id=output_id, candidate_id=user_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Signal Boost output not found")
-
-    locale = _normalize_locale(payload.locale or existing.get("locale") or "en")
-    response_payload = {
-        key: _trimmed_text(value, 4000)
-        for key, value in dict(payload.response_payload or {}).items()
-        if _trimmed_text(value, 4000)
-    }
-    quality = evaluate_signal_boost_quality(response_payload, locale)
-    if payload.status == "published" and not quality.get("publish_ready"):
-        raise HTTPException(status_code=409, detail={"quality_flags": quality, "message": "Signal Boost needs a bit more substance before publishing."})
-
-    updated = update_signal_output(
-        output_id=output_id,
-        candidate_id=user_id,
-        patch={
-            "locale": locale,
-            "status": payload.status,
-            "response_payload": response_payload,
-            "signal_summary": build_signal_boost_summary(response_payload, locale, quality),
-            "quality_flags": quality,
-            "published_at": now_iso() if payload.status == "published" else existing.get("published_at"),
-        },
-    )
-    if not updated:
-        raise HTTPException(status_code=404, detail="Signal Boost output not found")
-    return {"output": _serialize_signal_output_owner(updated), "quality_flags": quality}
-
-
-@router.get("/signal-boost/{share_slug}")
-@limiter.limit("120/minute")
-async def get_public_job_signal_boost_output(
-    share_slug: str,
-    request: Request,
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    output = get_signal_output_by_share_slug(share_slug=share_slug)
-    if not output:
-        raise HTTPException(status_code=404, detail="Signal Boost output not found")
-    record_signal_output_event(output_id=str(output.get("id") or ""), event_type="view", increment=1)
-    return {"output": _serialize_signal_output_public(output)}
-
-
-@router.post("/signal-boost/{output_id}/events")
-@limiter.limit("120/minute")
-async def record_public_job_signal_boost_event(
-    output_id: str,
-    payload: JobSignalBoostEventRequest,
-    request: Request,
-):
-    if not signal_boost_store_enabled():
-        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
-    output = record_signal_output_event(output_id=output_id, event_type=payload.event_type, increment=1)
-    if not output:
-        raise HTTPException(status_code=404, detail="Signal Boost output not found")
-    notification_delivery = {"email": False, "push": False}
-    if payload.event_type in {"recruiter_cta_click", "open_original_listing"}:
-        notification_delivery = notify_candidate_of_signal_boost_interest(output)
-    return {"ok": True, "notification_delivery": notification_delivery}
-
-
-@router.post("/company/roles")
-@limiter.limit("60/minute")
-async def create_company_role(
-    payload: JobDraftUpsertRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await create_company_job_draft(payload=payload, request=request, user=user)
-    return {"role": _serialize_role_record(response.get("draft"))}
-
-
-@router.get("/company/roles")
-@limiter.limit("60/minute")
-async def list_company_roles(
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await list_company_job_drafts(request=request, user=user)
-    rows = response.get("drafts") or []
-    return {"roles": [_serialize_role_record(row) for row in rows if isinstance(row, dict)]}
-
-
-@router.get("/company/roles/{role_id}")
-@limiter.limit("60/minute")
-async def get_company_role(
-    role_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await get_company_job_draft(draft_id=role_id, request=request, user=user)
-    return {"role": _serialize_role_record(response.get("draft"))}
-
-
-@router.patch("/company/roles/{role_id}")
-@limiter.limit("60/minute")
-async def update_company_role(
-    role_id: str,
-    payload: JobDraftUpsertRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await update_company_job_draft(draft_id=role_id, payload=payload, request=request, user=user)
-    return {"role": _serialize_role_record(response.get("draft"))}
-
-
-@router.post("/company/roles/{role_id}/validate")
-@limiter.limit("60/minute")
-async def validate_company_role(
-    role_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    return await validate_company_job_draft(draft_id=role_id, request=request, user=user)
-
-
-@router.post("/company/roles/{role_id}/publish")
-@limiter.limit("30/minute")
-async def publish_company_role(
-    role_id: str,
-    payload: JobDraftPublishRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    response = await publish_company_job_draft(draft_id=role_id, payload=payload, request=request, user=user)
-    if isinstance(response, dict):
-        response = dict(response)
-        response["role_id"] = str(role_id)
-        if response.get("job_id") is not None and response.get("published_job_id") is None:
-            response["published_job_id"] = response.get("job_id")
-    return response
-
-
-@router.get("/company/schema/rollout-status")
-@limiter.limit("60/minute")
-async def get_company_rollout_schema_status(
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    job_applications = _probe_schema_select(
-        "job_applications",
-        "id,source,submitted_at,updated_at,cover_letter,cv_document_id,cv_snapshot,candidate_profile_snapshot,jcfpm_share_level,shared_jcfpm_payload,application_payload,reviewed_at,reviewed_by"
-    )
-    job_drafts = _probe_schema_select(
-        "job_drafts",
-        "id,job_id,status,title,updated_at"
-    )
-    job_versions = _probe_schema_select(
-        "job_versions",
-        "id,job_id,version_number,published_at"
-    )
-
-    return {
-        "checked_at": now_iso(),
-        "all_ready": bool(job_applications.get("ready") and job_drafts.get("ready") and job_versions.get("ready")),
-        "job_applications": job_applications,
-        "job_drafts": job_drafts,
-        "job_versions": job_versions,
-        "requested_by": user.get("id") or user.get("auth_id"),
-    }
-
-
-@router.get("/company/activity-log")
-@limiter.limit("60/minute")
-async def list_company_activity_log(
-    request: Request,
-    company_id: str = Query(...),
-    limit: int = Query(50, ge=1, le=200),
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
-    require_company_access(user, company_id)
-    try:
-        resp = (
-            supabase
-            .table("company_activity_log")
-            .select("*")
-            .eq("company_id", company_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "company_activity_log"):
-            raise HTTPException(status_code=409, detail="Company activity log unavailable")
-        raise HTTPException(status_code=500, detail="Failed to load company activity log")
-
-    rows = resp.data or []
-    return {
-        "company_id": company_id,
-        "events": [_serialize_company_activity_event(row) for row in rows],
-    }
-
-
-@router.get("/activity/public")
-@limiter.limit("120/minute")
-async def get_public_activity_feed(
-    request: Request,
-    limit: int = Query(5, ge=1, le=10),
-    lang: str = Query("en"),
-):
-    return _build_public_activity_payload(lang, limit=limit)
-
-
-@router.post("/company/activity-log")
-@limiter.limit("60/minute")
-async def create_company_activity_log_event(
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    body = await request.json()
-    if not isinstance(body, dict):
-        raise HTTPException(status_code=400, detail="Invalid payload")
-
-    company_id = str(body.get("company_id") or "").strip()
-    event_type = str(body.get("event_type") or "").strip()
-    if not company_id or not event_type:
-        raise HTTPException(status_code=400, detail="company_id and event_type are required")
-
-    require_company_access(user, company_id)
-
-    payload = body.get("payload")
-    insert_payload = {
-        "company_id": company_id,
-        "event_type": event_type,
-        "subject_type": str(body.get("subject_type") or "").strip() or None,
-        "subject_id": str(body.get("subject_id") or "").strip() or None,
-        "payload": _normalize_company_activity_payload(event_type, payload if isinstance(payload, dict) else {}),
-        "actor_user_id": user.get("id") or user.get("auth_id"),
-    }
-
-    try:
-        resp = (
-            supabase
-            .table("company_activity_log")
-            .insert(insert_payload)
-            .select("*")
-            .single()
-            .execute()
-        )
-    except Exception as exc:
-        if _is_missing_table_error(exc, "company_activity_log"):
-            raise HTTPException(status_code=409, detail="Company activity log unavailable")
-        raise HTTPException(status_code=500, detail="Failed to write company activity log")
-
-    row = resp.data if resp else None
-    if not row:
-        raise HTTPException(status_code=500, detail="Failed to write company activity log")
-    return {"event": _serialize_company_activity_event(row)}
-
-
-@router.get("/company/human-context/people")
-@limiter.limit("60/minute")
-async def list_company_human_context_people(
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    company_id = require_company_access(user, user.get("company_id"))
-    owner_id, team_profiles = _fetch_company_team_context(company_id)
-    member_rows = _fetch_company_member_rows(company_id)
-    user_ids = _fetch_company_public_member_ids(company_id)
-    profiles_by_id = _fetch_profiles_map(user_ids)
-
-    people: list[dict[str, Any]] = []
-    meta_by_user_id: dict[str, dict[str, Any]] = {}
-    if owner_id:
-        meta_by_user_id[owner_id] = _read_company_team_member_profile(
-            team_profiles,
-            member_id=owner_id,
-            user_id=owner_id,
-            source="owner",
-        )
-    for row in member_rows:
-        user_id = _trimmed_text((row or {}).get("user_id"), 120)
-        if not user_id:
-            continue
-        source = "owner" if owner_id and user_id == owner_id else "member"
-        meta_by_user_id[user_id] = _read_company_team_member_profile(
-            team_profiles,
-            member_id=_trimmed_text((row or {}).get("id"), 120),
-            user_id=user_id,
-            source=source,
-        )
-
-    for user_id in sorted(user_ids):
-        profile = profiles_by_id.get(user_id, {})
-        display_name = _trimmed_text(profile.get("full_name") or profile.get("email") or "Team member", 120)
-        if not display_name:
-            continue
-        meta = meta_by_user_id.get(user_id, {})
-        people.append({
-            "user_id": user_id,
-            "display_name": display_name,
-            "avatar_url": _trimmed_text(profile.get("avatar_url"), 500) or None,
-            "email": _trimmed_text(profile.get("email") or meta.get("invited_email"), 180) or None,
-            "display_role": _trimmed_text(meta.get("company_role"), 120) or None,
-            "short_context": _trimmed_text(meta.get("short_bio"), 280) or None,
-        })
-
-    people.sort(key=lambda row: (str(row.get("display_name") or "").lower(), str(row.get("email") or "").lower()))
-    return {"people": people}
-
-
-@router.post("/company/job-drafts")
-@limiter.limit("60/minute")
-async def create_company_job_draft(
-    payload: JobDraftUpsertRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-
-    company_id = require_company_access(user, user.get("company_id"))
-    user_id = user.get("id") or user.get("auth_id")
-    body = payload.dict(exclude_none=True)
-    company_goal = body.get("company_goal")
-    insert_payload = {
-        "company_id": company_id,
-        "created_by": user_id,
-        "updated_by": user_id,
-        **body,
-    }
-    try:
-        resp = supabase.table("job_drafts").insert(insert_payload).execute()
-    except Exception as exc:
-        if _is_missing_column_error(exc, "company_goal"):
-            fallback_body = dict(body)
-            fallback_body.pop("company_goal", None)
-            editor_state = _safe_dict(fallback_body.get("editor_state"))
-            handshake = _safe_dict(editor_state.get("handshake"))
-            if company_goal is not None:
-                handshake["company_goal"] = str(company_goal)[:4000]
-            editor_state["handshake"] = handshake
-            fallback_body["editor_state"] = editor_state
-            fallback_insert = {
-                "company_id": company_id,
-                "created_by": user_id,
-                "updated_by": user_id,
-                **fallback_body,
-            }
-            resp = supabase.table("job_drafts").insert(fallback_insert).execute()
-        else:
-            raise
-    if not resp.data:
-        raise HTTPException(status_code=500, detail="Failed to create job draft")
-    draft = resp.data[0]
-    draft["quality_report"] = _draft_to_validation_report(draft)
-    return {"draft": draft}
-
-
-@router.get("/company/job-drafts")
-@limiter.limit("60/minute")
-async def list_company_job_drafts(
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    company_id = require_company_access(user, user.get("company_id"))
-    resp = (
-        supabase
-        .table("job_drafts")
-        .select("*")
-        .eq("company_id", company_id)
-        .order("updated_at", desc=True)
-        .limit(200)
-        .execute()
-    )
-    drafts = resp.data or []
-    return {"drafts": drafts}
-
-
-@router.get("/company/job-drafts/{draft_id}")
-@limiter.limit("60/minute")
-async def get_company_job_draft(
-    draft_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
-    draft = resp.data if resp else None
-    if not draft:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    require_company_access(user, str(draft.get("company_id") or ""))
-    if not draft.get("quality_report"):
-        draft["quality_report"] = _draft_to_validation_report(draft)
-    return {"draft": draft}
-
-
-@router.patch("/company/job-drafts/{draft_id}")
-@limiter.limit("60/minute")
-async def update_company_job_draft(
-    draft_id: str,
-    payload: JobDraftUpsertRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
-    current = current_resp.data if current_resp else None
-    if not current:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    require_company_access(user, str(current.get("company_id") or ""))
-    body = payload.dict(exclude_none=True)
-    company_goal = body.get("company_goal")
-    next_draft = {**current, **body}
-    next_quality = _draft_to_validation_report(next_draft)
-    update_payload = {
-        **body,
-        "updated_by": user.get("id") or user.get("auth_id"),
-        "updated_at": now_iso(),
-        "quality_report": next_quality,
-    }
-    try:
-        resp = supabase.table("job_drafts").update(update_payload).eq("id", draft_id).execute()
-    except Exception as exc:
-        if _is_missing_column_error(exc, "company_goal"):
-            fallback_payload = dict(update_payload)
-            fallback_payload.pop("company_goal", None)
-            editor_state = _safe_dict(fallback_payload.get("editor_state") or current.get("editor_state"))
-            handshake = _safe_dict(editor_state.get("handshake"))
-            if company_goal is not None:
-                handshake["company_goal"] = str(company_goal)[:4000]
-            editor_state["handshake"] = handshake
-            fallback_payload["editor_state"] = editor_state
-            resp = supabase.table("job_drafts").update(fallback_payload).eq("id", draft_id).execute()
-        else:
-            raise
-    draft = (resp.data or [None])[0] or {**next_draft, **update_payload}
-    draft["quality_report"] = next_quality
-    return {"draft": draft}
-
-
-@router.post("/company/job-drafts/{draft_id}/validate")
-@limiter.limit("60/minute")
-async def validate_company_job_draft(
-    draft_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
-    draft = current_resp.data if current_resp else None
-    if not draft:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    require_company_access(user, str(draft.get("company_id") or ""))
-    report = _draft_to_validation_report(draft)
-    try:
-        supabase.table("job_drafts").update({
-            "quality_report": report,
-            "status": "ready_for_publish" if not report["blockingIssues"] else draft.get("status") or "draft",
-            "updated_at": now_iso(),
-        }).eq("id", draft_id).execute()
-    except Exception:
-        pass
-    return {"validation": report}
-
-
-@router.post("/company/job-drafts/{draft_id}/publish")
-@limiter.limit("30/minute")
-async def publish_company_job_draft(
-    draft_id: str,
-    payload: JobDraftPublishRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
-    draft = current_resp.data if current_resp else None
-    if not draft:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    company_id = require_company_access(user, str(draft.get("company_id") or ""))
-    validation = _draft_to_validation_report(draft)
-    if validation["blockingIssues"]:
-        raise HTTPException(status_code=400, detail={"validation": validation})
-
-    company_name = "Company"
-    try:
-        company_resp = supabase.table("companies").select("name").eq("id", company_id).maybe_single().execute()
-        company_name = str((company_resp.data or {}).get("name") or company_name)
-    except Exception:
-        pass
-    micro_job = _get_draft_micro_job_state(draft)
-    is_micro_job = micro_job.get("challenge_format") == "micro_job"
-    handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
-    company_goal = str(draft.get("company_goal") or handshake.get("company_goal") or "").strip() or None
-
-    job_payload = {
-        "title": draft.get("title"),
-        "company": company_name,
-        "description": _compose_job_description_from_draft(draft),
-        "location": draft.get("location_public") or draft.get("workplace_address") or "Location not specified",
-        "salary_from": draft.get("salary_from"),
-        "salary_to": draft.get("salary_to"),
-        "salary_currency": draft.get("salary_currency") or "CZK",
-        "salary_timeframe": "project_total" if is_micro_job else (draft.get("salary_timeframe") or "month"),
-        "benefits": [] if is_micro_job else _safe_string_list(draft.get("benefits_structured"), limit=50),
-        "contact_email": draft.get("contact_email"),
-        "workplace_address": draft.get("workplace_address"),
-        "company_id": company_id,
-        "company_goal": company_goal,
-        "contract_type": None if is_micro_job else draft.get("contract_type"),
-        "work_type": draft.get("work_model"),
-        "source": "jobshaman.cz",
-        "source_kind": "native",
-        "scraped_at": now_iso(),
-    }
-
-    existing_job_id = _normalize_job_id(draft.get("job_id"))
-    if not existing_job_id:
-        _enforce_company_role_open_limit(company_id, user)
-    _enforce_company_job_publish_limit(company_id, user, existing_job_id=existing_job_id)
-    job_id = existing_job_id
-    if job_id:
-        _require_job_access(user, str(job_id))
-        try:
-            job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "company_goal"):
-                fallback_payload = dict(job_payload)
-                fallback_payload.pop("company_goal", None)
-                job_resp = supabase.table("jobs").update(fallback_payload).eq("id", job_id).execute()
-            else:
-                raise
-        job_row = (job_resp.data or [None])[0] or {"id": job_id}
-    else:
-        try:
-            job_resp = supabase.table("jobs").insert(job_payload).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "company_goal"):
-                fallback_payload = dict(job_payload)
-                fallback_payload.pop("company_goal", None)
-                job_resp = supabase.table("jobs").insert(fallback_payload).execute()
-            else:
-                raise
-        job_row = (job_resp.data or [None])[0]
-        if not job_row:
-            raise HTTPException(status_code=500, detail="Failed to publish draft")
-        job_id = _normalize_job_id(job_row.get("id"))
-
-    if isinstance(job_row, dict):
-        sync_row = dict(job_row)
-        sync_row.update(job_payload)
-        sync_row["id"] = job_id
-        sync_row["company_id"] = company_id
-        _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
-
-    next_version = 1
-    try:
-        version_resp = (
-            supabase
-            .table("job_versions")
-            .select("version_number")
-            .eq("job_id", job_id)
-            .order("version_number", desc=True)
-            .limit(1)
-            .execute()
-        )
-        if version_resp.data:
-            next_version = int(version_resp.data[0].get("version_number") or 0) + 1
-    except Exception:
-        next_version = 1
-
-    snapshot = {
-        "title": job_payload["title"],
-        "description": job_payload["description"],
-        "company_goal": company_goal,
-        "location": job_payload["location"],
-        "salary_from": job_payload["salary_from"],
-        "salary_to": job_payload["salary_to"],
-        "salary_currency": job_payload["salary_currency"],
-        "salary_timeframe": job_payload["salary_timeframe"],
-        "contract_type": job_payload["contract_type"],
-        "work_type": job_payload["work_type"],
-        "benefits": job_payload["benefits"],
-        "challenge_format": micro_job.get("challenge_format"),
-        "micro_job_kind": micro_job.get("kind"),
-        "micro_job_time_estimate": micro_job.get("time_estimate"),
-        "micro_job_collaboration_modes": micro_job.get("collaboration_modes"),
-        "micro_job_long_term_potential": micro_job.get("long_term_potential"),
-        "source_draft_id": draft_id,
-    }
-
-    try:
-        supabase.table("job_versions").insert({
-            "job_id": job_id,
-            "draft_id": draft_id,
-            "version_number": next_version,
-            "published_snapshot": snapshot,
-            "change_summary": payload.change_summary,
-            "published_by": user.get("id") or user.get("auth_id"),
-            "published_at": now_iso(),
-        }).execute()
-    except Exception as exc:
-        print(f"⚠️ Failed to persist job version: {exc}")
-
-    try:
-        supabase.table("job_drafts").update({
-            "job_id": job_id,
-            "status": "published_linked",
-            "quality_report": validation,
-            "updated_by": user.get("id") or user.get("auth_id"),
-            "updated_at": now_iso(),
-        }).eq("id", draft_id).execute()
-    except Exception as exc:
-        print(f"⚠️ Failed to update draft after publish: {exc}")
-
-    _sync_job_public_people(job_id=job_id, company_id=company_id, editor_state=draft.get("editor_state"))
-
-    _write_company_activity_log(
-        company_id=company_id,
-        event_type="job_updated" if existing_job_id else "job_published",
-        payload=_build_role_activity_payload(
-            job_id=str(job_id),
-            job_title=str(job_payload.get("title") or ""),
-            version_number=next_version,
-            next_status="active",
-        ),
-        actor_user_id=user.get("id") or user.get("auth_id"),
-        subject_type="job",
-        subject_id=str(job_id),
-    )
-    _sync_company_active_jobs_usage(company_id)
-    if not existing_job_id:
-        _increment_company_role_opens_usage(company_id)
-
-    return {"status": "success", "job_id": job_id, "version_number": next_version, "validation": validation}
-
-
-@router.post("/company/roles/{job_id}/edit-draft")
-@router.post("/company/jobs/{job_id}/edit-draft")
-@limiter.limit("30/minute")
-async def create_edit_draft_from_job(
-    job_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    job_row = _require_job_access(user, job_id)
-    company_id = str(job_row.get("company_id") or "")
-    source = _read_job_record(job_id)
-    if not source:
-        raise HTTPException(status_code=404, detail="Job not found")
-    existing_human_context = _build_job_human_context_editor_state(job_id, company_id)
-    description_metadata, cleaned_description = _extract_job_description_metadata(source.get("description"))
-    benefits = source.get("benefits")
-    if not isinstance(benefits, list):
-        benefits = []
-    draft_payload = {
-        "company_id": company_id,
-        "job_id": _normalize_job_id(job_id),
-        "status": "draft",
-        "title": source.get("title") or "",
-        "role_summary": cleaned_description,
-        "responsibilities": cleaned_description,
-        "requirements": "",
-        "nice_to_have": "",
-        "benefits_structured": benefits,
-        "salary_from": source.get("salary_from"),
-        "salary_to": source.get("salary_to"),
-        "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
-        "salary_timeframe": source.get("salary_timeframe") or ("project_total" if description_metadata.get("challenge_format") == "micro_job" else "month"),
-        "contract_type": source.get("contract_type"),
-        "work_model": source.get("work_type") or source.get("work_model"),
-        "workplace_address": source.get("workplace_address") or source.get("location"),
-        "location_public": source.get("location"),
-        "contact_email": source.get("contact_email"),
-        "editor_state": {
-            "selected_section": "role_summary",
-            "hiring_stage": description_metadata.get("hiring_stage") or "collecting_cvs",
-            "micro_job": {
-                "challenge_format": description_metadata.get("challenge_format") or "standard",
-                "kind": description_metadata.get("kind"),
-                "time_estimate": description_metadata.get("time_estimate"),
-                "collaboration_modes": description_metadata.get("collaboration_modes") or [],
-                "long_term_potential": description_metadata.get("long_term_potential"),
-            },
-            "human_context": existing_human_context,
-        },
-        "created_by": user.get("id") or user.get("auth_id"),
-        "updated_by": user.get("id") or user.get("auth_id"),
-    }
-    resp = supabase.table("job_drafts").insert(draft_payload).execute()
-    if not resp.data:
-        raise HTTPException(status_code=500, detail="Failed to create edit draft")
-    draft = resp.data[0]
-    draft["quality_report"] = _draft_to_validation_report(draft)
-    return {"draft": draft}
-
-
-@router.get("/company/roles/{job_id}/versions")
-@router.get("/company/jobs/{job_id}/versions")
-@limiter.limit("60/minute")
-async def list_job_versions(
-    job_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    _require_job_access(user, job_id)
-    resp = (
-        supabase
-        .table("job_versions")
-        .select("*")
-        .eq("job_id", _normalize_job_id(job_id))
-        .order("version_number", desc=True)
-        .limit(50)
-        .execute()
-    )
-    return {"versions": resp.data or []}
-
-
-@router.post("/company/roles/{job_id}/duplicate")
-@router.post("/company/jobs/{job_id}/duplicate")
-@limiter.limit("30/minute")
-async def duplicate_job_into_draft(
-    job_id: str,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    _require_job_access(user, job_id)
-    source = _read_job_record(job_id)
-    if not source:
-        raise HTTPException(status_code=404, detail="Job not found")
-    company_id = str(source.get("company_id") or "")
-    existing_human_context = _build_job_human_context_editor_state(job_id, company_id)
-    description_metadata, cleaned_description = _extract_job_description_metadata(source.get("description"))
-    benefits = source.get("benefits")
-    if not isinstance(benefits, list):
-        benefits = []
-    resp = supabase.table("job_drafts").insert({
-        "company_id": company_id,
-        "status": "draft",
-        "title": f"{str(source.get('title') or '').strip()} (Copy)".strip(),
-        "role_summary": cleaned_description,
-        "responsibilities": cleaned_description,
-        "requirements": "",
-        "nice_to_have": "",
-        "benefits_structured": benefits,
-        "salary_from": source.get("salary_from"),
-        "salary_to": source.get("salary_to"),
-        "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
-        "salary_timeframe": source.get("salary_timeframe") or ("project_total" if description_metadata.get("challenge_format") == "micro_job" else "month"),
-        "contract_type": source.get("contract_type"),
-        "work_model": source.get("work_type") or source.get("work_model"),
-        "workplace_address": source.get("workplace_address") or source.get("location"),
-        "location_public": source.get("location"),
-        "contact_email": source.get("contact_email"),
-        "editor_state": {
-            "selected_section": "role_summary",
-            "hiring_stage": description_metadata.get("hiring_stage") or "collecting_cvs",
-            "micro_job": {
-                "challenge_format": description_metadata.get("challenge_format") or "standard",
-                "kind": description_metadata.get("kind"),
-                "time_estimate": description_metadata.get("time_estimate"),
-                "collaboration_modes": description_metadata.get("collaboration_modes") or [],
-                "long_term_potential": description_metadata.get("long_term_potential"),
-            },
-            "human_context": existing_human_context,
-        },
-        "created_by": user.get("id") or user.get("auth_id"),
-        "updated_by": user.get("id") or user.get("auth_id"),
-    }).execute()
-    if not resp.data:
-        raise HTTPException(status_code=500, detail="Failed to duplicate job into draft")
-    draft = resp.data[0]
-    draft["quality_report"] = _draft_to_validation_report(draft)
-    return {"draft": draft}
 
 
 @router.get("/jobs/{job_id}/human-context")
@@ -7509,49 +4544,6 @@ async def get_related_job_challenges(
 
     scored_items.sort(key=lambda item: item.get("similarity_score") or 0.0, reverse=True)
     return {"items": scored_items[:limit]}
-
-
-@router.patch("/company/roles/{job_id}/lifecycle")
-@router.patch("/company/jobs/{job_id}/lifecycle")
-@limiter.limit("30/minute")
-async def update_company_job_lifecycle(
-    job_id: str,
-    payload: JobLifecycleUpdateRequest,
-    request: Request,
-    user: dict = Depends(verify_subscription),
-):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    job_row = _require_job_access(user, job_id)
-    supabase.table("jobs").update({"status": payload.status}).eq("id", _normalize_job_id(job_id)).execute()
-    try:
-        update_job_fields(_normalize_job_id(job_id), {"status": payload.status})
-    except Exception:
-        pass
-
-    event_type = (
-        "job_closed" if payload.status == "closed"
-        else "job_paused" if payload.status == "paused"
-        else "job_archived" if payload.status == "archived"
-        else "job_reopened"
-    )
-    _write_company_activity_log(
-        company_id=str(job_row.get("company_id") or ""),
-        event_type=event_type,
-        payload=_build_role_activity_payload(
-            job_id=str(job_row.get("id") or job_id),
-            job_title=str(job_row.get("title") or ""),
-            previous_status=str(job_row.get("status") or "active"),
-            next_status=payload.status,
-        ),
-        actor_user_id=user.get("id") or user.get("auth_id"),
-        subject_type="job",
-        subject_id=str(job_row.get("id") or job_id),
-    )
-    _sync_company_active_jobs_usage(str(job_row.get("company_id") or ""))
-    return {"status": "success"}
 
 
 @router.get("/jobs/recommendations")
@@ -8488,7 +5480,8 @@ async def analyze_job(
                 .maybe_single()
                 .execute()
             )
-            ai_cached = (cached.data or {}).get("ai_analysis") if cached and cached.data else None
+            cached_row = _safe_row(cached.data if cached else None)
+            ai_cached = cached_row.get("ai_analysis") if cached_row else None
             if isinstance(ai_cached, dict) and ai_cached.get("summary"):
                 return {"analysis": ai_cached, "cached": True}
         except Exception as exc:
@@ -8661,7 +5654,7 @@ async def match_candidates_service(request: Request, job_id: str = Query(...), u
         raise HTTPException(status_code=404, detail="Job not found")
 
     cand_res = supabase.table("candidate_profiles").select("*").execute()
-    candidates = cand_res.data or []
+    candidates = _safe_rows(cand_res.data if cand_res else None)
     job_features = extract_job_features(job)
     job_embeddings = ensure_job_embeddings([job], persist=False)
     job_embedding = job_embeddings.get(str(job.get("id") or job_id)) or []

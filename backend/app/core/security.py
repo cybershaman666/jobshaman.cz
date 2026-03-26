@@ -213,9 +213,6 @@ def verify_csrf_token_header(request: Request, user: dict) -> bool:
     is_valid = validate_csrf_token(csrf_token, user_id)
     if not is_valid:
         return False
-    # Consume token for state-changing requests to prevent replay
-    if request.method and request.method.upper() in ["POST", "PUT", "PATCH", "DELETE"]:
-        consume_csrf_token(csrf_token)
     return True
 
 def cleanup_csrf_sessions():

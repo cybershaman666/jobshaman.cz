@@ -149,6 +149,16 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
     }
 };
 
+const shouldAttachCsrfForAuthenticatedGet = (url: string): boolean => {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const path = parsed.pathname || '';
+        return path.includes('/signal-boost');
+    } catch {
+        return false;
+    }
+};
+
 /**
  * Generate and fetch a new CSRF token from the backend
  * Must be called after successful authentication
@@ -551,6 +561,7 @@ export const authenticatedFetch = async (
     const requestOrigin = getRequestOrigin(url);
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
+    const shouldAttachCsrf = requiresCsrf || (method === 'GET' && shouldAttachCsrfForAuthenticatedGet(url));
     const eligibleForBackendCooldown = isBackendOptionalCooldownEligibleUrl(url);
 
     if (eligibleForBackendCooldown && Date.now() < getBackendOptionalCooldownUntil(requestOrigin)) {
@@ -574,13 +585,12 @@ export const authenticatedFetch = async (
         const requestTimeoutMs = resolveRequestTimeoutMs(url);
         const callerSignal = options.signal;
         let abortedByCaller = !!callerSignal?.aborted;
-        let csrfTokenWasAttached = false;
 
         if (resolvedAuthToken) {
             headers.set('Authorization', `Bearer ${resolvedAuthToken}`);
         }
 
-        if (requiresCsrf) {
+        if (shouldAttachCsrf) {
             let csrfToken = forceFreshCsrf ? null : getCsrfToken();
             if (!csrfToken && resolvedAuthToken) {
                 const requestOrigin = getRequestOrigin(url);
@@ -592,7 +602,6 @@ export const authenticatedFetch = async (
 
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
-                csrfTokenWasAttached = true;
             } else {
                 if (shouldEmitThrottledLog(lastMissingCsrfLogAt)) {
                     console.warn(`⚠️ No valid CSRF token found for ${method} request`);
@@ -652,11 +661,6 @@ export const authenticatedFetch = async (
                 throw error;
             }
         } finally {
-            // Backend CSRF tokens are single-use. Clear any attached token after the request
-            // so the next state-changing call fetches a fresh token instead of first hitting 403.
-            if (csrfTokenWasAttached && requiresCsrf) {
-                clearCsrfToken();
-            }
             if (cleanupCallerAbortListener) {
                 cleanupCallerAbortListener();
             }
@@ -666,8 +670,8 @@ export const authenticatedFetch = async (
 
     let response = await performRequest(false);
 
-    // CSRF tokens are single-use on backend. If we hit CSRF 403, refresh token and retry once.
-    if (requiresCsrf && response.status === 403) {
+    // If we hit a CSRF 403, refresh the token and retry once.
+    if (shouldAttachCsrf && response.status === 403) {
         const text = await response.clone().text().catch(() => '');
         const looksLikeCsrfError = text.toLowerCase().includes('csrf');
         if (looksLikeCsrfError) {
