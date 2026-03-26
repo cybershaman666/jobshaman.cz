@@ -102,6 +102,9 @@ interface PathNode {
   imageUrl: string | null;
   x: number;
   y: number;
+  rank: number;
+  gravityPull: number;
+  orbitDistance: number;
   textPos: 'left' | 'right';
 }
 
@@ -115,6 +118,20 @@ interface RoleNode {
   featuredChallenge: CareerOSChallenge;
   challenges: CareerOSChallenge[];
   imageUrl: string | null;
+}
+
+interface PathInsightPanelContent {
+  eyebrow: string;
+  title: string;
+  body: string;
+  entryLabel: string;
+  entryPoints: string[];
+  nextLabel: string;
+  nextSteps: string[];
+  roleStatement: string;
+  roleTitle: string;
+  roleSubtitle: string;
+  footer: string;
 }
 
 interface ExpandedClusterChild {
@@ -290,9 +307,62 @@ const buildAdaptiveOrbit = (
 
 const getAdaptivePathLayoutSlots = (count: number): Array<{ x: number; y: number }> => {
   const preset = pathLayoutPresets[count];
-  if (preset) return preset;
+  const slots = preset || buildAdaptiveOrbit(count, 340, 270).map(({ x, y }) => ({ x, y }));
+  if (count <= 0) return [];
+  if (count === 1) {
+    return [{ x: 310, y: -24 }];
+  }
 
-  return buildAdaptiveOrbit(count, 340, 270).map(({ x, y }) => ({ x, y }));
+  return [...slots].sort((left, right) => {
+    const desirability = (slot: { x: number; y: number }) =>
+      Math.abs(slot.x) - Math.abs(slot.y) * 1.35 + (slot.x >= 0 ? 140 : 0);
+    return desirability(right) - desirability(left);
+  });
+};
+
+const buildGravitationalPathLayout = (
+  rankedDomains: Array<{ score: number }>,
+): Array<{ x: number; y: number; orbitDistance: number; gravityPull: number }> => {
+  const baseSlots = getAdaptivePathLayoutSlots(rankedDomains.length);
+  const scores = rankedDomains.map((item) => Number(item.score || 0));
+  const maxScore = Math.max(...scores, 1);
+  const minScore = Math.min(...scores, maxScore);
+  const scoreSpan = Math.max(1, maxScore - minScore);
+  const rankPullFactors = [0.62, 0.78, 0.92, 1.05, 1.18];
+  const resolveCentralExclusionRadius = (dx: number, dy: number): number => {
+    const horizontalSafeRadius = 290;
+    const verticalSafeRadius = dy > 0 ? 300 : 236;
+    const denominator = Math.sqrt(
+      (dx * dx) / (horizontalSafeRadius * horizontalSafeRadius)
+      + (dy * dy) / (verticalSafeRadius * verticalSafeRadius),
+    );
+    return denominator > 0 ? 1 / denominator + 22 : verticalSafeRadius;
+  };
+
+  return rankedDomains.map((cluster, index) => {
+    const baseSlot = baseSlots[index] || { x: 0, y: -250 };
+    const normalizedScore = (cluster.score - minScore) / scoreSpan;
+    const rankPull = rankPullFactors[index] ?? (1.18 + Math.max(0, index - rankPullFactors.length + 1) * 0.08);
+    const scorePull = normalizedScore * 0.08;
+    const pullFactor = Math.max(0.58, rankPull - scorePull);
+    let x = Number(baseSlot.x) * pullFactor;
+    let y = Number(baseSlot.y) * pullFactor;
+    const currentDistance = Math.hypot(x, y) || 1;
+    const dx = x / currentDistance;
+    const dy = y / currentDistance;
+    const safeDistance = resolveCentralExclusionRadius(dx, dy);
+    const orbitDistance = Math.max(172, currentDistance, safeDistance);
+    x = dx * orbitDistance;
+    y = dy * orbitDistance;
+    const gravityPull = Math.max(0.32, 1 - index * 0.15 + normalizedScore * 0.18);
+
+    return {
+      x,
+      y,
+      orbitDistance,
+      gravityPull,
+    };
+  });
 };
 
 const buildSideClusterLayout = (count: number): Array<{ x: number; y: number; textPos: 'left' | 'right' }> => {
@@ -537,6 +607,143 @@ const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: T
       right.challengeCount - left.challengeCount
       || right.featuredChallenge.jhiScore - left.featuredChallenge.jhiScore)
     .slice(0, 10);
+};
+
+const localeIsCzech = (locale: string): boolean => /^cs\b/i.test(String(locale || '').trim());
+
+const buildPathInsightPanel = (node: PathNode, locale: string): PathInsightPanelContent => {
+  const isCs = localeIsCzech(locale);
+  const primaryRole = node.roleNodes[0] || null;
+  const roleTitle = primaryRole?.title || (isCs ? 'Konkrétní role' : 'Concrete role');
+  const roleSubtitle = primaryRole?.subtitle || (isCs ? 'Role, kterou stojí za to otevřít' : 'A role lane worth opening');
+  const signalText = normalizeRemapQuery([
+    node.title,
+    node.summary,
+    ...node.tags,
+    ...node.roleNodes.slice(0, 4).flatMap((role) => [role.title, role.summary]),
+    ...node.challenges.slice(0, 6).flatMap((challenge) => [
+      challenge.title,
+      challenge.challengeSummary,
+      ...challenge.requiredSkills,
+      ...challenge.topTags,
+    ]),
+  ].join(' '));
+  const supportFlow = /\b(customer support|customer service|support specialist|customer success|helpdesk|service desk|client care)\b/.test(signalText);
+  const operationsFlow = /\b(operations|office manager|front office|service operations|coordinator|back office)\b/.test(signalText);
+  const peopleFlow = /\b(hr|people ops|recruit|talent acquisition|onboarding)\b/.test(signalText);
+  const commercialFlow = /\b(account manager|sales|business development|relationship manager|client partner)\b/.test(signalText);
+  const topSignals = uniqStrings(node.challenges.flatMap((challenge) => [...challenge.requiredSkills, ...challenge.topTags]))
+    .filter((item) => item.length <= 28)
+    .slice(0, 2);
+  const nextRoleTitles = uniqStrings(node.roleNodes.slice(1, 4).map((role) => role.title)).slice(0, 2);
+
+  if (supportFlow) {
+    return {
+      eyebrow: 'Insight panel',
+      title: isCs ? 'Zákaznická podpora' : 'Customer support',
+      body: isCs
+        ? 'Práce s lidmi, řešení problémů v reálném čase.'
+        : 'Working with people and solving problems in real time.',
+      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
+      entryPoints: isCs ? ['Komunikace', 'Jazykové skills'] : ['Communication', 'Language skills'],
+      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
+      nextSteps: ['Customer Success', 'Operations'],
+      roleStatement: isCs
+        ? 'Denně řešíš problémy lidí a vidíš okamžitý dopad.'
+        : 'You solve people problems every day and see immediate impact.',
+      roleTitle,
+      roleSubtitle: isCs ? 'Teď už víš, proč na tuhle roli kliknout.' : 'Now the reason to click is obvious.',
+      footer: isCs
+        ? 'Nejdřív pochopíš směr. Teprve potom otevíráš konkrétní role.'
+        : 'Understand the direction first. Open concrete roles second.',
+    };
+  }
+
+  if (operationsFlow) {
+    return {
+      eyebrow: 'Insight panel',
+      title: isCs ? 'Operations' : 'Operations',
+      body: isCs
+        ? 'Držíš pohromadě provoz, priority a kvalitu bez zbytečného chaosu.'
+        : 'You keep operations, priorities, and service quality aligned without chaos.',
+      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
+      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Koordinace', 'Plánování'] : ['Coordination', 'Planning']),
+      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
+      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['Operations Manager', 'Team Lead'],
+      roleStatement: isCs
+        ? 'Hlídáš tok práce, lidi i detaily, na kterých stojí celý provoz.'
+        : 'You keep work, people, and details moving where the whole operation depends on them.',
+      roleTitle,
+      roleSubtitle,
+      footer: isCs
+        ? 'Panel má vysvětlit logiku směru, ne tě zahltit katalogem.'
+        : 'The panel should explain the direction, not bury you in a catalog.',
+    };
+  }
+
+  if (peopleFlow) {
+    return {
+      eyebrow: 'Insight panel',
+      title: isCs ? 'Práce s lidmi' : 'People path',
+      body: isCs
+        ? 'Tady se komunikace mění v onboarding, podporu týmu a práci s talenty.'
+        : 'This is where communication turns into onboarding, team support, and talent work.',
+      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
+      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Empatie', 'Komunikace'] : ['Empathy', 'Communication']),
+      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
+      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['People Ops', 'Recruiting'],
+      roleStatement: isCs
+        ? 'Máš dopad na to, jak lidé nastupují, rostou a fungují v týmu.'
+        : 'You shape how people join, grow, and function inside a team.',
+      roleTitle,
+      roleSubtitle,
+      footer: isCs
+        ? 'Nejdřív dává smysl pochopit lidskou část role. Nabídky přijdou až potom.'
+        : 'First understand the human side of the role. Offers can come second.',
+    };
+  }
+
+  if (commercialFlow) {
+    return {
+      eyebrow: 'Insight panel',
+      title: isCs ? 'Růst přes vztahy' : 'Relationship growth',
+      body: isCs
+        ? 'Vztahy, důvěra a obchodní cit se tady mění v konkrétní růst.'
+        : 'Relationships, trust, and commercial judgment turn into measurable growth here.',
+      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
+      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Komunikace', 'Vyjednávání'] : ['Communication', 'Negotiation']),
+      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
+      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['Customer Success', 'Account Management'],
+      roleStatement: isCs
+        ? 'Tahle role dává smysl, pokud umíš budovat důvěru a posouvat vztah dopředu.'
+        : 'This role makes sense when you know how to build trust and move a relationship forward.',
+      roleTitle,
+      roleSubtitle,
+      footer: isCs
+        ? 'Klik není o prohlížení katalogu. Je o pochopení, kde je tvoje síla.'
+        : 'The click is not about browsing a catalog. It is about seeing where your edge is.',
+    };
+  }
+
+  return {
+    eyebrow: 'Insight panel',
+    title: node.title,
+    body: isCs
+      ? 'Tady dáváš dohromady, co už umíš, s tím, kde může být další silný krok.'
+      : 'This is where what you already do well connects with the next strong move.',
+    entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
+    entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Komunikace', 'Koordinace'] : ['Communication', 'Coordination']),
+    nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
+    nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : [roleTitle],
+    roleStatement: isCs
+      ? 'Tahle role navazuje na to, co už děláš dobře, a dává tomu jasnější směr.'
+      : 'This role builds on what you already do well and gives it a clearer direction.',
+    roleTitle,
+    roleSubtitle,
+    footer: isCs
+      ? 'Nejdřív pochopíš směr. Pak teprve dává smysl jít do konkrétních nabídek.'
+      : 'Understand the direction first. Then it makes sense to open concrete offers.',
+  };
 };
 
 const uniqStrings = (values: string[]): string[] =>
@@ -856,16 +1063,11 @@ const buildPathNodes = (
     .sort((left, right) => right.score - left.score)
     .slice(0, 5);
 
-  const layoutSlots = getAdaptivePathLayoutSlots(rankedDomains.length);
+  const gravitationalLayout = buildGravitationalPathLayout(rankedDomains);
 
   return rankedDomains.map((cluster, index) => {
-    const baseSlot = layoutSlots[index] || { x: 0, y: -250 };
+    const layout = gravitationalLayout[index] || { x: 0, y: -250, orbitDistance: 250, gravityPull: 0.4 };
     const gravity: PathNode['gravity'] = index < 2 ? 'strong' : 'soft';
-    const gravityFactor = gravity === 'strong' ? 0.94 : 1;
-    const slot = {
-      x: Number(baseSlot.x) * gravityFactor,
-      y: Number(baseSlot.y) * gravityFactor,
-    };
     const domainLabel = getLocalizedDomainLabel(cluster.domainKey, t);
     const topRoleLabels = cluster.roleNodes.slice(0, 2).map((role) => role.title);
 
@@ -898,9 +1100,12 @@ const buildPathNodes = (
       challenges: cluster.items,
       roleNodes: cluster.roleNodes,
       imageUrl: cluster.featuredChallenge.coverImageUrl || cluster.featuredChallenge.avatarUrl || null,
-      x: slot.x,
-      y: slot.y,
-      textPos: slot.x < 0 ? 'left' : 'right',
+      x: layout.x,
+      y: layout.y,
+      rank: index,
+      gravityPull: layout.gravityPull,
+      orbitDistance: layout.orbitDistance,
+      textPos: layout.x < 0 ? 'left' : 'right',
     };
   });
 };
@@ -2315,6 +2520,18 @@ const CareerPathStage: React.FC<{
   const { t } = useTranslation();
   const expandedNode = nodes.find((node) => node.id === expandedPathId) || null;
   const expandedChildren = useMemo(() => buildExpandedClusterChildren(expandedNode), [expandedNode]);
+  const orbitGuides = useMemo(
+    () =>
+      nodes
+        .map((node) => ({
+          id: node.id,
+          orbitDistance: node.orbitDistance,
+          gravityPull: node.gravityPull,
+          active: selectedPathId === node.id,
+        }))
+        .sort((left, right) => left.orbitDistance - right.orbitDistance),
+    [nodes, selectedPathId],
+  );
   const remainingExpandedCount = expandedNode ? Math.max(0, expandedNode.roleNodes.length - expandedChildren.length) : 0;
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
@@ -2356,6 +2573,19 @@ const CareerPathStage: React.FC<{
               </feMerge>
             </filter>
           </defs>
+          {orbitGuides.map((orbit, index) => (
+            <circle
+              key={`orbit-${orbit.id}`}
+              cx="0"
+              cy="0"
+              r={orbit.orbitDistance}
+              fill="none"
+              stroke={orbit.active ? 'rgba(34,211,238,0.32)' : 'rgba(148,163,184,0.16)'}
+              strokeWidth={orbit.active ? '1.3' : '0.9'}
+              strokeDasharray={orbit.active ? '5 10' : '4 12'}
+              opacity={Math.max(0.18, 0.42 - index * 0.05 + orbit.gravityPull * 0.08)}
+            />
+          ))}
           {nodes.map((node) => {
             const dist = Math.hypot(node.x, node.y) || 1;
             const dx = node.x / dist;
@@ -2363,20 +2593,32 @@ const CareerPathStage: React.FC<{
             const tone = toneClasses[node.tone];
             const strong = node.gravity === 'strong';
             const elevated = strong || hoveredPathId === node.id || selectedPathId === node.id;
+            const lineOpacity = Math.min(0.36, 0.12 + node.gravityPull * 0.14);
+            const pulseOpacity = Math.min(0.92, 0.34 + node.gravityPull * 0.44);
+            const baseStrokeWidth = 1 + node.gravityPull * 0.55;
+            const pulseStrokeWidth = 1.6 + node.gravityPull * 1.15;
 
             return (
               <g key={`line-${node.id}`}>
-                <line x1={dx * 84} y1={dy * 84} x2={dx * (dist - 52)} y2={dy * (dist - 52)} stroke={tone.line} strokeWidth={elevated ? '1.25' : '1'} opacity={elevated ? '0.24' : '0.2'} />
                 <line
                   x1={dx * 84}
                   y1={dy * 84}
                   x2={dx * (dist - 52)}
                   y2={dy * (dist - 52)}
                   stroke={tone.line}
-                  strokeWidth={elevated ? '2.4' : '1.8'}
+                  strokeWidth={elevated ? baseStrokeWidth + 0.3 : baseStrokeWidth}
+                  opacity={elevated ? lineOpacity + 0.06 : lineOpacity}
+                />
+                <line
+                  x1={dx * 84}
+                  y1={dy * 84}
+                  x2={dx * (dist - 52)}
+                  y2={dy * (dist - 52)}
+                  stroke={tone.line}
+                  strokeWidth={elevated ? pulseStrokeWidth + 0.35 : pulseStrokeWidth}
                   strokeDasharray="8 8"
                   filter="url(#careeros-path-line-glow)"
-                  opacity={elevated ? '0.86' : '0.64'}
+                  opacity={elevated ? Math.min(0.98, pulseOpacity + 0.08) : pulseOpacity}
                   style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                 />
               </g>
@@ -2417,6 +2659,8 @@ const CareerPathStage: React.FC<{
 
             <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <div className="flex flex-col items-center">
+            <div className="pointer-events-none absolute inset-[-110px] rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.22),rgba(34,211,238,0.12),transparent_70%)] blur-3xl" />
+            <div className="pointer-events-none absolute inset-[-52px] rounded-full border border-cyan-200/20 dark:border-cyan-400/15" />
             <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
               <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-emerald-500/10 to-orange-500/10 blur-md" />
               <div className="relative z-10 h-[104px] w-[104px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
@@ -2441,12 +2685,15 @@ const CareerPathStage: React.FC<{
             const active = selectedPathId === node.id;
             const strong = node.gravity === 'strong';
             const elevated = strong || hoveredPathId === node.id || active;
+            const attracted = node.gravityPull >= 0.84;
+            const restingScale = 0.9 + node.gravityPull * 0.07;
+            const elevatedScale = Math.max(restingScale + 0.06, 0.98 + node.gravityPull * 0.04);
 
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.88, x: 0, y: 0 }}
-                  animate={{ opacity: elevated ? 1 : 0.88, scale: elevated ? 1.04 : 0.96, x: node.x, y: node.y }}
+                  animate={{ opacity: elevated ? 1 : 0.88, scale: elevated ? elevatedScale : restingScale, x: node.x, y: node.y }}
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 220, damping: 18 }}
                   className="relative flex flex-col items-center"
                 >
@@ -2460,20 +2707,20 @@ const CareerPathStage: React.FC<{
                     disabled={!interactive}
                     className={cn(
                       'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-all duration-200 hover:scale-105',
-                      elevated ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
+                      elevated || attracted ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
                       active ? 'scale-105' : '',
                     )}
                   >
                     <div
                       className={cn(
                         'relative flex items-center justify-center rounded-full border bg-white/88 backdrop-blur-md transition-all duration-200 group-hover:scale-110 dark:bg-slate-950/82',
-                        elevated ? 'h-[90px] w-[90px]' : 'h-[80px] w-[80px]',
+                        elevated || attracted ? 'h-[92px] w-[92px]' : 'h-[80px] w-[80px]',
                         tone.ring,
                         tone.glow,
                         active ? 'border-emerald-400 shadow-[0_0_34px_rgba(16,185,129,0.28)]' : '',
                       )}
                     >
-                      <div className={cn('absolute inset-1 rounded-full opacity-20 blur-md', node.tone === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500')} />
+                      <div className={cn('absolute inset-1 rounded-full blur-md', node.tone === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500', attracted ? 'opacity-35' : 'opacity-20')} />
                     {node.challengeCount > 1 ? (
                       <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[68px] w-[68px]' : 'h-[58px] w-[58px]')}>
                         <NodeImage
@@ -2930,12 +3177,15 @@ const PathPanel: React.FC<{
   onClose: () => void;
   onToggleExpand: () => void;
   onExploreOffers: () => void;
-  onPreviewRole: (role: RoleNode) => void;
-}> = ({ node, expanded, visible, onClose, onToggleExpand, onExploreOffers, onPreviewRole }) => {
-  const { t } = useTranslation();
+}> = ({ node, expanded, visible, onClose, onToggleExpand, onExploreOffers }) => {
+  const { t, i18n } = useTranslation();
+  const insight = useMemo(
+    () => (node ? buildPathInsightPanel(node, String(i18n.resolvedLanguage || i18n.language || 'en')) : null),
+    [i18n.language, i18n.resolvedLanguage, node],
+  );
   return (
   <AnimatePresence>
-    {node && visible ? (
+    {node && visible && insight ? (
       <motion.aside
         initial={{ x: 420, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -2946,9 +3196,12 @@ const PathPanel: React.FC<{
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 pb-4 pt-5 dark:border-slate-800/80">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">{t('careeros.path_panel.title', { defaultValue: 'Career Node' })}</div>
-              <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-800 dark:text-slate-100">{node.title}</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('careeros.path_panel.roles_in_domain', { defaultValue: '{{count}} role lanes in this domain', count: node.roleNodes.length })}</div>
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>{insight.eyebrow}</span>
+              </div>
+              <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-800 dark:text-slate-100">{insight.title}</div>
+              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{insight.body}</div>
             </div>
             <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200">
               <X className="h-4 w-4" />
@@ -2956,41 +3209,41 @@ const PathPanel: React.FC<{
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            <div className="flex flex-wrap gap-2">
-              {node.tags.map((tag) => (
-                <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] font-semibold', toneClasses[node.tone].chip)}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <p className="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-300">{node.summary}</p>
-
-            <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/75">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.path_panel.top_role', { defaultValue: 'Top role lane' })}</div>
-              <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{node.roleNodes[0]?.title || node.featuredChallenge.title}</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{node.roleNodes[0]?.subtitle || node.featuredChallenge.company}</div>
-            </div>
-
-            <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.path_panel.inside_cluster', { defaultValue: 'Inside this cluster' })}</div>
-              <div className="mt-3 space-y-2">
-                {node.roleNodes.slice(0, 5).map((role) => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    onClick={() => onPreviewRole(role)}
-                    className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-cyan-300 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-cyan-500/50"
-                  >
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{compactText(role.title, 30)}</div>
-                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{role.subtitle}</div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-                  </button>
-                ))}
+            <div className="rounded-[24px] border border-cyan-100 bg-cyan-50/90 p-5 shadow-[0_18px_38px_-28px_rgba(8,145,178,0.45)] dark:border-cyan-500/20 dark:bg-cyan-950/16">
+              <div className="text-lg font-semibold leading-7 text-slate-900 dark:text-slate-50">{insight.roleStatement}</div>
+              <div className="mt-4 border-t border-cyan-200/70 pt-4 dark:border-cyan-500/20">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                  {t('careeros.path_panel.top_role', { defaultValue: 'Concrete role' })}
+                </div>
+                <div className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{insight.roleTitle}</div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{insight.roleSubtitle}</div>
               </div>
             </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[20px] border border-slate-200 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{insight.entryLabel}</div>
+                <div className="mt-3 space-y-2">
+                  {insight.entryPoints.map((item) => (
+                    <div key={item} className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      → {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[20px] border border-slate-200 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{insight.nextLabel}</div>
+                <div className="mt-3 space-y-2">
+                  {insight.nextSteps.map((item) => (
+                    <div key={item} className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      → {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">{insight.footer}</p>
           </div>
 
           <div className="grid gap-2 border-t border-slate-200/80 px-5 py-4 dark:border-slate-800/80">
@@ -4303,7 +4556,6 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           setPanelChallenge(selectedRole.featuredChallenge);
           setActiveLayer('job_offers');
         }}
-        onPreviewRole={handleRoleNodeClick}
       />
 
       <ChallengePanel
