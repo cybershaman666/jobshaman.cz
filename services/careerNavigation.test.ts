@@ -102,6 +102,20 @@ const pathOptions: CareerNavigationPathOption[] = [
     ],
     topSkills: ['Onboarding', 'Interview coordination', 'Communication'],
   },
+  {
+    id: 'marketing',
+    title: 'Marketing Manager',
+    summary: 'Own campaigns, brand growth, and acquisition.',
+    preview: 'Growth planning and marketing execution.',
+    primaryDomain: 'marketing',
+    challengeIds: ['job-6'],
+    x: -180,
+    y: -220,
+    roleOptions: [
+      { id: 'role-marketing-manager', title: 'Marketing Manager', challengeIds: ['job-6'] },
+    ],
+    topSkills: ['Campaigns', 'Brand', 'Growth'],
+  },
 ];
 
 const makeLearning = (overrides: Partial<CareerNavigationLearningSignal> = {}): CareerNavigationLearningSignal => ({
@@ -258,5 +272,49 @@ describe('careerNavigation', () => {
 
     expect(goal.status).toBe('needs_clarification');
     expect(goal.alternatives.length).toBeGreaterThan(0);
+  });
+
+  it('keeps an explicit AI Product Manager goal instead of relabeling it to a generic manager match', () => {
+    const profile = makeProfile({
+      jobTitle: 'Product Analyst',
+      skills: ['Product discovery', 'User research', 'AI tooling'],
+      inferredSkills: ['Roadmapping', 'Experimentation'],
+      preferences: {
+        ...makeProfile().preferences,
+        searchProfile: {
+          ...makeProfile().preferences.searchProfile!,
+          primaryDomain: 'product_management',
+          secondaryDomains: ['ai_data', 'it'],
+          inferredPrimaryDomain: 'product_management',
+          inferredTargetRole: 'Product Analyst',
+        },
+      },
+    });
+
+    const goal = inferCareerNavigationGoal({
+      goalText: 'AI Product Manager',
+      userProfile: profile,
+      pathOptions,
+      locale: 'en',
+    });
+
+    const route = buildCareerNavigationRoute({
+      goal,
+      userProfile: profile,
+      pathOptions,
+      learning: makeLearning({
+        currentRole: 'Product Analyst',
+        targetRole: 'AI Product Manager',
+        targetDomainLabel: 'Product',
+        missingSkills: ['Roadmapping', 'AI product sense'],
+      }),
+      miniChallenges,
+      useMarketPreferences: true,
+      locale: 'en',
+    });
+
+    expect(route.destinationLabel).toBe('AI Product Manager');
+    expect(route.summary).toContain('AI Product Manager');
+    expect(route.summary).toContain('closest available layer');
   });
 });

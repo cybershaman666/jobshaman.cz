@@ -173,6 +173,132 @@ def _role_transfer_alignment(candidate_text: str, job_text: str) -> tuple[float,
     return 0.2, candidate_families, job_families, 0.0
 
 
+def _canonical_role_alignment(candidate_features: Dict, job_features: Dict) -> tuple[float, bool]:
+    target_roles = [str(item or "").strip().lower() for item in (candidate_features.get("canonical_target_roles") or []) if str(item or "").strip()]
+    job_role = str(job_features.get("canonical_role") or "").strip().lower()
+    if not target_roles or not job_role:
+        return 0.55, False
+    if job_role in target_roles:
+        return 1.0, True
+    job_tokens = {token for token in job_role.split() if len(token) >= 2}
+    best = 0.0
+    for role in target_roles:
+        role_tokens = {token for token in role.split() if len(token) >= 2}
+        if not role_tokens:
+            continue
+        overlap = len(role_tokens.intersection(job_tokens))
+        if overlap <= 0:
+            continue
+        union = max(1, len(role_tokens.union(job_tokens)))
+        best = max(best, overlap / union)
+    return _clamp01(0.45 + (best * 0.4)), False
+
+
+def _canonical_family_transfer(candidate_features: Dict, job_features: Dict) -> tuple[float, List[str], List[str]]:
+    candidate_families = [str(item or "").strip().lower() for item in (candidate_features.get("canonical_role_families") or []) if str(item or "").strip()]
+    job_family = str(job_features.get("canonical_role_family") or "").strip().lower()
+    if not candidate_families or not job_family:
+        return 0.55, candidate_families, [job_family] if job_family else []
+    if job_family in candidate_families:
+        return 1.0, candidate_families, [job_family]
+    job_parts = set(job_family.split("_"))
+    best = 0.0
+    for family in candidate_families:
+        family_parts = set(family.split("_"))
+        if not family_parts:
+            continue
+        overlap = len(family_parts.intersection(job_parts))
+        if overlap <= 0:
+            continue
+        best = max(best, overlap / max(1, len(family_parts.union(job_parts))))
+    return _clamp01(0.4 + (best * 0.35)), candidate_families, [job_family]
+
+
+def _canonical_domain_alignment(candidate_features: Dict, job_features: Dict) -> tuple[float, List[str], str]:
+    candidate_domains = [
+        str(item or "").strip().lower()
+        for item in (
+            candidate_features.get("canonical_domains")
+            or [candidate_features.get("primary_domain")]
+        )
+        if str(item or "").strip()
+    ]
+    job_domain = str(job_features.get("canonical_domain") or "").strip().lower()
+    if not candidate_domains or not job_domain:
+        return 0.6, candidate_domains, job_domain
+    if job_domain in candidate_domains:
+        return 1.0, candidate_domains, job_domain
+    return 0.22, candidate_domains, job_domain
+
+
+def _market_language_compatibility(candidate_features: Dict, job_features: Dict) -> tuple[float, dict]:
+    preferred_languages = {
+        str(item or "").strip().lower()
+        for item in (candidate_features.get("preferred_languages") or [])
+        if str(item or "").strip()
+    }
+    job_language = str(job_features.get("language_code") or "").strip().lower()
+    preferred_market = str(candidate_features.get("preferred_market") or "").strip().lower()
+    job_market = str(job_features.get("market_code") or "").strip().lower()
+    work_mode = str(job_features.get("canonical_work_mode") or job_features.get("work_model") or "").strip().lower()
+
+    score = 0.45
+    language_match = False
+    market_match = False
+    if preferred_languages and job_language:
+        language_match = job_language in preferred_languages
+        score += 0.3 if language_match else -0.12
+    elif not job_language:
+        score += 0.05
+
+    if preferred_market and job_market:
+        market_match = preferred_market == job_market
+        if market_match:
+            score += 0.2
+        elif job_market == "remote" or work_mode == "remote":
+            score += 0.1
+        else:
+            score -= 0.08
+    elif job_market == "remote" or work_mode == "remote":
+        score += 0.08
+
+    return _clamp01(score), {
+        "preferred_languages": sorted(preferred_languages),
+        "job_language": job_language,
+        "language_match": language_match,
+        "preferred_market": preferred_market,
+        "job_market": job_market,
+        "market_match": market_match,
+    }
+
+
+def _cluster_proximity(
+    candidate_features: Dict,
+    job_features: Dict,
+    *,
+    canonical_role_alignment: float,
+    canonical_family_transfer: float,
+    canonical_domain_alignment: float,
+    market_language_compatibility: float,
+    seniority_alignment: float,
+) -> float:
+    cluster_key = str(job_features.get("cluster_key") or "").strip().lower()
+    if cluster_key:
+        return _clamp01(
+            (0.32 * canonical_role_alignment)
+            + (0.22 * canonical_family_transfer)
+            + (0.18 * canonical_domain_alignment)
+            + (0.14 * market_language_compatibility)
+            + (0.14 * seniority_alignment)
+        )
+    return _clamp01(
+        (0.38 * canonical_role_alignment)
+        + (0.24 * canonical_family_transfer)
+        + (0.2 * canonical_domain_alignment)
+        + (0.18 * market_language_compatibility)
+    )
+
+
 def _infer_seniority(text: str) -> str:
     t = (text or "").lower()
     if "principal" in t:
@@ -326,9 +452,21 @@ def score_job(
     exact_ratio, exact_hits, missing_skills = _exact_skill_ratio(candidate_skills, job_text)
     role_transfer_alignment, candidate_role_families, job_role_families, role_relation_strength = _role_transfer_alignment(candidate_text, job_text)
     intent_alignment, intent_penalty, matched_intent_signals, avoid_intent_hits = _intent_alignment(candidate_features, job_features)
+    canonical_role_alignment, canonical_role_exact_match = _canonical_role_alignment(candidate_features, job_features)
+    canonical_family_transfer, candidate_canonical_families, job_canonical_families = _canonical_family_transfer(candidate_features, job_features)
+    canonical_domain_alignment, candidate_canonical_domains, job_canonical_domain = _canonical_domain_alignment(candidate_features, job_features)
     base_similarity = _clamp01((0.65 * _clamp01(semantic_similarity)) + (0.35 * exact_ratio))
-    skill_similarity = _clamp01((0.55 * base_similarity) + (0.2 * role_transfer_alignment) + (0.25 * intent_alignment))
+    role_transfer_alignment = max(role_transfer_alignment, canonical_family_transfer)
+    skill_similarity = _clamp01(
+        (0.42 * base_similarity)
+        + (0.17 * role_transfer_alignment)
+        + (0.16 * intent_alignment)
+        + (0.15 * canonical_role_alignment)
+        + (0.10 * canonical_family_transfer)
+    )
     domain_alignment, strong_domain_mismatch, candidate_domains, job_domains = _domain_alignment(candidate_text, job_text)
+    if candidate_canonical_domains and job_canonical_domain:
+        domain_alignment = max(domain_alignment, canonical_domain_alignment)
     
     # ENHANCED domain mismatch penalty (Issue: CNC jobs showing for Product Managers)
     # Apply graduated penalty based on mismatch severity
@@ -358,7 +496,7 @@ def score_job(
     )
 
     candidate_seniority = _infer_seniority(candidate_features.get("title") or "")
-    job_seniority = _infer_seniority(job_features.get("title") or "")
+    job_seniority = str(job_features.get("canonical_seniority") or "").strip().lower() or _infer_seniority(job_features.get("title") or "")
     seniority_alignment, seniority_gap = _seniority_alignment(candidate_seniority, job_seniority)
 
     salary_alignment = _clamp01(
@@ -372,7 +510,17 @@ def score_job(
         )
     )
 
-    geography_weight = _clamp01(_geography_weight(candidate_features, job_features))
+    market_language_compatibility, market_language_details = _market_language_compatibility(candidate_features, job_features)
+    cluster_proximity = _cluster_proximity(
+        candidate_features,
+        job_features,
+        canonical_role_alignment=canonical_role_alignment,
+        canonical_family_transfer=canonical_family_transfer,
+        canonical_domain_alignment=canonical_domain_alignment,
+        market_language_compatibility=market_language_compatibility,
+        seniority_alignment=seniority_alignment,
+    )
+    geography_weight = _clamp01((0.68 * _geography_weight(candidate_features, job_features)) + (0.32 * market_language_compatibility))
 
     weighted = {
         "skill_match": skill_similarity,
@@ -422,6 +570,18 @@ def score_job(
         "job_domains": job_domains[:5],
         "role_transfer_alignment": round(role_transfer_alignment, 4),
         "role_relation_strength": round(role_relation_strength, 4),
+        "canonical_role_match": round(canonical_role_alignment, 4),
+        "canonical_role_exact_match": bool(canonical_role_exact_match),
+        "canonical_role_family_transfer": round(canonical_family_transfer, 4),
+        "cluster_proximity": round(cluster_proximity, 4),
+        "market_language_compatibility": round(market_language_compatibility, 4),
+        "candidate_canonical_role_families": candidate_canonical_families[:6],
+        "job_canonical_role_families": job_canonical_families[:2],
+        "candidate_canonical_domains": candidate_canonical_domains[:4],
+        "job_canonical_domain": job_canonical_domain,
+        "preferred_languages": market_language_details["preferred_languages"][:4],
+        "job_language_code": market_language_details["job_language"],
+        "job_market_code": market_language_details["job_market"],
         "intent_alignment": round(intent_alignment, 4),
         "intent_penalty": round(intent_penalty, 4),
         "intent_matched_signals": matched_intent_signals,
@@ -440,6 +600,10 @@ def score_job(
         reasons.insert(0, "Chybi povinna kvalifikace nebo zkusenost pro tuto roli")
     if avoid_intent_hits:
         reasons.insert(0, "Role jde proti jasnemu zameru kandidata")
+    elif canonical_role_exact_match:
+        reasons.insert(0, "Role presne odpovida cilovemu smeru kandidata")
+    elif canonical_role_alignment >= 0.82:
+        reasons.insert(0, "Role je velmi blizko cilove roli kandidata")
     elif intent_alignment >= 0.65:
         reasons.insert(0, "Role cte jasny cil a kontext kandidata")
     if role_transfer_alignment >= 0.95:

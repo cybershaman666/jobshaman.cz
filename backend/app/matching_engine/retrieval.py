@@ -4,7 +4,20 @@ from typing import Dict, List, Tuple
 
 from ..core.database import supabase
 from ..services.jobs_postgres_store import jobs_postgres_main_enabled, read_recent_jobs
+
 from .embeddings import EMBEDDING_MODEL, EMBEDDING_VERSION, embed_text
+
+
+def _attach_job_intelligence(jobs: List[Dict]) -> List[Dict]:
+    if not jobs:
+        return jobs
+    try:
+        from ..services.job_intelligence import get_job_intelligence_for_jobs
+
+        return get_job_intelligence_for_jobs(jobs)
+    except Exception as exc:
+        print(f"⚠️ [Matching] job intelligence attach failed: {exc}")
+        return jobs
 
 
 def _vector_literal(values: List[float]) -> str:
@@ -91,7 +104,7 @@ def ensure_job_embeddings(jobs: List[Dict], persist: bool = True) -> Dict[str, L
 
 def fetch_recent_jobs(limit: int = 500, days: int = 30) -> List[Dict]:
     if jobs_postgres_main_enabled():
-        return read_recent_jobs(limit=limit, days=days)
+        return _attach_job_intelligence(read_recent_jobs(limit=limit, days=days))
 
     if not supabase:
         return []
@@ -108,7 +121,7 @@ def fetch_recent_jobs(limit: int = 500, days: int = 30) -> List[Dict]:
             .execute()
         )
         if resp.data:
-            return resp.data
+            return _attach_job_intelligence(resp.data)
     except Exception:
         # fallback for environments where status is not populated
         resp = (
@@ -119,7 +132,7 @@ def fetch_recent_jobs(limit: int = 500, days: int = 30) -> List[Dict]:
             .limit(limit)
             .execute()
         )
-        return resp.data or []
+        return _attach_job_intelligence(resp.data or [])
     return []
 
 

@@ -15,6 +15,7 @@ from ..ai_orchestration.client import (
 )
 from ..core.runtime_config import get_active_model_config, get_release_flag
 from .candidate_intent import get_domain_keywords, resolve_candidate_intent_profile
+from .job_intelligence import resolve_candidate_job_targets
 
 _CACHE_TTL_SECONDS = 3600
 _CACHE: dict[str, tuple[datetime, dict[str, Any]]] = {}
@@ -59,7 +60,7 @@ def _fallback(candidate_profile: Dict[str, Any]) -> Dict[str, Any]:
         10,
     )
 
-    return {
+    payload = {
         "target_roles": _clip_list([target_role, intent.get("inferred_target_role")], 4),
         "adjacent_roles": _clip_list(search_profile.get("adjacentRoles") or [], 6),
         "priority_keywords": priority_keywords,
@@ -71,6 +72,7 @@ def _fallback(candidate_profile: Dict[str, Any]) -> Dict[str, Any]:
         "used_ai": False,
         "source": "deterministic_fallback",
     }
+    return {**payload, **resolve_candidate_job_targets(candidate_profile, intelligence=payload)}
 
 
 def _is_enabled(subject_id: Optional[str]) -> bool:
@@ -182,6 +184,7 @@ def get_candidate_recommendation_intelligence(candidate_profile: Dict[str, Any],
             "model_used": result.model_name,
             "fallback_used": fallback_used,
         }
+        payload = {**payload, **resolve_candidate_job_targets(candidate_profile, intelligence=payload)}
     except (AIClientError, ValueError, TypeError, json.JSONDecodeError) as exc:
         payload = {
             **fallback_payload,

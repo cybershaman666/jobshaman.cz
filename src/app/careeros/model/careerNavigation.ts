@@ -206,6 +206,19 @@ const uniqueStrings = (values: Array<string | null | undefined>): string[] => {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
+const genericRoleTokens = new Set([
+  'manager',
+  'specialist',
+  'coordinator',
+  'associate',
+  'lead',
+  'executive',
+  'consultant',
+  'assistant',
+  'officer',
+  'representative',
+]);
+
 const destinationSegment = (value: string): string => {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -248,7 +261,7 @@ const inferWorkModeHint = (value: string): CareerNavigationGoal['workModeHint'] 
 const inferSeniority = (value: string): CandidateSeniority | null => {
   const normalized = normalizeText(value);
   if (!normalized) return null;
-  if (/\b(lead|head|manager|director|principal)\b/.test(normalized)) return 'lead';
+  if (/\b(lead|head|director|principal)\b/.test(normalized)) return 'lead';
   if (/\b(senior|staff|expert)\b/.test(normalized)) return 'senior';
   if (/\b(mid|medior|intermediate)\b/.test(normalized)) return 'medior';
   if (/\b(junior|associate)\b/.test(normalized)) return 'junior';
@@ -263,7 +276,7 @@ const matchCount = (haystack: string, needle: string): number => {
   if (normalizedHaystack.includes(normalizedNeedle)) return 6;
   return normalizedNeedle
     .split(' ')
-    .filter((token) => token.length >= 3)
+    .filter((token) => token.length >= 3 && !genericRoleTokens.has(token))
     .reduce((sum, token) => sum + (normalizedHaystack.includes(token) ? 2 : 0), 0);
 };
 
@@ -331,7 +344,14 @@ const rankPathOptions = (
   input: string,
   pathOptions: CareerNavigationPathOption[],
   preferredDomain: CandidateDomainKey | null,
-): Array<{ path: CareerNavigationPathOption; role: CareerNavigationRoleOption | null; score: number }> => {
+): Array<{
+  path: CareerNavigationPathOption;
+  role: CareerNavigationRoleOption | null;
+  score: number;
+  pathScore: number;
+  roleScore: number;
+  domainScore: number;
+}> => {
   const normalizedInput = normalizeText(input);
   return pathOptions
     .map((path) => {
@@ -342,7 +362,7 @@ const rankPathOptions = (
       const roleScore = rankedRoles[0]?.score || 0;
       const domainScore = preferredDomain && path.primaryDomain === preferredDomain ? 8 : 0;
       const score = pathScore + roleScore + domainScore + Math.min(6, path.challengeIds.length);
-      return { path, role: rankedRoles[0]?.role || null, score };
+      return { path, role: rankedRoles[0]?.role || null, score, pathScore, roleScore, domainScore };
     })
     .sort((left, right) => right.score - left.score);
 };
@@ -896,6 +916,23 @@ export const buildCareerNavigationRoute = (input: {
   const targetMatch = pathRanking[0] || null;
   const targetPath = targetMatch?.path || null;
   const targetRole = targetMatch?.role || targetPath?.roleOptions[0] || null;
+  const explicitGoalLabel = input.goal.targetRole || input.goal.rawInput;
+  const exactRoleMatch = Boolean(
+    explicitGoalLabel
+    && targetRole
+    && normalizeText(targetRole.title) === normalizeText(explicitGoalLabel),
+  );
+  const strongLexicalMatch = Boolean(
+    targetMatch
+    && (
+      targetMatch.roleScore >= 4
+      || targetMatch.pathScore >= 6
+      || exactRoleMatch
+    ),
+  );
+  const displayTargetLabel = strongLexicalMatch
+    ? (targetRole?.title || targetPath?.title || explicitGoalLabel)
+    : (explicitGoalLabel || targetRole?.title || targetPath?.title || '');
 
   const currentRanking = rankPathOptions(
     currentRole,
@@ -947,6 +984,15 @@ export const buildCareerNavigationRoute = (input: {
           en: 'There is no strong target match in the data',
         })
       : '',
+    targetPath && !strongLexicalMatch
+      ? localeText(locale, {
+          cs: `Nejbližší dostupný cluster je ${targetRole?.title || targetPath.title}, ale cíl zatím nemá silnou shodu`,
+          sk: `Najbližší dostupný cluster je ${targetRole?.title || targetPath.title}, ale cieľ zatiaľ nemá silnú zhodu`,
+          de: `Der nächste verfügbare Cluster ist ${targetRole?.title || targetPath.title}, aber das Ziel hat noch kein starkes Match`,
+          pl: `Najbliższy dostępny klaster to ${targetRole?.title || targetPath.title}, ale cel nadal nie ma mocnego dopasowania`,
+          en: `The closest available cluster is ${targetRole?.title || targetPath.title}, but the goal still lacks a strong match`,
+        })
+      : '',
     bridgePath
       ? localeText(locale, {
           cs: 'Přímý skok je slabší než přes mezistanici',
@@ -980,6 +1026,7 @@ export const buildCareerNavigationRoute = (input: {
   const baseConfidence = clamp(
     input.goal.confidence
       + (targetPath ? 10 : -14)
+      + (strongLexicalMatch ? 6 : -12)
       + (directMove ? 10 : -4)
       - Math.min(16, input.learning.missingSkills.length * 3)
       - (input.learning.hasResourceMatches || input.learning.missingSkills.length === 0 ? 0 : 8),
@@ -1002,7 +1049,7 @@ export const buildCareerNavigationRoute = (input: {
       confidence: 42,
       friction: 'high',
       ctaTarget: { kind: 'open_profile' },
-      meta: { role: targetRole?.title || targetPath?.title || input.goal.targetRole || input.goal.rawInput },
+      meta: { role: displayTargetLabel },
     }));
   }
 
@@ -1094,7 +1141,7 @@ export const buildCareerNavigationRoute = (input: {
     confidence: clamp(baseConfidence, 38, 92),
     friction: directMove ? 'low' : 'medium',
     ctaTarget: { kind: 'open_path', pathId: targetPath?.id || null, roleId: targetRole?.id || null },
-    meta: { role: targetRole?.title || targetPath?.title || input.goal.targetRole },
+    meta: { role: displayTargetLabel },
   }));
 
   steps.push(buildStep(locale, {
@@ -1153,7 +1200,7 @@ export const buildCareerNavigationRoute = (input: {
       : []),
   ];
 
-  const destinationLabel = targetRole?.title || targetPath?.title || input.goal.targetRole || input.goal.rawInput;
+  const destinationLabel = displayTargetLabel || targetRole?.title || targetPath?.title || input.goal.targetRole || input.goal.rawInput;
   const etaLabel = formatEta(locale, steps.length, input.learning.missingSkills.length);
   const routeConfidence = clamp(
     Math.round(
@@ -1167,13 +1214,21 @@ export const buildCareerNavigationRoute = (input: {
     goal: input.goal,
     status: routeStatus,
     destinationLabel,
-    summary: localeText(locale, {
-      cs: `${formatConfidenceLabel(locale, routeConfidence)} směrem k ${destinationLabel}.`,
-      sk: `${formatConfidenceLabel(locale, routeConfidence)} smerom k ${destinationLabel}.`,
-      de: `${formatConfidenceLabel(locale, routeConfidence)} in Richtung ${destinationLabel}.`,
-      pl: `${formatConfidenceLabel(locale, routeConfidence)} w stronę ${destinationLabel}.`,
-      en: `${formatConfidenceLabel(locale, routeConfidence)} toward ${destinationLabel}.`,
-    }),
+    summary: !strongLexicalMatch && targetPath
+      ? localeText(locale, {
+          cs: `${formatConfidenceLabel(locale, routeConfidence)} směrem k ${destinationLabel}. Nejbližší dostupná vrstva je ${targetRole?.title || targetPath.title}.`,
+          sk: `${formatConfidenceLabel(locale, routeConfidence)} smerom k ${destinationLabel}. Najbližšia dostupná vrstva je ${targetRole?.title || targetPath.title}.`,
+          de: `${formatConfidenceLabel(locale, routeConfidence)} in Richtung ${destinationLabel}. Die nächste verfügbare Ebene ist ${targetRole?.title || targetPath.title}.`,
+          pl: `${formatConfidenceLabel(locale, routeConfidence)} w stronę ${destinationLabel}. Najbliższa dostępna warstwa to ${targetRole?.title || targetPath.title}.`,
+          en: `${formatConfidenceLabel(locale, routeConfidence)} toward ${destinationLabel}. The closest available layer is ${targetRole?.title || targetPath.title}.`,
+        })
+      : localeText(locale, {
+          cs: `${formatConfidenceLabel(locale, routeConfidence)} směrem k ${destinationLabel}.`,
+          sk: `${formatConfidenceLabel(locale, routeConfidence)} smerom k ${destinationLabel}.`,
+          de: `${formatConfidenceLabel(locale, routeConfidence)} in Richtung ${destinationLabel}.`,
+          pl: `${formatConfidenceLabel(locale, routeConfidence)} w stronę ${destinationLabel}.`,
+          en: `${formatConfidenceLabel(locale, routeConfidence)} toward ${destinationLabel}.`,
+        }),
     etaLabel,
     confidence: routeConfidence,
     likelyFrictions,

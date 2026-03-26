@@ -275,6 +275,69 @@ def test_matching_prefers_relevant_manager_ai_dev_hotel_roles_over_unrelated_tra
     assert all(breakdown.get("hard_cap", 100) <= 15 for _, breakdown in bad_scores)
 
 
+def test_canonical_role_match_boosts_ai_product_direction_over_marketing():
+    candidate = {
+        "job_title": "Product Manager",
+        "skills": ["roadmap", "product discovery", "stakeholder management", "ai"],
+    }
+    intelligence = {
+        "target_roles": ["ai product manager"],
+        "canonical_target_roles": ["ai product manager"],
+        "canonical_role_families": ["product_management"],
+        "canonical_domains": ["product_management"],
+    }
+    ai_job = {
+        "title": "AI Product Manager",
+        "description": "Own roadmap for AI assistant platform and model-powered workflows.",
+        "location": "Brno",
+        "country_code": "cz",
+        "job_intelligence": {
+            "canonical_role": "AI Product Manager",
+            "canonical_role_id": "ai_product_manager",
+            "role_family": "product_management",
+            "domain_key": "product_management",
+            "seniority": "mid",
+            "work_mode": "hybrid",
+            "language_code": "en",
+            "market_code": "cz",
+            "cluster_key": "cz__product_management__product_management__mid__hybrid",
+        },
+    }
+    marketing_job = {
+        "title": "Marketing Manager",
+        "description": "Own campaign strategy, content calendar and brand activation.",
+        "location": "Brno",
+        "country_code": "cz",
+        "job_intelligence": {
+            "canonical_role": "Marketing Manager",
+            "canonical_role_id": "marketing_manager",
+            "role_family": "marketing_growth",
+            "domain_key": "marketing",
+            "seniority": "mid",
+            "work_mode": "hybrid",
+            "language_code": "en",
+            "market_code": "cz",
+            "cluster_key": "cz__marketing__marketing_growth__mid__hybrid",
+        },
+    }
+
+    ai_score, _, ai_breakdown = score_job(
+        extract_candidate_features(candidate, intelligence=intelligence),
+        extract_job_features(ai_job),
+        semantic_similarity=0.55,
+    )
+    marketing_score, _, marketing_breakdown = score_job(
+        extract_candidate_features(candidate, intelligence=intelligence),
+        extract_job_features(marketing_job),
+        semantic_similarity=0.55,
+    )
+
+    assert ai_breakdown["canonical_role_exact_match"] is True
+    assert ai_breakdown["canonical_role_match"] > marketing_breakdown["canonical_role_match"]
+    assert ai_breakdown["cluster_proximity"] > marketing_breakdown["cluster_proximity"]
+    assert ai_score > marketing_score
+
+
 def test_score_job_boosts_ai_enriched_target_role_match():
     candidate = {
         "job_title": "Operations Specialist",

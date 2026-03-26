@@ -281,7 +281,8 @@ def _allowed_language_codes(locale: Optional[str], country_code: Optional[str]) 
 def _job_language_allowed(job: Dict, allowed_language_codes: Optional[set[str]]) -> bool:
     if not allowed_language_codes:
         return True
-    language = str(job.get("language_code") or "").strip().lower()
+    intelligence = job.get("job_intelligence") if isinstance(job.get("job_intelligence"), dict) else {}
+    language = str(intelligence.get("language_code") or job.get("language_code") or "").strip().lower()
     if not language:
         # Unknown language should not be dropped aggressively.
         return True
@@ -309,6 +310,10 @@ def _infer_role_focus_families(candidate_profile) -> set[str]:
 
 
 def _job_role_families(job: Dict) -> set[str]:
+    intelligence = job.get("job_intelligence") if isinstance(job.get("job_intelligence"), dict) else {}
+    canonical_family = str(intelligence.get("role_family") or "").strip().lower()
+    if canonical_family:
+        return {canonical_family}
     text = _normalize_text(f"{job.get('title') or ''} {job.get('description') or ''}")
     if not text:
         return set()
@@ -1151,10 +1156,31 @@ def run_daily_job_digest() -> None:
             primary_domain = str(intent.get("primary_domain") or "").strip() or None
             secondary_domains = [str(item).strip() for item in (intent.get("secondary_domains") or []) if str(item).strip()]
             include_adjacent_domains = bool(intent.get("include_adjacent_domains", True))
-    
+
             digest_jobs: List[Dict] = []
             role_jobs: List[Dict] = []
             domain_jobs: List[Dict] = []
+            if _candidate_has_matching_signal(candidate_profile):
+                try:
+                    from ..matching_engine import recommend_jobs_for_user
+
+                    personalized = recommend_jobs_for_user(
+                        user_id=user_id,
+                        limit=max(30, _DIGEST_MAX_JOBS * 3),
+                        allow_cache=True,
+                        candidate=profile_obj if isinstance(profile_obj, dict) else None,
+                    )
+                    digest_jobs = _pick_personalized_digest_jobs(
+                        recs=personalized,
+                        c_lat=c_lat,
+                        c_lng=c_lng,
+                        country_code=digest_country_code,
+                        allowed_language_codes=allowed_languages,
+                        candidate_profile=candidate_profile,
+                        limit=_DIGEST_MAX_JOBS,
+                    )
+                except Exception as exc:
+                    print(f"⚠️ Personalized digest recommendation fetch failed for {user_id}: {exc}")
             if role_title:
                 role_jobs = _fetch_role_focused_jobs(
                     role_title=role_title,
@@ -1175,7 +1201,7 @@ def run_daily_job_digest() -> None:
                     allowed_language_codes=allowed_languages,
                     limit=_DIGEST_MAX_JOBS,
                 )
-            digest_jobs = _merge_digest_jobs(role_jobs, domain_jobs, _DIGEST_MAX_JOBS)
+            digest_jobs = _merge_digest_jobs(digest_jobs, _merge_digest_jobs(role_jobs, domain_jobs, _DIGEST_MAX_JOBS), _DIGEST_MAX_JOBS)
             if not digest_jobs and include_adjacent_domains:
                 related_domains = list(dict.fromkeys(secondary_domains + get_related_domains(primary_domain)))
                 for related_domain in related_domains[:2]:

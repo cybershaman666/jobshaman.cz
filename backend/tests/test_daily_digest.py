@@ -6,6 +6,8 @@ from backend.app.services.daily_digest import (
     _digest_job_sort_key,
     _extract_city_from_address,
     _is_remote_job,
+    _job_language_allowed,
+    _job_role_families,
     _pick_personalized_digest_jobs,
     _resolve_digest_country_code,
     _resolve_locale,
@@ -227,6 +229,30 @@ def test_pick_personalized_digest_jobs_falls_back_to_nonlocal_ai_matches():
     assert picks[0]["match_score"] == 88
     assert picks[1]["id"] == "job-remote-1"
     assert picks[1]["match_score"] == 96
+
+
+def test_job_language_allowed_prefers_job_intelligence_language_code():
+    job = {
+        "language_code": "",
+        "job_intelligence": {
+            "language_code": "de",
+        },
+    }
+
+    assert _job_language_allowed(job, {"de"}) is True
+    assert _job_language_allowed(job, {"cs"}) is False
+
+
+def test_job_role_families_prefers_job_intelligence_family():
+    job = {
+        "title": "Generic role",
+        "description": "",
+        "job_intelligence": {
+            "role_family": "operations_coordination",
+        },
+    }
+
+    assert _job_role_families(job) == {"operations_coordination"}
 
 
 def test_persist_digest_last_sent_updates_profiles_and_candidate_fallback(monkeypatch):

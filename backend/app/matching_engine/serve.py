@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from ..core.database import supabase
 from ..services.jobs_postgres_store import jobs_postgres_main_enabled, query_jobs_for_hybrid_search
+from ..services.job_intelligence import refresh_job_intelligence
 from ..core.runtime_config import (
     get_active_action_prediction_model,
     get_active_model_config,
@@ -1179,6 +1180,9 @@ def recommend_jobs_for_user(
             and "missing_required_qualifications" in (item.get("breakdown") or {})
             and "hard_cap" in (item.get("breakdown") or {})
             and "role_transfer_alignment" in (item.get("breakdown") or {})
+            and "canonical_role_match" in (item.get("breakdown") or {})
+            and "cluster_proximity" in (item.get("breakdown") or {})
+            and "market_language_compatibility" in (item.get("breakdown") or {})
             and "taxonomy_version" in (item.get("breakdown") or {})
             and "ranking_basis" in (item.get("breakdown") or {})
         ]
@@ -1304,6 +1308,16 @@ def batch_refresh_job_embeddings() -> int:
     return len(jobs)
 
 
+def batch_refresh_job_intelligence(*, force: bool = False, limit: Optional[int] = None) -> Dict[str, int | str]:
+    result = refresh_job_intelligence(limit=limit, force=force)
+    return {
+        "processed": int(result.get("processed") or 0),
+        "upserted": int(result.get("upserted") or 0),
+        "failed": int(result.get("failed") or 0),
+        "taxonomy_version": str(result.get("taxonomy_version") or ""),
+    }
+
+
 def batch_refresh_candidate_embeddings() -> int:
     if not supabase:
         return 0
@@ -1374,18 +1388,20 @@ def batch_refresh_market_layers() -> Dict[str, int]:
 
 def run_hourly_batch_jobs() -> None:
     started = datetime.now(timezone.utc).isoformat()
+    intelligence = batch_refresh_job_intelligence(force=False)
     jobs = batch_refresh_job_embeddings()
     candidates = batch_refresh_candidate_embeddings()
     rec_users = batch_refresh_recommendations()
     print(
-        f"🧠 [Matching Batch Hourly] started={started} embedding_version={EMBEDDING_VERSION} jobs={jobs} candidates={candidates} recommendation_users={rec_users}"
+        f"🧠 [Matching Batch Hourly] started={started} taxonomy_version={intelligence['taxonomy_version']} intelligence_processed={intelligence['processed']} intelligence_upserted={intelligence['upserted']} intelligence_failed={intelligence['failed']} embedding_version={EMBEDDING_VERSION} jobs={jobs} candidates={candidates} recommendation_users={rec_users}"
     )
 
 
 def run_daily_batch_jobs() -> None:
     started = datetime.now(timezone.utc).isoformat()
+    intelligence = batch_refresh_job_intelligence(force=True, limit=5000)
     layers = batch_refresh_market_layers()
     evaluation = run_offline_recommendation_evaluation(window_days=30)
     print(
-        f"🧠 [Matching Batch Daily] started={started} demand_rows={layers['demand_rows']} seasonal_rows={layers.get('seasonal_rows', 0)} salary_rows={layers['salary_rows']} eval_sample={evaluation.get('sample_size', 0)} eval_auc={evaluation.get('auc')}"
+        f"🧠 [Matching Batch Daily] started={started} taxonomy_version={intelligence['taxonomy_version']} intelligence_processed={intelligence['processed']} intelligence_upserted={intelligence['upserted']} intelligence_failed={intelligence['failed']} demand_rows={layers['demand_rows']} seasonal_rows={layers.get('seasonal_rows', 0)} salary_rows={layers['salary_rows']} eval_sample={evaluation.get('sample_size', 0)} eval_auc={evaluation.get('auc')}"
     )

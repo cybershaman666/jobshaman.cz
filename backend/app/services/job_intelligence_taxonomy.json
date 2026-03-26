@@ -1,0 +1,311 @@
+{
+  "taxonomy_version": "job-intelligence-v1",
+  "roles": [
+    {
+      "id": "customer_support_specialist",
+      "canonical_label": "Customer Support Specialist",
+      "role_family": "customer_support",
+      "domain_key": "customer_support",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["support", "helpdesk", "service desk", "ticketing", "customer service"]
+      },
+      "aliases": {
+        "en": ["customer support specialist", "customer support representative", "customer service representative", "service desk agent", "helpdesk specialist"],
+        "cs": ["specialista zakaznicke podpory", "pracovnik zakaznicke podpory", "pracovnik zakaznickeho servisu", "customer service representative"],
+        "sk": ["specialista zakaznickej podpory", "pracovnik zakaznickej podpory", "pracovnik zakaznickeho servisu"],
+        "de": ["kundensupport spezialist", "kundenservice mitarbeiter", "service desk mitarbeiter", "helpdesk spezialist"],
+        "pl": ["specjalista wsparcia klienta", "specjalista obslugi klienta", "pracownik obslugi klienta", "helpdesk specialist"]
+      }
+    },
+    {
+      "id": "customer_success_manager",
+      "canonical_label": "Customer Success Manager",
+      "role_family": "customer_success",
+      "domain_key": "customer_support",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["customer success", "account growth", "onboarding", "client retention"]
+      },
+      "aliases": {
+        "en": ["customer success manager", "client success manager", "customer success lead"],
+        "cs": ["customer success manager", "manazer zakaznickeho uspechu", "specialista customer success"],
+        "sk": ["customer success manager", "manazer zakaznickeho uspechu"],
+        "de": ["customer success manager", "client success manager", "kundenbindungsmanager"],
+        "pl": ["customer success manager", "menedzer sukcesu klienta", "opiekun sukcesu klienta"]
+      }
+    },
+    {
+      "id": "operations_coordinator",
+      "canonical_label": "Operations Coordinator",
+      "role_family": "operations_coordination",
+      "domain_key": "operations",
+      "default_seniority": "junior",
+      "metadata": {
+        "keywords": ["operations", "coordination", "workflow", "process", "back office"]
+      },
+      "aliases": {
+        "en": ["operations coordinator", "operations specialist", "operations assistant", "back office coordinator"],
+        "cs": ["operations coordinator", "koordinator provozu", "provozni koordinator", "specialista provozu"],
+        "sk": ["operations coordinator", "koordinator prevadzky", "prevadzkovy koordinator"],
+        "de": ["operations coordinator", "betriebskoordinator", "operations specialist", "backoffice koordinator"],
+        "pl": ["operations coordinator", "koordynator operacyjny", "specjalista operacyjny", "koordynator back office"]
+      }
+    },
+    {
+      "id": "operations_manager",
+      "canonical_label": "Operations Manager",
+      "role_family": "operations_management",
+      "domain_key": "operations",
+      "default_seniority": "lead",
+      "metadata": {
+        "keywords": ["operations manager", "process ownership", "service quality", "team coordination"]
+      },
+      "aliases": {
+        "en": ["operations manager", "business operations manager", "head of operations"],
+        "cs": ["operations manager", "provozni manazer", "manazer provozu", "vedouci provozu"],
+        "sk": ["operations manager", "prevadzkovy manazer", "manazer prevadzky", "veduci prevadzky"],
+        "de": ["operations manager", "betriebsleiter", "leiter operations", "head of operations"],
+        "pl": ["operations manager", "menedzer operacyjny", "kierownik operacyjny"]
+      }
+    },
+    {
+      "id": "office_manager",
+      "canonical_label": "Office Manager",
+      "role_family": "operations_coordination",
+      "domain_key": "operations",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["office manager", "office coordination", "administration", "scheduling"]
+      },
+      "aliases": {
+        "en": ["office manager", "office coordinator", "administrative manager"],
+        "cs": ["office manager", "kancelarsky manazer", "vedouci kancelare", "office coordinator"],
+        "sk": ["office manager", "kancelarsky manazer", "office coordinator"],
+        "de": ["office manager", "office koordinator", "buromanager"],
+        "pl": ["office manager", "koordynator biura", "office coordinator", "manager biura"]
+      }
+    },
+    {
+      "id": "hr_people_coordinator",
+      "canonical_label": "HR & People Coordinator",
+      "role_family": "people_ops",
+      "domain_key": "operations",
+      "default_seniority": "junior",
+      "metadata": {
+        "keywords": ["hr", "people ops", "onboarding", "recruitment coordination"]
+      },
+      "aliases": {
+        "en": ["hr coordinator", "people coordinator", "people operations coordinator", "talent coordinator"],
+        "cs": ["hr koordinator", "people coordinator", "koordinator lidskych zdroju", "koordinator naboru"],
+        "sk": ["hr koordinator", "people coordinator", "koordinator ludskej agendy", "koordinator naboru"],
+        "de": ["hr koordinator", "people coordinator", "personal koordinator", "talent koordinator"],
+        "pl": ["koordynator hr", "people coordinator", "koordynator personalny", "koordynator rekrutacji"]
+      }
+    },
+    {
+      "id": "recruiter",
+      "canonical_label": "Recruiter",
+      "role_family": "people_ops",
+      "domain_key": "operations",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["recruitment", "talent acquisition", "sourcing", "candidate pipeline"]
+      },
+      "aliases": {
+        "en": ["recruiter", "talent acquisition specialist", "talent partner"],
+        "cs": ["recruiter", "specialista naboru", "talent acquisition specialist"],
+        "sk": ["recruiter", "specialista naboru", "talent acquisition specialist"],
+        "de": ["recruiter", "talent acquisition specialist", "personalberater"],
+        "pl": ["rekruter", "specjalista rekrutacji", "talent acquisition specialist"]
+      }
+    },
+    {
+      "id": "ai_product_manager",
+      "canonical_label": "AI Product Manager",
+      "role_family": "product_management",
+      "domain_key": "product_management",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["ai product", "llm product", "genai product", "product discovery", "product strategy"]
+      },
+      "aliases": {
+        "en": ["ai product manager", "product manager ai", "pm for ai", "ai pm", "genai product manager", "llm product manager"],
+        "cs": ["ai product manager", "produktovy manazer pro ai", "produktovy manazer ai", "pm pro ai"],
+        "sk": ["ai product manager", "produktovy manazer pre ai", "produktovy manazer ai"],
+        "de": ["ai product manager", "produktmanager ai", "produktmanager fur ai", "genai produktmanager"],
+        "pl": ["ai product manager", "menedzer produktu ai", "product manager ai", "pm dla ai"]
+      }
+    },
+    {
+      "id": "product_manager",
+      "canonical_label": "Product Manager",
+      "role_family": "product_management",
+      "domain_key": "product_management",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["product manager", "roadmap", "product discovery", "user research"]
+      },
+      "aliases": {
+        "en": ["product manager", "digital product manager", "platform product manager"],
+        "cs": ["product manager", "produktovy manazer", "digital product manager"],
+        "sk": ["product manager", "produktovy manazer"],
+        "de": ["product manager", "produktmanager", "digital product manager"],
+        "pl": ["product manager", "menedzer produktu", "digital product manager"]
+      }
+    },
+    {
+      "id": "product_owner",
+      "canonical_label": "Product Owner",
+      "role_family": "product_management",
+      "domain_key": "product_management",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["product owner", "backlog", "agile delivery", "scrum"]
+      },
+      "aliases": {
+        "en": ["product owner", "technical product owner", "platform product owner", "product owner ai"],
+        "cs": ["product owner", "vlastnik produktu", "product owner ai"],
+        "sk": ["product owner", "vlastnik produktu", "product owner ai"],
+        "de": ["product owner", "produktverantwortlicher", "product owner ai"],
+        "pl": ["product owner", "wlasciciel produktu", "product owner ai"]
+      }
+    },
+    {
+      "id": "marketing_manager",
+      "canonical_label": "Marketing Manager",
+      "role_family": "marketing_growth",
+      "domain_key": "marketing",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["marketing", "campaigns", "brand", "growth"]
+      },
+      "aliases": {
+        "en": ["marketing manager", "growth marketing manager", "brand manager", "performance marketing manager"],
+        "cs": ["marketing manager", "manazer marketingu", "brand manager", "growth marketing manager"],
+        "sk": ["marketing manager", "manazer marketingu", "brand manager"],
+        "de": ["marketing manager", "marketingleiter", "growth marketing manager", "brand manager"],
+        "pl": ["marketing manager", "menedzer marketingu", "brand manager", "growth marketing manager"]
+      }
+    },
+    {
+      "id": "sales_manager",
+      "canonical_label": "Sales Manager",
+      "role_family": "sales_account",
+      "domain_key": "sales",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["sales", "business development", "account management", "commercial"]
+      },
+      "aliases": {
+        "en": ["sales manager", "account manager", "business development manager", "commercial manager"],
+        "cs": ["sales manager", "obchodni manazer", "account manager", "business development manager"],
+        "sk": ["sales manager", "obchodny manazer", "account manager"],
+        "de": ["sales manager", "vertriebsmanager", "account manager", "business development manager"],
+        "pl": ["sales manager", "menedzer sprzedazy", "account manager", "business development manager"]
+      }
+    },
+    {
+      "id": "software_engineer",
+      "canonical_label": "Software Engineer",
+      "role_family": "software_engineering",
+      "domain_key": "it",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["software engineer", "developer", "backend", "frontend", "full stack"]
+      },
+      "aliases": {
+        "en": ["software engineer", "software developer", "full stack developer", "application engineer"],
+        "cs": ["software engineer", "softwarovy vyvojar", "programator", "vyvojar aplikaci"],
+        "sk": ["software engineer", "softverovy vyvojar", "programator"],
+        "de": ["software engineer", "softwareentwickler", "entwickler", "applikationsentwickler"],
+        "pl": ["software engineer", "programista", "developer oprogramowania", "inzynier oprogramowania"]
+      }
+    },
+    {
+      "id": "frontend_developer",
+      "canonical_label": "Frontend Developer",
+      "role_family": "software_engineering",
+      "domain_key": "it",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["frontend", "react", "ui", "web app"]
+      },
+      "aliases": {
+        "en": ["frontend developer", "frontend engineer", "react developer", "ui engineer"],
+        "cs": ["frontend developer", "frontend vyvojar", "react developer"],
+        "sk": ["frontend developer", "frontend vyvojar", "react developer"],
+        "de": ["frontend developer", "frontend entwickler", "react developer"],
+        "pl": ["frontend developer", "frontend developer", "react developer"]
+      }
+    },
+    {
+      "id": "backend_developer",
+      "canonical_label": "Backend Developer",
+      "role_family": "software_engineering",
+      "domain_key": "it",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["backend", "api", "services", "python", "java", "node"]
+      },
+      "aliases": {
+        "en": ["backend developer", "backend engineer", "api developer", "server-side engineer"],
+        "cs": ["backend developer", "backend vyvojar", "api developer"],
+        "sk": ["backend developer", "backend vyvojar", "api developer"],
+        "de": ["backend developer", "backend entwickler", "api developer"],
+        "pl": ["backend developer", "backend developer", "api developer"]
+      }
+    },
+    {
+      "id": "data_analyst",
+      "canonical_label": "Data Analyst",
+      "role_family": "data_ai",
+      "domain_key": "ai_data",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["data analyst", "analytics", "sql", "dashboarding", "bi"]
+      },
+      "aliases": {
+        "en": ["data analyst", "bi analyst", "analytics specialist"],
+        "cs": ["data analyst", "datovy analytik", "bi analytik"],
+        "sk": ["data analyst", "datovy analytik", "bi analytik"],
+        "de": ["data analyst", "datenanalyst", "bi analyst"],
+        "pl": ["data analyst", "analityk danych", "analityk bi"]
+      }
+    },
+    {
+      "id": "project_manager",
+      "canonical_label": "Project Manager",
+      "role_family": "project_delivery",
+      "domain_key": "operations",
+      "default_seniority": "mid",
+      "metadata": {
+        "keywords": ["project manager", "delivery", "stakeholders", "timeline", "implementation"]
+      },
+      "aliases": {
+        "en": ["project manager", "delivery manager", "implementation manager"],
+        "cs": ["project manager", "projektovy manazer", "delivery manager"],
+        "sk": ["project manager", "projektovy manazer", "delivery manager"],
+        "de": ["project manager", "projektmanager", "delivery manager"],
+        "pl": ["project manager", "kierownik projektu", "delivery manager"]
+      }
+    },
+    {
+      "id": "hotel_receptionist",
+      "canonical_label": "Hotel Receptionist",
+      "role_family": "hospitality_frontline",
+      "domain_key": "hospitality",
+      "default_seniority": "entry",
+      "metadata": {
+        "keywords": ["reception", "front desk", "guest relations", "hotel", "booking"]
+      },
+      "aliases": {
+        "en": ["hotel receptionist", "front desk receptionist", "guest relations agent"],
+        "cs": ["hotelovy recepcni", "recepcni", "pracovnik recepce"],
+        "sk": ["hotelovy recepcny", "recepcny", "pracovnik recepcie"],
+        "de": ["hotelfachkraft rezeption", "rezeptionist", "front desk agent"],
+        "pl": ["recepcjonista hotelowy", "recepcjonista", "pracownik recepcji"]
+      }
+    }
+  ]
+}
