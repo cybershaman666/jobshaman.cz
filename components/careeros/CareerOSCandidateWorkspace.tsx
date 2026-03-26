@@ -2657,29 +2657,34 @@ const CareerPathStage: React.FC<{
   const [hoveredPathId, setHoveredPathId] = useState<string | null>(null);
   const guestCenterCopy = locale === 'cs'
     ? {
+        badge: 'Tady začíná vaše mapa',
         title: 'Staňte se středem své kariérní mapy',
         body: 'Vytvořte si profil a uvidíte role, směry i další kroky uspořádané kolem sebe.',
         cta: 'Začít',
       }
     : locale === 'sk'
       ? {
+          badge: 'Tu sa začína vaša mapa',
           title: 'Staňte sa stredom svojej kariérnej mapy',
           body: 'Vytvorte si profil a uvidíte roly, smery aj ďalšie kroky usporiadané okolo seba.',
           cta: 'Začať',
         }
       : locale === 'de'
         ? {
+            badge: 'Hier beginnt Ihre Karte',
             title: 'Werden Sie zum Mittelpunkt Ihrer Karrierekarte',
             body: 'Erstellen Sie Ihr Profil und sehen Sie Rollen, Richtungen und nächste Schritte rund um sich angeordnet.',
             cta: 'Starten',
           }
         : locale === 'pl'
           ? {
+              badge: 'Tu zaczyna sie twoja mapa',
               title: 'Stań się centrum swojej mapy kariery',
               body: 'Utwórz profil i zobacz role, kierunki oraz kolejne kroki ułożone wokół siebie.',
               cta: 'Zacznij',
             }
           : {
+              badge: 'Your map starts here',
               title: 'Become the center of your career map',
               body: 'Create your profile to see roles, directions, and next steps arranged around you.',
               cta: 'Get started',
@@ -2760,7 +2765,7 @@ const CareerPathStage: React.FC<{
         </button>
         <div className="absolute left-1/2 top-[calc(100%+16px)] w-[280px] -translate-x-1/2 rounded-[24px] border border-white/60 bg-white/92 px-5 py-4 text-center shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/92 dark:shadow-[0_28px_90px_-40px_rgba(2,6,23,0.82)]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-            {t('careeros.map.center_badge', { defaultValue: 'Tady začíná vaše mapa' })}
+            {guestCenterCopy.badge}
           </div>
           <div className="mt-2 text-[16px] font-bold leading-tight text-slate-900 dark:text-slate-100">{guestCenterCopy.title}</div>
           <div className="mt-2 text-[13px] leading-6 text-slate-600 dark:text-slate-300">{guestCenterCopy.body}</div>
