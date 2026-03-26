@@ -506,6 +506,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     const companies = stats?.companies || {};
     const conv = stats?.conversion || {};
     const ai = aiQuality?.summary || {};
+    const signalBoostSummary = stats?.signal_boost?.summary || {};
     return [
       { label: t('admin_dashboard.kpis.users'), value: formatNumber(users.total), hint: `+${formatNumber(users.new_30d)} / 30d`, icon: Users },
       { label: t('admin_dashboard.kpis.companies'), value: formatNumber(companies.total), hint: `+${formatNumber(companies.new_30d)} / 30d`, icon: Building2 },
@@ -513,6 +514,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       { label: t('admin_dashboard.kpis.ai_generations'), value: formatNumber(ai.total_generations), hint: `${formatNumber(ai.ai_unique_users)} unique AI users`, icon: Brain },
       { label: t('admin_dashboard.kpis.ai_cost'), value: formatUsd(ai.total_estimated_cost), hint: `Avg ${formatUsd(ai.avg_estimated_cost_per_generation)}`, icon: Sparkles },
       { label: t('admin_dashboard.kpis.apply_uplift'), value: formatPercent(ai.conversion_impact_on_applications), hint: `AI ${formatPercent(ai.ai_apply_rate)} vs baseline ${formatPercent(ai.baseline_apply_rate)}`, icon: BarChart3 },
+      { label: 'Signal Boost', value: formatNumber(signalBoostSummary.published_outputs), hint: `${formatPercent(signalBoostSummary.share_open_rate)} open rate / 30d`, icon: Lightbulb },
     ];
   }, [stats, aiQuality, t]);
 
@@ -540,6 +542,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   const topCountries = stats?.traffic?.geo?.top_countries || [];
   const topDevices = stats?.traffic?.geo?.top_devices || [];
+  const signalBoostSummary = stats?.signal_boost?.summary || {};
+  const signalBoostTopOutputs = stats?.signal_boost?.top_outputs || [];
   const modelUsage = aiQuality?.usage_by_model || [];
   const ctrByModel = aiQuality?.ctr_by_model_version || [];
   const ctrByScoring = aiQuality?.ctr_by_scoring_version || [];
@@ -1282,6 +1286,91 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     </div>
                   ))}
                 </div>
+              </article>
+            </section>
+
+            <section className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4">
+              <article className={panelClass}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Lightbulb size={16} className="text-[var(--accent)]" />
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Signal Boost</h3>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Published outputs</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{formatNumber(signalBoostSummary.published_outputs)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Share open rate</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{formatPercent(signalBoostSummary.share_open_rate)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Copy rate</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{formatPercent(signalBoostSummary.share_copy_rate)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Recruiter CTA rate</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{formatPercent(signalBoostSummary.recruiter_cta_rate)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Original listing opens</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{formatPercent(signalBoostSummary.original_open_rate)}</span>
+                  </div>
+                  <div className="pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-3 text-xs">
+                    <div className={panelSoftClass}>
+                      <div className="text-slate-500">Imported</div>
+                      <div className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">{formatNumber(signalBoostSummary.imported_outputs)}</div>
+                    </div>
+                    <div className={panelSoftClass}>
+                      <div className="text-slate-500">Native</div>
+                      <div className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">{formatNumber(signalBoostSummary.native_outputs)}</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article className={panelClass}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Search size={16} className="text-[var(--accent)]" />
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Most opened Signal Boost outputs</h3>
+                </div>
+                {signalBoostTopOutputs.length === 0 ? (
+                  <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data', { defaultValue: 'No data.' })}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {signalBoostTopOutputs.map((row: any) => (
+                      <div key={row.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-800/40">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">{row.title || 'Untitled role'}</div>
+                            <div className="mt-1 text-xs text-slate-500 truncate">
+                              {row.company || 'Unknown company'} • {row.candidate_name || 'JobShaman member'}
+                            </div>
+                          </div>
+                          <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{row.source_kind}</div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                          <div className={panelSoftClass}>
+                            <div className="text-slate-500">Views</div>
+                            <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{formatNumber(row.views)}</div>
+                          </div>
+                          <div className={panelSoftClass}>
+                            <div className="text-slate-500">Copies</div>
+                            <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{formatNumber(row.share_copies)}</div>
+                          </div>
+                          <div className={panelSoftClass}>
+                            <div className="text-slate-500">CTA clicks</div>
+                            <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{formatNumber(row.recruiter_cta_clicks)}</div>
+                          </div>
+                          <div className={panelSoftClass}>
+                            <div className="text-slate-500">View → CTA</div>
+                            <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{formatPercent(row.view_to_cta_rate)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </article>
             </section>
 

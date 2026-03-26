@@ -2,10 +2,11 @@ import type { TFunction } from 'i18next';
 
 import type { UserProfile } from '../../../../types';
 import { fetchMyDialogueMessages, fetchMyDialoguesWithCapacity } from '../../../../services/jobApplicationService';
+import { fetchMySignalBoostOutputs } from '../../../../services/jobSignalBoostService';
 
 export interface NotificationFeedItem {
   id: string;
-  kind: 'company_message' | 'dialogue_update' | 'high_match' | 'digest';
+  kind: 'company_message' | 'dialogue_update' | 'high_match' | 'digest' | 'signal_boost';
   title: string;
   body: string;
   timestamp: string;
@@ -313,6 +314,97 @@ const buildDigestNotification = (
   };
 };
 
+const buildSignalBoostNotifications = async (
+  locale: string | undefined,
+): Promise<NotificationFeedItem[]> => {
+  try {
+    const outputs = await fetchMySignalBoostOutputs(12);
+    const items: NotificationFeedItem[] = [];
+
+    outputs.forEach((output) => {
+      const analytics = output.analytics || {};
+      const jobTitle = String(output.job_snapshot?.title || '').trim()
+        || localizedText(locale, {
+          cs: 'tvoje role',
+          sk: 'tvoja rola',
+          de: 'deine Rolle',
+          pl: 'Twoja rola',
+          en: 'your role',
+        });
+      const company = String(output.job_snapshot?.company || 'Company').trim() || 'Company';
+      const viewCount = Number(analytics.view || 0);
+      const recruiterActionCount = Number(analytics.recruiter_cta_click || 0) + Number(analytics.open_original_listing || 0);
+      const lastViewAt = String(analytics.last_view_at || '').trim();
+      const lastRecruiterActionAt = String(analytics.last_recruiter_cta_click_at || analytics.last_open_original_listing_at || '').trim();
+
+      if (viewCount > 0 && lastViewAt) {
+        items.push({
+          id: `signal-boost:view:${output.id}`,
+          kind: 'signal_boost',
+          title: localizedText(locale, {
+            cs: `Někdo otevřel tvůj Signal Boost`,
+            sk: `Niekto otvoril tvoj Signal Boost`,
+            de: `Jemand hat deinen Signal Boost geöffnet`,
+            pl: `Ktoś otworzył Twój Signal Boost`,
+            en: `Someone opened your Signal Boost`,
+          }),
+          body: localizedText(locale, {
+            cs: `${company} / ${jobTitle}. Tvůj link už má ${viewCount} otevření.`,
+            sk: `${company} / ${jobTitle}. Tvoj link už má ${viewCount} otvorení.`,
+            de: `${company} / ${jobTitle}. Dein Link hat bereits ${viewCount} Öffnungen.`,
+            pl: `${company} / ${jobTitle}. Twój link ma już ${viewCount} otwarć.`,
+            en: `${company} / ${jobTitle}. Your link already has ${viewCount} opens.`,
+          }),
+          timestamp: lastViewAt,
+          ctaLabel: localizedText(locale, {
+            cs: 'Otevřít roli',
+            sk: 'Otvoriť rolu',
+            de: 'Rolle öffnen',
+            pl: 'Otwórz rolę',
+            en: 'Open role',
+          }),
+          challengeId: output.job_snapshot?.id || null,
+        });
+      }
+
+      if (recruiterActionCount > 0 && lastRecruiterActionAt) {
+        items.push({
+          id: `signal-boost:action:${output.id}`,
+          kind: 'signal_boost',
+          title: localizedText(locale, {
+            cs: `Recruiter klikl dál z tvého Signal Boostu`,
+            sk: `Recruiter klikol ďalej z tvojho Signal Boostu`,
+            de: `Ein Recruiter hat von deinem Signal Boost aus weitergeklickt`,
+            pl: `Rekruter kliknął dalej z Twojego Signal Boost`,
+            en: `A recruiter clicked further from your Signal Boost`,
+          }),
+          body: localizedText(locale, {
+            cs: `${company} / ${jobTitle}. To je silnější signál než samotné otevření.`,
+            sk: `${company} / ${jobTitle}. To je silnejší signál než samotné otvorenie.`,
+            de: `${company} / ${jobTitle}. Das ist ein stärkeres Signal als nur ein Aufruf.`,
+            pl: `${company} / ${jobTitle}. To mocniejszy sygnał niż samo otwarcie.`,
+            en: `${company} / ${jobTitle}. That is a stronger signal than an open alone.`,
+          }),
+          timestamp: lastRecruiterActionAt,
+          ctaLabel: localizedText(locale, {
+            cs: 'Otevřít roli',
+            sk: 'Otvoriť rolu',
+            de: 'Rolle öffnen',
+            pl: 'Otwórz rolę',
+            en: 'Open role',
+          }),
+          challengeId: output.job_snapshot?.id || null,
+        });
+      }
+    });
+
+    return items;
+  } catch (error) {
+    console.warn('[CareerOS] Failed to load Signal Boost notifications:', error);
+    return [];
+  }
+};
+
 export const buildCareerOSNotificationFeed = async ({
   locale,
   matchCandidates,
@@ -327,6 +419,9 @@ export const buildCareerOSNotificationFeed = async ({
 
   if (userProfile.id) {
     try {
+      const signalBoostItems = await buildSignalBoostNotifications(locale);
+      items.push(...signalBoostItems);
+
       const { dialogues } = await fetchMyDialoguesWithCapacity(12);
       const dialogueSnapshots = dialogues
         .filter((dialogue) => {

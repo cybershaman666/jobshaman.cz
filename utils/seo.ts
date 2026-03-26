@@ -22,21 +22,81 @@ const resolveI18nValue = (
   return fallback;
 };
 
+const generatePlatformStructuredData = (baseUrl: string, language = 'cs-CZ') => ({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${baseUrl}#organization`,
+      "name": "JobShaman",
+      "url": baseUrl,
+      "logo": `${baseUrl}/logo.png`,
+      "description": "Collaboration-first hiring platform that helps candidates and companies experience fit before the job starts.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${baseUrl}#website`,
+      "url": baseUrl,
+      "name": "JobShaman",
+      "inLanguage": language,
+      "publisher": { "@id": `${baseUrl}#organization` },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": `${baseUrl}/jobs?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${baseUrl}#app`,
+      "name": "JobShaman",
+      "url": baseUrl,
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "featureList": [
+        "career map",
+        "goal navigation",
+        "mini challenges",
+        "handshake hiring",
+        "company work simulations",
+      ],
+      "publisher": { "@id": `${baseUrl}#organization` },
+    },
+  ],
+});
+
 // Dynamic SEO metadata based on page content
 export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetadata => {
   const baseTitle = resolveI18nValue(t, ['seo.base_title', 'footer.seo.base_title'], undefined, 'JobShaman');
   const homeDescription = resolveI18nValue(t, ['seo.home_description', 'footer.seo.home_description'], undefined, baseTitle);
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz";
+  const language = typeof document !== 'undefined'
+    ? (document.documentElement.lang || 'cs-CZ')
+    : 'cs-CZ';
 
   switch (page) {
     case 'home':
       return {
-        title: `${baseTitle} | ${t('welcome.title_accent')}`,
-        description: t('welcome.subtitle'),
-        keywords: ["career os", "nabídky práce", "AI profil", "skryté dovednosti", "kariérní růst", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň", "transparentní mzda", "čistý příjem", "bullshit detektor", "gap analysis"],
+        title: baseTitle,
+        description: homeDescription,
+        keywords: [
+          "career map",
+          "goal navigation",
+          "handshake hiring",
+          "collaboration-first hiring",
+          "job matching",
+          "mini challenges",
+          "customer success jobs",
+          "operations jobs",
+          "remote jobs",
+          "jobshaman",
+        ],
         canonical: baseUrl,
         ogImage: `${baseUrl}/og-image.jpg`,
-        structuredData: generateFAQStructuredData(t)
+        structuredData: generatePlatformStructuredData(baseUrl, language)
       };
 
     case 'job-detail':
@@ -49,7 +109,7 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
           location: data?.location || t('common.unknown'),
           benefits: data?.benefits?.join(', ') || t('common.none')
         }, homeDescription),
-        keywords: [data?.title, data?.company, data?.location, 'práce', 'nabídka', 'volné místo'],
+        keywords: [data?.title, data?.company, data?.location, 'job detail', 'job posting', 'career opportunity', 'jobshaman'],
         canonical: `${baseUrl}/jobs/${data?.id}`,
         ogImage: data?.logo || `${baseUrl}/og-image.jpg`,
         structuredData: generateJobPostingStructuredData(data)
@@ -59,16 +119,21 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: t('seo.company_dashboard_title'),
         description: t('seo.company_dashboard_description'),
-        keywords: ["nabídka práce", "nábor zaměstnanců", "HR software", "AI nábor", "práce Česko", "rekrutace"],
+        keywords: ["hiring platform", "handshake hiring", "work simulation hiring", "candidate matching", "AI hiring assistant", "jobshaman for companies"],
         canonical: `${baseUrl}/pro-firmy`
       };
 
     case 'marketplace':
       return {
-        title: baseTitle,
-        description: homeDescription,
-        keywords: ["career os", "AI profil", "skryté dovednosti", "kariéra", "pracovní nabídky"],
-        canonical: baseUrl
+        title: `${resolveI18nValue(t, ['careeros.layers.marketplace'], undefined, 'List')} | JobShaman`,
+        description: resolveI18nValue(
+          t,
+          ['seo.marketplace_description'],
+          undefined,
+          'Browse live job listings, compare roles quickly, and move between the classic list, Career Map, and goal navigation.',
+        ),
+        keywords: ["job list", "job listings", "career map", "goal navigation", "mini challenges", "jobshaman"],
+        canonical: `${baseUrl}/jobs`
       };
 
     case 'services':
@@ -99,8 +164,21 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: t('seo.profile_title'),
         description: t('seo.profile_description'),
-        keywords: ["profil", "AI profil", "skryté dovednosti", "personalizace", "kariéra"],
+        keywords: ["candidate profile", "career profile", "goal navigation", "career map", "hidden skills", "personalized job matching"],
         canonical: `${baseUrl}/profil`
+      };
+
+    case 'about':
+      return {
+        title: resolveI18nValue(t, ['seo.about_title'], undefined, 'About JobShaman'),
+        description: resolveI18nValue(
+          t,
+          ['seo.about_description'],
+          undefined,
+          'JobShaman builds hiring on real interaction, compatibility, and stronger signals about how people actually work together.',
+        ),
+        keywords: ["about jobshaman", "collaboration-first hiring", "compatibility hiring", "career map", "handshake hiring"],
+        canonical: `${baseUrl}/about`,
       };
 
     case 'blog-post':
@@ -129,56 +207,93 @@ export const generateJobPostingStructuredData = (job: any) => {
   const currency = job?.salary?.currency || job?.salary_currency || job?.currency || "CZK";
   const country = (job?.country_code || "CZ").toUpperCase();
   const datePosted = job?.scrapedAt || job?.scraped_at || job?.postedAt;
+  const workModel = String(job?.work_model || job?.workModel || job?.work_type || '').toLowerCase();
+  const isRemote = /remote/.test(workModel);
+  const isHybrid = /hybrid/.test(workModel);
+  const employmentType = String(job?.contract_type || job?.contractType || job?.employmentType || '').trim();
 
   return {
     "@context": "https://schema.org",
-    "@type": "JobPosting",
-    "title": job.title,
-    "description": job.description,
-    "identifier": {
-      "@type": "PropertyValue",
-      "name": "Job ID",
-      "value": job.id
-    },
-    "datePosted": datePosted,
-    "validThrough": job.validUntil,
-    "employmentType": job.contract_type || job.contractType || job.employmentType,
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.company,
-      "sameAs": job.website,
-      "logo": job.logo
-    },
-    "jobLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": job.location,
-        "addressCountry": country
+    "@graph": [
+      {
+        "@type": "JobPosting",
+        "title": job.title,
+        "description": job.description,
+        "identifier": {
+          "@type": "PropertyValue",
+          "name": "Job ID",
+          "value": job.id
+        },
+        "datePosted": datePosted,
+        "validThrough": job.validUntil,
+        "employmentType": employmentType || undefined,
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": job.company,
+          "sameAs": job.website,
+          "logo": job.logo
+        },
+        "jobLocation": isRemote ? undefined : {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": job.location,
+            "addressCountry": country
+          }
+        },
+        "jobLocationType": isRemote ? "TELECOMMUTE" : (isHybrid ? "HYBRID" : undefined),
+        "applicantLocationRequirements": {
+          "@type": "Country",
+          "name": country
+        },
+        "directApply": Boolean(job?.direct_apply || job?.external_apply_url || job?.url),
+        "baseSalary": (minSalary || maxSalary) ? {
+          "@type": "MonetaryAmount",
+          "currency": currency,
+          "value": {
+            "@type": "QuantitativeValue",
+            "minValue": minSalary || undefined,
+            "maxValue": maxSalary || undefined,
+            "unitText": "MONTH"
+          }
+        } : undefined,
+        "jobBenefits": job.benefits?.map((benefit: string) => ({
+          "@type": "DefinedTerm",
+          "name": benefit
+        })),
+        "responsibilities": job.requirements,
+        "qualifications": job.requirements,
+        "skills": job.skills?.map((skill: string) => ({
+          "@type": "DefinedTerm",
+          "name": skill
+        })),
+        "workHours": job.workType,
+        "industry": job.industry
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "JobShaman",
+            "item": typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Jobs",
+            "item": `${typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz"}/jobs`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": job.title,
+            "item": `${typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz"}/jobs/${job.id}`
+          }
+        ]
       }
-    },
-    "baseSalary": (minSalary || maxSalary) ? {
-      "@type": "MonetaryAmount",
-      "currency": currency,
-      "value": {
-        "@type": "QuantitativeValue",
-        "minValue": minSalary || undefined,
-        "maxValue": maxSalary || undefined,
-        "unitText": "MONTH"
-      }
-    } : undefined,
-    "jobBenefits": job.benefits?.map((benefit: string) => ({
-      "@type": "DefinedTerm",
-      "name": benefit
-    })),
-    "responsibilities": job.requirements,
-    "qualifications": job.requirements,
-    "skills": job.skills?.map((skill: string) => ({
-      "@type": "DefinedTerm",
-      "name": skill
-    })),
-    "workHours": job.workType,
-    "industry": job.industry
+    ]
   };
 };
 
@@ -392,6 +507,13 @@ export const generateAISummary = (page: string, t: any, data?: any): string => {
       return `${data?.title}: ${data?.shamanSummary || data?.excerpt}`;
     case 'company-dashboard':
       return t('seo.ai_summary_company');
+    case 'about':
+      return resolveI18nValue(
+        t,
+        ['seo.ai_summary_about'],
+        undefined,
+        'JobShaman focuses on what happens when people actually start working together, not just how they look on paper.',
+      );
     case 'services':
       return t('seo.ai_summary_services');
     case 'saved':

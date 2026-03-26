@@ -58,6 +58,20 @@ class CandidateOnboardingEvaluateRequest(BaseModel):
     answer: str = Field(..., min_length=40, max_length=12000)
     locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
 
+
+class JobSignalBoostBriefRequest(BaseModel):
+    locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
+
+
+class JobSignalBoostOutputRequest(BaseModel):
+    locale: str = Field(default="en", min_length=2, max_length=8, pattern=r"^[a-zA-Z-]+$")
+    response_payload: Dict[str, str] = Field(default_factory=dict)
+    status: Literal["draft", "published"] = "published"
+
+
+class JobSignalBoostEventRequest(BaseModel):
+    event_type: Literal["view", "share_copy", "recruiter_cta_click", "open_original_listing"] = "view"
+
 class AssessmentInvitationRequest(BaseModel):
     assessment_id: str
     candidate_email: str

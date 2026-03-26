@@ -168,7 +168,7 @@ interface RemapDomainOption {
 
 export interface CareerOSNotification {
   id: string;
-  kind: 'company_message' | 'dialogue_update' | 'high_match' | 'digest';
+  kind: 'company_message' | 'dialogue_update' | 'high_match' | 'digest' | 'signal_boost';
   title: string;
   body: string;
   timestamp: string;
@@ -2470,6 +2470,8 @@ export const NotificationInbox: React.FC<{
                   ? Mail
                   : notification.kind === 'dialogue_update'
                     ? CheckCircle2
+                    : notification.kind === 'signal_boost'
+                      ? Sparkles
                     : notification.kind === 'digest'
                       ? Sparkles
                       : Briefcase;
@@ -4969,6 +4971,10 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     setNotificationsOpen(false);
     setReadNotificationIds((current) => Array.from(new Set([...current, notification.id])));
     if (notification.kind === 'high_match' && notification.challengeId) {
+      handleJobSelect(notification.challengeId);
+      return;
+    }
+    if (notification.kind === 'signal_boost' && notification.challengeId) {
       handleJobSelect(notification.challengeId);
       return;
     }

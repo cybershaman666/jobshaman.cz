@@ -7,7 +7,10 @@ Request-rate: 1/1s
 
 # Important paths to crawl
 Allow: /nabidky
+Allow: /jobs
 Allow: /pro-firmy
+Allow: /about
+Allow: /seo/
 Allow: /kurzy-a-rekvalifikace
 Allow: /profil
 Allow: /public/
@@ -53,7 +56,6 @@ Allow: /
 
 # Sitemap locations
 Sitemap: https://jobshaman.cz/sitemap.xml
-Sitemap: https://jobshaman.cz/sitemap-jobs.xml
 
 # Preferred URLs with www
 Prefer-this: https://jobshaman.cz/

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Compass, Handshake, MapPin, Sparkles, Wallet } from 'lucide-react';
+import { ArrowLeft, Compass, ExternalLink, Handshake, MapPin, Sparkles, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import SignalBoostModal from '../../../components/SignalBoostModal';
 import { Badge, SurfaceCard, cn } from '../../../components/ui/primitives';
 import type { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, UserProfile } from '../../../types';
 import ChallengeComposer from '../../../components/challenges/ChallengeComposer';
@@ -20,6 +21,7 @@ import { getDomainAccent, resolveJobDomain } from '../../../utils/domainAccents'
 import { getStockCoverForDomain, getStockGalleryForDomain } from '../../../utils/domainCoverImages';
 import { formatJobDescription } from '../../../utils/formatters';
 import { getChallengeDetailPageCopy } from '../../../components/challenges/challengeDetailCopy';
+import { trackAnalyticsEvent } from '../../../services/supabaseService';
 
 export interface ChallengeDetailPageProps {
   job: Job;
@@ -32,6 +34,56 @@ export interface ChallengeDetailPageProps {
   onOpenCompanyPage: (companyId: string) => void;
   onOpenImportedListing: () => void;
 }
+
+const getSignalBoostPendingKey = (jobId: string | number) => `jobshaman_signal_boost_pending:${String(jobId)}`;
+
+const signalBoostEntryCopy = {
+  cs: {
+    eyebrow: 'Signal Boost',
+    title: 'Chcete vystoupit z řady podobných CV?',
+    body: 'Vytvořte krátký 20minutový output k této roli a pošlete recruiterovi link, kde uvidí, jak přemýšlíte.',
+    cta: 'Vytvořit 20minutový output',
+    timebox: '15 až 20 minut',
+    stepOne: 'Krátký output k roli',
+    stepTwo: 'Link pošlete s přihláškou',
+  },
+  sk: {
+    eyebrow: 'Signal Boost',
+    title: 'Chcete vystúpiť z radu podobných CV?',
+    body: 'Vytvorte krátky 20-minútový output k tejto role a pošlite recruiterovi link, kde uvidí, ako premýšľate.',
+    cta: 'Vytvoriť 20-minútový output',
+    timebox: '15 až 20 minút',
+    stepOne: 'Krátky output k role',
+    stepTwo: 'Link pošlite s prihláškou',
+  },
+  de: {
+    eyebrow: 'Signal Boost',
+    title: 'Möchten Sie sich von ähnlichen CVs abheben?',
+    body: 'Erstellen Sie einen kurzen 20-Minuten-Output zu dieser Rolle und senden Sie dem Recruiter einen Link, der zeigt, wie Sie denken.',
+    cta: '20-Minuten-Output erstellen',
+    timebox: '15 bis 20 Minuten',
+    stepOne: 'Kurzer Output zur Rolle',
+    stepTwo: 'Link mit der Bewerbung senden',
+  },
+  pl: {
+    eyebrow: 'Signal Boost',
+    title: 'Chcesz wyróżnić się wśród podobnych CV?',
+    body: 'Stwórz krótki 20-minutowy output do tej roli i wyślij rekruterowi link pokazujący, jak myślisz.',
+    cta: 'Stwórz 20-minutowy output',
+    timebox: '15 do 20 minut',
+    stepOne: 'Krótki output do roli',
+    stepTwo: 'Wyślij link ze zgłoszeniem',
+  },
+  en: {
+    eyebrow: 'Signal Boost',
+    title: 'Want to stand out from similar CVs?',
+    body: 'Create a short 20-minute output for this role and send the recruiter a link that shows how you think.',
+    cta: 'Create 20-minute output',
+    timebox: '15 to 20 minutes',
+    stepOne: 'Short role-specific output',
+    stepTwo: 'Send the link with your application',
+  },
+} as const;
 
 const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   job,
@@ -46,15 +98,33 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   const { i18n } = useTranslation();
   const [humanContext, setHumanContext] = useState<JobHumanContext | null>(null);
   const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
+  const [isSignalBoostOpen, setIsSignalBoostOpen] = useState(false);
   const locale = String(i18n.resolvedLanguage || i18n.language || userProfile?.preferredLocale || 'en');
   const challenge = useMemo(() => adaptJobToChallenge(job), [job]);
   const language = locale.split('-')[0].toLowerCase();
+  const normalizedSignalBoostLocale = language === 'at' ? 'de' : (['cs', 'sk', 'de', 'pl', 'en'].includes(language) ? language : 'en');
   const isCsLike = language === 'cs' || language === 'sk';
   const isImported = job.listingKind === 'imported';
   const isMicroJobRole = job.challenge_format === 'micro_job';
   const isNativeChallenge = !isImported && Boolean(job.company_id) && String(job.source || '').trim().toLowerCase() === 'jobshaman.cz';
   const remoteRole = isRemoteJob(job);
   const publisher: JobPublicPerson | null = humanContext?.publisher || null;
+  const signalBoostBaseCopy = signalBoostEntryCopy[normalizedSignalBoostLocale as keyof typeof signalBoostEntryCopy] || signalBoostEntryCopy.en;
+  const signalBoostCopy = {
+    ...signalBoostBaseCopy,
+    body: isImported
+      ? normalizedSignalBoostLocale === 'cs'
+        ? 'Vytvořte krátký 20minutový output k této roli, normálně se přihlaste a pošlete recruiterovi link jako lepší signál než samotné CV.'
+        : normalizedSignalBoostLocale === 'sk'
+          ? 'Vytvorte krátky 20-minútový output k tejto role, normálne sa prihláste a pošlite recruiterovi link ako silnejší signál než samotné CV.'
+          : normalizedSignalBoostLocale === 'de'
+            ? 'Erstellen Sie einen kurzen 20-Minuten-Output zu dieser Rolle, bewerben Sie sich normal und senden Sie dem Recruiter den Link als stärkeres Signal als nur den Lebenslauf.'
+            : normalizedSignalBoostLocale === 'pl'
+              ? 'Stwórz krótki 20-minutowy output do tej roli, zgłoś się normalnie i wyślij rekruterowi link jako mocniejszy sygnał niż samo CV.'
+              : 'Create a short 20-minute output for this role, apply normally, and send the recruiter the link as a stronger signal than a CV alone.'
+      : signalBoostBaseCopy.body,
+  };
+  const signalBoostPendingKey = useMemo(() => getSignalBoostPendingKey(job.id), [job.id]);
 
   const effectiveDomain = useMemo(() => resolveJobDomain(job), [job]);
   const nativeCompanyGallery = useMemo(
@@ -107,6 +177,19 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       cancelled = true;
     };
   }, [isNativeChallenge, job.id]);
+
+  useEffect(() => {
+    if (!userProfile.isLoggedIn || typeof window === 'undefined') return;
+    const pending = window.localStorage.getItem(signalBoostPendingKey);
+    if (!pending) return;
+    window.localStorage.removeItem(signalBoostPendingKey);
+    setIsSignalBoostOpen(true);
+    void trackAnalyticsEvent({
+      event_type: 'signal_boost_cta_opened',
+      feature: 'signal_boost_v1',
+      metadata: { job_id: job.id, source: 'auth_return' },
+    });
+  }, [job.id, signalBoostPendingKey, userProfile.isLoggedIn]);
 
   useEffect(() => {
     if (!userProfile?.isLoggedIn || ((!userProfile.address && !userProfile.coordinates) && !remoteRole)) {
@@ -207,6 +290,30 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   const usePublisherMonogram = isStockCompanyAvatarUrl(publisherAvatar);
   const listingBadge = isImported ? copy.badgeImported : isMicroJobRole ? copy.badgeMicro : copy.badgeNative;
   const matchScore = Math.max(0, Math.min(100, Math.round(Number(job.aiMatchScore || 0))));
+  const handleOpenSignalBoost = () => {
+    if (!userProfile.isLoggedIn) {
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(signalBoostPendingKey, JSON.stringify({ opened_at: new Date().toISOString() }));
+        } catch {
+          // ignore storage issues
+        }
+      }
+      void trackAnalyticsEvent({
+        event_type: 'signal_boost_cta_opened',
+        feature: 'signal_boost_v1',
+        metadata: { job_id: job.id, source: 'guest_auth_gate' },
+      });
+      onRequireAuth();
+      return;
+    }
+    setIsSignalBoostOpen(true);
+    void trackAnalyticsEvent({
+      event_type: 'signal_boost_cta_opened',
+      feature: 'signal_boost_v1',
+      metadata: { job_id: job.id, source: 'job_detail' },
+    });
+  };
   const companyStoryLabels = language === 'cs'
     ? {
         about: 'Kam vlastně vstupuješ',
@@ -713,8 +820,9 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     </SurfaceCard>
   );
   return (
-    <section className="app-shell-bg app-shell-bg-clean relative isolate min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden">
-      <div className="mx-auto w-full max-w-[1520px] space-y-5 px-3 py-4 pb-8 lg:px-4">
+    <>
+      <section className="app-shell-bg app-shell-bg-clean relative isolate min-h-[calc(100dvh-var(--app-header-height))] overflow-hidden">
+        <div className="mx-auto w-full max-w-[1520px] space-y-5 px-3 py-4 pb-8 lg:px-4">
         <button
           type="button"
           onClick={onBack}
@@ -824,17 +932,8 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 pt-1">
-                    {isImported ? (
-                      <button
-                        type="button"
-                        onClick={onOpenImportedListing}
-                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
-                      >
-                        <Sparkles size={15} />
-                        {copy.importedButton}
-                      </button>
-                    ) : (
+                  {!isImported ? (
+                    <div className="flex flex-wrap gap-3 pt-1">
                       <a
                         href="#challenge-handshake"
                         className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
@@ -842,17 +941,64 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         <Handshake size={15} />
                         {copy.handshakeCta}
                       </a>
-                    )}
-                    {!isImported && job.company_id ? (
+                      {job.company_id ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenCompanyPage(job.company_id!)}
+                          className="app-button-dock inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+                        >
+                          <Compass size={15} />
+                          {copy.companyCta}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-[20px] border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.05)] p-4 dark:bg-[rgba(var(--accent-rgb),0.11)]">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                          {signalBoostCopy.eyebrow}
+                        </div>
+                        <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                          {signalBoostCopy.title}
+                        </div>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
+                          {signalBoostCopy.body}
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <div className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[var(--text-strong)] dark:bg-slate-950/60">
+                            {signalBoostCopy.stepOne}
+                          </div>
+                          <div className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[var(--text-strong)] dark:bg-slate-950/60">
+                            {signalBoostCopy.stepTwo}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[var(--text-strong)] dark:bg-slate-950/65">
+                        {signalBoostCopy.timebox}
+                      </div>
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-3">
                       <button
                         type="button"
-                        onClick={() => onOpenCompanyPage(job.company_id!)}
-                        className="app-button-dock inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+                        onClick={handleOpenSignalBoost}
+                        className="app-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
                       >
-                        <Compass size={15} />
-                        {copy.companyCta}
+                        <Sparkles size={15} />
+                        {signalBoostCopy.cta}
                       </button>
-                    ) : null}
+                      {isImported ? (
+                        <button
+                          type="button"
+                          onClick={onOpenImportedListing}
+                          className="app-button-secondary inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+                        >
+                          <ExternalLink size={15} />
+                          {copy.importedButton}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   {companyGalleryImages.length ? (
@@ -1120,11 +1266,19 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
             </SurfaceCard>
 
-          </div>
-
         </div>
-      </div>
-    </section>
+          </div>
+        </div>
+      </section>
+      {userProfile.isLoggedIn ? (
+        <SignalBoostModal
+          isOpen={isSignalBoostOpen}
+          job={job}
+          userProfile={userProfile}
+          onClose={() => setIsSignalBoostOpen(false)}
+        />
+      ) : null}
+    </>
   );
 };
 

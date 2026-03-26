@@ -689,6 +689,95 @@ export interface SolutionSnapshot {
   candidate_name?: string | null;
 }
 
+export interface JobSignalBoostSection {
+  id: string;
+  title: string;
+  hint: string;
+  optional?: boolean;
+  min_chars?: number;
+  soft_max_chars?: number;
+}
+
+export interface JobSignalBoostBrief {
+  kicker: string;
+  timebox: string;
+  candidate_note: string;
+  anti_generic_hint: string;
+  cta_hint: string;
+  scenario_title: string;
+  scenario_context: string;
+  core_problem: string;
+  constraints: string[];
+  structured_sections: JobSignalBoostSection[];
+  locale: string;
+  meta?: {
+    role_family?: string | null;
+    domain_key?: string | null;
+    canonical_role?: string | null;
+    used_ai_fallback?: boolean;
+  } | null;
+}
+
+export interface JobSignalBoostSummaryItem {
+  key: 'structure' | 'prioritization' | 'clarity' | 'depth';
+  label: string;
+  score: number;
+}
+
+export interface JobSignalBoostSummary {
+  items: JobSignalBoostSummaryItem[];
+  suppressed?: boolean;
+}
+
+export interface JobSignalBoostQualityFlags {
+  publish_ready: boolean;
+  total_chars: number;
+  word_count: number;
+  too_short: boolean;
+  missing_first_move: boolean;
+  missing_tradeoff: boolean;
+  missing_unknowns: boolean;
+  likely_generic: boolean;
+  genericity_hits: number;
+  nudges: string[];
+}
+
+export interface JobSignalBoostSnapshot {
+  id?: string | null;
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  url?: string | null;
+  company_id?: string | null;
+  source?: string | null;
+  source_kind?: 'native' | 'imported' | string;
+}
+
+export interface JobSignalBoostCandidatePublicSnapshot {
+  name: string;
+  jobTitle?: string | null;
+  avatar_url?: string | null;
+  linkedin?: string | null;
+}
+
+export interface JobSignalBoostOutput {
+  id: string;
+  share_slug: string;
+  share_url: string;
+  locale: string;
+  status: 'draft' | 'published' | 'archived' | string;
+  job_snapshot: JobSignalBoostSnapshot;
+  candidate_snapshot: JobSignalBoostCandidatePublicSnapshot;
+  scenario_payload: JobSignalBoostBrief;
+  response_payload: Record<string, string>;
+  signal_summary?: JobSignalBoostSummary | null;
+  quality_flags: JobSignalBoostQualityFlags;
+  analytics?: Record<string, number>;
+  created_at?: string | null;
+  updated_at?: string | null;
+  published_at?: string | null;
+}
+
 export interface SolutionSnapshotUpsertPayload {
   problem: string;
   solution: string;

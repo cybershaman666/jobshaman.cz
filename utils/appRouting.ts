@@ -78,6 +78,7 @@ export const isExternalStandalonePath = (normalizedPath: string): boolean => {
         || normalizedPath === '/about-us'
         || normalizedPath === '/enterprise'
         || normalizedPath.startsWith('/assessment')
+        || normalizedPath.startsWith('/signal/')
         || normalizedPath === '/demo-handshake'
         || normalizedPath === '/demo-company-handshake'
         || normalizedPath === '/demo-solarpunk-park'

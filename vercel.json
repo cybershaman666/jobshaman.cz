@@ -12,6 +12,18 @@
     ],
     "rewrites": [
         {
+            "source": "/sitemap.xml",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap.xml"
+        },
+        {
+            "source": "/sitemap-pages.xml",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-pages.xml"
+        },
+        {
+            "source": "/sitemap-clusters.xml",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-clusters.xml"
+        },
+        {
             "source": "/sitemap-jobs.xml",
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-jobs.xml"
         },

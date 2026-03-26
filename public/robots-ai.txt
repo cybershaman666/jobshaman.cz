@@ -55,7 +55,10 @@ Allow: /
 
 # Specific Allowed Paths
 Allow: /nabidky
+Allow: /jobs
 Allow: /pro-firmy  
+Allow: /about
+Allow: /seo/
 Allow: /kurzy-a-rekvalifikace
 Allow: /profil
 Allow: /public/
@@ -105,4 +108,3 @@ Disallow: /*.json$
 
 # Sitemap
 Sitemap: https://jobshaman.cz/sitemap.xml
-Sitemap: https://jobshaman.cz/sitemap-jobs.xml

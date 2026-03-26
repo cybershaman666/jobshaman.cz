@@ -22,6 +22,7 @@ from ..models.requests import (
     AdminJobRoleCreateRequest,
     AdminJobRoleUpdateRequest,
 )
+from ..services.job_signal_boost_store import get_signal_boost_analytics_summary
 from ..utils.helpers import now_iso
 
 router = APIRouter()
@@ -2259,6 +2260,12 @@ async def admin_stats(
     except Exception as e:
         print(f"⚠️ Admin geo stats failed: {e}")
 
+    signal_boost = None
+    try:
+        signal_boost = get_signal_boost_analytics_summary(days=30, limit=8)
+    except Exception as exc:
+        print(f"⚠️ Admin signal boost stats failed: {exc}")
+
     return _admin_cache_set(cache_key, {
         "users": {"total": users_total, "new_7d": users_7, "new_30d": users_30},
         "companies": {"total": companies_total, "new_7d": companies_7, "new_30d": companies_30},
@@ -2272,6 +2279,7 @@ async def admin_stats(
             **(traffic or {}),
             **({"geo": geo_breakdown} if geo_breakdown else {}),
         } if traffic or geo_breakdown else None,
+        "signal_boost": signal_boost,
     }, _ADMIN_STATS_TTL_SECONDS)
 
 

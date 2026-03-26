@@ -49,6 +49,7 @@ import { AlertCircle, ArrowUp } from 'lucide-react';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
 import AboutUsPage from './pages/AboutUsPage';
+import SignalBoostPublicPage from './pages/SignalBoostPublicPage';
 
 type PendingApplyFollowup = {
     jobId: number;
@@ -66,6 +67,7 @@ type PendingApplyFollowup = {
 const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
+const SIGNAL_BOOST_PENDING_PREFIX = 'jobshaman_signal_boost_pending:';
 let initialSessionCheckPromise: Promise<void> | null = null;
 
 const normalizeSavedJobId = (jobId: string): string => {
@@ -1399,24 +1401,27 @@ export default function App() {
 
     // SEO Update Effect
     useEffect(() => {
-        const pageName = showCompanyLanding ? 'company-dashboard' :
-            viewState === ViewState.LIST ? 'home' :
-                viewState === ViewState.PROFILE ? 'profile' :
-                    viewState === ViewState.SAVED ? 'saved' :
-                        viewState === ViewState.ASSESSMENT ? 'assessment' :
-                            viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+        const pageName = selectedJob ? 'job-detail' :
+            selectedBlogPostSlug ? 'blog-post' :
+                normalizedPath === '/about' || normalizedPath === '/about-us' ? 'about' :
+                    showCompanyLanding ? 'company-dashboard' :
+                        viewState === ViewState.LIST ? 'home' :
+                            viewState === ViewState.PROFILE ? 'profile' :
+                                viewState === ViewState.SAVED ? 'saved' :
+                                    viewState === ViewState.ASSESSMENT ? 'assessment' :
+                                        viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
 
         const selectedBlogPost = initialBlogPosts.find(p => p.slug === selectedBlogPostSlug);
         const metadata = generateSEOMetadata(
-            selectedBlogPostSlug ? 'blog-post' : pageName,
+            pageName,
             t,
             selectedBlogPostSlug ? selectedBlogPost : selectedJob
         );
         updatePageMeta(metadata);
-    }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t]);
+    }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t, normalizedPath]);
 
     useEffect(() => {
         if (themeMode !== 'system') {
@@ -1898,6 +1903,9 @@ export default function App() {
         if (normalizedPath === '/about' || normalizedPath === '/about-us') {
             return <AboutUsPage />;
         }
+        if (normalizedPath.startsWith('/signal/')) {
+            return <SignalBoostPublicPage />;
+        }
         return null;
     }, [normalizedPath]);
     const isStandaloneRoute = standalonePageNode !== null;
@@ -2159,6 +2167,8 @@ export default function App() {
                     }}
                     onSuccess={() => {
                         const successMode = authModalMode;
+                        const hasPendingSignalBoost = typeof window !== 'undefined'
+                            && Object.keys(window.localStorage).some((key) => key.startsWith(SIGNAL_BOOST_PENDING_PREFIX));
                         setIsAuthModalOpen(false);
                         passwordRecoveryInProgressRef.current = false;
                         clearPasswordRecoveryPending();
@@ -2166,10 +2176,12 @@ export default function App() {
                         if (successMode === 'register') {
                             postAuthCandidateOnboardingRef.current = 'entry';
                             onboardingDismissedRef.current = false;
-                            setSelectedJobId(null);
-                            setSelectedBlogPostSlug(null);
-                            setShowCompanyLanding(false);
-                            setViewState(ViewState.LIST);
+                            if (!hasPendingSignalBoost) {
+                                setSelectedJobId(null);
+                                setSelectedBlogPostSlug(null);
+                                setShowCompanyLanding(false);
+                                setViewState(ViewState.LIST);
+                            }
                         }
                     }}
                     defaultMode={authModalMode}

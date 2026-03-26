@@ -433,3 +433,93 @@ def send_daily_digest_email(
     """
 
     return send_email(to_email, copy["subject"], html)
+
+
+def send_signal_boost_interest_email(
+    *,
+    to_email: str,
+    full_name: str,
+    locale: str,
+    company_name: str,
+    job_title: str,
+    role_url: str,
+    signal_url: str,
+) -> bool:
+    locale = (locale or "cs").lower()
+    if locale.startswith("de") or locale == "at":
+        lang = "de"
+    elif locale.startswith("sk"):
+        lang = "sk"
+    elif locale.startswith("pl"):
+        lang = "pl"
+    elif locale.startswith("en"):
+        lang = "en"
+    else:
+        lang = "cs"
+
+    first_name = _extract_first_name(full_name)
+    cs_salutation_name = _to_czech_vocative(first_name) if first_name else ""
+
+    copy = {
+        "cs": {
+            "subject": f"Někdo zareagoval na váš Signal Boost",
+            "title": f"Dobrý den{f' {cs_salutation_name}' if cs_salutation_name else ''},",
+            "intro": f"U vašeho Signal Boostu pro roli <b>{escape(job_title)}</b> ve firmě <b>{escape(company_name)}</b> se objevil silnější signál zájmu.",
+            "body": "Někdo neudělal jen otevření odkazu, ale klikl dál. To je dobrý moment vrátit se k roli a zkontrolovat další kontext.",
+            "role_cta": "Otevřít roli",
+            "signal_cta": "Otevřít Signal Boost",
+            "footer": "JobShaman vám dá vědět, když se z pasivního zobrazení stane skutečný zájem.",
+        },
+        "sk": {
+            "subject": "Niekto zareagoval na váš Signal Boost",
+            "title": f"Dobrý deň{f' {first_name}' if first_name else ''},",
+            "intro": f"Pri vašom Signal Booste pre rolu <b>{escape(job_title)}</b> vo firme <b>{escape(company_name)}</b> sa objavil silnejší signál záujmu.",
+            "body": "Niekto neurobil len otvorenie odkazu, ale klikol ďalej. To je dobrý moment vrátiť sa k role a skontrolovať ďalší kontext.",
+            "role_cta": "Otvoriť rolu",
+            "signal_cta": "Otvoriť Signal Boost",
+            "footer": "JobShaman vám dá vedieť, keď sa z pasívneho zobrazenia stane skutočný záujem.",
+        },
+        "de": {
+            "subject": "Jemand hat auf Ihren Signal Boost reagiert",
+            "title": f"Hallo{f' {first_name}' if first_name else ''},",
+            "intro": f"Bei Ihrem Signal Boost für die Rolle <b>{escape(job_title)}</b> bei <b>{escape(company_name)}</b> gab es ein stärkeres Interessenssignal.",
+            "body": "Jemand hat den Link nicht nur geöffnet, sondern ist einen Schritt weitergegangen. Ein guter Moment, die Rolle und den Kontext erneut zu prüfen.",
+            "role_cta": "Rolle öffnen",
+            "signal_cta": "Signal Boost öffnen",
+            "footer": "JobShaman informiert Sie, wenn aus einem bloßen Aufruf echtes Interesse wird.",
+        },
+        "pl": {
+            "subject": "Ktoś zareagował na Twój Signal Boost",
+            "title": f"Cześć{f' {first_name}' if first_name else ''},",
+            "intro": f"Przy Twoim Signal Boost dla roli <b>{escape(job_title)}</b> w firmie <b>{escape(company_name)}</b> pojawił się mocniejszy sygnał zainteresowania.",
+            "body": "Ktoś nie tylko otworzył link, ale kliknął dalej. To dobry moment, żeby wrócić do roli i sprawdzić dalszy kontekst.",
+            "role_cta": "Otwórz rolę",
+            "signal_cta": "Otwórz Signal Boost",
+            "footer": "JobShaman daje znać, gdy z samego wyświetlenia robi się realne zainteresowanie.",
+        },
+        "en": {
+            "subject": "Someone reacted to your Signal Boost",
+            "title": f"Hi{f' {first_name}' if first_name else ''},",
+            "intro": f"Your Signal Boost for <b>{escape(job_title)}</b> at <b>{escape(company_name)}</b> just showed a stronger sign of interest.",
+            "body": "Someone did not just open the link. They clicked further. That is a good moment to jump back into the role and check the next context.",
+            "role_cta": "Open role",
+            "signal_cta": "Open Signal Boost",
+            "footer": "JobShaman lets you know when passive viewing turns into real interest.",
+        },
+    }[lang]
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px; background-color: #f1f5f9;">
+      <div style="background-color: #ffffff; padding: 28px; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+        <h2 style="color: #0f172a; margin-bottom: 8px;">{copy['title']}</h2>
+        <p style="color: #475569; line-height: 1.6;">{copy['intro']}</p>
+        <p style="color: #475569; line-height: 1.6;">{copy['body']}</p>
+        <div style="margin: 22px 0 10px; display:flex; gap:12px; flex-wrap:wrap;">
+          <a href="{escape(role_url)}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#ffffff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">{copy['role_cta']}</a>
+          <a href="{escape(signal_url)}" style="display:inline-block;padding:12px 18px;background:#0ea5e9;color:#ffffff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">{copy['signal_cta']}</a>
+        </div>
+        <p style="color: #64748b; font-size: 14px; margin-top: 20px;">{copy['footer']}</p>
+      </div>
+    </div>
+    """
+    return send_email(to_email, copy["subject"], html)

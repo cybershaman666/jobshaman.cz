@@ -6,8 +6,8 @@
     
     <!-- Primary SEO Meta Tags -->
     <title>JobShaman</title>
-    <meta name="description" content="Find your ideal job with AI analysis. JobShaman offers transparent listings with real salaries, benefits, and JHI scores. Filter by location, benefits, and companies.">
-    <meta name="keywords" content="jobs, AI job analysis, JHI score, salaries, benefits, remote work, home office, job search, career growth">
+    <meta name="description" content="JobShaman turns hiring into real collaboration. Career Map, goal navigation, mini challenges, and handshake hiring help candidates and companies see what happens when they actually start working together.">
+    <meta name="keywords" content="career map, goal navigation, mini challenges, handshake hiring, collaboration-first hiring, job listings, remote jobs, customer success jobs, operations jobs">
     <meta name="author" content="JobShaman">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="language" content="en">
@@ -15,8 +15,8 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://jobshaman.com/">
-    <meta property="og:title" content="JobShaman - Smart job matching">
-    <meta property="og:description" content="Find your ideal job with AI analysis. Transparent listings with real salaries, benefits, and unique JHI scores.">
+    <meta property="og:title" content="JobShaman - hiring starts with collaboration">
+    <meta property="og:description" content="Career Map, goal navigation, mini challenges, and handshake hiring help candidates and companies see what happens when they actually start working together.">
     <meta property="og:image" content="https://jobshaman.com/og-image.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -26,8 +26,8 @@
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://jobshaman.com/">
-    <meta property="twitter:title" content="JobShaman - Smart job matching">
-    <meta property="twitter:description" content="Find your ideal job with AI analysis. Transparent listings with real salaries, benefits, and unique JHI scores.">
+    <meta property="twitter:title" content="JobShaman - hiring starts with collaboration">
+    <meta property="twitter:description" content="Career Map, goal navigation, mini challenges, and handshake hiring help candidates and companies see what happens when they actually start working together.">
     <meta property="twitter:image" content="https://jobshaman.com/og-image.jpg">
     <meta property="twitter:site" content="@jobshaman_cz">
     <meta property="twitter:creator" content="@jobshaman_cz">
@@ -54,7 +54,7 @@
     ">
     
     <!-- AEO (AI Engine Optimization) Meta Tags -->
-    <meta name="description:extended" content="JobShaman is an intelligent job search platform. We provide transparent information about salaries, benefits, and work environment. Using AI, we analyze job listings and assign a unique JHI score (0-100), representing job happiness. All information in our system is verified and up to date.">
+    <meta name="description:extended" content="JobShaman is a collaboration-first hiring platform for candidates and companies. Candidates explore Career Map, goal navigation, mini challenges, and live job listings. Companies open hiring through real tasks and handshake moments. AI helps guide and simplify the process, but never makes the final decision.">
     <meta name="article:author" content="JobShaman Team">
     <meta name="article:section" content="Jobs, Career Development, AI Technology">
     <meta name="article:published_time" content="2024-01-01T00:00:00+00:00">
@@ -62,11 +62,11 @@
     <meta name="article:tag" content="jobs, careers, AI, salary, benefits">
     
     <!-- Entity Optimization for AI Extraction -->
-    <meta name="business_type" content="Job Search Platform">
+    <meta name="business_type" content="Collaboration-first Hiring Platform">
     <meta name="primary_industry" content="Human Resources and Employment">
     <meta name="service_area" content="Global">
-    <meta name="key_features" content="AI analysis, transparency, job happiness index, salary information, benefits calculation, culture insights">
-    <meta name="unique_selling_proposition" content="Unique JHI score (Job Happiness Index) and full transparency of job listing information">
+    <meta name="key_features" content="career map, goal navigation, mini challenges, handshake hiring, company work simulations, live job data">
+    <meta name="unique_selling_proposition" content="Hiring based on real collaboration, compatibility, and stronger signals about how people actually work together">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://jobshaman.com/">
@@ -86,27 +86,56 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "JobShaman",
-      "description": "Smart job matching with AI analysis, transparency, and JHI scores",
-      "url": "https://jobshaman.com/",
-      "inLanguage": "en-US",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://jobshaman.com/?q={search_term_string}"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://jobshaman.com/#organization",
+          "name": "JobShaman",
+          "url": "https://jobshaman.com/",
+          "logo": "https://jobshaman.com/logo.png",
+          "description": "Collaboration-first hiring platform built around real interaction, compatibility, and stronger signals."
         },
-        "query-input": "required name=search_term_string"
-      }
+        {
+          "@type": "WebSite",
+          "@id": "https://jobshaman.com/#website",
+          "name": "JobShaman",
+          "url": "https://jobshaman.com/",
+          "inLanguage": "en-US",
+          "publisher": { "@id": "https://jobshaman.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://jobshaman.com/jobs?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://jobshaman.com/#app",
+          "name": "JobShaman",
+          "url": "https://jobshaman.com/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "featureList": [
+            "Career Map",
+            "Goal navigation",
+            "Mini challenges",
+            "Handshake hiring",
+            "Hiring through real tasks"
+          ],
+          "publisher": { "@id": "https://jobshaman.com/#organization" }
+        }
+      ]
     }
     </script>
     
     <!-- AEO for AI Search Engines -->
-    <meta name="chatgpt-shareable" content="JobShaman is a job search platform with AI analysis of listings. It offers transparent information about salaries, benefits, and company culture.">
-    <meta name="ai-summary" content="JobShaman helps candidates find the right job using AI analysis. It provides JHI scores, transparent salaries, benefits, and company insights.">
-    <meta name="answer-type" content="job search platform">
-    <meta name="audience" content="job seekers, career changers, professionals">
+    <meta name="chatgpt-shareable" content="JobShaman is a collaboration-first hiring platform. Candidates use Career Map, goal navigation, and mini challenges, while companies open hiring through handshake moments and real tasks.">
+    <meta name="ai-summary" content="JobShaman helps candidates and companies understand what happens when they actually start working together. It combines live job listings with Career Map, goal navigation, mini challenges, and collaboration-first hiring flows.">
+    <meta name="answer-type" content="collaboration-first hiring platform">
+    <meta name="audience" content="job seekers, career changers, teams, hiring managers">
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <meta name="backend-url" content="%VITE_BACKEND_URL%">
