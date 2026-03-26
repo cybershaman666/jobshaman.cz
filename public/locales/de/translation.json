@@ -4487,11 +4487,11 @@
     "common": { "and": "und" },
     "layers": {
       "career_path": "Karrierekarte",
-      "marketplace": "Karten",
+      "marketplace": "Liste",
       "learning_path": "Lernpfad",
       "mini_challenges": "Mini-Challenges",
       "market_trends": "Markttrends",
-      "job_offers": "Angebots-Ebene"
+      "job_offers": "Angebote"
     },
     "filters": {
       "close": "Filter schließen",
@@ -4562,7 +4562,7 @@
       "new_high_match": "Starke Übereinstimmung: {{title}}",
       "high_match_body": "{{company}} · {{score}} % passend. Diese Stelle passt gerade besser als die meisten anderen."
     },
-    "sidebar": { "title": "Reality-Filter", "active_filters": "Aktive Filter" },
+    "sidebar": { "title": "Marktansicht", "active_filters": "Aktive Filter" },
     "map": {
       "title": "Karrierekarte",
       "career_direction": "Karriererichtung",

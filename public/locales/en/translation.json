@@ -4463,11 +4463,11 @@
     "common": { "and": "and" },
     "layers": {
       "career_path": "Career Map",
-      "marketplace": "Cards",
+      "marketplace": "List",
       "learning_path": "Learning Path",
       "mini_challenges": "Mini Challenges",
       "market_trends": "Market Trends",
-      "job_offers": "Offer Layer"
+      "job_offers": "Offers"
     },
     "filters": {
       "close": "Close filters",
@@ -4538,7 +4538,7 @@
       "new_high_match": "Strong match: {{title}}",
       "high_match_body": "{{company}} · {{score}}% match. This job looks like a better fit than most right now."
     },
-    "sidebar": { "title": "Reality Filter", "active_filters": "Active Filters" },
+    "sidebar": { "title": "Market View", "active_filters": "Active Filters" },
     "map": {
       "title": "Career Map",
       "career_direction": "Direction",

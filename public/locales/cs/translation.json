@@ -4552,11 +4552,11 @@
     },
     "layers": {
       "career_path": "Kariérní mapa",
-      "marketplace": "Karty",
+      "marketplace": "Seznam",
       "learning_path": "Rozvojová cesta",
       "mini_challenges": "Mini výzvy",
       "market_trends": "Tržní trendy",
-      "job_offers": "Vrstva nabídek"
+      "job_offers": "Nabídky"
     },
     "filters": {
       "close": "Zavřít filtry",
@@ -4632,7 +4632,7 @@
       "high_match_body": "{{company}} · shoda {{score}} %. Tohle je nabídka, která vám teď sedí víc než obvykle."
     },
     "sidebar": {
-      "title": "Reality filtr",
+      "title": "Zobrazení trhu",
       "active_filters": "Aktivní filtry"
     },
     "map": {

@@ -4477,11 +4477,11 @@
     "common": { "and": "i" },
     "layers": {
       "career_path": "Mapa kariery",
-      "marketplace": "Karty",
+      "marketplace": "Lista",
       "learning_path": "Ścieżka rozwoju",
       "mini_challenges": "Mini zlecenia",
       "market_trends": "Trendy rynkowe",
-      "job_offers": "Warstwa ofert"
+      "job_offers": "Oferty"
     },
     "filters": {
       "close": "Zamknij filtry",
@@ -4552,7 +4552,7 @@
       "new_high_match": "Mocne dopasowanie: {{title}}",
       "high_match_body": "{{company}} · dopasowanie {{score}}%. Ta oferta wygląda teraz lepiej niż większość pozostałych."
     },
-    "sidebar": { "title": "Filtr rzeczywistości", "active_filters": "Aktywne filtry" },
+    "sidebar": { "title": "Widok rynku", "active_filters": "Aktywne filtry" },
     "map": {
       "title": "Mapa kariery",
       "career_direction": "Kierunek kariery",

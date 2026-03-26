@@ -4452,11 +4452,11 @@
     "common": { "and": "a" },
     "layers": {
       "career_path": "Kariérna mapa",
-      "marketplace": "Karty",
+      "marketplace": "Zoznam",
       "learning_path": "Rozvojová cesta",
       "mini_challenges": "Mini výpomoci",
       "market_trends": "Trhové trendy",
-      "job_offers": "Vrstva ponúk"
+      "job_offers": "Ponuky"
     },
     "filters": {
       "close": "Zavrieť filtre",
@@ -4527,7 +4527,7 @@
       "new_high_match": "Silná zhoda: {{title}}",
       "high_match_body": "{{company}} · zhoda {{score}} %. Táto ponuka vám teraz sedí viac než väčšina ostatných."
     },
-    "sidebar": { "title": "Filter reality", "active_filters": "Aktívne filtre" },
+    "sidebar": { "title": "Zobrazenie trhu", "active_filters": "Aktívne filtre" },
     "map": {
       "title": "Kariérna mapa",
       "career_direction": "Kariérny smer",

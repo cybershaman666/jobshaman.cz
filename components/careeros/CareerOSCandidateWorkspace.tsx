@@ -882,20 +882,88 @@ const safeImage = (value: string | null | undefined): string | null => {
   return src || null;
 };
 
-const getCareerOSLayerLabel = (t: TFunction, layer: CareerOSLayer): string => {
+const getCareerOSSidebarCopy = (locale: string) => {
+  const language = String(locale || 'en').split('-')[0].toLowerCase();
+  const copy = {
+    cs: {
+      title: 'Způsob zobrazení',
+      subtitle: 'Přepínej mezi mapou, klasickým seznamem a vrstvami, které ti pomohou se rozhodnout.',
+      layers: {
+        career_path: { label: 'Kariérní mapa', hint: 'Uvidíš směry, přechody a kam tě která role může dovést.' },
+        marketplace: { label: 'Seznam', hint: 'Klasický seznam nabídek pro rychlé procházení a porovnání.' },
+        learning_path: { label: 'Learning path', hint: 'Dovednosti, mezery a praktické další kroky pro růst.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krátké pracovní ukázky, na kterých je vidět, jak přemýšlíš a pracuješ.' },
+        market_trends: { label: 'Tržní signály', hint: 'Poptávka, odměny a pohyb na trhu kolem tebe.' },
+        job_offers: { label: 'Vrstva nabídek', hint: 'Konkrétní nabídky navázané na vybraný směr.' },
+      },
+    },
+    sk: {
+      title: 'Spôsob zobrazenia',
+      subtitle: 'Prepínaj medzi mapou, klasickým zoznamom a vrstvami, ktoré ti pomôžu rozhodnúť sa.',
+      layers: {
+        career_path: { label: 'Kariérna mapa', hint: 'Uvidíš smery, prechody a kam ťa môže ktorá rola doviesť.' },
+        marketplace: { label: 'Zoznam', hint: 'Klasický zoznam ponúk na rýchle prehliadanie a porovnanie.' },
+        learning_path: { label: 'Learning path', hint: 'Zručnosti, medzery a praktické ďalšie kroky pre rast.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krátke pracovné ukážky, na ktorých vidno, ako rozmýšľaš a pracuješ.' },
+        market_trends: { label: 'Trhové signály', hint: 'Dopyt, odmeny a pohyb na trhu okolo teba.' },
+        job_offers: { label: 'Vrstva ponúk', hint: 'Konkrétne ponuky naviazané na vybraný smer.' },
+      },
+    },
+    de: {
+      title: 'Ansicht wählen',
+      subtitle: 'Wechseln Sie zwischen Karte, klassischer Liste und weiteren Ebenen, die bei der Entscheidung helfen.',
+      layers: {
+        career_path: { label: 'Karrierekarte', hint: 'Zeigt Richtungen, Übergänge und wohin eine Rolle führen kann.' },
+        marketplace: { label: 'Liste', hint: 'Klassische Stellenliste zum schnellen Durchsehen und Vergleichen.' },
+        learning_path: { label: 'Learning Path', hint: 'Kompetenzen, Lücken und praktische nächste Schritte für Wachstum.' },
+        mini_challenges: { label: 'Mini-Challenges', hint: 'Kurze Arbeitsproben, die zeigen, wie Sie denken und arbeiten.' },
+        market_trends: { label: 'Marktsignale', hint: 'Nachfrage, Vergütung und Bewegungen im Markt um Sie herum.' },
+        job_offers: { label: 'Angebotsebene', hint: 'Konkrete Angebote entlang des gewählten Pfads.' },
+      },
+    },
+    pl: {
+      title: 'Sposób widoku',
+      subtitle: 'Przełączaj się między mapą, klasyczną listą i warstwami, które pomagają podjąć decyzję.',
+      layers: {
+        career_path: { label: 'Mapa kariery', hint: 'Zobaczysz kierunki, przejścia i dokąd może prowadzić dana rola.' },
+        marketplace: { label: 'Lista', hint: 'Klasyczna lista ofert do szybkiego przeglądania i porównywania.' },
+        learning_path: { label: 'Learning path', hint: 'Umiejętności, luki i praktyczne kolejne kroki rozwoju.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krótkie próbki pracy pokazujące, jak myślisz i pracujesz.' },
+        market_trends: { label: 'Sygnały rynkowe', hint: 'Popyt, wynagrodzenia i ruchy na rynku wokół ciebie.' },
+        job_offers: { label: 'Warstwa ofert', hint: 'Konkretne oferty powiązane z wybranym kierunkiem.' },
+      },
+    },
+    en: {
+      title: 'How to view the market',
+      subtitle: 'Switch between the map, the classic list and the layers that help you decide.',
+      layers: {
+        career_path: { label: 'Career Map', hint: 'See directions, transitions and where each role can lead.' },
+        marketplace: { label: 'List', hint: 'Classic job list for quick browsing and comparison.' },
+        learning_path: { label: 'Learning Path', hint: 'Skills, gaps and practical next steps for growth.' },
+        mini_challenges: { label: 'Mini Challenges', hint: 'Short work samples that show how you actually think and work.' },
+        market_trends: { label: 'Market Trends', hint: 'Signals about demand, pay and movement in the market.' },
+        job_offers: { label: 'Offer Layer', hint: 'Concrete offers connected to the selected path.' },
+      },
+    },
+  } as const;
+  return copy[language as keyof typeof copy] || copy.en;
+};
+
+const getCareerOSLayerLabel = (t: TFunction, layer: CareerOSLayer, locale: string): string => {
+  const fallback = getCareerOSSidebarCopy(locale).layers[layer]?.label || layer;
   switch (layer) {
     case 'career_path':
-      return t('careeros.layers.career_path', { defaultValue: 'Career Map' });
+      return t('careeros.layers.career_path', { defaultValue: fallback });
     case 'marketplace':
-      return t('careeros.layers.marketplace', { defaultValue: 'Cards' });
+      return t('careeros.layers.marketplace', { defaultValue: fallback });
     case 'learning_path':
-      return t('careeros.layers.learning_path', { defaultValue: 'Learning Path' });
+      return t('careeros.layers.learning_path', { defaultValue: fallback });
     case 'mini_challenges':
-      return t('careeros.layers.mini_challenges', { defaultValue: 'Mini Challenges' });
+      return t('careeros.layers.mini_challenges', { defaultValue: fallback });
     case 'market_trends':
-      return t('careeros.layers.market_trends', { defaultValue: 'Market Trends' });
+      return t('careeros.layers.market_trends', { defaultValue: fallback });
     case 'job_offers':
-      return t('careeros.layers.job_offers', { defaultValue: 'Offer Layer' });
+      return t('careeros.layers.job_offers', { defaultValue: fallback });
     default:
       return layer;
   }
@@ -2583,7 +2651,10 @@ const Sidebar: React.FC<{
   setCollapsed,
   onNavigate,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.resolvedLanguage || i18n.language || 'en');
+  const sidebarCopy = getCareerOSSidebarCopy(locale);
+  const sidebarTitle = t('careeros.sidebar.title', { defaultValue: sidebarCopy.title });
   return (
     <aside
       className={cn(
@@ -2593,7 +2664,11 @@ const Sidebar: React.FC<{
       )}
     >
       <div className="mb-2 flex items-center justify-between px-2 py-2">
-        {!collapsed ? <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('careeros.sidebar.title', { defaultValue: 'Reality Filter' })}</h3> : null}
+        {!collapsed ? (
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{sidebarTitle}</h3>
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => setCollapsed((current) => !current)}
@@ -2627,7 +2702,11 @@ const Sidebar: React.FC<{
               >
                 <Icon className="h-4 w-4" />
               </div>
-              {!collapsed ? <span className="whitespace-nowrap">{getCareerOSLayerLabel(t, layer.id)}</span> : null}
+              {!collapsed ? (
+                <div className="min-w-0 text-left whitespace-nowrap text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  {getCareerOSLayerLabel(t, layer.id, locale)}
+                </div>
+              ) : null}
             </button>
           );
         })}
@@ -4197,8 +4276,12 @@ const MiniChallengesView: React.FC<{
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{card.summary}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-950/72 dark:text-slate-300">{card.scope}</span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-950/72 dark:text-slate-300">{card.reward}</span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:!bg-slate-900 dark:!text-slate-100">
+                {card.scope}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:!bg-slate-900 dark:!text-slate-100">
+                {card.reward}
+              </span>
             </div>
             <button
               type="button"
