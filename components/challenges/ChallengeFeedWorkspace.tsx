@@ -276,7 +276,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
         )}
         helper={t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
         tone="muted"
-        className="h-full border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(255,255,255,0.84)] text-[var(--text-strong)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:bg-[rgba(9,19,28,0.72)]"
+        className="h-full border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(255,255,255,0.84)] text-[var(--text-strong)] shadow-[0_18px_34px_-26px_rgba(16,32,51,0.14)] dark:!border-cyan-500/30 dark:!bg-none dark:!bg-slate-900 dark:text-slate-100 dark:shadow-[0_18px_34px_-24px_rgba(8,145,178,0.32)]"
       />
     </div>
   );

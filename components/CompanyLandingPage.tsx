@@ -56,50 +56,50 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   const copy = useMemo(() => {
     if (language === 'cs') {
       return {
-    badge: 'Handshake hiring pro firmy',
-    title: 'Lepší první kontakt pro moderní hiring.',
-    subtitle: 'JobShaman nahrazuje mrtvé CV a nekonečný funnel omezeným oboustranným dialogem. Firma nejdřív ukáže pravdu o roli a pak dostane odpověď, která ukáže způsob přemýšlení kandidáta.',
+    badge: 'Nový systém hiringu pro firmy',
+    title: 'Začněte hiring tam, kde se ukáže skutečná spolupráce.',
+    subtitle: 'JobShaman pomáhá firmám otevřít hiring přes reálné úkoly, krátkou pracovní interakci a silnější signály o tom, jak kandidát přemýšlí, komunikuje a reaguje v praxi. AI vás celým procesem provede, zjednoduší přípravu i vyhodnocení, ale rozhodnutí zůstává vždy na lidech.',
     primaryCta: 'Otevřít firemní workspace',
     secondaryCta: 'Vyzkoušet demo',
     login: 'Přihlásit se',
     recommended: 'Doporučeno',
-    roleTruth: 'Pravda o roli',
-    asyncFirst: 'Async first',
-    valuePills: ['Role Canvas místo inzerátu', 'Dialogue Inbox místo application tabulky', 'Sloty místo nekonečného funnelu'],
-    rolePreviewLabel: 'Ukázka Role Canvas',
-    rolePreviewTitle: 'Ještě před otevřením role firma otevřeně popíše realitu týmu.',
+    roleTruth: 'Zadání a kontext role',
+    asyncFirst: 'AI jako průvodce',
+    valuePills: ['Reálný úkol místo generického inzerátu', 'Krátká pracovní interakce místo slepého screeningu', 'AI podpora bez automatického rozhodování'],
+    rolePreviewLabel: 'Ukázka zadání role',
+    rolePreviewTitle: 'Firma nejdřív pojmenuje, co se v práci opravdu bude dít.',
     rolePreviewItems: [
-      'Co je na této roli skutečně těžké?',
-      'Jaký typ člověka tady selže?',
-      'Jak poznáme úspěch po 6 měsících?',
-      'Které 2 situace chceme otevřít v handshake?'
+      'Jaký problém má tahle role pomoci vyřešit?',
+      'Co bude člověk řešit v prvních týdnech?',
+      'Podle čeho poznáme dobrý začátek po 3 až 6 měsících?',
+      'Jaké situace chceme otevřít v první pracovní interakci?'
     ],
-    comparisonTitle: 'Co se mění v praxi',
-    comparisonOld: 'Starý hiring',
-    comparisonNew: 'Handshake hiring',
+    comparisonTitle: 'Jak se hiring mění v praxi',
+    comparisonOld: 'Běžně dnes',
+    comparisonNew: 'V JobShamanu',
     comparisonRows: [
-      ['Job post a CV screening', 'Role Canvas a krátký oboustranný dialog'],
-      ['100+ uchazečů v jednom funnelu', 'Omezená kapacita a aktivní sloty'],
-      ['Video, pitch a sebeprezentace', 'Text-first odpověď, audio jen volitelně'],
-      ['Ghosting a nejasné stavy', 'Open, In Review, Shortlisted, Closed s důvodem']
+      ['Inzerát a screening profilů', 'Reálný úkol a krátká pracovní interakce'],
+      ['První dojem z CV a sebeprezentace', 'Konkrétní signály z přemýšlení, priorit a reakcí'],
+      ['Přehlcený funnel bez kapacity', 'Řízený počet aktivních kandidátů a jasný další krok'],
+      ['Ruční příprava každé role od nuly', 'AI asistence při tvorbě zadání, otázek i shrnutí']
     ],
-    systemTitle: 'Core system platformy',
+    systemTitle: 'Co firmám platforma usnadní',
     systemCards: [
       {
-        title: 'Modul rolí',
-        body: 'Pozice není jen text. Je to strukturovaný objekt s kontextem týmu, hodnotami, realistickými situacemi a definicí úspěchu.'
+        title: 'Přípravu role',
+        body: 'Role nevzniká jako generický inzerát. AI pomůže se zadáním, kontextem týmu, realistickými situacemi i definicí toho, co má člověk opravdu zvládnout.'
       },
       {
-        title: 'Modul dialogu',
-        body: 'Místo seznamu aplikací pracujete s vlákny. Každé vlákno má jasný tah, shrnutí a stav.'
+        title: 'První interakci',
+        body: 'Místo mrtvého formuláře otevřete krátkou pracovní výměnu, ve které rychle uvidíte styl myšlení, komunikaci a reakci na feedback.'
       },
       {
-        title: 'Kapacitní sloty',
-        body: 'Každá role má limit otevřených dialogů. To drží kvalitu a chrání čas recruiterů.'
+        title: 'Práci recruiterů',
+        body: 'AI shrnuje odpovědi, vytahuje hlavní signály a drží pořádek v procesu, aby tým nestrácel čas ručním přepisováním a přepínáním mezi nástroji.'
       },
       {
-        title: 'Transparentní uzavření',
-        body: 'Každý uzavřený dialog má důvod. Platforma nemá prostor pro "seen" a pasivní ignoraci.'
+        title: 'Rozhodování bez black boxu',
+        body: 'AI doporučuje a připravuje podklady. O tom, koho posunout dál a proč, ale vždy rozhoduje člověk.'
       }
     ],
     pricingTitle: 'Monetizace je v souladu s chováním',
@@ -143,74 +143,74 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     faqItems: [
       {
         q: 'Co když nechceme měnit celý hiring proces naráz?',
-        a: 'Nemusíte. Handshake může být první vrstva před dalšími assessmenty. Měníme začátek funnelu, ne nutně všechno ostatní v první fázi.'
+        a: 'Nemusíte. JobShaman může fungovat jako nová první vrstva hiringu před dalšími interview nebo assessmenty. Začít můžete na jedné roli a postupně rozšiřovat to, co vám dává smysl.'
       },
       {
-        q: 'Proč nejsou v centru CV a video?',
-        a: 'CV zůstává jako doplněk. Video zvedá stres, bias a performativnost. Core handshake má být rychlý, soukromý a nízkostresový.'
+        q: 'Jak AI pomáhá firmě v praxi?',
+        a: 'AI pomáhá připravit zadání role, navrhnout pracovní situace, shrnout odpovědi kandidátů a zvýraznit důležité signály. Urychluje přípravu i orientaci v procesu, ale nerozhoduje za hiring tým.'
       },
       {
-        q: 'Jak AI pomáhá bez toho, aby rozhodovala?',
-        a: 'AI shrnuje vlákna, vytahuje signál a připravuje explainable scorecard. Stav kandidáta pořád mění člověk.'
+        q: 'Dělá AI rozhodnutí o kandidátech?',
+        a: 'Ne. AI připraví doporučení, scorecard a shrnutí. Stav kandidáta, další krok i finální rozhodnutí vždy potvrzuje člověk.'
       },
       {
-        q: 'Proč jsou důležité sloty?',
-        a: 'Bez limitu se z dialogu stane další zahlcený inbox. Sloty drží tempo, pozornost a kvalitu odpovědí na obou stranách.'
+        q: 'Co zůstává z CV a dalších materiálů?',
+        a: 'CV může zůstat jako doplňkový kontext. Hlavní rozdíl je v tom, že první rozhodnutí nestojí jen na profilu, ale i na reálné pracovní interakci a signálech z ní.'
       }
     ],
-    finalTitle: 'Vraťte do výběru lidí lidský faktor a pravdu.',
-    finalBody: 'Místo dalšího CV funnelu otevřete prostředí, kde se dá dělat rychlý a férový první kontakt bez zbytečného tlaku.',
-    finalPrimary: 'Začít s role canvas',
+    finalTitle: 'Otevřete hiring, který firmě šetří čas a dává jasnější signály.',
+    finalBody: 'JobShaman vás provede od zadání role přes první pracovní interakci až po doporučení dalších kroků. AI pomáhá všude, kde to dává smysl. Finální rozhodnutí zůstává vždy na vašem týmu.',
+    finalPrimary: 'Začít s pracovním zadáním',
     finalSecondary: 'Přihlásit se do firmy'
       };
     }
 
     if (language === 'sk') {
       return {
-        badge: 'Handshake hiring pre firmy',
-        title: 'Lepší prvý kontakt pre moderný hiring.',
-        subtitle: 'JobShaman nahrádza mŕtve CV a nekonečný funnel obmedzeným obojstranným dialógom. Firma najprv ukáže pravdu o roli a potom dostane odpoveď, ktorá ukáže spôsob premýšľania kandidáta.',
+        badge: 'Nový systém hiringu pre firmy',
+        title: 'Začnite hiring tam, kde sa ukáže skutočná spolupráca.',
+        subtitle: 'JobShaman pomáha firmám otvoriť hiring cez reálne úlohy, krátku pracovnú interakciu a silnejšie signály o tom, ako kandidát premýšľa, komunikuje a reaguje v praxi. AI vás celým procesom prevedie, zjednoduší prípravu aj vyhodnotenie, no rozhodnutie zostáva vždy na ľuďoch.',
         primaryCta: 'Otvoriť firemný workspace',
         secondaryCta: 'Vyskúšať demo',
         login: 'Prihlásiť sa',
         recommended: 'Odporúčané',
-        roleTruth: 'Pravda o roli',
-        asyncFirst: 'Async first',
-        valuePills: ['Role Canvas namiesto inzerátu', 'Dialogue Inbox namiesto tabuľky aplikácií', 'Sloty namiesto nekonečného funnelu'],
-        rolePreviewLabel: 'Ukážka Role Canvas',
-        rolePreviewTitle: 'Ešte pred otvorením roly firma otvorene popíše realitu tímu.',
+        roleTruth: 'Zadanie a kontext roly',
+        asyncFirst: 'AI ako sprievodca',
+        valuePills: ['Reálna úloha namiesto generického inzerátu', 'Krátka pracovná interakcia namiesto slepého screeningu', 'AI podpora bez automatického rozhodovania'],
+        rolePreviewLabel: 'Ukážka zadania roly',
+        rolePreviewTitle: 'Firma najprv pomenuje, čo sa v práci naozaj bude diať.',
         rolePreviewItems: [
-          'Čo je na tejto roli skutočne ťažké?',
-          'Aký typ človeka tu zlyhá?',
-          'Ako spoznáme úspech po 6 mesiacoch?',
-          'Ktoré 2 situácie chceme otvoriť v handshake?'
+          'Aký problém má táto rola pomôcť vyriešiť?',
+          'Čo bude človek riešiť v prvých týždňoch?',
+          'Podľa čoho spoznáme dobrý začiatok po 3 až 6 mesiacoch?',
+          'Aké situácie chceme otvoriť v prvej pracovnej interakcii?'
         ],
-        comparisonTitle: 'Čo sa mení v praxi',
-        comparisonOld: 'Starý hiring',
-        comparisonNew: 'Handshake hiring',
+        comparisonTitle: 'Ako sa hiring mení v praxi',
+        comparisonOld: 'Bežne dnes',
+        comparisonNew: 'V JobShamane',
         comparisonRows: [
-          ['Job post a CV screening', 'Role Canvas a krátky obojstranný dialóg'],
-          ['100+ uchádzačov v jednom funneli', 'Obmedzená kapacita a aktívne sloty'],
-          ['Video, pitch a sebaprezentácia', 'Text-first odpoveď, audio len voliteľne'],
-          ['Ghosting a nejasné stavy', 'Open, In Review, Shortlisted, Closed s dôvodom']
+          ['Inzerát a screening profilov', 'Reálna úloha a krátka pracovná interakcia'],
+          ['Prvý dojem z CV a sebaprezentácie', 'Konkrétne signály z premýšľania, priorít a reakcií'],
+          ['Preťažený funnel bez kapacity', 'Riadený počet aktívnych kandidátov a jasný ďalší krok'],
+          ['Ručná príprava každej roly od nuly', 'AI asistencia pri tvorbe zadania, otázok aj zhrnutia']
         ],
-        systemTitle: 'Core systém platformy',
+        systemTitle: 'Čo platforma firmám uľahčí',
         systemCards: [
           {
-            title: 'Modul rolí',
-            body: 'Pozícia nie je len text. Je to štruktúrovaný objekt s kontextom tímu, hodnotami, realistickými situáciami a definíciou úspechu.'
+            title: 'Prípravu roly',
+            body: 'Rola nevzniká ako generický inzerát. AI pomôže so zadaním, kontextom tímu, realistickými situáciami aj definíciou toho, čo má človek naozaj zvládnuť.'
           },
           {
-            title: 'Modul dialógu',
-            body: 'Namiesto zoznamu aplikácií pracujete s vláknami. Každé vlákno má jasný ťah, zhrnutie a stav.'
+            title: 'Prvú interakciu',
+            body: 'Namiesto mŕtveho formulára otvoríte krátku pracovnú výmenu, v ktorej rýchlo uvidíte štýl myslenia, komunikáciu a reakciu na feedback.'
           },
           {
-            title: 'Kapacitné sloty',
-            body: 'Každá rola má limit otvorených dialógov. To drží kvalitu a chráni čas recruiterov.'
+            title: 'Prácu recruiterov',
+            body: 'AI sumarizuje odpovede, vyťahuje hlavné signály a drží poriadok v procese, aby tím nestrácal čas ručným prepisovaním a prepínaním medzi nástrojmi.'
           },
           {
-            title: 'Transparentné uzavretie',
-            body: 'Každý uzavretý dialóg má dôvod. Platforma nemá priestor pre "seen" a pasívne ignorovanie.'
+            title: 'Rozhodovanie bez black boxu',
+            body: 'AI odporúča a pripravuje podklady. O tom, koho posunúť ďalej a prečo, však vždy rozhoduje človek.'
           }
         ],
         pricingTitle: 'Monetizácia v súlade so správaním',
@@ -254,74 +254,74 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         faqItems: [
           {
             q: 'Čo ak nechceme meniť celý hiring proces naraz?',
-            a: 'Nemusíte. Handshake môže fungovať ako prvá vrstva pred hlbšími assessmentmi. Meníme začiatok funnelu, nie nutne všetko ostatné hneď v prvej fáze.'
+            a: 'Nemusíte. JobShaman môže fungovať ako nová prvá vrstva hiringu pred ďalšími interview alebo assessmentmi. Začať môžete na jednej role a postupne rozširovať to, čo vám dáva zmysel.'
           },
           {
-            q: 'Prečo nie sú v centre CV a video?',
-            a: 'CV zostáva ako doplnok. Video zvyšuje stres, bias a performativitu. Core handshake má byť rýchly, súkromný a nízkostresový.'
+            q: 'Ako AI pomáha firme v praxi?',
+            a: 'AI pomáha pripraviť zadanie roly, navrhnúť pracovné situácie, zhrnúť odpovede kandidátov a zvýrazniť dôležité signály. Urýchľuje prípravu aj orientáciu v procese, ale nerozhoduje za hiring tím.'
           },
           {
-            q: 'Ako AI pomáha bez toho, aby rozhodovala?',
-            a: 'AI sumarizuje vlákna, vyťahuje signál a pripravuje explainable scorecard. Stav kandidáta stále mení človek.'
+            q: 'Robí AI rozhodnutia o kandidátoch?',
+            a: 'Nie. AI pripraví odporúčanie, scorecard a zhrnutie. Stav kandidáta, ďalší krok aj finálne rozhodnutie vždy potvrdzuje človek.'
           },
           {
-            q: 'Prečo sú sloty také dôležité?',
-            a: 'Bez limitu sa z dialógu stane ďalší preťažený inbox. Sloty držia tempo, pozornosť a kvalitu odpovedí na oboch stranách.'
+            q: 'Čo zostáva z CV a ďalších materiálov?',
+            a: 'CV môže zostať ako doplnkový kontext. Hlavný rozdiel je v tom, že prvé rozhodnutie nestojí len na profile, ale aj na reálnej pracovnej interakcii a signáloch z nej.'
           }
         ],
-        finalTitle: 'Vráťte do výberu ľudí ľudský faktor a pravdu.',
-        finalBody: 'Namiesto ďalšieho CV funnelu otvorte prostredie, kde sa dá robiť rýchly a férový prvý kontakt bez zbytočného tlaku.',
-        finalPrimary: 'Začať s role canvas',
+        finalTitle: 'Otvorte hiring, ktorý firme šetrí čas a dáva jasnejšie signály.',
+        finalBody: 'JobShaman vás prevedie od zadania roly cez prvú pracovnú interakciu až po odporúčanie ďalších krokov. AI pomáha všade, kde to dáva zmysel. Finálne rozhodnutie zostáva vždy na vašom tíme.',
+        finalPrimary: 'Začať s pracovným zadaním',
         finalSecondary: 'Prihlásiť sa do firmy'
       };
     }
 
     if (language === 'de') {
       return {
-        badge: 'Handshake Hiring für Unternehmen',
-        title: 'Ein besserer Erstkontakt für modernes Hiring.',
-        subtitle: 'JobShaman ersetzt tote CV-Funnels durch einen begrenzten beidseitigen Dialog. Das Unternehmen zeigt zuerst die Wahrheit über die Rolle und erhält dann eine Antwort, die die Denkweise des Kandidaten sichtbar macht.',
+        badge: 'Ein neues Hiring-System für Unternehmen',
+        title: 'Starten Sie Hiring dort, wo echte Zusammenarbeit sichtbar wird.',
+        subtitle: 'JobShaman hilft Unternehmen, Hiring über reale Aufgaben, kurze Arbeitsinteraktion und stärkere Signale darüber zu öffnen, wie Kandidaten in der Praxis denken, kommunizieren und reagieren. AI führt durch den Prozess, vereinfacht Vorbereitung und Auswertung, doch die Entscheidung bleibt immer beim Menschen.',
         primaryCta: 'Unternehmens-Workspace öffnen',
         secondaryCta: 'Demo testen',
         login: 'Anmelden',
         recommended: 'Empfohlen',
-        roleTruth: 'Wahrheit über die Rolle',
-        asyncFirst: 'Async first',
-        valuePills: ['Role Canvas statt Anzeige', 'Dialogue Inbox statt Bewerbertabelle', 'Slots statt endlosem Funnel'],
-        rolePreviewLabel: 'Role-Canvas-Vorschau',
-        rolePreviewTitle: 'Noch vor dem Öffnen der Rolle beschreibt das Unternehmen offen die Teamrealität.',
+        roleTruth: 'Aufgabe und Rollenkontext',
+        asyncFirst: 'AI als Begleiter',
+        valuePills: ['Reale Aufgabe statt generischer Anzeige', 'Kurze Arbeitsinteraktion statt blindem Screening', 'AI-Unterstützung ohne automatische Entscheidung'],
+        rolePreviewLabel: 'Beispiel für das Rollensetup',
+        rolePreviewTitle: 'Das Unternehmen benennt zuerst, was in der Arbeit wirklich passieren wird.',
         rolePreviewItems: [
-          'Was ist an dieser Rolle wirklich schwer?',
-          'Welcher Typ Mensch scheitert hier?',
-          'Woran erkennen wir Erfolg nach 6 Monaten?',
-          'Welche 2 Situationen sollen den Handshake eröffnen?'
+          'Welches Problem soll diese Rolle lösen helfen?',
+          'Womit wird die Person in den ersten Wochen arbeiten?',
+          'Woran erkennen wir einen guten Start nach 3 bis 6 Monaten?',
+          'Welche Situationen wollen wir in der ersten Arbeitsinteraktion öffnen?'
         ],
-        comparisonTitle: 'Was sich in der Praxis ändert',
-        comparisonOld: 'Altes Hiring',
-        comparisonNew: 'Handshake Hiring',
+        comparisonTitle: 'Wie sich Hiring in der Praxis verändert',
+        comparisonOld: 'Heute üblich',
+        comparisonNew: 'In JobShaman',
         comparisonRows: [
-          ['Jobanzeige und CV-Screening', 'Role Canvas und kurzer beidseitiger Dialog'],
-          ['100+ Kandidaten in einem Funnel', 'Begrenzte Kapazität mit aktiven Slots'],
-          ['Video, Pitch und Selbstdarstellung', 'Text-first Antwort, Audio nur optional'],
-          ['Ghosting und unklare Status', 'Open, In Review, Shortlisted, Closed mit Grund']
+          ['Anzeige und Profilscreening', 'Reale Aufgabe und kurze Arbeitsinteraktion'],
+          ['Erster Eindruck aus CV und Selbstdarstellung', 'Konkrete Signale aus Denken, Prioritäten und Reaktionen'],
+          ['Überladener Funnel ohne Kapazität', 'Gesteuerte Zahl aktiver Kandidaten mit klarem nächsten Schritt'],
+          ['Manuelle Vorbereitung jeder Rolle von null', 'AI-Unterstützung bei Aufgaben, Fragen und Zusammenfassungen']
         ],
-        systemTitle: 'Kernsystem der Plattform',
+        systemTitle: 'Was die Plattform für Unternehmen einfacher macht',
         systemCards: [
           {
-            title: 'Rollenmodul',
-            body: 'Eine Rolle ist nicht nur Text. Sie ist ein strukturiertes Objekt mit Teamkontext, Werten, realistischen Situationen und klarer Erfolgsdefinition.'
+            title: 'Rollenvorbereitung',
+            body: 'Eine Rolle entsteht nicht als generische Anzeige. AI hilft bei Aufgabe, Teamkontext, realistischen Situationen und einer klareren Definition dessen, was die Person wirklich leisten soll.'
           },
           {
-            title: 'Dialogmodul',
-            body: 'Statt mit Bewerbungslisten arbeitet Ihr Team mit Threads. Jeder Thread hat klare Ownership, Zusammenfassung und Status.'
+            title: 'Erste Interaktion',
+            body: 'Statt eines toten Formulars öffnen Sie einen kurzen Arbeitsaustausch, in dem Denkstil, Kommunikation und Reaktion auf Feedback schnell sichtbar werden.'
           },
           {
-            title: 'Kapazitäts-Slots',
-            body: 'Jede Rolle hat ein Limit offener Dialoge. Das schützt Qualität und die Zeit der Recruiter.'
+            title: 'Recruiter-Arbeit',
+            body: 'AI fasst Antworten zusammen, hebt zentrale Signale hervor und hält den Prozess geordnet, damit das Team weniger Zeit mit manuellem Umschreiben und Kontextwechsel verliert.'
           },
           {
-            title: 'Transparenter Abschluss',
-            body: 'Jeder geschlossene Dialog hat einen Grund. Es gibt keinen Produktplatz für "seen" oder passive Stille.'
+            title: 'Entscheidung ohne Black Box',
+            body: 'AI empfiehlt und bereitet Unterlagen vor. Wer weitergeht und warum, entscheidet jedoch immer ein Mensch.'
           }
         ],
         pricingTitle: 'Monetarisierung im Einklang mit dem Verhalten',
@@ -365,74 +365,74 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         faqItems: [
           {
             q: 'Was, wenn wir nicht den ganzen Hiring-Prozess auf einmal ändern wollen?',
-            a: 'Das müssen Sie nicht. Handshake kann als erste Schicht vor tieferen Interviews oder Assessments laufen. Wir verändern zuerst den Anfang des Funnels.'
+            a: 'Das müssen Sie nicht. JobShaman kann als neue erste Schicht vor weiteren Interviews oder Assessments funktionieren. Sie können mit einer Rolle starten und nur das ausbauen, was für Ihr Team sinnvoll ist.'
           },
           {
-            q: 'Warum stehen CV und Video nicht mehr im Zentrum?',
-            a: 'Das CV bleibt als Kontext erhalten. Video erhöht Stress, Bias und Performance-Druck. Der Core Handshake soll schnell, privat und reibungsarm bleiben.'
+            q: 'Wie hilft AI dem Unternehmen konkret?',
+            a: 'AI hilft beim Vorbereiten der Rolle, schlägt Arbeitssituationen vor, fasst Kandidatenantworten zusammen und hebt wichtige Signale hervor. Sie beschleunigt Vorbereitung und Orientierung im Prozess, entscheidet aber nicht für das Hiring-Team.'
           },
           {
-            q: 'Wie hilft AI, ohne zu entscheiden?',
-            a: 'AI fasst Threads zusammen, zieht Signal heraus und bereitet eine erklärbare Scorecard vor. Den Kandidatenstatus ändert weiterhin ein Mensch.'
+            q: 'Trifft AI Entscheidungen über Kandidaten?',
+            a: 'Nein. AI erstellt Empfehlungen, Scorecards und Zusammenfassungen. Kandidatenstatus, nächster Schritt und finale Entscheidung werden immer vom Menschen bestätigt.'
           },
           {
-            q: 'Warum sind Slots so wichtig?',
-            a: 'Ohne Limits wird Dialog zum nächsten überladenen Inbox. Slots schützen Tempo, Aufmerksamkeit und Gegenseitigkeit auf beiden Seiten.'
+            q: 'Welche Rolle spielen CV und weitere Unterlagen noch?',
+            a: 'Das CV kann als zusätzlicher Kontext bestehen bleiben. Der Unterschied ist, dass die erste Entscheidung nicht nur auf dem Profil basiert, sondern auch auf realer Arbeitsinteraktion und den Signalen daraus.'
           }
         ],
-        finalTitle: 'Bringen Sie Wahrheit und menschliches Signal zurück ins Hiring.',
-        finalBody: 'Ersetzen Sie den nächsten CV-Funnel durch ein System für schnellen, fairen und druckarmen Erstkontakt.',
-        finalPrimary: 'Mit Role Canvas starten',
+        finalTitle: 'Öffnen Sie Hiring, das Zeit spart und klarere Signale liefert.',
+        finalBody: 'JobShaman begleitet Sie vom Rollensetup über die erste Arbeitsinteraktion bis zu Empfehlungen für die nächsten Schritte. AI hilft überall dort, wo sie sinnvoll ist. Die finale Entscheidung bleibt immer bei Ihrem Team.',
+        finalPrimary: 'Mit der Arbeitsaufgabe starten',
         finalSecondary: 'Als Unternehmen anmelden'
       };
     }
 
     if (language === 'pl') {
       return {
-        badge: 'Handshake hiring dla firm',
-        title: 'Lepszy pierwszy kontakt dla nowoczesnego hiringu.',
-        subtitle: 'JobShaman zastępuje martwe CV i nieskończony funnel ograniczonym, dwustronnym dialogiem. Firma najpierw pokazuje prawdę o roli, a potem dostaje odpowiedź, która odsłania sposób myślenia kandydata.',
+        badge: 'Nowy system hiringu dla firm',
+        title: 'Zacznij hiring tam, gdzie widać prawdziwą współpracę.',
+        subtitle: 'JobShaman pomaga firmom otworzyć hiring przez realne zadania, krótką interakcję roboczą i mocniejsze sygnały pokazujące, jak kandydat myśli, komunikuje się i reaguje w praktyce. AI prowadzi przez cały proces, upraszcza przygotowanie i ocenę, ale decyzja zawsze zostaje po stronie ludzi.',
         primaryCta: 'Otwórz firmowy workspace',
         secondaryCta: 'Wypróbuj demo',
         login: 'Zaloguj się',
         recommended: 'Polecane',
-        roleTruth: 'Prawda o roli',
-        asyncFirst: 'Async first',
-        valuePills: ['Role Canvas zamiast ogłoszenia', 'Dialogue Inbox zamiast tabeli aplikacji', 'Sloty zamiast nieskończonego funnelu'],
-        rolePreviewLabel: 'Podgląd Role Canvas',
-        rolePreviewTitle: 'Jeszcze przed otwarciem roli firma otwarcie opisuje realia zespołu.',
+        roleTruth: 'Zadanie i kontekst roli',
+        asyncFirst: 'AI jako przewodnik',
+        valuePills: ['Realne zadanie zamiast generycznego ogłoszenia', 'Krótka interakcja robocza zamiast ślepego screeningu', 'Wsparcie AI bez automatycznej decyzji'],
+        rolePreviewLabel: 'Przykład zadania roli',
+        rolePreviewTitle: 'Firma najpierw nazywa to, co naprawdę będzie działo się w pracy.',
         rolePreviewItems: [
-          'Co jest naprawdę trudne w tej roli?',
-          'Jaki typ osoby tutaj zawodzi?',
-          'Po czym poznamy sukces po 6 miesiącach?',
-          'Które 2 sytuacje mają otworzyć handshake?'
+          'Jaki problem ta rola ma pomóc rozwiązać?',
+          'Czym dana osoba będzie zajmować się w pierwszych tygodniach?',
+          'Po czym poznamy dobry start po 3 do 6 miesiącach?',
+          'Jakie sytuacje chcemy otworzyć w pierwszej interakcji roboczej?'
         ],
-        comparisonTitle: 'Co zmienia się w praktyce',
-        comparisonOld: 'Stary hiring',
-        comparisonNew: 'Handshake hiring',
+        comparisonTitle: 'Jak hiring zmienia się w praktyce',
+        comparisonOld: 'Najczęściej dziś',
+        comparisonNew: 'W JobShaman',
         comparisonRows: [
-          ['Job post i screening CV', 'Role Canvas i krótki dwustronny dialog'],
-          ['100+ kandydatów w jednym funnelu', 'Ograniczona pojemność i aktywne sloty'],
-          ['Wideo, pitch i autoprezentacja', 'Odpowiedź text-first, audio tylko opcjonalnie'],
-          ['Ghosting i niejasne statusy', 'Open, In Review, Shortlisted, Closed z powodem']
+          ['Ogłoszenie i screening profili', 'Realne zadanie i krótka interakcja robocza'],
+          ['Pierwsze wrażenie z CV i autoprezentacji', 'Konkretne sygnały z myślenia, priorytetów i reakcji'],
+          ['Przeciążony funnel bez pojemności', 'Kontrolowana liczba aktywnych kandydatów i jasny kolejny krok'],
+          ['Ręczne przygotowywanie każdej roli od zera', 'Wsparcie AI przy zadaniu, pytaniach i podsumowaniu']
         ],
-        systemTitle: 'Core system platformy',
+        systemTitle: 'Co platforma ułatwia firmom',
         systemCards: [
           {
-            title: 'Moduł ról',
-            body: 'Rola to nie tylko tekst. To uporządkowany obiekt z kontekstem zespołu, wartościami, realistycznymi sytuacjami i definicją sukcesu.'
+            title: 'Przygotowanie roli',
+            body: 'Rola nie powstaje jako generyczne ogłoszenie. AI pomaga z zadaniem, kontekstem zespołu, realistycznymi sytuacjami i definicją tego, co dana osoba ma naprawdę dowieźć.'
           },
           {
-            title: 'Moduł dialogu',
-            body: 'Zamiast listy aplikacji zespół pracuje na wątkach. Każdy wątek ma jasny ruch, podsumowanie i status.'
+            title: 'Pierwszą interakcję',
+            body: 'Zamiast martwego formularza otwierasz krótką wymianę roboczą, w której szybko widać styl myślenia, komunikację i reakcję na feedback.'
           },
           {
-            title: 'Sloty pojemnościowe',
-            body: 'Każda rola ma limit otwartych dialogów. To chroni jakość i czas recruiterów.'
+            title: 'Pracę recruiterów',
+            body: 'AI podsumowuje odpowiedzi, wyciąga główne sygnały i porządkuje proces, żeby zespół nie tracił czasu na ręczne przepisywanie i przełączanie się między narzędziami.'
           },
           {
-            title: 'Transparentne zamknięcie',
-            body: 'Każdy zamknięty dialog ma powód. Platforma nie zostawia miejsca na "seen" i bierne milczenie.'
+            title: 'Decyzję bez black boxa',
+            body: 'AI rekomenduje i przygotowuje materiały. O tym, kogo przesunąć dalej i dlaczego, zawsze decyduje człowiek.'
           }
         ],
         pricingTitle: 'Monetyzacja zgodna z zachowaniem',
@@ -476,73 +476,73 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         faqItems: [
           {
             q: 'Co jeśli nie chcemy zmieniać całego procesu hiringowego naraz?',
-            a: 'Nie musicie. Handshake może działać jako pierwsza warstwa przed głębszymi assessmentami. Zmieniamy początek funnelu, a nie od razu cały proces.'
+            a: 'Nie musicie. JobShaman może działać jako nowa pierwsza warstwa hiringu przed kolejnymi interview lub assessmentami. Możecie zacząć od jednej roli i rozszerzać tylko to, co ma sens dla waszego zespołu.'
           },
           {
-            q: 'Dlaczego CV i wideo nie są już w centrum?',
-            a: 'CV zostaje jako kontekst wspierający. Wideo podnosi stres, bias i presję performatywną. Core handshake ma pozostać szybki, prywatny i niskotarciowy.'
+            q: 'Jak AI pomaga firmie w praktyce?',
+            a: 'AI pomaga przygotować zadanie roli, zaproponować sytuacje robocze, podsumować odpowiedzi kandydatów i podświetlić ważne sygnały. Przyspiesza przygotowanie i orientację w procesie, ale nie decyduje za hiring team.'
           },
           {
-            q: 'Jak AI pomaga, nie podejmując decyzji?',
-            a: 'AI podsumowuje wątki, wyciąga sygnał i przygotowuje explainable scorecard. Status kandydata nadal zmienia człowiek.'
+            q: 'Czy AI podejmuje decyzje o kandydatach?',
+            a: 'Nie. AI przygotowuje rekomendacje, scorecard i podsumowanie. Status kandydata, kolejny krok i finalną decyzję zawsze potwierdza człowiek.'
           },
           {
-            q: 'Dlaczego sloty są tak ważne?',
-            a: 'Bez limitu dialog staje się kolejną przeładowaną skrzynką. Sloty chronią tempo, uwagę i wzajemność po obu stronach.'
+            q: 'Co zostaje z CV i innych materiałów?',
+            a: 'CV może pozostać dodatkowym kontekstem. Najważniejsza różnica polega na tym, że pierwsza decyzja nie opiera się już tylko na profilu, ale także na realnej interakcji roboczej i sygnałach z niej.'
           }
         ],
-        finalTitle: 'Przywróć do hiringu ludzki czynnik i prawdę.',
-        finalBody: 'Zamiast kolejnego funnelu CV otwórz system, w którym da się zrobić szybki, uczciwy i mało stresowy pierwszy kontakt.',
-        finalPrimary: 'Zacznij od Role Canvas',
+        finalTitle: 'Otwórz hiring, który oszczędza czas firmy i daje wyraźniejsze sygnały.',
+        finalBody: 'JobShaman prowadzi od zadania roli przez pierwszą interakcję roboczą aż po rekomendację kolejnych kroków. AI pomaga wszędzie tam, gdzie ma to sens. Finalna decyzja zawsze zostaje po stronie waszego zespołu.',
+        finalPrimary: 'Zacznij od zadania roboczego',
         finalSecondary: 'Zaloguj się jako firma'
       };
     }
 
     return {
-    badge: 'Handshake hiring for companies',
-    title: 'Build modern hiring on a better first contact.',
-    subtitle: 'JobShaman replaces dead CV funnels with limited two-way dialogue. The company shows the truth about the role first, then gets a response that reveals how the candidate actually thinks.',
+    badge: 'A new hiring system for companies',
+    title: 'Start hiring where real collaboration becomes visible.',
+    subtitle: 'JobShaman helps companies open hiring through real tasks, short working interaction, and stronger signals about how a candidate thinks, communicates, and reacts in practice. AI guides the whole process, simplifies preparation and review, but the decision always stays with people.',
     primaryCta: 'Open company workspace',
     secondaryCta: 'Try demo',
     login: 'Log in',
     recommended: 'Recommended',
-    roleTruth: 'Role truth',
-    asyncFirst: 'Async first',
-    valuePills: ['Role Canvas instead of a static ad', 'Dialogue Inbox instead of an application table', 'Slots instead of an endless funnel'],
-    rolePreviewLabel: 'Role Canvas preview',
-    rolePreviewTitle: 'Before a role opens, the company has to tell the truth.',
+    roleTruth: 'Role brief and context',
+    asyncFirst: 'AI as a guide',
+    valuePills: ['A real task instead of a generic job post', 'Short working interaction instead of blind screening', 'AI support without automatic decisions'],
+    rolePreviewLabel: 'Role brief preview',
+    rolePreviewTitle: 'The company starts by naming what the work will actually look like.',
     rolePreviewItems: [
-      'What is actually hard about this role?',
-      'What kind of person fails here?',
-      'How do we define success after six months?',
-      'Which two situations should open the handshake?'
+      'What problem is this role supposed to help solve?',
+      'What will the person work on in the first weeks?',
+      'What would a strong start look like after 3 to 6 months?',
+      'Which situations should open the first working interaction?'
     ],
-    comparisonTitle: 'What changes in practice',
-    comparisonOld: 'Old hiring',
-    comparisonNew: 'Handshake hiring',
+    comparisonTitle: 'How hiring changes in practice',
+    comparisonOld: 'Common today',
+    comparisonNew: 'In JobShaman',
     comparisonRows: [
-      ['Job post and CV screening', 'Role Canvas and a short two-way dialogue'],
-      ['100+ candidates in one funnel', 'Limited capacity with active slots'],
-      ['Video, pitch, and self-presentation', 'Text-first response, audio optional'],
-      ['Ghosting and unclear states', 'Open, In Review, Shortlisted, Closed with a reason']
+      ['Job post and profile screening', 'Real task and short working interaction'],
+      ['First impression from CV and self-presentation', 'Concrete signals from thinking, priorities, and reactions'],
+      ['An overloaded funnel with no real capacity', 'A managed number of active candidates and a clear next step'],
+      ['Manual role setup from scratch every time', 'AI assistance with briefs, questions, and summaries']
     ],
-    systemTitle: 'Platform core',
+    systemTitle: 'What the platform makes easier',
     systemCards: [
       {
-        title: 'Role Engine',
-        body: 'A role is not just text. It is a structured object with team context, values, realistic situations, and a success definition.'
+        title: 'Role preparation',
+        body: 'A role does not start as a generic ad. AI helps shape the task, team context, realistic situations, and a clearer definition of what the person actually needs to deliver.'
       },
       {
-        title: 'Dialogue Engine',
-        body: 'Instead of application lists, your team works with threads. Each thread has turn ownership, summary, and status.'
+        title: 'First interaction',
+        body: 'Instead of a dead form, you open a short working exchange where thinking style, communication, and response to feedback become visible fast.'
       },
       {
-        title: 'Slot-based capacity',
-        body: 'Every role has a hard limit for open dialogues. That keeps recruiter attention focused and response quality high.'
+        title: 'Recruiter workflow',
+        body: 'AI summarizes answers, surfaces key signals, and keeps the process organized so the team spends less time rewriting notes and switching tools.'
       },
       {
-        title: 'Transparent closure',
-        body: 'Every closed dialogue has a reason. There is no product space for "seen" or passive silence.'
+        title: 'Decisions without a black box',
+        body: 'AI recommends and prepares the materials. The hiring team still decides who moves forward and why.'
       }
     ],
     pricingTitle: 'Monetization aligned with behavior',
@@ -586,27 +586,127 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     faqItems: [
       {
         q: 'What if we do not want to replace the whole hiring process at once?',
-        a: 'You do not have to. Handshake can operate as the first layer before deeper interviews or assessments. It changes the front of the funnel first.'
+        a: 'You do not have to. JobShaman can work as a new first layer before interviews or deeper assessments. You can start with one role and expand only what makes sense for your team.'
       },
       {
-        q: 'Why are CV and video no longer central?',
-        a: 'CV remains as supporting context. Video increases stress, bias, and performance pressure. The core handshake should stay quick, private, and low-friction.'
+        q: 'How does AI help the company in practice?',
+        a: 'AI helps prepare the role brief, propose working situations, summarize candidate responses, and highlight important signals. It speeds up preparation and orientation in the process, but it does not decide for the hiring team.'
       },
       {
-        q: 'How does AI help without deciding?',
-        a: 'AI summarizes threads, extracts signal, and prepares an explainable scorecard. A human still changes the candidate status.'
+        q: 'Does AI make decisions about candidates?',
+        a: 'No. AI prepares recommendations, scorecards, and summaries. Candidate status, next step, and the final decision are always confirmed by a human.'
       },
       {
-        q: 'Why do slots matter so much?',
-        a: 'Without limits, dialogue turns into another overloaded inbox. Slots protect pace, attention, and reciprocity on both sides.'
+        q: 'What remains from CVs and other materials?',
+        a: 'A CV can remain as supporting context. The key difference is that the first decision no longer stands only on the profile, but also on real working interaction and the signals that come from it.'
       }
     ],
-    finalTitle: 'Bring truth and human signal back into hiring.',
-    finalBody: 'Replace another CV funnel with a system built for fast, fair, low-pressure first contact.',
-    finalPrimary: 'Start with Role Canvas',
+    finalTitle: 'Open hiring that saves time and gives clearer signals.',
+    finalBody: 'JobShaman guides the team from the role brief through the first working interaction to recommendations for the next step. AI helps wherever it makes sense. The final decision always stays with your team.',
+    finalPrimary: 'Start with the work brief',
     finalSecondary: 'Log in as company'
     };
   }, [language]);
+
+  const aiGuideCopy = language === 'cs'
+    ? {
+        title: 'AI vás procesem provede, ale nerozhoduje za vás.',
+        lead:
+          'JobShaman používá AI jako praktického asistenta pro hiring tým. Pomůže připravit roli, navrhnout pracovní situace, shrnout odpovědi kandidátů a zvýraznit důležité signály. Každé doporučení je podpůrné, ne automatické.',
+        cards: [
+          {
+            title: 'AI pomůže připravit zadání',
+            body: 'Z role a kontextu firmy pomůže vytvořit srozumitelný úkol, první situace k otevření i jasnější definici úspěchu.'
+          },
+          {
+            title: 'AI zjednoduší orientaci v odpovědích',
+            body: 'Shrne vlákna, vytáhne hlavní signály a pomůže recruiterům rychle pochopit, co je v odpovědích skutečně důležité.'
+          },
+          {
+            title: 'Člověk dělá finální rozhodnutí',
+            body: 'AI doporučí další krok a připraví podklady. O tom, koho posunout dál, koho pozvat a proč, vždy rozhoduje hiring tým.'
+          }
+        ]
+      }
+    : language === 'sk'
+      ? {
+          title: 'AI vás procesom prevedie, ale nerozhoduje za vás.',
+          lead:
+            'JobShaman používa AI ako praktického asistenta pre hiring tím. Pomôže pripraviť rolu, navrhnúť pracovné situácie, zhrnúť odpovede kandidátov a zvýrazniť dôležité signály. Každé odporúčanie je podporné, nie automatické.',
+          cards: [
+            {
+              title: 'AI pomôže pripraviť zadanie',
+              body: 'Z roly a kontextu firmy pomôže vytvoriť zrozumiteľnú úlohu, prvé situácie na otvorenie aj jasnejšiu definíciu úspechu.'
+            },
+            {
+              title: 'AI uľahčí orientáciu v odpovediach',
+              body: 'Zhrnie vlákna, vytiahne hlavné signály a pomôže recruiterom rýchlo pochopiť, čo je v odpovediach skutočne dôležité.'
+            },
+            {
+              title: 'Človek robí finálne rozhodnutie',
+              body: 'AI odporučí ďalší krok a pripraví podklady. O tom, koho posunúť ďalej, koho pozvať a prečo, vždy rozhoduje hiring tím.'
+            }
+          ]
+        }
+      : language === 'de'
+        ? {
+            title: 'AI führt durch den Prozess, entscheidet aber nicht an Ihrer Stelle.',
+            lead:
+              'JobShaman nutzt AI als praktischen Assistenten für das Hiring-Team. Sie hilft bei der Vorbereitung der Rolle, schlägt Arbeitssituationen vor, fasst Kandidatenantworten zusammen und hebt wichtige Signale hervor. Jede Empfehlung ist unterstützend, nicht automatisch.',
+            cards: [
+              {
+                title: 'AI hilft beim Rollensetup',
+                body: 'Aus Rolle und Unternehmenskontext entsteht eine klarere Aufgabe, bessere Einstiegssituationen und eine nutzbarere Definition von Erfolg.'
+              },
+              {
+                title: 'AI macht Antworten schneller lesbar',
+                body: 'Sie fasst Threads zusammen, zeigt zentrale Signale und hilft Recruitern schnell zu verstehen, was in einer Antwort wirklich wichtig ist.'
+              },
+              {
+                title: 'Menschen treffen die finale Entscheidung',
+                body: 'AI kann den nächsten Schritt empfehlen und die Scorecard vorbereiten. Das Hiring-Team entscheidet weiterhin, wer weitergeht und warum.'
+              }
+            ]
+          }
+        : language === 'pl'
+          ? {
+              title: 'AI prowadzi przez proces, ale nie podejmuje decyzji za was.',
+              lead:
+                'JobShaman używa AI jako praktycznego asystenta dla hiring teamu. Pomaga przygotować rolę, zaproponować sytuacje robocze, podsumować odpowiedzi kandydatów i wyróżnić ważne sygnały. Każda rekomendacja ma charakter wspierający, a nie automatyczny.',
+              cards: [
+                {
+                  title: 'AI pomaga przygotować zadanie',
+                  body: 'Na bazie roli i kontekstu firmy pomaga stworzyć czytelne zadanie, sytuacje otwierające i jaśniejszą definicję sukcesu.'
+                },
+                {
+                  title: 'AI ułatwia czytanie odpowiedzi',
+                  body: 'Podsumowuje wątki, wyciąga główne sygnały i pomaga recruiterom szybko zrozumieć, co w odpowiedziach naprawdę ma znaczenie.'
+                },
+                {
+                  title: 'Człowiek podejmuje finalną decyzję',
+                  body: 'AI może zasugerować kolejny krok i przygotować scorecard. To hiring team nadal decyduje, kto idzie dalej i dlaczego.'
+                }
+              ]
+            }
+    : {
+        title: 'AI guides the process, but it never makes the hiring decision.',
+        lead:
+          'JobShaman uses AI as a practical assistant for the hiring team. It helps prepare the role, propose working situations, summarize candidate responses, and highlight important signals. Every recommendation is supportive, not automatic.',
+        cards: [
+          {
+            title: 'AI helps prepare the role',
+            body: 'It turns the role and company context into a clearer task, better opening situations, and a more usable definition of success.'
+          },
+          {
+            title: 'AI makes responses easier to read',
+            body: 'It summarizes threads, surfaces key signals, and helps recruiters quickly understand what matters in a candidate response.'
+          },
+          {
+            title: 'Humans make the final decision',
+            body: 'AI can recommend a next step and prepare the scorecard. The hiring team still decides who moves forward and why.'
+          }
+        ]
+      };
 
   const handleRegister = (section: string) => {
     trackEvent('company_landing_cta_register_click', { section });
@@ -640,11 +740,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   const landingChipClass =
     'inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300';
   const landingPrimaryButtonClass =
-    'app-button-primary rounded-[var(--radius-md)] px-6 py-3.5 shadow-none dark:border dark:border-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white';
+    'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-cyan-400 bg-cyan-500 px-6 py-3.5 text-sm font-semibold text-slate-950 shadow-[0_18px_34px_-22px_rgba(6,182,212,0.38)] transition hover:-translate-y-[1px] hover:bg-cyan-400 dark:border-cyan-300 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200';
   const landingSecondaryButtonClass =
-    'app-button-secondary rounded-[var(--radius-md)] px-6 py-3.5 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
+    'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 shadow-none transition hover:-translate-y-[1px] hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900';
   const landingTopbarButtonClass =
-    'app-button-secondary rounded-full px-4 py-2 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
+    'inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-none transition hover:-translate-y-[1px] hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900';
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
@@ -754,6 +854,30 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               </div>
             );
           })}
+        </section>
+
+        <section className={landingSectionClass}>
+          <div className="mb-5 flex items-center gap-3">
+            <Sparkles className="text-[var(--accent)]" size={20} />
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{aiGuideCopy.title}</h2>
+          </div>
+          <p className="max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
+            {aiGuideCopy.lead}
+          </p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {aiGuideCopy.cards.map((card, index) => {
+              const Icon = [Target, Sparkles, Shield][index] || Sparkles;
+              return (
+                <div key={card.title} className={landingCardClass}>
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Icon size={20} />
+                  </div>
+                  <h3 className="text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{card.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{card.body}</p>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(145deg,#09131f,#0f172a_52%,#102235)] p-6 shadow-[0_30px_72px_-54px_rgba(8,23,37,0.62)] dark:bg-[linear-gradient(145deg,rgba(8,12,20,0.98),rgba(15,23,42,0.96)_56%,rgba(12,22,34,0.98))] dark:shadow-[0_24px_56px_-44px_rgba(2,6,23,0.72)] lg:p-8">

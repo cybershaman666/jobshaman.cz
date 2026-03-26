@@ -386,6 +386,54 @@ Job: {job_description[:6000]}
         parsed, meta = _ai_json(prompt, "shaman_advice")
         return {"advice": parsed, "meta": meta}
 
+    if action == "resolve_career_navigation_goal":
+        goal_text = str(p.get("goalText") or "").strip()
+        locale = str(p.get("locale") or "en").strip().lower()
+        user_profile = p.get("userProfile") or {}
+        allowed_domains = [
+            "agriculture", "ai_data", "aviation", "automotive", "construction", "creative_media",
+            "customer_support", "ecommerce", "education", "energy_utilities", "engineering", "finance",
+            "government_defense", "healthcare", "hospitality", "insurance", "it", "logistics",
+            "manufacturing", "maritime", "marketing", "media_design", "mining_heavy_industry", "operations",
+            "pharma_biotech", "procurement", "product_management", "public_services", "real_estate",
+            "retail", "sales", "science_lab", "security", "telecom_network",
+        ]
+        prompt = f"""
+You resolve a free-text career goal into structured navigation intent.
+
+Return STRICT JSON:
+{{
+  "targetRole": "string",
+  "primaryDomain": "string or null",
+  "seniority": "entry|junior|medior|senior|lead|null",
+  "workModeHint": "remote|hybrid|onsite|null",
+  "confidence": number,
+  "alternatives": [
+    {{
+      "label": "string",
+      "targetRole": "string",
+      "primaryDomain": "string or null",
+      "confidence": number
+    }}
+  ]
+}}
+
+Rules:
+- Keep output grounded in the goal text first, profile second.
+- primaryDomain must be one of: {", ".join(allowed_domains)} or null.
+- If the goal is vague, still propose 2-3 realistic interpretations in alternatives.
+- confidence is 0-100.
+- alternatives max 3 items.
+- no markdown, no explanation outside JSON.
+
+Locale: {locale}
+Goal text: {goal_text[:500]}
+User profile JSON:
+{str(user_profile)[:6000]}
+""".strip()
+        parsed, meta = _ai_json(prompt, "career_navigation_goal")
+        return {"goal": parsed, "meta": meta}
+
     raise HTTPException(status_code=400, detail=f"Unsupported AI action: {action}")
 
 

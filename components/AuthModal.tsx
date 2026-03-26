@@ -305,16 +305,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                 </p>
                             </div>
                             {!isResetMode ? (
-                                <div className="app-premium-note space-y-3">
-                                    <div className="flex items-center gap-2 text-sm font-semibold">
+                                <div className="app-premium-note min-w-0 space-y-3">
+                                    <div className="flex min-w-0 items-center gap-2 text-sm font-semibold leading-6">
                                         <Sparkles size={16} />
-                                        {authUiCopy.premiumTitle}
+                                        <span className="break-words">{authUiCopy.premiumTitle}</span>
                                     </div>
                                     <div className="space-y-2">
                                         {authUiCopy.premiumBullets.map((item) => (
-                                            <div key={item} className="flex items-start gap-2 text-sm leading-6">
+                                            <div key={item} className="flex min-w-0 items-start gap-2 text-sm leading-6">
                                                 <CheckCircle2 size={16} className="mt-1 shrink-0" />
-                                                <span>{item}</span>
+                                                <span className="break-words">{item}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -552,7 +552,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                             <button
                                 type="submit"
                                 disabled={isBusy || (!isLogin && !isResetMode && (!formData.agreedToTerms || !formData.agreedToPrivacy))}
-                                className="app-button-primary app-organic-cta w-full"
+                                className="app-button-primary app-organic-cta flex min-h-[52px] w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-center leading-tight"
                             >
                                 {loading && <Loader2 className="animate-spin" size={18} />}
                                 {isResetMode
@@ -568,24 +568,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                         <div className="flex-1 h-px bg-[var(--border-subtle)]" />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2 md:grid-cols-2">
                                         <button
                                             type="button"
                                             disabled={isBusy}
                                             onClick={() => handleOAuthSignIn('google')}
-                                            className="app-button-secondary app-organic-pill w-full"
+                                            className="app-button-secondary app-organic-pill flex min-h-[52px] w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-semibold leading-tight"
                                         >
                                             {oauthLoading === 'google' ? <Loader2 className="animate-spin" size={18} /> : <Chrome size={18} />}
-                                            {t('auth.continue_with_google')}
+                                            <span className="break-words">{t('auth.continue_with_google')}</span>
                                         </button>
                                         <button
                                             type="button"
                                             disabled={isBusy}
                                             onClick={() => handleOAuthSignIn('linkedin_oidc')}
-                                            className="app-button-secondary app-organic-pill w-full"
+                                            className="app-button-secondary app-organic-pill flex min-h-[52px] w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-semibold leading-tight"
                                         >
                                             {oauthLoading === 'linkedin_oidc' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
-                                            {t('auth.continue_with_linkedin')}
+                                            <span className="break-words">{t('auth.continue_with_linkedin')}</span>
                                         </button>
                                     </div>
                                 </>

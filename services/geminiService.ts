@@ -1,4 +1,4 @@
-import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, CVAnalysis, UserProfile, ShamanAdvice, SalaryEstimate, AssessmentEvaluation } from "../types";
+import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, CVAnalysis, UserProfile, ShamanAdvice, SalaryEstimate, AssessmentEvaluation, CandidateDomainKey, CandidateSeniority } from "../types";
 import { authenticatedFetch } from './csrfService';
 import { BACKEND_URL } from '../constants';
 
@@ -261,5 +261,35 @@ export const extractSkillsFromJob = async (title: string, description: string): 
   } catch (e) {
     console.error('Skill extraction failed:', e);
     return [];
+  }
+};
+
+export const resolveCareerNavigationGoalWithAi = async (
+  goalText: string,
+  userProfile: UserProfile,
+  locale: string,
+): Promise<{
+  targetRole?: string | null;
+  primaryDomain?: CandidateDomainKey | null;
+  seniority?: CandidateSeniority | null;
+  workModeHint?: 'remote' | 'hybrid' | 'onsite' | null;
+  confidence?: number | null;
+  alternatives?: Array<{
+    label?: string | null;
+    targetRole?: string | null;
+    primaryDomain?: CandidateDomainKey | null;
+    confidence?: number | null;
+  }> | null;
+} | null> => {
+  try {
+    const payload = await callAiExecute('resolve_career_navigation_goal', {
+      goalText,
+      locale,
+      userProfile,
+    });
+    return payload?.goal || payload?.result || null;
+  } catch (e) {
+    console.warn('Career navigation goal resolution fallback:', e);
+    return null;
   }
 };

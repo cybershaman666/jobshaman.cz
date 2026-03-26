@@ -32,12 +32,24 @@ import {
 } from 'lucide-react';
 
 import type { Job, JobWorkArrangementFilter, LearningResource, SearchLanguageCode, TransportMode, UserProfile } from '../../types';
+import { resolveCareerNavigationGoalWithAi } from '../../services/geminiService';
 import { fetchLearningResources } from '../../services/learningResourceService';
 import { listProfileMiniChallenges } from '../../services/profileMiniChallengeService';
 import { getMainDatabaseJobCount } from '../../services/jobService';
 import { cn } from '../ui/primitives';
 import TransportModeSelector from '../TransportModeSelector';
 import { resolveJobDomain } from '../../utils/domainAccents';
+import {
+  buildCareerNavigationGoalFromAlternative,
+  buildCareerNavigationRoute,
+  inferCareerNavigationGoal,
+  mergeCareerNavigationGoalWithAi,
+  type CareerNavigationGoal,
+  type CareerNavigationGoalAlternative,
+  type CareerNavigationMiniChallengeOption,
+  type CareerNavigationPathOption,
+  type CareerNavigationRoute,
+} from '../../src/app/careeros/model/careerNavigation';
 import {
   type CareerOSChallenge,
   type CareerOSLayer,
@@ -610,6 +622,109 @@ const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: T
 };
 
 const localeIsCzech = (locale: string): boolean => /^cs\b/i.test(String(locale || '').trim());
+
+const normalizeNavigationLocale = (locale?: string): 'cs' | 'sk' | 'de' | 'pl' | 'en' => {
+  const base = String(locale || 'en').split('-')[0].toLowerCase();
+  if (base === 'cs' || base === 'sk' || base === 'de' || base === 'pl') return base;
+  return 'en';
+};
+
+const getNavigationUiCopy = (locale?: string) => {
+  const normalized = normalizeNavigationLocale(locale);
+  if (normalized === 'cs') {
+    return {
+      badge: 'Navigace k cíli',
+      eta: 'ETA',
+      confidence: 'Jistota',
+      steps: 'Kroky',
+      resolving: 'Upřesňujeme trasu přes AI interpretaci...',
+      alternatives: 'Možné interpretace',
+      friction: 'Možná tření',
+      editGoal: 'Upravit cíl',
+      subtitle: 'Zadejte cíl a CareerOS ukáže realistickou trasu z vašeho aktuálního profilu.',
+      changeGoal: 'Změnit cíl',
+      openCta: 'Navigovat k cíli',
+      clear: 'Vymazat trasu',
+      placeholder: 'Například Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Použít moje současné preference trhu jako váhu trasy',
+      submit: 'Postavit trasu',
+    };
+  }
+  if (normalized === 'sk') {
+    return {
+      badge: 'Navigácia k cieľu',
+      eta: 'ETA',
+      confidence: 'Istota',
+      steps: 'Kroky',
+      resolving: 'Spresňujeme trasu cez AI interpretáciu...',
+      alternatives: 'Možné interpretácie',
+      friction: 'Možné trenia',
+      editGoal: 'Upraviť cieľ',
+      subtitle: 'Zadajte cieľ a CareerOS ukáže realistickú trasu z vášho aktuálneho profilu.',
+      changeGoal: 'Zmeniť cieľ',
+      openCta: 'Navigovať k cieľu',
+      clear: 'Vymazať trasu',
+      placeholder: 'Napríklad Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Použiť moje súčasné preferencie trhu ako váhu trasy',
+      submit: 'Postaviť trasu',
+    };
+  }
+  if (normalized === 'de') {
+    return {
+      badge: 'Zielnavigation',
+      eta: 'ETA',
+      confidence: 'Sicherheit',
+      steps: 'Schritte',
+      resolving: 'Die Route wird mit AI-Interpretation verfeinert...',
+      alternatives: 'Mögliche Deutungen',
+      friction: 'Mögliche Reibung',
+      editGoal: 'Ziel bearbeiten',
+      subtitle: 'Geben Sie ein Ziel ein und CareerOS zeigt eine realistische Route aus Ihrem aktuellen Profil.',
+      changeGoal: 'Ziel ändern',
+      openCta: 'Zum Ziel navigieren',
+      clear: 'Route löschen',
+      placeholder: 'Zum Beispiel Customer Success Manager, Operations Lead, Remote-Produktrolle...',
+      useMarketPrefs: 'Meine aktuellen Marktpräferenzen als Routen-Gewichtung nutzen',
+      submit: 'Route bauen',
+    };
+  }
+  if (normalized === 'pl') {
+    return {
+      badge: 'Nawigacja do celu',
+      eta: 'ETA',
+      confidence: 'Pewność',
+      steps: 'Kroki',
+      resolving: 'Doprecyzowujemy trasę przez interpretację AI...',
+      alternatives: 'Możliwe interpretacje',
+      friction: 'Możliwe tarcia',
+      editGoal: 'Edytuj cel',
+      subtitle: 'Wpisz cel, a CareerOS pokaże realistyczną trasę z Twojego obecnego profilu.',
+      changeGoal: 'Zmień cel',
+      openCta: 'Nawiguj do celu',
+      clear: 'Wyczyść trasę',
+      placeholder: 'Na przykład Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Użyj moich obecnych preferencji rynkowych jako wagi trasy',
+      submit: 'Zbuduj trasę',
+    };
+  }
+  return {
+    badge: 'Goal navigation',
+    eta: 'ETA',
+    confidence: 'Confidence',
+    steps: 'Steps',
+    resolving: 'Refining the route with AI interpretation...',
+    alternatives: 'Suggested interpretations',
+    friction: 'Likely friction',
+    editGoal: 'Edit goal',
+    subtitle: 'Type a destination and CareerOS will map a realistic route from your current profile.',
+    changeGoal: 'Change goal',
+    openCta: 'Navigate to goal',
+    clear: 'Clear route',
+    placeholder: 'Example: Customer Success Manager, Operations lead, remote product role...',
+    useMarketPrefs: 'Use my current market preferences as route weight',
+    submit: 'Build route',
+  };
+};
 
 const buildPathInsightPanel = (node: PathNode, locale: string): PathInsightPanelContent => {
   const isCs = localeIsCzech(locale);
@@ -2495,6 +2610,7 @@ const CareerPathStage: React.FC<{
   userLabel: string;
   headline: string;
   userProfilePhoto: string | null;
+  isGuest: boolean;
   formattedJobsCount: string;
   formattedActiveCandidates: string;
   nodes: PathNode[];
@@ -2515,9 +2631,12 @@ const CareerPathStage: React.FC<{
   setManualDomainSelection: React.Dispatch<React.SetStateAction<string[]>>;
   manualDomainQuery: string;
   setManualDomainQuery: React.Dispatch<React.SetStateAction<string>>;
+  navigationRoute: CareerNavigationRoute | null;
+  onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
   interactive?: boolean;
-}> = ({ userLabel, headline, userProfilePhoto, formattedJobsCount, formattedActiveCandidates, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, interactive = true }) => {
-  const { t } = useTranslation();
+}> = ({ userLabel, headline, userProfilePhoto, isGuest, formattedJobsCount, formattedActiveCandidates, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, navigationRoute, onOpenAuth, interactive = true }) => {
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.resolvedLanguage || i18n.language || 'en').split('-')[0].toLowerCase();
   const expandedNode = nodes.find((node) => node.id === expandedPathId) || null;
   const expandedChildren = useMemo(() => buildExpandedClusterChildren(expandedNode), [expandedNode]);
   const orbitGuides = useMemo(
@@ -2536,6 +2655,35 @@ const CareerPathStage: React.FC<{
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [hoveredPathId, setHoveredPathId] = useState<string | null>(null);
+  const guestCenterCopy = locale === 'cs'
+    ? {
+        title: 'Staňte se středem své kariérní mapy',
+        body: 'Vytvořte si profil a uvidíte role, směry i další kroky uspořádané kolem sebe.',
+        cta: 'Začít',
+      }
+    : locale === 'sk'
+      ? {
+          title: 'Staňte sa stredom svojej kariérnej mapy',
+          body: 'Vytvorte si profil a uvidíte roly, smery aj ďalšie kroky usporiadané okolo seba.',
+          cta: 'Začať',
+        }
+      : locale === 'de'
+        ? {
+            title: 'Werden Sie zum Mittelpunkt Ihrer Karrierekarte',
+            body: 'Erstellen Sie Ihr Profil und sehen Sie Rollen, Richtungen und nächste Schritte rund um sich angeordnet.',
+            cta: 'Starten',
+          }
+        : locale === 'pl'
+          ? {
+              title: 'Stań się centrum swojej mapy kariery',
+              body: 'Utwórz profil i zobacz role, kierunki oraz kolejne kroki ułożone wokół siebie.',
+              cta: 'Zacznij',
+            }
+          : {
+              title: 'Become the center of your career map',
+              body: 'Create your profile to see roles, directions, and next steps arranged around you.',
+              cta: 'Get started',
+            };
   const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!interactive) return;
     event.preventDefault();
@@ -2550,6 +2698,77 @@ const CareerPathStage: React.FC<{
     }
     stepZoom(setZoom, event.deltaY < 0 ? 'in' : 'out');
   };
+
+  const defaultHud = !expandedNode && showDefaultHud ? (
+    <div className="pointer-events-none absolute right-6 top-6 z-[36] min-w-[240px] rounded-[18px] border border-white/70 bg-white/92 px-4 py-3 text-right shadow-sm backdrop-blur-md dark:border-cyan-500/20 dark:bg-slate-950/96 dark:shadow-[0_22px_52px_-34px_rgba(2,6,23,0.88)]">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+        {t('careeros.map.title', { defaultValue: 'Neural Career Map' })}
+      </div>
+      <div className="mt-3 grid gap-2">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/84 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/96">
+          <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedJobsCount}</div>
+          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
+          </div>
+          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/76 px-3 py-2 dark:border-cyan-500/30 dark:bg-slate-900 dark:shadow-[0_14px_30px_-22px_rgba(8,145,178,0.45)]">
+          <div className="flex items-center justify-end gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)] dark:bg-cyan-300 dark:shadow-[0_0_0_4px_rgba(103,232,249,0.16)]" />
+            <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedActiveCandidates}</div>
+          </div>
+          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
+          </div>
+          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  const guestCenterOverlay = isGuest ? (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 z-[34] -translate-x-1/2 -translate-y-1/2">
+      <div className="relative h-[148px] w-[148px]">
+        <button
+          type="button"
+          aria-label={guestCenterCopy.title}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
+            void onOpenAuth('register');
+          }}
+          className="pointer-events-auto group relative flex h-[148px] w-[148px] items-center justify-center rounded-full"
+        >
+          <span className="pointer-events-none absolute inset-[-22px] rounded-full border border-cyan-300/25 dark:border-cyan-300/20" />
+          <span className="pointer-events-none absolute inset-[-8px] rounded-full border border-sky-300/30 dark:border-sky-300/20" />
+          <span className="pointer-events-none absolute inset-[-44px] rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.26),rgba(16,185,129,0.14),transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(34,211,238,0.22),rgba(16,185,129,0.14),transparent_72%)]" />
+          <span className="pointer-events-none absolute inset-[8px] rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,211,238,0.18),rgba(125,211,252,0.22),rgba(16,185,129,0.24),rgba(34,211,238,0.18))] blur-md transition duration-300 group-hover:scale-105" />
+          <span className="pointer-events-none absolute inset-[18px] rounded-full border border-white/60 dark:border-slate-200/10" />
+          <span className="pointer-events-none absolute inset-[22px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(207,250,254,0.98)_28%,rgba(125,211,252,0.92)_56%,rgba(16,185,129,0.84)_100%)] shadow-[0_0_44px_rgba(34,211,238,0.28)] dark:shadow-[0_0_54px_rgba(34,211,238,0.24)]" />
+          <span className="pointer-events-none absolute inset-[36px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(240,253,250,0.94)_34%,rgba(165,243,252,0.84)_62%,transparent_100%)] opacity-90" />
+          <span className="relative z-10 flex flex-col items-center justify-center text-slate-950">
+            <Star className="h-8 w-8 fill-current drop-shadow-[0_3px_10px_rgba(255,255,255,0.35)]" />
+            <span className="mt-2 text-[11px] font-black uppercase tracking-[0.22em] text-slate-950/88">
+              {guestCenterCopy.cta}
+            </span>
+          </span>
+        </button>
+        <div className="absolute left-1/2 top-[calc(100%+16px)] w-[280px] -translate-x-1/2 rounded-[24px] border border-white/60 bg-white/92 px-5 py-4 text-center shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/92 dark:shadow-[0_28px_90px_-40px_rgba(2,6,23,0.82)]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+            {t('careeros.map.center_badge', { defaultValue: 'Tady začíná vaše mapa' })}
+          </div>
+          <div className="mt-2 text-[16px] font-bold leading-tight text-slate-900 dark:text-slate-100">{guestCenterCopy.title}</div>
+          <div className="mt-2 text-[13px] leading-6 text-slate-600 dark:text-slate-300">{guestCenterCopy.body}</div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  const routeWaypoints = navigationRoute?.waypoints || [];
 
   return (
   <div ref={stageRef} className={cn('relative h-full w-full overflow-hidden', !interactive && 'pointer-events-none')} onWheel={handleCanvasWheel}>
@@ -2586,6 +2805,51 @@ const CareerPathStage: React.FC<{
               opacity={Math.max(0.18, 0.42 - index * 0.05 + orbit.gravityPull * 0.08)}
             />
           ))}
+          {routeWaypoints.length > 1 ? (
+            <g>
+              {routeWaypoints.slice(1).map((point, index) => {
+                const previousPoint = routeWaypoints[index];
+                return (
+                  <g key={`route-line-${point.id}`}>
+                    <line
+                      x1={previousPoint.x}
+                      y1={previousPoint.y}
+                      x2={point.x}
+                      y2={point.y}
+                      stroke="rgba(34,211,238,0.68)"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      opacity="0.78"
+                    />
+                    <line
+                      x1={previousPoint.x}
+                      y1={previousPoint.y}
+                      x2={point.x}
+                      y2={point.y}
+                      stroke="rgba(255,255,255,0.7)"
+                      strokeWidth="1.15"
+                      strokeDasharray="7 10"
+                      strokeLinecap="round"
+                      opacity="0.75"
+                      style={{ animation: 'careeros-dash-flow 5s linear infinite' }}
+                    />
+                  </g>
+                );
+              })}
+              {routeWaypoints.filter((point) => point.kind !== 'current').map((point) => (
+                <g key={`route-point-${point.id}`} transform={`translate(${point.x} ${point.y})`}>
+                  <circle r="28" fill={point.kind === 'target' ? 'rgba(16,185,129,0.18)' : 'rgba(56,189,248,0.14)'} />
+                  <circle
+                    r="18"
+                    fill={point.kind === 'target' ? 'rgba(16,185,129,0.92)' : 'rgba(14,165,233,0.9)'}
+                    stroke="rgba(255,255,255,0.92)"
+                    strokeWidth="3"
+                  />
+                  <circle r="7" fill="rgba(255,255,255,0.98)" />
+                </g>
+              ))}
+            </g>
+          ) : null}
           {nodes.map((node) => {
             const dist = Math.hypot(node.x, node.y) || 1;
             const dx = node.x / dist;
@@ -2626,56 +2890,37 @@ const CareerPathStage: React.FC<{
           })}
             </svg>
 
-            {!expandedNode && showDefaultHud ? (
-              <div className="pointer-events-none absolute right-6 top-6 z-[32] min-w-[240px] rounded-[18px] border border-white/70 bg-white/88 px-4 py-3 text-right shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-950/82">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  {t('careeros.map.title', { defaultValue: 'Neural Career Map' })}
-                </div>
-                <div className="mt-3 grid gap-2">
-                  <div className="rounded-2xl border border-slate-200/80 bg-white/78 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/72">
-                    <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedJobsCount}</div>
-                    <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                      {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                      {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-3 py-2 dark:border-cyan-900/60 dark:bg-cyan-950/18">
-                    <div className="flex items-center justify-end gap-2">
-                      <span className="inline-block h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)] dark:bg-cyan-300" />
-                      <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedActiveCandidates}</div>
-                    </div>
-                    <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                      {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                      {t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <div className="flex flex-col items-center">
             <div className="pointer-events-none absolute inset-[-110px] rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.22),rgba(34,211,238,0.12),transparent_70%)] blur-3xl" />
             <div className="pointer-events-none absolute inset-[-52px] rounded-full border border-cyan-200/20 dark:border-cyan-400/15" />
-            <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
-              <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-emerald-500/10 to-orange-500/10 blur-md" />
-              <div className="relative z-10 h-[104px] w-[104px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
-                <NodeImage
-                  src={userProfilePhoto}
-                  alt={userLabel}
-                  fallback={initials(userLabel)}
-                  className="h-full w-full object-cover"
-                />
+            {isGuest ? (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full border border-cyan-300/20 bg-white/30 shadow-[0_0_40px_rgba(34,211,238,0.14)] backdrop-blur-sm dark:border-cyan-300/15 dark:bg-slate-950/35 dark:shadow-[0_0_60px_rgba(34,211,238,0.14)]"
+              >
+                <div className="absolute inset-3 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.96),rgba(207,250,254,0.92)_34%,rgba(34,211,238,0.6)_100%)]" />
+                <Star className="relative z-10 h-5 w-5 fill-white text-white/90" />
               </div>
-            </div>
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-2 text-center shadow-lg backdrop-blur-md dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
-              <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{userLabel}</div>
-              <div className="text-[13px] font-medium text-cyan-600 dark:text-cyan-300">{compactText(headline.replace(/^Map the next move for /i, ''), 34)}</div>
-            </div>
+            ) : (
+              <>
+                <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-emerald-500/10 to-orange-500/10 blur-md" />
+                  <div className="relative z-10 h-[104px] w-[104px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
+                    <NodeImage
+                      src={userProfilePhoto}
+                      alt={userLabel}
+                      fallback={initials(userLabel)}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-2 text-center shadow-lg backdrop-blur-md dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
+                  <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{userLabel}</div>
+                  <div className="text-[13px] font-medium text-cyan-600 dark:text-cyan-300">{compactText(headline.replace(/^Map the next move for /i, ''), 34)}</div>
+                </div>
+              </>
+            )}
           </div>
             </div>
 
@@ -2785,6 +3030,7 @@ const CareerPathStage: React.FC<{
         </div>
       </div>
     </motion.div>
+    {defaultHud}
     {!expandedNode && showDefaultHud ? (
       <>
         <DomainRemapPanel
@@ -2959,6 +3205,7 @@ const CareerPathStage: React.FC<{
         </motion.div>
       ) : null}
     </AnimatePresence>
+    {guestCenterOverlay}
   </div>
   );
 };
@@ -3358,6 +3605,174 @@ const ChallengePanel: React.FC<{
       </motion.aside>
     ) : null}
   </AnimatePresence>
+  );
+};
+
+const navigationStepIcon = (kind: string) => {
+  if (kind === 'learning_step' || kind === 'skill_gap') return BookOpen;
+  if (kind === 'proof_step') return Sparkles;
+  if (kind === 'bridge_role') return TrendingUp;
+  if (kind === 'offer_activation') return Briefcase;
+  if (kind === 'profile_fill' || kind === 'intent_clarify') return Bot;
+  return CheckCircle2;
+};
+
+const navigationFrictionClasses: Record<string, string> = {
+  low: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-300',
+  medium: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-300',
+  high: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/25 dark:text-rose-300',
+};
+
+const NavigationPanel: React.FC<{
+  route: CareerNavigationRoute | null;
+  visible: boolean;
+  resolving: boolean;
+  onClose: () => void;
+  onEditGoal: () => void;
+  onOpenStep: (stepId: string) => void;
+  onSelectAlternative: (alternative: CareerNavigationGoalAlternative) => void;
+}> = ({ route, visible, resolving, onClose, onEditGoal, onOpenStep, onSelectAlternative }) => {
+  const { i18n } = useTranslation();
+  const navigationCopy = useMemo(() => getNavigationUiCopy(i18n.resolvedLanguage || i18n.language || 'en'), [i18n.language, i18n.resolvedLanguage]);
+  return (
+    <AnimatePresence>
+      {route && visible ? (
+        <motion.aside
+          initial={{ x: 420, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 420, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+          className={cn(shellPanel, 'absolute bottom-6 right-6 top-6 z-[66] hidden w-[380px] overflow-hidden rounded-[28px] xl:block')}
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 pb-4 pt-5 dark:border-slate-800/80">
+              <div>
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span>{navigationCopy.badge}</span>
+                </div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-800 dark:text-slate-100">{route.destinationLabel}</div>
+                <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{route.summary}</div>
+              </div>
+              <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/76">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{navigationCopy.eta}</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{route.etaLabel}</div>
+                </div>
+                <div className="rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/76">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{navigationCopy.confidence}</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{route.confidence}%</div>
+                </div>
+                <div className="rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/76">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{navigationCopy.steps}</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{route.steps.length}</div>
+                </div>
+              </div>
+
+              {resolving ? (
+                <div className="mt-4 rounded-[20px] border border-cyan-100 bg-cyan-50/90 px-4 py-3 text-sm text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/24 dark:text-cyan-200">
+                  {navigationCopy.resolving}
+                </div>
+              ) : null}
+
+              {route.goal.alternatives.length > 0 && route.goal.status !== 'resolved' ? (
+                <div className="mt-5 rounded-[24px] border border-slate-200 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/76">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    {navigationCopy.alternatives}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {route.goal.alternatives.map((alternative) => (
+                      <button
+                        key={alternative.id}
+                        type="button"
+                        onClick={() => onSelectAlternative(alternative)}
+                        className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-900/40 dark:bg-cyan-950/24 dark:text-cyan-200 dark:hover:bg-cyan-950/34"
+                      >
+                        {alternative.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {route.likelyFrictions.length > 0 ? (
+                <div className="mt-5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    {navigationCopy.friction}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {route.likelyFrictions.map((item) => (
+                      <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/76 dark:text-slate-200">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {route.missingSignalHint ? (
+                <div className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-200">
+                  {route.missingSignalHint}
+                </div>
+              ) : null}
+
+              <div className="mt-5 space-y-3">
+                {route.steps.map((step, index) => {
+                  const Icon = navigationStepIcon(step.kind);
+                  return (
+                    <div key={step.id} className="rounded-[24px] border border-slate-200 bg-white/92 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-300">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{index + 1}. {step.title}</div>
+                            <span className={cn('rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]', navigationFrictionClasses[step.friction])}>
+                              {step.friction}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{step.body}</p>
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {step.etaLabel} · {step.confidence}%
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onOpenStep(step.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-cyan-600 px-3.5 py-2 text-xs font-semibold text-white"
+                            >
+                              {step.ctaLabel}
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2 border-t border-slate-200/80 px-5 py-4 dark:border-slate-800/80">
+              <button
+                type="button"
+                onClick={onEditGoal}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+              >
+                {navigationCopy.editGoal}
+              </button>
+            </div>
+          </div>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
   );
 };
 
@@ -3816,6 +4231,11 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [liveCandidateDelta, setLiveCandidateDelta] = useState(0);
   const [learningResources, setLearningResources] = useState<LearningResource[]>([]);
   const [learningResourcesLoading, setLearningResourcesLoading] = useState(false);
+  const [navigationComposerOpen, setNavigationComposerOpen] = useState(false);
+  const [navigationGoalInput, setNavigationGoalInput] = useState('');
+  const [navigationUseMarketPreferences, setNavigationUseMarketPreferences] = useState(true);
+  const [navigationRoute, setNavigationRoute] = useState<CareerNavigationRoute | null>(null);
+  const [navigationResolving, setNavigationResolving] = useState(false);
 
   const workspace = useMemo(
     () =>
@@ -3860,6 +4280,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [canvasZoom, setCanvasZoom] = useState(initialCanvasZoom);
   const { t, i18n } = useTranslation();
   const activeLocale = String(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
+  const navigationUiCopy = useMemo(() => getNavigationUiCopy(activeLocale), [activeLocale]);
   const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
   const learningPathRequiresSetup = !hasCareerPathProfileSignal(userProfile);
   const isGuestCareerPath = !userProfile.isLoggedIn;
@@ -4107,6 +4528,51 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     () => buildMiniChallengeCards(jobs, profileMiniChallenges, userProfile, t),
     [jobs, profileMiniChallenges, t, userProfile],
   );
+  const navigationPathOptions = useMemo<CareerNavigationPathOption[]>(
+    () =>
+      pathNodes.map((node) => ({
+        id: node.id,
+        title: node.title,
+        summary: node.summary,
+        preview: node.preview,
+        primaryDomain: (node.challenges.find((challenge) => challenge.matchedDomains?.[0])?.matchedDomains?.[0] || null) as CareerNavigationPathOption['primaryDomain'],
+        challengeIds: node.challenges.map((challenge) => challenge.id),
+        x: node.x,
+        y: node.y,
+        roleOptions: node.roleNodes.map((role) => ({
+          id: role.id,
+          title: role.title,
+          challengeIds: role.challenges.map((challenge) => challenge.id),
+        })),
+        topSkills: uniqStrings(node.challenges.flatMap((challenge) => challenge.requiredSkills).filter(Boolean)).slice(0, 6),
+      })),
+    [pathNodes],
+  );
+  const navigationMiniChallenges = useMemo<CareerNavigationMiniChallengeOption[]>(
+    () =>
+      miniChallengeCards
+        .filter((card) => card.action === 'open_challenge')
+        .map((card) => ({
+          id: card.id,
+          title: card.title,
+          summary: card.summary,
+        })),
+    [miniChallengeCards],
+  );
+  const navigationLearningSignal = useMemo(
+    () => ({
+      currentRole: learningGapAnalysis.currentRole,
+      targetRole: learningGapAnalysis.targetRole,
+      targetDomainLabel: learningGapAnalysis.targetDomainLabel,
+      intentReady: learningGapAnalysis.intentReady,
+      skillDataReady: learningGapAnalysis.skillDataReady,
+      currentSkills: learningGapAnalysis.currentSkills,
+      targetSkills: learningGapAnalysis.targetSkills,
+      missingSkills: learningGapAnalysis.missingSkills,
+      hasResourceMatches: learningGapAnalysis.resources.length > 0,
+    }),
+    [learningGapAnalysis],
+  );
   const notificationStorageKey = useMemo(() => `careeros.notifications.read.${userProfile.id || 'guest'}`, [userProfile.id]);
   const notificationMatchCandidates = useMemo(
     () =>
@@ -4347,6 +4813,113 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     onOpenProfile();
   };
 
+  const applyNavigationGoal = (goal: CareerNavigationGoal) => {
+    const route = buildCareerNavigationRoute({
+      goal,
+      userProfile,
+      pathOptions: navigationPathOptions,
+      learning: navigationLearningSignal,
+      miniChallenges: navigationMiniChallenges,
+      useMarketPreferences: navigationUseMarketPreferences,
+      locale: activeLocale,
+    });
+    setNavigationRoute(route);
+    setActiveLayer('career_path');
+    setPanelDismissed(true);
+    setPanelChallenge(null);
+    if (route.targetPathId) {
+      setSelectedPathId(route.targetPathId);
+      setExpandedPathId(null);
+    }
+    if (route.targetRoleId) {
+      setSelectedRoleId(route.targetRoleId);
+    }
+  };
+
+  const handleNavigationSubmit = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (!userProfile.isLoggedIn) {
+      void onOpenAuth('register');
+      return;
+    }
+
+    const heuristicGoal = inferCareerNavigationGoal({
+      goalText: navigationGoalInput,
+      userProfile,
+      pathOptions: navigationPathOptions,
+      locale: activeLocale,
+    });
+    applyNavigationGoal(heuristicGoal);
+    setNavigationComposerOpen(false);
+    setNavigationResolving(true);
+
+    try {
+      const aiGoal = await resolveCareerNavigationGoalWithAi(navigationGoalInput, userProfile, activeLocale);
+      if (!aiGoal) return;
+      const mergedGoal = mergeCareerNavigationGoalWithAi({
+        baseGoal: heuristicGoal,
+        aiResult: aiGoal,
+        pathOptions: navigationPathOptions,
+        locale: activeLocale,
+      });
+      if (
+        mergedGoal.targetRole !== heuristicGoal.targetRole
+        || mergedGoal.primaryDomain !== heuristicGoal.primaryDomain
+        || mergedGoal.confidence !== heuristicGoal.confidence
+      ) {
+        applyNavigationGoal(mergedGoal);
+      }
+    } finally {
+      setNavigationResolving(false);
+    }
+  };
+
+  const handleNavigationStepOpen = (stepId: string) => {
+    if (!navigationRoute) return;
+    const step = navigationRoute.steps.find((item) => item.id === stepId);
+    if (!step) return;
+
+    switch (step.ctaTarget.kind) {
+      case 'open_profile':
+        onOpenProfile();
+        return;
+      case 'open_learning_path':
+        setActiveLayer('learning_path');
+        return;
+      case 'open_mini_challenges':
+        setActiveLayer('mini_challenges');
+        return;
+      case 'open_path': {
+        if (!step.ctaTarget.pathId) return;
+        setActiveLayer('career_path');
+        setSelectedPathId(step.ctaTarget.pathId);
+        setExpandedPathId(step.ctaTarget.pathId);
+        setPanelDismissed(true);
+        return;
+      }
+      case 'open_offers': {
+        if (!step.ctaTarget.pathId) return;
+        const targetPath = pathNodes.find((node) => node.id === step.ctaTarget.pathId) || null;
+        const targetRole = targetPath?.roleNodes.find((role) => role.id === step.ctaTarget.roleId) || targetPath?.roleNodes[0] || null;
+        setSelectedPathId(step.ctaTarget.pathId);
+        setSelectedRoleId(targetRole?.id || null);
+        setExpandedPathId(step.ctaTarget.pathId);
+        setPanelChallenge(targetRole?.featuredChallenge || targetPath?.featuredChallenge || null);
+        setPanelDismissed(false);
+        setActiveLayer('job_offers');
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
+  const handleNavigationAlternativeSelect = (alternative: CareerNavigationGoalAlternative) => {
+    if (!navigationRoute) return;
+    const nextGoal = buildCareerNavigationGoalFromAlternative(navigationRoute.goal, alternative);
+    applyNavigationGoal(nextGoal);
+  };
+
   const renderMainLayer = () => {
     if (activeLayer === 'career_path' || !selectedPath) {
       return (
@@ -4354,6 +4927,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           userLabel={workspace.userLabel}
           headline={workspace.headline}
           userProfilePhoto={safeImage(userProfile.photo)}
+          isGuest={!userProfile.isLoggedIn}
           formattedJobsCount={formattedJobsCount}
           formattedActiveCandidates={formattedActiveCandidates}
           nodes={pathNodes}
@@ -4380,6 +4954,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           setManualDomainSelection={setManualDomainSelection}
           manualDomainQuery={manualDomainQuery}
           setManualDomainQuery={setManualDomainQuery}
+          navigationRoute={navigationRoute}
+          onOpenAuth={onOpenAuth}
         />
       );
     }
@@ -4523,6 +5099,95 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         onSubmit={submitSearch}
       />
 
+      {(activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
+        <div className="pointer-events-none absolute left-3 right-3 top-[88px] z-[74] lg:hidden">
+          <div className="pointer-events-auto rounded-[26px] border border-white/70 bg-white/92 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span>{navigationUiCopy.badge}</span>
+                </div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {navigationRoute
+                    ? navigationRoute.summary
+                    : navigationUiCopy.subtitle}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!userProfile.isLoggedIn) {
+                      void onOpenAuth('register');
+                      return;
+                    }
+                    setNavigationComposerOpen((current) => !current);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)]"
+                >
+                  {navigationRoute
+                    ? navigationUiCopy.changeGoal
+                    : navigationUiCopy.openCta}
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                {navigationRoute ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNavigationRoute(null);
+                      setNavigationResolving(false);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                  >
+                    {navigationUiCopy.clear}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            {navigationComposerOpen ? (
+              <form className="mt-3 grid gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-800/80 lg:grid-cols-[minmax(0,1fr)_auto]" onSubmit={(event) => { void handleNavigationSubmit(event); }}>
+                <div className="space-y-3">
+                  <input
+                    value={navigationGoalInput}
+                    onChange={(event) => setNavigationGoalInput(event.target.value)}
+                    placeholder={navigationUiCopy.placeholder}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-slate-100 dark:focus:border-cyan-400 dark:focus:ring-cyan-950/40"
+                  />
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={navigationUseMarketPreferences}
+                      onChange={(event) => setNavigationUseMarketPreferences(event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    />
+                    {navigationUiCopy.useMarketPrefs}
+                  </label>
+                </div>
+                <div className="flex flex-col gap-2 lg:min-w-[190px]">
+                  <button
+                    type="submit"
+                    disabled={!navigationGoalInput.trim() || navigationResolving}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {navigationResolving ? <Bot className="h-4 w-4 animate-pulse" /> : <TrendingUp className="h-4 w-4" />}
+                    {navigationUiCopy.submit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNavigationComposerOpen(false)}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                  >
+                    {t('common.close', { defaultValue: 'Close' })}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className="absolute left-6 top-6 z-[72] hidden lg:flex lg:flex-col lg:gap-4">
         <Sidebar
           activeLayer={activeLayer}
@@ -4537,13 +5202,133 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
             className={cn('self-start', sidebarCollapsed ? 'w-24' : 'w-72')}
           />
         ) : null}
+        {(activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
+          <div className={cn('self-start', sidebarCollapsed ? 'w-24' : 'w-72')}>
+            <div className="rounded-[26px] border border-white/70 bg-white/92 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+              {sidebarCollapsed ? (
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!userProfile.isLoggedIn) {
+                        void onOpenAuth('register');
+                        return;
+                      }
+                      setNavigationComposerOpen((current) => !current);
+                    }}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-cyan-600 text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)]"
+                    aria-label={navigationRoute ? navigationUiCopy.changeGoal : navigationUiCopy.openCta}
+                    title={navigationRoute ? navigationUiCopy.changeGoal : navigationUiCopy.openCta}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                  </button>
+                  {navigationRoute ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavigationRoute(null);
+                        setNavigationResolving(false);
+                      }}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                      aria-label={navigationUiCopy.clear}
+                      title={navigationUiCopy.clear}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                        <span>{navigationUiCopy.badge}</span>
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        {navigationRoute ? navigationRoute.summary : navigationUiCopy.subtitle}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!userProfile.isLoggedIn) {
+                            void onOpenAuth('register');
+                            return;
+                          }
+                          setNavigationComposerOpen((current) => !current);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)]"
+                      >
+                        {navigationRoute ? navigationUiCopy.changeGoal : navigationUiCopy.openCta}
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                      {navigationRoute ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNavigationRoute(null);
+                            setNavigationResolving(false);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                        >
+                          {navigationUiCopy.clear}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {navigationComposerOpen ? (
+                    <form className="mt-3 grid gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-800/80" onSubmit={(event) => { void handleNavigationSubmit(event); }}>
+                      <div className="space-y-3">
+                        <input
+                          value={navigationGoalInput}
+                          onChange={(event) => setNavigationGoalInput(event.target.value)}
+                          placeholder={navigationUiCopy.placeholder}
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-slate-100 dark:focus:border-cyan-400 dark:focus:ring-cyan-950/40"
+                        />
+                        <label className="inline-flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={navigationUseMarketPreferences}
+                            onChange={(event) => setNavigationUseMarketPreferences(event.target.checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                          />
+                          <span>{navigationUiCopy.useMarketPrefs}</span>
+                        </label>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="submit"
+                          disabled={!navigationGoalInput.trim() || navigationResolving}
+                          className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {navigationResolving ? <Bot className="h-4 w-4 animate-pulse" /> : <TrendingUp className="h-4 w-4" />}
+                          {navigationUiCopy.submit}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNavigationComposerOpen(false)}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                        >
+                          {t('common.close', { defaultValue: 'Close' })}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="absolute inset-0">{renderMainLayer()}</div>
 
       <PathPanel
         node={selectedPath}
-        visible={!panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
+        visible={!navigationRoute && !panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
         expanded={expandedPathId === selectedPath?.id}
         onClose={() => setPanelDismissed(true)}
         onToggleExpand={() => {
@@ -4556,6 +5341,19 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           setPanelChallenge(selectedRole.featuredChallenge);
           setActiveLayer('job_offers');
         }}
+      />
+
+      <NavigationPanel
+        route={navigationRoute}
+        visible={activeLayer === 'career_path'}
+        resolving={navigationResolving}
+        onClose={() => {
+          setNavigationRoute(null);
+          setNavigationResolving(false);
+        }}
+        onEditGoal={() => setNavigationComposerOpen(true)}
+        onOpenStep={handleNavigationStepOpen}
+        onSelectAlternative={handleNavigationAlternativeSelect}
       />
 
       <ChallengePanel
