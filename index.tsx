@@ -62,6 +62,8 @@ const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 const SENTRY_ENV = (import.meta.env.VITE_SENTRY_ENV as string | undefined) || import.meta.env.MODE;
 const SENTRY_ENABLED = Boolean(SENTRY_DSN);
 const CHUNK_RELOAD_GUARD_KEY = 'jobshaman:chunk-reload-once';
+const IS_DEV = import.meta.env.DEV;
+const SERVICE_WORKER_ENABLED = import.meta.env.VITE_ENABLE_SERVICE_WORKER === 'true';
 
 const extractErrorMessage = (reason: unknown): string => {
   if (reason instanceof Error) return reason.message;
@@ -126,15 +128,16 @@ try {
   }
 
   const root = createRoot(rootElement);
+  const appTree = (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
   root.render(
-    <React.StrictMode>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </React.StrictMode>
+    IS_DEV ? appTree : <React.StrictMode>{appTree}</React.StrictMode>
   );
 
-  if ('serviceWorker' in navigator) {
+  if (!IS_DEV && SERVICE_WORKER_ENABLED && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch((error) => {
       console.warn('Service worker registration failed:', error);
     });

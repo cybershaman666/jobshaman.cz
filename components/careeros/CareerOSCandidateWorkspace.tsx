@@ -1800,6 +1800,17 @@ const StageBackground: React.FC<{ accent?: 'emerald' | 'blue' }> = ({ accent = '
             transform: scale3d(1.012, 1.012, 1);
           }
         }
+
+        @keyframes careeros-route-pulse {
+          0%, 100% {
+            opacity: 0.72;
+            transform: scale3d(0.96, 0.96, 1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale3d(1.04, 1.04, 1);
+          }
+        }
       `}
     </style>
     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.08),transparent_28%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#f7fafc_52%,#f5f8fb_100%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.08),transparent_26%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]" />
@@ -2956,14 +2967,28 @@ const CareerPathStage: React.FC<{
                       stroke="rgba(255,255,255,0.7)"
                       strokeWidth="1.15"
                       strokeDasharray="7 10"
+                      strokeDashoffset="34"
                       strokeLinecap="round"
                       opacity="0.75"
-                    />
+                    >
+                      <animate
+                        attributeName="stroke-dashoffset"
+                        from="34"
+                        to="0"
+                        dur="1.15s"
+                        begin={`${index * 0.08}s`}
+                        repeatCount="indefinite"
+                      />
+                    </line>
                   </g>
                 );
               })}
               {routeWaypoints.filter((point) => point.kind !== 'current').map((point) => (
-                <g key={`route-point-${point.id}`} transform={`translate(${point.x} ${point.y})`}>
+                <g
+                  key={`route-point-${point.id}`}
+                  transform={`translate(${point.x} ${point.y})`}
+                  style={{ animation: 'careeros-route-pulse 1.6s ease-in-out infinite' }}
+                >
                   <circle r="28" fill={point.kind === 'target' ? 'rgba(16,185,129,0.18)' : 'rgba(56,189,248,0.14)'} />
                   <circle
                     r="18"
@@ -3088,8 +3113,13 @@ const CareerPathStage: React.FC<{
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
                 <div
-                  className="relative flex flex-col items-center"
-                  style={{ transform: `translate(${node.x}px, ${node.y}px) scale(${elevated ? elevatedScale : restingScale})`, opacity: elevated ? 1 : 0.88 }}
+                  className="relative flex flex-col items-center transform-gpu"
+                  style={{
+                    transform: `translate3d(${node.x}px, ${node.y}px, 0) scale(${elevated ? elevatedScale : restingScale})`,
+                    opacity: elevated ? 1 : 0.88,
+                    transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out',
+                    willChange: 'transform, opacity',
+                  }}
                 >
                   <div className="relative flex flex-col items-center" style={driftStyle}>
                     <button
@@ -3101,14 +3131,14 @@ const CareerPathStage: React.FC<{
                       onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
                       disabled={!interactive}
                       className={cn(
-                        'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-all duration-200 hover:scale-105',
+                        'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-transform duration-200 ease-out hover:scale-[1.03]',
                         elevated || attracted ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
                         active ? 'scale-105' : '',
                       )}
                     >
                       <div
                         className={cn(
-                          'relative flex items-center justify-center rounded-full border bg-white/88 backdrop-blur-md transition-all duration-200 group-hover:scale-110 dark:bg-slate-950/82',
+                          'relative flex items-center justify-center rounded-full border bg-white/92 transition-transform duration-200 ease-out group-hover:scale-[1.08] dark:bg-slate-950/88',
                           elevated || attracted ? 'h-[92px] w-[92px]' : 'h-[80px] w-[80px]',
                           tone.ring,
                           tone.glow,
@@ -3147,10 +3177,14 @@ const CareerPathStage: React.FC<{
 
                       <div
                         className={cn(
-                          'mt-2 w-full rounded-2xl border text-center shadow-sm backdrop-blur-md transition-colors',
+                          'mt-2 w-full rounded-2xl border text-center shadow-sm transition-[transform,colors,box-shadow] duration-200 ease-out',
                           elevated ? 'px-4 py-3.5' : 'px-3.5 py-3.5',
                           active ? 'border-cyan-200 bg-white/95 dark:border-cyan-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
                         )}
+                        style={{
+                          transform: `translate3d(0, 0, 0) scale(${elevated ? 1.015 : 1})`,
+                          willChange: 'transform',
+                        }}
                       >
                         <div
                           className="min-h-[2.5rem] text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100"
@@ -3312,10 +3346,11 @@ const CareerPathStage: React.FC<{
                       type="button"
                       onClick={() => onClusterRoleClick(child.role)}
                       className={cn(
-                        'relative flex h-[62px] w-[62px] items-center justify-center rounded-full border border-blue-200 bg-white/95 shadow-[0_0_16px_rgba(59,130,246,0.12)] backdrop-blur-md transition-all duration-300 hover:scale-110 hover:border-blue-400 dark:border-blue-500/40 dark:bg-slate-950/84 dark:hover:border-blue-400',
-                        activeChild ? 'scale-110 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.22)] dark:border-blue-400 dark:shadow-[0_0_24px_rgba(59,130,246,0.26)]' : '',
+                        'relative flex h-[62px] w-[62px] items-center justify-center rounded-full border border-blue-200 bg-white/95 shadow-[0_0_16px_rgba(59,130,246,0.12)] transition-[transform,border-color,box-shadow] duration-200 ease-out hover:scale-[1.08] hover:border-blue-400 dark:border-blue-500/40 dark:bg-slate-950/84 dark:hover:border-blue-400',
+                        activeChild ? 'scale-[1.08] border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.22)] dark:border-blue-400 dark:shadow-[0_0_24px_rgba(59,130,246,0.26)]' : '',
                       )}
-                      >
+                      style={{ willChange: 'transform' }}
+                    >
                         <div className="h-[52px] w-[52px] overflow-hidden rounded-full">
                           <NodeImage
                           src={child.role.imageUrl}
@@ -4421,7 +4456,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const isGuestCareerPath = !userProfile.isLoggedIn;
   const shouldLoadDatabaseCount = activeLayer === 'career_path' || activeLayer === 'job_offers';
   const shouldLoadLearningResources = activeLayer === 'learning_path';
-  const shouldLoadProfileMiniChallenges = activeLayer === 'mini_challenges' || navigationComposerOpen;
+  const shouldLoadProfileMiniChallenges = userProfile.isLoggedIn;
   const shouldLoadNotifications = notificationsOpen;
 
   const pathNodes = useMemo(
@@ -4883,13 +4918,17 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       try {
         const jobs = await listProfileMiniChallenges();
         if (!cancelled) {
-          setProfileMiniChallenges(jobs);
+          startTransition(() => {
+            setProfileMiniChallenges((current) => {
+              if (jobs.length === 0 && current.length > 0) {
+                return current;
+              }
+              return jobs;
+            });
+          });
         }
       } catch (error) {
         console.warn('[CareerOS] Failed to load profile mini challenges:', error);
-        if (!cancelled) {
-          setProfileMiniChallenges([]);
-        }
       }
     };
 

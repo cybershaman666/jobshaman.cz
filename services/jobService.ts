@@ -1409,12 +1409,6 @@ const resolveHybridBackendBases = (): string[] => {
     return Array.from(new Set(bases));
 };
 
-const hasDedicatedSearchRuntime = (): boolean => {
-    const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
-    const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
-    return !!searchBase && !!coreBase && searchBase !== coreBase;
-};
-
 const isNetworkFetchError = (err: unknown): boolean => {
     const msg = String((err as any)?.message || err || '').toLowerCase();
     return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
@@ -2914,7 +2908,8 @@ export const rankJobsForSearchMode = (
 export const fetchJobsWithFilters = async (
     options: JobFilterOptions
 ): Promise<JobsFetchResult> => {
-    if (!isSupabaseConfigured() || !supabase) {
+    const hasSupabaseSearchFallback = isSupabaseConfigured() && !!supabase;
+    if (!BACKEND_URL && !hasSupabaseSearchFallback) {
         console.warn("Supabase not configured.");
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
@@ -2950,7 +2945,7 @@ export const fetchJobsWithFilters = async (
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'default' : sortMode;
 
-    const HYBRID_SEARCH_TIMEOUT_MS = 4500;
+    const HYBRID_SEARCH_TIMEOUT_MS = 2600;
     const createTimeoutError = (label: string) => {
         const err = new Error(`${label} timed out`);
         (err as any).code = 'timeout';
@@ -2985,8 +2980,6 @@ export const fetchJobsWithFilters = async (
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = safeSearchTerm.replace(/\s+/g, '').length;
-    const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
-
     let finalUserLat = userLat;
     let finalUserLng = userLng;
     const hasCoords = typeof finalUserLat === 'number' && typeof finalUserLng === 'number';
@@ -2995,28 +2988,7 @@ export const fetchJobsWithFilters = async (
         console.warn('⚠️ Commute filter requested without coordinates; skipping radius filter.');
     }
 
-    const hasFilteringIntent =
-        !!filterCity ||
-        safeRadiusKm !== null ||
-        !!(filterContractTypes && filterContractTypes.length > 0) ||
-        !!(filterBenefits && filterBenefits.length > 0) ||
-        !!(filterExperienceLevels && filterExperienceLevels.length > 0) ||
-        !!(filterLanguageCodes && filterLanguageCodes.length > 0) ||
-        remoteOnly ||
-        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
-        !!(countryCodes && countryCodes.length > 0) ||
-        !!(excludeCountryCodes && excludeCountryCodes.length > 0) ||
-        !!(filterMinSalary && filterMinSalary > 0) ||
-        filterDatePosted !== 'all' ||
-        (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
-    const hasSemanticIntent =
-        compactSearchLength >= 2;
-    const hasSpatialIntent = safeRadiusKm !== null;
-    const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL && (
-        hasSemanticIntent ||
-        (!hasSpatialIntent && hasFilteringIntent) ||
-        (dedicatedSearchRuntime && isSearchV2Enabled() && !hasSpatialIntent)
-    );
+    const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL;
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedLanguageCodes = (filterLanguageCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
@@ -4119,7 +4091,7 @@ export const fetchJobsWithFilters = async (
             return await fetchViaStrictClientFallback('micro_job_filter');
         }
 
-        // Hybrid semantic search (backend) for text queries.
+        // Prefer backend search for the whole discovery/search surface.
         if (shouldUseHybridSearch) {
             try {
                 const hybridPromise = fetchViaBackendHybrid();
@@ -4144,6 +4116,14 @@ export const fetchJobsWithFilters = async (
         const spatialRadius = usesSpatialFilter ? safeRadiusKm : null;
 
         const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
+
+        if (!hasSupabaseSearchFallback || !supabase) {
+            if (safeSearchTerm) {
+                const textFallback = await fetchViaTextFallback();
+                if (textFallback) return textFallback;
+            }
+            return await fetchViaStrictClientFallback('backend_only_mode');
+        }
 
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
             search_term: safeSearchTerm || null,

@@ -16,6 +16,17 @@ export interface ProfileMiniChallengeCreateInput {
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 let publisherMiniChallengesApiUnavailable = false;
+export const PROFILE_MINI_CHALLENGES_UPDATED_EVENT = 'jobshaman:profile-mini-challenges-updated';
+
+const emitProfileMiniChallengesUpdated = (detail: {
+  kind: 'created' | 'updated';
+  job?: Job;
+  jobId?: string;
+  status?: 'active' | 'paused' | 'closed' | 'archived';
+}) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(PROFILE_MINI_CHALLENGES_UPDATED_EVENT, { detail }));
+};
 
 const shouldDisablePublisherMiniChallengesApi = (status: number): boolean =>
   [404, 500, 501, 502, 503].includes(status);
@@ -342,6 +353,7 @@ const createProfileMiniChallengeFallback = async (input: ProfileMiniChallengeCre
   if (!job) {
     throw new Error('Published mini challenge could not be hydrated.');
   }
+  emitProfileMiniChallengesUpdated({ kind: 'created', job });
   return job;
 };
 
@@ -379,6 +391,7 @@ const updateProfileMiniChallengeLifecycleFallback = async (
   if (error) {
     throw new Error(error.message || 'Failed to update mini challenge status.');
   }
+  emitProfileMiniChallengesUpdated({ kind: 'updated', jobId: String(normalizedJobId), status });
 };
 
 const fetchProfileMiniChallengeDialoguesFallback = async (jobId: string | number): Promise<CompanyApplicationRow[]> => {
@@ -728,7 +741,11 @@ export const createProfileMiniChallenge = async (input: ProfileMiniChallengeCrea
   if (!rawJob?.id) {
     throw new Error('Published mini challenge is missing an id.');
   }
-  return (await mapPublisherListJobs([rawJob]))[0];
+  const createdJob = (await mapPublisherListJobs([rawJob]))[0];
+  if (createdJob) {
+    emitProfileMiniChallengesUpdated({ kind: 'created', job: createdJob });
+  }
+  return createdJob;
 };
 
 export const updateProfileMiniChallengeLifecycle = async (
@@ -752,6 +769,7 @@ export const updateProfileMiniChallengeLifecycle = async (
     }
     throw new Error(await parseError(response, 'Failed to update mini challenge status.'));
   }
+  emitProfileMiniChallengesUpdated({ kind: 'updated', jobId: String(normalizedJobId), status });
 };
 
 export const fetchProfileMiniChallengeDialogues = async (jobId: string | number): Promise<CompanyApplicationRow[]> => {
