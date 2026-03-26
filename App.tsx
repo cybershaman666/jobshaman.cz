@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense, startTransition, useDeferredValue } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import { Job, ViewState, UserProfile, CompanyProfile } from './types';
@@ -733,17 +733,18 @@ export default function App() {
         }
         return scopedJobs;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey, discoveryMode]);
+    const deferredJobsForDisplay = useDeferredValue(jobsForDisplay);
     const benefitCandidates = useMemo(
         () =>
             Array.from(
                 new Set(
-                    jobsForDisplay
+                    deferredJobsForDisplay
                         .flatMap((job) => [...(Array.isArray(job.benefits) ? job.benefits : []), ...(Array.isArray(job.tags) ? job.tags : [])])
                         .map((item) => String(item || '').trim())
                         .filter(Boolean)
                 )
             ).slice(0, 6),
-        [jobsForDisplay]
+        [deferredJobsForDisplay]
     );
     const [headerNotifications, setHeaderNotifications] = useState<CareerOSNotification[]>([]);
     const notificationStorageKey = useMemo(
@@ -754,7 +755,7 @@ export default function App() {
     const [notificationsStorageHydrated, setNotificationsStorageHydrated] = useState(false);
     const notificationMatchCandidates = useMemo(
         () =>
-            jobsForDisplay.map((job) => {
+            deferredJobsForDisplay.slice(0, 24).map((job) => {
                 const aliases = getSavedJobIdAliases(job.id);
                 return {
                     id: job.id,
@@ -766,7 +767,7 @@ export default function App() {
                     isSaved: aliases.some((id) => savedJobIds.includes(id)),
                 };
             }),
-        [jobsForDisplay, savedJobIds, t]
+        [deferredJobsForDisplay, savedJobIds, t]
     );
 
     useEffect(() => {
@@ -789,7 +790,9 @@ export default function App() {
             });
 
             if (!cancelled) {
-                setHeaderNotifications(items);
+                startTransition(() => {
+                    setHeaderNotifications(items);
+                });
             }
         };
 
@@ -959,6 +962,7 @@ export default function App() {
         }
         return out;
     }, [jobsForDisplay, savedJobIds, savedJobsCache]);
+    const deferredResolvedSavedJobs = useDeferredValue(resolvedSavedJobs);
 
     const selectedJob = jobsForDisplay.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
@@ -1296,15 +1300,31 @@ export default function App() {
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        let raf = 0;
+        let lastVisible = showScrollToTop;
 
         const updateVisibility = () => {
-            setShowScrollToTop(window.scrollY > 560);
+            const nextVisible = window.scrollY > 560;
+            if (nextVisible === lastVisible) return;
+            lastVisible = nextVisible;
+            setShowScrollToTop(nextVisible);
         };
 
         updateVisibility();
-        window.addEventListener('scroll', updateVisibility, { passive: true });
-        return () => window.removeEventListener('scroll', updateVisibility);
-    }, []);
+        const handleScroll = () => {
+            if (raf) return;
+            raf = window.requestAnimationFrame(() => {
+                raf = 0;
+                updateVisibility();
+            });
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            if (raf) window.cancelAnimationFrame(raf);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [showScrollToTop]);
 
     const handleFloatingScrollToTop = useCallback(() => {
         const parseCssLengthToPx = (rawValue: string, fallback: number) => {
@@ -1497,14 +1517,14 @@ export default function App() {
 
     // --- HANDLERS ---
 
-    const handleAuthAction = async (mode: 'login' | 'register' = 'login') => {
+    const handleAuthAction = useCallback(async (mode: 'login' | 'register' = 'login') => {
         if (userProfile.isLoggedIn && userProfile.id) {
             await signOut();
         } else {
             setAuthModalMode(mode);
             setIsAuthModalOpen(true);
         }
-    };
+    }, [signOut, userProfile.id, userProfile.isLoggedIn]);
 
     const handleProfileUpdate = async (updatedProfile: UserProfile, persist: boolean = false) => {
         try {
@@ -1583,7 +1603,7 @@ export default function App() {
         });
     }, [candidateActivationState.first_quality_action_at, setUserProfile, userProfile]);
 
-    const handleToggleSave = (jobId: string, options?: { source?: string; position?: number }) => {
+    const handleToggleSave = useCallback((jobId: string, options?: { source?: string; position?: number }) => {
         const aliases = getSavedJobIdAliases(jobId);
         const isAlreadySaved = aliases.some((id) => savedJobIds.includes(id));
         const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
@@ -1623,9 +1643,9 @@ export default function App() {
             return;
         }
         applyInteractionState(jobId, 'save');
-    };
+    }, [applyInteractionState, jobsForDisplay, persistQualityAction, savedJobIds, selectedJob]);
 
-    const handleApplyToJob = (job: Job) => {
+    const handleApplyToJob = useCallback((job: Job) => {
         const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
         const scoringVersion = (job as any)?.aiMatchScoringVersion;
         const modelVersion = (job as any)?.aiMatchModelVersion;
@@ -1663,7 +1683,7 @@ export default function App() {
             return;
         }
         setIsApplyModalOpen(true);
-    };
+    }, [persistQualityAction]);
 
     const handleApplyFollowupAnswer = async (didApply: boolean) => {
         if (!applyFollowup) {
@@ -1714,7 +1734,7 @@ export default function App() {
         setShowApplyFollowup(false);
     };
 
-    const handleJobSelect = (jobId: string | null) => {
+    const handleJobSelect = useCallback((jobId: string | null) => {
         if (jobId) {
             if (!selectedJobId && viewState === ViewState.LIST && !selectedCompanyId) {
                 discoveryScrollYRef.current = window.scrollY;
@@ -1756,11 +1776,11 @@ export default function App() {
                 detailScrollRef.current.scrollTop = 0;
             });
         });
-    };
+    }, [jobsForDisplay, selectedCompanyId, selectedJob, selectedJobId, setDirectlyFetchedJob, setSelectedBlogPostSlug, setSelectedCompanyId, setSelectedJobId, usePageScrollLayout, viewState]);
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
 
-    const handleCompanyPageSelect = (companyId: string | null) => {
+    const handleCompanyPageSelect = useCallback((companyId: string | null) => {
         setSelectedCompanyId(companyId);
         setSelectedJobId(null);
         setSelectedBlogPostSlug(null);
@@ -1770,7 +1790,7 @@ export default function App() {
         setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'auto' });
         }, 0);
-    };
+    }, [setSelectedBlogPostSlug, setSelectedCompanyId, setSelectedJobId, setViewState]);
 
     const focusDiscoverySearch = () => {
         const attemptFocus = () => {
@@ -1967,9 +1987,9 @@ export default function App() {
                 selectedBlogPostSlug={selectedBlogPostSlug}
                 showCompanyLanding={showCompanyLanding}
                 isBlogOpen={isBlogOpen}
-                jobsForDisplay={jobsForDisplay}
+                jobsForDisplay={deferredJobsForDisplay}
                 selectedJob={selectedJob}
-                resolvedSavedJobs={resolvedSavedJobs}
+                resolvedSavedJobs={deferredResolvedSavedJobs}
                 savedJobIds={savedJobIds}
                 savedJobsSearchTerm={savedJobsSearchTerm}
                 isLoadingJobs={isLoadingJobs}
@@ -2073,7 +2093,7 @@ export default function App() {
                 <CandidateOnboardingModal
                     isOpen={showCandidateOnboarding}
                     profile={userProfile}
-                    jobs={jobsForDisplay}
+                    jobs={deferredJobsForDisplay}
                     initialStep={
                         candidateOnboardingInitialStepOverride
                         || (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type MutableRefObject } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
 import { CompanyProfile, DiscoveryFilterSource, Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
@@ -209,6 +209,40 @@ export default function AppSceneRouter({
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
     const [careerOSNavigationState, setCareerOSNavigationState] = useState<CareerOSNavigationState | null>(null);
+    const handleCareerOSFilterBenefits = useCallback((benefits: string[]) => {
+        onSetFilterBenefits(benefits, 'user_toggle');
+    }, [onSetFilterBenefits]);
+    const handleCareerOSFilterWorkArrangement = useCallback((value: JobWorkArrangementFilter) => {
+        onSetFilterWorkArrangement(value, 'user_toggle');
+    }, [onSetFilterWorkArrangement]);
+    const handleCareerOSFilterContractType = useCallback((values: string[]) => {
+        onSetFilterContractType(values, 'user_toggle');
+    }, [onSetFilterContractType]);
+    const handleCareerOSFilterExperience = useCallback((values: string[]) => {
+        onSetFilterExperience(values, 'user_toggle');
+    }, [onSetFilterExperience]);
+    const handleCareerOSFilterLanguageCodes = useCallback((values: SearchLanguageCode[]) => {
+        onSetFilterLanguageCodes(values, 'user_toggle');
+    }, [onSetFilterLanguageCodes]);
+    const handleCareerOSSearchTerm = useCallback((value: string) => {
+        onSetSearchTerm(value, 'user_toggle');
+    }, [onSetSearchTerm]);
+    const handleCareerOSOpenCompaniesLanding = useCallback(() => {
+        onSetSelectedJobId(null);
+        onSetSelectedCompanyId(null);
+        onSetSelectedBlogPostSlug(null);
+        onSetShowCompanyLanding(true);
+        onSetViewState(ViewState.LIST);
+    }, [
+        onSetSelectedBlogPostSlug,
+        onSetSelectedCompanyId,
+        onSetSelectedJobId,
+        onSetShowCompanyLanding,
+        onSetViewState,
+    ]);
+    const handleCareerOSOpenProfile = useCallback(() => {
+        onSetViewState(ViewState.PROFILE);
+    }, [onSetViewState]);
 
     if (normalizedPath === '/admin') {
         return (
@@ -459,7 +493,10 @@ export default function AppSceneRouter({
         );
     }
 
-    const nativeChallenges = jobsForDisplay.filter((job) => job.listingKind !== 'imported');
+    const nativeChallenges = useMemo(
+        () => jobsForDisplay.filter((job) => job.listingKind !== 'imported'),
+        [jobsForDisplay],
+    );
     const hasNativeChallenges = nativeChallenges.length > 0;
 
     return (
@@ -521,11 +558,11 @@ export default function AppSceneRouter({
                                 filterMinSalary={filterMinSalary}
                                 setFilterMinSalary={onSetFilterMinSalary}
                                 filterBenefits={filterBenefits}
-                                setFilterBenefits={(benefits) => onSetFilterBenefits(benefits, 'user_toggle')}
+                                setFilterBenefits={handleCareerOSFilterBenefits}
                                 remoteOnly={remoteOnly}
                                 setRemoteOnly={onSetRemoteOnly}
                                 filterWorkArrangement={filterWorkArrangement}
-                                setFilterWorkArrangement={(value) => onSetFilterWorkArrangement(value, 'user_toggle')}
+                                setFilterWorkArrangement={handleCareerOSFilterWorkArrangement}
                                 globalSearch={globalSearch}
                                 setGlobalSearch={onSetGlobalSearch}
                                 abroadOnly={abroadOnly}
@@ -535,27 +572,21 @@ export default function AppSceneRouter({
                                 filterMaxDistance={filterMaxDistance}
                                 setFilterMaxDistance={onSetFilterMaxDistance}
                                 filterContractType={filterContractType}
-                                setFilterContractType={(values) => onSetFilterContractType(values, 'user_toggle')}
+                                setFilterContractType={handleCareerOSFilterContractType}
                                 filterExperience={filterExperience}
-                                setFilterExperience={(values) => onSetFilterExperience(values, 'user_toggle')}
+                                setFilterExperience={handleCareerOSFilterExperience}
                                 filterLanguageCodes={filterLanguageCodes}
-                                setFilterLanguageCodes={(values) => onSetFilterLanguageCodes(values, 'user_toggle')}
+                                setFilterLanguageCodes={handleCareerOSFilterLanguageCodes}
                                 handleJobSelect={onHandleJobSelect}
                                 handleToggleSave={onToggleSave}
-                                onOpenProfile={() => onSetViewState(ViewState.PROFILE)}
+                                onOpenProfile={handleCareerOSOpenProfile}
                                 onOpenAuth={onOpenAuth}
                                 onOpenCompanyPage={onHandleCompanyPageSelect}
-                                onOpenCompaniesLanding={() => {
-                                    onSetSelectedJobId(null);
-                                    onSetSelectedCompanyId(null);
-                                    onSetSelectedBlogPostSlug(null);
-                                    onSetShowCompanyLanding(true);
-                                    onSetViewState(ViewState.LIST);
-                                }}
+                                onOpenCompaniesLanding={handleCareerOSOpenCompaniesLanding}
                                 initialNavigationState={careerOSNavigationState}
                                 onNavigationStateChange={setCareerOSNavigationState}
                                 searchTerm={searchTerm}
-                                setSearchTerm={(value) => onSetSearchTerm(value, 'user_toggle')}
+                                setSearchTerm={handleCareerOSSearchTerm}
                                 filterCity={filterCity}
                                 setFilterCity={onSetFilterCity}
                                 performSearch={onPerformSearch}

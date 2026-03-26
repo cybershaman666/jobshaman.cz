@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -2905,12 +2905,7 @@ const CareerPathStage: React.FC<{
   return (
   <div ref={stageRef} className={cn('relative h-full w-full overflow-hidden', !interactive && 'pointer-events-none')} onWheel={handleCanvasWheel}>
     <StageBackground accent="emerald" />
-    <motion.div
-      drag={interactive}
-      dragMomentum={false}
-      dragConstraints={{ left: -620, right: 620, top: -520, bottom: 520 }}
-      className={cn('absolute inset-0', interactive ? 'cursor-grab active:cursor-grabbing' : '')}
-    >
+    <div className="absolute inset-0">
       <div className={cn('absolute inset-0 transition-all duration-300', expandedNode ? 'scale-[0.98] opacity-20 blur-[2px]' : '')}>
         <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%` }}>
           <div className="absolute inset-0 flex items-center justify-center">
@@ -2963,7 +2958,6 @@ const CareerPathStage: React.FC<{
                       strokeDasharray="7 10"
                       strokeLinecap="round"
                       opacity="0.75"
-                      style={{ animation: 'careeros-dash-flow 5s linear infinite' }}
                     />
                   </g>
                 );
@@ -3013,9 +3007,7 @@ const CareerPathStage: React.FC<{
                   stroke={tone.line}
                   strokeWidth={elevated ? pulseStrokeWidth + 0.35 : pulseStrokeWidth}
                   strokeDasharray="8 8"
-                  filter="url(#careeros-path-line-glow)"
                   opacity={elevated ? Math.min(0.98, pulseOpacity + 0.08) : pulseOpacity}
-                  style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                 />
               </g>
             );
@@ -3095,11 +3087,9 @@ const CareerPathStage: React.FC<{
 
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.88, x: 0, y: 0 }}
-                  animate={{ opacity: elevated ? 1 : 0.88, scale: elevated ? elevatedScale : restingScale, x: node.x, y: node.y }}
-                  transition={{ delay: index * 0.05, type: 'spring', stiffness: 220, damping: 18 }}
+                <div
                   className="relative flex flex-col items-center"
+                  style={{ transform: `translate(${node.x}px, ${node.y}px) scale(${elevated ? elevatedScale : restingScale})`, opacity: elevated ? 1 : 0.88 }}
                 >
                   <div className="relative flex flex-col items-center" style={driftStyle}>
                     <button
@@ -3181,7 +3171,7 @@ const CareerPathStage: React.FC<{
                       </div>
                     </button>
                   </div>
-                </motion.div>
+                </div>
               </div>
             );
           })}
@@ -3189,7 +3179,7 @@ const CareerPathStage: React.FC<{
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
     {defaultHud}
     {!expandedNode && showDefaultHud ? (
       <>
@@ -3212,12 +3202,7 @@ const CareerPathStage: React.FC<{
     ) : null}
     <AnimatePresence>
       {expandedNode ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 z-[40] bg-white/18 backdrop-blur-[6px] dark:bg-slate-950/40"
-        >
+        <div className="absolute inset-0 z-[40] bg-white/18 backdrop-blur-[6px] dark:bg-slate-950/40">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="absolute left-8 top-8 z-[42] flex items-center gap-3 lg:left-[312px]">
               <button
@@ -3251,8 +3236,6 @@ const CareerPathStage: React.FC<{
                       strokeWidth="2"
                       strokeDasharray="6 6"
                       opacity="0.82"
-                      filter="url(#careeros-path-line-glow)"
-                      style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                     />
                   </g>
                 );
@@ -3304,15 +3287,13 @@ const CareerPathStage: React.FC<{
               </div>
             </div>
 
-            {expandedChildren.map((child, index) => {
+            {expandedChildren.map((child) => {
               const activeChild = activeClusterRoleId === child.role.id;
               return (
                 <div key={child.role.id} className="absolute left-1/2 top-1/2 z-[43]" style={{ transform: 'translate(-50%, -50%)' }}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.7, x: 0, y: 0 }}
-                    animate={{ opacity: 1, scale: 1, x: child.x, y: child.y }}
-                    transition={{ delay: 0.06 * index, type: 'spring', stiffness: 240, damping: 20 }}
+                  <div
                     className="relative flex items-center"
+                    style={{ transform: `translate(${child.x}px, ${child.y}px)` }}
                   >
                     {child.textPos === 'left' ? (
                       <div className="pointer-events-none absolute right-full mr-4 hidden w-[220px] text-right xl:block">
@@ -3357,12 +3338,12 @@ const CareerPathStage: React.FC<{
                         <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{child.role.subtitle}</div>
                       </div>
                     ) : null}
-                  </motion.div>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </motion.div>
+        </div>
       ) : null}
     </AnimatePresence>
     {guestCenterOverlay}
@@ -3462,12 +3443,7 @@ const JobOffersStage: React.FC<{
         <div className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{selectedPath.title}</div>
       </div>
 
-      <motion.div
-        drag
-        dragMomentum={false}
-        dragConstraints={{ left: -540, right: 540, top: -420, bottom: 420 }}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing"
-      >
+      <div className="absolute inset-0">
         <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%` }}>
           <div className="absolute inset-0 flex items-center justify-center">
             <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
@@ -3496,8 +3472,6 @@ const JobOffersStage: React.FC<{
                     strokeWidth="2"
                     strokeDasharray="6 6"
                     opacity="0.75"
-                    filter="url(#careeros-offer-line-glow)"
-                    style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                   />
                 </g>
               );
@@ -3524,15 +3498,11 @@ const JobOffersStage: React.FC<{
             </div>
 
             <AnimatePresence>
-            {offers.map((offer, index) => {
+            {offers.map((offer) => {
               const active = selectedChallengeId === offer.challenge.id;
               return (
                 <div key={offer.challenge.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.88, x: 0, y: 0 }}
-                    animate={{ opacity: 1, scale: 1, x: offer.x, y: offer.y }}
-                    transition={{ delay: index * 0.06, type: 'spring', stiffness: 220, damping: 18 }}
-                  >
+                  <div style={{ transform: `translate(${offer.x}px, ${offer.y}px)` }}>
                     <button type="button" onClick={() => onOfferClick(offer.challenge)} className="group relative flex flex-col items-center">
                       <div
                         className={cn(
@@ -3565,14 +3535,14 @@ const JobOffersStage: React.FC<{
                         <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{compactText(offer.challenge.title, 34)}</div>
                       </div>
                     </button>
-                  </motion.div>
+                  </div>
                 </div>
               );
             })}
             </AnimatePresence>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
@@ -4400,11 +4370,12 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [navigationUseMarketPreferences, setNavigationUseMarketPreferences] = useState(true);
   const [navigationRoute, setNavigationRoute] = useState<CareerNavigationRoute | null>(null);
   const [navigationResolving, setNavigationResolving] = useState(false);
+  const deferredJobs = useDeferredValue(jobs);
 
   const workspace = useMemo(
     () =>
       mapJobsToCareerOSCandidateWorkspace({
-        jobs,
+        jobs: deferredJobs,
         userProfile,
         savedJobIds,
         selectedJobId,
@@ -4417,7 +4388,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         searchDiagnostics,
       }),
     [
-      jobs,
+      deferredJobs,
       userProfile,
       savedJobIds,
       selectedJobId,
@@ -4448,10 +4419,14 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
   const learningPathRequiresSetup = !hasCareerPathProfileSignal(userProfile);
   const isGuestCareerPath = !userProfile.isLoggedIn;
+  const shouldLoadDatabaseCount = activeLayer === 'career_path' || activeLayer === 'job_offers';
+  const shouldLoadLearningResources = activeLayer === 'learning_path';
+  const shouldLoadProfileMiniChallenges = activeLayer === 'mini_challenges' || navigationComposerOpen;
+  const shouldLoadNotifications = notificationsOpen;
 
   const pathNodes = useMemo(
-    () => buildPathNodes(jobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
-    [jobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
+    () => buildPathNodes(deferredJobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
+    [deferredJobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
   );
 
   const selectedPath = useMemo(
@@ -4463,7 +4438,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     [selectedPath, selectedRoleId],
   );
 
-  const benefitCandidates = useMemo(() => topFilterCandidates(jobs), [jobs]);
+  const benefitCandidates = useMemo(() => topFilterCandidates(deferredJobs), [deferredJobs]);
   const visibleJobsCount = Math.max(0, databaseJobCount ?? 0);
   const formattedJobsCount = useMemo(
     () => (databaseJobCount === null ? '...' : new Intl.NumberFormat(activeLocale).format(visibleJobsCount)),
@@ -4496,7 +4471,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
   const availableDomains = useMemo(
     () => {
-      const discovered = jobs
+      const discovered = deferredJobs
         .map((job) => resolveJobDomain(job))
         .filter(Boolean)
         .map((domain) => String(domain));
@@ -4526,16 +4501,16 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       return [...prioritized, ...remaining];
     },
-    [jobs, t, i18n.language, userProfile.preferences?.searchProfile?.primaryDomain, userProfile.preferences?.searchProfile?.secondaryDomains],
+    [deferredJobs, t, i18n.language, userProfile.preferences?.searchProfile?.primaryDomain, userProfile.preferences?.searchProfile?.secondaryDomains],
   );
   const scopedMarketJobs = useMemo(() => {
     if (selectedPath?.challenges?.length) {
       const selectedIds = new Set(selectedPath.challenges.map((challenge) => challenge.id));
-      const matching = jobs.filter((job) => selectedIds.has(String(job.id)));
+      const matching = deferredJobs.filter((job) => selectedIds.has(String(job.id)));
       if (matching.length > 0) return matching;
     }
-    return jobs.slice(0, 12);
-  }, [jobs, selectedPath]);
+    return deferredJobs.slice(0, 12);
+  }, [deferredJobs, selectedPath]);
 
   const learningResourceSearchTerms = useMemo(
     () => {
@@ -4573,6 +4548,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!shouldLoadDatabaseCount) return;
     let cancelled = false;
 
     if (typeof window !== 'undefined') {
@@ -4610,9 +4586,10 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [dbCountCacheKey]);
+  }, [dbCountCacheKey, shouldLoadDatabaseCount]);
 
   useEffect(() => {
+    if (activeLayer !== 'career_path') return;
     const intervalMs = 45_000 + Math.floor(Math.random() * 20_000);
     const intervalId = window.setInterval(() => {
       setLiveCandidateDelta((current) => {
@@ -4627,9 +4604,10 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [activeLayer]);
 
   useEffect(() => {
+    if (!shouldLoadLearningResources) return;
     let cancelled = false;
 
     const loadLearningResources = async () => {
@@ -4678,7 +4656,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [learningResourceSearchTerms, userProfile.preferences?.desired_role, userProfile.preferences?.searchProfile]);
+  }, [learningResourceSearchTerms, shouldLoadLearningResources, userProfile.preferences?.desired_role, userProfile.preferences?.searchProfile]);
 
   const learningGapAnalysis = useMemo(
     () => buildLearningGapAnalysis(userProfile, selectedPath, workspace.challenges, learningResources, learningResourcesLoading, t),
@@ -4689,8 +4667,8 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     [scopedMarketJobs, selectedPath, t, userProfile],
   );
   const miniChallengeCards = useMemo(
-    () => buildMiniChallengeCards(jobs, profileMiniChallenges, userProfile, t),
-    [jobs, profileMiniChallenges, t, userProfile],
+    () => buildMiniChallengeCards(deferredJobs, profileMiniChallenges, userProfile, t),
+    [deferredJobs, profileMiniChallenges, t, userProfile],
   );
   const navigationPathOptions = useMemo<CareerNavigationPathOption[]>(
     () =>
@@ -4759,13 +4737,13 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   useEffect(() => {
     if (!DEBUG_CAREER_OS) return;
     console.log('[CareerOS] Workspace graph diagnostics:', {
-      jobs: jobs.length,
+      jobs: deferredJobs.length,
       workspaceChallenges: workspace.challenges.length,
       pathNodes: pathNodes.length,
       selectedPathId,
       selectedPathChallenges: selectedPath?.challenges.length || 0,
     });
-  }, [jobs.length, pathNodes.length, selectedPath?.challenges.length, selectedPathId, workspace.challenges.length]);
+  }, [deferredJobs.length, pathNodes.length, selectedPath?.challenges.length, selectedPathId, workspace.challenges.length]);
 
   useEffect(() => {
     if (activeLayer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
@@ -4845,6 +4823,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, [notificationStorageKey, notificationsStorageHydrated, readNotificationIds]);
 
   useEffect(() => {
+    if (!shouldLoadNotifications) return;
     let cancelled = false;
 
     const buildNotifications = async () => {
@@ -4863,7 +4842,9 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         maxItems: 8,
       });
       if (!cancelled) {
-        setNotificationItems(items);
+        startTransition(() => {
+          setNotificationItems(items);
+        });
       }
     };
 
@@ -4879,6 +4860,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, [
     i18n.language,
     notificationMatchCandidates,
+    shouldLoadNotifications,
     t,
     userProfile.dailyDigestEnabled,
     userProfile.dailyDigestLastSentAt,
@@ -4890,6 +4872,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   ]);
 
   useEffect(() => {
+    if (!shouldLoadProfileMiniChallenges) return;
     let cancelled = false;
 
     const loadProfileMiniChallenges = async () => {
@@ -4914,7 +4897,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [userProfile.id, userProfile.isLoggedIn]);
+  }, [shouldLoadProfileMiniChallenges, userProfile.id, userProfile.isLoggedIn]);
 
   useEffect(() => {
     if (activeLayer !== 'job_offers') {
@@ -5545,4 +5528,4 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
 };
 
-export default CareerOSCandidateWorkspace;
+export default React.memo(CareerOSCandidateWorkspace);

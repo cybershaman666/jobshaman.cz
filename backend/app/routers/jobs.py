@@ -76,6 +76,9 @@ _MY_DIALOGUES_CACHE: dict[tuple[str, int], tuple[datetime, dict[str, Any]]] = {}
 _JOB_DIALOGUE_PREVIEW_CACHE_TTL_SECONDS = 30
 _JOB_DIALOGUE_PREVIEW_CACHE: dict[str, tuple[float, int]] = {}
 _JOB_DIALOGUE_PREVIEW_CACHE_LOCK = Lock()
+_INVALID_INTERACTION_JOB_CACHE_TTL_SECONDS = 600
+_INVALID_INTERACTION_JOB_CACHE: dict[str, float] = {}
+_INVALID_INTERACTION_JOB_CACHE_LOCK = Lock()
 _HYBRID_SEARCH_V2_HTTP_CACHE_TTL_SECONDS = 15
 # Empty result sets are especially likely to be spammed by idle clients (same filters, same page).
 # Use a longer TTL to avoid repeated Supabase RPC calls when the feed is empty.
@@ -884,6 +887,15 @@ def _build_dialogue_activity_payload(
     return payload
 
 
+def _normalize_dialogue_persisted_status(status: Any) -> str | None:
+    normalized = str(status or "").strip().lower()
+    if not normalized:
+        return None
+    if normalized.startswith("closed_"):
+        return "closed"
+    return normalized
+
+
 def _normalize_role_status(value: Any) -> str | None:
     raw = str(value or "").strip().lower()
     if not raw:
@@ -953,9 +965,10 @@ def _persist_dialogue_state(application_id: str, application_payload: dict | Non
     if not supabase or not application_id:
         return False
 
+    persisted_status = _normalize_dialogue_persisted_status(status)
     update_payload: dict[str, Any] = {}
-    if status is not None:
-        update_payload["status"] = status
+    if persisted_status is not None:
+        update_payload["status"] = persisted_status
     if application_payload is not None:
         update_payload["application_payload"] = application_payload
     if not update_payload:
@@ -974,13 +987,13 @@ def _persist_dialogue_state(application_id: str, application_payload: dict | Non
             raise
     except Exception as exc:
         if application_payload is not None and _is_missing_column_error(exc, "application_payload"):
-            if status is None:
+            if persisted_status is None:
                 return False
-            status_payload = {"status": status}
+            status_payload = {"status": persisted_status}
             try:
                 try:
                     supabase.table("job_applications").update({
-                        "status": status,
+                        "status": persisted_status,
                         "updated_at": now_iso(),
                     }).eq("id", application_id).execute()
                 except Exception as update_exc:
@@ -1440,6 +1453,37 @@ def _filter_existing_job_ids(job_ids: set[str]) -> set[str]:
             print(f"⚠️ Failed to filter existing job IDs for sync: {exc}")
             return set()
     return existing
+
+
+def _is_cached_invalid_interaction_job_id(job_id: Any) -> bool:
+    key = _canonical_job_id(job_id)
+    if not key:
+        return False
+    now = time.monotonic()
+    with _INVALID_INTERACTION_JOB_CACHE_LOCK:
+        cached_at = _INVALID_INTERACTION_JOB_CACHE.get(key)
+        if cached_at is None:
+            return False
+        if now - cached_at <= _INVALID_INTERACTION_JOB_CACHE_TTL_SECONDS:
+            return True
+        _INVALID_INTERACTION_JOB_CACHE.pop(key, None)
+        return False
+
+
+def _mark_invalid_interaction_job_id(job_id: Any) -> None:
+    key = _canonical_job_id(job_id)
+    if not key:
+        return
+    with _INVALID_INTERACTION_JOB_CACHE_LOCK:
+        _INVALID_INTERACTION_JOB_CACHE[key] = time.monotonic()
+
+
+def _clear_invalid_interaction_job_id(job_id: Any) -> None:
+    key = _canonical_job_id(job_id)
+    if not key:
+        return
+    with _INVALID_INTERACTION_JOB_CACHE_LOCK:
+        _INVALID_INTERACTION_JOB_CACHE.pop(key, None)
 
 
 def _is_missing_column_error(exc: Exception, column_name: str) -> bool:
@@ -4200,6 +4244,8 @@ async def log_job_interaction(
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
+    if _is_cached_invalid_interaction_job_id(payload.job_id):
+        return {"status": "degraded", "reason": "job_interactions_invalid_job_id"}
 
     metadata = getattr(payload, "metadata", None) or {}
     if not isinstance(metadata, dict):
@@ -4219,12 +4265,17 @@ async def log_job_interaction(
     try:
         res = supabase.table("job_interactions").insert(insert_data).execute()
     except Exception as exc:
+        error_text = str(exc).lower()
+        if "job_interactions_job_id_fkey" in error_text or "foreign key constraint" in error_text:
+            _mark_invalid_interaction_job_id(payload.job_id)
+            return {"status": "degraded", "reason": "job_interactions_invalid_job_id"}
         # Telemetry should not degrade UX when DB constraints/table shape drift.
         print(f"⚠️ Failed to insert job_interactions telemetry: {exc}")
         return {"status": "degraded", "reason": "job_interactions_insert_failed"}
 
     if not res.data:
         return {"status": "degraded", "reason": "no_data_inserted"}
+    _clear_invalid_interaction_job_id(payload.job_id)
 
     try:
         if payload.event_type in _INTERACTION_STATE_EVENTS:
