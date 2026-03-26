@@ -280,7 +280,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                 <div className="app-modal-topline" />
                 <button
                     onClick={onClose}
-                    className="absolute right-5 top-5 z-10 rounded-full p-2 text-[var(--text-faint)] transition hover:bg-black/5 hover:text-[var(--text-strong)] dark:hover:bg-white/5"
+                    className="app-modal-close"
+                    aria-label={t('common.close', { defaultValue: 'Zavřít' })}
                 >
                     <X size={20} />
                 </button>
@@ -322,8 +323,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         </div>
                     </div>
 
-                    <div className="app-modal-surface px-5 py-5 sm:px-6 sm:py-6 lg:rounded-none lg:border-0">
-                        <div className="mb-5 space-y-2.5 lg:hidden">
+                    <div className="app-modal-surface px-5 py-5 pt-14 sm:px-6 sm:py-6 sm:pt-16 lg:rounded-none lg:border-0 lg:pt-6">
+                        <div className="app-modal-header-safe mb-5 space-y-2.5 lg:hidden">
                             <div className="app-modal-kicker w-fit">
                                 <Sparkles size={12} />
                                 {authUiCopy.kicker}

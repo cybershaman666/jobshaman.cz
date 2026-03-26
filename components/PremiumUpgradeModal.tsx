@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Brain, CheckCircle2, ShieldCheck, Sparkles, Target } from 'lucide-react';
+import { ArrowRight, Brain, CheckCircle2, ShieldCheck, Sparkles, Target, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
@@ -180,13 +180,14 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="absolute right-4 top-4 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--text-strong)]"
+                    className="app-modal-close"
+                    aria-label={t('common.close', { defaultValue: 'Zavřít' })}
                 >
-                    {t('common.close', { defaultValue: 'Zavřít' })}
+                    <X size={18} />
                 </button>
 
                 <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                    <div className="app-modal-surface space-y-5 border-b px-6 py-6 lg:rounded-none lg:border-b-0 lg:border-r lg:border-l-0 lg:border-t-0 lg:px-7 lg:py-7">
+                    <div className="app-modal-surface app-modal-header-safe space-y-5 border-b px-6 py-6 pt-14 lg:rounded-none lg:border-b-0 lg:border-r lg:border-l-0 lg:border-t-0 lg:px-7 lg:py-7 lg:pt-7">
                         <div className="space-y-4">
                             <span className="app-modal-kicker">
                                 <Sparkles size={12} />

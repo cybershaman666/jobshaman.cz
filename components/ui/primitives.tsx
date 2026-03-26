@@ -372,21 +372,21 @@ export const ModalShell: React.FC<{
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-overlay)] text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+          className="app-modal-close"
           aria-label="Close"
         >
           <X size={18} />
         </button>
       ) : null}
       {title || body || kicker || actions ? (
-        <div className="space-y-4 border-b border-[var(--border-subtle)] px-6 py-6 sm:px-8">
+        <div className={cn('space-y-4 border-b border-[var(--border-subtle)] px-6 py-6 sm:px-8', onClose && 'app-modal-header-safe')}>
           {kicker ? <div className="app-eyebrow w-fit">{kicker}</div> : null}
           {title ? <h2 className="text-2xl font-semibold tracking-[-0.045em] text-[var(--text-strong)]">{title}</h2> : null}
           {body ? <p className="max-w-2xl text-sm leading-7 text-[var(--text-muted)]">{body}</p> : null}
           {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
       ) : null}
-      <div className="px-6 py-6 sm:px-8">{children}</div>
+      <div className={cn('px-6 py-6 sm:px-8', onClose && !(title || body || kicker || actions) && 'pt-16 sm:pt-[4.5rem]')}>{children}</div>
     </div>
   </div>
 );

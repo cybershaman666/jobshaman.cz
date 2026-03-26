@@ -149,7 +149,8 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-2 text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-strong)]"
+          className="app-modal-close"
+          aria-label={t('common.close', { defaultValue: 'Zavřít' })}
         >
           <X size={20} />
         </button>
@@ -164,8 +165,8 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           </div>
         )}
 
-        <div className="space-y-8 p-6 sm:p-8">
-          <div className="space-y-3">
+        <div className="space-y-8 overflow-y-auto p-6 pt-14 sm:p-8 sm:pt-16">
+          <div className="app-modal-header-safe space-y-3">
             <span className="app-modal-kicker">
               <Building2 size={12} />
               {t('company_registration.subtitle_default', { defaultValue: 'Firemní workspace' })}

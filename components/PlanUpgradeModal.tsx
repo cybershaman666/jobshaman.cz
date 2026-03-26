@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, BrainCircuit, Sparkles, Crown, CheckCircle } from 'lucide-react';
+import { Briefcase, BrainCircuit, Sparkles, Crown, CheckCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CompanyProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
@@ -25,8 +25,16 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
             ></div>
             <div className="app-modal-panel max-w-4xl max-h-[90vh] animate-in zoom-in-95 duration-300 flex flex-col md:flex-row">
                 <div className="app-modal-topline" />
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="app-modal-close"
+                    aria-label={t('common.close', { defaultValue: 'Zavřít' })}
+                >
+                    <X size={18} />
+                </button>
                 {/* Left Side: Feature Context */}
-                <div className="md:w-1/3 bg-[var(--surface-subtle)] p-8 border-r border-[var(--border-subtle)] flex flex-col justify-center md:overflow-y-auto">
+                <div className="app-modal-header-safe md:w-1/3 bg-[var(--surface-subtle)] p-8 pt-14 border-r border-[var(--border-subtle)] flex flex-col justify-center md:overflow-y-auto md:pt-8">
                     <div className="w-16 h-16 bg-[rgba(var(--accent-rgb),0.1)] text-[var(--accent)] rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                         <Crown size={32} />
                     </div>
@@ -55,7 +63,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                 </div>
 
                 {/* Right Side: Options */}
-                <div className="flex-1 p-8 bg-[var(--surface-elevated)] overflow-y-auto max-h-[90vh] md:max-h-full">
+                <div className="flex-1 p-8 pt-14 bg-[var(--surface-elevated)] overflow-y-auto max-h-[90vh] md:max-h-full md:pt-8">
                     <h3 className="font-black text-xl mb-8 text-[var(--text-strong)] tracking-tight">
                         {t('plan_upgrade_modal.select_solution')}
                     </h3>
