@@ -60,7 +60,7 @@ import MarketplacePage, { type MarketplacePageProps } from '../../src/pages/mark
 
 const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
 const DEBUG_CAREER_OS =
-  import.meta.env.DEV || String(import.meta.env.VITE_DEBUG_CAREER_OS || '').toLowerCase() === 'true';
+  String(import.meta.env.VITE_DEBUG_CAREER_OS || '').toLowerCase() === 'true';
 const MARKET_TRENDS_ENABLED =
   String(import.meta.env.VITE_ENABLE_CAREEROS_MARKET_TRENDS || 'false').toLowerCase() === 'true';
 

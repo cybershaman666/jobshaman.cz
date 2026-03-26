@@ -5,6 +5,9 @@ import { usePaginatedJobs } from '../../../hooks/usePaginatedJobs';
 import { ViewState, type Job, type UserProfile } from '../../../types';
 import { clearJobCache, fetchJobById } from '../../../services/jobService';
 
+const DEBUG_DISCOVERY =
+  String(import.meta.env.VITE_DEBUG_DISCOVERY || '').toLowerCase() === 'true';
+
 interface UseMarketplaceDiscoveryProps {
   effectiveUserProfile: UserProfile;
   userProfile: UserProfile;
@@ -83,14 +86,18 @@ export const useMarketplaceDiscovery = ({
         return;
       }
 
-      console.log('🔗 Direct link detected, fetching job by ID:', selectedJobId);
+      if (DEBUG_DISCOVERY) {
+        console.log('🔗 Direct link detected, fetching job by ID:', selectedJobId);
+      }
       const job = await fetchJobById(selectedJobId);
       if (cancelled) return;
 
       if (job) {
         setDirectlyFetchedJob(job);
       } else {
-        console.warn('⚠️ Job not found for direct link:', selectedJobId);
+        if (DEBUG_DISCOVERY) {
+          console.warn('⚠️ Job not found for direct link:', selectedJobId);
+        }
         setDirectlyFetchedJob(null);
       }
     };
@@ -111,7 +118,9 @@ export const useMarketplaceDiscovery = ({
     const searchProfile = userProfile.preferences?.searchProfile;
     if (!searchProfile) return;
 
-    console.log('🏁 Applying initial remote search default...');
+    if (DEBUG_DISCOVERY) {
+      console.log('🏁 Applying initial remote search default...');
+    }
     hasAppliedInitialRemoteDefaultRef.current = true;
     setChallengeRemoteOnly(Boolean(searchProfile.wantsRemoteRoles ?? false));
   }, [
@@ -216,13 +225,17 @@ export const useMarketplaceDiscovery = ({
         return;
       }
       if (backendRetryStartedAtRef.current && (Date.now() - backendRetryStartedAtRef.current) > BACKEND_RETRY_MAX_WINDOW_MS) {
-        console.log('Backend wake retry: exceeded max polling window, stopping');
+        if (DEBUG_DISCOVERY) {
+          console.log('Backend wake retry: exceeded max polling window, stopping');
+        }
         backendWakeRetryRef.current = false;
         return;
       }
 
       backendRetryCountRef.current += 1;
-      console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
+      if (DEBUG_DISCOVERY) {
+        console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
+      }
 
       try {
         await loadRealJobsRef.current();
@@ -231,13 +244,17 @@ export const useMarketplaceDiscovery = ({
       }
 
       if (filteredJobsRef.current.length > 0 || !backendUnreachableRef.current) {
-        console.log('Backend wake retry: jobs appeared, stopping polling');
+        if (DEBUG_DISCOVERY) {
+          console.log('Backend wake retry: jobs appeared, stopping polling');
+        }
         backendWakeRetryRef.current = false;
         return;
       }
 
       if (backendRetryCountRef.current >= BACKEND_RETRY_MAX) {
-        console.log('Backend wake retry: reached max attempts, stopping');
+        if (DEBUG_DISCOVERY) {
+          console.log('Backend wake retry: reached max attempts, stopping');
+        }
         backendWakeRetryRef.current = false;
         return;
       }
@@ -254,7 +271,9 @@ export const useMarketplaceDiscovery = ({
       if (!canPollNow()) {
         return;
       }
-      console.log('Backend wake retry: starting polling to wait for backend wake-up');
+      if (DEBUG_DISCOVERY) {
+        console.log('Backend wake retry: starting polling to wait for backend wake-up');
+      }
       backendWakeRetryRef.current = true;
       backendRetryCountRef.current = 0;
       backendRetryStartedAtRef.current = Date.now();

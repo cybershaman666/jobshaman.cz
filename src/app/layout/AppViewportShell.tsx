@@ -24,41 +24,6 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
   overlays,
 }) => {
   const hasHeader = Boolean(header);
-  const [atmosphereSrc, setAtmosphereSrc] = React.useState<string | null>(null);
-  const [atmosphereOpacity, setAtmosphereOpacity] = React.useState(0);
-  const [atmosphereBlur, setAtmosphereBlur] = React.useState(96);
-  const visibleAtmosphereBlur = Math.max(16, atmosphereBlur * 0.24);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const parseUrlValue = (value: string): string | null => {
-      const normalized = String(value || '').trim();
-      if (!normalized || normalized === 'none') return null;
-      const match = normalized.match(/^url\((['"]?)(.*)\1\)$/);
-      return match?.[2] || null;
-    };
-
-    const syncAtmosphere = () => {
-      const styles = window.getComputedStyle(document.documentElement);
-      const src = parseUrlValue(styles.getPropertyValue('--app-atmosphere-image'));
-      const opacity = Number.parseFloat(styles.getPropertyValue('--app-atmosphere-opacity')) || 0;
-      const blur = Number.parseFloat(styles.getPropertyValue('--app-atmosphere-blur')) || 96;
-      setAtmosphereSrc(src);
-      setAtmosphereOpacity(opacity);
-      setAtmosphereBlur(blur);
-    };
-
-    syncAtmosphere();
-
-    const observer = new MutationObserver(syncAtmosphere);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['style', 'class'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div
@@ -67,20 +32,6 @@ const AppViewportShell: React.FC<AppViewportShellProps> = ({
         isImmersive ? 'app-mr-shell app-immersive-shell' : 'app-mr-shell app-shell-bg app-shell-bg-clean'
       )}
     >
-      {atmosphereSrc ? (
-        <div aria-hidden className="app-shell-atmosphere-layer">
-          <img
-            src={atmosphereSrc}
-            alt=""
-            className="app-shell-atmosphere-image"
-            style={{
-              opacity: atmosphereOpacity,
-              filter: `blur(${visibleAtmosphereBlur}px) saturate(1.08) contrast(1.08) brightness(1)`,
-            }}
-          />
-        </div>
-      ) : null}
-
       {header}
       {banner}
 

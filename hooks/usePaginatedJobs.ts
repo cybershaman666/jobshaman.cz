@@ -37,6 +37,8 @@ interface UsePaginatedJobsProps {
 
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
 const JOBS_FEED_CACHE_MAX = 80;
+const DEBUG_DISCOVERY =
+    String(import.meta.env.VITE_DEBUG_DISCOVERY || '').toLowerCase() === 'true';
 
 // Global deduper helper to prevent repeated logical listings in feed and React key warnings.
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
@@ -369,14 +371,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 if (!simpleResult) return;
 
                 setBackendUnreachable(false);
-                console.log('📦 Simple pagination result:', {
-                    raw: simpleResult.rawCount,
-                    visible: simpleResult.visibleJobs.length,
-                    hasMore: simpleResult.resolvedHasMore,
-                    totalCount: simpleResult.totalCount,
-                    countryCodes: hasCountryFilter ? normalizedCountryCodes : [],
-                    retrievalLanguageCodes: retrievalLanguageCodes || [],
-                });
+                if (DEBUG_DISCOVERY) {
+                    console.log('📦 Simple pagination result:', {
+                        raw: simpleResult.rawCount,
+                        visible: simpleResult.visibleJobs.length,
+                        hasMore: simpleResult.resolvedHasMore,
+                        totalCount: simpleResult.totalCount,
+                        countryCodes: hasCountryFilter ? normalizedCountryCodes : [],
+                        retrievalLanguageCodes: retrievalLanguageCodes || [],
+                    });
+                }
                 setSearchDiagnostics(simpleResult.diagnostics);
                 if (isLoadMore) {
                     setJobs(prev => dedupeJobs(simpleResult.visibleJobs, prev));
@@ -453,13 +457,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             if (!filteredResult) return;
             setBackendUnreachable(false);
 
-            console.log('📦 Filtered fetch result:', {
-                raw: filteredResult.result.jobs.length,
-                visible: filteredResult.visibleJobs.length,
-                hasMore: filteredResult.result.hasMore,
-                totalCount: filteredResult.result.totalCount,
-                searchMode,
-            });
+            if (DEBUG_DISCOVERY) {
+                console.log('📦 Filtered fetch result:', {
+                    raw: filteredResult.result.jobs.length,
+                    visible: filteredResult.visibleJobs.length,
+                    hasMore: filteredResult.result.hasMore,
+                    totalCount: filteredResult.result.totalCount,
+                    searchMode,
+                });
+            }
             setSearchDiagnostics(filteredResult.diagnostics);
 
             if (isLoadMore) {
@@ -471,7 +477,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             setHasMore(filteredResult.resolvedHasMore);
             setTotalCount(filteredResult.resolvedTotalCount);
 
-            if (import.meta.env.DEV || String(import.meta.env.VITE_SEARCH_DEBUG || '').toLowerCase() === 'true') {
+            if (DEBUG_DISCOVERY || String(import.meta.env.VITE_SEARCH_DEBUG || '').toLowerCase() === 'true') {
                 console.groupCollapsed(
                     `[search-debug] ${filteredResult.diagnostics.search_mode} ${String(searchTerm || '').trim() || '(browse)'}`
                 );
@@ -600,7 +606,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         hasRunFilterEffectRef.current = true;
 
         const timeoutId = setTimeout(() => {
-            if (Date.now() - lastDebouncedLogAtRef.current > 2_000) {
+            if (DEBUG_DISCOVERY && Date.now() - lastDebouncedLogAtRef.current > 2_000) {
                 console.log('⏱️ Debounced filter fetch triggered');
                 lastDebouncedLogAtRef.current = Date.now();
             }
@@ -635,10 +641,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const loadMoreJobs = useCallback(() => {
         if (!loadingMore && hasMore) {
             const nextPage = currentPage + 1;
-            console.log(`🔄 loadMoreJobs called. Moving to page ${nextPage}`);
+            if (DEBUG_DISCOVERY) {
+                console.log(`🔄 loadMoreJobs called. Moving to page ${nextPage}`);
+            }
             setCurrentPage(nextPage);
             fetchFilteredJobs(nextPage, true);
-        } else {
+        } else if (DEBUG_DISCOVERY) {
             console.log('⏭️ loadMoreJobs skipped:', { loadingMore, hasMore });
         }
     }, [loadingMore, hasMore, currentPage, fetchFilteredJobs]);
@@ -676,7 +684,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             || userProfile.coordinates?.lon
             || String(userProfile.address || '').trim()
         );
-        console.log('🏁 Applying initial profile search defaults...');
+        if (DEBUG_DISCOVERY) {
+            console.log('🏁 Applying initial profile search defaults...');
+        }
 
         const defaultDistance = Number(searchProfile.defaultMaxDistanceKm ?? 50) || 50;
         const defaultsSignature = JSON.stringify({

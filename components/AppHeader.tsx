@@ -396,7 +396,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       >
         <div
           className={cn(
-            "app-topnav relative z-40 flex w-full flex-col gap-2 overflow-visible rounded-[26px] border border-slate-200/75 bg-white/78 px-4 py-3 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:px-5"
+            "app-topnav relative z-40 flex w-full flex-col gap-2 overflow-visible rounded-[26px] border border-slate-200/75 bg-white/78 px-4 py-3 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.28)] sm:px-5"
           )}
         >
           <div className="relative z-30 flex w-full items-center gap-3">
