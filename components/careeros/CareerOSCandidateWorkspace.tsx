@@ -3539,9 +3539,13 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   initialNavigationState,
   onNavigationStateChange,
 }) => {
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(min-width: 1024px)').matches;
+  });
   const initialSelectedPathId = initialNavigationState?.selectedPathId ?? null;
   const initialExpandedPathId = initialNavigationState?.expandedPathId ?? null;
-  const initialActiveLayer = initialNavigationState?.activeLayer ?? 'career_path';
+  const initialActiveLayer = initialNavigationState?.activeLayer ?? (isDesktopViewport ? 'career_path' : 'marketplace');
   const initialCanvasZoom = Number.isFinite(initialNavigationState?.canvasZoom)
     ? Math.max(0.72, Math.min(1.4, Number(initialNavigationState?.canvasZoom)))
     : 0.94;
@@ -3720,6 +3724,15 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     },
     [selectedPath, t, userProfile.certifications, userProfile.inferredSkills, userProfile.preferences?.desired_role, userProfile.preferences?.searchProfile, userProfile.skills, userProfile.strengths, workspace.challenges],
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const syncViewport = () => setIsDesktopViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
