@@ -409,8 +409,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               <span className="flex h-8 w-8 items-center justify-center rounded-[12px] border border-[rgba(var(--accent-rgb),0.2)] bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_18%),linear-gradient(180deg,rgba(10,18,29,0.96),rgba(14,24,36,0.92))] text-[var(--accent)] shadow-[0_18px_34px_-24px_rgba(2,8,23,0.42),0_0_22px_rgba(var(--accent-rgb),0.12)]">
                 <BrainCircuit size={18} strokeWidth={2.1} aria-hidden />
               </span>
-              <span className="hidden text-[1.05rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100 sm:block">
-                Jobshaman
+              <span className="hidden items-center gap-2 sm:inline-flex">
+                <span className="text-[1.05rem] font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-100">
+                  Jobshaman
+                </span>
+                <span className="inline-flex items-center rounded-full border border-cyan-200/80 bg-cyan-50/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700 shadow-sm dark:border-cyan-500/30 dark:bg-cyan-950/40 dark:text-cyan-200">
+                  Beta
+                </span>
               </span>
             </button>
 

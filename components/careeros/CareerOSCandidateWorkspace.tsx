@@ -1698,6 +1698,40 @@ const StageBackground: React.FC<{ accent?: 'emerald' | 'blue' }> = ({ accent = '
           from { stroke-dashoffset: 96; }
           to { stroke-dashoffset: 0; }
         }
+
+        @keyframes careeros-node-float {
+          0% {
+            transform: translate3d(calc(var(--careeros-float-x, 0px) * -0.3), calc(var(--careeros-float-y, 0px) * -0.22), 0);
+          }
+          50% {
+            transform: translate3d(var(--careeros-float-x, 0px), var(--careeros-float-y, 0px), 0);
+          }
+          100% {
+            transform: translate3d(calc(var(--careeros-float-x, 0px) * -0.48), calc(var(--careeros-float-y, 0px) * -0.38), 0);
+          }
+        }
+
+        @keyframes careeros-soft-breathe {
+          0%, 100% {
+            opacity: 0.42;
+            transform: scale3d(0.985, 0.985, 1);
+          }
+          50% {
+            opacity: 0.52;
+            transform: scale3d(1.015, 1.015, 1);
+          }
+        }
+
+        @keyframes careeros-ring-breathe {
+          0%, 100% {
+            opacity: 0.84;
+            transform: scale3d(0.992, 0.992, 1);
+          }
+          50% {
+            opacity: 0.96;
+            transform: scale3d(1.012, 1.012, 1);
+          }
+        }
       `}
     </style>
     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.08),transparent_28%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#f7fafc_52%,#f5f8fb_100%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.08),transparent_26%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]" />
@@ -2751,20 +2785,20 @@ const CareerPathStage: React.FC<{
           transition={{ type: 'spring', stiffness: 280, damping: 24 }}
           className="pointer-events-auto group relative flex h-[148px] w-[148px] items-center justify-center rounded-full"
         >
-          <motion.span
+          <span
             aria-hidden="true"
-            animate={{ opacity: [0.34, 0.58, 0.34], scale: [0.97, 1.03, 0.97] }}
-            transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="pointer-events-none absolute inset-[-40px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_74%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(255,255,255,0.08),rgba(34,211,238,0.08),transparent_74%)]"
+            style={{ animation: 'careeros-soft-breathe 11s ease-in-out infinite', willChange: 'transform, opacity' }}
+            className="pointer-events-none absolute inset-[-40px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_74%)] blur-3xl transform-gpu dark:bg-[radial-gradient(circle,rgba(255,255,255,0.08),rgba(34,211,238,0.08),transparent_74%)]"
           />
           <span className="pointer-events-none absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
           <span className="pointer-events-none absolute inset-[0px] rounded-full border border-transparent border-b-slate-300/34 border-l-slate-300/24 dark:border-b-slate-700/60 dark:border-l-slate-700/44" />
-          <motion.span
+          <span
             aria-hidden="true"
-            animate={{ scale: [0.985, 1.035, 0.985], opacity: [0.62, 0.9, 0.62] }}
-            transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="pointer-events-none absolute inset-[18px] rounded-full border border-white/90 bg-white/12 shadow-[0_0_34px_rgba(255,255,255,0.32)] backdrop-blur-[2px] dark:border-white/18 dark:bg-slate-950/10 dark:shadow-[0_0_42px_rgba(34,211,238,0.12)]"
+            style={{ animation: 'careeros-ring-breathe 9.5s ease-in-out infinite', willChange: 'transform, opacity' }}
+            className="pointer-events-none absolute inset-[14px] rounded-full border-[1.5px] border-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.88),inset_0_0_18px_rgba(255,255,255,0.18),0_0_0_1px_rgba(255,255,255,0.88),0_0_18px_rgba(255,255,255,0.44),0_0_44px_rgba(255,255,255,0.28),0_0_88px_rgba(34,211,238,0.24)] backdrop-blur-[2px] transform-gpu dark:border-white/36 dark:bg-slate-950/10 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2),inset_0_0_18px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.2),0_0_14px_rgba(255,255,255,0.1),0_0_38px_rgba(255,255,255,0.08),0_0_94px_rgba(34,211,238,0.2)]"
           />
+          <span className="pointer-events-none absolute inset-[12px] rounded-full border border-white/42 opacity-95 blur-[1.2px] dark:border-cyan-100/24" />
+          <span className="pointer-events-none absolute inset-[16px] rounded-full border border-white/30 opacity-90 dark:border-white/10" />
           <span className="pointer-events-none absolute inset-[36px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),transparent_72%)]" />
           <span className="pointer-events-none absolute right-[22px] top-[28px] h-1.5 w-1.5 rounded-full bg-cyan-300/56 dark:bg-cyan-200/48" />
           <span className="pointer-events-none absolute left-[26px] top-[80px] h-1.5 w-1.5 rounded-full bg-slate-300/56 dark:bg-slate-600/64" />
@@ -2922,17 +2956,16 @@ const CareerPathStage: React.FC<{
                 : 'border border-cyan-200/20 dark:border-cyan-400/15',
             )} />
             {isGuest ? (
-              <motion.div
+              <div
                 aria-hidden="true"
-                animate={{ scale: [0.98, 1.025, 0.98], opacity: [0.84, 1, 0.84] }}
-                transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full"
+                style={{ animation: 'careeros-ring-breathe 12.5s ease-in-out infinite', willChange: 'transform, opacity' }}
+                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full transform-gpu"
               >
                 <div className="absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
                 <div className="absolute inset-[4px] rounded-full border border-transparent border-b-slate-300/42 border-l-slate-300/28 dark:border-b-slate-700/64 dark:border-l-slate-700/48" />
                 <div className="absolute inset-[14px] rounded-full border border-white/28 bg-white/18 backdrop-blur-sm dark:border-slate-800/38 dark:bg-slate-950/24" />
                 <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/82 shadow-[0_0_0_8px_rgba(34,211,238,0.10),0_0_22px_rgba(34,211,238,0.22)] dark:bg-cyan-300/78 dark:shadow-[0_0_0_8px_rgba(103,232,249,0.05),0_0_24px_rgba(34,211,238,0.14)]" />
-              </motion.div>
+              </div>
             ) : (
               <>
                 <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
@@ -2967,6 +3000,17 @@ const CareerPathStage: React.FC<{
             const driftX = (index % 2 === 0 ? 1 : -1) * (4 + node.gravityPull * 3);
             const driftY = (index % 3 === 0 ? -1 : 1) * (3 + node.gravityPull * 2.5);
             const shouldDrift = isGuest && !active && hoveredPathId !== node.id;
+            const driftAmplitudeX = driftX * 0.55;
+            const driftAmplitudeY = driftY * 0.5;
+            const driftDelay = (index % 5) * 0.6;
+            const driftStyle = shouldDrift
+              ? ({
+                  ['--careeros-float-x' as '--careeros-float-x']: `${driftAmplitudeX}px`,
+                  ['--careeros-float-y' as '--careeros-float-y']: `${driftAmplitudeY}px`,
+                  animation: `careeros-node-float ${15 + index * 0.55}s ease-in-out ${-driftDelay}s infinite`,
+                  willChange: 'transform',
+                } as React.CSSProperties & Record<'--careeros-float-x' | '--careeros-float-y', string>)
+              : undefined;
 
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
@@ -2976,15 +3020,7 @@ const CareerPathStage: React.FC<{
                   transition={{ delay: index * 0.05, type: 'spring', stiffness: 220, damping: 18 }}
                   className="relative flex flex-col items-center"
                 >
-                  <motion.div
-                    animate={shouldDrift ? { x: [0, driftX, 0, -driftX * 0.72, 0], y: [0, -driftY, 0, driftY * 0.65, 0] } : { x: 0, y: 0 }}
-                    transition={shouldDrift ? {
-                      duration: 12 + index * 0.45,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    } : { type: 'spring', stiffness: 260, damping: 24 }}
-                    className="relative flex flex-col items-center"
-                  >
+                  <div className="relative flex flex-col items-center" style={driftStyle}>
                     <button
                       type="button"
                       onClick={() => onNodeClick(node)}
@@ -3063,7 +3099,7 @@ const CareerPathStage: React.FC<{
                         </div>
                       </div>
                     </button>
-                  </motion.div>
+                  </div>
                 </motion.div>
               </div>
             );
