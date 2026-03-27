@@ -185,6 +185,38 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         gestureRef.current = swipeState.gesture;
     }, [swipeState.gesture]);
 
+    useEffect(() => {
+        if (!fullscreen || typeof window === 'undefined' || typeof document === 'undefined') {
+            return;
+        }
+
+        const { body, documentElement } = document;
+        const scrollY = window.scrollY;
+        const previousBodyOverflow = body.style.overflow;
+        const previousBodyPosition = body.style.position;
+        const previousBodyTop = body.style.top;
+        const previousBodyWidth = body.style.width;
+        const previousBodyOverscroll = body.style.overscrollBehavior;
+        const previousDocumentOverscroll = documentElement.style.overscrollBehavior;
+
+        body.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollY}px`;
+        body.style.width = '100%';
+        body.style.overscrollBehavior = 'none';
+        documentElement.style.overscrollBehavior = 'none';
+
+        return () => {
+            body.style.overflow = previousBodyOverflow;
+            body.style.position = previousBodyPosition;
+            body.style.top = previousBodyTop;
+            body.style.width = previousBodyWidth;
+            body.style.overscrollBehavior = previousBodyOverscroll;
+            documentElement.style.overscrollBehavior = previousDocumentOverscroll;
+            window.scrollTo(0, scrollY);
+        };
+    }, [fullscreen]);
+
     // React touch events can be passive in modern React builds, which makes `preventDefault`
     // unreliable. Add a non-passive listener to prevent vertical scroll while a swipe gesture
     // is in progress.
@@ -672,12 +704,13 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         <div
             ref={containerRef}
             className={cn(
-                "app-surface relative flex w-full flex-col overflow-hidden border shadow-[var(--shadow-card)]",
+                "app-surface flex w-full flex-col overflow-hidden border shadow-[var(--shadow-card)]",
                 fullscreen
-                    ? "min-h-[calc(100dvh-var(--app-header-offset)-4rem)] rounded-[var(--radius-xl)]"
-                    : "min-h-[70dvh] rounded-[var(--radius-2xl)]",
+                    ? "fixed inset-x-0 bottom-0 z-[72] min-h-0 rounded-none border-x-0 border-b-0 border-t overscroll-none"
+                    : "relative min-h-[70dvh] rounded-[var(--radius-2xl)]",
                 swipeState.gesture === 'swipe' ? 'touch-none' : 'touch-pan-y'
             )}
+            style={fullscreen ? { top: 'calc(var(--app-header-offset) + 0.75rem)' } : undefined}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -867,7 +900,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     : 'translateX(0) rotate(0deg)',
                                 opacity: swipeState.isDragging ? opacity : 1,
                             }}
-                            className="absolute inset-4 app-surface custom-scrollbar cursor-grab select-none overflow-y-auto rounded-[var(--radius-xl)] border bg-[var(--surface-elevated)] p-6 shadow-[var(--shadow-card)] active:cursor-grabbing"
+                            className="absolute inset-4 app-surface custom-scrollbar cursor-grab select-none overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border bg-[var(--surface-elevated)] p-6 shadow-[var(--shadow-card)] active:cursor-grabbing"
                             drag={swipeState.isDragging ? 'x' : false}
                             role="button"
                             tabIndex={0}
@@ -1018,7 +1051,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex-none border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
+            <div
+                className="flex-none border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4"
+                style={fullscreen ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
+            >
                 <div className="grid grid-cols-4 gap-3">
                 {/* Reject Button */}
                 <button
