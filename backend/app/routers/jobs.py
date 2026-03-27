@@ -2990,7 +2990,7 @@ def _fetch_profile_identity(user_id: str) -> dict[str, Any]:
     if not supabase or not user_id:
         return {}
     try:
-        resp = supabase.table("profiles").select("id,full_name,email").eq("id", user_id).maybe_single().execute()
+        resp = supabase.table("profiles").select("id,full_name,email,avatar_url").eq("id", user_id).maybe_single().execute()
         return _safe_dict(resp.data if resp else None)
     except Exception as exc:
         print(f"⚠️ Failed to fetch profile identity for mini challenge publisher: {exc}")
@@ -3473,10 +3473,13 @@ def _dialogue_signal_boost_share_url(locale: Any, share_slug: Any) -> str | None
     slug = str(share_slug or "").strip()
     if not slug:
         return None
+    base_public_url = str(config.APP_PUBLIC_URL or "").strip()
+    if not base_public_url:
+        return None
     normalized_locale = str(locale or "en").split("-", 1)[0].strip().lower() or "en"
     if normalized_locale == "at":
         normalized_locale = "de"
-    return f"{config.APP_PUBLIC_URL.rstrip('/')}/{normalized_locale}/signal/{slug}"
+    return f"{base_public_url.rstrip('/')}/{normalized_locale}/signal/{slug}"
 
 
 def _serialize_dialogue_signal_boost(row: dict) -> dict | None:
@@ -3561,10 +3564,7 @@ def _sanitize_dialogue_message_attachments(raw: Any) -> list[dict]:
         path = str(item.get("path") or "").strip()
         if path:
             attachment["path"] = path[:500]
-        try:
-            size = int(item.get("size")) if item.get("size") is not None else None
-        except Exception:
-            size = None
+        size = _parse_optional_int(item.get("size"))
         if size is not None:
             attachment["size"] = max(0, min(size, 20 * 1024 * 1024))
             attachment["size_bytes"] = attachment["size"]

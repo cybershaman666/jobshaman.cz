@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ExternalLink, Loader2, Linkedin, Sparkles } from 'lucide-react';
+import { ArrowRight, ExternalLink, Linkedin, Loader2, Sparkles } from 'lucide-react';
 
+import { BACKEND_URL } from '../constants';
 import type { JobSignalBoostOutput } from '../types';
 import { fetchPublicSignalBoostOutput, recordSignalBoostEvent } from '../services/jobSignalBoostService';
 import { getLocaleFromPathname, getPathPartsWithoutLocale } from '../utils/appRouting';
@@ -17,185 +18,163 @@ const pageCopy = {
     missingTitle: 'Tento Signal Boost už není dostupný',
     missingBody: 'Odkaz mohl vypršet, být archivovaný nebo nikdy nevznikl.',
     createdVia: 'Vytvořeno přes JobShaman',
-    subtleNote: 'Krátký pracovní signál. Ne uhlazené finální řešení, ale způsob přemýšlení v prvních minutách práce.',
-    candidate: 'Kandidát',
-    scenario: 'Zadaná situace',
-    output: 'Jak o tom kandidát přemýšlí',
-    signalSummary: 'Krátké čtecí signály',
-    recruiterNext: 'Co dál',
-    openLinkedin: 'LinkedIn profil',
-    seeRealInteraction: 'Podívat se na reálnou interakci',
-    exploreHiring: 'Prozkoumat JobShaman pro nábor',
-    openOriginal: 'Otevřít původní nabídku',
-    backHome: 'Zpět na JobShaman',
-    readTime: 'Čitelné za 2 až 3 minuty',
-    targetRole: 'Cílová role',
-    company: 'Firma',
-    location: 'Lokalita',
+    reflectionNote: 'Krátké poznámky k vaší roli',
     candidateFallback: 'Kandidát JobShamanu',
-    roleFallback: 'Role',
+    roleFallback: 'Vaše role',
+    signalTitle: 'Z toho, jak nad tím přemýšlí:',
+    ctaTitle: 'Pokud vám to sedí',
+    ctaBody: 'Rád to projdu nad konkrétním projektem nebo situací z vašeho týmu.',
+    openLinkedin: 'LinkedIn profil',
+    openOriginal: 'Původní nabídka',
+    backHome: 'Zpět na JobShaman',
   },
   sk: {
     loading: 'Načítavam verejný Signal Boost…',
     missingTitle: 'Tento Signal Boost už nie je dostupný',
     missingBody: 'Link mohol expirovať, byť archivovaný alebo nikdy nevznikol.',
     createdVia: 'Vytvorené cez JobShaman',
-    subtleNote: 'Krátky pracovný signál. Nie uhladené finálne riešenie, ale spôsob premýšľania v prvých minútach práce.',
-    candidate: 'Kandidát',
-    scenario: 'Zadaná situácia',
-    output: 'Ako o tom kandidát premýšľa',
-    signalSummary: 'Krátke čitateľné signály',
-    recruiterNext: 'Čo ďalej',
-    openLinkedin: 'LinkedIn profil',
-    seeRealInteraction: 'Pozrieť si reálnu interakciu',
-    exploreHiring: 'Preskúmať JobShaman pre nábor',
-    openOriginal: 'Otvoriť pôvodnú ponuku',
-    backHome: 'Späť na JobShaman',
-    readTime: 'Čitateľné za 2 až 3 minúty',
-    targetRole: 'Cieľová rola',
-    company: 'Firma',
-    location: 'Lokalita',
+    reflectionNote: 'Krátke poznámky k vašej role',
     candidateFallback: 'Kandidát JobShamanu',
-    roleFallback: 'Rola',
+    roleFallback: 'Vaša rola',
+    signalTitle: 'Z toho, ako nad tým premýšľa:',
+    ctaTitle: 'Ak vám to sedí',
+    ctaBody: 'Rád to prejdem nad konkrétnym projektom alebo situáciou z vášho tímu.',
+    openLinkedin: 'LinkedIn profil',
+    openOriginal: 'Pôvodná ponuka',
+    backHome: 'Späť na JobShaman',
   },
   de: {
     loading: 'Öffentlicher Signal Boost wird geladen…',
     missingTitle: 'Dieser Signal Boost ist nicht mehr verfügbar',
     missingBody: 'Der Link könnte abgelaufen, archiviert oder nie veröffentlicht worden sein.',
     createdVia: 'Erstellt mit JobShaman',
-    subtleNote: 'Ein kurzes Arbeitssignal. Keine polierte Endlösung, sondern sichtbar gemachtes Denken in den ersten Minuten realer Arbeit.',
-    candidate: 'Kandidat',
-    scenario: 'Ausgangssituation',
-    output: 'So denkt die Person darüber nach',
-    signalSummary: 'Kurze Lesesignale',
-    recruiterNext: 'Nächster Schritt',
-    openLinkedin: 'LinkedIn-Profil',
-    seeRealInteraction: 'Reale Interaktion ansehen',
-    exploreHiring: 'JobShaman für Recruiting ansehen',
-    openOriginal: 'Originalanzeige öffnen',
-    backHome: 'Zurück zu JobShaman',
-    readTime: 'In 2 bis 3 Minuten lesbar',
-    targetRole: 'Zielrolle',
-    company: 'Unternehmen',
-    location: 'Standort',
+    reflectionNote: 'Kurze Notizen zu Ihrer Rolle',
     candidateFallback: 'JobShaman-Kandidat',
-    roleFallback: 'Rolle',
+    roleFallback: 'Ihre Rolle',
+    signalTitle: 'Daran sieht man, wie die Person denkt:',
+    ctaTitle: 'Wenn das für Sie passt',
+    ctaBody: 'Ich würde das gern an einem konkreten Projekt oder einer realen Situation in Ihrem Team durchgehen.',
+    openLinkedin: 'LinkedIn-Profil',
+    openOriginal: 'Originalanzeige',
+    backHome: 'Zurück zu JobShaman',
   },
   pl: {
     loading: 'Ładuję publiczny Signal Boost…',
     missingTitle: 'Ten Signal Boost nie jest już dostępny',
     missingBody: 'Link mógł wygasnąć, zostać zarchiwizowany albo nigdy nie został opublikowany.',
     createdVia: 'Utworzone przez JobShaman',
-    subtleNote: 'Krótki sygnał pracy. Nie dopracowane finalne rozwiązanie, ale pokazany sposób myślenia w pierwszych minutach realnej pracy.',
-    candidate: 'Kandydat',
-    scenario: 'Sytuacja wyjściowa',
-    output: 'Jak kandydat o tym myśli',
-    signalSummary: 'Krótkie sygnały do odczytu',
-    recruiterNext: 'Co dalej',
-    openLinkedin: 'Profil LinkedIn',
-    seeRealInteraction: 'Zobacz realną interakcję',
-    exploreHiring: 'Poznaj JobShaman do rekrutacji',
-    openOriginal: 'Otwórz oryginalne ogłoszenie',
-    backHome: 'Wróć do JobShaman',
-    readTime: 'Do przeczytania w 2 do 3 minut',
-    targetRole: 'Rola docelowa',
-    company: 'Firma',
-    location: 'Lokalizacja',
+    reflectionNote: 'Krótkie notatki do waszej roli',
     candidateFallback: 'Kandydat JobShaman',
-    roleFallback: 'Rola',
+    roleFallback: 'Wasza rola',
+    signalTitle: 'Po tym widać, jak o tym myśli:',
+    ctaTitle: 'Jeśli to brzmi sensownie',
+    ctaBody: 'Chętnie przejdę przez to na konkretnym projekcie albo sytuacji z waszego zespołu.',
+    openLinkedin: 'Profil LinkedIn',
+    openOriginal: 'Oryginalne ogłoszenie',
+    backHome: 'Wróć do JobShaman',
   },
   en: {
     loading: 'Loading public Signal Boost…',
     missingTitle: 'This Signal Boost is no longer available',
     missingBody: 'The link may have expired, been archived, or was never published.',
     createdVia: 'Created via JobShaman',
-    subtleNote: 'A short work signal. Not a polished final solution, but a visible way of thinking in the first minutes of real work.',
-    candidate: 'Candidate',
-    scenario: 'Given scenario',
-    output: 'How the candidate thinks about it',
-    signalSummary: 'Quick reading signals',
-    recruiterNext: 'What next',
-    openLinkedin: 'LinkedIn profile',
-    seeRealInteraction: 'See a real interaction',
-    exploreHiring: 'Explore JobShaman for hiring',
-    openOriginal: 'Open original listing',
-    backHome: 'Back to JobShaman',
-    readTime: 'Readable in 2 to 3 minutes',
-    targetRole: 'Target role',
-    company: 'Company',
-    location: 'Location',
+    reflectionNote: 'Short notes on your role',
     candidateFallback: 'JobShaman candidate',
-    roleFallback: 'Role',
+    roleFallback: 'Your role',
+    signalTitle: 'What stands out in the way they think:',
+    ctaTitle: 'If this feels relevant',
+    ctaBody: 'I would be glad to walk through it against a real project or situation from your team.',
+    openLinkedin: 'LinkedIn profile',
+    openOriginal: 'Original listing',
+    backHome: 'Back to JobShaman',
   },
 } as const;
 
-const pageExtraCopy = {
-  cs: {
-    roleContext: 'Role context',
-    roleEvidence: 'Signály z inzerátu',
-    focusAreas: 'Na co je role citlivá',
-    questionPack: 'Role-specific otázky',
-    whyItMatters: 'Proč to recruiter řeší',
-    recruiterSignal: 'Jaký signál z toho recruiter čte',
-    beyondCv: 'Co to ukazuje navíc oproti CV',
-    strengths: 'Silné signály',
-    risks: 'Místa k doplnění',
-    followUps: 'Na co se doptat',
-    nextStep: 'Doporučený další krok',
-  },
-  sk: {
-    roleContext: 'Role context',
-    roleEvidence: 'Signály z inzerátu',
-    focusAreas: 'Na čo je rola citlivá',
-    questionPack: 'Role-specific otázky',
-    whyItMatters: 'Prečo to recruiter rieši',
-    recruiterSignal: 'Aký signál z toho recruiter číta',
-    beyondCv: 'Čo to ukazuje navyše oproti CV',
-    strengths: 'Silné signály',
-    risks: 'Miesta na doplnenie',
-    followUps: 'Na čo sa dopytať',
-    nextStep: 'Odporúčaný ďalší krok',
-  },
-  de: {
-    roleContext: 'Rollenkontext',
-    roleEvidence: 'Signale aus dem Inserat',
-    focusAreas: 'Worauf die Rolle sensibel reagiert',
-    questionPack: 'Rollenspezifische Fragen',
-    whyItMatters: 'Warum das Recruiting das wissen will',
-    recruiterSignal: 'Welches Signal daraus gelesen wird',
-    beyondCv: 'Was das zusätzlich zum CV zeigt',
-    strengths: 'Starke Signale',
-    risks: 'Offene Punkte',
-    followUps: 'Gute Nachfragen',
-    nextStep: 'Empfohlener nächster Schritt',
-  },
-  pl: {
-    roleContext: 'Kontekst roli',
-    roleEvidence: 'Sygnały z ogłoszenia',
-    focusAreas: 'Na co ta rola jest wrażliwa',
-    questionPack: 'Pytania specyficzne dla roli',
-    whyItMatters: 'Dlaczego rekruter chce to wiedzieć',
-    recruiterSignal: 'Jaki sygnał rekruter z tego czyta',
-    beyondCv: 'Co to pokazuje ponad CV',
-    strengths: 'Mocne sygnały',
-    risks: 'Miejsca do doprecyzowania',
-    followUps: 'Pytania uzupełniające',
-    nextStep: 'Rekomendowany kolejny krok',
-  },
-  en: {
-    roleContext: 'Role Context',
-    roleEvidence: 'Signals From The Listing',
-    focusAreas: 'What The Role Is Sensitive To',
-    questionPack: 'Role-Specific Questions',
-    whyItMatters: 'Why The Recruiter Cares',
-    recruiterSignal: 'Recruiter Signal',
-    beyondCv: 'What This Shows Beyond CV',
-    strengths: 'Strength Signals',
-    risks: 'Risk Flags',
-    followUps: 'Follow-Up Questions',
-    nextStep: 'Recommended Next Step',
-  },
-} as const;
+const pageShellClass =
+  'app-organic-shell rounded-[34px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.38)] sm:p-8 dark:border-slate-800/80 dark:bg-slate-950/70';
+
+const utilityButtonClass =
+  'app-organic-cta inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] border border-slate-200/85 bg-white/86 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.24)] transition hover:border-cyan-200/80 hover:text-cyan-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 dark:border-slate-700/80 dark:bg-slate-950/48 dark:text-slate-100 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200';
+
+const shouldCacheBustAvatarUrl = (url: string): boolean => {
+  const normalized = url.trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized.startsWith('blob:') || normalized.startsWith('data:')) return false;
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+  return normalized.includes('/storage/v1/object/public/')
+    || normalized.includes('/profile-photos/')
+    || (currentHost ? normalized.includes(currentHost) : false);
+};
+
+const formatCacheBustedUrl = (url: string | null | undefined, marker: string | null | undefined): string | null => {
+  const trimmedUrl = String(url || '').trim();
+  if (!trimmedUrl) return null;
+  if (!marker || !shouldCacheBustAvatarUrl(trimmedUrl)) {
+    return trimmedUrl;
+  }
+  return `${trimmedUrl}${trimmedUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(marker)}`;
+};
+
+const buildInitials = (value: string | null | undefined): string => {
+  const parts = String(value || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (!parts.length) return 'JS';
+  return parts.map((part) => part.slice(0, 1).toUpperCase()).join('');
+};
+
+const buildHeroTitle = (locale: keyof typeof pageCopy, title: string | null | undefined, fallback: string): string => {
+  const roleTitle = String(title || '').trim() || fallback;
+  switch (locale) {
+    case 'cs':
+      return `První směr, kterým bych šel u role ${roleTitle}`;
+    case 'sk':
+      return `Prvý smer, ktorým by som šiel pri role ${roleTitle}`;
+    case 'de':
+      return `Erste Richtung für die Rolle ${roleTitle}`;
+    case 'pl':
+      return `Pierwszy kierunek dla roli ${roleTitle}`;
+    default:
+      return `First direction I'd take in ${roleTitle}`;
+  }
+};
+
+const buildNarrativeText = (output: JobSignalBoostOutput | null): string => {
+  if (!output) return '';
+  const preferredOrder = ['problem_frame', 'first_step', 'solution_direction', 'risk_and_unknowns'];
+  const sectionsById = new Map((output.scenario_payload?.structured_sections || []).map((section) => [section.id, section]));
+  const orderedIds = [
+    ...preferredOrder,
+    ...(output.scenario_payload?.structured_sections || [])
+      .map((section) => section.id)
+      .filter((sectionId) => !preferredOrder.includes(sectionId) && sectionId !== 'stakeholder_note'),
+  ];
+  const rawChunks = orderedIds
+    .map((sectionId) => String(output.response_payload?.[sectionId] || '').trim())
+    .filter(Boolean);
+  const dedupedChunks = rawChunks.filter((chunk, index) => rawChunks.indexOf(chunk) === index);
+  const paragraphs = dedupedChunks.flatMap((chunk) => (
+    chunk
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+  ));
+
+  if (paragraphs.length) {
+    return paragraphs.join('\n\n');
+  }
+
+  return (output.scenario_payload?.structured_sections || [])
+    .map((section) => ({
+      section,
+      value: String(output.response_payload?.[section.id] || '').trim(),
+    }))
+    .filter(({ value, section }) => value && sectionsById.has(section.id))
+    .map(({ value }) => value)
+    .join('\n\n');
+};
 
 const SignalBoostPublicPage: React.FC = () => {
   const routeLocale = normalizeLocale(getLocaleFromPathname(window.location.pathname, 'en'));
@@ -207,6 +186,7 @@ const SignalBoostPublicPage: React.FC = () => {
   const [output, setOutput] = useState<JobSignalBoostOutput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [avatarLoadMode, setAvatarLoadMode] = useState<'cache' | 'raw' | 'failed'>('cache');
 
   useEffect(() => {
     let cancelled = false;
@@ -239,25 +219,53 @@ const SignalBoostPublicPage: React.FC = () => {
     };
   }, [shareSlug]);
 
+  useEffect(() => {
+    setAvatarLoadMode('cache');
+  }, [output?.candidate_snapshot?.avatar_url]);
+
   const locale = normalizeLocale(output?.locale || routeLocale);
   const copy = pageCopy[locale] || pageCopy.en;
-  const extraCopy = pageExtraCopy[locale] || pageExtraCopy.en;
-  const localePrefix = locale;
-  const demoHref = `/${localePrefix}/demo-company-handshake`;
-  const hiringHref = `/${localePrefix}/pro-firmy`;
-  const homeHref = `/${localePrefix}/`;
-  const visibleSections = output?.scenario_payload?.structured_sections?.filter((section) =>
-    String(output.response_payload?.[section.id] || '').trim()
-  ) || [];
-  const roleContext = output?.scenario_payload?.role_context;
-  const questionPack = output?.scenario_payload?.question_pack || [];
-  const recruiterReadout = output?.recruiter_readout || null;
-
-  const handleRecruiterCta = (target: 'demo' | 'hiring') => {
-    if (!output?.id) return;
-    void recordSignalBoostEvent(output.id, 'recruiter_cta_click');
-    window.location.assign(target === 'demo' ? demoHref : hiringHref);
-  };
+  const homeHref = `/${locale}/`;
+  const narrativeText = useMemo(() => buildNarrativeText(output), [output]);
+  const signalBulletSource = output?.recruiter_readout?.strength_signals?.length
+    ? output.recruiter_readout.strength_signals
+    : output?.recruiter_readout?.what_cv_does_not_show?.length
+      ? output.recruiter_readout.what_cv_does_not_show
+      : [];
+  const signalBullets = signalBulletSource
+    .slice(0, 3)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+  const candidateName = String(output?.candidate_snapshot?.name || copy.candidateFallback).trim() || copy.candidateFallback;
+  const candidateInitials = buildInitials(candidateName);
+  const heroTitle = buildHeroTitle(locale, output?.job_snapshot?.title, copy.roleFallback);
+  const metaLine = [
+    String(output?.job_snapshot?.company || '').trim(),
+    String(output?.job_snapshot?.location || '').trim(),
+  ].filter(Boolean).join(' • ');
+  const rawCandidateAvatarUrl = String(output?.candidate_snapshot?.avatar_url || '').trim() || null;
+  const avatarProxyUrl = shareSlug
+    ? `${BACKEND_URL}/signal-boost/${encodeURIComponent(shareSlug)}/avatar`
+    : null;
+  const cacheCandidateAvatarUrl = useMemo(
+    () => formatCacheBustedUrl(
+      rawCandidateAvatarUrl,
+      output?.updated_at || output?.published_at || output?.created_at || null,
+    ),
+    [
+      rawCandidateAvatarUrl,
+      output?.created_at,
+      output?.published_at,
+      output?.updated_at,
+    ],
+  );
+  const candidateAvatarUrl = avatarLoadMode === 'failed'
+    ? null
+    : avatarLoadMode === 'cache'
+      ? avatarProxyUrl || cacheCandidateAvatarUrl
+      : avatarLoadMode === 'raw'
+      ? rawCandidateAvatarUrl
+      : cacheCandidateAvatarUrl;
 
   const handleOriginalListing = () => {
     if (!output?.job_snapshot?.url) return;
@@ -265,11 +273,16 @@ const SignalBoostPublicPage: React.FC = () => {
     window.open(output.job_snapshot.url, '_blank', 'noopener,noreferrer');
   };
 
+  const handleLinkedin = () => {
+    if (!output?.candidate_snapshot?.linkedin) return;
+    window.open(output.candidate_snapshot.linkedin, '_blank', 'noopener,noreferrer');
+  };
+
   if (loading) {
     return (
       <section className="app-shell-bg app-shell-bg-clean min-h-[calc(100dvh-var(--app-header-height))]">
-        <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center px-4 py-12">
-          <div className="inline-flex items-center gap-3 rounded-[24px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-5 py-4 text-sm text-[var(--text-muted)]">
+        <div className="mx-auto flex min-h-[60vh] max-w-4xl items-center justify-center px-4 py-12">
+          <div className={`${pageShellClass} inline-flex items-center gap-3 px-5 py-4 text-sm text-slate-600 dark:text-slate-300`}>
             <Loader2 size={18} className="animate-spin" />
             {copy.loading}
           </div>
@@ -282,14 +295,14 @@ const SignalBoostPublicPage: React.FC = () => {
     return (
       <section className="app-shell-bg app-shell-bg-clean min-h-[calc(100dvh-var(--app-header-height))]">
         <div className="mx-auto max-w-4xl px-4 py-12">
-          <div className="rounded-[32px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-8 text-center">
-            <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] text-[var(--accent)]">
+          <div className={`${pageShellClass} text-center`}>
+            <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/80 bg-cyan-50/80 text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-200">
               <Sparkles size={22} />
             </div>
-            <h1 className="mt-5 text-3xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">{copy.missingTitle}</h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--text-muted)]">{copy.missingBody}</p>
-            <a href={homeHref} className="app-button-primary mt-6 inline-flex items-center gap-2">
-              <ArrowRight size={16} />
+            <h1 className="mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-white">{copy.missingTitle}</h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300">{copy.missingBody}</p>
+            <a href={homeHref} className={`${utilityButtonClass} mt-6`}>
+              <ArrowRight size={16} className="shrink-0" />
               {copy.backHome}
             </a>
           </div>
@@ -300,276 +313,118 @@ const SignalBoostPublicPage: React.FC = () => {
 
   return (
     <section className="app-shell-bg app-shell-bg-clean min-h-[calc(100dvh-var(--app-header-height))]">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-        <div className="rounded-[34px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-5 shadow-[var(--shadow-card)] sm:p-7 lg:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-                <Sparkles size={12} />
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
+        <article className={pageShellClass}>
+          <header className="mx-auto max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="app-organic-pill inline-flex items-center gap-2 rounded-full border border-cyan-300/70 bg-cyan-50/88 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-800/60 dark:bg-cyan-950/30 dark:text-cyan-200">
+                <Sparkles size={12} className="shrink-0" />
                 {copy.createdVia}
               </div>
-              <h1 className="mt-4 text-[2rem] font-semibold tracking-[-0.05em] text-[var(--text-strong)] sm:text-[2.6rem]">
-                {output.candidate_snapshot?.name || copy.candidateFallback}
-              </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">{copy.subtleNote}</p>
+              <div className="app-organic-pill inline-flex rounded-full border border-white/70 bg-white/82 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-slate-700/80 dark:bg-slate-950/42 dark:text-slate-400">
+                {copy.reflectionNote}
+              </div>
             </div>
-            <div className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text-muted)]">
-              {copy.readTime}
-            </div>
-          </div>
 
-          <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
-            <div className="space-y-5">
-              <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.candidate}</div>
-                <div className="mt-4 flex items-center gap-4">
-                  {output.candidate_snapshot?.avatar_url ? (
+            <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="shrink-0">
+                {candidateAvatarUrl ? (
+                  <div className="rounded-[30px] border border-white/80 bg-white/82 p-1.5 shadow-[0_24px_50px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700/80 dark:bg-slate-950/45">
                     <img
-                      src={output.candidate_snapshot.avatar_url}
-                      alt={output.candidate_snapshot.name}
-                      className="h-16 w-16 rounded-[20px] object-cover"
+                      src={candidateAvatarUrl}
+                      alt={candidateName}
+                      className="h-24 w-24 rounded-[24px] object-cover sm:h-28 sm:w-28"
+                      referrerPolicy="no-referrer"
+                      onError={() => {
+                        setAvatarLoadMode((current) => {
+                          if (current === 'cache' && rawCandidateAvatarUrl) {
+                            return 'raw';
+                          }
+                          return 'failed';
+                        });
+                      }}
                     />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[rgba(var(--accent-rgb),0.12)] text-xl font-semibold text-[var(--accent)]">
-                      {String(output.candidate_snapshot?.name || 'J').trim().slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
-                      {output.candidate_snapshot?.name || copy.candidateFallback}
-                    </div>
-                    {output.candidate_snapshot?.jobTitle ? (
-                      <div className="mt-1 text-sm text-[var(--text-muted)]">{output.candidate_snapshot.jobTitle}</div>
-                    ) : null}
-                    {output.candidate_snapshot?.linkedin ? (
-                      <a
-                        href={output.candidate_snapshot.linkedin}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]"
-                      >
-                        <Linkedin size={15} />
-                        {copy.openLinkedin}
-                      </a>
-                    ) : null}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-[30px] border border-white/80 bg-white/82 text-3xl font-black tracking-[-0.08em] text-cyan-700 shadow-[0_24px_50px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700/80 dark:bg-slate-950/45 dark:text-cyan-200 sm:h-28 sm:w-28 sm:text-4xl">
+                    {candidateInitials}
+                  </div>
+                )}
               </div>
 
-              <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.scenario}</div>
-                <div className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                  {output.scenario_payload?.scenario_title || output.job_snapshot?.title}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[2.2rem] font-black tracking-[-0.07em] text-slate-900 dark:text-white sm:text-[2.8rem]">
+                  {candidateName}
+                </h1>
+                <div className="mt-3 text-[1.15rem] font-semibold leading-8 text-slate-800 dark:text-slate-100 sm:text-[1.35rem]">
+                  {heroTitle}
                 </div>
-                <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{output.scenario_payload?.scenario_context}</p>
-                <div className="mt-4 rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
-                  <p className="text-sm leading-7 text-[var(--text)]">{output.scenario_payload?.core_problem}</p>
-                </div>
-              </div>
-
-              {(roleContext?.job_evidence?.length || roleContext?.focus_areas?.length) ? (
-                <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{extraCopy.roleContext}</div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {roleContext?.canonical_role ? (
-                      <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)]">
-                        {roleContext.canonical_role}
-                      </span>
-                    ) : null}
-                    {roleContext?.archetype ? (
-                      <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-muted)]">
-                        {roleContext.archetype}
-                      </span>
-                    ) : null}
+                {output.candidate_snapshot?.jobTitle ? (
+                  <div className="mt-3 text-base leading-7 text-slate-600 dark:text-slate-300">
+                    {output.candidate_snapshot.jobTitle}
                   </div>
-                  {roleContext?.focus_areas?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.focusAreas}</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {roleContext.focus_areas.map((item) => (
-                          <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text)]">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {roleContext?.job_evidence?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.roleEvidence}</div>
-                      <div className="mt-3 space-y-3">
-                        {roleContext.job_evidence.map((item) => (
-                          <div key={item} className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 text-sm leading-7 text-[var(--text)]">
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+                ) : null}
+                {metaLine ? (
+                  <div className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
+                    {metaLine}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </header>
 
-              {questionPack.length ? (
-                <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{extraCopy.questionPack}</div>
-                  <div className="mt-4 space-y-4">
-                    {questionPack.map((item) => (
-                      <div key={item.id} className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
-                        <div className="text-sm font-semibold text-[var(--text-strong)]">{item.question}</div>
-                        <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.whyItMatters}</div>
-                        <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{item.why_this_matters}</p>
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-3">
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.roleEvidence}</div>
-                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{item.job_evidence}</div>
-                          </div>
-                          <div className="rounded-[16px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-3">
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">{extraCopy.recruiterSignal}</div>
-                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{item.recruiter_signal}</div>
-                          </div>
-                        </div>
+          <div className={`mx-auto mt-10 max-w-5xl gap-10 border-t border-slate-200/80 pt-8 dark:border-slate-800/80 ${signalBullets.length ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_260px]' : ''}`}>
+            <div className="min-w-0">
+              <div className="whitespace-pre-wrap text-[1.03rem] leading-8 text-slate-700 dark:text-slate-200 sm:text-[1.08rem] sm:leading-9">
+                {narrativeText}
+              </div>
+            </div>
+
+            {signalBullets.length ? (
+              <aside className="mt-8 lg:mt-0">
+                <div className="lg:sticky lg:top-8">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    {copy.signalTitle}
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {signalBullets.map((item, index) => (
+                      <div key={`${index}-${item}`} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                        <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500 dark:bg-cyan-300" />
+                        <span>{item}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              ) : null}
-
-              <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.output}</div>
-                <div className="mt-4 space-y-4">
-                  {visibleSections.map((section) => (
-                    <div key={section.id} className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
-                      <div className="text-sm font-semibold text-[var(--text-strong)]">{section.title}</div>
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text)]">
-                        {output.response_payload[section.id]}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              {recruiterReadout ? (
-                <div className="rounded-[26px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-5 dark:bg-[rgba(var(--accent-rgb),0.12)]">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{extraCopy.beyondCv}</div>
-                  <div className="mt-3 text-lg font-semibold text-[var(--text-strong)]">{recruiterReadout.headline}</div>
-
-                  {recruiterReadout.what_cv_does_not_show?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.beyondCv}</div>
-                      <div className="mt-3 space-y-2">
-                        {recruiterReadout.what_cv_does_not_show.map((item) => (
-                          <div key={item} className="flex gap-3 text-sm leading-6 text-[var(--text)]">
-                            <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {recruiterReadout.strength_signals?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.strengths}</div>
-                      <div className="mt-3 space-y-2">
-                        {recruiterReadout.strength_signals.map((item) => (
-                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {recruiterReadout.risk_flags?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.risks}</div>
-                      <div className="mt-3 space-y-2">
-                        {recruiterReadout.risk_flags.map((item) => (
-                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {recruiterReadout.follow_up_questions?.length ? (
-                    <div className="mt-5">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.followUps}</div>
-                      <div className="mt-3 space-y-2">
-                        {recruiterReadout.follow_up_questions.map((item) => (
-                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {recruiterReadout.recommended_next_step ? (
-                    <div className="mt-5 rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-white/75 p-4 dark:bg-slate-950/40">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">{extraCopy.nextStep}</div>
-                      <p className="mt-2 text-sm leading-7 text-[var(--text)]">{recruiterReadout.recommended_next_step}</p>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.targetRole}</div>
-                <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{output.job_snapshot?.title || copy.roleFallback}</div>
-                <div className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
-                  {output.job_snapshot?.company ? <div><span className="font-semibold text-[var(--text-strong)]">{copy.company}:</span> {output.job_snapshot.company}</div> : null}
-                  {output.job_snapshot?.location ? <div><span className="font-semibold text-[var(--text-strong)]">{copy.location}:</span> {output.job_snapshot.location}</div> : null}
-                </div>
-              </div>
-
-              {output.signal_summary?.items?.length ? (
-                <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.signalSummary}</div>
-                  <div className="mt-4 space-y-4">
-                    {output.signal_summary.items.map((item) => (
-                      <div key={item.key}>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="font-medium text-[var(--text-strong)]">{item.label}</span>
-                          <span className="text-[var(--text-muted)]">{Math.round(item.score)}</span>
-                        </div>
-                        <div className="mt-2 h-2 rounded-full bg-[rgba(148,163,184,0.18)]">
-                          <div
-                            className="h-2 rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400"
-                            style={{ width: `${Math.max(12, Math.min(100, item.score))}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="rounded-[26px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-5 dark:bg-[rgba(var(--accent-rgb),0.1)]">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.recruiterNext}</div>
-                <div className="mt-4 flex flex-col gap-3">
-                  <button type="button" onClick={() => handleRecruiterCta('demo')} className="app-button-primary justify-center">
-                    <ArrowRight size={16} />
-                    {copy.seeRealInteraction}
-                  </button>
-                  <button type="button" onClick={() => handleRecruiterCta('hiring')} className="app-button-dock justify-center">
-                    <Sparkles size={16} />
-                    {copy.exploreHiring}
-                  </button>
-                  {output.job_snapshot?.url ? (
-                    <button type="button" onClick={handleOriginalListing} className="app-button-secondary justify-center">
-                      <ExternalLink size={16} />
-                      {copy.openOriginal}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
+              </aside>
+            ) : null}
           </div>
-        </div>
+
+          <section className="mx-auto mt-10 max-w-3xl border-t border-slate-200/80 pt-8 dark:border-slate-800/80">
+            <div className="text-xl font-black tracking-[-0.05em] text-slate-900 dark:text-white">
+              {copy.ctaTitle}
+            </div>
+            <p className="mt-3 text-base leading-8 text-slate-600 dark:text-slate-300">
+              {copy.ctaBody}
+            </p>
+
+            {(output.candidate_snapshot?.linkedin || output.job_snapshot?.url) ? (
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {output.candidate_snapshot?.linkedin ? (
+                  <button type="button" onClick={handleLinkedin} className={utilityButtonClass}>
+                    <Linkedin size={16} className="shrink-0" />
+                    {copy.openLinkedin}
+                  </button>
+                ) : null}
+                {output.job_snapshot?.url ? (
+                  <button type="button" onClick={handleOriginalListing} className={utilityButtonClass}>
+                    <ExternalLink size={16} className="shrink-0" />
+                    {copy.openOriginal}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        </article>
       </div>
     </section>
   );

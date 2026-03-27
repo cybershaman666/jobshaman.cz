@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Briefcase, Clock3, ExternalLink, Eye, Loader2, Mail, Search, Trash2 } from 'lucide-react';
 
-import { CandidateDialogueCapacity, DialogueDetail, DialogueSummary, Job, UserProfile } from '../types';
+import { CandidateDialogueCapacity, DialogueDetail, DialogueSummary, Job, JobSignalBoostOutput, UserProfile } from '../types';
 import {
   fetchMyDialogueDetail,
   fetchMyDialoguesWithCapacity,
@@ -10,6 +10,7 @@ import {
   sendMyDialogueMessage,
   withdrawMyDialogue
 } from '../services/jobApplicationService';
+import { fetchMySignalBoostOutputs, revokeSignalBoostOutput } from '../services/jobSignalBoostService';
 import ApplicationMessageCenter from './ApplicationMessageCenter';
 import MyInvitations from './MyInvitations';
 import SavedJobsPage from './SavedJobsPage';
@@ -62,6 +63,10 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [dialogueSearch, setDialogueSearch] = useState('');
+  const [signalBoostOutputs, setSignalBoostOutputs] = useState<JobSignalBoostOutput[]>([]);
+  const [loadingSignalBoosts, setLoadingSignalBoosts] = useState(false);
+  const [signalBoostError, setSignalBoostError] = useState<string | null>(null);
+  const [revokingSignalBoostId, setRevokingSignalBoostId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +111,50 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     };
 
     loadDialogues();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [t, userProfile.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSignalBoostOutputs = async () => {
+      if (!userProfile.id) {
+        if (!cancelled) {
+          setSignalBoostOutputs([]);
+          setSignalBoostError(null);
+        }
+        return;
+      }
+
+      setLoadingSignalBoosts(true);
+      setSignalBoostError(null);
+
+      try {
+        const outputs = await fetchMySignalBoostOutputs(40, { includeArchived: true });
+        if (!cancelled) {
+          setSignalBoostOutputs(outputs);
+        }
+      } catch (error) {
+        console.error('Failed to load Signal Boost outputs:', error);
+        if (!cancelled) {
+          setSignalBoostOutputs([]);
+          setSignalBoostError(
+            t('profile.job_hub.signal_boost_load_failed', {
+              defaultValue: 'Nepodařilo se načíst veřejné Signal Boost linky.'
+            })
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSignalBoosts(false);
+        }
+      }
+    };
+
+    loadSignalBoostOutputs();
 
     return () => {
       cancelled = true;
@@ -191,6 +240,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   })();
 
   const activeCount = dialogues.filter((item) => ACTIVE_STATUSES.includes(item.status)).length;
+  const activeSignalBoostCount = signalBoostOutputs.filter((item) => String(item.status || '').trim() === 'published').length;
 
   const handleOpenDialogueDetail = (dialogueId: string) => {
     setActiveDetailId(dialogueId);
@@ -244,6 +294,34 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       );
     } finally {
       setWithdrawingId(null);
+    }
+  };
+
+  const handleRevokeSignalBoost = async (output: JobSignalBoostOutput) => {
+    if (!output?.id || String(output.status || '').trim() === 'archived') return;
+
+    const confirmed = window.confirm(
+      t('profile.job_hub.signal_boost_revoke_confirm', {
+        defaultValue: 'Opravdu chcete tento veřejný Signal Boost link zrušit?'
+      })
+    );
+    if (!confirmed) return;
+
+    setRevokingSignalBoostId(output.id);
+    try {
+      const archived = await revokeSignalBoostOutput(output.id);
+      setSignalBoostOutputs((current) =>
+        current.map((item) => (item.id === archived.id ? archived : item))
+      );
+    } catch (error) {
+      console.error('Failed to revoke Signal Boost output:', error);
+      window.alert(
+        t('profile.job_hub.signal_boost_revoke_failed', {
+          defaultValue: 'Veřejný Signal Boost link se nepodařilo zrušit.'
+        })
+      );
+    } finally {
+      setRevokingSignalBoostId(null);
     }
   };
 
@@ -462,6 +540,39 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     return t('profile.job_hub.response_sla_hint', {
       defaultValue: isCsLike ? 'Firma odpovídá obvykle do {{window}}' : 'Company usually replies within {{window}}',
       window: windowLabel
+    });
+  };
+
+  const getSignalBoostStatusLabel = (status?: string | null): string => {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'archived') {
+      return t('profile.job_hub.signal_boost_status_archived', { defaultValue: 'Link zrušen' });
+    }
+    if (normalized === 'draft') {
+      return t('profile.job_hub.signal_boost_status_draft', { defaultValue: 'Draft' });
+    }
+    return t('profile.job_hub.signal_boost_status_published', { defaultValue: 'Veřejný link aktivní' });
+  };
+
+  const getSignalBoostStatusClassName = (status?: string | null): string => {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'archived') {
+      return 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+    }
+    if (normalized === 'draft') {
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+    }
+    return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+  };
+
+  const getSignalBoostStatsLabel = (output: JobSignalBoostOutput): string => {
+    const analytics = output.analytics || {};
+    const views = Number(analytics.view || 0);
+    const actions = Number(analytics.recruiter_cta_click || 0) + Number(analytics.open_original_listing || 0);
+    return t('profile.job_hub.signal_boost_stats', {
+      defaultValue: '{{views}} otevření • {{actions}} silnějších akcí',
+      views,
+      actions,
     });
   };
 
@@ -811,7 +922,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
               <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {t('profile.job_hub.metrics.applied', { defaultValue: 'Odpovědi' })}
@@ -840,6 +951,20 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   : t('profile.job_hub.metrics.saved_hint', {
                       defaultValue: 'Aktivní dialogy v oběhu'
                     })}
+              </div>
+            </div>
+            <div className="col-span-2 rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70 sm:col-span-1">
+              <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t('profile.job_hub.metrics.signal_boost', { defaultValue: 'Signal Boost linky' })}
+              </div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+                {activeSignalBoostCount}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                {t('profile.job_hub.metrics.signal_boost_hint', {
+                  defaultValue: '{{count}} odpovědí má aktivní veřejný link',
+                  count: activeSignalBoostCount,
+                })}
               </div>
             </div>
           </div>
@@ -1017,6 +1142,130 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
         </div>
 
         <div className="xl:col-span-2 space-y-4">
+          <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  {t('profile.job_hub.signal_boost_title', { defaultValue: 'Moje Signal Boost linky' })}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {t('profile.job_hub.signal_boost_desc', {
+                    defaultValue: 'Všechny veřejné pracovní linky na jednom místě. Tady vidíte, kam jste odpovídali, kolik mají otevření a můžete je kdykoli zrušit.'
+                  })}
+                </p>
+              </div>
+              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {signalBoostOutputs.length}
+              </div>
+            </div>
+
+            {loadingSignalBoosts ? (
+              <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('profile.job_hub.signal_boost_loading', { defaultValue: 'Načítám Signal Boost linky…' })}
+              </div>
+            ) : signalBoostError ? (
+              <div className="rounded-[0.95rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                {signalBoostError}
+              </div>
+            ) : signalBoostOutputs.length === 0 ? (
+              <div className="rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center dark:border-slate-700 dark:bg-slate-950/40">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm dark:bg-slate-900">
+                  <ExternalLink className="h-6 w-6 text-slate-400" />
+                </div>
+                <h4 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">
+                  {t('profile.job_hub.signal_boost_empty_title', { defaultValue: 'Zatím tu nejsou žádné veřejné linky' })}
+                </h4>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  {t('profile.job_hub.signal_boost_empty_desc', {
+                    defaultValue: 'Jakmile k roli zveřejníte Signal Boost, objeví se tady spolu s výkonem a rychlými akcemi.'
+                  })}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {signalBoostOutputs.map((output) => {
+                  const isArchived = String(output.status || '').trim() === 'archived';
+                  return (
+                    <div key={output.id} className="rounded-[1rem] border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-base font-semibold text-slate-900 dark:text-white">
+                                {output.job_snapshot?.title || t('profile.job_hub.unknown_position', { defaultValue: 'Neznámá pozice' })}
+                              </div>
+                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getSignalBoostStatusClassName(output.status)}`}>
+                                {getSignalBoostStatusLabel(output.status)}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                              {[output.job_snapshot?.company, output.job_snapshot?.location].filter(Boolean).join(' • ') ||
+                                t('profile.job_hub.not_available', { defaultValue: 'Neuvedeno' })}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              {t('profile.job_hub.signal_boost_published_at', {
+                                defaultValue: 'Poslední zveřejnění nebo změna: {{value}}',
+                                value: formatTimestamp(output.published_at || output.updated_at),
+                              })}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              {getSignalBoostStatsLabel(output)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {output.share_url ? (
+                          <div className="rounded-[0.9rem] border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+                            <div className="break-all">{output.share_url}</div>
+                          </div>
+                        ) : null}
+
+                        <div className="flex flex-wrap gap-2">
+                          {output.job_snapshot?.id ? (
+                            <button
+                              type="button"
+                              onClick={() => onJobSelect(String(output.job_snapshot?.id || ''))}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              <Eye className="h-4 w-4" />
+                              {t('profile.job_hub.signal_boost_open_role', { defaultValue: 'Otevřít roli' })}
+                            </button>
+                          ) : null}
+                          {!isArchived && output.share_url ? (
+                            <button
+                              type="button"
+                              onClick={() => openUrl(output.share_url)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              {t('profile.job_hub.signal_boost_open_public', { defaultValue: 'Otevřít veřejný link' })}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeSignalBoost(output)}
+                            disabled={isArchived || revokingSignalBoostId === output.id}
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30"
+                          >
+                            {revokingSignalBoostId === output.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                            {isArchived
+                              ? t('profile.job_hub.signal_boost_revoked', { defaultValue: 'Link už je zrušený' })
+                              : t('profile.job_hub.signal_boost_revoke', { defaultValue: 'Zrušit veřejný link' })}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-[1.05rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.24)] dark:border-slate-700 dark:bg-slate-900/92">
             <div className="mb-4 flex items-center justify-between">
               <div>

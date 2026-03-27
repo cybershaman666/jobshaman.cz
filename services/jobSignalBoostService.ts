@@ -142,8 +142,17 @@ export const fetchLatestSignalBoostOutputForJob = async (
 
 export const fetchMySignalBoostOutputs = async (
   limit: number = 12,
+  options?: {
+    includeArchived?: boolean;
+  },
 ): Promise<JobSignalBoostOutput[]> => {
-  const response = await authenticatedFetch(`${BACKEND_URL}/signal-boost/me?limit=${encodeURIComponent(String(limit))}`, {
+  const params = new URLSearchParams({
+    limit: String(limit),
+  });
+  if (options?.includeArchived) {
+    params.set('include_archived', '1');
+  }
+  const response = await authenticatedFetch(`${BACKEND_URL}/signal-boost/me?${params.toString()}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -158,6 +167,22 @@ export const fetchMySignalBoostOutputs = async (
   const data = await response.json();
   const items = Array.isArray(data?.items) ? data.items : [];
   return items.map(mapOutput);
+};
+
+export const revokeSignalBoostOutput = async (
+  outputId: string,
+): Promise<JobSignalBoostOutput> => {
+  const response = await authenticatedFetch(`${BACKEND_URL}/signal-boost/${encodeURIComponent(outputId)}/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorDetail(response, 'Failed to revoke Signal Boost link.'));
+  }
+
+  const data = await response.json();
+  return mapOutput(data?.output);
 };
 
 export const updateSignalBoostOutput = async (

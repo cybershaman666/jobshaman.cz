@@ -12,7 +12,7 @@ jest.mock('../constants', () => ({
   BACKEND_URL: 'https://api.jobshaman.test',
 }));
 
-import { fetchMySignalBoostOutputs } from './jobSignalBoostService';
+import { fetchMySignalBoostOutputs, revokeSignalBoostOutput } from './jobSignalBoostService';
 
 describe('fetchMySignalBoostOutputs', () => {
   beforeEach(() => {
@@ -56,5 +56,55 @@ describe('fetchMySignalBoostOutputs', () => {
     expect(outputs).toHaveLength(1);
     expect(outputs[0].id).toBe('out-1');
     expect(outputs[0].job_snapshot?.title).toBe('Product Owner');
+  });
+
+  it('passes include_archived to the backend when requested', async () => {
+    authenticatedFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    await fetchMySignalBoostOutputs(20, { includeArchived: true });
+
+    expect(authenticatedFetch).toHaveBeenCalledWith(
+      'https://api.jobshaman.test/signal-boost/me?limit=20&include_archived=1',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+});
+
+describe('revokeSignalBoostOutput', () => {
+  beforeEach(() => {
+    authenticatedFetch.mockReset();
+  });
+
+  it('archives a published Signal Boost output', async () => {
+    authenticatedFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        output: {
+          id: 'out-1',
+          share_slug: 'share-1',
+          share_url: 'https://jobshaman.com/en/signal/share-1',
+          locale: 'en',
+          status: 'archived',
+          job_snapshot: { id: 'job-1', title: 'Product Owner', company: 'Acme' },
+          candidate_snapshot: { name: 'Alex' },
+          response_payload: { first_step: 'Start with the biggest blocker.' },
+        },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const output = await revokeSignalBoostOutput('out-1');
+
+    expect(output.status).toBe('archived');
+    expect(authenticatedFetch).toHaveBeenCalledWith(
+      'https://api.jobshaman.test/signal-boost/out-1/revoke',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 });

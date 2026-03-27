@@ -1,7 +1,9 @@
+import requests
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse, Response
 
 from ..core import config
 from ..core.database import supabase
@@ -75,8 +77,13 @@ def _build_signal_boost_candidate_snapshot(user: dict, user_id: str) -> dict[str
     full_name = _trimmed_text(profile_identity.get("full_name"), 160)
     email = _trimmed_text(profile_identity.get("email") or user.get("email"), 200)
     headline = _trimmed_text(candidate_profile.get("job_title"), 160)
-    avatar_url = _trimmed_text(candidate_profile.get("avatar_url"), 500) or None
-    linkedin = _trimmed_text(candidate_profile.get("linkedin"), 500) or None
+    avatar_url = _trimmed_text(
+        candidate_profile.get("avatar_url")
+        or candidate_profile.get("photo")
+        or profile_identity.get("avatar_url"),
+        2000,
+    ) or None
+    linkedin = _trimmed_text(candidate_profile.get("linkedin"), 2000) or None
     return {
         "name": full_name or (email.split("@", 1)[0] if email and "@" in email else "JobShaman member"),
         "jobTitle": headline or None,
@@ -111,7 +118,68 @@ def _signal_boost_share_url(locale: str, share_slug: str) -> str:
     normalized_locale = str(locale or "en").split("-")[0].strip().lower() or "en"
     if normalized_locale == "at":
         normalized_locale = "de"
-    return f"{config.APP_PUBLIC_URL.rstrip('/')}/{normalized_locale}/signal/{share_slug}"
+    base_public_url = str(config.APP_PUBLIC_URL or "").strip().rstrip("/")
+    if not base_public_url:
+        return f"/{normalized_locale}/signal/{share_slug}"
+    return f"{base_public_url}/{normalized_locale}/signal/{share_slug}"
+
+
+def _build_public_candidate_snapshot(source: dict[str, Any]) -> dict[str, Any]:
+    stored_snapshot = _safe_dict(source.get("candidate_snapshot"))
+    candidate_id = str(source.get("candidate_id") or "").strip()
+    candidate_profile = _fetch_candidate_profile_for_draft(candidate_id) if candidate_id else {}
+    profile_identity = _fetch_profile_identity(candidate_id) if candidate_id else {}
+
+    name = _trimmed_text(
+        profile_identity.get("full_name")
+        or stored_snapshot.get("name"),
+        160,
+    ) or "JobShaman member"
+    job_title = _trimmed_text(
+        candidate_profile.get("job_title")
+        or stored_snapshot.get("jobTitle"),
+        160,
+    ) or None
+    avatar_url = _trimmed_text(
+        candidate_profile.get("avatar_url")
+        or candidate_profile.get("photo")
+        or profile_identity.get("avatar_url")
+        or stored_snapshot.get("avatar_url"),
+        2000,
+    ) or None
+    linkedin = _trimmed_text(
+        candidate_profile.get("linkedin")
+        or stored_snapshot.get("linkedin"),
+        2000,
+    ) or None
+    skills = _safe_string_list(
+        candidate_profile.get("skills") or stored_snapshot.get("skills"),
+        limit=8,
+    )
+    preferred_country_code = str(
+        _safe_dict(candidate_profile.get("preferences")).get("preferredCountryCode")
+        or candidate_profile.get("preferred_country_code")
+        or stored_snapshot.get("preferredCountryCode")
+        or ""
+    ).strip().upper() or None
+
+    return {
+        "name": name,
+        "jobTitle": job_title,
+        "avatar_url": avatar_url,
+        "linkedin": linkedin,
+        "skills": skills,
+        "preferredCountryCode": preferred_country_code,
+    }
+
+
+def _should_redirect_public_avatar(url: str) -> bool:
+    normalized = str(url or "").strip().lower()
+    if not normalized:
+        return False
+    if normalized.startswith("/"):
+        return True
+    return "/storage/v1/object/public/" in normalized or "/profile-photos/" in normalized
 
 
 def _serialize_signal_output_owner(row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -144,22 +212,17 @@ def _serialize_signal_output_public(row: dict[str, Any] | None) -> dict[str, Any
     source = row or {}
     if not source:
         return None
-    candidate = _safe_dict(source.get("candidate_snapshot"))
     job_snapshot = _safe_dict(source.get("job_snapshot"))
     locale = str(source.get("locale") or "en").strip() or "en"
     share_slug = str(source.get("share_slug") or "").strip()
+    public_candidate_snapshot = _build_public_candidate_snapshot(source)
     return {
         "id": str(source.get("id") or "").strip(),
         "share_slug": share_slug,
         "share_url": _signal_boost_share_url(locale, share_slug),
         "locale": locale,
         "job_snapshot": job_snapshot,
-        "candidate_snapshot": {
-            "name": _trimmed_text(candidate.get("name"), 160) or "JobShaman member",
-            "jobTitle": _trimmed_text(candidate.get("jobTitle"), 160) or None,
-            "avatar_url": _trimmed_text(candidate.get("avatar_url"), 500) or None,
-            "linkedin": _trimmed_text(candidate.get("linkedin"), 500) or None,
-        },
+        "candidate_snapshot": public_candidate_snapshot,
         "scenario_payload": _safe_dict(source.get("scenario_payload")),
         "response_payload": _safe_dict(source.get("response_payload")),
         "recruiter_readout": _safe_dict(source.get("recruiter_readout")) or None,
@@ -307,6 +370,7 @@ async def get_latest_job_signal_boost_output(
 async def get_my_signal_boost_outputs(
     request: Request,
     limit: int = Query(12, ge=1, le=50),
+    include_archived: bool = Query(False),
     user: dict = Depends(get_current_user),
 ):
     if not signal_boost_store_enabled():
@@ -316,7 +380,11 @@ async def get_my_signal_boost_outputs(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    outputs = list_recent_signal_outputs_for_candidate(candidate_id=user_id, limit=limit)
+    outputs = list_recent_signal_outputs_for_candidate(
+        candidate_id=user_id,
+        limit=limit,
+        include_archived=include_archived,
+    )
     return {"items": [_serialize_signal_output_owner(output) for output in outputs if output]}
 
 
@@ -371,6 +439,41 @@ async def update_job_signal_boost_output(
     return {"output": _serialize_signal_output_owner(updated), "quality_flags": quality}
 
 
+@router.post("/signal-boost/{output_id}/revoke")
+@limiter.limit("20/minute")
+async def revoke_job_signal_boost_output(
+    output_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not signal_boost_store_enabled():
+        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    existing = get_signal_output_by_id(output_id=output_id, candidate_id=user_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Signal Boost output not found")
+
+    if str(existing.get("status") or "").strip() == "archived":
+        return {"output": _serialize_signal_output_owner(existing)}
+
+    updated = update_signal_output(
+        output_id=output_id,
+        candidate_id=user_id,
+        patch={
+            "status": "archived",
+            "published_at": existing.get("published_at"),
+        },
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Signal Boost output not found")
+    return {"output": _serialize_signal_output_owner(updated)}
+
+
 @router.get("/signal-boost/{share_slug}")
 @limiter.limit("120/minute")
 async def get_public_job_signal_boost_output(
@@ -384,6 +487,47 @@ async def get_public_job_signal_boost_output(
         raise HTTPException(status_code=404, detail="Signal Boost output not found")
     record_signal_output_event(output_id=str(output.get("id") or ""), event_type="view", increment=1)
     return {"output": _serialize_signal_output_public(output)}
+
+
+@router.get("/signal-boost/{share_slug}/avatar")
+@limiter.limit("240/minute")
+async def get_public_job_signal_boost_avatar(
+    share_slug: str,
+    request: Request,
+):
+    if not signal_boost_store_enabled():
+        raise HTTPException(status_code=503, detail="Signal Boost store unavailable")
+    output = get_signal_output_by_share_slug(share_slug=share_slug)
+    if not output:
+        raise HTTPException(status_code=404, detail="Signal Boost output not found")
+
+    candidate_snapshot = _build_public_candidate_snapshot(output)
+    avatar_url = _trimmed_text(candidate_snapshot.get("avatar_url"), 4000)
+    if not avatar_url:
+        raise HTTPException(status_code=404, detail="Candidate avatar not found")
+
+    if _should_redirect_public_avatar(avatar_url):
+        return RedirectResponse(url=avatar_url, status_code=307)
+
+    try:
+        fetched = requests.get(
+            avatar_url,
+            timeout=10,
+            headers={"User-Agent": "jobshaman-signal-boost-avatar/1.0"},
+        )
+        fetched.raise_for_status()
+        content_type = str(fetched.headers.get("Content-Type") or "").strip().lower()
+        if not content_type.startswith("image/"):
+            raise HTTPException(status_code=415, detail="Avatar source did not return an image")
+        return Response(
+            content=fetched.content,
+            media_type=content_type,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        return RedirectResponse(url=avatar_url, status_code=307)
 
 
 @router.post("/signal-boost/{output_id}/events")

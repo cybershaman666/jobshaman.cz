@@ -43,6 +43,9 @@ const copyByLocale = {
     sharpen: 'Ještě to zkonkretni',
     shareReady: 'Veřejný link je hotový',
     shareHint: 'Pošli ho spolu s klasickou přihláškou nebo krátkou zprávou náboráři.',
+    shareRevoked: 'Veřejný link je vypnutý',
+    shareRevokedHint: 'Odpověď zůstala uložená, ale veřejná stránka už není dostupná. Kdykoli ji můžeš znovu zveřejnit.',
+    republish: 'Znovu zveřejnit link',
     copyLink: 'Kopírovat link',
     copied: 'Link zkopírován',
     openPublic: 'Otevřít veřejnou stránku',
@@ -98,6 +101,9 @@ const copyByLocale = {
     sharpen: 'Ešte to spresni',
     shareReady: 'Verejný link je hotový',
     shareHint: 'Pošli ho spolu s klasickou prihláškou alebo krátkou správou náborárovi.',
+    shareRevoked: 'Verejný link je vypnutý',
+    shareRevokedHint: 'Odpoveď zostala uložená, ale verejná stránka už nie je dostupná. Kedykoľvek ju môžeš znovu zverejniť.',
+    republish: 'Znovu zverejniť link',
     copyLink: 'Kopírovať link',
     copied: 'Link skopírovaný',
     openPublic: 'Otvoriť verejnú stránku',
@@ -153,6 +159,9 @@ const copyByLocale = {
     sharpen: 'Noch konkreter machen',
     shareReady: 'Der öffentliche Link ist fertig',
     shareHint: 'Senden Sie ihn zusammen mit Ihrer normalen Bewerbung oder einer kurzen Nachricht an das Recruiting-Team.',
+    shareRevoked: 'Der öffentliche Link ist deaktiviert',
+    shareRevokedHint: 'Die Antwort bleibt gespeichert, aber die öffentliche Seite ist nicht mehr erreichbar. Sie können sie jederzeit erneut veröffentlichen.',
+    republish: 'Link erneut veröffentlichen',
     copyLink: 'Link kopieren',
     copied: 'Link kopiert',
     openPublic: 'Öffentliche Seite öffnen',
@@ -208,6 +217,9 @@ const copyByLocale = {
     sharpen: 'Doprecyzuj to jeszcze',
     shareReady: 'Publiczny link jest gotowy',
     shareHint: 'Wyślij go razem ze zwykłym zgłoszeniem albo krótką wiadomością do rekrutera.',
+    shareRevoked: 'Publiczny link jest wyłączony',
+    shareRevokedHint: 'Odpowiedź nadal jest zapisana, ale publiczna strona nie jest już dostępna. W każdej chwili możesz ją ponownie opublikować.',
+    republish: 'Opublikuj link ponownie',
     copyLink: 'Skopiuj link',
     copied: 'Link skopiowany',
     openPublic: 'Otwórz stronę publiczną',
@@ -263,6 +275,9 @@ const copyByLocale = {
     sharpen: 'Make it more concrete',
     shareReady: 'Your public link is ready',
     shareHint: 'Send it with your normal application or a short note to the hiring team.',
+    shareRevoked: 'Your public link is disabled',
+    shareRevokedHint: 'Your response is still saved, but the public page is no longer available. You can republish it anytime.',
+    republish: 'Republish link',
     copyLink: 'Copy link',
     copied: 'Link copied',
     openPublic: 'Open public page',
@@ -688,6 +703,7 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
     const copies = Number(analytics.share_copy || 0);
     return { views, actions, copies };
   }, [publishedOutput?.analytics]);
+  const isArchivedOutput = String(publishedOutput?.status || '').trim() === 'archived';
 
   const completedSectionCount = useMemo(
     () => brief?.structured_sections.filter((section) => String(values[section.id] || '').trim().length > 0).length || 0,
@@ -992,79 +1008,88 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
               ) : null}
 
               {publishedOutput ? (
-                <div className="rounded-[24px] border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-900/30 dark:bg-emerald-950/20">
-                  <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{copy.shareReady}</div>
-                  <p className="mt-2 text-sm leading-7 text-emerald-900/80 dark:text-emerald-100/80">{copy.shareHint}</p>
-                    <div className="mt-4 rounded-[18px] border border-emerald-200/70 bg-white/90 px-4 py-3 text-sm text-slate-700 dark:border-emerald-900/30 dark:bg-slate-950/60 dark:text-slate-200">
-                      <div className="break-all">
-                      {publishedOutput.share_url}
-                      </div>
-                    </div>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <button type="button" onClick={handleCopy} className="app-button-primary min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
-                      <Copy size={16} />
-                      {copied ? copy.copied : copy.copyLink}
-                    </button>
-                    <a
-                      href={publishedOutput.share_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="app-button-dock min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto"
-                    >
-                      <ExternalLink size={16} />
-                      {copy.openPublic}
-                    </a>
+                <div className={`rounded-[24px] p-5 ${isArchivedOutput ? 'border border-slate-300 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-900/70' : 'border border-emerald-200 bg-emerald-50/80 dark:border-emerald-900/30 dark:bg-emerald-950/20'}`}>
+                  <div className={`text-sm font-semibold ${isArchivedOutput ? 'text-slate-900 dark:text-slate-100' : 'text-emerald-900 dark:text-emerald-100'}`}>
+                    {isArchivedOutput ? copy.shareRevoked : copy.shareReady}
                   </div>
-                  <div className="mt-5 rounded-[20px] border border-[var(--border-subtle)] bg-white/85 p-4 dark:bg-slate-950/50">
-                    <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.sendAlongTitle}</div>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.sendAlongBody}</p>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
-                      {job.listingKind === 'imported' ? copy.importedHint : copy.nativeHint}
-                    </p>
-                    <div className="mt-4 rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--text)]">
-                      {shareNote}
-                    </div>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                      <button type="button" onClick={() => void handleCopyMessage()} className="app-button-secondary min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
-                        <Copy size={16} />
-                        {messageCopied ? copy.messageCopied : copy.copyMessage}
-                      </button>
-                      {job.listingKind === 'imported' && String(job.url || publishedOutput.job_snapshot?.url || '').trim() ? (
-                        <button type="button" onClick={handleOpenOriginalListing} className="app-button-dock min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
-                          <ExternalLink size={16} />
-                          {copy.openOriginal}
+                  <p className={`mt-2 text-sm leading-7 ${isArchivedOutput ? 'text-slate-700 dark:text-slate-300' : 'text-emerald-900/80 dark:text-emerald-100/80'}`}>
+                    {isArchivedOutput ? copy.shareRevokedHint : copy.shareHint}
+                  </p>
+
+                  {!isArchivedOutput ? (
+                    <>
+                      <div className="mt-4 rounded-[18px] border border-emerald-200/70 bg-white/90 px-4 py-3 text-sm text-slate-700 dark:border-emerald-900/30 dark:bg-slate-950/60 dark:text-slate-200">
+                        <div className="break-all">
+                          {publishedOutput.share_url}
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <button type="button" onClick={handleCopy} className="app-button-primary min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
+                          <Copy size={16} />
+                          {copied ? copy.copied : copy.copyLink}
                         </button>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="mt-5 rounded-[20px] border border-[var(--border-subtle)] bg-white/85 p-4 dark:bg-slate-950/50">
-                    <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.trackerTitle}</div>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.trackerBody}</p>
-                    <p className="mt-2 text-xs leading-6 text-[var(--text-faint)]">{copy.trackerNotifyHint}</p>
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerShared}</div>
-                        <div className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">{copy.shareReady}</div>
+                        <a
+                          href={publishedOutput.share_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="app-button-dock min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto"
+                        >
+                          <ExternalLink size={16} />
+                          {copy.openPublic}
+                        </a>
                       </div>
-                      <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerViews}</div>
-                        <div className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
-                          {trackerStats.views > 0 ? copy.trackerViewedDone : copy.trackerViewedWaiting}
+                      <div className="mt-5 rounded-[20px] border border-[var(--border-subtle)] bg-white/85 p-4 dark:bg-slate-950/50">
+                        <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.sendAlongTitle}</div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.sendAlongBody}</p>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
+                          {job.listingKind === 'imported' ? copy.importedHint : copy.nativeHint}
+                        </p>
+                        <div className="mt-4 rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--text)]">
+                          {shareNote}
                         </div>
-                        <div className="mt-1 text-xs text-[var(--text-muted)]">{trackerStats.views}</div>
-                      </div>
-                      <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerActions}</div>
-                        <div className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
-                          {trackerStats.actions > 0 ? copy.trackerActionDone : copy.trackerActionWaiting}
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                          <button type="button" onClick={() => void handleCopyMessage()} className="app-button-secondary min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
+                            <Copy size={16} />
+                            {messageCopied ? copy.messageCopied : copy.copyMessage}
+                          </button>
+                          {job.listingKind === 'imported' && String(job.url || publishedOutput.job_snapshot?.url || '').trim() ? (
+                            <button type="button" onClick={handleOpenOriginalListing} className="app-button-dock min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto">
+                              <ExternalLink size={16} />
+                              {copy.openOriginal}
+                            </button>
+                          ) : null}
                         </div>
-                        <div className="mt-1 text-xs text-[var(--text-muted)]">{trackerStats.actions}</div>
                       </div>
-                    </div>
-                    <div className="mt-3 text-xs text-[var(--text-faint)]">
-                      {copy.trackerCopies}: {trackerStats.copies}
-                    </div>
-                  </div>
+                      <div className="mt-5 rounded-[20px] border border-[var(--border-subtle)] bg-white/85 p-4 dark:bg-slate-950/50">
+                        <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.trackerTitle}</div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.trackerBody}</p>
+                        <p className="mt-2 text-xs leading-6 text-[var(--text-faint)]">{copy.trackerNotifyHint}</p>
+                        <div className="mt-4 grid gap-3 md:grid-cols-3">
+                          <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerShared}</div>
+                            <div className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">{copy.shareReady}</div>
+                          </div>
+                          <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerViews}</div>
+                            <div className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
+                              {trackerStats.views > 0 ? copy.trackerViewedDone : copy.trackerViewedWaiting}
+                            </div>
+                            <div className="mt-1 text-xs text-[var(--text-muted)]">{trackerStats.views}</div>
+                          </div>
+                          <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{copy.trackerActions}</div>
+                            <div className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
+                              {trackerStats.actions > 0 ? copy.trackerActionDone : copy.trackerActionWaiting}
+                            </div>
+                            <div className="mt-1 text-xs text-[var(--text-muted)]">{trackerStats.actions}</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 text-xs text-[var(--text-faint)]">
+                          {copy.trackerCopies}: {trackerStats.copies}
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -1079,7 +1104,7 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                   className="app-button-primary min-w-0 justify-center whitespace-normal px-4 py-3 text-center sm:w-auto"
                 >
                   {publishing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {publishing ? copy.publishing : publishedOutput ? copy.sharpen : copy.publish}
+                  {publishing ? copy.publishing : publishedOutput ? (isArchivedOutput ? copy.republish : copy.sharpen) : copy.publish}
                 </button>
               </div>
             </div>

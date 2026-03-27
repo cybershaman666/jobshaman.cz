@@ -306,7 +306,12 @@ def get_latest_published_signal_output_for_candidate_job(*, candidate_id: str, j
     return _normalize_record(row)
 
 
-def list_recent_signal_outputs_for_candidate(*, candidate_id: str, limit: int = 12) -> list[dict[str, Any]]:
+def list_recent_signal_outputs_for_candidate(
+    *,
+    candidate_id: str,
+    limit: int = 12,
+    include_archived: bool = False,
+) -> list[dict[str, Any]]:
     if not signal_boost_store_enabled():
         return []
     normalized_candidate_id = str(candidate_id or "").strip()
@@ -315,17 +320,18 @@ def list_recent_signal_outputs_for_candidate(*, candidate_id: str, limit: int = 
     _ensure_signal_boost_schema()
     conn = _connect()
     row_limit = max(1, min(int(limit or 12), 50))
+    allowed_statuses = ["published", "archived"] if include_archived else ["published"]
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT *
             FROM {_TABLE}
             WHERE candidate_id = %s
-              AND status = %s
-            ORDER BY updated_at DESC, published_at DESC
+              AND status = ANY(%s)
+            ORDER BY updated_at DESC, published_at DESC NULLS LAST
             LIMIT %s
             """,
-            (normalized_candidate_id, "published", row_limit),
+            (normalized_candidate_id, allowed_statuses, row_limit),
         )
         rows = cur.fetchall() or []
     return [item for item in (_normalize_record(row) for row in rows) if item]

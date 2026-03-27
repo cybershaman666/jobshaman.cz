@@ -839,6 +839,8 @@ export interface JobSignalBoostCandidatePublicSnapshot {
   jobTitle?: string | null;
   avatar_url?: string | null;
   linkedin?: string | null;
+  skills?: string[];
+  preferredCountryCode?: string | null;
 }
 
 export interface JobSignalBoostOutput {
