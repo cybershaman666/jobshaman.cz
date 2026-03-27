@@ -93,10 +93,22 @@ interface ProfileEditorProps {
 }
 
 const ProfileJobManager = lazy(() => import('./ProfileJobManager'));
-type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'challenges' | 'settings' | 'saved';
+type ProfileTabKey = 'profile' | 'evidence' | 'work' | 'account' | 'challenges' | 'saved';
 type ProfileLocale = 'cs' | 'sk' | 'de' | 'at' | 'pl' | 'en';
 type ProfileLocaleLabels = { cs: string; en: string; sk?: string; de?: string; at?: string; pl?: string };
 const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
+
+const normalizeProfileTabKey = (value: string | null | undefined): ProfileTabKey | null => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return null;
+  if (normalized === 'personal') return 'profile';
+  if (normalized === 'cv' || normalized === 'jcfpm') return 'evidence';
+  if (normalized === 'settings') return 'work';
+  if (normalized === 'profile' || normalized === 'evidence' || normalized === 'work' || normalized === 'account' || normalized === 'challenges' || normalized === 'saved') {
+    return normalized as ProfileTabKey;
+  }
+  return null;
+};
 
 const getProfileLocale = (localeBase: string): ProfileLocale => (
   ['cs', 'sk', 'de', 'at', 'pl'].includes(localeBase) ? (localeBase as ProfileLocale) : 'en'
@@ -985,7 +997,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [isRepairingPhoto, setIsRepairingPhoto] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>('personal');
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>('profile');
+  const [pendingEvidenceScrollTarget, setPendingEvidenceScrollTarget] = useState<'jcfpm' | null>(null);
   const [isProfileChallengeModalOpen, setIsProfileChallengeModalOpen] = useState(false);
   const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
   const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
@@ -1026,14 +1039,27 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     if (typeof window === 'undefined') return;
     try {
       const requestedTab = window.sessionStorage.getItem(PROFILE_INITIAL_TAB_STORAGE_KEY);
-      if (requestedTab === 'personal' || requestedTab === 'cv' || requestedTab === 'jcfpm' || requestedTab === 'challenges' || requestedTab === 'settings' || requestedTab === 'saved') {
-        setActiveTab(requestedTab);
+      const normalizedTab = normalizeProfileTabKey(requestedTab);
+      if (normalizedTab) {
+        setActiveTab(normalizedTab);
+        if (requestedTab === 'jcfpm') {
+          setPendingEvidenceScrollTarget('jcfpm');
+        }
       }
       window.sessionStorage.removeItem(PROFILE_INITIAL_TAB_STORAGE_KEY);
     } catch {
       // Ignore storage issues and keep the default profile tab.
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'evidence' || pendingEvidenceScrollTarget !== 'jcfpm') return;
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById('profile-jcfpm-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setPendingEvidenceScrollTarget(null);
+    }, 120);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeTab, pendingEvidenceScrollTarget]);
 
   const loadPublishedMiniChallenges = async (options?: { focusJobId?: string | null }) => {
     if (!profile.isLoggedIn) {
@@ -1395,7 +1421,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   useEffect(() => {
     let cancelled = false;
-    if (activeTab !== 'personal') return;
+    if (activeTab !== 'evidence') return;
 
     (async () => {
       setSolutionSnapshotsLoading(true);
@@ -1440,37 +1466,98 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     caption?: string;
   }> = [
       {
-        key: 'personal',
+        key: 'profile',
         icon: User,
         label: t('profile.personal_info', {
           defaultValue: getProfileLocaleLabel({
-            cs: 'Osobní údaje',
-            sk: 'Osobné údaje',
-            de: 'Persönliche Angaben',
-            at: 'Persönliche Angaben',
-            pl: 'Dane osobowe',
-            en: 'Personal details'
+            cs: 'Profil',
+            sk: 'Profil',
+            de: 'Profil',
+            at: 'Profil',
+            pl: 'Profil',
+            en: 'Profile'
+          }, profileLocale)
+        }),
+        caption: t('profile.tab_profile_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Osobní údaje a historie',
+            sk: 'Osobné údaje a história',
+            de: 'Persönliche Daten und Verlauf',
+            at: 'Persönliche Daten und Verlauf',
+            pl: 'Dane i historia',
+            en: 'Personal details and history'
           }, profileLocale)
         })
       },
       {
-        key: 'cv',
+        key: 'evidence',
         icon: FileText,
-        label: t('profile.supporting_context_tab', { defaultValue: supportingContextCopy.tabLabel }),
-        caption: t('profile.supporting_context_tab_caption', { defaultValue: supportingContextCopy.tabCaption })
-      },
-      { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
-      {
-        key: 'settings',
-        icon: Bell,
-        label: t('profile.settings_title', {
+        label: t('profile.evidence_tab', {
           defaultValue: getProfileLocaleLabel({
-            cs: 'Nastavení',
-            sk: 'Nastavenia',
-            de: 'Einstellungen',
-            at: 'Einstellungen',
-            pl: 'Ustawienia',
-            en: 'Settings'
+            cs: 'Důkazy',
+            sk: 'Dôkazy',
+            de: 'Nachweise',
+            at: 'Nachweise',
+            pl: 'Dowody',
+            en: 'Evidence'
+          }, profileLocale)
+        }),
+        caption: t('profile.evidence_tab_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'CV, testy a výstupy',
+            sk: 'CV, testy a výstupy',
+            de: 'CV, Tests und Outputs',
+            at: 'CV, Tests und Outputs',
+            pl: 'CV, testy i wyniki',
+            en: 'CV, tests and outputs'
+          }, profileLocale)
+        })
+      },
+      {
+        key: 'work',
+        icon: SlidersHorizontal,
+        label: t('profile.work_settings_title', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Pracovní nastavení',
+            sk: 'Pracovné nastavenia',
+            de: 'Arbeitspräferenzen',
+            at: 'Arbeitspräferenzen',
+            pl: 'Ustawienia pracy',
+            en: 'Work settings'
+          }, profileLocale)
+        }),
+        caption: t('profile.work_settings_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Feed, směr a podmínky',
+            sk: 'Feed, smer a podmienky',
+            de: 'Feed, Richtung und Rahmen',
+            at: 'Feed, Richtung und Rahmen',
+            pl: 'Feed, kierunek i warunki',
+            en: 'Feed, direction and constraints'
+          }, profileLocale)
+        })
+      },
+      {
+        key: 'account',
+        icon: Bell,
+        label: t('profile.account_tab_title', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'Účet',
+            sk: 'Účet',
+            de: 'Konto',
+            at: 'Konto',
+            pl: 'Konto',
+            en: 'Account'
+          }, profileLocale)
+        }),
+        caption: t('profile.account_tab_caption', {
+          defaultValue: getProfileLocaleLabel({
+            cs: 'E-mail, notifikace a bezpečnost',
+            sk: 'E-mail, notifikácie a bezpečnosť',
+            de: 'E-Mail, Benachrichtigungen und Sicherheit',
+            at: 'E-Mail, Benachrichtigungen und Sicherheit',
+            pl: 'E-mail, powiadomienia i bezpieczeństwo',
+            en: 'Email, notifications, and security'
           }, profileLocale)
         })
       },
@@ -1519,11 +1606,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         })
       },
     ];
-  const isPersonalTab = activeTab === 'personal';
-  const isCvTab = activeTab === 'cv';
-  const isJcfpmTab = activeTab === 'jcfpm';
+  const isProfileTab = activeTab === 'profile';
+  const isEvidenceTab = activeTab === 'evidence';
+  const isWorkTab = activeTab === 'work';
+  const isAccountTab = activeTab === 'account';
   const isChallengesTab = activeTab === 'challenges';
-  const isSettingsTab = activeTab === 'settings';
   const profileInputClass = 'w-full rounded-[0.9rem] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.22)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.06)] dark:[color-scheme:dark]';
   const profileCompactInputClass = 'w-full rounded-[0.85rem] border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-[var(--text-strong)] outline-none transition focus:border-[rgba(var(--accent-rgb),0.22)] focus:ring-4 focus:ring-[rgba(var(--accent-rgb),0.06)] dark:[color-scheme:dark]';
   const profileIconButtonClass = 'rounded-[0.85rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]';
@@ -1643,7 +1730,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const inferredIntentAvailable = Boolean(resolvedIntentProfile.inferredPrimaryDomain || resolvedIntentProfile.inferredTargetRole);
   const hasManualIntent = Boolean(formData.searchProfile.primaryDomain || formData.searchProfile.targetRole || formData.searchProfile.seniority);
   const focusIntentSetup = () => {
-    setActiveTab('settings');
+    setActiveTab('work');
     window.setTimeout(() => {
       intentSetupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 80);
@@ -1666,7 +1753,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   }, [hasManualIntent]);
 
-  const renderAiGuidePanel = isCvTab ? (
+  const renderAiGuidePanel = isEvidenceTab ? (
     <div className="h-full overflow-hidden rounded-[1.05rem] border border-[rgba(var(--accent-rgb),0.18)] bg-[linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.98))] shadow-[var(--shadow-card)] dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.32),rgba(10,18,32,0.96))]">
       <div className="border-b border-[rgba(var(--accent-rgb),0.16)] bg-white/70 px-5 py-4 dark:bg-[rgba(var(--accent-rgb),0.04)]">
         <div className="flex flex-wrap items-center gap-2">
@@ -1881,7 +1968,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     </div>
   ) : null;
 
-  const renderIntentSetupPanel = isSettingsTab ? (
+  const renderIntentSetupPanel = isWorkTab ? (
     <div
       ref={intentSetupRef}
       className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]"
@@ -2101,7 +2188,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     </div>
   ) : null;
 
-  const renderPremiumSearchSetupPanel = isSettingsTab ? (
+  const renderPremiumSearchSetupPanel = isWorkTab ? (
     <div className="rounded-[1.1rem] border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
@@ -3376,7 +3463,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
         {/* Tabs */}
         <div className={`${profileSurfaceClass} p-2.5`}>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
             {profileTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
@@ -3412,7 +3499,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         {activeTab !== 'saved' ? (
           <>
 
-            {isPersonalTab && (
+            {isProfileTab && (
               <>
                 {/* Personal Information Section */}
                 <div className={profileSurfaceClass}>
@@ -3561,7 +3648,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </>
             )}
 
-            {isCvTab && (
+            {isEvidenceTab && (
               <>
                 <div className="grid grid-cols-1 2xl:grid-cols-5 gap-6 items-start">
                   <div className="2xl:col-span-2">
@@ -3652,7 +3739,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </>
             )}
 
-            {isCvTab && (
+            {isProfileTab && (
               <>
                 {/* Work Experience Section */}
                 <div className={profileSurfaceClass}>
@@ -3977,10 +4064,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               />
             )}
 
-            {isSettingsTab && (
+            {isWorkTab && (
               <>
-                {renderPremiumSearchSetupPanel}
                 {renderIntentSetupPanel}
+                {renderPremiumSearchSetupPanel}
 
                 <div className={profileSurfaceClass}>
                   <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -4656,12 +4743,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </>
             )}
 
-            {isJcfpmTab && (
+            {isEvidenceTab && (
               <div id="jcfpm-card" className={jcfpmSurfaceClass}>
-                <div className="border-b border-slate-200/80 bg-gradient-to-r from-white/90 via-amber-50/75 to-cyan-50/65 p-5 dark:border-slate-800/80 dark:bg-gradient-to-r dark:from-slate-950/80 dark:via-slate-900/80 dark:to-slate-950/70">
+                <div className="border-b border-slate-200/80 bg-gradient-to-r from-white/92 via-cyan-50/70 to-slate-50 p-5 dark:border-slate-800/80 dark:bg-gradient-to-r dark:from-slate-950/80 dark:via-slate-900/80 dark:to-slate-950/70">
                   <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-white">
                     Career Fit & Potential Test
-                    <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-600 dark:text-amber-50">
+                    <span className="ml-2 inline-block rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-medium text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-100">
                       &bull; test
                     </span>
                   </h2>
@@ -4669,7 +4756,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     {profilePremiumCopy.jcfpmSummary}
                   </p>
                 </div>
-                <div className="space-y-5 bg-[linear-gradient(180deg,rgba(255,250,240,0.86),rgba(248,250,252,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.22),rgba(10,18,32,0.96))]">
+                <div className="space-y-5 bg-[linear-gradient(180deg,rgba(247,252,255,0.92),rgba(248,250,252,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(14,28,36,0.3),rgba(10,18,32,0.96))]">
                   <JcfpmEntryCard
                     isPremium={isPremium}
                     sceneCapability={sceneCapability}
@@ -4719,7 +4806,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                               },
                             }, true);
                           }}
-                          className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-900"
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 dark:border-slate-600 dark:bg-slate-900"
                         />
                         <div>
                           <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -5165,7 +5252,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {isSettingsTab && (
+            {isAccountTab && (
               <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
@@ -5219,7 +5306,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {isSettingsTab && (
+            {isAccountTab && (
               <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
@@ -5379,7 +5466,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {isSettingsTab && profile.isLoggedIn && (
+            {isAccountTab && profile.isLoggedIn && (
               <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
@@ -5466,7 +5553,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {isPersonalTab && showSolvedProblemsSection && (
+            {isEvidenceTab && showSolvedProblemsSection && (
               <div className={`${profileSurfaceClass} mt-8`}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
@@ -5612,7 +5699,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {isSettingsTab && (
+            {isAccountTab && (
               <>
                 {/* Danger Zone */}
                 <div className="overflow-hidden rounded-[1.05rem] border-2 border-red-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-red-900/30 dark:bg-slate-800/95">

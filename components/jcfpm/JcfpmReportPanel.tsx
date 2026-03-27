@@ -50,17 +50,17 @@ const itemVariants = {
 };
 
 const DIM_ICONS: Record<string, React.ReactNode> = {
-  d1_cognitive: <Brain className="w-5 h-5 text-amber-500" />,
-  d2_social: <Users className="w-5 h-5 text-amber-500" />,
-  d3_motivational: <Flame className="w-5 h-5 text-orange-500" />,
-  d4_energy: <Zap className="w-5 h-5 text-amber-500" />,
+  d1_cognitive: <Brain className="w-5 h-5 text-cyan-600" />,
+  d2_social: <Users className="w-5 h-5 text-cyan-600" />,
+  d3_motivational: <Flame className="w-5 h-5 text-teal-600" />,
+  d4_energy: <Zap className="w-5 h-5 text-cyan-600" />,
   d5_values: <Heart className="w-5 h-5 text-rose-500" />,
-  d6_ai_readiness: <Cpu className="w-5 h-5 text-amber-600" />,
-  d7_cognitive_reflection: <Target className="w-5 h-5 text-amber-600" />,
-  d8_digital_eq: <MessageCircle className="w-5 h-5 text-amber-500" />,
-  d9_systems_thinking: <Compass className="w-5 h-5 text-amber-500" />,
-  d10_ambiguity_interpretation: <AlertTriangle className="w-5 h-5 text-amber-500" />,
-  d11_problem_decomposition: <Activity className="w-5 h-5 text-amber-500" />,
+  d6_ai_readiness: <Cpu className="w-5 h-5 text-cyan-700" />,
+  d7_cognitive_reflection: <Target className="w-5 h-5 text-cyan-700" />,
+  d8_digital_eq: <MessageCircle className="w-5 h-5 text-cyan-600" />,
+  d9_systems_thinking: <Compass className="w-5 h-5 text-cyan-600" />,
+  d10_ambiguity_interpretation: <AlertTriangle className="w-5 h-5 text-cyan-600" />,
+  d11_problem_decomposition: <Activity className="w-5 h-5 text-cyan-600" />,
   d12_moral_compass: <CheckCircle2 className="w-5 h-5 text-slate-700 dark:text-slate-300" />
 };
 
@@ -419,7 +419,7 @@ const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, 
   const [open, setOpen] = useState(false);
   return (
     <div
-      className={`jcfpm-avoid-break bg-white dark:bg-slate-900 rounded-xl border shadow-sm transition-all mb-3 print:!border-slate-200 print:!shadow-none print:!ring-0 ${open ? 'border-amber-300 dark:border-amber-700 ring-2 ring-amber-50 dark:ring-amber-500/10' : 'border-slate-200 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-900/50'}`}
+      className={`jcfpm-avoid-break bg-white dark:bg-slate-900 rounded-xl border shadow-sm transition-all mb-3 print:!border-slate-200 print:!shadow-none print:!ring-0 ${open ? 'border-cyan-300 dark:border-cyan-700 ring-2 ring-cyan-50 dark:ring-cyan-500/10' : 'border-slate-200 dark:border-slate-800 hover:border-cyan-200 dark:hover:border-cyan-900/50'}`}
     >
       <div
         onClick={() => setOpen(!open)}
@@ -432,7 +432,7 @@ const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, 
           <div className="flex-1">
             <div className="font-semibold text-slate-800 dark:text-slate-100 text-sm md:text-base">{dimMeta.title}</div>
             <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] sm:text-xs">
-              <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded font-medium border border-amber-100 dark:border-amber-900/30 print:!bg-white print:!text-slate-900 print:!border-slate-300">{row.raw_score} / {maxItemScore}</span>
+              <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded font-medium border border-cyan-100 dark:border-cyan-900/30 print:!bg-white print:!text-slate-900 print:!border-slate-300">{row.raw_score} / {maxItemScore}</span>
               <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded font-medium border border-slate-200 dark:border-slate-700 print:!bg-white print:!text-slate-900 print:!border-slate-300">{row.percentile}. {labels.percentileLabel}</span>
               <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 px-2 py-0.5 rounded uppercase tracking-wider border border-slate-200 dark:border-slate-800 print:!bg-white print:!text-slate-900 print:!border-slate-300">{labels.bandLabels?.[row.percentile_band] || row.percentile_band}</span>
             </div>
@@ -440,11 +440,11 @@ const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, 
         </div>
         <div className="w-1/4 px-4 hidden md:block shrink-0 print:!hidden">
           <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: `${normalized}%` }} />
+            <div className="h-full bg-cyan-500 rounded-full transition-all duration-1000" style={{ width: `${normalized}%` }} />
           </div>
         </div>
         <div className="text-slate-400 pl-4 sm:border-l border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-end print:hidden">
-          {open ? <ChevronUp size={20} className="text-amber-500" /> : <ChevronDown size={20} />}
+          {open ? <ChevronUp size={20} className="text-cyan-500" /> : <ChevronDown size={20} />}
         </div>
       </div>
       <div
@@ -453,7 +453,7 @@ const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, 
       >
         <div className="p-5 text-sm text-slate-700 dark:text-slate-300 space-y-4 print:p-2">
           <div className="flex gap-3 items-start">
-            <div className="mt-0.5 shrink-0 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 p-1.5 rounded-md print:hidden"><Info size={16} /></div>
+            <div className="mt-0.5 shrink-0 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-300 p-1.5 rounded-md print:hidden"><Info size={16} /></div>
             <p className="leading-relaxed"><span className="font-semibold text-slate-800 dark:text-slate-100 block mb-1">{labels.shortSummary}</span>{shortDesc}</p>
           </div>
           <div className="flex gap-3 items-start">
@@ -1095,8 +1095,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
         </div>
       </div>
       {!showAdvancedReport && (
-        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-amber-50 to-amber-50 dark:from-slate-800 dark:to-slate-900">
+        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-[1.75rem] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.28)] overflow-hidden mt-6">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-white via-cyan-50/70 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {({ cs: 'Základní výstup (free)', en: 'Basic results (free)', de: 'Basis-Ergebnis (free)', at: 'Basis-Ergebnis (free)', pl: 'Wynik podstawowy (free)', sk: 'Základný výsledok (free)' } as Record<string, string>)[locale] || 'Basic results (free)'}
             </h2>
@@ -1130,13 +1130,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           {/* 🔮 Archetype Hero Section */}
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/20 shadow-2xl bg-gradient-to-br from-white via-amber-50/70 to-amber-50/60 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-xl group"
+            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 shadow-[0_28px_80px_-42px_rgba(15,23,42,0.35)] bg-gradient-to-br from-white via-cyan-50/55 to-slate-50 dark:from-slate-950/78 dark:via-slate-900/84 dark:to-slate-950/72 backdrop-blur-xl group"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-amber-500/10 opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-teal-500/10 opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
             <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
               <div className="shrink-0 relative">
-                <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full" />
-                <div className="relative w-32 h-32 md:w-40 md:h-40 bg-white/80 dark:bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/70 dark:border-white/30 flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                <div className="absolute inset-0 bg-cyan-500/18 blur-3xl rounded-full" />
+                <div className="relative w-32 h-32 md:w-40 md:h-40 bg-white/84 dark:bg-white/8 backdrop-blur-2xl rounded-[2rem] border border-white/70 dark:border-white/20 flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                   {React.createElement(
                     (DIM_ICONS as any)[archetype.icon.toLowerCase()] ||
                     (archetype.icon === 'Rocket' ? Rocket :
@@ -1146,12 +1146,12 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                             archetype.icon === 'Activity' ? Activity :
                               archetype.icon === 'Compass' ? Compass :
                                 archetype.icon === 'ShieldCheck' ? ShieldCheck : Rocket),
-                    { className: "w-16 h-16 md:w-20 md:h-20 text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.35)]" }
+                    { className: "w-16 h-16 md:w-20 md:h-20 text-cyan-500 drop-shadow-[0_0_15px_rgba(6,182,212,0.28)]" }
                   )}
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left space-y-4">
-                <div className="inline-flex px-4 py-1.5 rounded-full bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold uppercase tracking-widest animate-pulse">
+                <div className="inline-flex px-4 py-1.5 rounded-full bg-cyan-500/12 dark:bg-cyan-500/18 border border-cyan-500/25 text-cyan-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-widest">
                   {labels.archetypeTitle}
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase leading-none">
@@ -1165,10 +1165,10 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           </motion.div>
 
           {/* 🚀 AI Interpretation Cards */}
-          <motion.div variants={itemVariants} className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/40 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-lg shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] print:mt-0 print:border-none print:shadow-none">
-            <div className="bg-gradient-to-r from-amber-50 to-amber-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
+          <motion.div variants={itemVariants} className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/30 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-lg shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] print:mt-0 print:border-none print:shadow-none">
+            <div className="bg-gradient-to-r from-white via-cyan-50/65 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-600 text-white rounded-lg shadow-sm print:bg-black">
+                <div className="p-2 bg-cyan-600 text-white rounded-lg shadow-sm print:bg-black">
                   <Rocket className="w-5 h-5" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 print:text-black">{labels.profileSummary}</h2>
@@ -1215,26 +1215,26 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
             </div>
             <div className="p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-3 print:text-black">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-semibold mb-3 print:text-black">
                   <Award className="w-5 h-5" /> {labels.strengths}
                 </div>
                 <ul className="space-y-3">
                   {aiReportResolved.strengths.map((item, idx) => (
-                    <li key={`str-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-amber-50/50 dark:bg-amber-500/5 p-2.5 rounded-lg border border-amber-100/50 dark:border-amber-500/10 print:bg-none print:border-none print:p-0">
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 print:bg-black"></span> {item}
+                    <li key={`str-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-cyan-50/55 dark:bg-cyan-500/5 p-2.5 rounded-lg border border-cyan-100/60 dark:border-cyan-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5 print:bg-black"></span> {item}
                     </li>
                   ))}
                 </ul>
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-3 print:text-black">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-semibold mb-3 print:text-black">
                   <MapIcon className="w-5 h-5" /> {labels.idealEnvironment}
                 </div>
                 <ul className="space-y-3">
                   {aiReportResolved.ideal_environment.map((item, idx) => (
-                    <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-amber-50/50 dark:bg-amber-500/5 p-2.5 rounded-lg border border-amber-100/50 dark:border-amber-500/10 print:bg-none print:border-none print:p-0">
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 print:bg-black"></span> {item}
+                    <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-cyan-50/55 dark:bg-cyan-500/5 p-2.5 rounded-lg border border-cyan-100/60 dark:border-cyan-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5 print:bg-black"></span> {item}
                     </li>
                   ))}
                 </ul>
@@ -1255,19 +1255,19 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
             </div>
             <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col md:flex-row gap-6 print:bg-none print:border-none">
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-2 print:text-black">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-semibold mb-2 print:text-black">
                   <Lightbulb className="w-5 h-5" /> {labels.aiReadinessTitle}
                 </div>
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed print:text-black">{aiReportResolved.ai_readiness}</p>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold mb-2 print:text-black">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-semibold mb-2 print:text-black">
                   <MapPin className="w-5 h-5" /> {labels.nextSteps}
                 </div>
                 <ul className="space-y-1.5">
                   {aiReportResolved.next_steps.map((item, idx) => (
                     <li key={`next-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2 print:text-black">
-                      <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 print:text-black" /> {item}
+                      <CheckCircle2 className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5 print:text-black" /> {item}
                     </li>
                   ))}
                 </ul>
@@ -1276,14 +1276,14 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           </motion.div>
 
           {(bigFive || temperament) && (
-            <motion.div variants={itemVariants} className="mt-8 rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/30 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] jcfpm-avoid-break print:border-slate-300 print:shadow-none">
+            <motion.div variants={itemVariants} className="mt-8 rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/24 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] jcfpm-avoid-break print:border-slate-300 print:shadow-none">
               <div className="flex items-center justify-between gap-4 mb-5">
                 <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg print:text-black">
-                  <BarChart3 className="w-5 h-5 text-amber-500 print:text-black" />
+                  <BarChart3 className="w-5 h-5 text-cyan-500 print:text-black" />
                   {labels.temperamentBigFive}
                 </div>
                 {temperament && (
-                  <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-100 print:bg-white print:text-black print:border-slate-300">
+                  <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-cyan-50 text-cyan-700 border border-cyan-100 print:bg-white print:text-black print:border-slate-300">
                     {labels.temperamentLabels?.[temperament.label] || temperament.label}
                   </div>
                 )}
@@ -1292,8 +1292,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
               <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="space-y-3">
                   {(bigFive ? [
-                    { label: labels.bigFiveLabels[0], value: bigFive.openness, color: 'bg-amber-500' },
-                    { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-amber-500' },
+                    { label: labels.bigFiveLabels[0], value: bigFive.openness, color: 'bg-cyan-500' },
+                    { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-cyan-500' },
                     { label: labels.bigFiveLabels[2], value: bigFive.extraversion, color: 'bg-orange-500' },
                     { label: labels.bigFiveLabels[3], value: bigFive.agreeableness, color: 'bg-lime-500' },
                     { label: labels.bigFiveLabels[4], value: bigFive.neuroticism, color: 'bg-rose-500' },
@@ -1332,7 +1332,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 print:text-black">
-              <Briefcase className="w-5 h-5 text-amber-500 print:text-black" />
+              <Briefcase className="w-5 h-5 text-cyan-500 print:text-black" />
               {labels.topRoles}
             </h3>
             <div className="jcfpm-roles-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1342,24 +1342,24 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                   <motion.div
                     whileHover={{ y: -8, scale: 1.02 }}
                     key={`${role.title}-${idx}`}
-                    className="jcfpm-avoid-break relative rounded-3xl border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/35 dark:from-slate-950/60 dark:via-slate-900/75 dark:to-slate-950/70 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.28)] transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
+                    className="jcfpm-avoid-break relative rounded-3xl border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/24 dark:from-slate-950/60 dark:via-slate-900/75 dark:to-slate-950/70 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.28)] transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/8 via-transparent to-amber-500/8 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/8 via-transparent to-teal-500/8 opacity-70 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 h-full flex flex-col">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight print:text-black">{role.title}</h4>
-                        <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-4 border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold text-sm print:border-slate-200 print:text-black">
+                        <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-4 border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 font-bold text-sm print:border-slate-200 print:text-black">
                           {fitScore}%
                         </div>
                       </div>
 
                       <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden print:border print:border-slate-200">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: `${fitScore}%` }} />
+                        <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${fitScore}%` }} />
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {role.ai_impact && <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-amber-100 dark:border-amber-900/30 print:border-slate-300 print:text-black">AI: {role.ai_impact}</span>}
-                        {role.remote_friendly && <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-amber-100 dark:border-amber-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
+                        {role.ai_impact && <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-cyan-100 dark:border-cyan-900/30 print:border-slate-300 print:text-black">AI: {role.ai_impact}</span>}
+                        {role.remote_friendly && <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-cyan-100 dark:border-cyan-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
                       </div>
 
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-auto pt-3 border-t border-slate-200/80 dark:border-white/5 print:border-slate-200 print:text-black">
@@ -1374,9 +1374,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           {/* 🕸 Radar & Bridge section */}
           <motion.div variants={itemVariants} className="mt-8 grid lg:grid-cols-[1.2fr_1fr] gap-8 print:grid-cols-1 jcfpm-page-break-before">
-            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] print:border-slate-300 print:shadow-none">
+            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/20 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] print:border-slate-300 print:shadow-none">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
-                <Activity className="w-5 h-5 text-amber-500 print:text-black" />
+                <Activity className="w-5 h-5 text-cyan-500 print:text-black" />
                 {labels.radarTitle}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.radarSubtitle}</p>
@@ -1392,24 +1392,24 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                       <text x={axis.labelX} y={axis.labelY} fill="currentColor" className="text-slate-500 dark:text-slate-400 print:text-slate-900" fontSize="10px" fontWeight="600" textAnchor="middle" transform={`translate(0, 4)`}>{axis.label}</text>
                     </g>
                   ))}
-                  <polygon points={radarGeometry.standardPoints} fill="rgba(245, 158, 11, 0.15)" stroke="#d97706" strokeWidth="2" className="transition-all duration-1000" />
+                  <polygon points={radarGeometry.standardPoints} fill="rgba(6, 182, 212, 0.15)" stroke="#0891b2" strokeWidth="2" className="transition-all duration-1000" />
                   <polygon points={radarGeometry.deepPoints} fill="rgba(16, 185, 129, 0.15)" stroke="#059669" strokeWidth="2" className="transition-all duration-1000" />
                 </svg>
               </div>
 
               <div className="mt-4 flex justify-center items-center gap-4 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 print:text-black print:border-slate-300">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 print:bg-black"></span> {labels.baseProfile}
+                <span className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-500/10 px-3 py-1.5 rounded-full border border-cyan-100 dark:border-cyan-900/30 print:text-black print:border-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 print:bg-black"></span> {labels.baseProfile}
                 </span>
-                <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 print:text-black print:border-slate-300">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 print:bg-black"></span> {labels.practicalSkills}
+                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/30 print:text-black print:border-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 print:bg-black"></span> {labels.practicalSkills}
                 </span>
               </div>
             </div>
 
-            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-amber-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
+            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/20 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
-                <ShieldCheck className="w-5 h-5 text-amber-500 print:text-black" />
+                <ShieldCheck className="w-5 h-5 text-cyan-500 print:text-black" />
                 {labels.alignmentTitle}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.alignmentSubtitle}</p>
@@ -1427,8 +1427,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                         initial={{ left: '50%' }}
                         animate={{ left: `${50 + bar.offsetPct * 0.45}%` }}
                         transition={{ duration: 1, delay: 0.2 }}
-                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-amber-500' :
-                          bar.status === 'overestimation' ? 'bg-rose-500' : 'bg-amber-500'
+                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-cyan-500' :
+                          bar.status === 'overestimation' ? 'bg-rose-500' : 'bg-cyan-500'
                           } print:border-black`}
                       />
                     </div>
@@ -1448,7 +1448,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           {/* 📚 Detailed Analysis Accordion List */}
           <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before px-2">
             <h3 className="text-xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter mb-6 flex items-center gap-3 print:text-black">
-              <Crosshair className="w-6 h-6 text-amber-500 dark:text-amber-300 print:text-black" />
+              <Crosshair className="w-6 h-6 text-cyan-500 dark:text-cyan-300 print:text-black" />
               {labels.detailedAnalysis}
             </h3>
             <motion.div variants={containerVariants}>
@@ -1484,7 +1484,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           {/* 💡 How to Read Results Info Box */}
           <motion.div variants={itemVariants} className="mt-6 print:hidden">
-            <button onClick={() => setShowHowToRead(!showHowToRead)} className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+            <button onClick={() => setShowHowToRead(!showHowToRead)} className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
               <Info size={16} /> {labels.howToRead} {showHowToRead ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
 
