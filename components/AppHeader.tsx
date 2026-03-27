@@ -336,6 +336,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   ];
 
   const submitDiscoverySearch = () => {
+    ensureDiscoverySearchSurface(false);
+    performSearch(searchTerm);
+    window.setTimeout(() => {
+      document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const ensureDiscoverySearchSurface = (scrollToResults: boolean = false) => {
     if (leaveDemoHandshakeRoute()) return;
     if (leaveStandaloneRoute()) return;
     if (isAdminRoute()) {
@@ -351,10 +359,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setDiscoveryLane?.('challenges');
     setDiscoverySearchMode?.(true);
     setViewState(ViewState.LIST);
-    performSearch(searchTerm);
-    window.setTimeout(() => {
-      document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
+    if (scrollToResults) {
+      window.setTimeout(() => {
+        document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
   };
 
   const discoveryAccentStyle = useMemo((): React.CSSProperties | undefined => {
@@ -767,7 +776,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             filterBenefits={filterBenefits}
             setFilterBenefits={setFilterBenefits}
             benefitCandidates={benefitCandidates}
-            onSubmit={submitDiscoverySearch}
+            onLiveChange={() => ensureDiscoverySearchSurface(false)}
           />
         </div>
       </div>

@@ -1978,7 +1978,7 @@ export const SearchCockpit: React.FC<{
   filterBenefits: string[];
   setFilterBenefits: (values: string[]) => void;
   benefitCandidates: string[];
-  onSubmit: () => void;
+  onLiveChange: () => void;
 }> = ({
   open,
   onClose,
@@ -2013,10 +2013,24 @@ export const SearchCockpit: React.FC<{
   filterBenefits,
   setFilterBenefits,
   benefitCandidates,
-  onSubmit,
+  onLiveChange,
 }) => {
   const { t } = useTranslation();
   if (!open) return null;
+
+  const activateLiveDiscovery = () => {
+    onLiveChange();
+  };
+
+  const activateCommuteRadius = (distanceKm?: number) => {
+    setGlobalSearch(false);
+    setAbroadOnly(false);
+    setEnableCommuteFilter(true);
+    if (typeof distanceKm === 'number') {
+      setFilterMaxDistance(distanceKm);
+    }
+    activateLiveDiscovery();
+  };
 
   const combinedBenefits = Array.from(
     new Map(
@@ -2074,6 +2088,7 @@ export const SearchCockpit: React.FC<{
                   setFilterExperience([]);
                   setFilterLanguageCodes([]);
                   setFilterBenefits([]);
+                  activateLiveDiscovery();
                 }}
                 className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/55 px-3 py-2 text-xs font-semibold text-slate-700 backdrop-blur-xl transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
               >
@@ -2101,8 +2116,7 @@ export const SearchCockpit: React.FC<{
                   setDiscoveryMode('all');
                   setRemoteOnly(false);
                   setFilterWorkArrangement('all');
-                  setEnableCommuteFilter(true);
-                  setFilterMaxDistance(20);
+                  activateCommuteRadius(20);
                 }}
                 className={cn(filterChipClass, enableCommuteFilter && filterMaxDistance <= 20 ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
               >
@@ -2113,8 +2127,11 @@ export const SearchCockpit: React.FC<{
                 onClick={() => {
                   setDiscoveryMode('all');
                   setRemoteOnly(false);
+                  setGlobalSearch(false);
+                  setAbroadOnly(false);
                   setFilterWorkArrangement('remote');
                   setEnableCommuteFilter(false);
+                  activateLiveDiscovery();
                 }}
                 className={cn(filterChipClass, selectedWorkArrangement === 'remote' && !enableCommuteFilter ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
               >
@@ -2125,6 +2142,7 @@ export const SearchCockpit: React.FC<{
                 onClick={() => {
                   setDiscoveryMode('all');
                   setFilterMinSalary(60000);
+                  activateLiveDiscovery();
                 }}
                 className={cn(filterChipClass, filterMinSalary >= 60000 ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
               >
@@ -2140,7 +2158,10 @@ export const SearchCockpit: React.FC<{
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Search' })}</span>
                   <input
                     value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
+                    onChange={(event) => {
+                      setSearchTerm(event.target.value);
+                      activateLiveDiscovery();
+                    }}
                     placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, mission, company' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
@@ -2149,7 +2170,12 @@ export const SearchCockpit: React.FC<{
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.city', { defaultValue: 'City / Location' })}</span>
                   <input
                     value={filterCity}
-                    onChange={(event) => setFilterCity(event.target.value)}
+                    onChange={(event) => {
+                      setFilterCity(event.target.value);
+                      setGlobalSearch(false);
+                      setAbroadOnly(false);
+                      activateLiveDiscovery();
+                    }}
                     placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'Prague, Vienna...' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
@@ -2168,7 +2194,7 @@ export const SearchCockpit: React.FC<{
                     max={120}
                     step={5}
                     value={filterMaxDistance}
-                    onChange={(event) => setFilterMaxDistance(Number(event.target.value))}
+                    onChange={(event) => activateCommuteRadius(Number(event.target.value))}
                     className="careeros-cyan-range w-full"
                   />
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -2176,7 +2202,7 @@ export const SearchCockpit: React.FC<{
                       <button
                         key={value}
                         type="button"
-                        onClick={() => setFilterMaxDistance(value)}
+                        onClick={() => activateCommuteRadius(value)}
                         className={cn(
                           filterChipClass,
                           filterMaxDistance === value ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
@@ -2196,10 +2222,13 @@ export const SearchCockpit: React.FC<{
                       { id: 'micro_jobs' as const, label: t('careeros.filters.scope_mini', { defaultValue: 'Mini challenges' }) },
                     ].map((item) => (
                       <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setDiscoveryMode(item.id)}
-                        className={cn(
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setDiscoveryMode(item.id);
+                        activateLiveDiscovery();
+                      }}
+                      className={cn(
                           filterChipClass,
                           discoveryMode === item.id ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
                         )}
@@ -2215,7 +2244,10 @@ export const SearchCockpit: React.FC<{
                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Transport mode' })}</div>
                 <TransportModeSelector
                   selectedMode={transportMode}
-                  onModeChange={setTransportMode}
+                  onModeChange={(value) => {
+                    setTransportMode(value);
+                    activateLiveDiscovery();
+                  }}
                   compact
                 />
               </div>
@@ -2227,7 +2259,10 @@ export const SearchCockpit: React.FC<{
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setFilterMinSalary(value)}
+                      onClick={() => {
+                        setFilterMinSalary(value);
+                        activateLiveDiscovery();
+                      }}
                       className={cn(
                         filterChipClass,
                           filterMinSalary === value ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
@@ -2258,6 +2293,7 @@ export const SearchCockpit: React.FC<{
                       onClick={() => {
                         setRemoteOnly(false);
                         setFilterWorkArrangement(active ? 'all' : value);
+                        activateLiveDiscovery();
                       }}
                       className={cn(
                         'rounded-2xl border px-4 py-3 text-sm font-semibold transition',
@@ -2290,15 +2326,18 @@ export const SearchCockpit: React.FC<{
                         if (value === 'domestic') {
                           setGlobalSearch(false);
                           setEnableCommuteFilter(false);
+                          activateLiveDiscovery();
                           return;
                         }
                         if (value === 'border') {
                           setGlobalSearch(false);
                           setEnableCommuteFilter(true);
+                          activateLiveDiscovery();
                           return;
                         }
                         setGlobalSearch(true);
                         setEnableCommuteFilter(false);
+                        activateLiveDiscovery();
                       }}
                       className={cn(
                         'rounded-2xl border px-4 py-3 text-sm font-semibold transition',
@@ -2321,7 +2360,10 @@ export const SearchCockpit: React.FC<{
                     key={value}
                     type="button"
                     onClick={() =>
-                      setFilterContractType(active ? filterContractType.filter((item) => item !== value) : [...filterContractType, value])
+                      {
+                        setFilterContractType(active ? filterContractType.filter((item) => item !== value) : [...filterContractType, value]);
+                        activateLiveDiscovery();
+                      }
                     }
                     className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
                   >
@@ -2340,7 +2382,10 @@ export const SearchCockpit: React.FC<{
                     key={value}
                     type="button"
                     onClick={() =>
-                      setFilterExperience(active ? filterExperience.filter((item) => item !== value) : [...filterExperience, value])
+                      {
+                        setFilterExperience(active ? filterExperience.filter((item) => item !== value) : [...filterExperience, value]);
+                        activateLiveDiscovery();
+                      }
                     }
                     className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
                   >
@@ -2359,7 +2404,10 @@ export const SearchCockpit: React.FC<{
                     key={value}
                     type="button"
                     onClick={() =>
-                      setFilterLanguageCodes(active ? filterLanguageCodes.filter((item) => item !== value) : [...filterLanguageCodes, value])
+                      {
+                        setFilterLanguageCodes(active ? filterLanguageCodes.filter((item) => item !== value) : [...filterLanguageCodes, value]);
+                        activateLiveDiscovery();
+                      }
                     }
                     className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
                   >
@@ -2378,7 +2426,10 @@ export const SearchCockpit: React.FC<{
                     key={benefit.key}
                     type="button"
                     onClick={() =>
-                      setFilterBenefits(active ? filterBenefits.filter((item) => item !== benefit.key) : [...filterBenefits, benefit.key])
+                      {
+                        setFilterBenefits(active ? filterBenefits.filter((item) => item !== benefit.key) : [...filterBenefits, benefit.key]);
+                        activateLiveDiscovery();
+                      }
                     }
                     className={cn(
                       filterChipClass,
@@ -2394,14 +2445,9 @@ export const SearchCockpit: React.FC<{
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={onSubmit}
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_34px_-22px_rgba(8,145,178,0.7)]"
-            >
-              {t('careeros.filters.apply', { defaultValue: 'Apply search' })}
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            <div className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-200">
+              {t('careeros.filters.live_apply', { defaultValue: 'Filters apply live as you type or click.' })}
+            </div>
             </div>
           </div>
         </div>
