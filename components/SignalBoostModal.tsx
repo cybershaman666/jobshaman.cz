@@ -329,6 +329,10 @@ const extraCopyByLocale = {
     roleEvidence: 'Signály z inzerátu',
     focusAreas: 'Na co je role citlivá',
     questionPack: '3 konkrétní otázky pro tuhle roli',
+    fitContext: 'Co si u téhle role upřímně hlídat',
+    transferableStrengths: 'Co se do role dobře přenáší',
+    stretchAreas: 'Kde to může být stretch',
+    framingHint: 'Jak to chytře rámovat',
     whyItMatters: 'Proč je to důležité',
     recruiterSignal: 'Co z toho recruiter čte',
     readingGuide: 'Jak to bude recruiter číst',
@@ -338,6 +342,10 @@ const extraCopyByLocale = {
     roleEvidence: 'Signály z inzerátu',
     focusAreas: 'Na čo je rola citlivá',
     questionPack: '3 konkrétne otázky pre túto rolu',
+    fitContext: 'Čo si pri tejto role úprimne strážiť',
+    transferableStrengths: 'Čo sa do role dobre prenáša',
+    stretchAreas: 'Kde to môže byť stretch',
+    framingHint: 'Ako to dobre zarámovať',
     whyItMatters: 'Prečo je to dôležité',
     recruiterSignal: 'Čo z toho recruiter číta',
     readingGuide: 'Ako to bude recruiter čítať',
@@ -347,6 +355,10 @@ const extraCopyByLocale = {
     roleEvidence: 'Signale aus dem Inserat',
     focusAreas: 'Worauf die Rolle sensibel reagiert',
     questionPack: '3 konkrete Fragen für diese Rolle',
+    fitContext: 'Worauf Sie bei dieser Rolle ehrlich achten sollten',
+    transferableStrengths: 'Was sich gut übertragen lässt',
+    stretchAreas: 'Wo es ein Stretch sein könnte',
+    framingHint: 'Wie man es gut rahmt',
     whyItMatters: 'Warum das wichtig ist',
     recruiterSignal: 'Was das Recruiting daraus liest',
     readingGuide: 'So wird das gelesen',
@@ -356,6 +368,10 @@ const extraCopyByLocale = {
     roleEvidence: 'Sygnały z ogłoszenia',
     focusAreas: 'Na co ta rola jest wrażliwa',
     questionPack: '3 konkretne pytania dla tej roli',
+    fitContext: 'Na co warto tu uczciwie uważać',
+    transferableStrengths: 'Co dobrze przenosi się do tej roli',
+    stretchAreas: 'Gdzie to może być stretch',
+    framingHint: 'Jak to dobrze opowiedzieć',
     whyItMatters: 'Dlaczego to jest ważne',
     recruiterSignal: 'Co rekruter z tego czyta',
     readingGuide: 'Jak będzie to czytane',
@@ -365,6 +381,10 @@ const extraCopyByLocale = {
     roleEvidence: 'Signals From The Listing',
     focusAreas: 'What The Role Is Sensitive To',
     questionPack: '3 Specific Questions For This Role',
+    fitContext: 'What To Be Honest About In This Role',
+    transferableStrengths: 'What Transfers Well',
+    stretchAreas: 'Where It May Be A Stretch',
+    framingHint: 'How To Frame It',
     whyItMatters: 'Why This Matters',
     recruiterSignal: 'What The Recruiter Reads From It',
     readingGuide: 'How Recruiters Will Read It',
@@ -759,6 +779,7 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
             <div className="mt-8 space-y-6">
               {(() => {
                 const roleContext = brief.role_context;
+                const fitContext = brief.fit_context;
                 const questionPack = brief.question_pack || [];
                 return (
               <div className="rounded-[26px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-5 dark:bg-[rgba(var(--accent-rgb),0.12)]">
@@ -881,6 +902,44 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                                 </div>
                               ))}
                             </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {fitContext ? (
+                      <div className="mt-4 rounded-[16px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-4 dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                          {extraCopy.fitContext}
+                        </div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text)]">{fitContext.headline}</p>
+                        {fitContext.transferable_strengths?.length ? (
+                          <div className="mt-4">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.transferableStrengths}</div>
+                            <div className="mt-2 space-y-2">
+                              {fitContext.transferable_strengths.map((item) => (
+                                <div key={item} className="rounded-[14px] border border-[var(--border-subtle)] bg-white/85 px-3 py-2 text-sm leading-6 text-[var(--text)] dark:bg-slate-950/40">
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {fitContext.stretch_areas?.length ? (
+                          <div className="mt-4">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.stretchAreas}</div>
+                            <div className="mt-2 space-y-2">
+                              {fitContext.stretch_areas.map((item) => (
+                                <div key={item} className="rounded-[14px] border border-[var(--border-subtle)] bg-white/85 px-3 py-2 text-sm leading-6 text-[var(--text)] dark:bg-slate-950/40">
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {fitContext.framing_hint ? (
+                          <div className="mt-4 rounded-[14px] border border-[var(--border-subtle)] bg-white/85 p-3 dark:bg-slate-950/40">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.framingHint}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{fitContext.framing_hint}</div>
                           </div>
                         ) : null}
                       </div>

@@ -249,6 +249,27 @@ def _safe_float(value, default: float = 0.0) -> float:
         return default
 
 
+def _is_remote_friendly_job(job: Dict) -> bool:
+    haystack = " ".join(
+        [
+            str(job.get("work_type") or ""),
+            str(job.get("work_model") or ""),
+            str(job.get("title") or ""),
+            str(job.get("description") or ""),
+        ]
+    ).lower()
+    return bool(
+        re.search(
+            r"\b(remote|work from home|home office|telework|fully remote)\b",
+            haystack,
+        )
+        or "z domova" in haystack
+        or "na dalku" in haystack
+        or "na diaľku" in haystack
+        or "hybrid remote" in haystack
+    )
+
+
 def _domain_from_url(raw_url: Optional[str]) -> str:
     if not raw_url:
         return ""
@@ -527,7 +548,11 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     language_codes = set(_normalize_list(filters.get("filter_language_codes")))
     cutoff_iso = _date_cutoff_iso(filters.get("filter_date_posted"))
     safe_page_size = max(1, min(200, int(page_size or 50)))
-    candidate_limit = max(250, min(900, safe_page_size * 6))
+    has_radius_filter = radius_km and user_lat is not None and user_lng is not None
+    if has_radius_filter and not search_term:
+        candidate_limit = max(900, min(1400, safe_page_size * 20))
+    else:
+        candidate_limit = max(250, min(900, safe_page_size * 6))
 
     def _run_base_query(with_status_filter: bool):
         if jobs_postgres_main_enabled():
@@ -605,7 +630,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         if not _experience_match(job, experience_levels):
             continue
 
-        if radius_km and user_lat is not None and user_lng is not None:
+        if has_radius_filter and not _is_remote_friendly_job(job):
             try:
                 lat = float(job.get("lat"))
                 lng = float(job.get("lng"))

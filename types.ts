@@ -746,6 +746,7 @@ export interface JobSignalBoostBrief {
   mini_case_type?: string;
   role_context?: JobSignalBoostRoleContext | null;
   question_pack?: JobSignalBoostQuestion[];
+  fit_context?: JobSignalBoostFitContext | null;
   recruiter_reading_guide?: string | null;
   meta?: {
     role_family?: string | null;
@@ -811,6 +812,7 @@ export interface JobSignalBoostRecruiterReadout {
   follow_up_questions: string[];
   what_cv_does_not_show: string[];
   recommended_next_step: string;
+  fit_context?: JobSignalBoostFitContext | null;
   scores_snapshot?: {
     context_read?: number;
     decision_quality?: number;
@@ -821,6 +823,15 @@ export interface JobSignalBoostRecruiterReadout {
   ai_used?: boolean;
   ai_model_used?: string | null;
   ai_fallback_used?: boolean;
+}
+
+export interface JobSignalBoostFitContext {
+  headline: string;
+  transferable_strengths: string[];
+  stretch_areas: string[];
+  framing_hint: string;
+  recruiter_soft_signals: string[];
+  recruiter_validation_focus: string[];
 }
 
 export interface JobSignalBoostSnapshot {
@@ -843,6 +854,16 @@ export interface JobSignalBoostCandidatePublicSnapshot {
   preferredCountryCode?: string | null;
 }
 
+export interface JobSignalBoostPublicJcfpmSignal {
+  archetype?: string | null;
+  strengths: string[];
+  environment_fit: string[];
+  top_dimensions: Array<{
+    label: string;
+    percentile: number;
+  }>;
+}
+
 export interface JobSignalBoostOutput {
   id: string;
   share_slug: string;
@@ -851,6 +872,7 @@ export interface JobSignalBoostOutput {
   status: 'draft' | 'published' | 'archived' | string;
   job_snapshot: JobSignalBoostSnapshot;
   candidate_snapshot: JobSignalBoostCandidatePublicSnapshot;
+  jcfpm_signal?: JobSignalBoostPublicJcfpmSignal | null;
   scenario_payload: JobSignalBoostBrief;
   response_payload: Record<string, string>;
   recruiter_readout?: JobSignalBoostRecruiterReadout | null;

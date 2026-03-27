@@ -191,10 +191,19 @@ export const runFilteredFetchPipeline = async ({
     let resolvedHasMore = result.hasMore;
     let resolvedTotalCount = Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length));
 
+    const hasExplicitLookup = !!String(searchTerm || '').trim() || !!String(filterCity || '').trim();
+    const shouldRunSparseBrowseRecovery =
+        page === 0 &&
+        visibleJobs.length < 6 &&
+        !hasExplicitLookup &&
+        !effectiveRadiusKm &&
+        !!String(externalSearchSeedTerm || '').trim();
     const shouldRunExternalRecovery =
         page === 0 &&
-        visibleJobs.length === 0 &&
-        (!!String(searchTerm || '').trim() || !!String(filterCity || '').trim());
+        (
+            (visibleJobs.length === 0 && hasExplicitLookup)
+            || shouldRunSparseBrowseRecovery
+        );
 
     if (visibleJobs.length === 0 && effectiveRadiusKm && result.totalCount > 0) {
         console.warn('⚠️ Spatial filter returned zero visible jobs despite non-zero totalCount; backend path may be inconsistent.', {
@@ -217,25 +226,43 @@ export const runFilteredFetchPipeline = async ({
                 mode: 'recovery',
             });
             if (!isStaleRequest() && recoveryJobs.length > 0) {
-                visibleJobs = dedupeJobsList(
+                const filteredRecoveryJobs = dedupeJobsList(
                     applyDomesticCountrySafeguard(
                         filterDismissedJobs(applyExternalRecoveryFilters(recoveryJobs))
                     )
                 );
-                resolvedHasMore = false;
-                resolvedTotalCount = visibleJobs.length;
-                recordRuntimeSignal('custom:search_external_recovery', {
-                    result_count: visibleJobs.length,
-                    search_term: searchTerm || null,
-                    filter_city: filterCity || null,
-                }, {
-                    dedupeKey: JSON.stringify({
-                        searchTerm: searchTerm || '',
-                        filterCity: filterCity || '',
-                        resultCount: visibleJobs.length,
-                    }),
-                    throttleMs: 20_000,
-                });
+                if (filteredRecoveryJobs.length > 0) {
+                    if (shouldRunSparseBrowseRecovery) {
+                        visibleJobs = dedupeJobsList([...visibleJobs, ...filteredRecoveryJobs]);
+                        resolvedTotalCount = Math.max(resolvedTotalCount, visibleJobs.length);
+                        recordRuntimeSignal('custom:search_seed_recovery', {
+                            result_count: visibleJobs.length,
+                            seed_term: externalSearchSeedTerm || null,
+                        }, {
+                            dedupeKey: JSON.stringify({
+                                seedTerm: externalSearchSeedTerm || '',
+                                resultCount: visibleJobs.length,
+                            }),
+                            throttleMs: 20_000,
+                        });
+                    } else {
+                        visibleJobs = filteredRecoveryJobs;
+                        resolvedHasMore = false;
+                        resolvedTotalCount = visibleJobs.length;
+                        recordRuntimeSignal('custom:search_external_recovery', {
+                            result_count: visibleJobs.length,
+                            search_term: searchTerm || null,
+                            filter_city: filterCity || null,
+                        }, {
+                            dedupeKey: JSON.stringify({
+                                searchTerm: searchTerm || '',
+                                filterCity: filterCity || '',
+                                resultCount: visibleJobs.length,
+                            }),
+                            throttleMs: 20_000,
+                        });
+                    }
+                }
             }
         } catch (recoveryError) {
             if ((recoveryError as any)?.name !== 'AbortError') {
@@ -360,7 +387,7 @@ export const applyExternalOverlayJobFilters = ({
         ? filterMaxDistance
         : (hasExplicitLocationFilter ? undefined : defaultMaxDistanceKm);
 
-    if (effectiveRadiusKm && effectiveRadiusKm > 0) {
+    if (effectiveRadiusKm && effectiveRadiusKm > 0 && !isRemoteJob(job)) {
         if (lat == null || lon == null) {
             return false;
         }
@@ -373,13 +400,7 @@ export const applyExternalOverlayJobFilters = ({
             ? explicitDistance
             : computedDistance;
         if (distanceKm == null || distanceKm > effectiveRadiusKm) {
-            const searchSource = String(job.searchDiagnostics?.source || '').trim();
-            const importedWithoutCoords =
-                (job.listingKind === 'imported' || searchSource === 'cached_external' || searchSource === 'live_external') &&
-                computedDistance == null;
-            if (!importedWithoutCoords) {
-                return false;
-            }
+            return false;
         }
         if (distanceKm != null) {
             (job as any).distance_km = distanceKm;

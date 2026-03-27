@@ -2728,12 +2728,17 @@ const warnHybridFallbackThrottled = (error: unknown): void => {
     const now = Date.now();
     if (now - lastHybridFallbackWarnAt < 15_000) return;
     lastHybridFallbackWarnAt = now;
+    const isTimeout = Boolean((error as any)?.timeout || String((error as any)?.code || '').toLowerCase() === 'timeout');
     recordRuntimeSignal('search_hybrid_unavailable', {
         error: String((error as any)?.message || error || ''),
     }, {
         dedupeKey: 'hybrid_unavailable',
         throttleMs: 15_000
     });
+    if (isTimeout) {
+        console.info('Hybrid search was slow, using RPC filters for this request.');
+        return;
+    }
     console.warn('Hybrid search unavailable, falling back to RPC filters:', error);
 };
 
@@ -2952,10 +2957,18 @@ export const fetchJobsWithFilters = async (
         (err as any).timeout = true;
         return err;
     };
-    const raceWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+    const raceWithTimeout = async <T>(
+        promise: Promise<T>,
+        timeoutMs: number,
+        label: string,
+        onTimeout?: () => void
+    ): Promise<T> => {
         let timeoutId: ReturnType<typeof setTimeout> | null = null;
         const timeoutPromise = new Promise<T>((_, reject) => {
-            timeoutId = setTimeout(() => reject(createTimeoutError(label)), timeoutMs);
+            timeoutId = setTimeout(() => {
+                onTimeout?.();
+                reject(createTimeoutError(label));
+            }, timeoutMs);
         });
         try {
             return await Promise.race([promise, timeoutPromise]);
@@ -3019,6 +3032,23 @@ export const fetchJobsWithFilters = async (
         }
     };
 
+    const createLinkedAbortController = (parentSignal?: AbortSignal): { controller: AbortController; cleanup: () => void } => {
+        const controller = new AbortController();
+        if (!parentSignal) {
+            return { controller, cleanup: () => undefined };
+        }
+        if (parentSignal.aborted) {
+            controller.abort();
+            return { controller, cleanup: () => undefined };
+        }
+        const onAbort = () => controller.abort();
+        parentSignal.addEventListener('abort', onAbort, { once: true });
+        return {
+            controller,
+            cleanup: () => parentSignal.removeEventListener('abort', onAbort),
+        };
+    };
+
     const resolveJobDistanceKm = (job: Job): number | null => {
         const explicitDistance = Number((job as any).distance_km ?? (job as any).distanceKm ?? job.distanceKm);
         if (Number.isFinite(explicitDistance) && explicitDistance >= 0) {
@@ -3077,11 +3107,6 @@ export const fetchJobsWithFilters = async (
         });
     };
 
-    const isExternalImportedJobWithoutCoords = (job: Job): boolean => {
-        const searchSource = getJobSearchSource(job);
-        return isExternalSearchSource(searchSource) && typeof job.lat !== 'number' && typeof job.lng !== 'number';
-    };
-
     const applyStrictClientFilters = (jobs: Job[]): Job[] => {
         return jobs.filter((job) => {
             if (!matchesRequestedChallengeFormat(job)) {
@@ -3120,15 +3145,13 @@ export const fetchJobsWithFilters = async (
                 }
             }
 
-            if (safeRadiusKm !== null) {
+            if (safeRadiusKm !== null && !isRemoteJob(job)) {
                 if (typeof finalUserLat !== 'number' || typeof finalUserLng !== 'number') {
                     return false;
                 }
                 const distanceKm = resolveJobDistanceKm(job);
                 if (distanceKm === null || distanceKm > safeRadiusKm) {
-                    if (!(distanceKm === null && isExternalImportedJobWithoutCoords(job))) {
-                        return false;
-                    }
+                    return false;
                 } else {
                     (job as any).distance_km = distanceKm;
                     (job as any).distanceKm = distanceKm;
@@ -3364,9 +3387,15 @@ export const fetchJobsWithFilters = async (
         // explicitly searches (or pins a city), not when we auto-seed external keywords.
         (!!safeSearchTerm || !!normalizedFilterCity);
 
+    const suppressGenericCachedExternalFeed =
+        safeRadiusKm !== null &&
+        !safeSearchTerm &&
+        !normalizedFilterCity;
+
     const shouldIncludeCachedExternalFeed =
         externalOverlayMode === 'sync' &&
-        page >= 0;
+        page >= 0 &&
+        !suppressGenericCachedExternalFeed;
 
     const shouldWidenExternalBrowseWindow =
         page === 0 && (
@@ -3662,23 +3691,27 @@ export const fetchJobsWithFilters = async (
         const hasMoreFromSlice = strictJobs.length > end;
         const hasMore = hasMoreFromSlice || (!sourceExhausted && pagedJobs.length === safeRpcPageSize);
         const totalCountEstimate = hasMore ? Math.max(strictJobs.length, end + 1) : strictJobs.length;
+        const shouldLogStrictFallback =
+            reason !== 'sparse_radius_browse' || pagedJobs.length > 0;
 
-        recordRuntimeSignal('search_strict_fallback', {
-            reason,
-            page,
-            page_size: safeRpcPageSize,
-            result_count: pagedJobs.length,
-            has_search_term: !!safeSearchTerm,
-            has_radius_filter: safeRadiusKm !== null,
-            has_city_filter: !!normalizedFilterCity,
-            has_contract_filter: normalizedContractFilters.length > 0,
-            has_language_filter: normalizedLanguageCodes.length > 0,
-            has_country_filter: normalizedCountryCodes.length > 0
-        }, {
-            dedupeKey: reason,
-            throttleMs: 20_000
-        });
-        console.warn(`⚠️ Using strict client fallback for filters (${reason}).`);
+        if (shouldLogStrictFallback) {
+            recordRuntimeSignal('search_strict_fallback', {
+                reason,
+                page,
+                page_size: safeRpcPageSize,
+                result_count: pagedJobs.length,
+                has_search_term: !!safeSearchTerm,
+                has_radius_filter: safeRadiusKm !== null,
+                has_city_filter: !!normalizedFilterCity,
+                has_contract_filter: normalizedContractFilters.length > 0,
+                has_language_filter: normalizedLanguageCodes.length > 0,
+                has_country_filter: normalizedCountryCodes.length > 0
+            }, {
+                dedupeKey: reason,
+                throttleMs: 20_000
+            });
+            console.warn(`⚠️ Using strict client fallback for filters (${reason}).`);
+        }
         return finalizeResults({
             jobs: pagedJobs,
             hasMore,
@@ -3772,7 +3805,7 @@ export const fetchJobsWithFilters = async (
         });
     };
 
-    const fetchViaBackendHybrid = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+    const fetchViaBackendHybrid = async (hybridAbortSignal?: AbortSignal): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         throwIfAborted();
         const hybridUnavailableKey = 'jobshaman_hybrid_backend_unavailable';
         if (isRecentSessionFlagActive(hybridUnavailableKey, BACKEND_SEARCH_UNAVAILABLE_TTL_MS)) {
@@ -3949,7 +3982,7 @@ export const fetchJobsWithFilters = async (
                 const hybridResponse = await authenticatedFetch(`${baseUrl}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: abortSignal,
+                    signal: hybridAbortSignal ?? abortSignal,
                     body: JSON.stringify({
                         ...requestPayloadBase,
                         sort_mode: effectiveSortMode,
@@ -3968,7 +4001,7 @@ export const fetchJobsWithFilters = async (
                     const fallbackResponse = await authenticatedFetch(`${baseUrl}/jobs/hybrid-search`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        signal: abortSignal,
+                        signal: hybridAbortSignal ?? abortSignal,
                         body: JSON.stringify(requestPayloadBase)
                     });
                     throwIfAborted();
@@ -4026,11 +4059,39 @@ export const fetchJobsWithFilters = async (
 
                 const hybridRows = hybridPayload.jobs || [];
                 const processedJobs = mapHybridRowsToJobs(hybridRows, hybridPayload);
-                return await cacheAndReturn(finalizeResults({
+                const hybridResult = await cacheAndReturn(finalizeResults({
                     jobs: processedJobs,
                     hasMore: !!hybridPayload.has_more,
                     totalCount: Number(hybridPayload.total_count || processedJobs.length)
                 }));
+                const shouldRetrySparseRadiusBrowse =
+                    safeRadiusKm !== null &&
+                    page === 0 &&
+                    !safeSearchTerm &&
+                    !normalizedFilterCity &&
+                    hybridResult.jobs.length < 6;
+
+                if (shouldRetrySparseRadiusBrowse && hasSupabaseSearchFallback && supabase) {
+                    try {
+                        const strictRadiusFallback = await fetchViaStrictClientFallback('sparse_radius_browse');
+                        if (strictRadiusFallback.jobs.length > hybridResult.jobs.length) {
+                            recordRuntimeSignal('custom:search_sparse_radius_recovery', {
+                                fallback: 'strict_client',
+                                initial_count: hybridResult.jobs.length,
+                                recovered_count: strictRadiusFallback.jobs.length,
+                                radius_km: safeRadiusKm,
+                            }, {
+                                dedupeKey: `sparse_radius_browse:${safeRadiusKm}`,
+                                throttleMs: 20_000,
+                            });
+                            return strictRadiusFallback;
+                        }
+                    } catch (sparseFallbackError) {
+                        console.warn('⚠️ Sparse radius fallback failed:', sparseFallbackError);
+                    }
+                }
+
+                return hybridResult;
             } catch (err) {
                 if (isAbortFetchError(err)) {
                     throw err;
@@ -4094,10 +4155,17 @@ export const fetchJobsWithFilters = async (
         // Prefer backend search for the whole discovery/search surface.
         if (shouldUseHybridSearch) {
             try {
-                const hybridPromise = fetchViaBackendHybrid();
+                const { controller: hybridAbortController, cleanup: cleanupHybridAbort } = createLinkedAbortController(abortSignal);
+                const hybridPromise = fetchViaBackendHybrid(hybridAbortController.signal);
                 try {
-                    return await raceWithTimeout(hybridPromise, HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
+                    return await raceWithTimeout(
+                        hybridPromise,
+                        HYBRID_SEARCH_TIMEOUT_MS,
+                        'Hybrid search',
+                        () => hybridAbortController.abort()
+                    );
                 } finally {
+                    cleanupHybridAbort();
                     hybridPromise.catch(() => { });
                 }
             } catch (hybridErr) {

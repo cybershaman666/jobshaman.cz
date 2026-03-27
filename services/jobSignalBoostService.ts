@@ -27,6 +27,9 @@ const mapOutput = (payload: any): JobSignalBoostOutput => ({
   candidate_snapshot: payload?.candidate_snapshot && typeof payload.candidate_snapshot === 'object'
     ? payload.candidate_snapshot
     : { name: 'JobShaman member' },
+  jcfpm_signal: payload?.jcfpm_signal && typeof payload.jcfpm_signal === 'object'
+    ? payload.jcfpm_signal
+    : null,
   scenario_payload: payload?.scenario_payload as JobSignalBoostBrief,
   response_payload: payload?.response_payload && typeof payload.response_payload === 'object' ? payload.response_payload : {},
   recruiter_readout: payload?.recruiter_readout && typeof payload.recruiter_readout === 'object' ? payload.recruiter_readout : null,

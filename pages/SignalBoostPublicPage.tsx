@@ -19,9 +19,19 @@ const pageCopy = {
     missingBody: 'Odkaz mohl vypršet, být archivovaný nebo nikdy nevznikl.',
     createdVia: 'Vytvořeno přes JobShaman',
     reflectionNote: 'Krátké poznámky k vaší roli',
+    mainTextTitle: 'Jak jsem nad tou rolí přemýšlel',
+    thinkingBadge: '20 minut přemýšlení',
     candidateFallback: 'Kandidát JobShamanu',
     roleFallback: 'Vaše role',
     signalTitle: 'Z toho, jak nad tím přemýšlí:',
+    fitTitle: 'Co si u téhle role hlídat:',
+    fitStrengths: 'Přenosné silné stránky',
+    fitStretch: 'Stretch zóna',
+    fitFraming: 'Jak to rámovat',
+    jcfpmTitle: 'Hlubší profilový signál',
+    jcfpmStrengths: 'Co si z něj odnést',
+    jcfpmEnvironment: 'Kde funguje nejlépe',
+    jcfpmDimensions: 'Nejsilnější dimenze',
     ctaTitle: 'Pokud vám to sedí',
     ctaBody: 'Rád to projdu nad konkrétním projektem nebo situací z vašeho týmu.',
     openLinkedin: 'LinkedIn profil',
@@ -34,9 +44,19 @@ const pageCopy = {
     missingBody: 'Link mohol expirovať, byť archivovaný alebo nikdy nevznikol.',
     createdVia: 'Vytvorené cez JobShaman',
     reflectionNote: 'Krátke poznámky k vašej role',
+    mainTextTitle: 'Ako som nad touto rolou premýšľal',
+    thinkingBadge: '20 minút premýšľania',
     candidateFallback: 'Kandidát JobShamanu',
     roleFallback: 'Vaša rola',
     signalTitle: 'Z toho, ako nad tým premýšľa:',
+    fitTitle: 'Čo si pri tejto role strážiť:',
+    fitStrengths: 'Prenositeľné silné stránky',
+    fitStretch: 'Stretch zóna',
+    fitFraming: 'Ako to rámovať',
+    jcfpmTitle: 'Hlbší profilový signál',
+    jcfpmStrengths: 'Čo si z neho odniesť',
+    jcfpmEnvironment: 'Kde funguje najlepšie',
+    jcfpmDimensions: 'Najsilnejšie dimenzie',
     ctaTitle: 'Ak vám to sedí',
     ctaBody: 'Rád to prejdem nad konkrétnym projektom alebo situáciou z vášho tímu.',
     openLinkedin: 'LinkedIn profil',
@@ -49,9 +69,19 @@ const pageCopy = {
     missingBody: 'Der Link könnte abgelaufen, archiviert oder nie veröffentlicht worden sein.',
     createdVia: 'Erstellt mit JobShaman',
     reflectionNote: 'Kurze Notizen zu Ihrer Rolle',
+    mainTextTitle: 'Wie ich über diese Rolle nachgedacht habe',
+    thinkingBadge: '20 Minuten Nachdenken',
     candidateFallback: 'JobShaman-Kandidat',
     roleFallback: 'Ihre Rolle',
     signalTitle: 'Daran sieht man, wie die Person denkt:',
+    fitTitle: 'Worauf man bei dieser Rolle achten sollte:',
+    fitStrengths: 'Übertragbare Stärken',
+    fitStretch: 'Stretch-Bereich',
+    fitFraming: 'Wie man es rahmen sollte',
+    jcfpmTitle: 'Tieferes Profilsignal',
+    jcfpmStrengths: 'Was daraus wichtig ist',
+    jcfpmEnvironment: 'Wo die Person am besten funktioniert',
+    jcfpmDimensions: 'Stärkste Dimensionen',
     ctaTitle: 'Wenn das für Sie passt',
     ctaBody: 'Ich würde das gern an einem konkreten Projekt oder einer realen Situation in Ihrem Team durchgehen.',
     openLinkedin: 'LinkedIn-Profil',
@@ -64,9 +94,19 @@ const pageCopy = {
     missingBody: 'Link mógł wygasnąć, zostać zarchiwizowany albo nigdy nie został opublikowany.',
     createdVia: 'Utworzone przez JobShaman',
     reflectionNote: 'Krótkie notatki do waszej roli',
+    mainTextTitle: 'Jak myślałem o tej roli',
+    thinkingBadge: '20 minut namysłu',
     candidateFallback: 'Kandydat JobShaman',
     roleFallback: 'Wasza rola',
     signalTitle: 'Po tym widać, jak o tym myśli:',
+    fitTitle: 'Na co przy tej roli warto uważać:',
+    fitStrengths: 'Mocne strony, które się przenoszą',
+    fitStretch: 'Strefa stretch',
+    fitFraming: 'Jak to opowiedzieć',
+    jcfpmTitle: 'Głębszy sygnał profilu',
+    jcfpmStrengths: 'Co z tego wynika',
+    jcfpmEnvironment: 'W jakim środowisku działa najlepiej',
+    jcfpmDimensions: 'Najsilniejsze wymiary',
     ctaTitle: 'Jeśli to brzmi sensownie',
     ctaBody: 'Chętnie przejdę przez to na konkretnym projekcie albo sytuacji z waszego zespołu.',
     openLinkedin: 'Profil LinkedIn',
@@ -79,9 +119,19 @@ const pageCopy = {
     missingBody: 'The link may have expired, been archived, or was never published.',
     createdVia: 'Created via JobShaman',
     reflectionNote: 'Short notes on your role',
+    mainTextTitle: 'How I thought about the role',
+    thinkingBadge: '20 minutes of thought',
     candidateFallback: 'JobShaman candidate',
     roleFallback: 'Your role',
     signalTitle: 'What stands out in the way they think:',
+    fitTitle: 'What to watch in this role:',
+    fitStrengths: 'Transferable strengths',
+    fitStretch: 'Stretch zone',
+    fitFraming: 'How to frame it',
+    jcfpmTitle: 'Deeper profile signal',
+    jcfpmStrengths: 'What stands out',
+    jcfpmEnvironment: 'Where they work best',
+    jcfpmDimensions: 'Strongest dimensions',
     ctaTitle: 'If this feels relevant',
     ctaBody: 'I would be glad to walk through it against a real project or situation from your team.',
     openLinkedin: 'LinkedIn profile',
@@ -236,12 +286,14 @@ const SignalBoostPublicPage: React.FC = () => {
     .slice(0, 3)
     .map((item) => String(item || '').trim())
     .filter(Boolean);
+  const fitContext = output?.recruiter_readout?.fit_context || output?.scenario_payload?.fit_context || null;
+  const jcfpmSignal = output?.jcfpm_signal || null;
   const candidateName = String(output?.candidate_snapshot?.name || copy.candidateFallback).trim() || copy.candidateFallback;
   const candidateInitials = buildInitials(candidateName);
   const heroTitle = buildHeroTitle(locale, output?.job_snapshot?.title, copy.roleFallback);
-  const metaLine = [
+  const roleMetaLine = [
+    String(output?.job_snapshot?.title || '').trim(),
     String(output?.job_snapshot?.company || '').trim(),
-    String(output?.job_snapshot?.location || '').trim(),
   ].filter(Boolean).join(' • ');
   const rawCandidateAvatarUrl = String(output?.candidate_snapshot?.avatar_url || '').trim() || null;
   const avatarProxyUrl = shareSlug
@@ -364,36 +416,218 @@ const SignalBoostPublicPage: React.FC = () => {
                     {output.candidate_snapshot.jobTitle}
                   </div>
                 ) : null}
-                {metaLine ? (
+                {roleMetaLine ? (
                   <div className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
-                    {metaLine}
+                    {roleMetaLine}
                   </div>
                 ) : null}
               </div>
             </div>
           </header>
 
-          <div className={`mx-auto mt-10 max-w-5xl gap-10 border-t border-slate-200/80 pt-8 dark:border-slate-800/80 ${signalBullets.length ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_260px]' : ''}`}>
+          {fitContext ? (
+            <section className="mx-auto mt-10 max-w-4xl border-t border-slate-200/80 pt-8 dark:border-slate-800/80">
+              <div className="rounded-[28px] border border-cyan-200/80 bg-gradient-to-br from-cyan-50/90 via-white to-slate-50/90 p-5 shadow-[0_22px_50px_-38px_rgba(8,145,178,0.35)] dark:border-cyan-900/40 dark:bg-gradient-to-br dark:from-cyan-950/20 dark:via-slate-950/55 dark:to-slate-900/65">
+                <div className="flex flex-wrap items-start gap-4 sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
+                      {copy.fitTitle}
+                    </div>
+                    <div className="mt-2 max-w-2xl text-base font-semibold leading-7 text-slate-900 dark:text-white">
+                      {fitContext.headline}
+                    </div>
+                  </div>
+                  {fitContext.framing_hint ? (
+                    <div className="max-w-sm rounded-[18px] border border-white/80 bg-white/90 px-4 py-3 text-sm leading-6 text-slate-600 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.3)] dark:border-slate-700/80 dark:bg-slate-950/50 dark:text-slate-300">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+                        {copy.fitFraming}
+                      </div>
+                      <div className="mt-2">{fitContext.framing_hint}</div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  {fitContext.transferable_strengths?.length ? (
+                    <div className="rounded-[22px] border border-white/80 bg-white/88 p-4 dark:border-slate-700/80 dark:bg-slate-950/45">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">
+                        {copy.fitStrengths}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {fitContext.transferable_strengths.slice(0, 3).map((item) => (
+                          <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500 dark:bg-cyan-300" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {fitContext.stretch_areas?.length ? (
+                    <div className="rounded-[22px] border border-white/80 bg-white/88 p-4 dark:border-slate-700/80 dark:bg-slate-950/45">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                        {copy.fitStretch}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {fitContext.stretch_areas.slice(0, 3).map((item) => (
+                          <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400 dark:bg-slate-500" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {jcfpmSignal && (jcfpmSignal.archetype || jcfpmSignal.strengths?.length || jcfpmSignal.environment_fit?.length || jcfpmSignal.top_dimensions?.length) ? (
+            <section className="mx-auto mt-10 max-w-4xl border-t border-slate-200/80 pt-8 dark:border-slate-800/80">
+              <div className="rounded-[28px] border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90 p-5 shadow-[0_22px_50px_-38px_rgba(245,158,11,0.3)] dark:border-amber-900/30 dark:bg-gradient-to-br dark:from-amber-950/10 dark:via-slate-950/55 dark:to-slate-900/65">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+                      {copy.jcfpmTitle}
+                    </div>
+                    {jcfpmSignal.archetype ? (
+                      <div className="mt-2 text-base font-semibold leading-7 text-slate-900 dark:text-white">
+                        {jcfpmSignal.archetype}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  {jcfpmSignal.strengths?.length ? (
+                    <div className="rounded-[22px] border border-white/80 bg-white/88 p-4 dark:border-slate-700/80 dark:bg-slate-950/45">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+                        {copy.jcfpmStrengths}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {jcfpmSignal.strengths.slice(0, 3).map((item) => (
+                          <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500 dark:bg-amber-300" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {jcfpmSignal.environment_fit?.length ? (
+                    <div className="rounded-[22px] border border-white/80 bg-white/88 p-4 dark:border-slate-700/80 dark:bg-slate-950/45">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                        {copy.jcfpmEnvironment}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {jcfpmSignal.environment_fit.slice(0, 3).map((item) => (
+                          <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400 dark:bg-slate-500" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {jcfpmSignal.top_dimensions?.length ? (
+                    <div className="rounded-[22px] border border-white/80 bg-white/88 p-4 dark:border-slate-700/80 dark:bg-slate-950/45">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                        {copy.jcfpmDimensions}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {jcfpmSignal.top_dimensions.slice(0, 3).map((item) => (
+                          <div key={`${item.label}-${item.percentile}`} className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-slate-800/80 dark:bg-slate-900/65">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</div>
+                            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{item.percentile}%</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <div className={`mx-auto mt-10 max-w-5xl gap-10 border-t border-slate-200/80 pt-8 dark:border-slate-800/80 ${(signalBullets.length || fitContext || jcfpmSignal) ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_260px]' : ''}`}>
             <div className="min-w-0">
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <div className="text-[1.05rem] font-bold tracking-[-0.03em] text-slate-900 dark:text-white sm:text-[1.12rem]">
+                  {copy.mainTextTitle}
+                </div>
+                <div className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-slate-700/80 dark:bg-slate-900/65 dark:text-slate-400">
+                  {copy.thinkingBadge}
+                </div>
+              </div>
               <div className="whitespace-pre-wrap text-[1.03rem] leading-8 text-slate-700 dark:text-slate-200 sm:text-[1.08rem] sm:leading-9">
                 {narrativeText}
               </div>
             </div>
 
-            {signalBullets.length ? (
+            {(signalBullets.length || fitContext || jcfpmSignal) ? (
               <aside className="mt-8 lg:mt-0">
                 <div className="lg:sticky lg:top-8">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                    {copy.signalTitle}
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {signalBullets.map((item, index) => (
-                      <div key={`${index}-${item}`} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
-                        <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500 dark:bg-cyan-300" />
-                        <span>{item}</span>
+                  {signalBullets.length ? (
+                    <>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                        {copy.signalTitle}
                       </div>
-                    ))}
-                  </div>
+                      <div className="mt-4 space-y-3">
+                        {signalBullets.map((item, index) => (
+                          <div key={`${index}-${item}`} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                            <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500 dark:bg-cyan-300" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                  {fitContext ? (
+                    <div className={`${signalBullets.length ? 'mt-8 border-t border-slate-200/80 pt-6 dark:border-slate-800/80' : ''}`}>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                        {copy.fitTitle}
+                      </div>
+                      {fitContext.transferable_strengths?.length ? (
+                        <div className="mt-4">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+                            {copy.fitStrengths}
+                          </div>
+                          <div className="mt-2 space-y-3">
+                            {fitContext.transferable_strengths.slice(0, 2).map((item) => (
+                              <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                                <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500 dark:bg-cyan-300" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {fitContext.stretch_areas?.length ? (
+                        <div className="mt-5">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+                            {copy.fitStretch}
+                          </div>
+                          <div className="mt-2 space-y-3">
+                            {fitContext.stretch_areas.slice(0, 2).map((item) => (
+                              <div key={item} className="flex gap-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
+                                <span className="mt-[13px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {jcfpmSignal?.archetype ? (
+                    <div className={`${signalBullets.length || fitContext ? 'mt-8 border-t border-slate-200/80 pt-6 dark:border-slate-800/80' : ''}`}>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                        {copy.jcfpmTitle}
+                      </div>
+                      <div className="mt-3 rounded-[18px] border border-amber-200/70 bg-amber-50/85 px-4 py-3 text-sm font-semibold leading-6 text-slate-800 dark:border-amber-900/30 dark:bg-amber-950/15 dark:text-slate-100">
+                        {jcfpmSignal.archetype}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </aside>
             ) : null}

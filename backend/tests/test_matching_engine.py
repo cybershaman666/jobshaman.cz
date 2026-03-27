@@ -525,3 +525,74 @@ def test_regulated_professions_without_background_stay_near_floor():
         assert breakdown.get("hard_cap") <= 10.0
         assert score <= 10.0
         assert any("kvalifikace" in reason.lower() for reason in reasons)
+
+
+def test_hybrid_search_jobs_radius_keeps_remote_roles_but_filters_far_onsite(monkeypatch):
+    rows = [
+        {
+            "id": "near-onsite",
+            "title": "Operations Manager",
+            "description": "Operations role in Brno.",
+            "location": "Brno",
+            "lat": 49.1951,
+            "lng": 16.6068,
+            "scraped_at": "2026-03-20T12:00:00+00:00",
+        },
+        {
+            "id": "far-onsite",
+            "title": "Office Manager",
+            "description": "Onsite role in Prague.",
+            "location": "Praha",
+            "lat": 50.0755,
+            "lng": 14.4378,
+            "scraped_at": "2026-03-20T12:00:00+00:00",
+        },
+        {
+            "id": "unknown-onsite",
+            "title": "Project Coordinator",
+            "description": "Onsite coordination role with missing coordinates.",
+            "location": "Brno",
+            "scraped_at": "2026-03-20T12:00:00+00:00",
+        },
+        {
+            "id": "remote-no-coords",
+            "title": "Product Owner",
+            "description": "Fully remote role for product operations.",
+            "location": "Remote",
+            "work_model": "remote",
+            "scraped_at": "2026-03-20T12:00:00+00:00",
+        },
+        {
+            "id": "remote-far-coords",
+            "title": "AI Product Manager",
+            "description": "Remote-first AI role.",
+            "location": "Praha / remote",
+            "work_model": "remote",
+            "lat": 50.0755,
+            "lng": 14.4378,
+            "scraped_at": "2026-03-20T12:00:00+00:00",
+        },
+    ]
+
+    monkeypatch.setattr(serve, "jobs_postgres_main_enabled", lambda: True)
+    monkeypatch.setattr(serve, "query_jobs_for_hybrid_search", lambda **_: rows)
+    monkeypatch.setattr(serve, "get_release_flag", lambda *_a, **_k: {"effective_enabled": True})
+    monkeypatch.setattr(serve, "get_active_model_config", lambda *_a, **_k: {"config_json": {}})
+
+    result = serve.hybrid_search_jobs(
+        {
+            "search_term": "",
+            "user_lat": 49.1951,
+            "user_lng": 16.6068,
+            "radius_km": 45,
+        },
+        page=0,
+        page_size=20,
+    )
+
+    returned_ids = {job["id"] for job in result["jobs"]}
+    assert "near-onsite" in returned_ids
+    assert "remote-no-coords" in returned_ids
+    assert "remote-far-coords" in returned_ids
+    assert "far-onsite" not in returned_ids
+    assert "unknown-onsite" not in returned_ids

@@ -425,6 +425,10 @@ def _safe_list(values: Any, limit: int = 8) -> list[str]:
     return out
 
 
+def _safe_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
 def _strip_html(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
@@ -1106,6 +1110,164 @@ def _build_sections(locale: str, role_context: dict[str, Any]) -> list[dict[str,
     return sections
 
 
+def _jcfpm_percentile(snapshot: dict[str, Any], dimension: str) -> int:
+    percentile_summary = _safe_dict(snapshot.get("percentile_summary"))
+    try:
+        if dimension in percentile_summary:
+            return max(0, min(100, int(round(float(percentile_summary.get(dimension) or 0)))))
+    except (TypeError, ValueError):
+        pass
+
+    for row in snapshot.get("dimension_scores") or []:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("dimension") or "").strip() != dimension:
+            continue
+        try:
+            return max(0, min(100, int(round(float(row.get("percentile") or 0)))))
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
+def _build_signal_boost_fit_context(
+    candidate_profile: dict[str, Any] | None,
+    role_context: dict[str, Any],
+    locale: str,
+) -> dict[str, Any] | None:
+    profile = candidate_profile or {}
+    preferences = _safe_dict(profile.get("preferences"))
+    snapshot = _safe_dict(preferences.get("jcfpm_v1"))
+    if not snapshot:
+        return None
+
+    language = _normalize_locale(locale)
+    archetype = str(role_context.get("archetype") or "generic")
+    ai_report = _safe_dict(snapshot.get("ai_report"))
+    strengths = _safe_list(ai_report.get("strengths"), limit=4)
+    environment = _safe_list(ai_report.get("ideal_environment"), limit=4)
+    development_areas = _safe_list(ai_report.get("development_areas"), limit=4)
+    top_roles = _safe_list([_safe_dict(item).get("title") for item in (ai_report.get("top_roles") or [])], limit=3)
+
+    d1 = _jcfpm_percentile(snapshot, "d1_cognitive")
+    d2 = _jcfpm_percentile(snapshot, "d2_social")
+    d3 = _jcfpm_percentile(snapshot, "d3_motivational")
+    d4 = _jcfpm_percentile(snapshot, "d4_energy")
+    d6 = _jcfpm_percentile(snapshot, "d6_ai_readiness")
+    d12 = _jcfpm_percentile(snapshot, "d12_moral_compass")
+
+    if language == "cs":
+        headline_by_archetype = {
+            "construction_site": "Co z tvého stylu práce může být pro tuhle roli přenosné a co už by byl vědomý stretch.",
+            "customer_support": "Co z tvého stylu práce může supportu pomoct a kde by bylo fér být konkrétní o ramp-upu.",
+            "operations": "Co se z tvého stylu práce do role dobře přenáší a kde by bylo dobré být poctivý o tření.",
+            "product": "Co je pro tuhle roli přenositelná výhoda a kde je dobré role nepřikrášlovat.",
+        }
+        transferable_strengths = _safe_list(
+            [
+                "Silnější analytická a systémová orientace může pomoct tam, kde role potřebuje číst chaos a skládat z něj strukturu." if d1 >= 60 else "",
+                "Vyšší úsudek a práce s principy může pomoct v rozhodnutích, kde nestačí jen tlačit na rychlost." if d12 >= 60 else "",
+                "Dobrá adaptabilita může pomoct v prostředí, kde role teprve hledá funkční systém nebo nový způsob práce." if d6 >= 60 else "",
+                strengths[0] if strengths else "",
+                environment[0] if environment else "",
+                f"Tvoje JCFPM ukazuje blízkost k rolím typu {', '.join(top_roles[:2])}, což může být dobrý přenos pro část téhle práce." if top_roles else "",
+            ],
+            limit=3,
+        )
+        stretch_areas = _safe_list(
+            [
+                "Tahle role může chtít víc každodenního tlaku na lidi, dodavatele nebo operativní follow-up, než co ti dlouhodobě bere energii." if archetype == "construction_site" and (d2 < 48 or d4 < 48) else "",
+                "Pokud role stojí na častém nahánění, telefonování a tvrdém operativním rytmu, je fér to brát jako vědomý stretch, ne automatický fit." if archetype == "construction_site" and (d2 < 55 or d4 < 55) else "",
+                "Support může chtít víc vysokofrekvenční komunikace a emočního přepínání, než co je přirozeně udržitelné." if archetype == "customer_support" and (d2 < 50 or d4 < 50) else "",
+                "Role může chtít víc průběžného pushování lidí a operativního dotahování, než co je pro tebe přirozeně příjemný režim." if archetype in {"operations", "people", "sales"} and (d2 < 52 or d4 < 52) else "",
+                "Je dobré nepředstírat hotovou doménovou zkušenost tam, kde by ses ve skutečnosti teprve rychle zaučoval(a)." if role_context.get("archetype") == "construction_site" else "",
+                development_areas[0] if development_areas else "",
+            ],
+            limit=3,
+        )
+        framing_hint = (
+            "Neschovávej to. Lepší je pojmenovat, co už přenášíš silně, kde by byl rychlý ramp-up a co by sis chtěl(a) ověřit v prvních týdnech."
+        )
+        recruiter_soft_signals = _safe_list(
+            [
+                "Má systémové a analytické uvažování, které může být přenosné i do nové domény." if d1 >= 60 else "",
+                "Nepůsobí jako člověk, který by tlačil za každou cenu. Spíš chce nejdřív pochopit realitu a pak řídit další krok." if d12 >= 55 else "",
+                "Role může být stretch hlavně tam, kde stojí na vysoké frekvenci follow-upů, telefonu nebo tvrdší vendor koordinaci." if stretch_areas else "",
+            ],
+            limit=3,
+        )
+        recruiter_validation_focus = _safe_list(
+            [
+                "Ověřit konkrétní doménový ramp-up: co už kandidát opravdu dělal v podobném provozu a co by se teprve učil(a).",
+                "Ověřit, jak by fungoval(a) v rytmu, kde je hodně follow-upu, tlačení na dodavatele nebo každodenní operativní eskalace." if archetype == "construction_site" else "",
+                "Ověřit, jestli jeho/její klidný styl zůstane funkční i v prostředí s vysokou frekvencí zákaznického tlaku." if archetype == "customer_support" else "",
+            ],
+            limit=3,
+        )
+        return {
+            "headline": headline_by_archetype.get(archetype) or "Krátký fit kontext z tvého hlubšího profilu.",
+            "transferable_strengths": transferable_strengths,
+            "stretch_areas": stretch_areas,
+            "framing_hint": framing_hint,
+            "recruiter_soft_signals": recruiter_soft_signals,
+            "recruiter_validation_focus": recruiter_validation_focus,
+        }
+
+    headline_by_archetype = {
+        "construction_site": "Where your working style likely transfers well into this role, and where it would be a conscious stretch.",
+        "customer_support": "Where your working style could help in support, and where it is worth being honest about the ramp-up.",
+        "operations": "What transfers naturally from your working style here, and where the friction might show up.",
+        "product": "What looks transferable for this role, and where it is better not to oversell the fit.",
+    }
+    transferable_strengths = _safe_list(
+        [
+            "Stronger analytical and systems thinking can transfer well into roles that need structure inside messy reality." if d1 >= 60 else "",
+            "Judgment and principle-led thinking can help in roles where decisions matter more than pure speed." if d12 >= 60 else "",
+            "Adaptability can help when the role is still building a system rather than inheriting a clean one." if d6 >= 60 else "",
+            strengths[0] if strengths else "",
+            environment[0] if environment else "",
+            f"Your JCFPM profile is also close to roles like {', '.join(top_roles[:2])}, which can signal adjacent transferability." if top_roles else "",
+        ],
+        limit=3,
+    )
+    stretch_areas = _safe_list(
+        [
+            "This role may demand more daily pressure on people, suppliers, or follow-ups than what is naturally energizing for you." if archetype == "construction_site" and (d2 < 48 or d4 < 48) else "",
+            "If the role depends on frequent chasing, calling, and hard operational push, that is better framed as a stretch than as an instant fit." if archetype == "construction_site" and (d2 < 55 or d4 < 55) else "",
+            "Support may require more high-frequency communication and emotional switching than what feels naturally sustainable." if archetype == "customer_support" and (d2 < 50 or d4 < 50) else "",
+            "The role may ask for more people-push and operational follow-through than what feels naturally comfortable." if archetype in {"operations", "people", "sales"} and (d2 < 52 or d4 < 52) else "",
+            "It is better not to imply finished domain depth where the reality is fast ramp-up rather than prior depth." if role_context.get("archetype") == "construction_site" else "",
+            development_areas[0] if development_areas else "",
+        ],
+        limit=3,
+    )
+    framing_hint = "Do not hide the gap. It is stronger to name what transfers well, where the ramp-up is real, and what you would want to validate in the first weeks."
+    recruiter_soft_signals = _safe_list(
+        [
+            "Brings systems thinking that may transfer well even into a newer domain." if d1 >= 60 else "",
+            "Does not read like someone who would push blindly; more likely to read reality first and then move." if d12 >= 55 else "",
+            "The stretch is probably not in intelligence, but in the day-to-day rhythm if the role depends on constant follow-up, phone work, or harder supplier pressure." if stretch_areas else "",
+        ],
+        limit=3,
+    )
+    recruiter_validation_focus = _safe_list(
+        [
+            "Validate the domain ramp-up directly: what has already been done in a similar operating context, and what would still be learned on the job.",
+            "Validate how the candidate handles a rhythm with heavy follow-up, supplier pressure, and daily operational escalation." if archetype == "construction_site" else "",
+            "Validate whether the candidate's calmer style still holds under high-frequency customer pressure." if archetype == "customer_support" else "",
+        ],
+        limit=3,
+    )
+    return {
+        "headline": headline_by_archetype.get(archetype) or "Short fit context from the deeper profile signal.",
+        "transferable_strengths": transferable_strengths,
+        "stretch_areas": stretch_areas,
+        "framing_hint": framing_hint,
+        "recruiter_soft_signals": recruiter_soft_signals,
+        "recruiter_validation_focus": recruiter_validation_focus,
+    }
+
+
 def _starter_prompts(locale: str, role_context: dict[str, Any], section_id: str) -> list[str]:
     archetype = str(role_context.get("archetype") or "generic")
     language = _normalize_locale(locale)
@@ -1213,13 +1375,20 @@ def _ai_meta_base() -> dict[str, Any]:
     }
 
 
-def build_signal_boost_brief(job_row: dict[str, Any], locale: str, *, prefer_ai: bool = False) -> dict[str, Any]:
+def build_signal_boost_brief(
+    job_row: dict[str, Any],
+    locale: str,
+    *,
+    candidate_profile: dict[str, Any] | None = None,
+    prefer_ai: bool = False,
+) -> dict[str, Any]:
     language = _normalize_locale(locale, _normalize_locale(job_row.get("language_code"), "en"))
     copy = _copy(language)
     role_context = _resolve_role_context(job_row, language)
     question_pack = _build_question_pack(role_context, language)
     scenario = _scenario_for_archetype(role_context, language)
     job_excerpt = _build_job_excerpt(job_row)
+    fit_context = _build_signal_boost_fit_context(candidate_profile, role_context, language)
 
     return {
         "kicker": copy["kicker"],
@@ -1241,6 +1410,7 @@ def build_signal_boost_brief(job_row: dict[str, Any], locale: str, *, prefer_ai:
         "mini_case_type": "role_aware_mini_case",
         "role_context": role_context,
         "question_pack": question_pack,
+        "fit_context": fit_context,
         "recruiter_reading_guide": copy["recruiter_reading_guide"],
         "meta": {
             "role_family": role_context.get("role_family"),
@@ -1621,6 +1791,7 @@ def _deterministic_recruiter_readout(
     language = _normalize_locale(locale)
     quality_scores = dict(quality.get("scores") or {})
     question_pack = list(brief.get("question_pack") or [])
+    fit_context = _safe_dict(brief.get("fit_context"))
     first_step = _section_text(response_payload, "first_step")
     problem_frame = _section_text(response_payload, "problem_frame")
     risks = _section_text(response_payload, "risk_and_unknowns")
@@ -1659,6 +1830,7 @@ def _deterministic_recruiter_readout(
                 "Volí konkrétní první krok místo obecného úmyslu." if not quality.get("missing_first_step") else "",
                 "Pojmenovává trade-off a směr řešení." if not quality.get("missing_solution_direction") else "",
                 "Pracuje s riziky a chybějícími fakty." if not quality.get("missing_risks") else "",
+                *(fit_context.get("recruiter_soft_signals") or []),
                 f"Používá role-specific detail z oblasti: {', '.join((role_context.get('focus_areas') or [])[:2])}." if int(quality.get("role_specificity_hits") or 0) > 0 else "",
             ],
             limit=4,
@@ -1669,11 +1841,13 @@ def _deterministic_recruiter_readout(
                 "Chybí ostřejší první krok, podle kterého by šlo poznat skutečné pracovní chování." if quality.get("missing_first_step") else "",
                 "Trade-off nebo směr řešení je zatím slabší a chce doplnit." if quality.get("missing_solution_direction") else "",
                 "Rizika a rozhodovací neznámé jsou zatím pojmenované jen částečně." if quality.get("missing_risks") else "",
+                *(fit_context.get("stretch_areas") or []),
             ],
             limit=4,
         )
         follow_up_questions = _safe_list(
             [
+                *(fit_context.get("recruiter_validation_focus") or []),
                 question_pack[1].get("question") if len(question_pack) > 1 else "",
                 question_pack[2].get("question") if len(question_pack) > 2 else "",
                 "Co by udělal(a), kdyby se první předpoklad ukázal jako chybný?",
@@ -1692,6 +1866,7 @@ def _deterministic_recruiter_readout(
             "follow_up_questions": follow_up_questions,
             "what_cv_does_not_show": what_cv_by_archetype.get(archetype) or generic_what_cv,
             "recommended_next_step": recommended_next_step,
+            "fit_context": fit_context or None,
             "scores_snapshot": {
                 "context_read": int(quality_scores.get("context_read") or 18),
                 "decision_quality": int(quality_scores.get("decision_quality") or 18),
@@ -1733,6 +1908,7 @@ def _deterministic_recruiter_readout(
             "Commits to a concrete first move instead of abstract intent." if not quality.get("missing_first_step") else "",
             "Shows a real trade-off and solution direction." if not quality.get("missing_solution_direction") else "",
             "Works with risks and missing facts rather than pretending certainty." if not quality.get("missing_risks") else "",
+            *(fit_context.get("recruiter_soft_signals") or []),
             f"Uses role-specific detail around {', '.join((role_context.get('focus_areas') or [])[:2])}." if int(quality.get("role_specificity_hits") or 0) > 0 else "",
         ],
         limit=4,
@@ -1743,11 +1919,13 @@ def _deterministic_recruiter_readout(
             "The first move is still too soft or abstract." if quality.get("missing_first_step") else "",
             "The trade-off or solution direction still needs more substance." if quality.get("missing_solution_direction") else "",
             "The risks and decision-critical unknowns still need to be named more clearly." if quality.get("missing_risks") else "",
+            *(fit_context.get("stretch_areas") or []),
         ],
         limit=4,
     )
     follow_up_questions = _safe_list(
         [
+            *(fit_context.get("recruiter_validation_focus") or []),
             question_pack[1].get("question") if len(question_pack) > 1 else "",
             question_pack[2].get("question") if len(question_pack) > 2 else "",
             "What would they do if their first assumption turned out to be wrong?",
@@ -1766,6 +1944,7 @@ def _deterministic_recruiter_readout(
         "follow_up_questions": follow_up_questions,
         "what_cv_does_not_show": what_cv_by_archetype.get(archetype) or generic_what_cv,
         "recommended_next_step": recommended_next_step,
+        "fit_context": fit_context or None,
         "scores_snapshot": {
             "context_read": int(quality_scores.get("context_read") or 18),
             "decision_quality": int(quality_scores.get("decision_quality") or 18),
@@ -1794,6 +1973,7 @@ You are writing a recruiter-ready readout for a candidate mini case.
 Locale: {_normalize_locale(locale)}
 Role context: {json.dumps(brief.get("role_context") or {}, ensure_ascii=False)}
 Question pack: {json.dumps(brief.get("question_pack") or [], ensure_ascii=False)}
+Fit context: {json.dumps(brief.get("fit_context") or {}, ensure_ascii=False)}
 Candidate response: {json.dumps(response_payload, ensure_ascii=False)}
 Quality signals: {json.dumps(quality, ensure_ascii=False)}
 
@@ -1804,7 +1984,15 @@ Return STRICT JSON:
   "risk_flags": ["string"],
   "follow_up_questions": ["string"],
   "what_cv_does_not_show": ["string"],
-  "recommended_next_step": "string"
+  "recommended_next_step": "string",
+  "fit_context": {{
+    "headline": "string",
+    "transferable_strengths": ["string"],
+    "stretch_areas": ["string"],
+    "framing_hint": "string",
+    "recruiter_soft_signals": ["string"],
+    "recruiter_validation_focus": ["string"]
+  }}
 }}
 
 Rules:
@@ -1831,6 +2019,14 @@ Rules:
             "follow_up_questions": _safe_list(parsed.get("follow_up_questions"), limit=4),
             "what_cv_does_not_show": _safe_list(parsed.get("what_cv_does_not_show"), limit=4),
             "recommended_next_step": _clip(parsed.get("recommended_next_step"), 260),
+            "fit_context": {
+                "headline": _clip(_safe_dict(parsed.get("fit_context")).get("headline"), 220),
+                "transferable_strengths": _safe_list(_safe_dict(parsed.get("fit_context")).get("transferable_strengths"), limit=4),
+                "stretch_areas": _safe_list(_safe_dict(parsed.get("fit_context")).get("stretch_areas"), limit=4),
+                "framing_hint": _clip(_safe_dict(parsed.get("fit_context")).get("framing_hint"), 240),
+                "recruiter_soft_signals": _safe_list(_safe_dict(parsed.get("fit_context")).get("recruiter_soft_signals"), limit=4),
+                "recruiter_validation_focus": _safe_list(_safe_dict(parsed.get("fit_context")).get("recruiter_validation_focus"), limit=4),
+            },
             "ai_used": True,
             "ai_model_used": result.model_name,
             "ai_fallback_used": bool(fallback_used),

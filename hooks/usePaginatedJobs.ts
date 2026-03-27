@@ -439,24 +439,26 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // don't block cross-border jobs (AT/SK/DE/PL...) that are still within the commute circle.
             const effectiveCountryCodes = (globalSearch || shouldAutoExpandBorderCountries) ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
-            const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => applyExternalOverlayJobFilters({
-                jobs,
-                effectiveCountryCodes,
-                excludeCountryCodes,
-                retrievalLanguageCodes,
-                remoteOnly,
-                filterWorkArrangement,
-                filterCity,
-                enableCommuteFilter: effectiveEnableCommuteFilter,
-                filterMaxDistance,
-                lat,
-                lon,
-                inferJobCountryCode,
-                inferJobLanguageCode,
-                normalizeCountryCodes,
-                calculateDistanceKm,
-                defaultMaxDistanceKm: effectiveImplicitRadiusKm,
-            });
+            const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => applyDomesticCountrySafeguard(
+                applyExternalOverlayJobFilters({
+                    jobs,
+                    effectiveCountryCodes,
+                    excludeCountryCodes,
+                    retrievalLanguageCodes,
+                    remoteOnly,
+                    filterWorkArrangement,
+                    filterCity,
+                    enableCommuteFilter: effectiveEnableCommuteFilter,
+                    filterMaxDistance,
+                    lat,
+                    lon,
+                    inferJobCountryCode,
+                    inferJobLanguageCode,
+                    normalizeCountryCodes,
+                    calculateDistanceKm,
+                    defaultMaxDistanceKm: effectiveImplicitRadiusKm,
+                })
+            );
 
             // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
             // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
@@ -538,6 +540,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const effectiveRadiusKm = effectiveEnableCommuteFilter
                 ? filterMaxDistance
                 : effectiveImplicitRadiusKm;
+            const shouldSuppressExternalOverlay =
+                !!effectiveRadiusKm &&
+                !remoteOnly &&
+                !searchTerm &&
+                !filterCity;
 
             const filteredResult = await runFilteredFetchPipeline({
                 page,
@@ -635,7 +642,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 const hasExternalInPrimaryFeed = filteredResult.visibleJobs.some(
                     (job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external)
                 );
-                if (!hasExternalInPrimaryFeed) {
+                if (!hasExternalInPrimaryFeed && !shouldSuppressExternalOverlay) {
                     externalOverlayControllerRef.current?.abort();
                     runAsyncExternalOverlay({
                         searchTerm,

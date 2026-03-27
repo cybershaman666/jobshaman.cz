@@ -46,6 +46,33 @@ def _strong_payload() -> dict[str, str]:
     }
 
 
+def _candidate_profile_with_jcfpm(**overrides):
+    percentile_summary = {
+        "d1_cognitive": 82,
+        "d2_social": 34,
+        "d3_motivational": 58,
+        "d4_energy": 41,
+        "d6_ai_readiness": 71,
+        "d12_moral_compass": 77,
+    }
+    percentile_summary.update(overrides.pop("percentile_summary", {}))
+    ai_report = {
+        "strengths": ["Strong systems thinking in messy contexts."],
+        "ideal_environment": ["Works best when first reading reality before forcing activity."],
+        "development_areas": ["Can get drained by heavy follow-up and constant people-chasing."],
+        "top_roles": [{"title": "Product Manager", "reason": "Systems and prioritization."}],
+    }
+    ai_report.update(overrides.pop("ai_report", {}))
+    return {
+        "preferences": {
+            "jcfpm_v1": {
+                "percentile_summary": percentile_summary,
+                "ai_report": ai_report,
+            }
+        }
+    }
+
+
 def test_construction_supervisor_brief_uses_broader_taxonomy_fallback():
     brief = job_signal_boost.build_signal_boost_brief(
         _job(
@@ -152,6 +179,43 @@ def test_summary_and_recruiter_readout_are_available_for_grounded_output():
     ]
     assert any("subcontract" in item.lower() or "safety" in item.lower() for item in readout["what_cv_does_not_show"])
     assert any("site" in item.lower() or "trade" in item.lower() for item in readout["follow_up_questions"])
+
+
+def test_signal_boost_brief_includes_soft_jcfpm_fit_context():
+    brief = job_signal_boost.build_signal_boost_brief(
+        _job(
+            "Construction Supervisor",
+            description="Own sequencing on site, keep safety intact, and coordinate subcontractors under schedule pressure.",
+        ),
+        "en",
+        candidate_profile=_candidate_profile_with_jcfpm(),
+    )
+
+    fit_context = brief["fit_context"]
+    assert fit_context is not None
+    assert any("systems" in item.lower() or "structure" in item.lower() for item in fit_context["transferable_strengths"])
+    assert any("follow-up" in item.lower() or "supplier" in item.lower() or "stretch" in item.lower() for item in fit_context["stretch_areas"])
+    assert "ramp-up" in fit_context["framing_hint"].lower() or "transfers" in fit_context["framing_hint"].lower()
+
+
+def test_recruiter_readout_carries_jcfpm_fit_context_without_hard_rejection():
+    brief = job_signal_boost.build_signal_boost_brief(
+        _job(
+            "Construction Supervisor",
+            description="Own sequencing on site, keep safety intact, and coordinate subcontractors under schedule pressure.",
+        ),
+        "en",
+        candidate_profile=_candidate_profile_with_jcfpm(),
+    )
+    payload = _strong_payload()
+
+    quality = job_signal_boost.evaluate_signal_boost_quality(payload, "en", brief=brief)
+    readout = job_signal_boost.build_signal_boost_recruiter_readout(payload, "en", brief, quality)
+
+    assert readout["fit_context"] is not None
+    assert any("transfer" in item.lower() or "systems" in item.lower() for item in readout["fit_context"]["transferable_strengths"])
+    assert any("validate" in item.lower() or "follow-up" in item.lower() or "supplier" in item.lower() for item in readout["fit_context"]["recruiter_validation_focus"])
+    assert not any("not fit" in item.lower() or "bad fit" in item.lower() for item in readout["risk_flags"])
 
 
 def test_customer_support_recruiter_readout_surfaces_beyond_cv_signal():

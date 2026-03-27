@@ -1,4 +1,5 @@
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
+import { isRemoteJob } from '../../services/commuteService';
 import type { Job, SearchDiagnosticsMeta } from '../../types';
 import { expandCountryAliases, normalizeCountryCodes, sameCountryCodeSet } from '../useDiscoveryFilters';
 
@@ -181,6 +182,9 @@ export const createDomesticCountrySafeguard = ({
         const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
             ? new Set(normalizedCountryCodes)
             : null;
+        const remoteFallbackCountryCodes = shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0
+            ? new Set(normalizedCountryCodes)
+            : null;
         const allowedLanguageCodes = filterLanguageCodes.length > 0
             ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
             : null;
@@ -190,6 +194,11 @@ export const createDomesticCountrySafeguard = ({
             if (allowedCountryCodes) {
                 const inferredCountry = inferJobCountryCode(job);
                 if (!inferredCountry || !allowedCountryCodes.has(inferredCountry)) {
+                    return false;
+                }
+            } else if (remoteFallbackCountryCodes && isRemoteJob(job)) {
+                const inferredCountry = inferJobCountryCode(job);
+                if (!inferredCountry || !remoteFallbackCountryCodes.has(inferredCountry)) {
                     return false;
                 }
             }

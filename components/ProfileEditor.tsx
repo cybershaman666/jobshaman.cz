@@ -1512,6 +1512,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileIconButtonClass = 'rounded-[0.85rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]';
   const profilePrimaryButtonClass = 'app-button-primary app-organic-cta disabled:cursor-not-allowed disabled:opacity-60';
   const profileSurfaceClass = 'overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.16)]';
+  const jcfpmSurfaceClass = 'app-organic-shell overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/88 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.28)] dark:border-slate-800/80 dark:bg-slate-950/70';
+  const jcfpmInnerCardClass = 'rounded-[24px] border border-slate-200/80 bg-white/86 p-4 shadow-[0_18px_46px_-36px_rgba(15,23,42,0.24)] dark:border-slate-800/80 dark:bg-slate-950/60';
   const profileAccentIconShellClass = 'rounded-[12px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2';
   const profileAccentIconClass = 'h-5 w-5 text-[var(--text-strong)]';
   const profileAccentPanelClass = 'rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4';
@@ -4638,19 +4640,19 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             )}
 
             {isJcfpmTab && (
-              <div id="jcfpm-card" className={profileSurfaceClass}>
-                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <div id="jcfpm-card" className={jcfpmSurfaceClass}>
+                <div className="border-b border-slate-200/80 bg-gradient-to-r from-white/90 via-amber-50/75 to-cyan-50/65 p-5 dark:border-slate-800/80 dark:bg-gradient-to-r dark:from-slate-950/80 dark:via-slate-900/80 dark:to-slate-950/70">
+                  <h2 className="text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-white">
                     Career Fit & Potential Test
-                    <span className="ml-2 inline-block bg-amber-100 text-amber-800 dark:bg-amber-600 dark:text-amber-50 text-xs font-medium px-2 py-0.5 rounded-full">
+                    <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-600 dark:text-amber-50">
                       &bull; test
                     </span>
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
                     {profilePremiumCopy.jcfpmSummary}
                   </p>
                 </div>
-                <div className="space-y-4 bg-[linear-gradient(180deg,rgba(255,250,240,0.88),rgba(255,255,255,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.28),rgba(10,18,32,0.96))]">
+                <div className="space-y-5 bg-[linear-gradient(180deg,rgba(255,250,240,0.86),rgba(248,250,252,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(29,21,7,0.22),rgba(10,18,32,0.96))]">
                   <JcfpmEntryCard
                     isPremium={isPremium}
                     sceneCapability={sceneCapability}
@@ -4686,12 +4688,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     }}
                   />
                   {jcfpmSnapshot && (
-                    <div id="profile-jcfpm-report" className="rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-soft)]">
+                    <div id="profile-jcfpm-report" className={jcfpmInnerCardClass}>
                       <JcfpmReportPanel snapshot={jcfpmSnapshot} showAdvancedReport={isPremium} />
                     </div>
                   )}
                   {profile.preferences?.jcfpm_jhi_adjustment_v1 && isPremium && (
-                    <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.16)] bg-white/80 p-4 dark:bg-slate-900/70">
+                    <div className={jcfpmInnerCardClass}>
                       <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                         Jak test upravil JHI preference
                       </div>
@@ -4719,7 +4721,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                   )}
                   {profile.preferences?.jcfpm_jhi_adjustment_v1 && !isPremium && (
-                    <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+                    <div className={jcfpmInnerCardClass}>
                       <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                         {t('profile.jcfpm.basic_result_active', { defaultValue: profilePremiumCopy.jcfpmBasicTitle })}
                       </div>

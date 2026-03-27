@@ -71,6 +71,41 @@ def _load_signal_boost_job_row(job_id: str) -> dict[str, Any] | None:
         return None
 
 
+def _enrich_signal_boost_brief_with_candidate_context(
+    brief: dict[str, Any] | None,
+    job_row: dict[str, Any],
+    locale: str,
+    candidate_profile: dict[str, Any] | None,
+) -> dict[str, Any]:
+    base_brief = brief if isinstance(brief, dict) else {}
+    if not str(job_row.get("id") or "").strip():
+        return base_brief
+    rebuilt = build_signal_boost_brief(
+        job_row,
+        locale,
+        candidate_profile=candidate_profile,
+        prefer_ai=True,
+    )
+    if not base_brief:
+        return rebuilt
+
+    merged = dict(rebuilt)
+    merged.update(base_brief)
+    for key in ("role_context", "question_pack", "structured_sections", "fit_context", "meta"):
+        if not merged.get(key):
+            merged[key] = rebuilt.get(key)
+    return merged
+
+
+def _resolve_signal_boost_job_context(source: dict[str, Any]) -> dict[str, Any]:
+    job_id = str(source.get("job_id") or "").strip()
+    if job_id:
+        live_job = _load_signal_boost_job_row(job_id)
+        if live_job:
+            return live_job
+    return _safe_dict(source.get("job_snapshot"))
+
+
 def _build_signal_boost_candidate_snapshot(user: dict, user_id: str) -> dict[str, Any]:
     candidate_profile = _fetch_candidate_profile_for_draft(user_id)
     profile_identity = _fetch_profile_identity(user_id)
@@ -173,6 +208,60 @@ def _build_public_candidate_snapshot(source: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _build_public_jcfpm_signal(candidate_profile: dict[str, Any]) -> dict[str, Any] | None:
+    preferences = _safe_dict(candidate_profile.get("preferences"))
+    snapshot = _safe_dict(preferences.get("jcfpm_v1"))
+    if not snapshot:
+        return None
+
+    ai_report = _safe_dict(snapshot.get("ai_report"))
+    archetype = _safe_dict(snapshot.get("archetype"))
+    dimension_scores = snapshot.get("dimension_scores") if isinstance(snapshot.get("dimension_scores"), list) else []
+    top_dimensions: list[dict[str, Any]] = []
+    for row in dimension_scores:
+        item = _safe_dict(row)
+        label = _trimmed_text(item.get("label"), 120)
+        try:
+            percentile = int(round(float(item.get("percentile") or 0)))
+        except (TypeError, ValueError):
+            percentile = 0
+        if not label:
+            continue
+        top_dimensions.append({
+            "label": label,
+            "percentile": max(0, min(100, percentile)),
+        })
+    if not top_dimensions:
+        label_map = {
+            "d1_cognitive": "Cognitive structure",
+            "d2_social": "Social orientation",
+            "d3_motivational": "Drive",
+            "d4_energy": "Execution stamina",
+            "d6_ai_readiness": "Adaptability",
+            "d12_moral_compass": "Judgement",
+        }
+        percentile_summary = _safe_dict(snapshot.get("percentile_summary"))
+        for key, label in label_map.items():
+            try:
+                percentile = int(round(float(percentile_summary.get(key) or 0)))
+            except (TypeError, ValueError):
+                percentile = 0
+            if percentile <= 0:
+                continue
+            top_dimensions.append({
+                "label": label,
+                "percentile": max(0, min(100, percentile)),
+            })
+    top_dimensions = sorted(top_dimensions, key=lambda item: int(item.get("percentile") or 0), reverse=True)[:3]
+
+    return {
+        "archetype": _trimmed_text(archetype.get("title") or archetype.get("title_en"), 120) or None,
+        "strengths": _safe_string_list(ai_report.get("strengths"), limit=4),
+        "environment_fit": _safe_string_list(ai_report.get("ideal_environment"), limit=3),
+        "top_dimensions": top_dimensions,
+    }
+
+
 def _should_redirect_public_avatar(url: str) -> bool:
     normalized = str(url or "").strip().lower()
     if not normalized:
@@ -188,6 +277,21 @@ def _serialize_signal_output_owner(row: dict[str, Any] | None) -> dict[str, Any]
         return None
     locale = str(source.get("locale") or "en").strip() or "en"
     share_slug = str(source.get("share_slug") or "").strip()
+    candidate_id = str(source.get("candidate_id") or "").strip()
+    candidate_profile = _fetch_candidate_profile_for_draft(candidate_id) if candidate_id else {}
+    live_job = _resolve_signal_boost_job_context(source)
+    scenario_payload = _enrich_signal_boost_brief_with_candidate_context(
+        _safe_dict(source.get("scenario_payload")),
+        live_job,
+        locale,
+        candidate_profile,
+    )
+    recruiter_readout = _safe_dict(source.get("recruiter_readout"))
+    if scenario_payload.get("fit_context"):
+        recruiter_readout = {
+            **recruiter_readout,
+            "fit_context": recruiter_readout.get("fit_context") or scenario_payload.get("fit_context"),
+        }
     return {
         "id": str(source.get("id") or "").strip(),
         "share_slug": share_slug,
@@ -196,9 +300,10 @@ def _serialize_signal_output_owner(row: dict[str, Any] | None) -> dict[str, Any]
         "status": str(source.get("status") or "draft").strip() or "draft",
         "job_snapshot": _safe_dict(source.get("job_snapshot")),
         "candidate_snapshot": _safe_dict(source.get("candidate_snapshot")),
-        "scenario_payload": _safe_dict(source.get("scenario_payload")),
+        "jcfpm_signal": _build_public_jcfpm_signal(candidate_profile),
+        "scenario_payload": scenario_payload,
         "response_payload": _safe_dict(source.get("response_payload")),
-        "recruiter_readout": _safe_dict(source.get("recruiter_readout")) or None,
+        "recruiter_readout": recruiter_readout or None,
         "signal_summary": _safe_dict(source.get("signal_summary")) or None,
         "quality_flags": _safe_dict(source.get("quality_flags")),
         "analytics": _safe_dict(source.get("analytics")),
@@ -216,6 +321,21 @@ def _serialize_signal_output_public(row: dict[str, Any] | None) -> dict[str, Any
     locale = str(source.get("locale") or "en").strip() or "en"
     share_slug = str(source.get("share_slug") or "").strip()
     public_candidate_snapshot = _build_public_candidate_snapshot(source)
+    candidate_id = str(source.get("candidate_id") or "").strip()
+    candidate_profile = _fetch_candidate_profile_for_draft(candidate_id) if candidate_id else {}
+    live_job = _resolve_signal_boost_job_context(source)
+    scenario_payload = _enrich_signal_boost_brief_with_candidate_context(
+        _safe_dict(source.get("scenario_payload")),
+        live_job,
+        locale,
+        candidate_profile,
+    )
+    recruiter_readout = _safe_dict(source.get("recruiter_readout"))
+    if scenario_payload.get("fit_context"):
+        recruiter_readout = {
+            **recruiter_readout,
+            "fit_context": recruiter_readout.get("fit_context") or scenario_payload.get("fit_context"),
+        }
     return {
         "id": str(source.get("id") or "").strip(),
         "share_slug": share_slug,
@@ -223,9 +343,10 @@ def _serialize_signal_output_public(row: dict[str, Any] | None) -> dict[str, Any
         "locale": locale,
         "job_snapshot": job_snapshot,
         "candidate_snapshot": public_candidate_snapshot,
-        "scenario_payload": _safe_dict(source.get("scenario_payload")),
+        "jcfpm_signal": _build_public_jcfpm_signal(candidate_profile),
+        "scenario_payload": scenario_payload,
         "response_payload": _safe_dict(source.get("response_payload")),
-        "recruiter_readout": _safe_dict(source.get("recruiter_readout")) or None,
+        "recruiter_readout": recruiter_readout or None,
         "signal_summary": _safe_dict(source.get("signal_summary")) or None,
         "quality_flags": _safe_dict(source.get("quality_flags")),
         "created_at": source.get("created_at"),
@@ -249,7 +370,9 @@ async def generate_job_signal_boost_brief(
         raise HTTPException(status_code=404, detail="Job not found")
 
     locale = _normalize_locale(payload.locale or job_row.get("language_code") or "en")
-    brief = build_signal_boost_brief(job_row, locale, prefer_ai=True)
+    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id) if user_id else {}
+    brief = build_signal_boost_brief(job_row, locale, candidate_profile=candidate_profile, prefer_ai=True)
     void_meta = {
         "job_id": str(job_row.get("id") or job_id),
         "source_kind": _build_signal_boost_job_snapshot(job_row).get("source_kind"),
@@ -304,8 +427,14 @@ async def publish_job_signal_boost_output(
         raise HTTPException(status_code=404, detail="Job not found")
 
     locale = _normalize_locale(payload.locale or job_row.get("language_code") or "en")
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
     scenario_payload = _safe_dict(payload.scenario_payload)
-    brief = scenario_payload if scenario_payload else build_signal_boost_brief(job_row, locale, prefer_ai=True)
+    brief = _enrich_signal_boost_brief_with_candidate_context(
+        scenario_payload,
+        job_row,
+        locale,
+        candidate_profile,
+    )
     response_payload = {
         key: _trimmed_text(value, 4000)
         for key, value in dict(payload.response_payload or {}).items()
@@ -410,7 +539,15 @@ async def update_job_signal_boost_output(
 
     locale = _normalize_locale(payload.locale or existing.get("locale") or "en")
     scenario_payload = _safe_dict(payload.scenario_payload)
-    brief = scenario_payload if scenario_payload else _safe_dict(existing.get("scenario_payload"))
+    existing_brief = _safe_dict(existing.get("scenario_payload"))
+    job_row = _load_signal_boost_job_row(str(existing.get("job_id") or ""))
+    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
+    brief = _enrich_signal_boost_brief_with_candidate_context(
+        scenario_payload or existing_brief,
+        job_row or _safe_dict(existing.get("job_snapshot")),
+        locale,
+        candidate_profile,
+    )
     response_payload = {
         key: _trimmed_text(value, 4000)
         for key, value in dict(payload.response_payload or {}).items()
