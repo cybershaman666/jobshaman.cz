@@ -119,6 +119,7 @@ def test_job_application_draft_request_defaults_and_validation():
 def test_generate_job_application_draft_success(monkeypatch):
     fake_supabase = _FakeSupabase()
     monkeypatch.setattr(jobs_router, "supabase", fake_supabase)
+    monkeypatch.setattr(jobs_router, "_read_job_record", lambda job_id: fake_supabase.jobs.get(job_id))
     monkeypatch.setattr(jobs_router, "_user_has_allowed_subscription", lambda user, allowed: True)
     monkeypatch.setattr(
         jobs_router,
@@ -160,6 +161,7 @@ def test_generate_job_application_draft_success(monkeypatch):
 def test_generate_job_application_draft_falls_back_when_ai_fails(monkeypatch):
     fake_supabase = _FakeSupabase()
     monkeypatch.setattr(jobs_router, "supabase", fake_supabase)
+    monkeypatch.setattr(jobs_router, "_read_job_record", lambda job_id: fake_supabase.jobs.get(job_id))
     monkeypatch.setattr(jobs_router, "_user_has_allowed_subscription", lambda user, allowed: True)
     monkeypatch.setattr(jobs_router, "recommend_jobs_for_user", lambda **_kwargs: [])
 
@@ -202,6 +204,7 @@ def test_generate_job_application_draft_rejects_missing_user(monkeypatch):
 def test_generate_job_application_draft_rejects_foreign_cv_document(monkeypatch):
     fake_supabase = _FakeSupabase()
     monkeypatch.setattr(jobs_router, "supabase", fake_supabase)
+    monkeypatch.setattr(jobs_router, "_read_job_record", lambda job_id: fake_supabase.jobs.get(job_id))
     monkeypatch.setattr(jobs_router, "_user_has_allowed_subscription", lambda user, allowed: True)
 
     with pytest.raises(HTTPException) as exc:

@@ -3,8 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { Job, SearchDiagnosticsMeta, UserProfile } from '../types';
 import { dedupeJobsList } from '../services/jobService';
 import AnalyticsService from '../services/analyticsService';
-import { getCandidateIntentDomainSeedKeyword, getCandidateIntentDomainLabel, getCandidateIntentRoleSeedKeyword, resolveCandidateIntentProfile } from '../services/candidateIntentService';
+import {
+    annotateJobsForCandidate,
+    computeCandidateAnnotations,
+    getCandidateIntentDomainSeedKeyword,
+    getCandidateIntentDomainLabel,
+    getCandidateIntentRoleSeedKeyword,
+    resolveCandidateIntentProfile,
+} from '../services/candidateIntentService';
 import { recordRuntimeSignal } from '../services/runtimeSignals';
+import { getDefaultCandidateSearchFilters } from '../services/searchProfilePresets';
+import { resolveDiscoveryCoordinates } from '../services/discoveryCoordinates';
 import useDiscoveryFilters, {
     normalizeCountryCodes,
     sameCountryCodeSet,
@@ -12,7 +21,6 @@ import useDiscoveryFilters, {
 import useJobInteractionState from './useJobInteractionState';
 import {
     applyExternalOverlayJobFilters,
-    resolveDiscoveryCoordinates,
     runAsyncExternalOverlay,
     runFilteredFetchPipeline,
     runSimplePaginationPipeline,
@@ -79,6 +87,32 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         const label = getCandidateIntentDomainLabel(candidateIntent.primaryDomain, i18n.language);
         return String(label || '').trim();
     }, [candidateIntent.primaryDomain, candidateIntent.targetRole, i18n.language]);
+    const hasProfileLocation = useMemo(
+        () => Boolean(
+            userProfile.coordinates?.lat
+            || userProfile.coordinates?.lon
+            || String(userProfile.address || '').trim()
+        ),
+        [userProfile.address, userProfile.coordinates?.lat, userProfile.coordinates?.lon]
+    );
+    const profileDiscoveryDefaults = useMemo(
+        () => getDefaultCandidateSearchFilters(userProfile, { hasLocation: hasProfileLocation }),
+        [hasProfileLocation, userProfile]
+    );
+    const shouldAnnotateDiscoveryByProfile = useMemo(
+        () => Boolean(
+            candidateIntent.primaryDomain
+            || candidateIntent.targetRole
+            || candidateIntent.secondaryDomains.length > 0
+            || candidateIntent.avoidDomains.length > 0
+        ),
+        [
+            candidateIntent.avoidDomains,
+            candidateIntent.primaryDomain,
+            candidateIntent.secondaryDomains,
+            candidateIntent.targetRole,
+        ]
+    );
     const activeFetchControllerRef = useRef<AbortController | null>(null);
     const externalOverlayControllerRef = useRef<AbortController | null>(null);
     const lastExternalOverlaySignatureRef = useRef<string>('');
@@ -114,7 +148,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         applyDiscoveryDefaults,
         countryCodes,
         defaultCountryCodes,
-        defaultLanguageCodes,
         enableAutoLanguageGuard,
         enableCommuteFilter,
         filterBenefits,
@@ -189,6 +222,25 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         enabled,
         userProfile,
     });
+
+    const applyProfileDiscoveryOrdering = useCallback((visibleJobs: Job[], currentSearchMode: string) => {
+        if (!visibleJobs.length || !shouldAnnotateDiscoveryByProfile) {
+            return {
+                jobs: visibleJobs,
+                reordered: false,
+            };
+        }
+        if (currentSearchMode === 'manual_query') {
+            return {
+                jobs: computeCandidateAnnotations(visibleJobs, userProfile, i18n.language),
+                reordered: false,
+            };
+        }
+        return {
+            jobs: annotateJobsForCandidate(visibleJobs, userProfile, i18n.language),
+            reordered: true,
+        };
+    }, [i18n.language, shouldAnnotateDiscoveryByProfile, userProfile]);
 
     const applyDomesticCountrySafeguard = useMemo(() => createDomesticCountrySafeguard({
         countryCodes,
@@ -336,7 +388,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const effectiveEnableCommuteFilter = suppressImplicitCommuteForManualQuery
                 ? false
                 : enableCommuteFilter;
-            const defaultMaxDistanceKm = userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || undefined;
+            const defaultMaxDistanceKm = Number(profileDiscoveryDefaults.filterMaxDistance || 0) || undefined;
             const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
             const effectiveImplicitRadiusKm =
                 !suppressImplicitCommuteForManualQuery && !effectiveEnableCommuteFilter && !hasExplicitLocationFilter
@@ -347,6 +399,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 userProfile,
                 enableCommuteFilter: effectiveEnableCommuteFilter,
                 filterCity,
+                allowProfileAddressGeocode: Boolean(effectiveEnableCommuteFilter || effectiveImplicitRadiusKm),
             });
 
             const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
@@ -362,12 +415,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 filterExperience.length > 0 ||
                 effectiveEnableCommuteFilter ||
                 sortBy !== 'newest' ||
-                hasExplicitLanguageFilter ||
+                filterLanguageCodes.length > 0 ||
                 abroadOnly ||
                 remoteOnly ||
                 filterWorkArrangement !== 'all' ||
                 hasCountryOverride;
-            const retrievalLanguageCodes = hasExplicitLanguageFilter
+            const retrievalLanguageCodes = filterLanguageCodes.length > 0
                 ? filterLanguageCodes
                 : undefined;
             const requestedPageSize = initialPageSize;
@@ -439,11 +492,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                         retrievalLanguageCodes: retrievalLanguageCodes || [],
                     });
                 }
-                setSearchDiagnostics(simpleResult.diagnostics);
+                const annotatedSimple = applyProfileDiscoveryOrdering(simpleResult.visibleJobs, searchMode);
+                setSearchDiagnostics({
+                    ...simpleResult.diagnostics,
+                    reordered_by_profile: simpleResult.diagnostics.reordered_by_profile || annotatedSimple.reordered,
+                });
                 if (isLoadMore) {
-                    setJobs(prev => dedupeJobs(simpleResult.visibleJobs, prev));
+                    setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedSimple.jobs, prev), searchMode).jobs);
                 } else {
-                    setJobs(simpleResult.visibleJobs);
+                    setJobs(annotatedSimple.jobs);
                 }
 
                 setHasMore(simpleResult.resolvedHasMore);
@@ -466,16 +523,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                             externalOverlayControllerRef.current = controller;
                         },
                         setJobs: (updater) => {
-                            setJobs(updater);
+                            setJobs((prev) => applyProfileDiscoveryOrdering(updater(prev), searchMode).jobs);
                         },
                     });
                 }
                 return;
             }
 
-            // Profile benefit preferences should shape ranking and presets, but not silently
-            // act as hard discovery filters. Otherwise a broad text query can collapse to a
-            // near-empty result set because of a hidden profile-only benefit like dog-friendly.
+            // Candidate profile defaults now intentionally flow into discovery filters.
+            // Keep the payload deduped so we do not accidentally over-constrain the query
+            // with repeated benefit aliases.
             const effectiveBenefits = Array.from(new Set(filterBenefits));
 
             const effectiveRadiusKm = effectiveEnableCommuteFilter
@@ -524,12 +581,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     searchMode,
                 });
             }
-            setSearchDiagnostics(filteredResult.diagnostics);
+            const annotatedFiltered = applyProfileDiscoveryOrdering(filteredResult.visibleJobs, searchMode);
+            setSearchDiagnostics({
+                ...filteredResult.diagnostics,
+                reordered_by_profile: filteredResult.diagnostics.reordered_by_profile || annotatedFiltered.reordered,
+            });
 
             if (isLoadMore) {
-                setJobs(prev => dedupeJobs(filteredResult.visibleJobs, prev));
+                setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedFiltered.jobs, prev), searchMode).jobs);
             } else {
-                setJobs(filteredResult.visibleJobs);
+                setJobs(annotatedFiltered.jobs);
             }
 
             setHasMore(filteredResult.resolvedHasMore);
@@ -591,7 +652,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                             externalOverlayControllerRef.current = controller;
                         },
                         setJobs: (updater) => {
-                            setJobs(updater);
+                            setJobs((prev) => applyProfileDiscoveryOrdering(updater(prev), searchMode).jobs);
                         },
                     });
                 }
@@ -646,10 +707,36 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             }
         }
     }, [
-        enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
-        filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, userProfile.preferences?.searchProfile?.defaultMaxDistanceKm, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, filterWorkArrangement, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes, filterSources.enableCommuteFilter
-    , primaryFetchSignature]);
+        abroadOnly,
+        applyDomesticCountrySafeguard,
+        applyProfileDiscoveryOrdering,
+        countryCodes,
+        enableCommuteFilter,
+        externalSearchSeedTerm,
+        filterBenefits,
+        filterCity,
+        filterContractType,
+        filterDate,
+        filterDismissedJobs,
+        filterExperience,
+        filterLanguageCodes,
+        filterMaxDistance,
+        filterMinSalary,
+        filterSources.enableCommuteFilter,
+        filterWorkArrangement,
+        globalSearch,
+        initialPageSize,
+        marketBaselineCountryCodes,
+        microJobsOnly,
+        normalizedDefaultDomesticCountries,
+        primaryFetchSignature,
+        profileDiscoveryDefaults.filterMaxDistance,
+        remoteOnly,
+        searchMode,
+        searchTerm,
+        sortBy,
+        userProfile,
+    ]);
 
 
     // Debounced reload when filters change
@@ -714,47 +801,32 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
         const isProfileReady = userProfile.isLoggedIn ? !!userProfile.id : true;
         if (!isProfileReady) return;
-
-        const searchProfile = userProfile.preferences?.searchProfile;
-        if (!searchProfile) return;
-
-        const hasProfileLocation = Boolean(
-            userProfile.coordinates?.lat
-            || userProfile.coordinates?.lon
-            || String(userProfile.address || '').trim()
-        );
         if (DEBUG_DISCOVERY) {
             console.log('🏁 Applying initial profile search defaults...');
         }
 
-        const defaultDistance = Number(searchProfile.defaultMaxDistanceKm ?? 50) || 50;
         const defaultsSignature = JSON.stringify({
             profileId: userProfile.id || 'guest',
-            defaultDistance,
+            defaults: profileDiscoveryDefaults,
             hasProfileLocation,
         });
         if (lastAppliedProfileDefaultsSignatureRef.current === defaultsSignature) return;
 
-        const shouldForce = lastAppliedProfileDefaultsSignatureRef.current == null;
         lastAppliedProfileDefaultsSignatureRef.current = defaultsSignature;
-
-        applyDiscoveryDefaults({
-            filterMaxDistance: defaultDistance,
-        }, shouldForce);
+        applyDiscoveryDefaults(profileDiscoveryDefaults, true);
     }, [
+        applyDiscoveryDefaults,
         enabled,
-        userProfile.isLoggedIn,
+        hasProfileLocation,
+        profileDiscoveryDefaults,
         userProfile.id,
-        userProfile.address,
-        userProfile.coordinates?.lat,
-        userProfile.coordinates?.lon,
-        userProfile.preferences?.searchProfile,
-        applyDiscoveryDefaults
+        userProfile.isLoggedIn,
     ]);
 
     useEffect(() => {
+        const defaultGlobalSearch = Boolean(profileDiscoveryDefaults.globalSearch) || defaultCountryCodes.length === 0;
         if (filterSources.globalSearch !== 'user_toggle') {
-            setGlobalSearchTracked(defaultCountryCodes.length === 0, 'default');
+            setGlobalSearchTracked(defaultGlobalSearch, 'default');
         }
         if (filterSources.abroadOnly !== 'user_toggle') {
             setAbroadOnlyTracked(false, 'default');
@@ -771,7 +843,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         abroadOnly,
         filterSources.globalSearch,
         filterSources.abroadOnly,
+        profileDiscoveryDefaults.globalSearch,
+        setAbroadOnlyTracked,
         setCountryCodesSafe,
+        setGlobalSearchTracked,
     ]);
 
     useEffect(() => {

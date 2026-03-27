@@ -140,9 +140,8 @@ export const useDiscoveryFilters = ({
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCity, setFilterCity] = useState('');
     const [filterMaxDistance, setFilterMaxDistance] = useState<number>(() => userProfile.preferences?.searchProfile?.defaultMaxDistanceKm ?? 50);
-    // Keep the preferred radius ready in the UI, but don't silently hard-enable the
-    // commute filter on first load. Otherwise the default feed can collapse to a tiny
-    // local subset before the user intentionally narrows the search.
+    // Start from a neutral state, then let the synced profile-default effect decide
+    // whether commute filtering should turn on once we know the candidate defaults.
     const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
@@ -278,14 +277,16 @@ export const useDiscoveryFilters = ({
     useEffect(() => {
         if (!enableAutoLanguageGuard) return;
         if (filterSources.filterLanguageCodes === 'user_toggle') return;
+        if (filterLanguageCodes.length > 0) return;
         setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
-    }, [defaultLanguageCodes, enableAutoLanguageGuard, filterSources.filterLanguageCodes]);
+    }, [defaultLanguageCodes, enableAutoLanguageGuard, filterLanguageCodes.length, filterSources.filterLanguageCodes]);
 
     useEffect(() => {
         if (filterSources.filterLanguageCodes === 'user_toggle') return;
+        if (filterLanguageCodes.length > 0) return;
         setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
         setEnableAutoLanguageGuard(true);
-    }, [defaultCountryCodes, filterSources.filterLanguageCodes]);
+    }, [defaultCountryCodes, filterLanguageCodes.length, filterSources.filterLanguageCodes]);
 
     const updateFilterSource = useCallback((field: DiscoveryFilterField, source: DiscoveryFilterSource) => {
         setFilterSources((prev) => {

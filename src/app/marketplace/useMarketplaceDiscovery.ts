@@ -4,6 +4,7 @@ import { BACKEND_URL, SEARCH_BACKEND_URL } from '../../../constants';
 import { usePaginatedJobs } from '../../../hooks/usePaginatedJobs';
 import { ViewState, type Job, type UserProfile } from '../../../types';
 import { clearJobCache, fetchJobById } from '../../../services/jobService';
+import { getDefaultCandidateSearchFilters } from '../../../services/searchProfilePresets';
 
 const DEBUG_DISCOVERY =
   String(import.meta.env.VITE_DEBUG_DISCOVERY || '').toLowerCase() === 'true';
@@ -54,7 +55,7 @@ export const useMarketplaceDiscovery = ({
     setEnableCommuteFilter,
   } = discovery;
 
-  const hasAppliedInitialRemoteDefaultRef = useRef(false);
+  const appliedRemoteDefaultsSignatureRef = useRef<string | null>(null);
   const reloadLockRef = useRef(false);
   const backendWakeRetryRef = useRef(false);
   const backendRetryCountRef = useRef(0);
@@ -110,25 +111,27 @@ export const useMarketplaceDiscovery = ({
 
   useEffect(() => {
     if (isAdminRoute) return;
-    if (hasAppliedInitialRemoteDefaultRef.current) return;
 
-    const isProfileReady = userProfile.isLoggedIn ? !!userProfile.id : true;
+    const isProfileReady = effectiveUserProfile.isLoggedIn ? !!effectiveUserProfile.id : true;
     if (!isProfileReady) return;
 
-    const searchProfile = userProfile.preferences?.searchProfile;
-    if (!searchProfile) return;
+    const defaults = getDefaultCandidateSearchFilters(effectiveUserProfile);
+    const nextSignature = JSON.stringify({
+      profileId: effectiveUserProfile.id || 'guest',
+      remoteOnly: Boolean(defaults.remoteOnly),
+      filterWorkArrangement: defaults.filterWorkArrangement || 'all',
+    });
+    if (appliedRemoteDefaultsSignatureRef.current === nextSignature) return;
 
     if (DEBUG_DISCOVERY) {
       console.log('🏁 Applying initial remote search default...');
     }
-    hasAppliedInitialRemoteDefaultRef.current = true;
-    setChallengeRemoteOnly(Boolean(searchProfile.wantsRemoteRoles ?? false));
+    appliedRemoteDefaultsSignatureRef.current = nextSignature;
+    setChallengeRemoteOnly(Boolean(defaults.remoteOnly));
   }, [
+    effectiveUserProfile,
     isAdminRoute,
     setChallengeRemoteOnly,
-    userProfile.id,
-    userProfile.isLoggedIn,
-    userProfile.preferences?.searchProfile,
   ]);
 
   useEffect(() => {

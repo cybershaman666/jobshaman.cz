@@ -1,14 +1,7 @@
 import { dedupeJobsList, fetchExternalOverlayJobs, fetchJobsPaginated, fetchJobsWithFilters } from '../../services/jobService';
-import { geocodeWithCaching, getStaticCoordinates } from '../../services/geocodingService';
 import { isRemoteJob } from '../../services/commuteService';
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
 import type { Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile } from '../../types';
-
-interface ResolveDiscoveryCoordinatesArgs {
-    userProfile: UserProfile;
-    enableCommuteFilter: boolean;
-    filterCity: string;
-}
 
 interface RunSimplePaginationArgs {
     page: number;
@@ -67,33 +60,6 @@ interface RunOverlayArgs {
     replaceController: (controller: AbortController) => void;
     setJobs: (updater: (prev: Job[]) => Job[]) => void;
 }
-
-export const resolveDiscoveryCoordinates = async ({
-    userProfile,
-    enableCommuteFilter,
-    filterCity,
-}: ResolveDiscoveryCoordinatesArgs): Promise<{ lat?: number; lon?: number }> => {
-    let lat = userProfile.coordinates?.lat;
-    let lon = userProfile.coordinates?.lon;
-
-    if ((lat == null || lon == null) && enableCommuteFilter && userProfile.address) {
-        const addressCoords = getStaticCoordinates(userProfile.address) || await geocodeWithCaching(userProfile.address);
-        if (addressCoords) {
-            lat = addressCoords.lat;
-            lon = addressCoords.lon;
-        }
-    }
-
-    if ((lat == null || lon == null) && filterCity && enableCommuteFilter) {
-        const cityCoords = getStaticCoordinates(filterCity);
-        if (cityCoords) {
-            lat = cityCoords.lat;
-            lon = cityCoords.lon;
-        }
-    }
-
-    return { lat: lat ?? undefined, lon: lon ?? undefined };
-};
 
 export const runSimplePaginationPipeline = async ({
     page,

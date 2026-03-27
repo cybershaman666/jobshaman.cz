@@ -1,29 +1,396 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import unicodedata
 from typing import Any
 
-from ..ai_orchestration.client import AIClientError, _extract_json, call_primary_with_fallback, get_default_fallback_model, get_default_primary_model, resolve_ai_provider
+from ..ai_orchestration.client import (
+    AIClientError,
+    _extract_json,
+    call_primary_with_fallback,
+    get_default_fallback_model,
+    get_default_primary_model,
+    resolve_ai_provider,
+)
 from ..core import config
-from ..matching_engine.role_taxonomy import DOMAIN_KEYWORDS, ROLE_FAMILY_KEYWORDS
+from ..matching_engine.role_taxonomy import DOMAIN_KEYWORDS, REQUIRED_QUALIFICATION_RULES, ROLE_FAMILY_KEYWORDS
 from .job_intelligence import map_job_to_intelligence
 
 _SECTION_IDS = (
-    "problem_understanding",
-    "first_move",
-    "approach_tradeoffs",
-    "needs_to_know",
-    "thinking_notes",
+    "problem_frame",
+    "first_step",
+    "solution_direction",
+    "risk_and_unknowns",
+    "stakeholder_note",
 )
+
+_OPTIONAL_SECTION_IDS = {"stakeholder_note"}
+_SUPPORTED_LOCALES = {"cs", "sk", "de", "pl", "en"}
+_QUESTION_PACK_SIZE = 3
+
+_GENERIC_MARKERS = (
+    "best practices",
+    "team player",
+    "communication skills",
+    "motivated",
+    "dynamic environment",
+    "analyze the requirements",
+    "stakeholder alignment",
+    "hardworking",
+    "professional attitude",
+    "motivovan",
+    "komunikacni",
+    "dynamick",
+    "profesional",
+)
+_ACTION_MARKERS = (
+    "check",
+    "call",
+    "review",
+    "compare",
+    "map",
+    "inspect",
+    "ask",
+    "open",
+    "verify",
+    "align",
+    "zkontrol",
+    "over",
+    "porovn",
+    "map",
+    "zept",
+    "proj",
+    "obvol",
+    "sjedn",
+)
+_TRADEOFF_MARKERS = (
+    "priority",
+    "prioritize",
+    "trade-off",
+    "tradeoff",
+    "not do",
+    "not yet",
+    "delay",
+    "before",
+    "instead of",
+    "priorita",
+    "uprednost",
+    "zatim",
+    "zatim ne",
+    "nebudu",
+    "odloz",
+)
+_RISK_MARKERS = (
+    "risk",
+    "unknown",
+    "missing",
+    "clarify",
+    "question",
+    "before i commit",
+    "before changing",
+    "dependency",
+    "need to know",
+    "rizik",
+    "chybi",
+    "potreb",
+    "overit",
+    "upresnit",
+    "zavis",
+)
+
+_COPY = {
+    "cs": {
+        "kicker": "Signal Boost",
+        "timebox": "15 až 20 minut",
+        "note": "Nejde o ideální esej. Jde o to, jak čtete kontext role, jak rozhodujete a co by recruiter z vaší odpovědi viděl navíc oproti CV.",
+        "anti_generic": "Pište konkrétně a z role. Jedna jasná první akce a jedno reálné riziko řeknou víc než uhlazené obecné fráze.",
+        "cta_hint": "Po dokončení dostanete veřejný JobShaman link, který můžete poslat spolu s klasickou přihláškou.",
+        "how_to_title": "Jak na to",
+        "deliverable_title": "V mini case ukažte",
+        "how_to_steps": [
+            "Nejdřív si přečtěte roli a tři konkrétní otázky, na které recruiter opravdu potřebuje odpověď.",
+            "Pak napište, jak byste situaci rámovali, co uděláte jako první a kam byste řešení vedli.",
+            "Nakonec pojmenujte rizika, chybějící fakta a případně komu byste to potřebovali srovnat.",
+        ],
+        "job_excerpt_title": "Kontext z inzerátu",
+        "constraints": [
+            "Jak čtete skutečný problém nebo tlak v roli.",
+            "Jaký by byl váš první konkrétní krok a jakým směrem byste vedli řešení.",
+            "Jaká rizika a otevřené otázky byste si ještě museli ujasnit.",
+        ],
+        "recruiter_reading_guide": "Recruiter by z toho měl během pár minut pochopit, jak čtete kontext, jak rozhodujete pod tlakem a co pojmenujete jako slepé místo dřív, než se pustíte do řešení.",
+        "sections": {
+            "problem_frame": {
+                "title": "Jak bych si srovnal(a) problém",
+                "hint": "Pojmenujte skutečný problém, ne jen téma role.",
+            },
+            "first_step": {
+                "title": "Co udělám jako první",
+                "hint": "Jeden konkrétní krok, který byste opravdu udělali hned.",
+            },
+            "solution_direction": {
+                "title": "Jakým směrem bych vedl(a) řešení",
+                "hint": "Ukažte prioritu, trade-off a co byste zatím nespouštěli.",
+            },
+            "risk_and_unknowns": {
+                "title": "Jaká rizika a neznámé si hlídám",
+                "hint": "Napište, co ještě potřebujete vědět, než se zavážete k řešení.",
+            },
+            "stakeholder_note": {
+                "title": "Krátká poznámka pro další lidi",
+                "hint": "Volitelné. Komu byste to srovnali a co by od vás potřeboval slyšet.",
+            },
+        },
+        "nudges": {
+            "too_short": "Ještě trochu přidejte. Recruiter musí vidět víc než jen obecný úmysl.",
+            "problem_frame": "Chybí jasné čtení problému. Co je tady skutečný tlak, omezení nebo riziko?",
+            "first_step": "Chybí konkrétní první krok. Co byste opravdu udělali jako první akci?",
+            "solution_direction": "Doplňte směr řešení a trade-off. Co byste upřednostnili a co byste zatím nespouštěli?",
+            "risk_and_unknowns": "Doplňte rizika nebo chybějící fakta. Co byste si ještě museli ověřit?",
+            "generic": "Zkuste méně obecných frází a víc role-specific detailu z konkrétní situace.",
+        },
+        "summary_labels": {
+            "context_read": "Čtení kontextu",
+            "decision_quality": "Kvalita rozhodnutí",
+            "risk_judgment": "Práce s rizikem",
+            "role_specificity": "Specifičnost pro roli",
+        },
+    },
+    "en": {
+        "kicker": "Signal Boost",
+        "timebox": "15 to 20 minutes",
+        "note": "This is not a polished essay. It is a role-aware mini case that should show how you read context, make decisions, and reveal signal that a CV alone cannot show.",
+        "anti_generic": "Write concretely and from the role. One clear first action and one real risk say more than polished generic language.",
+        "cta_hint": "When you finish, you will get a public JobShaman link you can send with your normal application.",
+        "how_to_title": "How to approach it",
+        "deliverable_title": "In the mini case, show",
+        "how_to_steps": [
+            "First, read the role context and the three specific questions the recruiter would really care about.",
+            "Then explain how you frame the problem, what you would do first, and where you would steer the solution.",
+            "Finish with the risks, missing facts, and optionally who you would align next.",
+        ],
+        "job_excerpt_title": "Context from the listing",
+        "constraints": [
+            "How you read the real pressure or problem in the role.",
+            "What your first concrete step would be and which direction you would lead the solution.",
+            "Which risks and unknowns you would still need to clarify.",
+        ],
+        "recruiter_reading_guide": "A recruiter should be able to read this in a few minutes and understand how you read context, make decisions under pressure, and name blind spots before charging into execution.",
+        "sections": {
+            "problem_frame": {
+                "title": "How I would frame the problem",
+                "hint": "Name the real problem, not just the topic of the role.",
+            },
+            "first_step": {
+                "title": "What I would do first",
+                "hint": "One concrete first action you would actually take right away.",
+            },
+            "solution_direction": {
+                "title": "Where I would steer the solution",
+                "hint": "Show the priority, the trade-off, and what you would deliberately not start yet.",
+            },
+            "risk_and_unknowns": {
+                "title": "Which risks and unknowns I am watching",
+                "hint": "Write what you still need to know before you commit to the path.",
+            },
+            "stakeholder_note": {
+                "title": "Short note for other stakeholders",
+                "hint": "Optional. Who would you align next, and what would they need to hear from you?",
+            },
+        },
+        "nudges": {
+            "too_short": "Add a bit more. A recruiter needs more than a generic intention statement.",
+            "problem_frame": "The problem framing is still too thin. What is the actual pressure, bottleneck, or risk here?",
+            "first_step": "The concrete first step is still missing. What would you actually do first?",
+            "solution_direction": "Add the solution direction and trade-off. What would you prioritize, and what would you deliberately not start yet?",
+            "risk_and_unknowns": "Add the risks or missing facts. What would you still need to verify?",
+            "generic": "Make this more role-specific and grounded in the scenario, with fewer generic phrases.",
+        },
+        "summary_labels": {
+            "context_read": "Context Read",
+            "decision_quality": "Decision Quality",
+            "risk_judgment": "Risk Judgment",
+            "role_specificity": "Role Specificity",
+        },
+    },
+}
+
+_ROLE_FAMILY_ARCHETYPE_MAP = {
+    "customer_support": "customer_support",
+    "customer_success": "customer_support",
+    "operations_coordination": "operations",
+    "operations_management": "operations",
+    "product_management": "product",
+    "people_ops": "people",
+    "sales_account": "sales",
+    "software_engineering": "engineering",
+    "construction_site": "construction_site",
+    "civil_engineering": "construction_site",
+    "construction": "construction_site",
+}
+
+_DOMAIN_ARCHETYPE_MAP = {
+    "customer_support": "customer_support",
+    "operations": "operations",
+    "product_management": "product",
+    "sales": "sales",
+    "it": "engineering",
+    "construction_site": "construction_site",
+    "construction": "construction_site",
+}
+
+_BROADER_RULE_ROLE_HINTS = {
+    "construction_supervisor": {
+        "canonical_role": "Construction Supervisor",
+        "role_family": "construction_site",
+        "domain_key": "construction_site",
+        "archetype": "construction_site",
+    },
+}
+
+_ARCHETYPE_MARKERS = {
+    "construction_site": (
+        "stavbyved",
+        "construction",
+        "site manager",
+        "site supervisor",
+        "bauleiter",
+        "kierownik budowy",
+        "subcontractor",
+        "safety",
+        "schedule",
+        "site",
+    ),
+    "customer_support": (
+        "support",
+        "customer service",
+        "helpdesk",
+        "ticket",
+        "sla",
+        "escalation",
+        "refund",
+        "frustrated",
+        "complaint",
+    ),
+    "operations": (
+        "operations",
+        "dispatch",
+        "warehouse",
+        "fleet",
+        "logistics",
+        "workflow",
+        "throughput",
+        "handoff",
+    ),
+    "product": (
+        "product",
+        "roadmap",
+        "onboarding",
+        "drop-off",
+        "activation",
+        "experiment",
+        "discovery",
+        "retention",
+    ),
+    "people": (
+        "recruit",
+        "talent",
+        "candidate pipeline",
+        "onboarding",
+        "hiring manager",
+        "interview",
+        "people",
+        "hr",
+    ),
+    "sales": (
+        "sales",
+        "account",
+        "pipeline",
+        "deal",
+        "revenue",
+        "renewal",
+        "prospect",
+        "forecast",
+    ),
+    "engineering": (
+        "engineer",
+        "developer",
+        "incident",
+        "bug",
+        "service",
+        "api",
+        "deploy",
+        "latency",
+        "backend",
+    ),
+}
+
+_ARCHETYPE_FOCUS_AREAS = {
+    "construction_site": [
+        "site sequencing",
+        "safety and compliance",
+        "subcontractor coordination",
+        "resource readiness",
+    ],
+    "customer_support": [
+        "missing ticket context",
+        "calm first response",
+        "SLA and escalation judgment",
+        "closing the loop",
+    ],
+    "operations": [
+        "bottleneck discovery",
+        "throughput vs stability",
+        "handoff friction",
+        "operational visibility",
+    ],
+    "product": [
+        "signal before solution",
+        "small experiment over redesign",
+        "user value clarity",
+        "evidence gaps",
+    ],
+    "people": [
+        "candidate or manager signal",
+        "process bottlenecks",
+        "quality vs speed",
+        "alignment with stakeholders",
+    ],
+    "sales": [
+        "next commercial move",
+        "deal risk and timing",
+        "stakeholder map",
+        "qualification gaps",
+    ],
+    "engineering": [
+        "fast diagnosis",
+        "containment before refactor",
+        "risk to production",
+        "missing logs and ownership",
+    ],
+    "generic": [
+        "real pressure in the role",
+        "first move",
+        "trade-offs",
+        "unknowns",
+    ],
+}
+
+
+def _copy(locale: str) -> dict[str, Any]:
+    language = _normalize_locale(locale)
+    return _COPY.get(language) or _COPY["en"]
 
 
 def _normalize_locale(value: Any, fallback: str = "en") -> str:
     code = str(value or fallback).split("-")[0].strip().lower()
     if code == "at":
         return "de"
-    return code if code in {"cs", "sk", "de", "pl", "en"} else fallback
+    if code in _SUPPORTED_LOCALES:
+        return code
+    return _normalize_locale(fallback, "en") if fallback != code else "en"
 
 
 def _normalize_text(value: Any) -> str:
@@ -47,7 +414,7 @@ def _safe_list(values: Any, limit: int = 8) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
     for item in values:
-        text = _clip(item, 80)
+        text = _clip(item, 160)
         normalized = _normalize_text(text)
         if not text or not normalized or normalized in seen:
             continue
@@ -58,594 +425,200 @@ def _safe_list(values: Any, limit: int = 8) -> list[str]:
     return out
 
 
-def _plain_excerpt(value: Any, limit: int = 280) -> str:
+def _strip_html(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
+    text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"[*_#>`~\[\]\(\)]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return _clip(text, limit)
+    return re.sub(r"\s+", " ", text).strip()
 
 
-_COPY = {
-    "cs": {
-        "kicker": "Signal Boost",
-        "timebox": "15 až 20 minut",
-        "note": "Nejde o dokonalé řešení. Jde o to, jak přemýšlíte, co upřednostníte a co si potřebujete ověřit.",
-        "anti_generic": "Pište konkrétně, z první ruky a klidně ne dokonale. Lepší je jeden skutečný první krok než uhlazený obecný text.",
-        "cta_hint": "Po dokončení dostanete veřejný JobShaman link, který můžete poslat spolu s klasickou přihláškou.",
-        "how_to_title": "Jak na to",
-        "deliverable_title": "Ve své odpovědi ukažte",
-        "how_to_steps": [
-            "Nejdřív si přečtěte zadání níže. Odpovídáte na jednu konkrétní pracovní situaci.",
-            "Pak napište, co byste udělali jako první a proč právě to.",
-            "Nakonec doplňte prioritu, trade-off a co byste si ještě potřebovali ověřit.",
-        ],
-        "job_excerpt_title": "Krátký kontext z role",
-        "constraints": [
-            "Jaký by byl váš první konkrétní krok.",
-            "Co byste teď upřednostnili a co byste zatím nedělali.",
-            "Co byste si ještě potřebovali rychle ověřit.",
-        ],
-        "sections": {
-            "problem_understanding": {
-                "title": "V čem je tady hlavní problém",
-                "hint": "2 až 4 věty. Co je podle vás skutečný problém v této situaci?",
-            },
-            "first_move": {
-                "title": "Co udělám jako první",
-                "hint": "Jeden konkrétní první krok. Co byste opravdu udělali hned teď?",
-            },
-            "approach_tradeoffs": {
-                "title": "Co teď upřednostním",
-                "hint": "Napište jednu prioritu, jeden trade-off a co byste zatím nedělali.",
-            },
-            "needs_to_know": {
-                "title": "Co si ještě potřebuji ověřit",
-                "hint": "Jaké informace nebo otevřené otázky byste si potřebovali rychle ujasnit.",
-            },
-            "thinking_notes": {
-                "title": "Rychlé poznámky k uvažování",
-                "hint": "Volitelné. Krátké pracovní poznámky nebo záchytné body.",
-            },
-        },
-        "nudges": {
-            "too_short": "Ještě trochu přidejte. Potřebujeme vidět váš skutečný první tah, ne jen krátkou deklaraci.",
-            "first_move": "Chybí konkrétní první krok. Zkuste pojmenovat, co byste udělali hned jako první.",
-            "tradeoff": "Chybí trade-off nebo priorita. Co byste teď upřednostnili a co byste zatím nedělali?",
-            "unknowns": "Doplňte, co byste si ještě potřebovali ověřit. Právě to dodává odpovědi autenticitu.",
-            "generic": "Zkuste to napsat konkrétněji a víc po svém. Méně obecné fráze, víc vlastní perspektivy.",
-        },
-        "summary_labels": {
-            "structure": "Struktura",
-            "prioritization": "Prioritizace",
-            "clarity": "Srozumitelnost",
-            "depth": "Hloubka",
-        },
-    },
-    "sk": {
-        "kicker": "Signal Boost",
-        "timebox": "15 až 20 minút",
-        "note": "Nejde o dokonalé riešenie. Ide o to, ako premýšľate, čo uprednostníte a čo si potrebujete overiť.",
-        "anti_generic": "Píšte konkrétne, z prvej ruky a pokojne ne dokonale. Lepší je jeden skutočný prvý krok než uhladený všeobecný text.",
-        "cta_hint": "Po dokončení dostanete verejný JobShaman link, ktorý môžete poslať spolu s klasickou prihláškou.",
-        "how_to_title": "Ako na to",
-        "deliverable_title": "Vo svojej odpovedi ukážte",
-        "how_to_steps": [
-            "Najskôr si prečítajte zadanie nižšie. Odpovedáte na jednu konkrétnu pracovnú situáciu.",
-            "Potom napíšte, čo by ste urobili ako prvé a prečo práve to.",
-            "Nakoniec doplňte prioritu, trade-off a čo by ste si ešte potrebovali overiť.",
-        ],
-        "job_excerpt_title": "Krátky kontext z role",
-        "constraints": [
-            "Aký by bol váš prvý konkrétny krok.",
-            "Čo by ste teraz uprednostnili a čo by ste zatiaľ nerobili.",
-            "Čo by ste si ešte potrebovali rýchlo overiť.",
-        ],
-        "sections": {
-            "problem_understanding": {
-                "title": "V čom je tu hlavný problém",
-                "hint": "2 až 4 vety. Čo je podľa vás skutočný problém v tejto situácii?",
-            },
-            "first_move": {
-                "title": "Čo urobím ako prvé",
-                "hint": "Jeden konkrétny prvý krok. Čo by ste naozaj urobili hneď teraz?",
-            },
-            "approach_tradeoffs": {
-                "title": "Čo teraz uprednostním",
-                "hint": "Napíšte jednu prioritu, jeden trade-off a čo by ste zatiaľ nerobili.",
-            },
-            "needs_to_know": {
-                "title": "Čo si ešte potrebujem overiť",
-                "hint": "Aké informácie alebo otvorené otázky by ste si potrebovali rýchlo ujasniť.",
-            },
-            "thinking_notes": {
-                "title": "Rýchle poznámky k uvažovaniu",
-                "hint": "Voliteľné. Krátke pracovné poznámky alebo záchytné body.",
-            },
-        },
-        "nudges": {
-            "too_short": "Ešte trochu pridajte. Potrebujeme vidieť váš skutočný prvý ťah, nielen krátke vyhlásenie.",
-            "first_move": "Chýba konkrétny prvý krok. Skúste pomenovať, čo by ste urobili hneď ako prvé.",
-            "tradeoff": "Chýba trade-off alebo priorita. Čo by ste teraz uprednostnili a čo by ste zatiaľ nerobili?",
-            "unknowns": "Doplňte, čo by ste si ešte potrebovali overiť. Práve to dodáva odpovedi autenticitu.",
-            "generic": "Skúste to napísať konkrétnejšie a viac po svojom. Menej všeobecných fráz, viac vlastnej perspektívy.",
-        },
-        "summary_labels": {
-            "structure": "Štruktúra",
-            "prioritization": "Prioritizácia",
-            "clarity": "Jasnosť",
-            "depth": "Hĺbka",
-        },
-    },
-    "de": {
-        "kicker": "Signal Boost",
-        "timebox": "15 bis 20 Minuten",
-        "note": "Es geht nicht um die perfekte Lösung. Es geht darum, wie Sie denken, was Sie priorisieren und was Sie noch klären müssten.",
-        "anti_generic": "Schreiben Sie konkret und aus Ihrer eigenen Perspektive. Ein echter erster Schritt ist stärker als glatte Allgemeinplätze.",
-        "cta_hint": "Nach dem Abschluss erhalten Sie einen öffentlichen JobShaman-Link, den Sie zusammen mit Ihrer normalen Bewerbung senden können.",
-        "how_to_title": "So gehen Sie vor",
-        "deliverable_title": "In Ihrer Antwort sollte sichtbar werden",
-        "how_to_steps": [
-            "Lesen Sie zuerst die Aufgabe unten. Sie reagieren auf eine konkrete Arbeitssituation.",
-            "Schreiben Sie dann, was Sie als Erstes tun würden und warum genau das.",
-            "Ergänzen Sie zum Schluss Priorität, Trade-off und was Sie noch klären müssten.",
-        ],
-        "job_excerpt_title": "Kurzer Kontext aus der Rolle",
-        "constraints": [
-            "Was Ihr erster konkreter Schritt wäre.",
-            "Was Sie jetzt priorisieren und was Sie bewusst noch nicht tun würden.",
-            "Was Sie noch schnell klären müssten.",
-        ],
-        "sections": {
-            "problem_understanding": {
-                "title": "Worin das eigentliche Problem liegt",
-                "hint": "2 bis 4 Sätze. Was ist in dieser Situation das eigentliche Problem?",
-            },
-            "first_move": {
-                "title": "Was ich als Erstes tun würde",
-                "hint": "Ein konkreter erster Schritt. Was würden Sie wirklich sofort tun?",
-            },
-            "approach_tradeoffs": {
-                "title": "Was ich jetzt priorisieren würde",
-                "hint": "Nennen Sie eine Priorität, einen Trade-off und was Sie bewusst noch nicht tun würden.",
-            },
-            "needs_to_know": {
-                "title": "Was ich noch klären müsste",
-                "hint": "Welche Informationen oder offenen Fragen müssten Sie zuerst noch klären?",
-            },
-            "thinking_notes": {
-                "title": "Kurze Denknotizen",
-                "hint": "Optional. Kurze Gedanken, Notizen oder Abwägungen.",
-            },
-        },
-        "nudges": {
-            "too_short": "Geben Sie noch etwas mehr Kontext. Sichtbar werden soll Ihr echter erster Zug, nicht nur ein kurzer Claim.",
-            "first_move": "Der konkrete erste Schritt fehlt noch. Was würden Sie als Erstes tatsächlich tun?",
-            "tradeoff": "Es fehlt noch ein Trade-off oder eine Priorität. Was würden Sie zuerst optimieren und was bewusst verschieben?",
-            "unknowns": "Ergänzen Sie, was Sie noch wissen müssten. Genau das macht die Antwort glaubwürdig.",
-            "generic": "Bitte etwas konkreter und persönlicher formulieren. Weniger Floskeln, mehr echte Perspektive.",
-        },
-        "summary_labels": {
-            "structure": "Struktur",
-            "prioritization": "Priorisierung",
-            "clarity": "Klarheit",
-            "depth": "Tiefe",
-        },
-    },
-    "pl": {
-        "kicker": "Signal Boost",
-        "timebox": "15 do 20 minut",
-        "note": "Nie chodzi o idealne rozwiązanie. Chodzi o to, jak myślisz, co priorytetyzujesz i co jeszcze musisz sprawdzić.",
-        "anti_generic": "Pisz konkretnie i po swojemu. Jeden prawdziwy pierwszy ruch jest mocniejszy niż gładki ogólnik.",
-        "cta_hint": "Po zakończeniu dostaniesz publiczny link JobShaman, który możesz wysłać razem ze zwykłym zgłoszeniem.",
-        "how_to_title": "Jak to ugryźć",
-        "deliverable_title": "W odpowiedzi pokaż",
-        "how_to_steps": [
-            "Najpierw przeczytaj zadanie poniżej. Odpowiadasz na jedną konkretną sytuację z pracy.",
-            "Potem napisz, co zrobił(a)byś jako pierwsze i dlaczego właśnie to.",
-            "Na końcu dopisz priorytet, trade-off i to, co jeszcze trzeba sprawdzić.",
-        ],
-        "job_excerpt_title": "Krótki kontekst z roli",
-        "constraints": [
-            "Jaki byłby Twój pierwszy konkretny krok.",
-            "Co teraz byłoby priorytetem, a czego jeszcze byś nie robił(a).",
-            "Co trzeba byłoby jeszcze szybko doprecyzować.",
-        ],
-        "sections": {
-            "problem_understanding": {
-                "title": "Na czym polega tu główny problem",
-                "hint": "2 do 4 zdań. Jaki jest prawdziwy problem w tej sytuacji?",
-            },
-            "first_move": {
-                "title": "Co zrobił(a)bym najpierw",
-                "hint": "Jeden konkretny pierwszy krok. Co zrobił(a)byś naprawdę od razu?",
-            },
-            "approach_tradeoffs": {
-                "title": "Co teraz byłoby priorytetem",
-                "hint": "Napisz jeden priorytet, jeden trade-off i czego na razie byś nie robił(a).",
-            },
-            "needs_to_know": {
-                "title": "Co jeszcze muszę sprawdzić",
-                "hint": "Jakie informacje albo otwarte pytania trzeba jeszcze szybko doprecyzować?",
-            },
-            "thinking_notes": {
-                "title": "Szybkie notatki myślowe",
-                "hint": "Opcjonalnie. Krótkie notatki, tok myślenia lub szkic.",
-            },
-        },
-        "nudges": {
-            "too_short": "Dodaj jeszcze trochę treści. Chcemy zobaczyć Twój prawdziwy pierwszy ruch, nie tylko krótki slogan.",
-            "first_move": "Brakuje konkretnego pierwszego kroku. Co zrobił(a)byś naprawdę jako pierwsze?",
-            "tradeoff": "Brakuje trade-offu albo priorytetu. Co optymalizujesz najpierw, a co odkładasz na później?",
-            "unknowns": "Dopisz, co jeszcze musisz sprawdzić. To właśnie dodaje odpowiedzi autentyczności.",
-            "generic": "Spróbuj napisać to bardziej konkretnie i po swojemu. Mniej ogólników, więcej własnej perspektywy.",
-        },
-        "summary_labels": {
-            "structure": "Struktura",
-            "prioritization": "Priorytetyzacja",
-            "clarity": "Jasność",
-            "depth": "Głębia",
-        },
-    },
-    "en": {
-        "kicker": "Signal Boost",
-        "timebox": "15 to 20 minutes",
-        "note": "This is not about a perfect solution. It is about how you think, what you prioritize, and what you would still need to clarify.",
-        "anti_generic": "Write concretely and from your own perspective. One real first move is stronger than polished generic language.",
-        "cta_hint": "When you finish, you will get a public JobShaman link you can send with your normal application.",
-        "how_to_title": "How to approach it",
-        "deliverable_title": "In your answer, show",
-        "how_to_steps": [
-            "First, read the task below. You are responding to one concrete work situation.",
-            "Then write what you would do first and why that would be your first move.",
-            "Finish with one priority, one trade-off, and what you would still need to clarify.",
-        ],
-        "job_excerpt_title": "Short role context",
-        "constraints": [
-            "What your first concrete move would be.",
-            "What you would prioritize now and what you would deliberately not do yet.",
-            "What you would still need to clarify quickly.",
-        ],
-        "sections": {
-            "problem_understanding": {
-                "title": "What the real problem is here",
-                "hint": "2 to 4 sentences. What is the actual problem in this situation?",
-            },
-            "first_move": {
-                "title": "What I would do first",
-                "hint": "One concrete first move. What would you actually do right away?",
-            },
-            "approach_tradeoffs": {
-                "title": "What I would prioritize now",
-                "hint": "Name one priority, one trade-off, and what you would deliberately not do yet.",
-            },
-            "needs_to_know": {
-                "title": "What I would still need to clarify",
-                "hint": "What information or open questions would you still need to clarify quickly?",
-            },
-            "thinking_notes": {
-                "title": "Quick thinking notes",
-                "hint": "Optional. Short notes, reasoning fragments, or working assumptions.",
-            },
-        },
-        "nudges": {
-            "too_short": "Add a bit more. We want to see your real first move, not just a short claim.",
-            "first_move": "The concrete first move is still missing. What would you actually do first?",
-            "tradeoff": "A trade-off or priority is still missing. What would you optimize first, and what would you deliberately delay?",
-            "unknowns": "Add what you would still need to know. That is what makes the answer feel grounded.",
-            "generic": "Try making this more concrete and more yours. Less generic phrasing, more real perspective.",
-        },
-        "summary_labels": {
-            "structure": "Structure",
-            "prioritization": "Prioritization",
-            "clarity": "Clarity",
-            "depth": "Depth",
-        },
-    },
-}
+def _plain_excerpt(value: Any, limit: int = 280) -> str:
+    text = _strip_html(value)
+    return _clip(text, limit) if text else ""
 
 
-_ROLE_TEMPLATE_COPY = {
-    "customer_support": {
-        "cs": {
-            "title": "Jak byste uklidnili situaci a posunuli ji dopředu",
-            "context": "Představte si první reálný kontakt s člověkem, který je frustrovaný, má neúplná data a potřebuje rychlou orientaci.",
-            "problem": "Ukažte, jak byste situaci strukturovali, co byste ověřili jako první a jak byste vyvážili rychlost, přesnost a klid v komunikaci.",
-        },
-        "sk": {
-            "title": "Ako by ste upokojili situáciu a posunuli ju dopredu",
-            "context": "Predstavte si prvý reálny kontakt s človekom, ktorý je frustrovaný, má neúplné dáta a potrebuje rýchlu orientáciu.",
-            "problem": "Ukážte, ako by ste situáciu štruktúrovali, čo by ste overili ako prvé a ako by ste vyvážili rýchlosť, presnosť a pokoj v komunikácii.",
-        },
-        "de": {
-            "title": "Wie Sie die Situation beruhigen und voranbringen würden",
-            "context": "Stellen Sie sich einen ersten realen Kontakt mit einer frustrierten Person vor, die unvollständige Daten hat und schnell Orientierung braucht.",
-            "problem": "Zeigen Sie, wie Sie die Situation strukturieren würden, was Sie zuerst prüfen würden und wie Sie Geschwindigkeit, Genauigkeit und Ruhe in der Kommunikation ausbalancieren.",
-        },
-        "pl": {
-            "title": "Jak uspokoił(a)byś sytuację i popchnął ją do przodu",
-            "context": "Wyobraź sobie pierwszy realny kontakt z osobą sfrustrowaną, mającą niepełne dane i potrzebującą szybkiej orientacji.",
-            "problem": "Pokaż, jak uporządkował(a)byś sytuację, co sprawdził(a)byś najpierw i jak wyważył(a)byś szybkość, trafność oraz spokój w komunikacji.",
-        },
-        "en": {
-            "title": "How you would calm the situation and move it forward",
-            "context": "Imagine a first real interaction with a frustrated person who has incomplete data and needs quick orientation.",
-            "problem": "Show how you would structure the situation, what you would check first, and how you would balance speed, accuracy, and calm communication.",
-        },
-    },
-    "customer_success": {
-        "cs": {
-            "title": "Jak byste vedli klienta k výsledku, ne jen k reakci",
-            "context": "Představte si zákazníka, který je aktivní, ale není si jistý, jestli z produktu opravdu dostává hodnotu.",
-            "problem": "Popište, co byste udělali nejdřív, jak byste nastavili další krok a jak byste rozlišili mezi rychlou pomocí a dlouhodobým dopadem.",
-        },
-        "sk": {
-            "title": "Ako by ste viedli klienta k výsledku, nie len k reakcii",
-            "context": "Predstavte si zákazníka, ktorý je aktívny, ale nie je si istý, či z produktu naozaj dostáva hodnotu.",
-            "problem": "Popíšte, čo by ste urobili najskôr, ako by ste nastavili ďalší krok a ako by ste rozlíšili medzi rýchlou pomocou a dlhodobým dopadom.",
-        },
-        "de": {
-            "title": "Wie Sie den Kunden zu einem Ergebnis führen würden, nicht nur zu einer Antwort",
-            "context": "Stellen Sie sich einen aktiven Kunden vor, der nicht sicher ist, ob er aus dem Produkt wirklich Nutzen zieht.",
-            "problem": "Beschreiben Sie, was Sie zuerst tun würden, wie Sie den nächsten Schritt setzen würden und wie Sie zwischen schneller Hilfe und langfristigem Effekt unterscheiden.",
-        },
-        "pl": {
-            "title": "Jak poprowadził(a)byś klienta do rezultatu, a nie tylko do odpowiedzi",
-            "context": "Wyobraź sobie aktywnego klienta, który nie ma pewności, czy naprawdę czerpie wartość z produktu.",
-            "problem": "Opisz, co zrobił(a)byś najpierw, jak ustawił(a)byś kolejny krok i jak odróżnił(a)byś szybką pomoc od długofalowego efektu.",
-        },
-        "en": {
-            "title": "How you would move the customer toward an outcome, not just a reply",
-            "context": "Imagine an active customer who is not sure whether they are really getting value from the product.",
-            "problem": "Describe what you would do first, how you would set the next step, and how you would separate quick help from long-term impact.",
-        },
-    },
-    "operations": {
-        "cs": {
-            "title": "Jak byste snížili tření v rozběhnutém provozu",
-            "context": "Představte si provoz, ve kterém vznikají zpoždění, přetížení nebo ruční improvizace, ale nikdo nemá čas to celé přestavět.",
-            "problem": "Popište, jak byste našli nejdůležitější úzké místo, co byste řešili jako první a jaký trade-off byste si hlídali mezi rychlostí a stabilitou.",
-        },
-        "sk": {
-            "title": "Ako by ste znížili trenie v rozbehnutej prevádzke",
-            "context": "Predstavte si prevádzku, v ktorej vznikajú meškania, preťaženie alebo ručné improvizácie, ale nikto nemá čas ju celú prestavať.",
-            "problem": "Popíšte, ako by ste našli najdôležitejšie úzke miesto, čo by ste riešili ako prvé a aký trade-off by ste si strážili medzi rýchlosťou a stabilitou.",
-        },
-        "de": {
-            "title": "Wie Sie Reibung in einem laufenden Betrieb reduzieren würden",
-            "context": "Stellen Sie sich einen Betrieb mit Verzögerungen, Überlastung oder manuellen Workarounds vor, ohne Spielraum für einen kompletten Umbau.",
-            "problem": "Zeigen Sie, wie Sie den wichtigsten Engpass finden würden, was Sie zuerst angehen würden und welchen Trade-off Sie zwischen Geschwindigkeit und Stabilität beobachten würden.",
-        },
-        "pl": {
-            "title": "Jak ograniczył(a)byś tarcie w działającej operacji",
-            "context": "Wyobraź sobie operację, w której pojawiają się opóźnienia, przeciążenie albo ręczne obejścia, ale nikt nie ma przestrzeni na pełną przebudowę.",
-            "problem": "Pokaż, jak znalazł(a)byś główne wąskie gardło, czym zajął(a)byś się najpierw i jakiego trade-offu pilnował(a)byś między szybkością a stabilnością.",
-        },
-        "en": {
-            "title": "How you would reduce friction in a moving operation",
-            "context": "Imagine an operation with delays, overload, or manual workarounds, but no appetite for a full rebuild.",
-            "problem": "Show how you would find the main bottleneck, what you would address first, and which trade-off you would watch between speed and stability.",
-        },
-    },
-    "sales_account": {
-        "cs": {
-            "title": "Jak byste rozběhli obchod v novém regionu",
-            "context": "Představte si, že přebíráte region, kde je potenciál, ale vztahy, rytmus oslovení i první pipeline se teprve musí rozběhnout.",
-            "problem": "Popište, kde byste začali, jak byste si rozdělili první priority mezi akvizici a péči o existující kontakty a co byste si potřebovali rychle ověřit o trhu nebo klientech.",
-        },
-        "sk": {
-            "title": "Ako by ste rozbehli obchod v novom regióne",
-            "context": "Predstavte si, že preberáte región, kde je potenciál, ale vzťahy, rytmus oslovení aj prvá pipeline sa ešte len musia rozbehnúť.",
-            "problem": "Popíšte, kde by ste začali, ako by ste si rozdelili prvé priority medzi akvizíciu a starostlivosť o existujúce kontakty a čo by ste si potrebovali rýchlo overiť o trhu alebo klientoch.",
-        },
-        "de": {
-            "title": "Wie Sie Vertrieb in einer neuen Region in Gang bringen würden",
-            "context": "Stellen Sie sich vor, Sie übernehmen eine Region mit Potenzial, in der Beziehungen, Outreach-Rhythmus und erste Pipeline aber erst aufgebaut werden müssen.",
-            "problem": "Beschreiben Sie, wo Sie anfangen würden, wie Sie die ersten Prioritäten zwischen Akquise und Betreuung bestehender Kontakte aufteilen würden und was Sie über Markt oder Kunden schnell klären müssten.",
-        },
-        "pl": {
-            "title": "Jak rozkręcił(a)byś sprzedaż w nowym regionie",
-            "context": "Wyobraź sobie, że przejmujesz region z potencjałem, ale relacje, rytm kontaktu i pierwsza pipeline dopiero trzeba zbudować.",
-            "problem": "Opisz, od czego byś zaczął(a), jak podzielił(a)byś pierwsze priorytety między pozyskiwanie a pracę z istniejącymi kontaktami i co musiał(a)byś szybko sprawdzić o rynku lub klientach.",
-        },
-        "en": {
-            "title": "How you would get sales moving in a new region",
-            "context": "Imagine taking over a region with potential, but where relationships, outreach rhythm, and the first pipeline still need to be built.",
-            "problem": "Describe where you would start, how you would split early priorities between acquisition and existing contacts, and what you would need to clarify quickly about the market or customers.",
-        },
-    },
-    "product_management": {
-        "cs": {
-            "title": "Jak byste navrhli první užitečný produktový krok",
-            "context": "Představte si uživatele, který se zasekne brzy po vstupu a sám přesně neví, co vlastně potřebuje.",
-            "problem": "Popište, jak byste uchopili problém, co byste si ověřili jako první a jak byste rozhodli mezi rychlým experimentem a hlubším objevováním potřeb.",
-        },
-        "sk": {
-            "title": "Ako by ste navrhli prvý užitočný produktový krok",
-            "context": "Predstavte si používateľa, ktorý sa zasekne skoro po vstupe a sám presne nevie, čo vlastne potrebuje.",
-            "problem": "Popíšte, ako by ste uchopili problém, čo by ste si overili ako prvé a ako by ste sa rozhodli medzi rýchlym experimentom a hlbším objavovaním potrieb.",
-        },
-        "de": {
-            "title": "Wie Sie den ersten nützlichen Produkt-Schritt entwerfen würden",
-            "context": "Stellen Sie sich einen Nutzer vor, der früh aussteigt und selbst noch nicht genau weiß, was er eigentlich braucht.",
-            "problem": "Beschreiben Sie, wie Sie das Problem fassen würden, was Sie zuerst validieren würden und wie Sie zwischen einem schnellen Experiment und tieferer Discovery entscheiden würden.",
-        },
-        "pl": {
-            "title": "Jak zaprojektował(a)byś pierwszy użyteczny ruch produktowy",
-            "context": "Wyobraź sobie użytkownika, który odpada bardzo wcześnie i sam nie wie jeszcze dokładnie, czego potrzebuje.",
-            "problem": "Opisz, jak ujął(a)byś problem, co zweryfikował(a)byś najpierw i jak zdecydował(a)byś między szybkim eksperymentem a głębszym odkrywaniem potrzeb.",
-        },
-        "en": {
-            "title": "How you would design the first useful product move",
-            "context": "Imagine a user who drops off early and does not fully know what they need yet.",
-            "problem": "Show how you would frame the problem, what you would validate first, and how you would choose between a quick experiment and deeper discovery.",
-        },
-    },
-    "hr_people": {
-        "cs": {
-            "title": "Jak byste zlepšili moment, kde se lidé ztrácejí",
-            "context": "Představte si týmový proces, kde vzniká zmatek, tiché tření nebo nejasné předání odpovědnosti.",
-            "problem": "Ukažte, jak byste problém četli, s kým byste začali mluvit a co byste změnili nejdřív, aniž byste zbytečně rozbili fungující části systému.",
-        },
-        "sk": {
-            "title": "Ako by ste zlepšili moment, kde sa ľudia strácajú",
-            "context": "Predstavte si tímový proces, kde vzniká zmätok, tiché trenie alebo nejasné odovzdanie zodpovednosti.",
-            "problem": "Ukážte, ako by ste problém čítali, s kým by ste začali hovoriť a čo by ste zmenili najskôr bez toho, aby ste zbytočne rozbili fungujúce časti systému.",
-        },
-        "de": {
-            "title": "Wie Sie den Moment verbessern würden, an dem Menschen die Orientierung verlieren",
-            "context": "Stellen Sie sich einen Teamprozess vor, in dem Verwirrung, leise Reibung oder unklare Verantwortungsübergaben entstehen.",
-            "problem": "Zeigen Sie, wie Sie das Problem lesen würden, mit wem Sie zuerst sprechen würden und was Sie zuerst ändern würden, ohne funktionierende Teile des Systems unnötig zu stören.",
-        },
-        "pl": {
-            "title": "Jak poprawił(a)byś moment, w którym ludzie tracą orientację",
-            "context": "Wyobraź sobie proces zespołowy, w którym pojawia się chaos, ciche tarcie albo niejasne przekazanie odpowiedzialności.",
-            "problem": "Pokaż, jak odczytał(a)byś problem, z kim porozmawiał(a)byś najpierw i co zmienił(a)byś na początku, nie rozbijając niepotrzebnie działających części systemu.",
-        },
-        "en": {
-            "title": "How you would improve the moment where people start losing clarity",
-            "context": "Imagine a team process where confusion, quiet friction, or unclear ownership starts appearing.",
-            "problem": "Show how you would read the issue, who you would talk to first, and what you would change first without disrupting what already works.",
-        },
-    },
-}
-
-
-def _copy(locale: str) -> dict[str, Any]:
-    normalized = _normalize_locale(locale)
-    return _COPY.get(normalized) or _COPY["en"]
-
-
-def _localized_text(mapping: dict[str, dict[str, str]], key: str, locale: str) -> dict[str, str]:
-    normalized = _normalize_locale(locale)
-    if key in mapping:
-        return mapping[key].get(normalized) and mapping[key] or mapping[key]
-    return {}
+def _description_sentences(value: Any, limit: int = 5) -> list[str]:
+    text = _strip_html(value)
+    if not text:
+        return []
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    out: list[str] = []
+    for part in parts:
+        candidate = _clip(part, 220)
+        if candidate and len(candidate) >= 18:
+            out.append(candidate)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _compact_role_title(value: Any) -> str:
-    title = re.sub(r"\s+", " ", str(value or "").strip())
+    title = str(value or "").strip()
     if not title:
         return "role"
-    patterns = [
-        r"^(spolecnost|firma|company)\s+.+?\s+hleda\s+",
-        r"^hledame\s+",
-        r"^hleda\s+",
-        r"^we are hiring\s+",
-        r"^looking for\s+",
-        r"^gesucht\s+wird\s+",
-    ]
-    normalized = title
-    for pattern in patterns:
-        normalized = re.sub(pattern, "", normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r"\s+pro\s+.+$", "", normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r"\s+for\s+.+$", "", normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r"\s+fur\s+.+$", "", normalized, flags=re.IGNORECASE)
-    normalized = normalized.strip(" -,:;/")
-    return normalized or title
+    return re.sub(r"\s+", " ", title)[:120]
 
 
-def _description_sentences(value: Any) -> list[str]:
-    raw = str(value or "").strip()
-    if not raw:
-        return []
-    text = re.sub(r"[*_#>`~\[\]\(\)]", " ", raw)
-    text = re.sub(r"\s+", " ", text).strip()
-    parts = re.split(r"(?<=[.!?])\s+|(?<=:)\s+", text)
-    results: list[str] = []
-    boilerplate_markers = (
-        "jsme ", "o nas", "nabizime", "we are ", "about us", "we offer",
-        "wir sind", "wir bieten", "jestesmy", "o nas", "oferujemy",
-    )
-    for part in parts:
-        sentence = _clip(part, 220)
-        normalized = _normalize_text(sentence)
-        if not sentence or len(sentence) < 40:
+def _build_job_excerpt(job_row: dict[str, Any]) -> str:
+    for field in ("first_reply_prompt", "challenge", "role_summary"):
+        excerpt = _plain_excerpt(job_row.get(field), 280)
+        if excerpt:
+            return excerpt
+    sentences = _description_sentences(job_row.get("description"))
+    if sentences:
+        return " ".join(sentences[:2])
+    return _plain_excerpt(job_row.get("description"), 260)
+
+
+def _matching_rule_fallback(text: str) -> dict[str, Any] | None:
+    best_hint: dict[str, Any] | None = None
+    best_score = 0
+    for rule in REQUIRED_QUALIFICATION_RULES:
+        rule_name = str(rule.get("name") or "").strip().lower()
+        hint = _BROADER_RULE_ROLE_HINTS.get(rule_name)
+        if not hint:
             continue
-        if any(normalized.startswith(marker) for marker in boilerplate_markers):
-            continue
-        results.append(sentence)
-        if len(results) >= 2:
-            break
-    return results
+        job_terms = [str(item or "").strip().lower() for item in (rule.get("job_terms") or [])]
+        score = sum(1 for term in job_terms if term and term in text)
+        if score > best_score:
+            best_score = score
+            best_hint = {
+                **hint,
+                "matched_rule": rule_name,
+                "matched_terms": [term for term in job_terms if term and term in text][:4],
+                "score": score,
+            }
+    return best_hint
 
 
-def _default_generic_template(job_row: dict[str, Any], locale: str) -> dict[str, str]:
-    language = _normalize_locale(locale)
-    title = _compact_role_title(job_row.get("title") or "the role")
-    company = str(job_row.get("company") or "the company").strip() or "the company"
-    location = _clip(job_row.get("location"), 120)
-    if language == "cs":
-        return {
-            "title": f"Co byste řešili jako první v roli {title}",
-            "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{f' pro oblast {location}' if location else ''}.",
-            "problem": "Napište, jaký by byl váš první konkrétní krok, co byste teď upřednostnili a co byste si ještě potřebovali rychle ověřit, abyste nezačali špatným směrem.",
-        }
-    if language == "sk":
-        return {
-            "title": f"Čo by ste riešili ako prvé v role {title}",
-            "context": f"Predstavte si svoj prvý týždeň v role {title} vo firme {company}{f' pre oblasť {location}' if location else ''}.",
-            "problem": "Napíšte, aký by bol váš prvý konkrétny krok, čo by ste teraz uprednostnili a čo by ste si ešte potrebovali rýchlo overiť, aby ste nezačali zlým smerom.",
-        }
-    if language == "de":
-        return {
-            "title": f"Was Sie zuerst in der Rolle {title} angehen würden",
-            "context": f"Stellen Sie sich Ihre erste Woche in der Rolle {title} bei {company}{f' fur den Bereich {location}' if location else ''} vor.",
-            "problem": "Schreiben Sie, was Ihr erster konkreter Schritt wäre, was Sie jetzt priorisieren würden und was Sie schnell klären müssten, damit Sie nicht in die falsche Richtung starten.",
-        }
-    if language == "pl":
-        return {
-            "title": f"Co zrobił(a)byś najpierw w roli {title}",
-            "context": f"Wyobraź sobie swój pierwszy tydzień w roli {title} w firmie {company}{f' dla obszaru {location}' if location else ''}.",
-            "problem": "Napisz, jaki byłby Twój pierwszy konkretny krok, co byłoby teraz priorytetem i co trzeba byłoby jeszcze szybko sprawdzić, żeby nie ruszyć w złą stronę.",
-        }
+def _keyword_domain_fallback(text: str) -> dict[str, Any] | None:
+    best_key = ""
+    best_hits = 0
+    for domain_key, keywords in DOMAIN_KEYWORDS.items():
+        hits = sum(1 for keyword in keywords if _normalize_text(keyword) in text)
+        if hits > best_hits:
+            best_hits = hits
+            best_key = str(domain_key or "").strip().lower()
+    if best_hits <= 0:
+        return None
+    archetype = _DOMAIN_ARCHETYPE_MAP.get(best_key)
+    if not archetype:
+        return None
     return {
-        "title": f"What you would tackle first in the {title} role",
-        "context": f"Imagine your first week in the {title} role at {company}{f' for the {location} area' if location else ''}.",
-        "problem": "Write what your first concrete move would be, what you would prioritize now, and what you would need to clarify quickly so you do not start in the wrong direction.",
+        "canonical_role": "",
+        "role_family": best_key,
+        "domain_key": best_key,
+        "archetype": archetype,
+        "matched_rule": "domain_keywords",
+        "matched_terms": [keyword for keyword in (DOMAIN_KEYWORDS.get(best_key) or []) if _normalize_text(keyword) in text][:4],
+        "score": best_hits,
     }
 
 
-def _fallback_template_key(job_row: dict[str, Any]) -> str:
-    title = _normalize_text(job_row.get("title") or "")
-    description = _normalize_text(job_row.get("description") or "")
-    combined = f"{title} {description}".strip()
-    if not combined:
-        return ""
+def _resolve_archetype(
+    *,
+    normalized_text: str,
+    intelligence: dict[str, Any],
+    fallback_hint: dict[str, Any] | None,
+) -> str:
+    canonical_role = _normalize_text(intelligence.get("canonical_role"))
+    role_family = str(intelligence.get("role_family") or "").strip().lower()
+    domain_key = str(intelligence.get("domain_key") or "").strip().lower()
+    confidence = float(intelligence.get("mapping_confidence") or 0.0)
 
-    keyword_groups = {
-        "sales_account": (
-            "obchod", "konzultant", "consultant", "sales", "account manager", "business development", "obchodni", "obchodny", "regional sales",
-        ),
-        "customer_support": (
-            "support", "customer service", "zakaznick", "helpdesk", "care agent",
-        ),
-        "customer_success": (
-            "customer success", "account care", "retention", "adoption",
-        ),
-        "operations": (
-            "operations", "provoz", "operac", "logistics", "fleet", "warehouse",
-        ),
-        "product_management": (
-            "product manager", "product owner", "produkt", "ai product", "pm ",
-        ),
-        "hr_people": (
-            "hr", "people ops", "recruit", "talent", "lidsk", "human resources",
-        ),
-    }
-    for template_key, markers in keyword_groups.items():
-        if any(marker in combined for marker in markers):
-            return template_key
-    return ""
+    if fallback_hint and (
+        confidence < 0.62
+        or role_family in {"", "unknown"}
+        or domain_key in {"", "unknown"}
+        or canonical_role in {"", "unknown role"}
+    ):
+        return str(fallback_hint.get("archetype") or "generic")
+
+    for field in (role_family, domain_key):
+        if field in _ROLE_FAMILY_ARCHETYPE_MAP:
+            return _ROLE_FAMILY_ARCHETYPE_MAP[field]
+        if field in _DOMAIN_ARCHETYPE_MAP:
+            return _DOMAIN_ARCHETYPE_MAP[field]
+
+    for archetype, markers in _ARCHETYPE_MARKERS.items():
+        if any(marker in normalized_text for marker in markers):
+            return archetype
+
+    return "generic"
 
 
-def _resolve_template(job_row: dict[str, Any], locale: str) -> dict[str, str]:
+def _extract_job_evidence(job_row: dict[str, Any], archetype: str) -> list[str]:
+    markers = _ARCHETYPE_MARKERS.get(archetype, ())
+    raw_candidates: list[str] = []
+    for field in ("role_summary", "first_reply_prompt"):
+        excerpt = _plain_excerpt(job_row.get(field), 220)
+        if excerpt:
+            raw_candidates.append(excerpt)
+    raw_candidates.extend(_description_sentences(job_row.get("description"), limit=5))
+    raw_candidates.extend(_safe_list(job_row.get("tags"), limit=4))
+    if not raw_candidates:
+        return []
+
+    prioritized: list[tuple[int, str]] = []
+    for candidate in raw_candidates:
+        normalized = _normalize_text(candidate)
+        if not normalized:
+            continue
+        score = sum(1 for marker in markers if marker in normalized)
+        prioritized.append((score, candidate))
+    prioritized.sort(key=lambda item: (item[0], len(item[1])), reverse=True)
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for _, candidate in prioritized:
+        normalized = _normalize_text(candidate)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        out.append(_clip(candidate, 180))
+        if len(out) >= 4:
+            break
+    return out
+
+
+def _extract_focus_areas(archetype: str, intelligence: dict[str, Any], evidence: list[str]) -> list[str]:
+    base = list(_ARCHETYPE_FOCUS_AREAS.get(archetype) or _ARCHETYPE_FOCUS_AREAS["generic"])
+    keywords = []
+    for value in (
+        intelligence.get("extracted_keywords") or [],
+        intelligence.get("extracted_skills") or [],
+    ):
+        for item in value:
+            normalized = str(item or "").strip()
+            if len(normalized) >= 4:
+                keywords.append(normalized)
+    for candidate in evidence:
+        normalized = _normalize_text(candidate)
+        for keyword in normalized.split(" "):
+            if len(keyword) >= 5:
+                keywords.append(keyword)
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in base + keywords:
+        normalized = _normalize_text(item)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        out.append(str(item))
+        if len(out) >= 6:
+            break
+    return out
+
+
+def _resolve_role_context(job_row: dict[str, Any], locale: str) -> dict[str, Any]:
     intelligence = map_job_to_intelligence(
         {
             "id": job_row.get("id") or "",
             "title": job_row.get("title") or "",
             "description": job_row.get("description") or "",
+            "role_summary": job_row.get("role_summary") or "",
             "country_code": job_row.get("country_code") or "",
             "language_code": job_row.get("language_code") or locale,
             "work_model": job_row.get("work_model") or "",
@@ -653,197 +626,468 @@ def _resolve_template(job_row: dict[str, Any], locale: str) -> dict[str, str]:
             "tags": job_row.get("tags") or [],
         }
     )
-    family = str(intelligence.get("role_family") or "").strip().lower()
-    domain_key = str(intelligence.get("domain_key") or "").strip().lower()
-    normalized_locale = _normalize_locale(locale)
-    template_key = family if family in _ROLE_TEMPLATE_COPY else domain_key if domain_key in _ROLE_TEMPLATE_COPY else _fallback_template_key(job_row)
-    if template_key:
-        localized = _ROLE_TEMPLATE_COPY[template_key].get(normalized_locale) or _ROLE_TEMPLATE_COPY[template_key].get("en")
-        if localized:
-            return {
-                **localized,
-                "role_family": family or None,
-                "domain_key": domain_key or None,
-                "canonical_role": intelligence.get("canonical_role"),
+    normalized_text = _normalize_text(
+        " ".join(
+            [
+                str(job_row.get("title") or ""),
+                str(job_row.get("role_summary") or ""),
+                str(job_row.get("description") or ""),
+                str(job_row.get("location") or ""),
+                " ".join(str(item) for item in (job_row.get("tags") or [])),
+            ]
+        )
+    )
+    fallback_hint = _matching_rule_fallback(normalized_text) or _keyword_domain_fallback(normalized_text)
+    archetype = _resolve_archetype(normalized_text=normalized_text, intelligence=intelligence, fallback_hint=fallback_hint)
+
+    effective_role_family = str(intelligence.get("role_family") or "").strip().lower()
+    effective_domain_key = str(intelligence.get("domain_key") or "").strip().lower()
+    effective_canonical_role = str(intelligence.get("canonical_role") or "").strip()
+    mapping_source = str(intelligence.get("mapping_source") or "rules")
+    mapping_notes = dict(intelligence.get("mapping_notes") or {})
+    mapping_confidence = float(intelligence.get("mapping_confidence") or 0.0)
+
+    if fallback_hint and (
+        mapping_confidence < 0.62
+        or effective_role_family in {"", "unknown"}
+        or effective_domain_key in {"", "unknown"}
+        or not effective_canonical_role
+    ):
+        effective_role_family = str(fallback_hint.get("role_family") or effective_role_family or archetype)
+        effective_domain_key = str(fallback_hint.get("domain_key") or effective_domain_key or archetype)
+        effective_canonical_role = str(fallback_hint.get("canonical_role") or effective_canonical_role or _compact_role_title(job_row.get("title")))
+        mapping_source = f"{mapping_source}+{str(fallback_hint.get('matched_rule') or 'fallback')}"
+        mapping_notes["fallback_terms"] = list(fallback_hint.get("matched_terms") or [])
+        mapping_confidence = max(mapping_confidence, 0.58)
+
+    evidence = _extract_job_evidence(job_row, archetype)
+    focus_areas = _extract_focus_areas(archetype, intelligence, evidence)
+
+    return {
+        "title": _compact_role_title(job_row.get("title")),
+        "company": _clip(job_row.get("company"), 120),
+        "location": _clip(job_row.get("location"), 120),
+        "canonical_role": effective_canonical_role or _compact_role_title(job_row.get("title")),
+        "role_family": effective_role_family or archetype,
+        "domain_key": effective_domain_key or archetype,
+        "archetype": archetype,
+        "seniority": str(intelligence.get("seniority") or "mid").strip().lower(),
+        "work_mode": str(intelligence.get("work_mode") or "").strip().lower() or None,
+        "language_code": _normalize_locale(locale, _normalize_locale(job_row.get("language_code"), "en")),
+        "mapping_confidence": round(mapping_confidence, 3),
+        "mapping_source": mapping_source,
+        "job_evidence": evidence,
+        "focus_areas": focus_areas,
+        "keywords": _safe_list(intelligence.get("extracted_keywords"), limit=8),
+    }
+
+
+def _question_pack_construction(locale: str, role_context: dict[str, Any]) -> list[dict[str, str]]:
+    evidence = role_context.get("job_evidence") or []
+    default_evidence = evidence[0] if evidence else "Site execution depends on incomplete field information."
+    if _normalize_locale(locale) == "cs":
+        return [
+            {
+                "id": "q1",
+                "question": "Když je na stavbě skluz a informace z terénu nejsou úplné, co byste si ověřil(a) jako první přímo na místě nebo s vedoucími profesí?",
+                "why_this_matters": "Recruiter potřebuje vidět, jestli nezačnete měnit harmonogram naslepo a umíte najít skutečný zdroj skluzu.",
+                "job_evidence": default_evidence,
+                "recruiter_signal": "Čte sekvencování stavby, ne jen administrativní plán.",
+            },
+            {
+                "id": "q2",
+                "question": "Jak byste vyvážil(a) tlak na termín s bezpečností, připraveností subdodavatelů a dostupností zdrojů?",
+                "why_this_matters": "Tahle role není jen o rychlosti. Je o tom, co nepustíte dál, dokud nejsou splněné kritické podmínky.",
+                "job_evidence": evidence[1] if len(evidence) > 1 else "The role likely balances deadline pressure with coordination on site.",
+                "recruiter_signal": "Ukazuje úsudek mezi deadlinem, bezpečností a koordinací profesí.",
+            },
+            {
+                "id": "q3",
+                "question": "Jaká onsite fakta nebo potvrzení byste ještě potřeboval(a) od subdodavatelů, stavbyvedení nebo zásobování, než rozhodnete další krok?",
+                "why_this_matters": "Silný stavbyvedoucí nehraje na jistotu jen v hlavě. Ví, které chybějící informace rozhodují o dalším kroku.",
+                "job_evidence": evidence[2] if len(evidence) > 2 else "Missing field facts can change the next move.",
+                "recruiter_signal": "Pojmenovává chybějící fakta dřív, než eskaluje nebo přestaví plán.",
+            },
+        ]
+    return [
+        {
+            "id": "q1",
+            "question": "If the site is slipping and field information is incomplete, what would you verify first on site or with the foremen before touching the plan?",
+            "why_this_matters": "A recruiter wants to see whether you can find the real source of the slip before you start rearranging the schedule blindly.",
+            "job_evidence": default_evidence,
+            "recruiter_signal": "Reads site sequencing instead of only the admin plan.",
+        },
+        {
+            "id": "q2",
+            "question": "How would you balance deadline pressure with safety, subcontractor readiness, and resource availability?",
+            "why_this_matters": "This role is not just about speed. It is about what you refuse to push forward until critical conditions are actually real.",
+            "job_evidence": evidence[1] if len(evidence) > 1 else "The role likely balances deadline pressure with coordination on site.",
+            "recruiter_signal": "Shows judgment between deadline, safety, and coordination.",
+        },
+        {
+            "id": "q3",
+            "question": "Which on-site facts or confirmations would you still need from subcontractors, site leadership, or supply before you commit to the next move?",
+            "why_this_matters": "A strong construction lead does not pretend certainty. They know which missing facts actually change the decision.",
+            "job_evidence": evidence[2] if len(evidence) > 2 else "Missing field facts can change the next move.",
+            "recruiter_signal": "Names decision-critical unknowns before escalating or reshuffling the site.",
+        },
+    ]
+
+
+def _question_pack_customer_support(locale: str, role_context: dict[str, Any]) -> list[dict[str, str]]:
+    evidence = role_context.get("job_evidence") or []
+    default_evidence = evidence[0] if evidence else "The customer is frustrated and the ticket context is incomplete."
+    if _normalize_locale(locale) == "cs":
+        return [
+            {
+                "id": "q1",
+                "question": "Když přijde frustrovaný zákazník s neúplným ticketem, jak byste vedl(a) první odpověď, abyste situaci uklidnil(a) a přitom neztratil(a) přesnost?",
+                "why_this_matters": "Recruiter chce vidět, jestli umíte zvládnout tón, sběr faktů i další krok ve stejné odpovědi.",
+                "job_evidence": default_evidence,
+                "recruiter_signal": "Umí uklidnit tlak bez planých slibů.",
+            },
+            {
+                "id": "q2",
+                "question": "Podle čeho byste rozhodl(a), že ještě řešíte sám/sama, nebo už je čas na eskalaci podle SLA, dopadu a rizika chyby?",
+                "why_this_matters": "Customer support je i o úsudku. Nejde jen o milou komunikaci, ale o správnou hranici mezi řešením a eskalací.",
+                "job_evidence": evidence[1] if len(evidence) > 1 else "The role likely involves time-sensitive support judgment.",
+                "recruiter_signal": "Rozlišuje mezi rychlou odpovědí a správným eskalačním rozhodnutím.",
+            },
+            {
+                "id": "q3",
+                "question": "Jaké informace vám ještě chybí a jak byste zajistil(a), že se z podobného ticketu stane lepší interní signál pro produkt nebo operations?",
+                "why_this_matters": "Silná podpora nezavírá jen tiket. Uzavírá smyčku poznání pro další týmy.",
+                "job_evidence": evidence[2] if len(evidence) > 2 else "Support work should close the loop, not only answer the ticket.",
+                "recruiter_signal": "Přemýšlí o root cause a předání dál, ne jen o jednom reply.",
+            },
+        ]
+    return [
+        {
+            "id": "q1",
+            "question": "When a frustrated customer arrives with an incomplete ticket, how would you shape the first reply so the situation calms down without losing accuracy?",
+            "why_this_matters": "A recruiter wants to see whether you can handle tone, fact-finding, and the next step in the same answer.",
+            "job_evidence": default_evidence,
+            "recruiter_signal": "Can calm pressure without overpromising.",
+        },
+        {
+            "id": "q2",
+            "question": "How would you decide whether to keep handling it yourself or escalate based on SLA, impact, and the risk of being wrong?",
+            "why_this_matters": "Customer support is also judgment work. It is not just friendly communication but the right line between solving and escalating.",
+            "job_evidence": evidence[1] if len(evidence) > 1 else "The role likely involves time-sensitive support judgment.",
+            "recruiter_signal": "Separates speed from escalation judgment.",
+        },
+        {
+            "id": "q3",
+            "question": "What information is still missing, and how would you make sure the ticket becomes a better internal signal for product or operations next time?",
+            "why_this_matters": "Strong support does not only close a ticket. It closes a learning loop for the rest of the company.",
+            "job_evidence": evidence[2] if len(evidence) > 2 else "Support work should close the loop, not only answer the ticket.",
+            "recruiter_signal": "Thinks beyond the single reply toward root cause and feedback flow.",
+        },
+    ]
+
+
+def _generic_question_pack(locale: str, role_context: dict[str, Any], archetype: str) -> list[dict[str, str]]:
+    evidence = role_context.get("job_evidence") or []
+    focus = role_context.get("focus_areas") or []
+    title = role_context.get("title") or "this role"
+    intro = evidence[0] if evidence else f"This role likely depends on {', '.join(focus[:2]) or 'good judgment'}."
+    if _normalize_locale(locale) == "cs":
+        prompts = {
+            "operations": [
+                ("Kde byste nejdřív hledal(a) hlavní provozní úzké místo a jak byste poznal(a), že řešíte správný problém?", "Recruiter potřebuje vidět, jestli umíte najít skutečné tření místo povrchní optimalizace.", "Ukazuje bottleneck thinking místo generického zlepšování."),
+                ("Jaký malý zásah byste upřednostnil(a) před velkou přestavbou a proč?", "Silný operations člověk rozlišuje mezi rychlou stabilizací a příliš širokou změnou.", "Umí volit mezi throughputem a stabilitou."),
+                ("Jaká data nebo potvrzení vám ještě chybí, než ten zásah pustíte do provozu?", "Dobré rozhodnutí v operations stojí na datech, ne na dojmu.", "Pojmenovává rozhodovací mezery před spuštěním změny."),
+            ],
+            "product": [
+                ("Jaký signál nebo uživatelský moment byste si ověřil(a), než navrhnete řešení?", "Recruiter chce vidět, jestli nezačnete řešením dřív než čtením problému.", "Začíná od evidence, ne od nápadu."),
+                ("Jaký menší experiment byste upřednostnil(a) před větším redesignem?", "Produktový úsudek je často o správné velikosti dalšího kroku.", "Volí testovatelný směr místo velkého skoku."),
+                ("Co vám ještě chybí vědět o uživatelích, segmentu nebo dopadu?", "Bez pojmenování neznámých zůstává řešení jen hypotézou.", "Umí přiznat mezery v evidenci a dopadu."),
+            ],
+            "people": [
+                ("Jak byste nejdřív zjistil(a), jestli je hlavní problém v pipeline, očekávání hiring managera, nebo v kandidátském zážitku?", "Recruiter chce vidět diagnostiku procesu, ne jen aktivitu.", "Odděluje signál od šumu v náborovém procesu."),
+                ("Co byste prioritizoval(a) jako první krok a co byste zatím nespouštěl(a)?", "People role jsou plné trade-offů mezi rychlostí, kvalitou a kapacitou týmu.", "Ukazuje procesní úsudek místo administrativního checklistu."),
+                ("Jaké vstupy vám ještě chybí od kandidátů, hiring managera nebo týmu?", "Bez chybějících perspektiv bývá people rozhodnutí zkreslené.", "Hlídá si slepá místa v alignementu."),
+            ],
+            "sales": [
+                ("Jak byste určil(a) první komerční krok, když obchod nebo účet začíná ztrácet momentum?", "Recruiter chce vidět, jestli umíte jít po skutečné překážce v dealu.", "Zaměřuje se na další rozhodující pohyb, ne jen na aktivitu."),
+                ("Co byste upřednostnil(a) před posíláním dalších follow-upů naslepo?", "Silný sales úsudek pozná, kdy zpomalit a kdy kvalifikovat hlouběji.", "Rozlišuje mezi tlakem na aktivitu a kvalitou dalšího kroku."),
+                ("Jaké informace vám chybí o stakeholderech, rozpočtu nebo timeline?", "Bez těchto dat hrozí falešný optimismus v pipeline.", "Pojmenovává komerční rizika a kvalifikační mezery."),
+            ],
+            "engineering": [
+                ("Jaký první diagnostický krok byste udělal(a), když se objevuje chyba nebo degradace služby?", "Recruiter chce vidět, jestli začnete od rychlého signálu, ne od náhodného fixu.", "Začíná diagnostikou a containmentem."),
+                ("Co byste stabilizoval(a) hned a co byste ještě nerefaktoroval(a)?", "Silný engineering úsudek umí oddělit mitigaci od větší opravy.", "Rozlišuje mezi produkční stabilitou a širším redesignem."),
+                ("Jaké logy, ownership nebo technické souvislosti vám ještě chybí?", "Bez pojmenování neznámých je technické sebevědomí levné.", "Ví, jaké technické důkazy ještě potřebuje."),
+            ],
+        }
+        selected = prompts.get(archetype)
+        if selected:
+            return [
+                {
+                    "id": f"q{index + 1}",
+                    "question": question,
+                    "why_this_matters": why,
+                    "job_evidence": evidence[index] if len(evidence) > index else intro,
+                    "recruiter_signal": signal,
+                }
+                for index, (question, why, signal) in enumerate(selected[:_QUESTION_PACK_SIZE])
+            ]
+        return [
+            {
+                "id": "q1",
+                "question": f"Když nastoupíte do role {title}, co byste si potřeboval(a) nejdřív srovnat, abyste neřešil(a) špatný problém?",
+                "why_this_matters": "Recruiter chce vidět, jak čtete kontext role dřív, než navrhnete řešení.",
+                "job_evidence": intro,
+                "recruiter_signal": "Začíná správným rámováním problému.",
+            },
+            {
+                "id": "q2",
+                "question": "Jaký první konkrétní krok byste udělal(a) a proč právě ten?",
+                "why_this_matters": "Silný signál je konkrétní akce, ne abstraktní úmysl.",
+                "job_evidence": evidence[1] if len(evidence) > 1 else intro,
+                "recruiter_signal": "Umí přejít od úvahy k prvnímu kroku.",
+            },
+            {
+                "id": "q3",
+                "question": "Jaká rizika, trade-offy nebo chybějící fakta byste si ještě potřeboval(a) potvrdit?",
+                "why_this_matters": "Recruiter vidí, jestli umíte přiznat neznámé a rozhodovat i s nimi.",
+                "job_evidence": evidence[2] if len(evidence) > 2 else intro,
+                "recruiter_signal": "Pojmenovává rizika a neznámé před závazkem.",
+            },
+        ]
+    prompts = {
+        "operations": [
+            ("Where would you look first for the real operational bottleneck, and how would you know you are fixing the right problem?", "A recruiter wants to see whether you can find the real friction rather than polishing the surface.", "Shows bottleneck thinking instead of generic improvement language."),
+            ("Which small intervention would you prioritize before a broader redesign, and why?", "Strong operations judgment separates fast stabilization from changes that are too wide too early.", "Balances throughput and stability."),
+            ("Which data points or confirmations are still missing before you push the change into live operations?", "Good operations decisions are grounded in visibility, not impression.", "Names decision gaps before rollout."),
+        ],
+        "product": [
+            ("Which signal or user moment would you verify before proposing a solution?", "A recruiter wants to see whether you start with evidence before jumping to the answer.", "Starts from evidence, not from taste."),
+            ("Which smaller experiment would you prioritize over a broader redesign?", "Product judgment is often about choosing the right next move size.", "Prefers a testable step over a big leap."),
+            ("What would you still need to know about users, segments, or impact?", "Without naming unknowns, the solution is still only a hypothesis.", "Can name evidence gaps clearly."),
+        ],
+        "people": [
+            ("How would you tell whether the main problem sits in the pipeline, the hiring manager expectations, or the candidate experience?", "A recruiter wants process diagnosis, not just activity.", "Separates signal from noise in a people process."),
+            ("What would you prioritize first, and what would you deliberately not launch yet?", "People roles are full of trade-offs between speed, quality, and team capacity.", "Shows process judgment rather than checklist thinking."),
+            ("Which inputs are still missing from candidates, hiring managers, or the team?", "People decisions get distorted when one critical perspective is still missing.", "Watches for alignment blind spots."),
+        ],
+        "sales": [
+            ("How would you choose the first commercial move when a deal or account is losing momentum?", "A recruiter wants to see whether you can get to the real blocker in the deal.", "Focuses on the decisive next move, not just activity volume."),
+            ("What would you prioritize before sending more blind follow-ups?", "Strong sales judgment knows when to slow down and qualify deeper.", "Separates activity pressure from quality of next step."),
+            ("What do you still need to know about stakeholders, budget, or timing?", "Without this, pipeline confidence can become false optimism.", "Names commercial risks and qualification gaps."),
+        ],
+        "engineering": [
+            ("What is the first diagnostic move you would make when a bug or service degradation appears?", "A recruiter wants to see whether you start with signal gathering instead of a random fix.", "Starts with diagnosis and containment."),
+            ("What would you stabilize now, and what would you deliberately not refactor yet?", "Strong engineering judgment separates mitigation from broader cleanup.", "Separates production stability from future redesign."),
+            ("Which logs, ownership questions, or technical dependencies are still missing?", "Without naming unknowns, technical confidence is cheap.", "Knows which technical evidence is still missing."),
+        ],
+    }
+    selected = prompts.get(archetype)
+    if selected:
+        return [
+            {
+                "id": f"q{index + 1}",
+                "question": question,
+                "why_this_matters": why,
+                "job_evidence": evidence[index] if len(evidence) > index else intro,
+                "recruiter_signal": signal,
             }
-    generic = _default_generic_template(job_row, normalized_locale)
-    generic["role_family"] = family or None
-    generic["domain_key"] = domain_key or None
-    generic["canonical_role"] = intelligence.get("canonical_role")
-    return generic
+            for index, (question, why, signal) in enumerate(selected[:_QUESTION_PACK_SIZE])
+        ]
+    return [
+        {
+            "id": "q1",
+            "question": f"When you step into the {title} role, what would you need to understand first so you do not solve the wrong problem?",
+            "why_this_matters": "A recruiter wants to see how you read role context before you start proposing answers.",
+            "job_evidence": intro,
+            "recruiter_signal": "Starts with problem framing.",
+        },
+        {
+            "id": "q2",
+            "question": "What would your first concrete move be, and why that move before the others?",
+            "why_this_matters": "A strong work signal is a real first action, not abstract intent.",
+            "job_evidence": evidence[1] if len(evidence) > 1 else intro,
+            "recruiter_signal": "Can move from reasoning into action.",
+        },
+        {
+            "id": "q3",
+            "question": "Which risks, trade-offs, or missing facts would you still need to verify before you commit further?",
+            "why_this_matters": "A recruiter sees whether you can name unknowns instead of pretending certainty.",
+            "job_evidence": evidence[2] if len(evidence) > 2 else intro,
+            "recruiter_signal": "Names risks and unknowns before commitment.",
+        },
+    ]
 
 
-def _should_prefer_ai_brief(job_row: dict[str, Any], template: dict[str, Any]) -> bool:
-    if not _ai_available():
-        return False
-    if template.get("role_family") in _ROLE_TEMPLATE_COPY:
-        return False
-    description = str(job_row.get("description") or "").strip()
-    role_summary = str(job_row.get("role_summary") or "").strip()
-    title = str(job_row.get("title") or "").strip()
-    return len(description) > 120 or len(role_summary) > 80 or len(title) > 40
+def _build_question_pack(role_context: dict[str, Any], locale: str) -> list[dict[str, str]]:
+    archetype = str(role_context.get("archetype") or "generic")
+    if archetype == "construction_site":
+        return _question_pack_construction(locale, role_context)
+    if archetype == "customer_support":
+        return _question_pack_customer_support(locale, role_context)
+    return _generic_question_pack(locale, role_context, archetype)
 
 
-def _section_starter_prompts(locale: str) -> dict[str, list[str]]:
+def _scenario_for_archetype(role_context: dict[str, Any], locale: str) -> dict[str, str]:
     language = _normalize_locale(locale)
+    title = role_context.get("title") or "the role"
+    company = role_context.get("company") or "the company"
+    location = role_context.get("location")
+    location_fragment = f" v {location}" if language == "cs" and location else f" in {location}" if location else ""
+    archetype = str(role_context.get("archetype") or "generic")
+
     if language == "cs":
-        return {
-            "problem_understanding": [
-                "Myslím, že hlavní problém tady není jen výkon, ale hlavně ...",
-                "Za skutečné jádro situace považuji ..., protože ...",
-            ],
-            "first_move": [
-                "Jako první bych si ověřil(a) ...",
-                "První konkrétní krok by u mě byl ...",
-            ],
-            "approach_tradeoffs": [
-                "Teď bych upřednostnil(a) ... před ..., protože ...",
-                "Zatím bych nedělal(a) ..., protože ...",
-            ],
-            "needs_to_know": [
-                "Ještě bych potřeboval(a) vědět ...",
-                "Než bych šel/šla dál, ověřil(a) bych si ...",
-            ],
-            "thinking_notes": [
-                "Rychlá poznámka: kdyby se ukázalo ..., změnil(a) bych směr na ...",
-            ],
+        scenarios = {
+            "construction_site": {
+                "title": f"Jak byste srovnal(a) skluz a chaos v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Na stavbě se objevuje skluz, subdodavatelé čekají na potvrzení dalšího kroku a informace z místa nejsou úplně čisté.",
+                "problem": "Potřebujete rychle rozhodnout, co si ověřit jako první, co stabilizovat hned a jak neobětovat bezpečnost ani koordinaci profesí jen kvůli tlaku na termín.",
+            },
+            "customer_support": {
+                "title": f"Jak byste uklidnil(a) ticket a dostal(a) ho pod kontrolu v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Přichází frustrovaný zákazník, ticket nemá dost dat a čas běží proti vám.",
+                "problem": "Potřebujete zvládnout první odpověď, správně se rozhodnout mezi řešením a eskalací a zároveň si srovnat, co ještě musíte vědět, abyste neodpověděl(a) špatně.",
+            },
+            "operations": {
+                "title": f"Jak byste našel(a) pravé provozní tření v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Provoz běží, ale vznikají zpoždění, ruční improvizace a nikdo si není jistý, kde je hlavní úzké místo.",
+                "problem": "Potřebujete poznat, co opravdu brzdí provoz, co stabilizovat hned a co zatím nechat být, aby se systém nerozsypal ještě víc.",
+            },
+            "product": {
+                "title": f"Jak byste oddělil(a) signál od nápadu v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Tým vidí problém, ale není jasné, jestli jde o UX, value proposition nebo jen špatně přečtený uživatelský moment.",
+                "problem": "Potřebujete rozhodnout, jaký signál si ověřit jako první, co zkusit malým experimentem a jaké neznámé si nenechat utéct.",
+            },
+            "people": {
+                "title": f"Jak byste odhalil(a) slabé místo procesu v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Nábor nebo people proces běží, ale kvalita výsledků a rychlost se začínají rozcházet.",
+                "problem": "Potřebujete poznat, kde je skutečné slabé místo, co byste změnil(a) jako první a jaké vstupy vám ještě chybí od lidí kolem procesu.",
+            },
+            "sales": {
+                "title": f"Jak byste rozhýbal(a) obchodní momentum v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Obchod nebo účet ztrácí tah a není jasné, jestli je problém v deal strategy, stakeholderech nebo prioritách klienta.",
+                "problem": "Potřebujete určit další komerční krok, správně vyhodnotit riziko a nepálit čas na aktivitu, která obchod nikam neposune.",
+            },
+            "engineering": {
+                "title": f"Jak byste stabilizoval(a) technický problém v roli {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Služba nebo část produktu začíná zlobit, signály jsou nečisté a tým nechce rozbít produkci ještě víc.",
+                "problem": "Potřebujete zvolit první diagnostický krok, oddělit mitigaci od větší opravy a pojmenovat, co vám ještě chybí, než se zavážete k technickému směru.",
+            },
+            "generic": {
+                "title": f"Jak byste rychle přečetl(a) kontext role {title}",
+                "context": f"Představte si svůj první týden v roli {title} ve firmě {company}{location_fragment}. Je jasné jen to, že tlak existuje, ale ještě nevíte, kde přesně vzniká největší riziko nebo ztráta hodnoty.",
+                "problem": "Potřebujete ukázat, jak byste si srovnal(a) problém, co byste udělal(a) jako první a jaká neznámá by vám ještě bránila jít dál.",
+            },
         }
-    if language == "sk":
-        return {
-            "problem_understanding": [
-                "Myslím, že hlavný problém tu nie je len výkon, ale najmä ...",
-                "Za skutočné jadro situácie považujem ..., pretože ...",
-            ],
-            "first_move": [
-                "Ako prvé by som si overil(a) ...",
-                "Prvý konkrétny krok by u mňa bol ...",
-            ],
-            "approach_tradeoffs": [
-                "Teraz by som uprednostnil(a) ... pred ..., pretože ...",
-                "Zatiaľ by som nerobil(a) ..., pretože ...",
-            ],
-            "needs_to_know": [
-                "Ešte by som potreboval(a) vedieť ...",
-                "Skôr než by som išiel/šla ďalej, overil(a) by som si ...",
-            ],
-            "thinking_notes": [
-                "Rýchla poznámka: ak by sa ukázalo ..., zmenil(a) by som smer na ...",
-            ],
+        return scenarios.get(archetype) or scenarios["generic"]
+
+    scenarios = {
+        "construction_site": {
+            "title": f"How you would steady a slipping site in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. The site is slipping, subcontractors are waiting for confirmation, and the field information is still incomplete.",
+            "problem": "You need to decide what to verify first, what to stabilize immediately, and how not to sacrifice safety or coordination just to chase the deadline.",
+        },
+        "customer_support": {
+            "title": f"How you would steady a messy support case in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. A frustrated customer arrives, the ticket is missing context, and the clock is already working against you.",
+            "problem": "You need to handle the first reply, decide correctly between solving and escalating, and name what you still need to know so you do not answer too fast and too wrong.",
+        },
+        "operations": {
+            "title": f"How you would find the real operational drag in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. Operations are running, but delays, manual workarounds, and overloaded handoffs keep showing up.",
+            "problem": "You need to work out what is truly slowing the system down, what to stabilize first, and what not to widen too early.",
+        },
+        "product": {
+            "title": f"How you would separate signal from solution in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. The team sees a problem, but it is not clear whether the issue is UX, value clarity, or a badly read user moment.",
+            "problem": "You need to decide which signal to verify first, what to try as a smaller experiment, and which unknowns still matter before a bigger move.",
+        },
+        "people": {
+            "title": f"How you would surface the real process gap in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. A hiring or people process is moving, but speed and quality are starting to drift apart.",
+            "problem": "You need to identify the real weak point, choose the first change, and name which missing inputs from candidates, managers, or the team still matter.",
+        },
+        "sales": {
+            "title": f"How you would restore commercial momentum in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. A deal or account is losing momentum, and it is not yet clear whether the blocker is strategy, stakeholder alignment, or client timing.",
+            "problem": "You need to choose the next commercial move, judge the real risk, and avoid spending time on activity that will not move the opportunity forward.",
+        },
+        "engineering": {
+            "title": f"How you would stabilize a technical issue in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. A service or product surface is starting to fail, the signals are noisy, and the team cannot afford to make production worse.",
+            "problem": "You need to choose the first diagnostic move, separate mitigation from broader repair, and name what is still missing before you commit technically.",
+        },
+        "generic": {
+            "title": f"How you would read the real pressure in the {title} role",
+            "context": f"Imagine your first week in the {title} role at {company}{location_fragment}. You know there is pressure in the system, but not yet where the deepest risk or value loss really sits.",
+            "problem": "You need to show how you would frame the problem, what you would do first, and what unknowns would still hold you back from moving further.",
+        },
+    }
+    return scenarios.get(archetype) or scenarios["generic"]
+
+
+def _section_specific_hints(locale: str, role_context: dict[str, Any]) -> dict[str, str]:
+    language = _normalize_locale(locale)
+    archetype = str(role_context.get("archetype") or "generic")
+    focus = role_context.get("focus_areas") or []
+    focus_line = ", ".join(focus[:3]) if focus else "the real constraint in the role"
+    if language == "cs":
+        hints = {
+            "construction_site": {
+                "problem_frame": "Co je tady skutečný driver skluzu: sekvence prací, bezpečnost, připravenost subdodavatelů, nebo zdroje?",
+                "first_step": "Pojmenujte první onsite kontrolu, call nebo porovnání s harmonogramem, které uděláte dřív než změníte plán.",
+                "solution_direction": "Ukažte, co byste stabilizoval(a) hned a co byste zatím nepřehazoval(a), dokud nejsou potvrzená fakta.",
+                "risk_and_unknowns": "Jaká fakta ještě chybí od profesí, stavbyvedení, zásobování nebo BOZP?",
+                "stakeholder_note": "Volitelné. Co byste potřeboval(a) srovnat s PM, investorem nebo vedoucími profesí?",
+            },
+            "customer_support": {
+                "problem_frame": "Co je tady hlavní problém za ticketem: frustrace zákazníka, chybějící data, SLA tlak, nebo riziko špatné odpovědi?",
+                "first_step": "Napište první reply nebo první kontrolu v systému, kterou byste udělal(a), abyste situaci uklidnil(a) i zpřesnil(a).",
+                "solution_direction": "Ukažte, co byste vyřešil(a) hned, co byste eskaloval(a) a co byste ještě záměrně nesliboval(a).",
+                "risk_and_unknowns": "Jaké informace z ticketu, účtu nebo interních systémů vám ještě chybí?",
+                "stakeholder_note": "Volitelné. Co byste předal(a) dál produktu, operations nebo senior supportu?",
+            },
         }
-    if language == "de":
+        archetype_hints = hints.get(archetype)
+        if archetype_hints:
+            return archetype_hints
         return {
-            "problem_understanding": [
-                "Ich glaube, das eigentliche Problem ist hier nicht nur ..., sondern vor allem ...",
-                "Den Kern der Situation sehe ich in ..., weil ...",
-            ],
-            "first_move": [
-                "Als Erstes würde ich prüfen, ...",
-                "Mein erster konkreter Schritt wäre ...",
-            ],
-            "approach_tradeoffs": [
-                "Ich würde jetzt ... vor ... priorisieren, weil ...",
-                "Bewusst noch nicht tun würde ich ..., weil ...",
-            ],
-            "needs_to_know": [
-                "Ich müsste noch wissen ...",
-                "Bevor ich weitergehe, würde ich erst klären ...",
-            ],
-            "thinking_notes": [
-                "Kurze Notiz: Wenn sich zeigt, dass ..., würde ich eher in Richtung ... gehen.",
-            ],
+            "problem_frame": f"Vysvětlete, kde v tomhle kontextu vidíte skutečný tlak nebo slabé místo kolem: {focus_line}.",
+            "first_step": "Jmenujte jednu konkrétní první akci, ne obecný záměr.",
+            "solution_direction": "Ukažte prioritu, trade-off a co byste zatím cíleně nespouštěli.",
+            "risk_and_unknowns": "Napište, jaká fakta, čísla nebo perspektivy vám ještě chybí.",
+            "stakeholder_note": "Volitelné. Komu byste to potřeboval(a) rychle srovnat a proč?",
         }
-    if language == "pl":
-        return {
-            "problem_understanding": [
-                "Myślę, że główny problem nie dotyczy tu tylko ..., ale przede wszystkim ...",
-                "Za prawdziwy rdzeń sytuacji uważam ..., bo ...",
-            ],
-            "first_move": [
-                "Najpierw sprawdził(a)bym ...",
-                "Mój pierwszy konkretny krok to ...",
-            ],
-            "approach_tradeoffs": [
-                "Na tym etapie priorytet dał(a)bym ... zamiast ..., ponieważ ...",
-                "Na razie nie robił(a)bym ..., ponieważ ...",
-            ],
-            "needs_to_know": [
-                "Wciąż potrzebował(a)bym wiedzieć ...",
-                "Zanim pójdę dalej, doprecyzował(a)bym ...",
-            ],
-            "thinking_notes": [
-                "Krótka notatka: jeśli okaże się, że ..., zmienił(a)bym kierunek na ...",
-            ],
-        }
+    hints = {
+        "construction_site": {
+            "problem_frame": "What is truly driving the slip here: sequence, safety, subcontractor readiness, or resource reality on site?",
+            "first_step": "Name the first on-site check, call, or schedule comparison you would make before changing the plan.",
+            "solution_direction": "Show what you would stabilize now and what you would deliberately not reshuffle until the facts are cleaner.",
+            "risk_and_unknowns": "Which facts are still missing from trades, site leadership, supply, or compliance?",
+            "stakeholder_note": "Optional. What would you align with the PM, investor, or site leads next?",
+        },
+        "customer_support": {
+            "problem_frame": "What is the real issue beneath the ticket: customer frustration, missing context, SLA pressure, or the risk of a wrong answer?",
+            "first_step": "Write the first reply or the first system check you would use to calm the case and sharpen the facts.",
+            "solution_direction": "Show what you would resolve now, what you would escalate, and what you would deliberately not promise yet.",
+            "risk_and_unknowns": "Which missing details from the ticket, account, or internal systems still matter before you commit?",
+            "stakeholder_note": "Optional. What would you pass forward to product, operations, or senior support?",
+        },
+    }
+    archetype_hints = hints.get(archetype)
+    if archetype_hints:
+        return archetype_hints
     return {
-        "problem_understanding": [
-            "I think the real problem here is not only ..., but mainly ...",
-            "The core of the situation seems to be ..., because ...",
-        ],
-        "first_move": [
-            "First I would verify ...",
-            "My first concrete move would be ...",
-        ],
-        "approach_tradeoffs": [
-            "At this stage I would prioritize ... over ..., because ...",
-            "I would not do ... yet, because ...",
-        ],
-        "needs_to_know": [
-            "I would still need to know ...",
-            "Before going further, I would clarify ...",
-        ],
-        "thinking_notes": [
-            "Quick note: if it turns out that ..., I would shift toward ...",
-        ],
+        "problem_frame": f"Explain where the real pressure or weak point sits in this context around: {focus_line}.",
+        "first_step": "Name one concrete first action, not a general intention statement.",
+        "solution_direction": "Show the priority, the trade-off, and what you would deliberately not launch yet.",
+        "risk_and_unknowns": "Write which facts, numbers, or perspectives are still missing.",
+        "stakeholder_note": "Optional. Who would you align next, and why them?",
     }
 
 
-def _section_placeholders(locale: str) -> dict[str, str]:
-    language = _normalize_locale(locale)
-    if language == "cs":
-        return {
-            "problem_understanding": "2 až 4 věty. Co je podle vás skutečný problém a proč na něm záleží?",
-            "first_move": "Začněte větou: Jako první bych...",
-            "approach_tradeoffs": "Co byste teď upřednostnili a co byste zatím nedělali?",
-            "needs_to_know": "Jaké informace byste si ještě potřebovali ověřit?",
-            "thinking_notes": "Volitelné krátké poznámky, hypotézy nebo pracovní zkratky.",
-        }
-    if language == "sk":
-        return {
-            "problem_understanding": "2 až 4 vety. Čo je podľa vás skutočný problém a prečo na ňom záleží?",
-            "first_move": "Začnite vetou: Ako prvé by som...",
-            "approach_tradeoffs": "Čo by ste teraz uprednostnili a čo by ste zatiaľ nerobili?",
-            "needs_to_know": "Aké informácie by ste si ešte potrebovali overiť?",
-            "thinking_notes": "Voliteľné krátke poznámky, hypotézy alebo pracovné skratky.",
-        }
-    if language == "de":
-        return {
-            "problem_understanding": "2 bis 4 Sätze. Was ist aus Ihrer Sicht das eigentliche Problem und warum ist es wichtig?",
-            "first_move": "Beginnen Sie mit: Als Erstes würde ich...",
-            "approach_tradeoffs": "Was würden Sie jetzt priorisieren und was noch bewusst nicht tun?",
-            "needs_to_know": "Welche Informationen müssten Sie noch klären?",
-            "thinking_notes": "Optionale kurze Notizen, Hypothesen oder Arbeitsannahmen.",
-        }
-    if language == "pl":
-        return {
-            "problem_understanding": "2 do 4 zdań. Co jest tu według Ciebie prawdziwym problemem i dlaczego to ważne?",
-            "first_move": "Zacznij od: Najpierw zrobił(a)bym...",
-            "approach_tradeoffs": "Co teraz byłoby priorytetem, a czego jeszcze byś nie robił(a)?",
-            "needs_to_know": "Jakie informacje trzeba jeszcze doprecyzować?",
-            "thinking_notes": "Opcjonalne krótkie notatki, hipotezy albo skróty myślowe.",
-        }
-    return {
-        "problem_understanding": "2 to 4 sentences. What is the real problem here and why does it matter?",
-        "first_move": "Start with: First I would...",
-        "approach_tradeoffs": "What would you prioritize now, and what would you deliberately not do yet?",
-        "needs_to_know": "What information would you still need to clarify?",
-        "thinking_notes": "Optional short notes, hypotheses, or working assumptions.",
-    }
-
-
-def _build_sections(locale: str) -> list[dict[str, Any]]:
+def _build_sections(locale: str, role_context: dict[str, Any]) -> list[dict[str, Any]]:
     copy = _copy(locale)
-    starters = _section_starter_prompts(locale)
-    placeholders = _section_placeholders(locale)
+    hints = _section_specific_hints(locale, role_context)
     sections: list[dict[str, Any]] = []
     for section_id in _SECTION_IDS:
         item = copy["sections"][section_id]
@@ -851,15 +1095,88 @@ def _build_sections(locale: str) -> list[dict[str, Any]]:
             {
                 "id": section_id,
                 "title": item["title"],
-                "hint": item["hint"],
-                "optional": section_id == "thinking_notes",
-                "min_chars": 60 if section_id != "thinking_notes" else 0,
-                "soft_max_chars": 720 if section_id != "thinking_notes" else 420,
-                "starter_prompts": starters.get(section_id, []),
-                "placeholder": placeholders.get(section_id, ""),
+                "hint": hints.get(section_id) or item["hint"],
+                "optional": section_id in _OPTIONAL_SECTION_IDS,
+                "min_chars": 70 if section_id not in _OPTIONAL_SECTION_IDS else 0,
+                "soft_max_chars": 720 if section_id not in _OPTIONAL_SECTION_IDS else 420,
+                "starter_prompts": _starter_prompts(locale, role_context, section_id),
+                "placeholder": hints.get(section_id) or item["hint"],
             }
         )
     return sections
+
+
+def _starter_prompts(locale: str, role_context: dict[str, Any], section_id: str) -> list[str]:
+    archetype = str(role_context.get("archetype") or "generic")
+    language = _normalize_locale(locale)
+    if language == "cs":
+        prompts = {
+            "problem_frame": {
+                "construction_site": [
+                    "Skutečný problém tady podle mě není jen skluz, ale hlavně to, že bez čistých onsite faktů se může rozpadnout další sekvence prací.",
+                    "Jádro situace vidím v tom, že termín tlačí, ale rozhodnutí bez potvrzených dat od profesí by mohlo udělat větší škodu.",
+                ],
+                "customer_support": [
+                    "Skutečný problém tady není jen naštvaný zákazník, ale kombinace frustrace, chybějícího kontextu a rizika špatné odpovědi pod tlakem času.",
+                    "Největší tlak je v tom, že musím zklidnit situaci a zároveň si rychle srovnat fakta, abych neeskaloval(a) špatným směrem.",
+                ],
+            },
+            "first_step": {
+                "construction_site": [
+                    "Jako první bych si na místě ověřil(a), kde se reálně láme sekvence a kdo blokuje další profesi.",
+                    "První krok by u mě byl rychlý status s vedoucími profesí a kontrola, co je skutečně připravené a co jen vypadá připraveně.",
+                ],
+                "customer_support": [
+                    "Jako první bych zákazníkovi odpověděl(a) tak, aby věděl, že situaci přebírám, a zároveň bych si otevřel(a) historii účtu a ticketu.",
+                    "První krok by byl uklidnit tón komunikace a hned si vytáhnout chybějící fakta z interních systémů.",
+                ],
+            },
+        }
+        section_prompts = prompts.get(section_id, {})
+        if archetype in section_prompts:
+            return list(section_prompts[archetype])
+        generic = {
+            "problem_frame": [f"Skutečný problém tady podle mě souvisí hlavně s tím, jak role pracuje s {', '.join((role_context.get('focus_areas') or ['tlakem'])[:2])}."],
+            "first_step": ["Jako první bych si ověřil(a) konkrétní místo, kde teď vzniká největší tlak nebo ztráta hodnoty."],
+            "solution_direction": ["Teď bych upřednostnil(a) jeden menší stabilizační krok před širší změnou, dokud nebudu mít čistší data."],
+            "risk_and_unknowns": ["Ještě bych potřeboval(a) potvrdit několik faktů, protože bez nich bych riskoval(a), že řeším špatnou věc."],
+            "stakeholder_note": ["Potom bych to krátce srovnal(a) s člověkem, který drží nejbližší rozhodnutí nebo dopad."],
+        }
+        return generic.get(section_id, [])
+
+    prompts = {
+        "problem_frame": {
+            "construction_site": [
+                "The real problem here is not only the slip itself, but that the next site decisions can drift fast if the field facts are still noisy.",
+                "I would treat this first as a sequencing and coordination issue, not just as a deadline issue.",
+            ],
+            "customer_support": [
+                "The real problem is not only an angry customer. It is the mix of frustration, missing context, and the risk of a wrong answer under time pressure.",
+                "I would frame this as a trust and fact-clarity problem before I frame it as a ticket-processing problem.",
+            ],
+        },
+        "first_step": {
+            "construction_site": [
+                "First I would verify on site where the sequence is actually blocked and which trade is waiting on what.",
+                "My first move would be a fast status check with the site leads plus a comparison between the live site state and the plan.",
+            ],
+            "customer_support": [
+                "First I would send a calm first reply and immediately open the account history and ticket trail to fill the missing context.",
+                "My first move would be to steady the customer interaction while pulling the internal facts that determine whether this is solvable or escalation-worthy.",
+            ],
+        },
+    }
+    section_prompts = prompts.get(section_id, {})
+    if archetype in section_prompts:
+        return list(section_prompts[archetype])
+    generic = {
+        "problem_frame": [f"The real pressure here seems tied to how the role handles {', '.join((role_context.get('focus_areas') or ['context'])[:2])}."],
+        "first_step": ["First I would verify the place where the biggest pressure or value loss is actually happening."],
+        "solution_direction": ["I would prioritize one stabilizing move before a broader change until I have cleaner evidence."],
+        "risk_and_unknowns": ["I would still need to confirm a few facts, because otherwise I could end up solving the wrong problem."],
+        "stakeholder_note": ["Then I would align quickly with the person closest to the next decision or impact."],
+    }
+    return generic.get(section_id, [])
 
 
 def _ai_available() -> bool:
@@ -896,152 +1213,96 @@ def _ai_meta_base() -> dict[str, Any]:
     }
 
 
-def _brief_needs_ai(job_row: dict[str, Any]) -> bool:
-    description = str(job_row.get("description") or "").strip()
-    role_summary = str(job_row.get("role_summary") or "").strip()
-    first_reply_prompt = str(job_row.get("first_reply_prompt") or "").strip()
-    return len(description) < 180 and len(role_summary) < 60 and len(first_reply_prompt) < 40
+def build_signal_boost_brief(job_row: dict[str, Any], locale: str, *, prefer_ai: bool = False) -> dict[str, Any]:
+    language = _normalize_locale(locale, _normalize_locale(job_row.get("language_code"), "en"))
+    copy = _copy(language)
+    role_context = _resolve_role_context(job_row, language)
+    question_pack = _build_question_pack(role_context, language)
+    scenario = _scenario_for_archetype(role_context, language)
+    job_excerpt = _build_job_excerpt(job_row)
 
-
-def _maybe_ai_brief(job_row: dict[str, Any], locale: str, fallback: dict[str, str], *, force: bool = False) -> tuple[dict[str, str] | None, dict[str, Any]]:
-    meta = {
-        **_ai_meta_base(),
-        "ai_requested": bool(force or _brief_needs_ai(job_row)),
-        "ai_used_brief": False,
-        "ai_fallback_used": False,
+    return {
+        "kicker": copy["kicker"],
+        "timebox": copy["timebox"],
+        "candidate_note": copy["note"],
+        "anti_generic_hint": copy["anti_generic"],
+        "cta_hint": copy["cta_hint"],
+        "how_to_title": copy["how_to_title"],
+        "deliverable_title": copy["deliverable_title"],
+        "how_to_steps": list(copy.get("how_to_steps") or []),
+        "job_excerpt_title": copy.get("job_excerpt_title"),
+        "job_excerpt": job_excerpt or None,
+        "scenario_title": scenario["title"],
+        "scenario_context": scenario["context"],
+        "core_problem": scenario["problem"],
+        "constraints": list(copy["constraints"]),
+        "structured_sections": _build_sections(language, role_context),
+        "locale": language,
+        "mini_case_type": "role_aware_mini_case",
+        "role_context": role_context,
+        "question_pack": question_pack,
+        "recruiter_reading_guide": copy["recruiter_reading_guide"],
+        "meta": {
+            "role_family": role_context.get("role_family"),
+            "domain_key": role_context.get("domain_key"),
+            "canonical_role": role_context.get("canonical_role"),
+            "archetype": role_context.get("archetype"),
+            "mapping_confidence": role_context.get("mapping_confidence"),
+            "mapping_source": role_context.get("mapping_source"),
+            "used_ai_fallback": False,
+            **_ai_meta_base(),
+            "ai_requested": bool(prefer_ai),
+            "ai_used_brief": False,
+            "ai_fallback_used": False,
+            "ai_skip_reason": "deterministic_role_aware_brief",
+        },
     }
-    if not force and not _brief_needs_ai(job_row):
-        meta["ai_skip_reason"] = "heuristic_brief_allowed"
-        return None, meta
-    if not _ai_available():
-        meta["ai_skip_reason"] = "provider_credentials_missing"
-        return None, meta
-    language = _normalize_locale(locale)
-    role_title = _compact_role_title(job_row.get("title") or "")
-    relevant_excerpt = _build_job_excerpt(job_row)
-    intelligence = map_job_to_intelligence(
-        {
-            "id": job_row.get("id") or "",
-            "title": job_row.get("title") or "",
-            "description": job_row.get("description") or "",
-            "country_code": job_row.get("country_code") or "",
-            "language_code": job_row.get("language_code") or locale,
-            "work_model": job_row.get("work_model") or "",
-            "work_type": job_row.get("work_type") or "",
-            "tags": job_row.get("tags") or [],
-        }
-    )
-    prompt = f"""
-Create one concrete short work-signal task for a job candidate.
-
-Locale: {language}
-Role: {role_title}
-Company: {job_row.get("company") or ""}
-Location: {job_row.get("location") or ""}
-Role family: {intelligence.get("role_family") or ""}
-Domain: {intelligence.get("domain_key") or ""}
-Relevant job context: {relevant_excerpt}
-
-Return STRICT JSON:
-{{
-  "scenario_title": "string",
-  "scenario_context": "string",
-  "core_problem": "string"
-}}
-
-Rules:
-- Use only one realistic first-week situation.
-- Make the candidate choose a first step, one priority, and one thing to verify.
-- Keep it concrete and readable in under 30 seconds.
-- No textbook explanation, no company marketing, no generic HR language.
-- Do not repeat the raw title as the task.
-""".strip()
-    try:
-        result, fallback_used = call_primary_with_fallback(
-            prompt,
-            primary_model=_signal_boost_primary_model(),
-            fallback_model=_signal_boost_fallback_model(),
-            generation_config={"temperature": 0.2, "top_p": 0.9},
-            provider_override=_signal_boost_ai_provider(),
-        )
-        parsed = _extract_json(result.text)
-        title = _clip(parsed.get("scenario_title"), 160)
-        context = _clip(parsed.get("scenario_context"), 400)
-        problem = _clip(parsed.get("core_problem"), 500)
-        if not title or not context or not problem:
-            meta["ai_error"] = "brief_payload_incomplete"
-            return None, meta
-        meta.update({
-            "ai_used_brief": True,
-            "ai_model_used": result.model_name,
-            "ai_fallback_used": bool(fallback_used),
-            "ai_tokens_in": result.tokens_in,
-            "ai_tokens_out": result.tokens_out,
-            "ai_latency_ms": result.latency_ms,
-        })
-        return {"title": title, "context": context, "problem": problem}, meta
-    except (AIClientError, ValueError) as exc:
-        meta["ai_error"] = str(exc)
-        return None, meta
 
 
-def _build_job_excerpt(job_row: dict[str, Any]) -> str:
-    first_reply_prompt = _plain_excerpt(job_row.get("first_reply_prompt"), 260)
-    if first_reply_prompt:
-        return first_reply_prompt
-    challenge = _plain_excerpt(job_row.get("challenge"), 260)
-    if challenge:
-        return challenge
-    role_summary = _plain_excerpt(job_row.get("role_summary"), 260)
-    if role_summary:
-        return role_summary
-    sentences = _description_sentences(job_row.get("description"))
-    if sentences:
-        return " ".join(sentences[:2])
-    return _plain_excerpt(job_row.get("description"), 220)
-
-
-def _fallback_starter_payload(locale: str) -> dict[str, str]:
-    prompts = _section_starter_prompts(locale)
+def _fallback_starter_payload(brief: dict[str, Any], locale: str) -> dict[str, str]:
+    role_context = dict(brief.get("role_context") or {})
+    archetype = str(role_context.get("archetype") or "generic")
     language = _normalize_locale(locale)
     if language == "cs":
+        if archetype == "construction_site":
+            return {
+                "problem_frame": "Skutečný problém tady podle mě není jen skluz, ale hlavně to, že bez čistých onsite faktů a potvrzení od profesí můžu přehodit plán špatným směrem.",
+                "first_step": "Jako první bych si na místě ověřil(a), kde se reálně láme sekvence prací, kdo čeká na koho a jestli je blokace v připravenosti, bezpečnosti nebo materiálu.",
+                "solution_direction": "Teď bych stabilizoval(a) nejbližší kritickou sekvenci a nepřehazoval(a) širší plán, dokud nebudu mít potvrzené, že tím nerozbíjím další návaznosti nebo BOZP.",
+                "risk_and_unknowns": "Ještě bych potřeboval(a) vědět, co mají skutečně potvrzené subdodavatelé, kde je riziko bezpečnosti a které zdroje nebo povolení jsou opravdu připravené.",
+                "stakeholder_note": "Jakmile bych měl(a) čistší stav, srovnal(a) bych další krok s PM a vedoucími profesí, aby byl jasný jeden společný postup.",
+            }
+        if archetype == "customer_support":
+            return {
+                "problem_frame": "Největší problém tady není jen nespokojený zákazník, ale to, že musím rychle uklidnit situaci a přitom si doplnit fakta, která v ticketu chybí.",
+                "first_step": "Jako první bych zákazníkovi potvrdil(a), že případ přebírám, a hned bych si otevřel(a) historii účtu, předchozí komunikaci a technický kontext ticketu.",
+                "solution_direction": "Teď bych prioritizoval(a) přesné srovnání problému a další jasný krok pro zákazníka. Nechtěl(a) bych zatím slibovat finální řešení, dokud nebude jasné, jestli je potřeba eskalace.",
+                "risk_and_unknowns": "Potřeboval(a) bych ještě vědět, jaký je dopad problému, jestli běží SLA, co už bylo zkoušeno a jestli nehrozí, že špatným odhadem problém zhorším.",
+                "stakeholder_note": "Pokud by se ukázalo, že to přesahuje support, předal(a) bych dál krátké shrnutí produktu nebo senior supportu s tím, co už je potvrzené a co zatím chybí.",
+            }
+    if archetype == "construction_site":
         return {
-            "problem_understanding": "Myslím, že hlavní problém tady není jen samotný úkol, ale hlavně to, jak rychle se podaří najít správnou prioritu a nenechat se stáhnout do příliš širokého řešení.",
-            "first_move": "Jako první bych si ověřil(a), kde přesně vzniká největší tření nebo ztráta hodnoty. Bez toho bych nechtěl(a) navrhovat větší řešení naslepo.",
-            "approach_tradeoffs": "Teď bych upřednostnil(a) rychlé zpřesnění problému před velkým redesignem. Zatím bych nedělal(a) nic příliš širokého, protože by hrozilo, že budeme optimalizovat špatnou věc.",
-            "needs_to_know": "Ještě bych potřeboval(a) vědět, podle čeho tým pozná úspěch, kde je největší tlak a jaká omezení v tomhle kroku opravdu platí.",
-            "thinking_notes": prompts.get("thinking_notes", [""])[0],
+            "problem_frame": "The real problem is not only the site slip itself, but that I could easily move the plan in the wrong direction if the field facts and trade readiness are still noisy.",
+            "first_step": "First I would verify on site where the sequence is actually breaking, who is waiting on whom, and whether the blocker is readiness, safety, or material reality.",
+            "solution_direction": "I would stabilize the nearest critical sequence first and avoid reshuffling the broader plan until I know I am not breaking other dependencies or safety requirements.",
+            "risk_and_unknowns": "I would still need to know what the subcontractors have truly confirmed, where the safety risk sits, and which resources or permits are actually ready.",
+            "stakeholder_note": "Once the picture is cleaner, I would align the next move with the PM and trade leads so there is one shared version of the immediate plan.",
         }
-    if language == "sk":
+    if archetype == "customer_support":
         return {
-            "problem_understanding": "Myslím, že hlavný problém tu nie je len samotná úloha, ale najmä to, ako rýchlo sa podarí nájsť správnu prioritu a nerozbehnúť príliš široké riešenie.",
-            "first_move": "Ako prvé by som si overil(a), kde presne vzniká najväčšie trenie alebo strata hodnoty. Bez toho by som nechcel(a) navrhovať väčšie riešenie naslepo.",
-            "approach_tradeoffs": "Teraz by som uprednostnil(a) rýchle spresnenie problému pred veľkým redesignom. Zatiaľ by som nerobil(a) nič príliš široké, pretože by hrozilo, že budeme optimalizovať nesprávnu vec.",
-            "needs_to_know": "Ešte by som potreboval(a) vedieť, podľa čoho tím spozná úspech, kde je najväčší tlak a aké obmedzenia v tomto kroku naozaj platia.",
-            "thinking_notes": prompts.get("thinking_notes", [""])[0],
+            "problem_frame": "The biggest issue is not only the unhappy customer. It is that I need to calm the situation quickly while filling in the facts that are still missing from the ticket.",
+            "first_step": "First I would acknowledge ownership to the customer and immediately pull the account history, prior interactions, and the technical context behind the ticket.",
+            "solution_direction": "I would prioritize clarifying the problem accurately and giving the customer one clear next step. I would not promise a final resolution yet until I know whether this should stay with me or escalate.",
+            "risk_and_unknowns": "I would still need to know the impact, the SLA pressure, what has already been tried, and whether a wrong assumption here could make the case worse.",
+            "stakeholder_note": "If it turns out to be bigger than support alone, I would pass a tight summary forward to product or senior support with the confirmed facts and the missing pieces.",
         }
-    if language == "de":
-        return {
-            "problem_understanding": "Ich glaube, das eigentliche Problem liegt hier nicht nur in der Aufgabe selbst, sondern darin, schnell die richtige Priorität zu finden und nicht in eine zu breite Lösung abzurutschen.",
-            "first_move": "Als Erstes würde ich prüfen, wo genau die größte Reibung oder der größte Wertverlust entsteht. Ohne diese Klarheit würde ich keine größere Lösung ins Blaue hinein vorschlagen.",
-            "approach_tradeoffs": "Ich würde jetzt eine schnelle Präzisierung des Problems über einen großen Redesign-Ansatz stellen. Bewusst noch nicht tun würde ich etwas zu Breites, weil wir sonst leicht das Falsche optimieren.",
-            "needs_to_know": "Ich müsste noch wissen, woran das Team Erfolg misst, wo der größte Druck liegt und welche Einschränkungen in diesem Schritt wirklich gelten.",
-            "thinking_notes": prompts.get("thinking_notes", [""])[0],
-        }
-    if language == "pl":
-        return {
-            "problem_understanding": "Myślę, że główny problem nie dotyczy tu wyłącznie samego zadania, ale tego, jak szybko znaleźć właściwy priorytet i nie wejść od razu w zbyt szerokie rozwiązanie.",
-            "first_move": "Najpierw sprawdził(a)bym, gdzie dokładnie powstaje największe tarcie albo utrata wartości. Bez tego nie chciał(a)bym proponować większego rozwiązania w ciemno.",
-            "approach_tradeoffs": "Na tym etapie priorytet dał(a)bym szybkiemu doprecyzowaniu problemu zamiast dużemu redesignowi. Na razie nie robił(a)bym nic zbyt szerokiego, bo łatwo byłoby optymalizować niewłaściwą rzecz.",
-            "needs_to_know": "Wciąż potrzebował(a)bym wiedzieć, po czym zespół pozna sukces, gdzie jest największa presja i jakie ograniczenia naprawdę obowiązują w tym kroku.",
-            "thinking_notes": prompts.get("thinking_notes", [""])[0],
-        }
+    focus = ", ".join((role_context.get("focus_areas") or ["the role context"])[:3])
     return {
-        "problem_understanding": "I think the real issue here is not only the task itself, but how quickly the right priority can be found without drifting into a solution that is too broad.",
-        "first_move": "First I would verify where the biggest friction or value loss actually happens. Without that, I would not want to propose a larger solution blindly.",
-        "approach_tradeoffs": "At this stage I would prioritize clarifying the problem quickly over a bigger redesign. I would not go broad yet, because we could easily end up optimizing the wrong thing.",
-        "needs_to_know": "I would still need to know how success is measured, where the biggest pressure sits, and which constraints are actually real in this step.",
-        "thinking_notes": prompts.get("thinking_notes", [""])[0],
+        "problem_frame": f"I think the real problem sits less in the visible symptom and more in how the role handles {focus}.",
+        "first_step": "First I would verify the exact place where the current pressure or value loss is actually happening.",
+        "solution_direction": "I would prioritize one stabilizing move before any broader redesign, because I do not want to widen the solution before the signal is cleaner.",
+        "risk_and_unknowns": "I would still need a few more facts, numbers, or stakeholder confirmations so I do not commit too early to the wrong path.",
+        "stakeholder_note": "After that I would align quickly with the person closest to the next decision or the main impact.",
     }
 
 
@@ -1054,37 +1315,43 @@ def build_signal_boost_starter_payload(
 ) -> dict[str, Any]:
     language = _normalize_locale(locale, _normalize_locale(job_row.get("language_code"), "en"))
     current = current_response_payload if isinstance(current_response_payload, dict) else {}
-    fallback = _fallback_starter_payload(language)
+    brief = build_signal_boost_brief(job_row, language, prefer_ai=prefer_ai)
+    fallback = _fallback_starter_payload(brief, language)
 
     if not _ai_available():
-        return {"response_payload": fallback, "meta": {**_ai_meta_base(), "used_ai": False, "ai_skip_reason": "provider_credentials_missing"}}
+        return {
+            "response_payload": fallback,
+            "meta": {**_ai_meta_base(), "used_ai": False, "ai_skip_reason": "provider_credentials_missing"},
+        }
 
-    brief = build_signal_boost_brief(job_row, language, prefer_ai=prefer_ai)
     prompt = f"""
-Help a candidate start a short Signal Boost response.
+Help a candidate start a role-aware Signal Boost mini case.
 
 Locale: {language}
+Role context: {json.dumps(brief.get("role_context") or {}, ensure_ascii=False)}
+Question pack: {json.dumps(brief.get("question_pack") or [], ensure_ascii=False)}
 Scenario title: {brief.get("scenario_title") or ""}
+Scenario context: {brief.get("scenario_context") or ""}
 Core problem: {brief.get("core_problem") or ""}
-Current partial answers: {current}
+Current partial answers: {json.dumps(current, ensure_ascii=False)}
 
 Return STRICT JSON with this exact shape:
 {{
-  "problem_understanding": "string",
-  "first_move": "string",
-  "approach_tradeoffs": "string",
-  "needs_to_know": "string",
-  "thinking_notes": "string"
+  "problem_frame": "string",
+  "first_step": "string",
+  "solution_direction": "string",
+  "risk_and_unknowns": "string",
+  "stakeholder_note": "string"
 }}
 
 Rules:
 - Write in the requested locale.
-- Keep each field short and concrete.
-- Make it concrete, imperfect, and believable.
-- Use first-person phrasing.
-- Do not sound polished, generic, or like a cover letter.
-- Include one real first move, one clear priority/trade-off, and one thing that still needs clarification.
-- If current partial answers exist, stay aligned with them rather than contradicting them.
+- Keep every field concrete and role-specific.
+- Use the question pack to stay grounded in the real role signal.
+- Write in first person.
+- Do not sound like a cover letter, textbook, or generic coaching answer.
+- Include one concrete action, one clear trade-off, and one explicit uncertainty or risk.
+- If current partial answers exist, stay aligned with them instead of contradicting them.
 """.strip()
 
     try:
@@ -1097,7 +1364,7 @@ Rules:
         )
         parsed = _extract_json(result.text)
         response_payload = {
-            section_id: _clip(parsed.get(section_id) or fallback.get(section_id), 700 if section_id != "thinking_notes" else 320)
+            section_id: _clip(parsed.get(section_id) or fallback.get(section_id), 720 if section_id not in _OPTIONAL_SECTION_IDS else 420)
             for section_id in _SECTION_IDS
         }
         return {
@@ -1116,140 +1383,479 @@ Rules:
         return {"response_payload": fallback, "meta": {**_ai_meta_base(), "used_ai": False, "ai_error": str(exc)}}
 
 
-def build_signal_boost_brief(job_row: dict[str, Any], locale: str, *, prefer_ai: bool = False) -> dict[str, Any]:
-    language = _normalize_locale(locale, _normalize_locale(job_row.get("language_code"), "en"))
-    copy = _copy(language)
-    template = _resolve_template(job_row, language)
-    force_ai = bool(prefer_ai or _should_prefer_ai_brief(job_row, template))
-    ai_template, ai_meta = _maybe_ai_brief(job_row, language, template, force=force_ai)
-    effective = ai_template or template
-    job_excerpt = _build_job_excerpt(job_row)
-    return {
-        "kicker": copy["kicker"],
-        "timebox": copy["timebox"],
-        "candidate_note": copy["note"],
-        "anti_generic_hint": copy["anti_generic"],
-        "cta_hint": copy["cta_hint"],
-        "how_to_title": copy.get("how_to_title"),
-        "deliverable_title": copy.get("deliverable_title"),
-        "how_to_steps": list(copy.get("how_to_steps") or []),
-        "job_excerpt_title": copy.get("job_excerpt_title"),
-        "job_excerpt": job_excerpt or None,
-        "scenario_title": effective["title"],
-        "scenario_context": effective["context"],
-        "core_problem": effective["problem"],
-        "constraints": list(copy["constraints"]),
-        "structured_sections": _build_sections(language),
-        "locale": language,
-        "meta": {
-            "role_family": template.get("role_family"),
-            "domain_key": template.get("domain_key"),
-            "canonical_role": template.get("canonical_role"),
-            "used_ai_fallback": bool(ai_template),
-            **ai_meta,
-        },
-    }
-
-
 def _section_text(response_payload: dict[str, Any], section_id: str) -> str:
     if not isinstance(response_payload, dict):
         return ""
-    value = response_payload.get(section_id)
-    return str(value or "").strip()
+    return str(response_payload.get(section_id) or "").strip()
 
 
 def _combined_response_text(response_payload: dict[str, Any]) -> str:
     return "\n".join(_section_text(response_payload, section_id) for section_id in _SECTION_IDS).strip()
 
 
-def evaluate_signal_boost_quality(response_payload: dict[str, Any], locale: str) -> dict[str, Any]:
+def _role_specific_terms(brief: dict[str, Any] | None) -> list[str]:
+    if not isinstance(brief, dict):
+        return []
+    role_context = dict(brief.get("role_context") or {})
+    terms = []
+    for value in (
+        role_context.get("focus_areas") or [],
+        role_context.get("job_evidence") or [],
+        role_context.get("keywords") or [],
+    ):
+        for item in value:
+            normalized = _normalize_text(item)
+            if len(normalized) >= 5:
+                terms.append(normalized)
+                terms.extend(token for token in normalized.split(" ") if len(token) >= 5)
+    normalized_title = _normalize_text(role_context.get("title"))
+    if len(normalized_title) >= 5:
+        terms.append(normalized_title)
+        terms.extend(token for token in normalized_title.split(" ") if len(token) >= 5)
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in terms:
+        if item in seen:
+            continue
+        seen.add(item)
+        deduped.append(item)
+        if len(deduped) >= 12:
+            break
+    return deduped
+
+
+def _deterministic_quality(response_payload: dict[str, Any], locale: str, brief: dict[str, Any] | None = None) -> dict[str, Any]:
     language = _normalize_locale(locale)
     copy = _copy(language)
-    first_move = _section_text(response_payload, "first_move")
-    tradeoffs = _section_text(response_payload, "approach_tradeoffs")
-    needs = _section_text(response_payload, "needs_to_know")
+    problem_frame = _section_text(response_payload, "problem_frame")
+    first_step = _section_text(response_payload, "first_step")
+    solution_direction = _section_text(response_payload, "solution_direction")
+    risks = _section_text(response_payload, "risk_and_unknowns")
     combined = _combined_response_text(response_payload)
     normalized = _normalize_text(combined)
-
     total_chars = len(combined)
     word_count = len(normalized.split()) if normalized else 0
-    tradeoff_markers = (
-        "trade-off", "tradeoff", "priority", "prioritize", "not do", "wouldn't", "but",
-        "trade off", "priorita", "uprednost", "zatim", "zatial", "naopak", "neudel", "nicht", "zuerst",
-        "priorytet", "najpierw", "odloz", "later", "delay"
-    )
-    uncertainty_markers = (
-        "need to know", "would ask", "would clarify", "unknown", "question", "?",
-        "potreb", "overi", "upresn", "otaz", "wissen", "klaren", "frage", "musze", "sprawdz", "pytan"
-    )
-    generic_markers = (
-        "best practices", "team player", "communication skills", "motivated", "dynamic environment",
-        "analyze the requirements", "stakeholder alignment", "synergie", "proaktiv", "hardworking",
-        "motivovan", "komunikacni", "dynamick", "profesjonal", "zmotywowan"
-    )
-    action_markers = (
-        "call", "check", "ask", "map", "review", "draft", "test", "speak", "prioritize", "write", "compare",
-        "zavol", "over", "zept", "map", "test", "napis", "skontrol", "spyt", "over", "prüf", "frag", "teste",
-        "zadzwo", "sprawdz", "zapyt", "porown", "napisz"
-    )
 
-    missing_first_move = len(first_move) < 48 or not any(marker in _normalize_text(first_move) for marker in action_markers)
-    missing_tradeoff = len(tradeoffs) < 70 or not any(marker in _normalize_text(tradeoffs) for marker in tradeoff_markers)
-    missing_unknowns = len(needs) < 40 or not any(marker in needs.lower() for marker in uncertainty_markers)
-    too_short = total_chars < 320 or word_count < 55
-    genericity_hits = sum(1 for marker in generic_markers if marker in normalized)
-    likely_generic = genericity_hits >= 2
+    missing_problem_frame = len(problem_frame) < 60
+    missing_first_step = len(first_step) < 60 or not any(marker in _normalize_text(first_step) for marker in _ACTION_MARKERS)
+    missing_solution_direction = len(solution_direction) < 70 or not any(marker in _normalize_text(solution_direction) for marker in _TRADEOFF_MARKERS)
+    missing_risks = len(risks) < 60 or not any(marker in _normalize_text(risks) for marker in _RISK_MARKERS)
+    too_short = total_chars < 360 or word_count < 65
+    genericity_hits = sum(1 for marker in _GENERIC_MARKERS if marker in normalized)
+    role_terms = _role_specific_terms(brief)
+    role_specificity_hits = sum(1 for term in role_terms if term in normalized)
+    likely_generic = genericity_hits >= 2 or (role_terms and role_specificity_hits <= 0)
 
     nudges: list[str] = []
     if too_short:
         nudges.append(copy["nudges"]["too_short"])
-    if missing_first_move:
-        nudges.append(copy["nudges"]["first_move"])
-    if missing_tradeoff:
-        nudges.append(copy["nudges"]["tradeoff"])
-    if missing_unknowns:
-        nudges.append(copy["nudges"]["unknowns"])
+    if missing_problem_frame:
+        nudges.append(copy["nudges"]["problem_frame"])
+    if missing_first_step:
+        nudges.append(copy["nudges"]["first_step"])
+    if missing_solution_direction:
+        nudges.append(copy["nudges"]["solution_direction"])
+    if missing_risks:
+        nudges.append(copy["nudges"]["risk_and_unknowns"])
     if likely_generic:
         nudges.append(copy["nudges"]["generic"])
 
-    publish_ready = not too_short and not missing_first_move and not missing_tradeoff
+    scores = {
+        "context_read": max(18, min(100, 32 + len(problem_frame) // 6 + (14 if not missing_problem_frame else 0) + (role_specificity_hits * 8))),
+        "decision_quality": max(18, min(100, 30 + len(first_step) // 7 + len(solution_direction) // 10 + (14 if not missing_first_step else 0) + (14 if not missing_solution_direction else 0))),
+        "risk_judgment": max(18, min(100, 28 + len(risks) // 7 + (18 if not missing_risks else 0))),
+        "role_specificity": max(18, min(100, 26 + role_specificity_hits * 16 - genericity_hits * 6)),
+    }
+
+    publish_ready = not too_short and not missing_problem_frame and not missing_first_step and not missing_solution_direction and not missing_risks and not likely_generic
     return {
         "publish_ready": publish_ready,
         "total_chars": total_chars,
         "word_count": word_count,
         "too_short": too_short,
-        "missing_first_move": missing_first_move,
-        "missing_tradeoff": missing_tradeoff,
-        "missing_unknowns": missing_unknowns,
+        "missing_problem_frame": missing_problem_frame,
+        "missing_first_step": missing_first_step,
+        "missing_solution_direction": missing_solution_direction,
+        "missing_risks": missing_risks,
         "likely_generic": likely_generic,
         "genericity_hits": genericity_hits,
+        "role_specificity_hits": role_specificity_hits,
         "nudges": nudges[:4],
+        "scores": scores,
+        # Compatibility fields for older consumers.
+        "missing_first_move": missing_first_step,
+        "missing_tradeoff": missing_solution_direction,
+        "missing_unknowns": missing_risks,
     }
 
 
-def build_signal_boost_summary(response_payload: dict[str, Any], locale: str, quality: dict[str, Any] | None = None) -> dict[str, Any] | None:
-    evaluation = quality or evaluate_signal_boost_quality(response_payload, locale)
+def _maybe_ai_quality(response_payload: dict[str, Any], locale: str, brief: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(brief, dict) or not _ai_available():
+        return None
+    combined = _combined_response_text(response_payload)
+    if len(combined) < 260:
+        return None
+
+    prompt = f"""
+Evaluate this candidate Signal Boost mini case for recruiter usefulness.
+
+Locale: {_normalize_locale(locale)}
+Role context: {json.dumps(brief.get("role_context") or {}, ensure_ascii=False)}
+Question pack: {json.dumps(brief.get("question_pack") or [], ensure_ascii=False)}
+Candidate response: {json.dumps(response_payload, ensure_ascii=False)}
+
+Return STRICT JSON:
+{{
+  "publish_ready": true,
+  "likely_generic": false,
+  "missing_problem_frame": false,
+  "missing_first_step": false,
+  "missing_solution_direction": false,
+  "missing_risks": false,
+  "nudges": ["string"],
+  "scores": {{
+    "context_read": 78,
+    "decision_quality": 81,
+    "risk_judgment": 74,
+    "role_specificity": 83
+  }}
+}}
+
+Rules:
+- Judge recruiter usefulness, not literary polish.
+- Penalize vague, cover-letter style language.
+- Reward role-specific reasoning, concrete first action, real trade-offs, and named unknowns.
+- Keep nudges short and actionable.
+""".strip()
+
+    try:
+        result, fallback_used = call_primary_with_fallback(
+            prompt,
+            primary_model=_signal_boost_primary_model(),
+            fallback_model=_signal_boost_fallback_model(),
+            generation_config={"temperature": 0.1, "top_p": 0.9},
+            provider_override=_signal_boost_ai_provider(),
+        )
+        parsed = _extract_json(result.text)
+        scores_raw = dict(parsed.get("scores") or {})
+        return {
+            "publish_ready": bool(parsed.get("publish_ready")),
+            "likely_generic": bool(parsed.get("likely_generic")),
+            "missing_problem_frame": bool(parsed.get("missing_problem_frame")),
+            "missing_first_step": bool(parsed.get("missing_first_step")),
+            "missing_solution_direction": bool(parsed.get("missing_solution_direction")),
+            "missing_risks": bool(parsed.get("missing_risks")),
+            "nudges": _safe_list(parsed.get("nudges"), limit=4),
+            "scores": {
+                "context_read": max(18, min(100, int(scores_raw.get("context_read") or 18))),
+                "decision_quality": max(18, min(100, int(scores_raw.get("decision_quality") or 18))),
+                "risk_judgment": max(18, min(100, int(scores_raw.get("risk_judgment") or 18))),
+                "role_specificity": max(18, min(100, int(scores_raw.get("role_specificity") or 18))),
+            },
+            "ai_quality_used": True,
+            "ai_model_used": result.model_name,
+            "ai_fallback_used": bool(fallback_used),
+        }
+    except (AIClientError, ValueError, TypeError):
+        return None
+
+
+def evaluate_signal_boost_quality(response_payload: dict[str, Any], locale: str, brief: dict[str, Any] | None = None) -> dict[str, Any]:
+    deterministic = _deterministic_quality(response_payload, locale, brief)
+    ai_quality = _maybe_ai_quality(response_payload, locale, brief)
+    if not ai_quality:
+        return deterministic
+
+    nudges = _safe_list(list(ai_quality.get("nudges") or []) + list(deterministic.get("nudges") or []), limit=4)
+    merged = {
+        **deterministic,
+        "publish_ready": bool(ai_quality.get("publish_ready")),
+        "likely_generic": bool(ai_quality.get("likely_generic")),
+        "missing_problem_frame": bool(ai_quality.get("missing_problem_frame")),
+        "missing_first_step": bool(ai_quality.get("missing_first_step")),
+        "missing_solution_direction": bool(ai_quality.get("missing_solution_direction")),
+        "missing_risks": bool(ai_quality.get("missing_risks")),
+        "missing_first_move": bool(ai_quality.get("missing_first_step")),
+        "missing_tradeoff": bool(ai_quality.get("missing_solution_direction")),
+        "missing_unknowns": bool(ai_quality.get("missing_risks")),
+        "nudges": nudges,
+        "scores": dict(ai_quality.get("scores") or deterministic.get("scores") or {}),
+        "ai_quality_used": True,
+        "ai_model_used": ai_quality.get("ai_model_used"),
+        "ai_fallback_used": ai_quality.get("ai_fallback_used"),
+    }
+    return merged
+
+
+def build_signal_boost_summary(
+    response_payload: dict[str, Any],
+    locale: str,
+    quality: dict[str, Any] | None = None,
+    brief: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    evaluation = quality or evaluate_signal_boost_quality(response_payload, locale, brief=brief)
     if not evaluation.get("publish_ready") or evaluation.get("likely_generic"):
         return None
 
-    first_move = _section_text(response_payload, "first_move")
-    tradeoffs = _section_text(response_payload, "approach_tradeoffs")
-    needs = _section_text(response_payload, "needs_to_know")
-    combined = _combined_response_text(response_payload)
-    language = _normalize_locale(locale)
-    labels = _copy(language)["summary_labels"]
-
-    structure = min(100, 48 + len(first_move) // 10 + len(tradeoffs) // 18)
-    prioritization = min(100, 40 + (20 if not evaluation.get("missing_tradeoff") else 0) + len(tradeoffs) // 16)
-    clarity = min(100, 44 + len(first_move.split(".")) * 4 + (10 if not evaluation.get("likely_generic") else 0))
-    depth = min(100, 42 + len(needs) // 10 + len(combined) // 35)
-
+    labels = _copy(_normalize_locale(locale))["summary_labels"]
+    scores = dict(evaluation.get("scores") or {})
     return {
         "items": [
-            {"key": "structure", "label": labels["structure"], "score": max(18, structure)},
-            {"key": "prioritization", "label": labels["prioritization"], "score": max(18, prioritization)},
-            {"key": "clarity", "label": labels["clarity"], "score": max(18, clarity)},
-            {"key": "depth", "label": labels["depth"], "score": max(18, depth)},
+            {"key": "context_read", "label": labels["context_read"], "score": max(18, min(100, int(scores.get("context_read") or 18)))},
+            {"key": "decision_quality", "label": labels["decision_quality"], "score": max(18, min(100, int(scores.get("decision_quality") or 18)))},
+            {"key": "risk_judgment", "label": labels["risk_judgment"], "score": max(18, min(100, int(scores.get("risk_judgment") or 18)))},
+            {"key": "role_specificity", "label": labels["role_specificity"], "score": max(18, min(100, int(scores.get("role_specificity") or 18)))},
         ],
         "suppressed": False,
     }
+
+
+def _deterministic_recruiter_readout(
+    response_payload: dict[str, Any],
+    locale: str,
+    brief: dict[str, Any],
+    quality: dict[str, Any],
+) -> dict[str, Any]:
+    role_context = dict(brief.get("role_context") or {})
+    archetype = str(role_context.get("archetype") or "generic")
+    language = _normalize_locale(locale)
+    quality_scores = dict(quality.get("scores") or {})
+    question_pack = list(brief.get("question_pack") or [])
+    first_step = _section_text(response_payload, "first_step")
+    problem_frame = _section_text(response_payload, "problem_frame")
+    risks = _section_text(response_payload, "risk_and_unknowns")
+    role_title = str(role_context.get("title") or role_context.get("canonical_role") or "the role")
+
+    if language == "cs":
+        headline_by_archetype = {
+            "construction_site": "Ukazuje, jak by kandidát četl stav na stavbě dřív, než sáhne do plánu.",
+            "customer_support": "Ukazuje, jak by kandidát zvládl tlak zákazníka a neúplný ticket bez ztráty přesnosti.",
+            "operations": "Ukazuje, jak by kandidát hledal skutečné provozní tření místo povrchní optimalizace.",
+            "product": "Ukazuje, jak by kandidát šel po signálu dřív než po řešení.",
+            "people": "Ukazuje, jak by kandidát diagnostikoval proces a slabá místa v práci s lidmi.",
+            "sales": "Ukazuje, jak by kandidát hledal další rozhodující obchodní krok místo prázdné aktivity.",
+            "engineering": "Ukazuje, jak by kandidát rozlišil diagnostiku, stabilizaci a větší technickou změnu.",
+        }
+        what_cv_by_archetype = {
+            "construction_site": [
+                "Jak rychle si srovná sekvenci, bezpečnost a připravenost profesí na stavbě.",
+                "Jak pracuje s neúplnými onsite fakty dřív, než změní plán.",
+                "Jak vyvažuje termín proti koordinaci a reálnému stavu zdrojů.",
+            ],
+            "customer_support": [
+                "Jak uklidní frustrovaného zákazníka bez planých slibů.",
+                "Jak rozlišuje mezi řešením, eskalací a doplněním kontextu.",
+                "Jak uzavírá learning loop směrem k produktu nebo operations.",
+            ],
+        }
+        generic_what_cv = [
+            "Jak kandidát čte kontext role dřív, než navrhne řešení.",
+            "Jak rychle se umí přepnout z úvahy do konkrétní první akce.",
+            "Jak pojmenuje rizika a neznámé místo předstírané jistoty.",
+        ]
+        strength_signals = _safe_list(
+            [
+                "Čte skutečný problém dřív, než se vrhne do akce." if not quality.get("missing_problem_frame") else "",
+                "Volí konkrétní první krok místo obecného úmyslu." if not quality.get("missing_first_step") else "",
+                "Pojmenovává trade-off a směr řešení." if not quality.get("missing_solution_direction") else "",
+                "Pracuje s riziky a chybějícími fakty." if not quality.get("missing_risks") else "",
+                f"Používá role-specific detail z oblasti: {', '.join((role_context.get('focus_areas') or [])[:2])}." if int(quality.get("role_specificity_hits") or 0) > 0 else "",
+            ],
+            limit=4,
+        )
+        risk_flags = _safe_list(
+            [
+                "Z odpovědi ještě není úplně jasné, co je skutečný problém." if quality.get("missing_problem_frame") else "",
+                "Chybí ostřejší první krok, podle kterého by šlo poznat skutečné pracovní chování." if quality.get("missing_first_step") else "",
+                "Trade-off nebo směr řešení je zatím slabší a chce doplnit." if quality.get("missing_solution_direction") else "",
+                "Rizika a rozhodovací neznámé jsou zatím pojmenované jen částečně." if quality.get("missing_risks") else "",
+            ],
+            limit=4,
+        )
+        follow_up_questions = _safe_list(
+            [
+                question_pack[1].get("question") if len(question_pack) > 1 else "",
+                question_pack[2].get("question") if len(question_pack) > 2 else "",
+                "Co by udělal(a), kdyby se první předpoklad ukázal jako chybný?",
+            ],
+            limit=3,
+        )
+        recommended_next_step = (
+            "Dává smysl otevřít navazující rozhovor nad konkrétní situací z role a nechat kandidáta rozvést první rozhodnutí a práci s rizikem."
+            if quality.get("publish_ready")
+            else "Nejprve bych kandidáta dotlačil k konkrétnějšímu prvnímu kroku a jasnějším rizikům, teprve potom bych tento signál bral jako silný podklad."
+        )
+        return {
+            "headline": headline_by_archetype.get(archetype) or f"Ukazuje, jak kandidát přemýšlí v roli {role_title}, když ještě nemá všechna data.",
+            "strength_signals": strength_signals or ["Odpověď už ukazuje základní pracovní úsudek nad konkrétní situací."],
+            "risk_flags": risk_flags,
+            "follow_up_questions": follow_up_questions,
+            "what_cv_does_not_show": what_cv_by_archetype.get(archetype) or generic_what_cv,
+            "recommended_next_step": recommended_next_step,
+            "scores_snapshot": {
+                "context_read": int(quality_scores.get("context_read") or 18),
+                "decision_quality": int(quality_scores.get("decision_quality") or 18),
+                "risk_judgment": int(quality_scores.get("risk_judgment") or 18),
+                "role_specificity": int(quality_scores.get("role_specificity") or 18),
+            },
+            "evidence_excerpt": _clip(first_step or problem_frame or risks, 180) or None,
+        }
+
+    headline_by_archetype = {
+        "construction_site": "Shows how the candidate reads site reality before they start moving the plan.",
+        "customer_support": "Shows how the candidate handles a frustrated customer and incomplete context without losing precision.",
+        "operations": "Shows how the candidate looks for the real operational drag instead of surface-level optimization.",
+        "product": "Shows how the candidate follows signal before solution.",
+        "people": "Shows how the candidate diagnoses a people process rather than just reacting to symptoms.",
+        "sales": "Shows how the candidate looks for the decisive next commercial move instead of empty activity.",
+        "engineering": "Shows how the candidate separates diagnosis, stabilization, and larger technical change.",
+    }
+    what_cv_by_archetype = {
+        "construction_site": [
+            "How they balance sequencing, safety, and subcontractor readiness on the ground.",
+            "How they work with incomplete site facts before changing the plan.",
+            "How they weigh deadline pressure against resource reality and coordination.",
+        ],
+        "customer_support": [
+            "How they calm a frustrated customer without overpromising.",
+            "How they judge solving vs escalating vs clarifying.",
+            "How they turn a messy ticket into a learning signal for the rest of the company.",
+        ],
+    }
+    generic_what_cv = [
+        "How the candidate reads the role context before proposing a solution.",
+        "How quickly they turn thinking into a concrete first move.",
+        "How they name risks and unknowns instead of pretending certainty.",
+    ]
+    strength_signals = _safe_list(
+        [
+            "Reads the real problem before jumping into action." if not quality.get("missing_problem_frame") else "",
+            "Commits to a concrete first move instead of abstract intent." if not quality.get("missing_first_step") else "",
+            "Shows a real trade-off and solution direction." if not quality.get("missing_solution_direction") else "",
+            "Works with risks and missing facts rather than pretending certainty." if not quality.get("missing_risks") else "",
+            f"Uses role-specific detail around {', '.join((role_context.get('focus_areas') or [])[:2])}." if int(quality.get("role_specificity_hits") or 0) > 0 else "",
+        ],
+        limit=4,
+    )
+    risk_flags = _safe_list(
+        [
+            "The response still needs a sharper problem frame." if quality.get("missing_problem_frame") else "",
+            "The first move is still too soft or abstract." if quality.get("missing_first_step") else "",
+            "The trade-off or solution direction still needs more substance." if quality.get("missing_solution_direction") else "",
+            "The risks and decision-critical unknowns still need to be named more clearly." if quality.get("missing_risks") else "",
+        ],
+        limit=4,
+    )
+    follow_up_questions = _safe_list(
+        [
+            question_pack[1].get("question") if len(question_pack) > 1 else "",
+            question_pack[2].get("question") if len(question_pack) > 2 else "",
+            "What would they do if their first assumption turned out to be wrong?",
+        ],
+        limit=3,
+    )
+    recommended_next_step = (
+        "Worth using as a follow-up interview anchor: ask the candidate to walk through the first move, the trade-off, and what they would verify next."
+        if quality.get("publish_ready")
+        else "Push for a more concrete first move and clearer risks before treating this as a strong hiring signal."
+    )
+    return {
+        "headline": headline_by_archetype.get(archetype) or f"Shows how the candidate thinks in the {role_title} role when the context is still incomplete.",
+        "strength_signals": strength_signals or ["The response already shows some practical judgment inside a concrete situation."],
+        "risk_flags": risk_flags,
+        "follow_up_questions": follow_up_questions,
+        "what_cv_does_not_show": what_cv_by_archetype.get(archetype) or generic_what_cv,
+        "recommended_next_step": recommended_next_step,
+        "scores_snapshot": {
+            "context_read": int(quality_scores.get("context_read") or 18),
+            "decision_quality": int(quality_scores.get("decision_quality") or 18),
+            "risk_judgment": int(quality_scores.get("risk_judgment") or 18),
+            "role_specificity": int(quality_scores.get("role_specificity") or 18),
+        },
+        "evidence_excerpt": _clip(first_step or problem_frame or risks, 180) or None,
+    }
+
+
+def _maybe_ai_recruiter_readout(
+    response_payload: dict[str, Any],
+    locale: str,
+    brief: dict[str, Any],
+    quality: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not _ai_available():
+        return None
+    combined = _combined_response_text(response_payload)
+    if len(combined) < 260:
+        return None
+
+    prompt = f"""
+You are writing a recruiter-ready readout for a candidate mini case.
+
+Locale: {_normalize_locale(locale)}
+Role context: {json.dumps(brief.get("role_context") or {}, ensure_ascii=False)}
+Question pack: {json.dumps(brief.get("question_pack") or [], ensure_ascii=False)}
+Candidate response: {json.dumps(response_payload, ensure_ascii=False)}
+Quality signals: {json.dumps(quality, ensure_ascii=False)}
+
+Return STRICT JSON:
+{{
+  "headline": "string",
+  "strength_signals": ["string"],
+  "risk_flags": ["string"],
+  "follow_up_questions": ["string"],
+  "what_cv_does_not_show": ["string"],
+  "recommended_next_step": "string"
+}}
+
+Rules:
+- Write for recruiters, not for candidates.
+- Make the output sound sharper and more decision-useful than a CV summary.
+- Do not praise empty things like motivation or communication skills.
+- Ground the readout in the actual role context and candidate response.
+- Keep lists short: 2 to 4 items each.
+""".strip()
+
+    try:
+        result, fallback_used = call_primary_with_fallback(
+            prompt,
+            primary_model=_signal_boost_primary_model(),
+            fallback_model=_signal_boost_fallback_model(),
+            generation_config={"temperature": 0.2, "top_p": 0.9},
+            provider_override=_signal_boost_ai_provider(),
+        )
+        parsed = _extract_json(result.text)
+        readout = {
+            "headline": _clip(parsed.get("headline"), 220),
+            "strength_signals": _safe_list(parsed.get("strength_signals"), limit=4),
+            "risk_flags": _safe_list(parsed.get("risk_flags"), limit=4),
+            "follow_up_questions": _safe_list(parsed.get("follow_up_questions"), limit=4),
+            "what_cv_does_not_show": _safe_list(parsed.get("what_cv_does_not_show"), limit=4),
+            "recommended_next_step": _clip(parsed.get("recommended_next_step"), 260),
+            "ai_used": True,
+            "ai_model_used": result.model_name,
+            "ai_fallback_used": bool(fallback_used),
+        }
+        if not readout["headline"] or not readout["strength_signals"] or not readout["what_cv_does_not_show"]:
+            return None
+        return readout
+    except (AIClientError, ValueError, TypeError):
+        return None
+
+
+def build_signal_boost_recruiter_readout(
+    response_payload: dict[str, Any],
+    locale: str,
+    brief: dict[str, Any],
+    quality: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    evaluation = quality or evaluate_signal_boost_quality(response_payload, locale, brief=brief)
+    ai_readout = _maybe_ai_recruiter_readout(response_payload, locale, brief, evaluation)
+    deterministic = _deterministic_recruiter_readout(response_payload, locale, brief, evaluation)
+    if not ai_readout:
+        return deterministic
+    merged = {**deterministic, **ai_readout}
+    if "scores_snapshot" not in merged:
+        merged["scores_snapshot"] = deterministic.get("scores_snapshot")
+    if "evidence_excerpt" not in merged:
+        merged["evidence_excerpt"] = deterministic.get("evidence_excerpt")
+    return merged

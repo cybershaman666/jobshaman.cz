@@ -308,6 +308,54 @@ const copyByLocale = {
   },
 } as const;
 
+const extraCopyByLocale = {
+  cs: {
+    roleContext: 'Role context',
+    roleEvidence: 'Signály z inzerátu',
+    focusAreas: 'Na co je role citlivá',
+    questionPack: '3 konkrétní otázky pro tuhle roli',
+    whyItMatters: 'Proč je to důležité',
+    recruiterSignal: 'Co z toho recruiter čte',
+    readingGuide: 'Jak to bude recruiter číst',
+  },
+  sk: {
+    roleContext: 'Role context',
+    roleEvidence: 'Signály z inzerátu',
+    focusAreas: 'Na čo je rola citlivá',
+    questionPack: '3 konkrétne otázky pre túto rolu',
+    whyItMatters: 'Prečo je to dôležité',
+    recruiterSignal: 'Čo z toho recruiter číta',
+    readingGuide: 'Ako to bude recruiter čítať',
+  },
+  de: {
+    roleContext: 'Rollenkontext',
+    roleEvidence: 'Signale aus dem Inserat',
+    focusAreas: 'Worauf die Rolle sensibel reagiert',
+    questionPack: '3 konkrete Fragen für diese Rolle',
+    whyItMatters: 'Warum das wichtig ist',
+    recruiterSignal: 'Was das Recruiting daraus liest',
+    readingGuide: 'So wird das gelesen',
+  },
+  pl: {
+    roleContext: 'Kontekst roli',
+    roleEvidence: 'Sygnały z ogłoszenia',
+    focusAreas: 'Na co ta rola jest wrażliwa',
+    questionPack: '3 konkretne pytania dla tej roli',
+    whyItMatters: 'Dlaczego to jest ważne',
+    recruiterSignal: 'Co rekruter z tego czyta',
+    readingGuide: 'Jak będzie to czytane',
+  },
+  en: {
+    roleContext: 'Role Context',
+    roleEvidence: 'Signals From The Listing',
+    focusAreas: 'What The Role Is Sensitive To',
+    questionPack: '3 Specific Questions For This Role',
+    whyItMatters: 'Why This Matters',
+    recruiterSignal: 'What The Recruiter Reads From It',
+    readingGuide: 'How Recruiters Will Read It',
+  },
+} as const;
+
 const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
   isOpen,
   job,
@@ -317,6 +365,7 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
   const { i18n } = useTranslation();
   const locale = normalizeLocale(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
   const copy = copyByLocale[locale] || copyByLocale.en;
+  const extraCopy = extraCopyByLocale[locale] || extraCopyByLocale.en;
   const draftKey = useMemo(() => getDraftKey(job.id, userProfile.id || null), [job.id, userProfile.id]);
   const guestDraftKey = useMemo(() => getDraftKey(job.id, null), [job.id]);
 
@@ -692,6 +741,10 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
             </div>
           ) : brief ? (
             <div className="mt-8 space-y-6">
+              {(() => {
+                const roleContext = brief.role_context;
+                const questionPack = brief.question_pack || [];
+                return (
               <div className="rounded-[26px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-5 dark:bg-[rgba(var(--accent-rgb),0.12)]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{brief.kicker}</div>
@@ -724,6 +777,30 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                         </div>
                       ))}
                     </div>
+                    {questionPack.length ? (
+                      <div className="mt-5">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                          {extraCopy.questionPack}
+                        </div>
+                        <div className="mt-3 space-y-3">
+                          {questionPack.map((item) => (
+                            <div key={item.id} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+                              <div className="text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.question}</div>
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-[14px] border border-[var(--border-subtle)] bg-white/85 p-3 dark:bg-slate-950/40">
+                                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.whyItMatters}</div>
+                                  <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{item.why_this_matters}</div>
+                                </div>
+                                <div className="rounded-[14px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-3 dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">{extraCopy.recruiterSignal}</div>
+                                  <div className="mt-2 text-sm leading-6 text-[var(--text)]">{item.recruiter_signal}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-4 text-sm font-semibold text-[var(--text-strong)]">{copy.aiAssistTitle}</div>
                     <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                       <button
@@ -761,6 +838,37 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                       </div>
                       <p className="mt-2 text-sm font-semibold leading-6 sm:text-base sm:leading-7 text-[var(--text-strong)]">{brief.core_problem}</p>
                     </div>
+                    {(roleContext?.focus_areas?.length || roleContext?.job_evidence?.length) ? (
+                      <div className="mt-4 rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                          {extraCopy.roleContext}
+                        </div>
+                        {roleContext?.focus_areas?.length ? (
+                          <div className="mt-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.focusAreas}</div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {roleContext.focus_areas.map((item) => (
+                                <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-white/90 px-3 py-1.5 text-xs text-[var(--text)] dark:bg-slate-950/40">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {roleContext?.job_evidence?.length ? (
+                          <div className="mt-4">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.roleEvidence}</div>
+                            <div className="mt-2 space-y-2">
+                              {roleContext.job_evidence.map((item) => (
+                                <div key={item} className="rounded-[14px] border border-[var(--border-subtle)] bg-white/85 px-3 py-2 text-sm leading-6 text-[var(--text)] dark:bg-slate-950/40">
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {brief.job_excerpt ? (
                       <details className="mt-4 rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
                         <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
@@ -769,10 +877,20 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                         <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{brief.job_excerpt}</p>
                       </details>
                     ) : null}
+                    {brief.recruiter_reading_guide ? (
+                      <div className="mt-4 rounded-[16px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-4 dark:bg-[rgba(var(--accent-rgb),0.1)]">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                          {extraCopy.readingGuide}
+                        </div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text)]">{brief.recruiter_reading_guide}</p>
+                      </div>
+                    ) : null}
                     <p className="mt-4 text-sm leading-7 text-[var(--text-muted)]">{brief.anti_generic_hint}</p>
                   </div>
                 </div>
               </div>
+                );
+              })()}
 
               <div className="grid gap-4">
                 {requiredSections.map((section, index) => {
@@ -826,7 +944,7 @@ const SignalBoostModal: React.FC<SignalBoostModalProps> = ({
                       <textarea
                         value={values[section.id] || ''}
                         onChange={(event) => handleChange(section.id, event.target.value)}
-                        rows={section.id === 'thinking_notes' ? 4 : 5}
+                        rows={section.optional ? 4 : 5}
                         className="app-modal-input mt-4 min-h-[120px] resize-y sm:min-h-[132px]"
                         placeholder={section.placeholder || copy.empty}
                       />

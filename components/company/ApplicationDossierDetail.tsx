@@ -605,6 +605,90 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 </div>
             </div>
 
+            {dossier.signal_boost?.recruiter_readout ? (
+                <div className="rounded-[22px] border border-[rgba(var(--accent-rgb),0.18)] bg-[var(--accent-soft)] p-4 space-y-4 shadow-[var(--shadow-soft)]">
+                    <SectionHeader
+                        title={t('company.signal_boost.title', { defaultValue: 'Signal Boost readout' })}
+                        subtitle={t('company.signal_boost.subtitle', {
+                            defaultValue: 'A recruiter-ready readout of how this candidate thinks in a role-specific mini case.'
+                        })}
+                        className="mb-1"
+                    />
+
+                    <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.14)] bg-white/85 p-4 dark:bg-slate-950/40">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {dossier.signal_boost.recruiter_readout.headline}
+                        </div>
+                        {dossier.signal_boost.share_url ? (
+                            <a
+                                href={dossier.signal_boost.share_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="company-action-link mt-3 inline-flex text-xs hover:underline"
+                            >
+                                {t('company.signal_boost.open_public', { defaultValue: 'Open public Signal Boost' })}
+                            </a>
+                        ) : null}
+                    </div>
+
+                    {dossier.signal_boost.recruiter_readout.what_cv_does_not_show?.length ? (
+                        <div>
+                            <div className="text-xs uppercase tracking-widest text-[var(--accent)] mb-2">
+                                {t('company.signal_boost.beyond_cv', { defaultValue: 'What this shows beyond CV' })}
+                            </div>
+                            <div className="space-y-2">
+                                {dossier.signal_boost.recruiter_readout.what_cv_does_not_show.map((item) => (
+                                    <div key={item} className="rounded-[16px] border border-[rgba(var(--accent-rgb),0.12)] bg-white/80 px-3 py-2 text-sm text-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {dossier.signal_boost.recruiter_readout.strength_signals?.length ? (
+                        <div>
+                            <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+                                {t('company.signal_boost.strengths', { defaultValue: 'Strength signals' })}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {dossier.signal_boost.recruiter_readout.strength_signals.map((item) => (
+                                    <div key={item} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-2 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200">
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {dossier.signal_boost.recruiter_readout.follow_up_questions?.length ? (
+                        <div>
+                            <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+                                {t('company.signal_boost.follow_ups', { defaultValue: 'Good follow-up questions' })}
+                            </div>
+                            <div className="space-y-2">
+                                {dossier.signal_boost.recruiter_readout.follow_up_questions.map((item) => (
+                                    <div key={item} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-2 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200">
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {dossier.signal_boost.recruiter_readout.recommended_next_step ? (
+                        <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.14)] bg-white/85 p-4 dark:bg-slate-950/40">
+                            <div className="text-xs uppercase tracking-widest text-[var(--accent)] mb-2">
+                                {t('company.signal_boost.next_step', { defaultValue: 'Recommended next step' })}
+                            </div>
+                            <div className="text-sm leading-7 text-slate-700 dark:text-slate-200">
+                                {dossier.signal_boost.recruiter_readout.recommended_next_step}
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+
             {shouldRenderSolutionSnapshotCard ? (
                 <div className="rounded-[22px] border border-amber-200/80 bg-amber-50/70 p-4 shadow-[0_16px_32px_-28px_rgba(5,150,105,0.35)] dark:border-amber-900/30 dark:bg-amber-950/20">
                     <SectionHeader

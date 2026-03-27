@@ -51,6 +51,41 @@ export const resolveCandidateSearchProfile = (profile?: UserProfile | null): Can
   };
 };
 
+export const getDefaultCandidateSearchFilters = (
+  profile: UserProfile,
+  options?: {
+    hasLocation?: boolean;
+  }
+): JobSearchFilters => {
+  const searchProfile = resolveCandidateSearchProfile(profile);
+  const hasLocation = options?.hasLocation ?? Boolean(
+    profile?.coordinates?.lat
+    || profile?.coordinates?.lon
+    || String(profile?.address || '').trim()
+  );
+  const combinedBenefits = Array.from(
+    new Set([
+      ...(searchProfile.preferredBenefitKeys || []),
+      ...(searchProfile.wantsDogFriendlyOffice ? ['dog_friendly'] : [])
+    ])
+  );
+  const enableCommuteFilter = hasLocation && searchProfile.defaultEnableCommuteFilter;
+  const prefersRemote = searchProfile.wantsRemoteRoles || searchProfile.preferredWorkArrangement === 'remote';
+  const remoteOnly = !enableCommuteFilter && prefersRemote;
+
+  return {
+    filterContractTypes: searchProfile.wantsContractorRoles ? ['ico'] : [],
+    filterBenefits: combinedBenefits,
+    filterLanguageCodes: remoteOnly ? searchProfile.remoteLanguageCodes : [],
+    enableCommuteFilter,
+    filterMaxDistance: searchProfile.defaultMaxDistanceKm,
+    globalSearch: searchProfile.nearBorder,
+    abroadOnly: false,
+    remoteOnly,
+    filterWorkArrangement: remoteOnly ? 'remote' : (searchProfile.preferredWorkArrangement || 'all'),
+  };
+};
+
 const isCsLikeLocale = (locale: string): boolean => ['cs', 'sk'].includes(locale);
 
 export const buildCandidateSearchPresets = (
@@ -61,24 +96,8 @@ export const buildCandidateSearchPresets = (
   const intent = resolveCandidateIntentProfile(profile);
   const isCsLike = isCsLikeLocale(locale);
   const presets: CandidateSearchPreset[] = [];
-  const combinedBenefits = Array.from(
-    new Set([
-      ...(searchProfile.preferredBenefitKeys || []),
-      ...(searchProfile.wantsDogFriendlyOffice ? ['dog_friendly'] : [])
-    ])
-  );
-
-  const combinedFilters: JobSearchFilters = {
-    filterContractTypes: searchProfile.wantsContractorRoles ? ['ico'] : [],
-    filterBenefits: combinedBenefits,
-    filterLanguageCodes: searchProfile.wantsRemoteRoles ? searchProfile.remoteLanguageCodes : [],
-    enableCommuteFilter: searchProfile.defaultEnableCommuteFilter,
-    filterMaxDistance: searchProfile.defaultEnableCommuteFilter ? searchProfile.defaultMaxDistanceKm : undefined,
-    globalSearch: searchProfile.nearBorder,
-    abroadOnly: false,
-    remoteOnly: searchProfile.wantsRemoteRoles,
-    filterWorkArrangement: searchProfile.wantsRemoteRoles ? 'remote' : (searchProfile.preferredWorkArrangement || 'all'),
-  };
+  const combinedFilters = getDefaultCandidateSearchFilters(profile);
+  const prefersRemote = Boolean(combinedFilters.remoteOnly || searchProfile.preferredWorkArrangement === 'remote');
 
   const hasCombinedSignals =
     combinedFilters.filterContractTypes?.length ||
@@ -130,7 +149,7 @@ export const buildCandidateSearchPresets = (
     });
   }
 
-  if (searchProfile.wantsRemoteRoles) {
+  if (prefersRemote) {
     presets.push({
       id: 'remote',
       name: isCsLike ? 'Remote v mých jazycích' : 'Remote in my languages',
@@ -144,7 +163,7 @@ export const buildCandidateSearchPresets = (
     });
   }
 
-  if (!searchProfile.wantsRemoteRoles && (searchProfile.preferredWorkArrangement === 'hybrid' || searchProfile.preferredWorkArrangement === 'onsite')) {
+  if (!prefersRemote && (searchProfile.preferredWorkArrangement === 'hybrid' || searchProfile.preferredWorkArrangement === 'onsite')) {
     const arrangementName = isCsLike
       ? (searchProfile.preferredWorkArrangement === 'hybrid' ? 'Hybrid' : 'Na místě')
       : (searchProfile.preferredWorkArrangement === 'hybrid' ? 'Hybrid' : 'On-site');

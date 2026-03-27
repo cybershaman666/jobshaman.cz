@@ -25,6 +25,7 @@ const mapOutput = (payload: any): JobSignalBoostOutput => ({
     : { name: 'JobShaman member' },
   scenario_payload: payload?.scenario_payload as JobSignalBoostBrief,
   response_payload: payload?.response_payload && typeof payload.response_payload === 'object' ? payload.response_payload : {},
+  recruiter_readout: payload?.recruiter_readout && typeof payload.recruiter_readout === 'object' ? payload.recruiter_readout : null,
   signal_summary: payload?.signal_summary && typeof payload.signal_summary === 'object' ? payload.signal_summary : null,
   quality_flags: payload?.quality_flags as JobSignalBoostQualityFlags,
   analytics: payload?.analytics && typeof payload.analytics === 'object' ? payload.analytics : undefined,

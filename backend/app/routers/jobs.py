@@ -23,6 +23,7 @@ from ..matching_engine.feature_store import extract_candidate_features, extract_
 from ..matching_engine.retrieval import ensure_candidate_embedding, ensure_job_embeddings, fetch_recent_jobs
 from ..matching_engine.scoring import score_from_embeddings, score_job
 from ..services.email import send_application_notification_email, send_review_email, send_recruiter_legality_email
+from ..services.job_signal_boost_store import get_latest_published_signal_output_for_candidate_job
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
 from ..ai_orchestration.client import (
@@ -3462,9 +3463,40 @@ def _serialize_dialogue_dossier(row: dict) -> dict:
             row.get("shared_jcfpm_payload"),
         ),
         "application_payload": _safe_dict(row.get("application_payload")),
+        "signal_boost": _serialize_dialogue_signal_boost(row),
     })
     base.update(dialogue_runtime)
     return base
+
+
+def _dialogue_signal_boost_share_url(locale: Any, share_slug: Any) -> str | None:
+    slug = str(share_slug or "").strip()
+    if not slug:
+        return None
+    normalized_locale = str(locale or "en").split("-", 1)[0].strip().lower() or "en"
+    if normalized_locale == "at":
+        normalized_locale = "de"
+    return f"{config.APP_PUBLIC_URL.rstrip('/')}/{normalized_locale}/signal/{slug}"
+
+
+def _serialize_dialogue_signal_boost(row: dict) -> dict | None:
+    candidate_id = str(row.get("candidate_id") or "").strip()
+    job_id = str(row.get("job_id") or "").strip()
+    if not candidate_id or not job_id:
+        return None
+    signal_output = get_latest_published_signal_output_for_candidate_job(candidate_id=candidate_id, job_id=job_id)
+    if not signal_output:
+        return None
+    locale = str(signal_output.get("locale") or "en").strip() or "en"
+    return {
+        "output_id": str(signal_output.get("id") or "").strip(),
+        "share_slug": str(signal_output.get("share_slug") or "").strip() or None,
+        "share_url": _dialogue_signal_boost_share_url(locale, signal_output.get("share_slug")),
+        "locale": locale,
+        "signal_summary": _safe_dict(signal_output.get("signal_summary")) or None,
+        "recruiter_readout": _safe_dict(signal_output.get("recruiter_readout")) or None,
+        "published_at": signal_output.get("published_at"),
+    }
 
 
 def _extract_candidate_job_snapshot(row: dict) -> dict:

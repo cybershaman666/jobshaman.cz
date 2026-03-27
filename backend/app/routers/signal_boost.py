@@ -15,6 +15,7 @@ from ..models.requests import (
 )
 from ..services.job_signal_boost import (
     build_signal_boost_brief,
+    build_signal_boost_recruiter_readout,
     build_signal_boost_starter_payload,
     build_signal_boost_summary,
     evaluate_signal_boost_quality,
@@ -129,6 +130,7 @@ def _serialize_signal_output_owner(row: dict[str, Any] | None) -> dict[str, Any]
         "candidate_snapshot": _safe_dict(source.get("candidate_snapshot")),
         "scenario_payload": _safe_dict(source.get("scenario_payload")),
         "response_payload": _safe_dict(source.get("response_payload")),
+        "recruiter_readout": _safe_dict(source.get("recruiter_readout")) or None,
         "signal_summary": _safe_dict(source.get("signal_summary")) or None,
         "quality_flags": _safe_dict(source.get("quality_flags")),
         "analytics": _safe_dict(source.get("analytics")),
@@ -160,6 +162,7 @@ def _serialize_signal_output_public(row: dict[str, Any] | None) -> dict[str, Any
         },
         "scenario_payload": _safe_dict(source.get("scenario_payload")),
         "response_payload": _safe_dict(source.get("response_payload")),
+        "recruiter_readout": _safe_dict(source.get("recruiter_readout")) or None,
         "signal_summary": _safe_dict(source.get("signal_summary")) or None,
         "quality_flags": _safe_dict(source.get("quality_flags")),
         "created_at": source.get("created_at"),
@@ -245,12 +248,13 @@ async def publish_job_signal_boost_output(
         for key, value in dict(payload.response_payload or {}).items()
         if _trimmed_text(value, 4000)
     }
-    quality = evaluate_signal_boost_quality(response_payload, locale)
+    quality = evaluate_signal_boost_quality(response_payload, locale, brief=brief)
     if payload.status == "published" and not quality.get("publish_ready"):
         raise HTTPException(status_code=409, detail={"quality_flags": quality, "message": "Signal Boost needs a bit more substance before publishing."})
 
     job_snapshot = _build_signal_boost_job_snapshot(job_row)
-    summary = build_signal_boost_summary(response_payload, locale, quality)
+    summary = build_signal_boost_summary(response_payload, locale, quality, brief=brief)
+    recruiter_readout = build_signal_boost_recruiter_readout(response_payload, locale, brief, quality)
     output = create_signal_output(
         {
             "id": uuid4().hex,
@@ -264,6 +268,7 @@ async def publish_job_signal_boost_output(
             "candidate_snapshot": _build_signal_boost_candidate_snapshot(user, user_id),
             "scenario_payload": brief,
             "response_payload": response_payload,
+            "recruiter_readout": recruiter_readout,
             "signal_summary": summary,
             "quality_flags": quality,
             "analytics": {"view": 0, "share_copy": 0, "recruiter_cta_click": 0, "open_original_listing": 0},
@@ -336,12 +341,14 @@ async def update_job_signal_boost_output(
         raise HTTPException(status_code=404, detail="Signal Boost output not found")
 
     locale = _normalize_locale(payload.locale or existing.get("locale") or "en")
+    scenario_payload = _safe_dict(payload.scenario_payload)
+    brief = scenario_payload if scenario_payload else _safe_dict(existing.get("scenario_payload"))
     response_payload = {
         key: _trimmed_text(value, 4000)
         for key, value in dict(payload.response_payload or {}).items()
         if _trimmed_text(value, 4000)
     }
-    quality = evaluate_signal_boost_quality(response_payload, locale)
+    quality = evaluate_signal_boost_quality(response_payload, locale, brief=brief)
     if payload.status == "published" and not quality.get("publish_ready"):
         raise HTTPException(status_code=409, detail={"quality_flags": quality, "message": "Signal Boost needs a bit more substance before publishing."})
 
@@ -351,8 +358,10 @@ async def update_job_signal_boost_output(
         patch={
             "locale": locale,
             "status": payload.status,
+            "scenario_payload": brief,
             "response_payload": response_payload,
-            "signal_summary": build_signal_boost_summary(response_payload, locale, quality),
+            "recruiter_readout": build_signal_boost_recruiter_readout(response_payload, locale, brief, quality),
+            "signal_summary": build_signal_boost_summary(response_payload, locale, quality, brief=brief),
             "quality_flags": quality,
             "published_at": now_iso() if payload.status == "published" else existing.get("published_at"),
         },

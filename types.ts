@@ -700,6 +700,32 @@ export interface JobSignalBoostSection {
   placeholder?: string;
 }
 
+export interface JobSignalBoostRoleContext {
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  canonical_role?: string | null;
+  role_family?: string | null;
+  domain_key?: string | null;
+  archetype?: string | null;
+  seniority?: string | null;
+  work_mode?: string | null;
+  language_code?: string | null;
+  mapping_confidence?: number | null;
+  mapping_source?: string | null;
+  job_evidence?: string[];
+  focus_areas?: string[];
+  keywords?: string[];
+}
+
+export interface JobSignalBoostQuestion {
+  id: string;
+  question: string;
+  why_this_matters: string;
+  job_evidence: string;
+  recruiter_signal: string;
+}
+
 export interface JobSignalBoostBrief {
   kicker: string;
   timebox: string;
@@ -717,10 +743,17 @@ export interface JobSignalBoostBrief {
   constraints: string[];
   structured_sections: JobSignalBoostSection[];
   locale: string;
+  mini_case_type?: string;
+  role_context?: JobSignalBoostRoleContext | null;
+  question_pack?: JobSignalBoostQuestion[];
+  recruiter_reading_guide?: string | null;
   meta?: {
     role_family?: string | null;
     domain_key?: string | null;
     canonical_role?: string | null;
+    archetype?: string | null;
+    mapping_confidence?: number | null;
+    mapping_source?: string | null;
     used_ai_fallback?: boolean;
     ai_provider?: string | null;
     ai_model_requested?: string | null;
@@ -737,7 +770,7 @@ export interface JobSignalBoostBrief {
 }
 
 export interface JobSignalBoostSummaryItem {
-  key: 'structure' | 'prioritization' | 'clarity' | 'depth';
+  key: 'context_read' | 'decision_quality' | 'risk_judgment' | 'role_specificity';
   label: string;
   score: number;
 }
@@ -752,12 +785,42 @@ export interface JobSignalBoostQualityFlags {
   total_chars: number;
   word_count: number;
   too_short: boolean;
+  missing_problem_frame?: boolean;
+  missing_first_step?: boolean;
+  missing_solution_direction?: boolean;
+  missing_risks?: boolean;
   missing_first_move: boolean;
   missing_tradeoff: boolean;
   missing_unknowns: boolean;
   likely_generic: boolean;
   genericity_hits: number;
+  role_specificity_hits?: number;
+  scores?: {
+    context_read: number;
+    decision_quality: number;
+    risk_judgment: number;
+    role_specificity: number;
+  };
   nudges: string[];
+}
+
+export interface JobSignalBoostRecruiterReadout {
+  headline: string;
+  strength_signals: string[];
+  risk_flags: string[];
+  follow_up_questions: string[];
+  what_cv_does_not_show: string[];
+  recommended_next_step: string;
+  scores_snapshot?: {
+    context_read?: number;
+    decision_quality?: number;
+    risk_judgment?: number;
+    role_specificity?: number;
+  } | null;
+  evidence_excerpt?: string | null;
+  ai_used?: boolean;
+  ai_model_used?: string | null;
+  ai_fallback_used?: boolean;
 }
 
 export interface JobSignalBoostSnapshot {
@@ -788,6 +851,7 @@ export interface JobSignalBoostOutput {
   candidate_snapshot: JobSignalBoostCandidatePublicSnapshot;
   scenario_payload: JobSignalBoostBrief;
   response_payload: Record<string, string>;
+  recruiter_readout?: JobSignalBoostRecruiterReadout | null;
   signal_summary?: JobSignalBoostSummary | null;
   quality_flags: JobSignalBoostQualityFlags;
   analytics?: Record<string, number>;
@@ -1169,6 +1233,15 @@ export interface DialogueDossier {
   fit_evidence?: {
     layers: FiveLayerFitScore;
     updated_at?: string | null;
+  } | null;
+  signal_boost?: {
+    output_id: string;
+    share_slug?: string | null;
+    share_url?: string | null;
+    locale?: string | null;
+    signal_summary?: JobSignalBoostSummary | null;
+    recruiter_readout?: JobSignalBoostRecruiterReadout | null;
+    published_at?: string | null;
   } | null;
 }
 

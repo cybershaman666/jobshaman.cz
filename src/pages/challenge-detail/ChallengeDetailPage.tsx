@@ -22,6 +22,7 @@ import { getStockCoverForDomain, getStockGalleryForDomain } from '../../../utils
 import { formatJobDescription } from '../../../utils/formatters';
 import { getChallengeDetailPageCopy } from '../../../components/challenges/challengeDetailCopy';
 import { trackAnalyticsEvent } from '../../../services/supabaseService';
+import { buildImportedJobInsideStory } from '../../../services/importedJobDetailService';
 
 export interface ChallengeDetailPageProps {
   job: Job;
@@ -262,6 +263,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   const firstStep = String(job.firstStepPrompt || '').trim();
   const riskBody = String(job.risk || job.aiAnalysis?.culturalFit || '').trim();
   const formattedDescription = useMemo(() => formatJobDescription(job.description || ''), [job.description]);
+  const importedStory = useMemo(() => buildImportedJobInsideStory(job), [job]);
   const bullshitAnalysis = useMemo(() => analyzeJobBullshit(job, language), [job, language]);
   const trustDialoguesCount = humanContext?.trust?.dialogues_last_90d ?? null;
   const trustResponseHours = humanContext?.trust?.median_first_response_hours_last_90d ?? null;
@@ -373,6 +375,55 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               industry: 'Industry',
               teamPulse: 'How alive the team feels',
             };
+  const importedStoryLabels = language === 'cs'
+    ? {
+        sectionTitle: 'Co jde poznat z inzerátu',
+        companyContext: 'Co firma o sobě skutečně říká',
+        quickFacts: 'Rychlá fakta z inzerátu',
+        tone: 'Jak ten text působí',
+        workModel: 'Režim role',
+        sourceNote: 'U importu ber jen to, co je podložené textem inzerátu a původním listingem.',
+        peopleFallback: 'U importu zatím nevidíš tým zevnitř firmy. Tady máš jen to, co jde férově vyčíst z textu role.',
+      }
+    : language === 'sk'
+      ? {
+          sectionTitle: 'Čo sa dá vyčítať z inzerátu',
+          companyContext: 'Čo firma o sebe naozaj hovorí',
+          quickFacts: 'Rýchle fakty z inzerátu',
+          tone: 'Ako ten text pôsobí',
+          workModel: 'Režim roly',
+          sourceNote: 'Pri importe ber len to, čo je podložené textom inzerátu a pôvodným listingom.',
+          peopleFallback: 'Pri importe zatiaľ nevidíš tím zvnútra firmy. Tu je len to, čo sa dá férovo vyčítať z textu roly.',
+        }
+      : language === 'de' || language === 'at'
+        ? {
+            sectionTitle: 'Was man aus der Anzeige wirklich lesen kann',
+            companyContext: 'Was die Firma tatsächlich über sich sagt',
+            quickFacts: 'Schnelle Fakten aus der Anzeige',
+            tone: 'Wie der Text wirkt',
+            workModel: 'Arbeitsmodell',
+            sourceNote: 'Bei importierten Rollen zeigen wir nur, was durch den Anzeigentext und das Original-Listing belegt ist.',
+            peopleFallback: 'Bei importierten Rollen sieht man das Team noch nicht von innen. Hier steht nur, was sich fair aus dem Text ableiten lässt.',
+          }
+        : language === 'pl'
+          ? {
+              sectionTitle: 'Co naprawdę da się wyczytać z ogłoszenia',
+              companyContext: 'Co firma naprawdę mówi o sobie',
+              quickFacts: 'Szybkie fakty z ogłoszenia',
+              tone: 'Jak brzmi ten tekst',
+              workModel: 'Tryb pracy',
+              sourceNote: 'Przy imporcie pokazujemy tylko to, co faktycznie wynika z treści ogłoszenia i oryginalnego źródła.',
+              peopleFallback: 'Przy imporcie nie widać jeszcze zespołu od środka. Tu pokazujemy tylko to, co da się uczciwie wyczytać z tekstu roli.',
+            }
+          : {
+              sectionTitle: 'What you can actually read from the listing',
+              companyContext: 'What the company really says about itself',
+              quickFacts: 'Quick facts from the listing',
+              tone: 'How the text reads',
+              workModel: 'Work setup',
+              sourceNote: 'For imported roles, we only show what is actually supported by the listing text and the original source.',
+              peopleFallback: 'Imported roles do not show the internal team yet. This section only reflects what can be fairly inferred from the role text.',
+            };
   const companyIntro = String(job.companyProfile?.description || '').trim()
     || String(job.companyProfile?.philosophy || '').trim()
     || String(job.companyGoal || '').trim()
@@ -398,6 +449,17 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       return raw.replace(/^https?:\/\//, '').replace(/^www\./, '');
     }
   })();
+  const importedQuickFacts = Array.from(new Set([
+    workModelValue ? `${importedStoryLabels.workModel}: ${workModelValue}` : '',
+    companyIndustry ? `${companyStoryLabels.industry}: ${companyIndustry}` : '',
+    companyWebsiteLabel ? `${companyStoryLabels.website}: ${companyWebsiteLabel}` : '',
+    importedStory.toneSignal ? `${importedStoryLabels.tone}: ${importedStory.toneSignal}` : '',
+  ].filter(Boolean))).slice(0, 4);
+  const importedRoleSnapshot = importedStory.roleSnapshot || missionBody;
+  const importedFirstStep = importedStory.firstStep || firstStep || challenge.firstStepPrompt;
+  const importedRisk = importedStory.risk;
+  const insideSectionTitle = isImported ? importedStoryLabels.sectionTitle : copy.insideTitle;
+  const publisherFallbackCopy = isImported ? importedStoryLabels.peopleFallback : copy.companyPeopleFallback;
   const jhiDimensions = [
     { key: 'financial', label: copy.jhiDimensionFinancial, value: Number(job.jhi?.financial || 0) },
     { key: 'timeCost', label: copy.jhiDimensionTimeCost, value: Number(job.jhi?.timeCost || 0) },
@@ -1164,70 +1226,126 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
             <SurfaceCard className={cn('border-transparent p-5 sm:p-6', dashboardPanelClass)} variant="dock">
               <div className="space-y-5">
-                <SectionTitle title={copy.insideTitle} />
+                <SectionTitle title={insideSectionTitle} />
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-4">
-                    <div className={cn('p-5', dashboardCardClass)}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                        {companyStoryLabels.about}
-                      </div>
-                      <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{companyIntro}</p>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className={cn('p-4', dashboardCardClass)}>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.philosophy}</div>
-                        <div className="mt-2 text-sm leading-6 text-[var(--text)]">{companyPhilosophy}</div>
-                      </div>
-                      <div className={cn('p-4', dashboardCardClass)}>
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{isImported ? copy.importedSnapshot : copy.mission}</div>
-                        <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{missionBody}</div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[rgba(var(--accent-rgb),0.12)]">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.firstStep}</div>
-                        <div className="mt-2 text-sm leading-6 text-[var(--text)]">{firstStep || challenge.firstStepPrompt}</div>
-                      </div>
-                      {riskBody ? (
-                        <div className={cn('rounded-[18px] px-4 py-4', dashboardCardClass)}>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.risk}</div>
-                          <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{riskBody}</div>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {companyValues.length || companyBenefits.length ? (
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {companyValues.length ? (
-                          <div className={cn('p-4', dashboardCardClass)}>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.values}</div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {companyValues.map((value) => (
-                                <span
-                                  key={value}
-                                  className="inline-flex items-center rounded-[999px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text-strong)]"
-                                >
-                                  {value}
-                                </span>
-                              ))}
+                    {isImported ? (
+                      <>
+                        {importedStory.companyContext ? (
+                          <div className={cn('p-5', dashboardCardClass)}>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                              {importedStoryLabels.companyContext}
                             </div>
+                            <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{importedStory.companyContext}</p>
                           </div>
                         ) : null}
 
-                        {companyBenefits.length ? (
+                        <div className="grid gap-3 md:grid-cols-2">
                           <div className={cn('p-4', dashboardCardClass)}>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.benefits}</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedSnapshot}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{importedRoleSnapshot}</div>
+                          </div>
+                          {importedQuickFacts.length ? (
+                            <div className={cn('p-4', dashboardCardClass)}>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedStoryLabels.quickFacts}</div>
+                              <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
+                                {importedQuickFacts.map((fact) => (
+                                  <div key={fact}>{fact}</div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[rgba(var(--accent-rgb),0.12)]">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.firstStep}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{importedFirstStep}</div>
+                          </div>
+                          {importedRisk ? (
+                            <div className={cn('rounded-[18px] px-4 py-4', dashboardCardClass)}>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.risk}</div>
+                              <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{importedRisk}</div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {importedStory.benefits.length ? (
+                          <div className={cn('p-4', dashboardCardClass)}>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefits}</div>
                             <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
-                              {companyBenefits.map((benefit) => (
+                              {importedStory.benefits.map((benefit) => (
                                 <div key={benefit}>{benefit}</div>
                               ))}
                             </div>
                           </div>
                         ) : null}
-                      </div>
-                    ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <div className={cn('p-5', dashboardCardClass)}>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                            {companyStoryLabels.about}
+                          </div>
+                          <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{companyIntro}</p>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className={cn('p-4', dashboardCardClass)}>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.philosophy}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{companyPhilosophy}</div>
+                          </div>
+                          <div className={cn('p-4', dashboardCardClass)}>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.mission}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{missionBody}</div>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[rgba(var(--accent-rgb),0.12)]">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.firstStep}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{firstStep || challenge.firstStepPrompt}</div>
+                          </div>
+                          {riskBody ? (
+                            <div className={cn('rounded-[18px] px-4 py-4', dashboardCardClass)}>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.risk}</div>
+                              <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{riskBody}</div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {companyValues.length || companyBenefits.length ? (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {companyValues.length ? (
+                              <div className={cn('p-4', dashboardCardClass)}>
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.values}</div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {companyValues.map((value) => (
+                                    <span
+                                      key={value}
+                                      className="inline-flex items-center rounded-[999px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text-strong)]"
+                                    >
+                                      {value}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {companyBenefits.length ? (
+                              <div className={cn('p-4', dashboardCardClass)}>
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.benefits}</div>
+                                <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
+                                  {companyBenefits.map((benefit) => (
+                                    <div key={benefit}>{benefit}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -1248,17 +1366,33 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       {publisher?.short_context ? (
                         <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{publisher.short_context}</p>
                       ) : (
-                        <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{copy.companyPeopleFallback}</p>
+                        <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{publisherFallbackCopy}</p>
                       )}
                     </div>
 
                     <div className={cn('p-4', dashboardCardClass)}>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.environment}</div>
-                      <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
-                        {companyIndustry ? <div>{companyStoryLabels.industry}: {companyIndustry}</div> : null}
-                        {companyTone ? <div>{companyTone}</div> : null}
-                        {companyWebsiteLabel ? <div>{companyStoryLabels.website}: {companyWebsiteLabel}</div> : null}
-                      </div>
+                      {isImported ? (
+                        <>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedDetail}</div>
+                          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{importedStoryLabels.sourceNote}</p>
+                          {bullshitAnalysis.signals.length ? (
+                            <div className="mt-4 space-y-2 text-sm leading-6 text-[var(--text)]">
+                              {bullshitAnalysis.signals.slice(0, 2).map((flag: string) => (
+                                <div key={flag}>• {flag}</div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{companyStoryLabels.environment}</div>
+                          <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
+                            {companyIndustry ? <div>{companyStoryLabels.industry}: {companyIndustry}</div> : null}
+                            {companyTone ? <div>{companyTone}</div> : null}
+                            {companyWebsiteLabel ? <div>{companyStoryLabels.website}: {companyWebsiteLabel}</div> : null}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <ChallengeHumanContextSection

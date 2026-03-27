@@ -129,6 +129,74 @@ const pageCopy = {
   },
 } as const;
 
+const pageExtraCopy = {
+  cs: {
+    roleContext: 'Role context',
+    roleEvidence: 'Signály z inzerátu',
+    focusAreas: 'Na co je role citlivá',
+    questionPack: 'Role-specific otázky',
+    whyItMatters: 'Proč to recruiter řeší',
+    recruiterSignal: 'Jaký signál z toho recruiter čte',
+    beyondCv: 'Co to ukazuje navíc oproti CV',
+    strengths: 'Silné signály',
+    risks: 'Místa k doplnění',
+    followUps: 'Na co se doptat',
+    nextStep: 'Doporučený další krok',
+  },
+  sk: {
+    roleContext: 'Role context',
+    roleEvidence: 'Signály z inzerátu',
+    focusAreas: 'Na čo je rola citlivá',
+    questionPack: 'Role-specific otázky',
+    whyItMatters: 'Prečo to recruiter rieši',
+    recruiterSignal: 'Aký signál z toho recruiter číta',
+    beyondCv: 'Čo to ukazuje navyše oproti CV',
+    strengths: 'Silné signály',
+    risks: 'Miesta na doplnenie',
+    followUps: 'Na čo sa dopytať',
+    nextStep: 'Odporúčaný ďalší krok',
+  },
+  de: {
+    roleContext: 'Rollenkontext',
+    roleEvidence: 'Signale aus dem Inserat',
+    focusAreas: 'Worauf die Rolle sensibel reagiert',
+    questionPack: 'Rollenspezifische Fragen',
+    whyItMatters: 'Warum das Recruiting das wissen will',
+    recruiterSignal: 'Welches Signal daraus gelesen wird',
+    beyondCv: 'Was das zusätzlich zum CV zeigt',
+    strengths: 'Starke Signale',
+    risks: 'Offene Punkte',
+    followUps: 'Gute Nachfragen',
+    nextStep: 'Empfohlener nächster Schritt',
+  },
+  pl: {
+    roleContext: 'Kontekst roli',
+    roleEvidence: 'Sygnały z ogłoszenia',
+    focusAreas: 'Na co ta rola jest wrażliwa',
+    questionPack: 'Pytania specyficzne dla roli',
+    whyItMatters: 'Dlaczego rekruter chce to wiedzieć',
+    recruiterSignal: 'Jaki sygnał rekruter z tego czyta',
+    beyondCv: 'Co to pokazuje ponad CV',
+    strengths: 'Mocne sygnały',
+    risks: 'Miejsca do doprecyzowania',
+    followUps: 'Pytania uzupełniające',
+    nextStep: 'Rekomendowany kolejny krok',
+  },
+  en: {
+    roleContext: 'Role Context',
+    roleEvidence: 'Signals From The Listing',
+    focusAreas: 'What The Role Is Sensitive To',
+    questionPack: 'Role-Specific Questions',
+    whyItMatters: 'Why The Recruiter Cares',
+    recruiterSignal: 'Recruiter Signal',
+    beyondCv: 'What This Shows Beyond CV',
+    strengths: 'Strength Signals',
+    risks: 'Risk Flags',
+    followUps: 'Follow-Up Questions',
+    nextStep: 'Recommended Next Step',
+  },
+} as const;
+
 const SignalBoostPublicPage: React.FC = () => {
   const routeLocale = normalizeLocale(getLocaleFromPathname(window.location.pathname, 'en'));
   const shareSlug = useMemo(() => {
@@ -173,6 +241,7 @@ const SignalBoostPublicPage: React.FC = () => {
 
   const locale = normalizeLocale(output?.locale || routeLocale);
   const copy = pageCopy[locale] || pageCopy.en;
+  const extraCopy = pageExtraCopy[locale] || pageExtraCopy.en;
   const localePrefix = locale;
   const demoHref = `/${localePrefix}/demo-company-handshake`;
   const hiringHref = `/${localePrefix}/pro-firmy`;
@@ -180,6 +249,9 @@ const SignalBoostPublicPage: React.FC = () => {
   const visibleSections = output?.scenario_payload?.structured_sections?.filter((section) =>
     String(output.response_payload?.[section.id] || '').trim()
   ) || [];
+  const roleContext = output?.scenario_payload?.role_context;
+  const questionPack = output?.scenario_payload?.question_pack || [];
+  const recruiterReadout = output?.recruiter_readout || null;
 
   const handleRecruiterCta = (target: 'demo' | 'hiring') => {
     if (!output?.id) return;
@@ -295,6 +367,73 @@ const SignalBoostPublicPage: React.FC = () => {
                 </div>
               </div>
 
+              {(roleContext?.job_evidence?.length || roleContext?.focus_areas?.length) ? (
+                <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{extraCopy.roleContext}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {roleContext?.canonical_role ? (
+                      <span className="rounded-full border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)]">
+                        {roleContext.canonical_role}
+                      </span>
+                    ) : null}
+                    {roleContext?.archetype ? (
+                      <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text-muted)]">
+                        {roleContext.archetype}
+                      </span>
+                    ) : null}
+                  </div>
+                  {roleContext?.focus_areas?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.focusAreas}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {roleContext.focus_areas.map((item) => (
+                          <span key={item} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--text)]">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {roleContext?.job_evidence?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.roleEvidence}</div>
+                      <div className="mt-3 space-y-3">
+                        {roleContext.job_evidence.map((item) => (
+                          <div key={item} className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 text-sm leading-7 text-[var(--text)]">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {questionPack.length ? (
+                <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{extraCopy.questionPack}</div>
+                  <div className="mt-4 space-y-4">
+                    {questionPack.map((item) => (
+                      <div key={item.id} className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4">
+                        <div className="text-sm font-semibold text-[var(--text-strong)]">{item.question}</div>
+                        <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.whyItMatters}</div>
+                        <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{item.why_this_matters}</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">{extraCopy.roleEvidence}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{item.job_evidence}</div>
+                          </div>
+                          <div className="rounded-[16px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] p-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">{extraCopy.recruiterSignal}</div>
+                            <div className="mt-2 text-sm leading-6 text-[var(--text)]">{item.recruiter_signal}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.output}</div>
                 <div className="mt-4 space-y-4">
@@ -311,6 +450,73 @@ const SignalBoostPublicPage: React.FC = () => {
             </div>
 
             <div className="space-y-5">
+              {recruiterReadout ? (
+                <div className="rounded-[26px] border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-5 dark:bg-[rgba(var(--accent-rgb),0.12)]">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{extraCopy.beyondCv}</div>
+                  <div className="mt-3 text-lg font-semibold text-[var(--text-strong)]">{recruiterReadout.headline}</div>
+
+                  {recruiterReadout.what_cv_does_not_show?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.beyondCv}</div>
+                      <div className="mt-3 space-y-2">
+                        {recruiterReadout.what_cv_does_not_show.map((item) => (
+                          <div key={item} className="flex gap-3 text-sm leading-6 text-[var(--text)]">
+                            <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {recruiterReadout.strength_signals?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.strengths}</div>
+                      <div className="mt-3 space-y-2">
+                        {recruiterReadout.strength_signals.map((item) => (
+                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {recruiterReadout.risk_flags?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.risks}</div>
+                      <div className="mt-3 space-y-2">
+                        {recruiterReadout.risk_flags.map((item) => (
+                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {recruiterReadout.follow_up_questions?.length ? (
+                    <div className="mt-5">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{extraCopy.followUps}</div>
+                      <div className="mt-3 space-y-2">
+                        {recruiterReadout.follow_up_questions.map((item) => (
+                          <div key={item} className="rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text)]">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {recruiterReadout.recommended_next_step ? (
+                    <div className="mt-5 rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-white/75 p-4 dark:bg-slate-950/40">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">{extraCopy.nextStep}</div>
+                      <p className="mt-2 text-sm leading-7 text-[var(--text)]">{recruiterReadout.recommended_next_step}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-5">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.targetRole}</div>
                 <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{output.job_snapshot?.title || copy.roleFallback}</div>

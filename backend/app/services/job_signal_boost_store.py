@@ -37,6 +37,7 @@ def _ensure_signal_boost_schema() -> None:
                 candidate_snapshot JSONB NOT NULL DEFAULT '{{}}'::jsonb,
                 scenario_payload JSONB NOT NULL DEFAULT '{{}}'::jsonb,
                 response_payload JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+                recruiter_readout JSONB,
                 signal_summary JSONB,
                 quality_flags JSONB NOT NULL DEFAULT '{{}}'::jsonb,
                 analytics JSONB NOT NULL DEFAULT '{{}}'::jsonb,
@@ -58,6 +59,9 @@ def _ensure_signal_boost_schema() -> None:
         cur.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{_TABLE}_published_at ON {_TABLE} (published_at DESC)"
         )
+        cur.execute(
+            f"ALTER TABLE {_TABLE} ADD COLUMN IF NOT EXISTS recruiter_readout JSONB"
+        )
 
 
 def _normalize_record(row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -75,6 +79,7 @@ def _normalize_record(row: dict[str, Any] | None) -> dict[str, Any] | None:
         "candidate_snapshot": _json_load(row.get("candidate_snapshot"), {}),
         "scenario_payload": _json_load(row.get("scenario_payload"), {}),
         "response_payload": _json_load(row.get("response_payload"), {}),
+        "recruiter_readout": _json_load(row.get("recruiter_readout"), None),
         "signal_summary": _json_load(row.get("signal_summary"), None),
         "quality_flags": _json_load(row.get("quality_flags"), {}),
         "analytics": _json_load(row.get("analytics"), {}),
@@ -102,6 +107,7 @@ def create_signal_output(record: dict[str, Any]) -> dict[str, Any]:
         "candidate_snapshot": _json_dumps(record.get("candidate_snapshot") or {}),
         "scenario_payload": _json_dumps(record.get("scenario_payload") or {}),
         "response_payload": _json_dumps(record.get("response_payload") or {}),
+        "recruiter_readout": _json_dumps(record.get("recruiter_readout")) if record.get("recruiter_readout") is not None else None,
         "signal_summary": _json_dumps(record.get("signal_summary")) if record.get("signal_summary") is not None else None,
         "quality_flags": _json_dumps(record.get("quality_flags") or {}),
         "analytics": _json_dumps(record.get("analytics") or {}),
@@ -115,12 +121,12 @@ def create_signal_output(record: dict[str, Any]) -> dict[str, Any]:
             INSERT INTO {_TABLE} (
                 id, share_slug, candidate_id, job_id, source_kind, locale, status,
                 job_snapshot, candidate_snapshot, scenario_payload, response_payload,
-                signal_summary, quality_flags, analytics, created_at, updated_at, published_at
+                recruiter_readout, signal_summary, quality_flags, analytics, created_at, updated_at, published_at
             )
             VALUES (
                 %(id)s, %(share_slug)s, %(candidate_id)s, %(job_id)s, %(source_kind)s, %(locale)s, %(status)s,
                 %(job_snapshot)s::jsonb, %(candidate_snapshot)s::jsonb, %(scenario_payload)s::jsonb, %(response_payload)s::jsonb,
-                %(signal_summary)s::jsonb, %(quality_flags)s::jsonb, %(analytics)s::jsonb, %(created_at)s, %(updated_at)s, %(published_at)s
+                %(recruiter_readout)s::jsonb, %(signal_summary)s::jsonb, %(quality_flags)s::jsonb, %(analytics)s::jsonb, %(created_at)s, %(updated_at)s, %(published_at)s
             )
             RETURNING *
             """,
@@ -157,6 +163,7 @@ def update_signal_output(
         "candidate_snapshot": patch.get("candidate_snapshot", existing.get("candidate_snapshot") or {}),
         "scenario_payload": patch.get("scenario_payload", existing.get("scenario_payload") or {}),
         "response_payload": patch.get("response_payload", existing.get("response_payload") or {}),
+        "recruiter_readout": patch.get("recruiter_readout", existing.get("recruiter_readout")),
         "signal_summary": patch.get("signal_summary", existing.get("signal_summary")),
         "quality_flags": patch.get("quality_flags", existing.get("quality_flags") or {}),
         "analytics": patch.get("analytics", existing.get("analytics") or {}),
@@ -177,6 +184,7 @@ def update_signal_output(
                 candidate_snapshot = %(candidate_snapshot)s::jsonb,
                 scenario_payload = %(scenario_payload)s::jsonb,
                 response_payload = %(response_payload)s::jsonb,
+                recruiter_readout = %(recruiter_readout)s::jsonb,
                 signal_summary = %(signal_summary)s::jsonb,
                 quality_flags = %(quality_flags)s::jsonb,
                 analytics = %(analytics)s::jsonb,
@@ -195,6 +203,7 @@ def update_signal_output(
                 "candidate_snapshot": _json_dumps(merged.get("candidate_snapshot") or {}),
                 "scenario_payload": _json_dumps(merged.get("scenario_payload") or {}),
                 "response_payload": _json_dumps(merged.get("response_payload") or {}),
+                "recruiter_readout": _json_dumps(merged.get("recruiter_readout")) if merged.get("recruiter_readout") is not None else None,
                 "signal_summary": _json_dumps(merged.get("signal_summary")) if merged.get("signal_summary") is not None else None,
                 "quality_flags": _json_dumps(merged.get("quality_flags") or {}),
                 "analytics": _json_dumps(merged.get("analytics") or {}),
@@ -266,6 +275,32 @@ def get_latest_signal_output_for_job(*, candidate_id: str, job_id: str) -> dict[
             LIMIT 1
             """,
             (normalized_candidate_id, normalized_job_id),
+        )
+        row = cur.fetchone() or {}
+    return _normalize_record(row)
+
+
+def get_latest_published_signal_output_for_candidate_job(*, candidate_id: str, job_id: str) -> dict[str, Any] | None:
+    if not signal_boost_store_enabled():
+        return None
+    normalized_candidate_id = str(candidate_id or "").strip()
+    normalized_job_id = str(job_id or "").strip()
+    if not normalized_candidate_id or not normalized_job_id:
+        return None
+    _ensure_signal_boost_schema()
+    conn = _connect()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT *
+            FROM {_TABLE}
+            WHERE candidate_id = %s
+              AND job_id = %s
+              AND status = %s
+            ORDER BY updated_at DESC, published_at DESC, created_at DESC
+            LIMIT 1
+            """,
+            (normalized_candidate_id, normalized_job_id, "published"),
         )
         row = cur.fetchone() or {}
     return _normalize_record(row)
