@@ -1,4 +1,4 @@
-import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +57,7 @@ import {
 } from '../../src/app/careeros/model/viewModels';
 import { buildCareerOSNotificationFeed } from '../../src/app/careeros/model/notificationFeed';
 import MarketplacePage, { type MarketplacePageProps } from '../../src/pages/marketplace/MarketplacePage';
+import { markPerf, measurePerf, measureSyncPerf } from '../../src/app/perf/perfDebug';
 
 const PROFILE_INITIAL_TAB_STORAGE_KEY = 'jobshaman.profile.initialTab';
 const DEBUG_CAREER_OS =
@@ -3032,7 +3033,9 @@ const CareerPathStage: React.FC<{
                   stroke={tone.line}
                   strokeWidth={elevated ? pulseStrokeWidth + 0.35 : pulseStrokeWidth}
                   strokeDasharray="8 8"
+                  filter="url(#careeros-path-line-glow)"
                   opacity={elevated ? Math.min(0.98, pulseOpacity + 0.08) : pulseOpacity}
+                  style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                 />
               </g>
             );
@@ -3270,6 +3273,8 @@ const CareerPathStage: React.FC<{
                       strokeWidth="2"
                       strokeDasharray="6 6"
                       opacity="0.82"
+                      filter="url(#careeros-path-line-glow)"
+                      style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                     />
                   </g>
                 );
@@ -3507,6 +3512,8 @@ const JobOffersStage: React.FC<{
                     strokeWidth="2"
                     strokeDasharray="6 6"
                     opacity="0.75"
+                    filter="url(#careeros-offer-line-glow)"
+                    style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                   />
                 </g>
               );
@@ -4409,7 +4416,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
   const workspace = useMemo(
     () =>
-      mapJobsToCareerOSCandidateWorkspace({
+      measureSyncPerf('careeros:workspace-map', () => mapJobsToCareerOSCandidateWorkspace({
         jobs: deferredJobs,
         userProfile,
         savedJobIds,
@@ -4421,7 +4428,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         discoveryMode,
         totalCount,
         searchDiagnostics,
-      }),
+      })),
     [
       deferredJobs,
       userProfile,
@@ -4460,7 +4467,10 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const shouldLoadNotifications = notificationsOpen;
 
   const pathNodes = useMemo(
-    () => buildPathNodes(deferredJobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
+    () => measureSyncPerf(
+      'careeros:path-nodes',
+      () => buildPathNodes(deferredJobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
+    ),
     [deferredJobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
   );
 
@@ -4781,6 +4791,11 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, [deferredJobs.length, pathNodes.length, selectedPath?.challenges.length, selectedPathId, workspace.challenges.length]);
 
   useEffect(() => {
+    markPerf('careeros:graph:end');
+    measurePerf('careeros:graph', 'careeros:graph:start', 'careeros:graph:end');
+  }, [activeLayer, expandedPathId, pathNodes, selectedPathId]);
+
+  useEffect(() => {
     if (activeLayer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
       setActiveLayer('career_path');
     }
@@ -4944,33 +4959,36 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     }
   }, [activeLayer]);
 
-  const submitSearch = () => {
+  const submitSearch = useCallback(() => {
     setFiltersOpen(false);
     setActiveLayer('career_path');
     setPanelChallenge(null);
     performSearch(searchTerm);
-  };
+  }, [performSearch, searchTerm]);
 
-  const handlePathNodeClick = (node: PathNode) => {
+  const handlePathNodeClick = useCallback((node: PathNode) => {
+    markPerf('careeros:graph:start');
     setSelectedPathId(node.id);
     setSelectedRoleId(node.roleNodes[0]?.id || null);
     setPanelDismissed(false);
     setExpandedPathId(node.id);
-  };
+  }, []);
 
-  const handleOfferClick = (challenge: CareerOSChallenge) => {
+  const handleOfferClick = useCallback((challenge: CareerOSChallenge) => {
     setPanelDismissed(false);
     setPanelChallenge(challenge);
-  };
+  }, []);
 
-  const handleRoleNodeClick = (role: RoleNode) => {
+  const handleRoleNodeClick = useCallback((role: RoleNode) => {
+    markPerf('careeros:graph:start');
     setSelectedRoleId(role.id);
     setPanelDismissed(false);
     setPanelChallenge(role.featuredChallenge);
     setActiveLayer('job_offers');
-  };
+  }, []);
 
-  const handleSidebarNavigate = (layer: CareerOSLayer) => {
+  const handleSidebarNavigate = useCallback((layer: CareerOSLayer) => {
+    markPerf('careeros:graph:start');
     setPanelDismissed(false);
     if (layer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
       setActiveLayer('career_path');
@@ -4987,7 +5005,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       return;
     }
     setActiveLayer(layer);
-  };
+  }, []);
 
   const handleNotificationAction = (notification: CareerOSNotification) => {
     setNotificationsOpen(false);
@@ -5110,7 +5128,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     applyNavigationGoal(nextGoal);
   };
 
-  const renderMainLayer = () => {
+  const mainLayerNode = useMemo(() => measureSyncPerf('careeros:main-layer', () => {
     if (activeLayer === 'career_path' || !selectedPath) {
       return (
         <CareerPathStage
@@ -5129,6 +5147,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           onNodeClick={handlePathNodeClick}
           onClusterRoleClick={handleRoleNodeClick}
           onOpenOfferLayer={(node) => {
+            markPerf('careeros:graph:start');
             setSelectedPathId(node.id);
             setSelectedRoleId(node.roleNodes[0]?.id || null);
             setPanelDismissed(false);
@@ -5159,6 +5178,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           zoom={canvasZoom}
           setZoom={setCanvasZoom}
           onBack={() => {
+            markPerf('careeros:graph:start');
             setActiveLayer('career_path');
             setPanelChallenge(null);
             setExpandedPathId(selectedPath?.id || null);
@@ -5188,42 +5208,42 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
           <div className="pointer-events-none absolute left-[14%] top-[12%] h-[320px] w-[320px] rounded-full bg-emerald-300/10 blur-[120px]" />
           <div className="pointer-events-none absolute bottom-[10%] right-[12%] h-[420px] w-[420px] rounded-full bg-sky-300/10 blur-[140px]" />
           <div className="relative z-10">
-          <MarketplacePage
-            hasNativeChallenges={hasNativeChallenges}
-            jobs={jobs}
-            selectedJobId={selectedJobId}
-            savedJobIds={savedJobIds}
-            userProfile={userProfile}
-            lane={lane}
-            discoveryMode={discoveryMode}
-            searchDiagnostics={searchDiagnostics}
-            setDiscoveryMode={setDiscoveryMode}
-            setLane={setLane}
-            totalCount={totalCount}
-            isLoadingJobs={isLoadingJobs}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            handleJobSelect={handleJobSelect}
-            handleToggleSave={handleToggleSave}
-            loadMoreJobs={loadMoreJobs}
-            goToPage={goToPage}
-            onOpenProfile={onOpenProfile}
-            filterMinSalary={filterMinSalary}
-            setFilterMinSalary={setFilterMinSalary}
-            filterBenefits={filterBenefits}
-            setFilterBenefits={setFilterBenefits}
-            remoteOnly={remoteOnly}
-            setRemoteOnly={setRemoteOnly}
-            enableCommuteFilter={enableCommuteFilter}
-            setEnableCommuteFilter={setEnableCommuteFilter}
-            filterMaxDistance={filterMaxDistance}
-            setFilterMaxDistance={setFilterMaxDistance}
-            onOpenAuth={onOpenAuth}
-            showSidebar={false}
-            embeddedInCareerOS
-          />
+            <MarketplacePage
+              hasNativeChallenges={hasNativeChallenges}
+              jobs={jobs}
+              selectedJobId={selectedJobId}
+              savedJobIds={savedJobIds}
+              userProfile={userProfile}
+              lane={lane}
+              discoveryMode={discoveryMode}
+              searchDiagnostics={searchDiagnostics}
+              setDiscoveryMode={setDiscoveryMode}
+              setLane={setLane}
+              totalCount={totalCount}
+              isLoadingJobs={isLoadingJobs}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              handleJobSelect={handleJobSelect}
+              handleToggleSave={handleToggleSave}
+              loadMoreJobs={loadMoreJobs}
+              goToPage={goToPage}
+              onOpenProfile={onOpenProfile}
+              filterMinSalary={filterMinSalary}
+              setFilterMinSalary={setFilterMinSalary}
+              filterBenefits={filterBenefits}
+              setFilterBenefits={setFilterBenefits}
+              remoteOnly={remoteOnly}
+              setRemoteOnly={setRemoteOnly}
+              enableCommuteFilter={enableCommuteFilter}
+              setEnableCommuteFilter={setEnableCommuteFilter}
+              filterMaxDistance={filterMaxDistance}
+              setFilterMaxDistance={setFilterMaxDistance}
+              onOpenAuth={onOpenAuth}
+              showSidebar={false}
+              embeddedInCareerOS
+            />
           </div>
         </div>
       );
@@ -5238,7 +5258,81 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     }
 
     return null;
-  };
+  }), [
+    activeLayer,
+    availableDomains,
+    canvasZoom,
+    discoveryMode,
+    domainRemapOpen,
+    expandedPathId,
+    filterBenefits,
+    filterContractType,
+    filterExperience,
+    filterLanguageCodes,
+    filterMaxDistance,
+    filterMinSalary,
+    filterWorkArrangement,
+    formattedActiveCandidates,
+    formattedJobsCount,
+    globalSearch,
+    handleJobSelect,
+    handleOfferClick,
+    handlePathNodeClick,
+    handleRoleNodeClick,
+    hasMore,
+    hasNativeChallenges,
+    isGuestCareerPath,
+    isLoadingJobs,
+    jobs,
+    lane,
+    learningGapAnalysis,
+    learningPathRequiresSetup,
+    loadingMore,
+    manualDomainQuery,
+    manualDomainSelection,
+    marketTrendAnalysis,
+    navigationRoute,
+    onOpenAuth,
+    onOpenProfile,
+    pageSize,
+    panelChallenge,
+    pathNodes,
+    performSearch,
+    remoteOnly,
+    savedJobIds,
+    searchDiagnostics,
+    searchTerm,
+    selectedJobId,
+    selectedPath,
+    selectedRole,
+    setDiscoveryMode,
+    setDomainRemapOpen,
+    setFilterBenefits,
+    setFilterCity,
+    setFilterContractType,
+    setFilterExperience,
+    setFilterLanguageCodes,
+    setFilterMaxDistance,
+    setFilterMinSalary,
+    setFilterWorkArrangement,
+    setGlobalSearch,
+    setLane,
+    setRemoteOnly,
+    setSearchTerm,
+    setEnableCommuteFilter,
+    setCanvasZoom,
+    setAbroadOnly,
+    totalCount,
+    unreadNotificationCount,
+    userProfile,
+    workspace.headline,
+    workspace.userLabel,
+    workspace.challenges,
+    abroadOnly,
+    enableCommuteFilter,
+    currentPage,
+    filterCity,
+  ]);
 
   return (
     <div className="relative h-full min-h-0 overflow-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
@@ -5514,7 +5608,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         ) : null}
       </div>
 
-      <div className="absolute inset-0">{renderMainLayer()}</div>
+      <div className="absolute inset-0">{mainLayerNode}</div>
 
       <PathPanel
         node={selectedPath}

@@ -26,6 +26,7 @@ import {
     inferJobCountryCode,
     inferJobLanguageCode,
 } from './discovery/discoverySafeguards';
+import { markPerf, measurePerf } from '../src/app/perf/perfDebug';
 
 interface UsePaginatedJobsProps {
     userProfile: UserProfile;
@@ -88,6 +89,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const hasRunFilterEffectRef = useRef(false);
     const lastAppliedProfileDefaultsSignatureRef = useRef<string | null>(null);
     const pendingHardRefreshRef = useRef(false);
+    const lastPrimaryFetchSignatureRef = useRef<string | null>(null);
     const [jobs, setJobs] = useState<Job[]>(() => {
         try {
             const cached = localStorage.getItem(JOBS_FEED_CACHE_KEY);
@@ -245,7 +247,53 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     // --- DATABASE FILTERING LOGIC ---
 
     // Use the RPC-based filtering function
-    const fetchFilteredJobs = useCallback(async (page: number, isLoadMore: boolean = false) => {
+    const primaryFetchSignature = useMemo(() => JSON.stringify({
+        enabled,
+        searchTerm,
+        filterCity,
+        filterContractType,
+        filterBenefits,
+        filterMinSalary,
+        filterDate,
+        filterExperience,
+        enableCommuteFilter,
+        filterMaxDistance,
+        remoteOnly,
+        filterWorkArrangement,
+        globalSearch,
+        abroadOnly,
+        countryCodes,
+        filterLanguageCodes,
+        sortBy,
+        searchMode,
+        discoveryMode: microJobsOnly ? 'micro_jobs' : 'all',
+    }), [
+        abroadOnly,
+        countryCodes,
+        enabled,
+        enableCommuteFilter,
+        filterBenefits,
+        filterCity,
+        filterContractType,
+        filterDate,
+        filterExperience,
+        filterLanguageCodes,
+        filterMaxDistance,
+        filterMinSalary,
+        filterWorkArrangement,
+        globalSearch,
+        microJobsOnly,
+        remoteOnly,
+        searchMode,
+        searchTerm,
+        sortBy,
+    ]);
+
+    const fetchFilteredJobs = useCallback(async (
+        page: number,
+        isLoadMore: boolean = false,
+        options?: { force?: boolean; reason?: string }
+    ) => {
         if (!enabled) {
             if (!isLoadMore) {
                 setLoading(false);
@@ -263,7 +311,17 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         ++latestRequestIdRef.current;
         const requestId = latestRequestIdRef.current;
         const isStaleRequest = () => requestId !== latestRequestIdRef.current || fetchController.signal.aborted;
+        if (!isLoadMore && !options?.force) {
+            if (lastPrimaryFetchSignatureRef.current === primaryFetchSignature) {
+                return;
+            }
+            lastPrimaryFetchSignatureRef.current = primaryFetchSignature;
+        }
         activeFetchControllerRef.current = fetchController;
+        const perfSuffix = isLoadMore ? `load-more:${page}` : (options?.reason || 'primary');
+        const perfStartMark = `discovery:fetch:start:${requestId}:${perfSuffix}`;
+        const perfEndMark = `discovery:fetch:end:${requestId}:${perfSuffix}`;
+        markPerf(perfStartMark);
 
         setLoading(true);
         if (isLoadMore) setLoadingMore(true);
@@ -577,6 +635,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             setBackendUnreachable(looksLikeNetwork);
             // Keep previous results on transient errors to avoid "flash then disappear" behavior.
         } finally {
+            markPerf(perfEndMark);
+            measurePerf(`discovery:fetch:${perfSuffix}`, perfStartMark, perfEndMark);
             if (activeFetchControllerRef.current === fetchController) {
                 activeFetchControllerRef.current = null;
             }
@@ -589,7 +649,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         enabled, initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
         filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, userProfile.preferences?.searchProfile?.defaultMaxDistanceKm, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, sortBy, microJobsOnly, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), filterDismissedJobs, normalizedDefaultDomesticCountries, candidateIntent.primaryDomain, candidateIntent.targetRole, defaultLanguageCodes, remoteOnly, filterWorkArrangement, searchMode, hasExplicitLanguageFilter, marketBaselineCountryCodes, filterSources.enableCommuteFilter
-    ]);
+    , primaryFetchSignature]);
 
 
     // Debounced reload when filters change
@@ -597,13 +657,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         if (!enabled) return;
         if (hasRunFilterEffectRef.current) {
             setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-        }
-        if (hasRunFilterEffectRef.current) {
             pendingHardRefreshRef.current = true;
             setLoading(true);
             setLoadingMore(false);
         }
         hasRunFilterEffectRef.current = true;
+        hasHandledInitialSortFetchRef.current = true;
 
         const timeoutId = setTimeout(() => {
             if (DEBUG_DISCOVERY && Date.now() - lastDebouncedLogAtRef.current > 2_000) {
@@ -611,31 +670,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 lastDebouncedLogAtRef.current = Date.now();
             }
             setCurrentPage(0);
-            fetchFilteredJobs(0, false);
+            fetchFilteredJobs(0, false, { reason: 'filters' });
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [
-        enabled, searchTerm, filterCity, filterContractType, filterBenefits,
-        filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCodes, globalSearch, filterLanguageCodes, abroadOnly, microJobsOnly, remoteOnly,
-        filterWorkArrangement, searchMode, hasExplicitLanguageFilter, filterSources.filterLanguageCodes, filterSources.globalSearch, filterSources.abroadOnly
-    ]);
-
-    // Re-apply sorting when sort option changes
-    useEffect(() => {
-        if (!enabled) return;
-        if (!hasHandledInitialSortFetchRef.current) {
-            hasHandledInitialSortFetchRef.current = true;
-            return;
-        }
-        setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-        pendingHardRefreshRef.current = true;
-        setLoading(true);
-        setLoadingMore(false);
-        setCurrentPage(0);
-        fetchFilteredJobs(0, false);
-    }, [sortBy, fetchFilteredJobs, enabled]);
+    }, [enabled, fetchFilteredJobs, primaryFetchSignature]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
@@ -655,13 +694,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         const normalizedPage = Math.max(0, Number(page) || 0);
         if (normalizedPage === currentPage && jobs.length > 0) return;
         setCurrentPage(normalizedPage);
-        void fetchFilteredJobs(normalizedPage, false);
+        void fetchFilteredJobs(normalizedPage, false, { force: true, reason: 'page' });
     }, [currentPage, fetchFilteredJobs, jobs.length]);
 
     // Initial load
     const loadInitialJobs = useCallback(() => {
         setCurrentPage(0);
-        return fetchFilteredJobs(0, false);
+        return fetchFilteredJobs(0, false, { force: true, reason: 'initial' });
     }, [fetchFilteredJobs]);
 
     useEffect(() => {

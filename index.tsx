@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/browser';
 import App from './App';
 import './index.css';
 import './styles/filter-components.css';
+import { markPerf } from './src/app/perf/perfDebug';
 
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
@@ -105,6 +106,7 @@ if (SENTRY_ENABLED) {
 
 try {
   if (typeof window !== 'undefined') {
+    markPerf('app:bootstrap:start');
     window.addEventListener('vite:preloadError', (event: Event) => {
       event.preventDefault();
       reloadForUpdatedAssets();

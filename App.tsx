@@ -3,21 +3,14 @@ import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import { Job, ViewState, UserProfile, CompanyProfile } from './types';
 
-import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import AppSceneRouter from './components/AppSceneRouter';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
-import CompanyOnboarding from './components/CompanyOnboarding';
-import ApplyFollowupModal from './components/ApplyFollowupModal';
-import CookieBanner from './components/CookieBanner';
-import GuestDiscoveryTourOverlay from './components/GuestDiscoveryTourOverlay';
-import SiteFooter from './components/SiteFooter';
 import { fetchJobsByIds } from './services/jobService';
-import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
+import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
-import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
 import { createJobApplication } from './services/jobApplicationService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
@@ -46,10 +39,8 @@ import {
     resolvePreferredLocale,
 } from './utils/appRouting';
 import { AlertCircle, ArrowUp } from 'lucide-react';
-import PodminkyUziti from './pages/PodminkyUziti';
-import OchranaSoukromi from './pages/OchranaSoukromi';
-import AboutUsPage from './pages/AboutUsPage';
-import SignalBoostPublicPage from './pages/SignalBoostPublicPage';
+import { markPerf, measurePerf, measureSyncPerf } from './src/app/perf/perfDebug';
+import { trackAnalyticsEventDeferred, trackPageViewDeferred } from './services/deferredAnalytics';
 
 type PendingApplyFollowup = {
     jobId: number;
@@ -69,6 +60,7 @@ const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 const SIGNAL_BOOST_PENDING_PREFIX = 'jobshaman_signal_boost_pending:';
 let initialSessionCheckPromise: Promise<void> | null = null;
+const noop = () => {};
 
 const normalizeSavedJobId = (jobId: string): string => {
     const raw = String(jobId || '').trim();
@@ -87,6 +79,15 @@ const CandidateOnboardingModal = lazy(() => import('./components/CandidateOnboar
 const CompanyRegistrationModal = lazy(() => import('./components/CompanyRegistrationModal'));
 const ApplicationModal = lazy(() => import('./components/ApplicationModal'));
 const PremiumUpgradeModal = lazy(() => import('./components/PremiumUpgradeModal'));
+const CompanyOnboarding = lazy(() => import('./components/CompanyOnboarding'));
+const ApplyFollowupModal = lazy(() => import('./components/ApplyFollowupModal'));
+const CookieBanner = lazy(() => import('./components/CookieBanner'));
+const GuestDiscoveryTourOverlay = lazy(() => import('./components/GuestDiscoveryTourOverlay'));
+const SiteFooter = lazy(() => import('./components/SiteFooter'));
+const PodminkyUziti = lazy(() => import('./pages/PodminkyUziti'));
+const OchranaSoukromi = lazy(() => import('./pages/OchranaSoukromi'));
+const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
+const SignalBoostPublicPage = lazy(() => import('./pages/SignalBoostPublicPage'));
 
 type CandidateOnboardingStepKey = 'entry' | 'location' | 'preferences' | 'cv' | 'done';
 
@@ -113,6 +114,11 @@ export default function App() {
         return getSystemTheme();
     });
     useHeaderOffsets();
+
+    useEffect(() => {
+        markPerf('app:bootstrap:end');
+        measurePerf('app:bootstrap', 'app:bootstrap:start', 'app:bootstrap:end');
+    }, []);
 
     const {
         selectedJobId,
@@ -529,7 +535,7 @@ export default function App() {
         reached.forEach(([milestone, done]) => {
             if (!done || activationMilestonesRef.current.has(milestone)) return;
             activationMilestonesRef.current.add(milestone);
-            void trackAnalyticsEvent({
+            void trackAnalyticsEventDeferred({
                 event_type: 'activation_milestone_reached',
                 feature: 'candidate_activation_v1',
                 metadata: {
@@ -541,7 +547,7 @@ export default function App() {
 
         if (candidateActivationState.first_quality_action_at && !timeToValueTrackedRef.current) {
             timeToValueTrackedRef.current = true;
-            void trackAnalyticsEvent({
+            void trackAnalyticsEventDeferred({
                 event_type: 'time_to_value_recorded',
                 feature: 'candidate_activation_v1',
                 metadata: {
@@ -569,7 +575,7 @@ export default function App() {
             if (activationNudgeShownRef.current) return;
             activationNudgeShownRef.current = true;
         }
-        void trackAnalyticsEvent({
+        void trackAnalyticsEventDeferred({
             event_type: 'nudge_shown',
             feature: 'candidate_activation_v1',
             metadata: {
@@ -596,13 +602,8 @@ export default function App() {
         enableCommuteFilter,
         filterBenefits,
         filterContractType,
-        filterDate,
         filterExperience,
         filterLanguageCodes,
-        hasExplicitLanguageFilter,
-        enableAutoLanguageGuard,
-        setEnableAutoLanguageGuard,
-        implicitLanguageCodesApplied,
         filterMinSalary,
         savedJobIds,
         setSavedJobIds,
@@ -610,7 +611,6 @@ export default function App() {
         setFilterCity,
         setFilterBenefits,
         setFilterContractType,
-        setFilterDate,
         setFilterExperience,
         setFilterLanguageCodes,
         setFilterMaxDistance,
@@ -618,19 +618,14 @@ export default function App() {
         setFilterMinSalary,
         filterWorkArrangement,
         setFilterWorkArrangement,
-        toggleBenefitFilter,
-        toggleContractTypeFilter,
         globalSearch,
         abroadOnly,
-        countryCodes,
-        setCountryCodes,
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
         currentPage,
         pageSize,
         applyInteractionState,
-        searchMode,
         searchDiagnostics,
     } = useMarketplaceDiscovery({
         effectiveUserProfile,
@@ -677,7 +672,7 @@ export default function App() {
         [jhiPrefsKey]
     );
 
-    const jobsForDisplay = useMemo(() => {
+    const jobsForDisplay = useMemo(() => measureSyncPerf('app:jobs-for-display', () => {
         const prevCache = jhiCacheRef.current;
         const nextCache = new Map<string, { key: string; jhi: any }>();
         const personalized = filteredJobs.map((job) => {
@@ -732,7 +727,7 @@ export default function App() {
             return [...scopedJobs].sort((a, b) => toMonthly(b) - toMonthly(a));
         }
         return scopedJobs;
-    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey, discoveryMode]);
+    }), [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey, discoveryMode]);
     const deferredJobsForDisplay = useDeferredValue(jobsForDisplay);
     const benefitCandidates = useMemo(
         () =>
@@ -1405,7 +1400,7 @@ export default function App() {
             if (lastTrackedPathRef.current === path) return;
             lastTrackedPathRef.current = path;
 
-            trackPageView({
+            void trackPageViewDeferred({
                 path: window.location.pathname,
                 title: document.title,
                 viewState,
@@ -1434,13 +1429,22 @@ export default function App() {
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
 
-        const selectedBlogPost = initialBlogPosts.find(p => p.slug === selectedBlogPostSlug);
-        const metadata = generateSEOMetadata(
-            pageName,
-            t,
-            selectedBlogPostSlug ? selectedBlogPost : selectedJob
-        );
-        updatePageMeta(metadata);
+        if (!selectedBlogPostSlug) {
+            const metadata = generateSEOMetadata(pageName, t, selectedJob);
+            updatePageMeta(metadata);
+            return;
+        }
+
+        let cancelled = false;
+        void import('./src/data/blogPosts').then(({ initialBlogPosts }) => {
+            if (cancelled) return;
+            const selectedBlogPost = initialBlogPosts.find((post) => post.slug === selectedBlogPostSlug);
+            const metadata = generateSEOMetadata(pageName, t, selectedBlogPost || selectedJob);
+            updatePageMeta(metadata);
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t, normalizedPath]);
 
     useEffect(() => {
@@ -1592,7 +1596,7 @@ export default function App() {
         void updateUserProfile(userProfile.id, { preferences: nextProfile.preferences }).catch((error) => {
             console.warn('Failed to persist quality action milestone:', error);
         });
-        void trackAnalyticsEvent({
+        void trackAnalyticsEventDeferred({
             event_type: 'activation_milestone_reached',
             feature: 'candidate_activation_v1',
             metadata: {
@@ -1915,16 +1919,32 @@ export default function App() {
 
     const standalonePageNode = useMemo(() => {
         if (normalizedPath === '/terms' || normalizedPath === '/podminky-uziti') {
-            return <PodminkyUziti />;
+            return (
+                <Suspense fallback={null}>
+                    <PodminkyUziti />
+                </Suspense>
+            );
         }
         if (normalizedPath === '/privacy-policy' || normalizedPath === '/ochrana-osobnich-udaju') {
-            return <OchranaSoukromi />;
+            return (
+                <Suspense fallback={null}>
+                    <OchranaSoukromi />
+                </Suspense>
+            );
         }
         if (normalizedPath === '/about' || normalizedPath === '/about-us') {
-            return <AboutUsPage />;
+            return (
+                <Suspense fallback={null}>
+                    <AboutUsPage />
+                </Suspense>
+            );
         }
         if (normalizedPath.startsWith('/signal/')) {
-            return <SignalBoostPublicPage />;
+            return (
+                <Suspense fallback={null}>
+                    <SignalBoostPublicPage />
+                </Suspense>
+            );
         }
         return null;
     }, [normalizedPath]);
@@ -1937,6 +1957,173 @@ export default function App() {
         && !selectedCompanyId
         && !isBlogOpen
         && !showCompanyLanding;
+
+    const sessionSceneState = useMemo(() => ({
+        viewState,
+        theme,
+        vercelAnalyticsEnabled,
+        userProfile,
+        companyProfile,
+        selectedCompanyId,
+        selectedJobId,
+        selectedBlogPostSlug,
+        showCompanyLanding,
+        isBlogOpen,
+        selectedJob,
+        candidateActivationState,
+        activationNextStep,
+    }), [
+        activationNextStep,
+        candidateActivationState,
+        companyProfile,
+        isBlogOpen,
+        selectedBlogPostSlug,
+        selectedCompanyId,
+        selectedJob,
+        selectedJobId,
+        showCompanyLanding,
+        theme,
+        userProfile,
+        vercelAnalyticsEnabled,
+        viewState,
+    ]);
+
+    const discoverySceneState = useMemo(() => ({
+        jobsForDisplay: deferredJobsForDisplay,
+        resolvedSavedJobs: deferredResolvedSavedJobs,
+        savedJobIds,
+        savedJobsSearchTerm,
+        isLoadingJobs,
+        loadingMore,
+        hasMore,
+        totalCount,
+        currentPage,
+        pageSize,
+        searchTerm,
+        filterCity,
+        filterMinSalary,
+        filterBenefits,
+        remoteOnly: challengeRemoteOnly,
+        filterWorkArrangement,
+        globalSearch,
+        abroadOnly,
+        enableCommuteFilter,
+        filterMaxDistance,
+        filterContractType,
+        filterExperience,
+        filterLanguageCodes,
+        discoveryLane,
+        discoveryMode,
+        searchDiagnostics,
+    }), [
+        abroadOnly,
+        challengeRemoteOnly,
+        currentPage,
+        deferredJobsForDisplay,
+        deferredResolvedSavedJobs,
+        discoveryLane,
+        discoveryMode,
+        enableCommuteFilter,
+        filterBenefits,
+        filterCity,
+        filterContractType,
+        filterExperience,
+        filterLanguageCodes,
+        filterMaxDistance,
+        filterMinSalary,
+        filterWorkArrangement,
+        globalSearch,
+        hasMore,
+        isLoadingJobs,
+        loadingMore,
+        pageSize,
+        savedJobIds,
+        savedJobsSearchTerm,
+        searchDiagnostics,
+        searchTerm,
+        totalCount,
+    ]);
+
+    const sceneActions = useMemo(() => ({
+        onDeleteAccount: deleteAccount,
+        onSignOut: signOut,
+        onSetCompanyProfile: setCompanyProfile,
+        onSetViewState: setViewState,
+        onProfileUpdate: handleProfileUpdate,
+        onProfileSave: handleProfileSave,
+        onRefreshProfile: refreshUserProfile,
+        onToggleSave: handleToggleSave,
+        onApplyToJob: handleApplyToJob,
+        onSavedJobsSearchChange: setSavedJobsSearchTerm,
+        onSetBlogOpen: setIsBlogOpen,
+        onSetSelectedBlogPostSlug: setSelectedBlogPostSlug,
+        onSetSelectedJobId: setSelectedJobId,
+        onSetSelectedCompanyId: setSelectedCompanyId,
+        onSetShowCompanyLanding: setShowCompanyLanding,
+        onSetCompanyRegistrationOpen: setIsCompanyRegistrationOpen,
+        onSetApplyModalOpen: setIsApplyModalOpen,
+        onSetShowCandidateOnboarding: ONBOARDING_ENABLED ? setShowCandidateOnboarding : noop,
+        onOpenAuth: handleAuthAction,
+        onHandleCompanyPageSelect: handleCompanyPageSelect,
+        onHandleJobSelect: handleJobSelect,
+        onLoadMoreJobs: loadMoreJobs,
+        onGoToJobsPage: goToPage,
+        onSetDiscoveryLane: setDiscoveryLane,
+        onSetDiscoveryMode: setDiscoveryMode,
+        onPerformSearch: performSearch,
+        onSetFilterCity: setFilterCity,
+        onSetFilterMinSalary: setFilterMinSalary,
+        onSetFilterBenefits: setFilterBenefits,
+        onSetRemoteOnly: setChallengeRemoteOnly,
+        onSetFilterWorkArrangement: setFilterWorkArrangement,
+        onSetGlobalSearch: setGlobalSearch,
+        onSetAbroadOnly: setAbroadOnly,
+        onSetEnableCommuteFilter: setEnableCommuteFilter,
+        onSetFilterMaxDistance: setFilterMaxDistance,
+        onSetFilterContractType: setFilterContractType,
+        onSetFilterExperience: setFilterExperience,
+        onSetFilterLanguageCodes: setFilterLanguageCodes,
+        onSetSearchTerm: setSearchTerm,
+    }), [
+        deleteAccount,
+        goToPage,
+        handleApplyToJob,
+        handleAuthAction,
+        handleCompanyPageSelect,
+        handleJobSelect,
+        handleProfileSave,
+        handleProfileUpdate,
+        handleToggleSave,
+        loadMoreJobs,
+        refreshUserProfile,
+        setAbroadOnly,
+        setChallengeRemoteOnly,
+        setCompanyProfile,
+        setDiscoveryLane,
+        setDiscoveryMode,
+        setEnableCommuteFilter,
+        setFilterBenefits,
+        setFilterCity,
+        setFilterContractType,
+        setFilterExperience,
+        setFilterLanguageCodes,
+        setFilterMaxDistance,
+        setFilterMinSalary,
+        setFilterWorkArrangement,
+        setGlobalSearch,
+        setIsApplyModalOpen,
+        setIsBlogOpen,
+        setIsCompanyRegistrationOpen,
+        setSavedJobsSearchTerm,
+        setSearchTerm,
+        setSelectedBlogPostSlug,
+        setSelectedCompanyId,
+        setSelectedJobId,
+        setShowCompanyLanding,
+        setShowCandidateOnboarding,
+        setViewState,
+        signOut,
+    ]);
 
     const bannerNode = !isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation ? (
         <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-5 lg:px-6">
@@ -1977,97 +2164,9 @@ export default function App() {
         >
             <AppSceneRouter
                 normalizedPath={normalizedPath}
-                viewState={viewState}
-                theme={theme}
-                vercelAnalyticsEnabled={vercelAnalyticsEnabled}
-                userProfile={userProfile}
-                companyProfile={companyProfile}
-                selectedCompanyId={selectedCompanyId}
-                selectedJobId={selectedJobId}
-                selectedBlogPostSlug={selectedBlogPostSlug}
-                showCompanyLanding={showCompanyLanding}
-                isBlogOpen={isBlogOpen}
-                jobsForDisplay={deferredJobsForDisplay}
-                selectedJob={selectedJob}
-                resolvedSavedJobs={deferredResolvedSavedJobs}
-                savedJobIds={savedJobIds}
-                savedJobsSearchTerm={savedJobsSearchTerm}
-                isLoadingJobs={isLoadingJobs}
-                loadingMore={loadingMore}
-                hasMore={hasMore}
-                totalCount={totalCount}
-                currentPage={currentPage}
-                pageSize={pageSize}
-                searchTerm={searchTerm}
-                filterCity={filterCity}
-                filterMinSalary={filterMinSalary}
-                filterBenefits={filterBenefits}
-                remoteOnly={challengeRemoteOnly}
-                filterWorkArrangement={filterWorkArrangement}
-                globalSearch={globalSearch}
-                abroadOnly={abroadOnly}
-                countryCodes={countryCodes}
-                enableCommuteFilter={enableCommuteFilter}
-                filterMaxDistance={filterMaxDistance}
-                filterContractType={filterContractType}
-                filterDate={filterDate}
-                filterExperience={filterExperience}
-                filterLanguageCodes={filterLanguageCodes}
-                hasExplicitLanguageFilter={hasExplicitLanguageFilter}
-                enableAutoLanguageGuard={enableAutoLanguageGuard}
-                implicitLanguageCodesApplied={implicitLanguageCodesApplied}
-                discoveryLane={discoveryLane}
-                discoveryMode={discoveryMode}
-                searchDiagnostics={searchDiagnostics}
-                candidateActivationState={candidateActivationState}
-                activationNextStep={activationNextStep}
-                applyInteractionState={applyInteractionState}
-                onDeleteAccount={deleteAccount}
-                onSignOut={signOut}
-                onSetCompanyProfile={setCompanyProfile}
-                onSetViewState={setViewState}
-                onProfileUpdate={handleProfileUpdate}
-                onProfileSave={handleProfileSave}
-                onRefreshProfile={refreshUserProfile}
-                onToggleSave={handleToggleSave}
-                onApplyToJob={handleApplyToJob}
-                onSavedJobsSearchChange={setSavedJobsSearchTerm}
-                onSetBlogOpen={setIsBlogOpen}
-                onSetSelectedBlogPostSlug={setSelectedBlogPostSlug}
-                onSetSelectedJobId={setSelectedJobId}
-                onSetSelectedCompanyId={setSelectedCompanyId}
-                onSetShowCompanyLanding={setShowCompanyLanding}
-                onSetCompanyRegistrationOpen={setIsCompanyRegistrationOpen}
-                onSetApplyModalOpen={setIsApplyModalOpen}
-                onSetShowCandidateOnboarding={ONBOARDING_ENABLED ? setShowCandidateOnboarding : () => {}}
-                onOpenAuth={handleAuthAction}
-                onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
-                onHandleCompanyPageSelect={handleCompanyPageSelect}
-                onHandleJobSelect={handleJobSelect}
-                onLoadMoreJobs={loadMoreJobs}
-                onGoToJobsPage={goToPage}
-                onSetDiscoveryLane={setDiscoveryLane}
-                onSetDiscoveryMode={setDiscoveryMode}
-                onSetSearchTerm={setSearchTerm}
-                onPerformSearch={performSearch}
-                onSetFilterCity={setFilterCity}
-                onSetFilterMinSalary={setFilterMinSalary}
-                onSetFilterBenefits={setFilterBenefits}
-                onToggleBenefitFilter={toggleBenefitFilter}
-                onSetRemoteOnly={setChallengeRemoteOnly}
-                onSetFilterWorkArrangement={setFilterWorkArrangement}
-                onSetGlobalSearch={setGlobalSearch}
-                onSetAbroadOnly={setAbroadOnly}
-                onSetCountryCodes={setCountryCodes}
-                onSetEnableCommuteFilter={setEnableCommuteFilter}
-                onSetFilterMaxDistance={setFilterMaxDistance}
-                onSetFilterContractType={setFilterContractType}
-                onToggleContractTypeFilter={toggleContractTypeFilter}
-                onSetFilterDate={setFilterDate}
-                onSetFilterExperience={setFilterExperience}
-                onSetFilterLanguageCodes={setFilterLanguageCodes}
-                onSetEnableAutoLanguageGuard={setEnableAutoLanguageGuard}
-                searchMode={searchMode}
+                sessionState={sessionSceneState}
+                discoveryState={discoverySceneState}
+                sceneActions={sceneActions}
                 getLocalePrefix={getLocalePrefix}
                 onboardingDismissedRef={onboardingDismissedRef}
             />
@@ -2132,7 +2231,7 @@ export default function App() {
                         setViewState(ViewState.PROFILE);
                     }}
                     onStepViewed={(step) => {
-                        void trackAnalyticsEvent({
+                        void trackAnalyticsEventDeferred({
                             event_type: 'onboarding_step_viewed',
                             feature: 'candidate_activation_v1',
                             metadata: {
@@ -2142,7 +2241,7 @@ export default function App() {
                         });
                     }}
                     onStepCompleted={(step) => {
-                        void trackAnalyticsEvent({
+                        void trackAnalyticsEventDeferred({
                             event_type: 'onboarding_step_completed',
                             feature: 'candidate_activation_v1',
                             metadata: {
@@ -2158,14 +2257,16 @@ export default function App() {
             </Suspense>
             ) : null}
 
-            <ApplyFollowupModal
-                isOpen={showApplyFollowup}
-                jobTitle={applyFollowup?.title}
-                company={applyFollowup?.company}
-                onConfirm={() => handleApplyFollowupAnswer(true)}
-                onReject={() => handleApplyFollowupAnswer(false)}
-                onLater={handleApplyFollowupLater}
-            />
+            <Suspense fallback={null}>
+                <ApplyFollowupModal
+                    isOpen={showApplyFollowup}
+                    jobTitle={applyFollowup?.title}
+                    company={applyFollowup?.company}
+                    onConfirm={() => handleApplyFollowupAnswer(true)}
+                    onReject={() => handleApplyFollowupAnswer(false)}
+                    onLater={handleApplyFollowupLater}
+                />
+            </Suspense>
 
             <Suspense fallback={null}>
                 <PremiumUpgradeModal
@@ -2219,14 +2320,16 @@ export default function App() {
                 />
             </Suspense>
             {ONBOARDING_ENABLED && isOnboardingCompany && userProfile.id && (
-                <CompanyOnboarding
-                    userId={userProfile.id}
-                    onComplete={handleCompanyOnboardingComplete}
-                    onCancel={() => {
-                        setIsOnboardingCompany(false);
-                        setViewState(ViewState.LIST);
-                    }}
-                />
+                <Suspense fallback={null}>
+                    <CompanyOnboarding
+                        userId={userProfile.id}
+                        onComplete={handleCompanyOnboardingComplete}
+                        onCancel={() => {
+                            setIsOnboardingCompany(false);
+                            setViewState(ViewState.LIST);
+                        }}
+                    />
+                </Suspense>
             )}
 
             {selectedJob && (
@@ -2241,19 +2344,23 @@ export default function App() {
             )}
 
             {showCookieBanner && (
-                <CookieBanner
-                    onAccept={handleCookieAccept}
-                    onCustomize={handleCookieCustomize}
-                />
+                <Suspense fallback={null}>
+                    <CookieBanner
+                        onAccept={handleCookieAccept}
+                        onCustomize={handleCookieCustomize}
+                    />
+                </Suspense>
             )}
 
-            <GuestDiscoveryTourOverlay
-                open={showGuestDiscoveryTour}
-                steps={guestDiscoveryTourSteps}
-                labels={guestDiscoveryTourLabels}
-                onSkip={completeGuestDiscoveryTour}
-                onComplete={completeGuestDiscoveryTour}
-            />
+            <Suspense fallback={null}>
+                <GuestDiscoveryTourOverlay
+                    open={showGuestDiscoveryTour}
+                    steps={guestDiscoveryTourSteps}
+                    labels={guestDiscoveryTourLabels}
+                    onSkip={completeGuestDiscoveryTour}
+                    onComplete={completeGuestDiscoveryTour}
+                />
+            </Suspense>
         </>
     );
 
@@ -2264,7 +2371,13 @@ export default function App() {
             header={headerNode}
             banner={isPrimaryCareerOSHome || isStandaloneRoute ? null : bannerNode}
             scene={standalonePageNode ?? sceneNode}
-            footer={!isImmersiveAssessmentRoute && !isPrimaryCareerOSHome ? <SiteFooter /> : null}
+            footer={
+                !isImmersiveAssessmentRoute && !isPrimaryCareerOSHome ? (
+                    <Suspense fallback={null}>
+                        <SiteFooter />
+                    </Suspense>
+                ) : null
+            }
             floatingAction={isPrimaryCareerOSHome ? null : floatingActionNode}
             overlays={overlayNodes}
         />

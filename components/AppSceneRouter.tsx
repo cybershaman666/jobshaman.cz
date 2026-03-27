@@ -1,19 +1,13 @@
-import { lazy, Suspense, useCallback, useMemo, useState, type MutableRefObject } from 'react';
+import { lazy, memo, Suspense, useCallback, useMemo, useState, type MutableRefObject } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 
-import { CompanyProfile, DiscoveryFilterSource, Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, SearchMode, UserProfile, ViewState } from '../types';
-import PodminkyUziti from '../pages/PodminkyUziti';
-import OchranaSoukromi from '../pages/OchranaSoukromi';
-import EnterpriseSignup from './EnterpriseSignup';
+import { CompanyProfile, DiscoveryFilterSource, Job, JobWorkArrangementFilter, SearchDiagnosticsMeta, SearchLanguageCode, UserProfile, ViewState } from '../types';
 import CandidateActivationRail from './CandidateActivationRail';
-import BlogSection from './BlogSection';
 import CareerOSCandidateWorkspace, { type CareerOSNavigationState } from './careeros/CareerOSCandidateWorkspace';
 import { mapJcfpmToJhiPreferencesWithExplanation } from '../services/jcfpmService';
 import { createDefaultJHIPreferences } from '../services/profileDefaults';
-import { trackAnalyticsEvent } from '../services/supabaseService';
+import { trackAnalyticsEventDeferred } from '../services/deferredAnalytics';
 import { isActivationComplete } from '../services/candidateActivationService';
-import ChallengeDetailPage from '../src/pages/challenge-detail/ChallengeDetailPage';
-import CompanySpacePage from '../src/pages/company-space/CompanySpacePage';
 
 const CompanyDashboard = lazy(() => import('./CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./CompanyLandingPage'));
@@ -26,9 +20,12 @@ const DemoCompanyHandshakePage = lazy(() => import('../pages/DemoCompanyHandshak
 const DemoSolarpunkPark = lazy(() => import('../pages/DemoSolarpunkPark'));
 const JcfpmFlow = lazy(() => import('./jcfpm/JcfpmFlow'));
 const ProfileEditor = lazy(() => import('./ProfileEditor'));
+const BlogSection = lazy(() => import('./BlogSection'));
+const ChallengeDetailPage = lazy(() => import('../src/pages/challenge-detail/ChallengeDetailPage'));
+const CompanySpacePage = lazy(() => import('../src/pages/company-space/CompanySpacePage'));
+const EnterpriseSignup = lazy(() => import('./EnterpriseSignup'));
 
-type AppSceneRouterProps = {
-    normalizedPath: string;
+export interface SessionSceneState {
     viewState: ViewState;
     theme: 'light' | 'dark';
     vercelAnalyticsEnabled: boolean;
@@ -39,8 +36,13 @@ type AppSceneRouterProps = {
     selectedBlogPostSlug: string | null;
     showCompanyLanding: boolean;
     isBlogOpen: boolean;
-    jobsForDisplay: Job[];
     selectedJob: Job | null;
+    candidateActivationState: any;
+    activationNextStep: string;
+}
+
+export interface DiscoverySceneState {
+    jobsForDisplay: Job[];
     resolvedSavedJobs: Job[];
     savedJobIds: string[];
     savedJobsSearchTerm: string;
@@ -58,22 +60,17 @@ type AppSceneRouterProps = {
     filterWorkArrangement: JobWorkArrangementFilter;
     globalSearch: boolean;
     abroadOnly: boolean;
-    countryCodes: string[];
     enableCommuteFilter: boolean;
     filterMaxDistance: number;
     filterContractType: string[];
-    filterDate: string;
     filterExperience: string[];
     filterLanguageCodes: SearchLanguageCode[];
-    hasExplicitLanguageFilter: boolean;
-    enableAutoLanguageGuard: boolean;
-    implicitLanguageCodesApplied: string[];
     discoveryLane: 'challenges' | 'imports';
     discoveryMode: 'all' | 'micro_jobs';
     searchDiagnostics: SearchDiagnosticsMeta | null;
-    candidateActivationState: any;
-    activationNextStep: string;
-    applyInteractionState: (jobId: string, state: 'swipe_left' | 'swipe_right' | 'save' | 'unsave') => void;
+}
+
+export interface SceneActions {
     onDeleteAccount: () => Promise<boolean>;
     onSignOut: () => Promise<void>;
     onSetCompanyProfile: (profile: CompanyProfile | null) => void;
@@ -93,121 +90,129 @@ type AppSceneRouterProps = {
     onSetApplyModalOpen: (value: boolean) => void;
     onSetShowCandidateOnboarding: (value: boolean) => void;
     onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
-    onOpenPremium: (featureLabel?: string) => void;
     onHandleCompanyPageSelect: (companyId: string | null) => void;
     onHandleJobSelect: (jobId: string | null) => void;
     onLoadMoreJobs: () => void;
     onGoToJobsPage: (page: number) => void;
     onSetDiscoveryLane: (lane: 'challenges' | 'imports') => void;
     onSetDiscoveryMode: (mode: 'all' | 'micro_jobs') => void;
-    onSetSearchTerm: (value: string, source?: DiscoveryFilterSource) => void;
-    onApplyDiscoveryDefaults?: () => void;
     onPerformSearch: (term: string) => void;
-    onSetFilterCity: (value: string) => void;
-    onSetFilterMinSalary: (value: number) => void;
-    onSetFilterBenefits: (benefits: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
-    onToggleBenefitFilter: (benefit: string) => void;
+    onSetFilterCity: (value: string, source?: DiscoveryFilterSource) => void;
+    onSetFilterMinSalary: (value: number, source?: DiscoveryFilterSource) => void;
+    onSetFilterBenefits: (benefits: string[], source?: DiscoveryFilterSource) => void;
     onSetRemoteOnly: (value: boolean) => void;
     onSetFilterWorkArrangement: (value: JobWorkArrangementFilter, source?: DiscoveryFilterSource) => void;
-    onSetGlobalSearch: (value: boolean) => void;
-    onSetAbroadOnly: (value: boolean) => void;
-    onSetCountryCodes: (value: string[] | ((prev: string[]) => string[])) => void;
-    onSetEnableCommuteFilter: (value: boolean) => void;
+    onSetGlobalSearch: (value: boolean, source?: DiscoveryFilterSource) => void;
+    onSetAbroadOnly: (value: boolean, source?: DiscoveryFilterSource) => void;
+    onSetEnableCommuteFilter: (value: boolean, source?: DiscoveryFilterSource) => void;
     onSetFilterMaxDistance: (value: number, source?: DiscoveryFilterSource) => void;
-    onSetFilterContractType: (types: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
-    onToggleContractTypeFilter: (type: string) => void;
-    onSetFilterDate: (value: string) => void;
-    onSetFilterExperience: (values: string[] | ((prev: string[]) => string[]), source?: DiscoveryFilterSource) => void;
-    onSetFilterLanguageCodes: (values: SearchLanguageCode[] | ((prev: SearchLanguageCode[]) => SearchLanguageCode[]), source?: DiscoveryFilterSource) => void;
-    onSetEnableAutoLanguageGuard: (value: boolean) => void;
-    searchMode: SearchMode;
+    onSetFilterContractType: (values: string[], source?: DiscoveryFilterSource) => void;
+    onSetFilterExperience: (values: string[], source?: DiscoveryFilterSource) => void;
+    onSetFilterLanguageCodes: (values: SearchLanguageCode[], source?: DiscoveryFilterSource) => void;
+    onSetSearchTerm: (value: string, source?: DiscoveryFilterSource) => void;
+}
+
+type AppSceneRouterProps = {
+    normalizedPath: string;
+    sessionState: SessionSceneState;
+    discoveryState: DiscoverySceneState;
+    sceneActions: SceneActions;
     getLocalePrefix: () => string;
     onboardingDismissedRef: MutableRefObject<boolean>;
 };
 
-export default function AppSceneRouter({
+const AppSceneRouter = memo(function AppSceneRouter({
     normalizedPath,
-    viewState,
-    theme,
-    vercelAnalyticsEnabled,
-    userProfile,
-    companyProfile,
-    selectedCompanyId,
-    selectedJobId,
-    selectedBlogPostSlug,
-    showCompanyLanding,
-    isBlogOpen,
-    jobsForDisplay,
-    selectedJob,
-    resolvedSavedJobs,
-    savedJobIds,
-    savedJobsSearchTerm,
-    isLoadingJobs,
-    loadingMore,
-    hasMore,
-    currentPage,
-    pageSize,
-    totalCount,
-    searchTerm,
-    filterCity,
-    filterMinSalary,
-    filterBenefits,
-    remoteOnly,
-    filterWorkArrangement,
-    globalSearch,
-    abroadOnly,
-    enableCommuteFilter,
-    filterMaxDistance,
-    filterContractType,
-    filterExperience,
-    filterLanguageCodes,
-    discoveryLane,
-    discoveryMode,
-    searchDiagnostics,
-    candidateActivationState,
-    activationNextStep,
-    onDeleteAccount,
-    onSignOut,
-    onSetCompanyProfile,
-    onSetViewState,
-    onProfileUpdate,
-    onProfileSave,
-    onRefreshProfile,
-    onToggleSave,
-    onApplyToJob,
-    onSavedJobsSearchChange,
-    onSetBlogOpen,
-    onSetSelectedBlogPostSlug,
-    onSetSelectedJobId,
-    onSetSelectedCompanyId,
-    onSetShowCompanyLanding,
-    onSetCompanyRegistrationOpen,
-    onSetApplyModalOpen,
-    onSetShowCandidateOnboarding,
-    onOpenAuth,
-    onHandleCompanyPageSelect,
-    onHandleJobSelect,
-    onLoadMoreJobs,
-    onGoToJobsPage,
-    onSetDiscoveryLane,
-    onSetDiscoveryMode,
-    onSetSearchTerm,
-    onPerformSearch,
-    onSetFilterCity,
-    onSetFilterMinSalary,
-    onSetFilterBenefits,
-    onSetRemoteOnly,
-    onSetFilterWorkArrangement,
-    onSetGlobalSearch,
-    onSetAbroadOnly,
-    onSetEnableCommuteFilter,
-    onSetFilterMaxDistance,
-    onSetFilterContractType,
-    onSetFilterExperience,
-    onSetFilterLanguageCodes,
+    sessionState,
+    discoveryState,
+    sceneActions,
     getLocalePrefix,
     onboardingDismissedRef,
 }: AppSceneRouterProps) {
+    const {
+        viewState,
+        theme,
+        vercelAnalyticsEnabled,
+        userProfile,
+        companyProfile,
+        selectedCompanyId,
+        selectedJobId,
+        selectedBlogPostSlug,
+        showCompanyLanding,
+        isBlogOpen,
+        selectedJob,
+        candidateActivationState,
+        activationNextStep,
+    } = sessionState;
+    const {
+        jobsForDisplay,
+        resolvedSavedJobs,
+        savedJobIds,
+        savedJobsSearchTerm,
+        isLoadingJobs,
+        loadingMore,
+        hasMore,
+        totalCount,
+        currentPage,
+        pageSize,
+        searchTerm,
+        filterCity,
+        filterMinSalary,
+        filterBenefits,
+        remoteOnly,
+        filterWorkArrangement,
+        globalSearch,
+        abroadOnly,
+        enableCommuteFilter,
+        filterMaxDistance,
+        filterContractType,
+        filterExperience,
+        filterLanguageCodes,
+        discoveryLane,
+        discoveryMode,
+        searchDiagnostics,
+    } = discoveryState;
+    const {
+        onDeleteAccount,
+        onSignOut,
+        onSetCompanyProfile,
+        onSetViewState,
+        onProfileUpdate,
+        onProfileSave,
+        onRefreshProfile,
+        onToggleSave,
+        onApplyToJob,
+        onSavedJobsSearchChange,
+        onSetBlogOpen,
+        onSetSelectedBlogPostSlug,
+        onSetSelectedJobId,
+        onSetSelectedCompanyId,
+        onSetShowCompanyLanding,
+        onSetCompanyRegistrationOpen,
+        onSetApplyModalOpen,
+        onSetShowCandidateOnboarding,
+        onOpenAuth,
+        onHandleCompanyPageSelect,
+        onHandleJobSelect,
+        onLoadMoreJobs,
+        onGoToJobsPage,
+        onSetDiscoveryLane,
+        onSetDiscoveryMode,
+        onPerformSearch,
+        onSetFilterCity,
+        onSetFilterMinSalary,
+        onSetFilterBenefits,
+        onSetRemoteOnly,
+        onSetFilterWorkArrangement,
+        onSetGlobalSearch,
+        onSetAbroadOnly,
+        onSetEnableCommuteFilter,
+        onSetFilterMaxDistance,
+        onSetFilterContractType,
+        onSetFilterExperience,
+        onSetFilterLanguageCodes,
+        onSetSearchTerm,
+    } = sceneActions;
     const [careerOSNavigationState, setCareerOSNavigationState] = useState<CareerOSNavigationState | null>(null);
     const handleCareerOSFilterBenefits = useCallback((benefits: string[]) => {
         onSetFilterBenefits(benefits, 'user_toggle');
@@ -243,6 +248,11 @@ export default function AppSceneRouter({
     const handleCareerOSOpenProfile = useCallback(() => {
         onSetViewState(ViewState.PROFILE);
     }, [onSetViewState]);
+    const nativeChallenges = useMemo(
+        () => jobsForDisplay.filter((job) => job.listingKind !== 'imported'),
+        [jobsForDisplay],
+    );
+    const hasNativeChallenges = nativeChallenges.length > 0;
 
     if (normalizedPath === '/admin') {
         return (
@@ -281,7 +291,7 @@ export default function AppSceneRouter({
                                 jhiPreferences: mapped.preferences,
                             };
                             await onProfileUpdate(updatedProfile, true);
-                            void trackAnalyticsEvent({
+                            void trackAnalyticsEventDeferred({
                                 event_type: 'jcfpm_profile_saved',
                                 feature: 'jcfpm_v1',
                                 metadata: {
@@ -367,24 +377,10 @@ export default function AppSceneRouter({
             </div>
         );
     }
-    if (normalizedPath === '/podminky-uziti') {
-        return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                <PodminkyUziti />
-            </div>
-        );
-    }
     if (normalizedPath === '/enterprise') {
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
                 <EnterpriseSignup />
-            </div>
-        );
-    }
-    if (normalizedPath === '/ochrana-osobnich-udaju') {
-        return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                <OchranaSoukromi />
             </div>
         );
     }
@@ -434,7 +430,7 @@ export default function AppSceneRouter({
                                 onContinue={() => {
                                     onboardingDismissedRef.current = false;
                                     onSetShowCandidateOnboarding(true);
-                                    void trackAnalyticsEvent({
+                                    void trackAnalyticsEventDeferred({
                                         event_type: 'nudge_clicked',
                                         feature: 'candidate_activation_v1',
                                         metadata: { source: 'profile_rail', next_step: activationNextStep },
@@ -492,12 +488,6 @@ export default function AppSceneRouter({
             </div>
         );
     }
-
-    const nativeChallenges = useMemo(
-        () => jobsForDisplay.filter((job) => job.listingKind !== 'imported'),
-        [jobsForDisplay],
-    );
-    const hasNativeChallenges = nativeChallenges.length > 0;
 
     return (
         <>
@@ -597,4 +587,6 @@ export default function AppSceneRouter({
             </div>
         </>
     );
-}
+});
+
+export default AppSceneRouter;
