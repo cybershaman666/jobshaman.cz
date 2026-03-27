@@ -2735,8 +2735,13 @@ const warnHybridFallbackThrottled = (error: unknown): void => {
         dedupeKey: 'hybrid_unavailable',
         throttleMs: 15_000
     });
+    const fallbackReason = String((error as any)?.code || '').toLowerCase();
     if (isTimeout) {
         console.info('Hybrid search was slow, using RPC filters for this request.');
+        return;
+    }
+    if (fallbackReason === 'empty_page_fallback') {
+        console.info('Hybrid bridge returned an empty next page, using RPC filters for this request.');
         return;
     }
     console.warn('Hybrid search unavailable, falling back to RPC filters:', error);
@@ -4064,6 +4069,19 @@ export const fetchJobsWithFilters = async (
                     hasMore: !!hybridPayload.has_more,
                     totalCount: Number(hybridPayload.total_count || processedJobs.length)
                 }));
+                const shouldFallbackSuspiciousEmptyPage =
+                    page > 0 &&
+                    !safeSearchTerm &&
+                    !normalizedFilterCity &&
+                    backendMetaFallback === 'jobs_postgres_v1_bridge' &&
+                    hybridResult.jobs.length === 0 &&
+                    hasSupabaseSearchFallback &&
+                    !!supabase;
+                if (shouldFallbackSuspiciousEmptyPage) {
+                    const emptyPageError = new Error('Hybrid bridge returned an empty next page');
+                    (emptyPageError as any).code = 'empty_page_fallback';
+                    throw emptyPageError;
+                }
                 const shouldRetrySparseRadiusBrowse =
                     safeRadiusKm !== null &&
                     page === 0 &&
