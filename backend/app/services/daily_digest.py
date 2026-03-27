@@ -24,6 +24,7 @@ _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
 _DIGEST_LOOKBACK_HOURS = 36
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
+_HYBRID_FLAGS = ["hybrid", "kombin", "remote + onsite", "onsite + remote"]
 _PROCESS_DIGEST_LAST_SENT_AT: dict[str, str] = {}
 _TIMEZONE_TO_COUNTRY = {
     "Europe/Prague": "CZ",
@@ -45,6 +46,14 @@ _LANGUAGE_FALLBACK_BY_LOCALE = {
     "pl": {"pl"},
     "de": {"de"},
     "en": {"en"},
+}
+_SUPPORTED_SEARCH_LANGUAGE_CODES = {"cs", "sk", "en", "de", "pl"}
+_COUNTRY_NEIGHBORS = {
+    "CZ": {"SK", "PL", "DE", "AT"},
+    "SK": {"CZ", "PL", "AT"},
+    "PL": {"CZ", "SK", "DE"},
+    "DE": {"CZ", "AT", "PL"},
+    "AT": {"CZ", "SK", "DE"},
 }
 _ROLE_FOCUS_KEYWORDS = {
     "driving_transport": (
@@ -124,6 +133,118 @@ def _candidate_preferences(candidate_profile) -> dict:
         return {}
     preferences = profile.get("preferences")
     return preferences if isinstance(preferences, dict) else {}
+
+
+def _candidate_search_profile(candidate_profile) -> dict:
+    preferences = _candidate_preferences(candidate_profile)
+    search_profile = preferences.get("searchProfile")
+    return search_profile if isinstance(search_profile, dict) else {}
+
+
+def _normalize_search_language_codes(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return ["cs"]
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        code = str(value or "").strip().lower().replace("_", "-").split("-", 1)[0]
+        if code not in _SUPPORTED_SEARCH_LANGUAGE_CODES or code in seen:
+            continue
+        seen.add(code)
+        normalized.append(code)
+    return normalized or ["cs"]
+
+
+def _normalize_work_arrangement(value: Any) -> Optional[str]:
+    normalized = str(value or "").strip().lower()
+    if normalized in {"remote", "hybrid", "onsite"}:
+        return normalized
+    return None
+
+
+def _normalize_country_scope(value: Any) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, (set, list, tuple)):
+        output: set[str] = set()
+        for item in value:
+            normalized = str(item or "").strip().upper()
+            if normalized:
+                output.add(normalized)
+        return output
+    normalized = str(value or "").strip().upper()
+    return {normalized} if normalized else set()
+
+
+def _normalize_contract_text(value: Optional[str]) -> str:
+    raw = _normalize_text(value)
+    return re.sub(r"[^a-z0-9]+", " ", raw).strip()
+
+
+def _contract_type_tags(value: Optional[str]) -> set[str]:
+    txt = _normalize_contract_text(value)
+    if not txt:
+        return set()
+    haystack = f" {txt} "
+    tags: set[str] = set()
+    if re.search(r"\b(ico|osvc|szco|b2b|freelanc\w*|contractor|self employed|selfemployed)\b", haystack) or "zivnost" in haystack:
+        tags.add("ico")
+    if re.search(r"\b(hpp|full time|fulltime|employment contract|pracovni pomer|pracovny pomer|umowa o prace|vollzeit)\b", haystack):
+        tags.add("hpp")
+    if re.search(r"\b(part time|parttime|teilzeit|zkracen\w*|castecn\w*|skrat\w*|niepelny etat)\b", haystack):
+        tags.add("part_time")
+    if re.search(r"\b(brigad\w*|dpp|dpc|temporary|seasonal|minijob|umowa zlecenie)\b", haystack):
+        tags.add("brigada")
+    return tags
+
+
+def _normalize_contract_filters(values: list[str]) -> set[str]:
+    tags: set[str] = set()
+    for value in values:
+        tags |= _contract_type_tags(value)
+    return tags
+
+
+def _benefit_tags_from_text(value: Optional[str]) -> set[str]:
+    txt = _normalize_contract_text(value or "")
+    if not txt:
+        return set()
+    haystack = f" {txt} "
+    tags: set[str] = set()
+    if re.search(r"\b(home_office|homeoffice|work_from_home|home office|work from home|prace z domova|praca z domu)\b", haystack):
+        tags.add("home_office")
+    if re.search(r"\b(dog_friendly|dogfriendly|dog friendly|pet friendly|dogs|psi|pes|hund)\b", haystack):
+        tags.add("dog_friendly")
+    if re.search(r"\b(meal_allowance|meal voucher|meal vouchers|meal|lunch|straven|obed|obedy|posilk)\b", haystack):
+        tags.add("meal_allowance")
+    if re.search(r"\b(education|training|course|courses|vzdel|skolen|weiterbildung)\b", haystack):
+        tags.add("education")
+    if re.search(r"\b(multisport|sport card|karta multisport)\b", haystack):
+        tags.add("multisport")
+    if re.search(r"\b(transport_support|parking|transport|transit|public transport|jizdne|fahrkarte)\b", haystack):
+        tags.add("transport_support")
+    if re.search(r"\b(vacation_5w|5 weeks|5 week|25 days|25 dni|25 dn)\b", haystack):
+        tags.add("vacation_5w")
+    if re.search(r"\b(health_care|healthcare|health care|private medical|medical care|zdravotn)\b", haystack):
+        tags.add("health_care")
+    if re.search(r"\b(pension|retirement|penzij|duchodov|altersvorsorge)\b", haystack):
+        tags.add("pension")
+    if re.search(r"\b(childcare_support|childcare|daycare|kindergarten|skolk|jesle|przedszkol)\b", haystack):
+        tags.add("childcare_support")
+    if re.search(r"\b(relocation_support|relocation|housing allowance|accommodation|ubytov|zakwaterowanie)\b", haystack):
+        tags.add("relocation_support")
+    if re.search(r"\b(employee_shares|stock option|stock options|equity|esop|akcie)\b", haystack):
+        tags.add("employee_shares")
+    if re.search(r"\b(car_personal|company car|car allowance|sluzebni auto|firemni auto|dienstwagen)\b", haystack):
+        tags.add("car_personal")
+    return tags
+
+
+def _normalize_benefit_filters(values: list[str]) -> set[str]:
+    tags: set[str] = set()
+    for value in values:
+        tags |= _benefit_tags_from_text(value)
+    return tags
 
 
 def _parse_iso_timestamp(value: Optional[str]) -> Optional[datetime]:
@@ -278,6 +399,54 @@ def _allowed_language_codes(locale: Optional[str], country_code: Optional[str]) 
     return {"cs"}
 
 
+def _resolve_digest_profile_filters(
+    candidate_profile,
+    *,
+    base_language_codes: Optional[set[str]],
+    digest_country_code: Optional[str],
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+) -> dict[str, Any]:
+    search_profile = _candidate_search_profile(candidate_profile)
+    has_location = c_lat is not None and c_lng is not None or bool(_candidate_address(candidate_profile))
+    raw_distance = search_profile.get("defaultMaxDistanceKm")
+    try:
+        max_distance_km = max(5.0, float(raw_distance if raw_distance is not None else _DIGEST_RADIUS_KM))
+    except Exception:
+        max_distance_km = _DIGEST_RADIUS_KM
+
+    enable_commute_filter = bool(search_profile.get("defaultEnableCommuteFilter")) and has_location
+    preferred_work_arrangement = _normalize_work_arrangement(search_profile.get("preferredWorkArrangement"))
+    wants_remote_roles = bool(search_profile.get("wantsRemoteRoles")) or preferred_work_arrangement == "remote"
+    remote_only = not enable_commute_filter and wants_remote_roles
+    filter_work_arrangement = "remote" if remote_only else (preferred_work_arrangement or "all")
+
+    benefit_terms = [str(item or "").strip() for item in (search_profile.get("preferredBenefitKeys") or []) if str(item or "").strip()]
+    if bool(search_profile.get("wantsDogFriendlyOffice")):
+        benefit_terms.append("dog_friendly")
+
+    country_scope = _normalize_country_scope(digest_country_code)
+    if bool(search_profile.get("nearBorder")) and country_scope:
+        expanded = set(country_scope)
+        for code in list(country_scope):
+            expanded.update(_COUNTRY_NEIGHBORS.get(code, set()))
+        country_scope = expanded
+
+    language_codes = set(_normalize_search_language_codes(search_profile.get("remoteLanguageCodes"))) if remote_only else set(base_language_codes or set())
+
+    return {
+        "enable_commute_filter": enable_commute_filter,
+        "max_distance_km": max_distance_km,
+        "remote_only": remote_only,
+        "filter_work_arrangement": filter_work_arrangement,
+        "contract_filter_tags": _normalize_contract_filters(["ico"]) if bool(search_profile.get("wantsContractorRoles")) else set(),
+        "benefit_filter_tags": _normalize_benefit_filters(benefit_terms),
+        "language_codes": language_codes,
+        "country_scope": country_scope,
+        "global_search": bool(search_profile.get("nearBorder")),
+    }
+
+
 def _job_language_allowed(job: Dict, allowed_language_codes: Optional[set[str]]) -> bool:
     if not allowed_language_codes:
         return True
@@ -347,6 +516,66 @@ def _is_remote_job(job: Dict) -> bool:
     return any(flag in text for flag in _REMOTE_ONLY_FLAGS)
 
 
+def _job_work_arrangement(job: Dict) -> str:
+    if _is_remote_job(job):
+        return "remote"
+    work_model = _normalize_text(job.get("work_model"))
+    work_type = _normalize_text(job.get("work_type"))
+    description = _normalize_text(job.get("description"))
+    haystack = f"{work_model} {work_type} {description}"
+    if any(flag in haystack for flag in _HYBRID_FLAGS):
+        return "hybrid"
+    return "onsite"
+
+
+def _job_benefit_tags(job: Dict) -> set[str]:
+    parts: list[str] = []
+    benefits = job.get("benefits")
+    if isinstance(benefits, list):
+        parts.extend(str(item or "") for item in benefits)
+    elif benefits:
+        parts.append(str(benefits))
+    parts.append(str(job.get("description") or ""))
+    parts.append(str(job.get("title") or ""))
+    return _benefit_tags_from_text(" ".join(parts))
+
+
+def _job_matches_digest_profile_filters(
+    job: Dict,
+    *,
+    digest_filters: Optional[dict[str, Any]],
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+) -> tuple[bool, Optional[float]]:
+    filters = digest_filters or {}
+    arrangement = _job_work_arrangement(job)
+
+    if bool(filters.get("remote_only")) and arrangement != "remote":
+        return False, None
+
+    required_arrangement = str(filters.get("filter_work_arrangement") or "all").strip().lower()
+    if required_arrangement in {"remote", "hybrid", "onsite"} and arrangement != required_arrangement:
+        return False, None
+
+    contract_filter_tags = cast(set[str], filters.get("contract_filter_tags") or set())
+    if contract_filter_tags:
+        if not _contract_type_tags(job.get("contract_type")).intersection(contract_filter_tags):
+            return False, None
+
+    benefit_filter_tags = cast(set[str], filters.get("benefit_filter_tags") or set())
+    if benefit_filter_tags and not benefit_filter_tags.issubset(_job_benefit_tags(job)):
+        return False, None
+
+    distance = _job_distance_km(job, c_lat, c_lng)
+    if bool(filters.get("enable_commute_filter")) and arrangement != "remote":
+        max_distance = float(filters.get("max_distance_km") or _DIGEST_RADIUS_KM)
+        if c_lat is not None and c_lng is not None:
+            if distance is None or distance > max_distance:
+                return False, distance
+
+    return True, distance
+
+
 def _job_distance_km(job: Dict, c_lat: Optional[float], c_lng: Optional[float]) -> Optional[float]:
     if c_lat is None or c_lng is None:
         return None
@@ -379,20 +608,23 @@ def _pick_personalized_digest_jobs(
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
     candidate_profile=None,
+    digest_filters: Optional[dict[str, Any]] = None,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
-    strict_local: List[Dict] = []
-    relaxed_personalized: List[Dict] = []
+    picks: List[Dict] = []
     role_focus_families = _infer_role_focus_families(candidate_profile)
+    filters = digest_filters or {}
+    effective_languages = cast(set[str], filters.get("language_codes") or allowed_language_codes or set())
+    effective_country_scope = filters.get("country_scope") or country_code
 
     for item in recs:
         job = item.get("job") or {}
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code):
+        if not _job_in_country(job, effective_country_scope):
             continue
-        if not _job_language_allowed(job, allowed_language_codes):
+        if not _job_language_allowed(job, effective_languages or None):
             continue
 
         job_families = _job_role_families(job)
@@ -400,8 +632,15 @@ def _pick_personalized_digest_jobs(
         if role_focus_families and not role_focus_match and _is_it_role(job):
             continue
 
-        remote = _is_remote_job(job)
-        distance = _job_distance_km(job, c_lat, c_lng)
+        profile_match, distance = _job_matches_digest_profile_filters(
+            job,
+            digest_filters=filters,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
+        if not profile_match:
+            continue
+
         match_score = int(float(item.get("score") or 0))
         if role_focus_families and not role_focus_match:
             match_score = max(0, int(round(match_score * 0.75)))
@@ -418,19 +657,10 @@ def _pick_personalized_digest_jobs(
             "detail_url": f"{_APP_URL}/jobs/{job_id}",
             "role_focus_match": role_focus_match,
         }
+        picks.append(packed)
 
-        if remote or (distance is not None and distance <= _DIGEST_RADIUS_KM):
-            strict_local.append(packed)
-        else:
-            # Keep personalized items for secondary fallback so email still shows AI match.
-            relaxed_personalized.append(packed)
-
-    strict_local = sorted(strict_local, key=_digest_job_sort_key)
-    if strict_local:
-        return strict_local[:limit]
-
-    relaxed_personalized = sorted(relaxed_personalized, key=_digest_job_sort_key)
-    return relaxed_personalized[:limit]
+    picks = sorted(picks, key=_digest_job_sort_key)
+    return picks[:limit]
 
 
 def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Optional[str]) -> str:
@@ -687,8 +917,8 @@ def _job_in_country(
     allow_missing: bool = False,
     remote_if_missing: bool = False,
 ) -> bool:
-    required = str(country_code or "").strip().upper()
-    if not required:
+    required_scope = _normalize_country_scope(country_code)
+    if not required_scope:
         return True
     job_country = str(job.get("country_code") or "").strip().upper()
     if not job_country:
@@ -697,7 +927,7 @@ def _job_in_country(
         if remote_if_missing:
             return _is_remote_job(job)
         return True
-    return job_country == required
+    return job_country in required_scope
 
 
 def _fetch_newest_local_jobs(
@@ -706,6 +936,7 @@ def _fetch_newest_local_jobs(
     address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    digest_filters: Optional[dict[str, Any]] = None,
     lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
@@ -717,18 +948,22 @@ def _fetch_newest_local_jobs(
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
 
     try:
+        filters = digest_filters or {}
+        country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(250)
         )
         if cutoff:
             query = query.gte("scraped_at", cutoff)
-        if country_code:
-            query = query.ilike("country_code", str(country_code))
-        if c_lat is None or c_lng is None:
+        if len(country_scope) == 1:
+            query = query.ilike("country_code", next(iter(country_scope)))
+        elif country_scope:
+            query = query.in_("country_code", list(country_scope))
+        if bool(filters.get("enable_commute_filter")) and (c_lat is None or c_lng is None):
             city = _extract_city_from_address(address)
             if city:
                 query = query.ilike("location", f"%{city}%")
@@ -743,22 +978,19 @@ def _fetch_newest_local_jobs(
         job = _as_job_dict(raw)
         if not job:
             continue
-        if not _job_in_country(job, country_code):
+        if not _job_in_country(job, country_scope or country_code):
             continue
-        if not _job_language_allowed(job, allowed_language_codes):
+        effective_languages = cast(set[str], (digest_filters or {}).get("language_codes") or allowed_language_codes or set())
+        if not _job_language_allowed(job, effective_languages or None):
             continue
-        remote = _is_remote_job(job)
-        if not remote and c_lat is not None and c_lng is not None:
-            j_lat = job.get("lat")
-            j_lng = job.get("lng")
-            if j_lat is None or j_lng is None:
-                continue
-            try:
-                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
-            except Exception:
-                continue
-            if distance > _DIGEST_RADIUS_KM:
-                continue
+        profile_match, distance = _job_matches_digest_profile_filters(
+            job,
+            digest_filters=digest_filters,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
+        if not profile_match:
+            continue
 
         picks.append(
             {
@@ -766,12 +998,14 @@ def _fetch_newest_local_jobs(
                 "title": job.get("title") or "",
                 "company": job.get("company") or "",
                 "location": job.get("location") or "",
+                "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
                 "detail_url": f"{_APP_URL}/jobs/{job.get('id')}",
             }
         )
-        if len(picks) >= limit:
-            break
+    picks = sorted(picks, key=_digest_job_sort_key)
+    if picks:
+        return picks[:limit]
     if not picks and lookback_hours:
         return _fetch_newest_local_jobs(
             c_lat=c_lat,
@@ -779,6 +1013,7 @@ def _fetch_newest_local_jobs(
             address=address,
             country_code=country_code,
             allowed_language_codes=allowed_language_codes,
+            digest_filters=digest_filters,
             lookback_hours=None,
             limit=limit,
         )
@@ -792,6 +1027,7 @@ def _fetch_role_focused_jobs(
     address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    digest_filters: Optional[dict[str, Any]] = None,
     lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
@@ -807,18 +1043,22 @@ def _fetch_role_focused_jobs(
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
 
     try:
+        filters = digest_filters or {}
+        country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
         )
         if cutoff:
             query = query.gte("scraped_at", cutoff)
-        if country_code:
-            query = query.ilike("country_code", str(country_code))
-        if c_lat is None or c_lng is None:
+        if len(country_scope) == 1:
+            query = query.ilike("country_code", next(iter(country_scope)))
+        elif country_scope:
+            query = query.in_("country_code", list(country_scope))
+        if bool(filters.get("enable_commute_filter")) and (c_lat is None or c_lng is None):
             city = _extract_city_from_address(address)
             if city:
                 query = query.ilike("location", f"%{city}%")
@@ -844,22 +1084,19 @@ def _fetch_role_focused_jobs(
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code):
+        if not _job_in_country(job, country_scope or country_code):
             continue
-        if not _job_language_allowed(job, allowed_language_codes):
+        effective_languages = cast(set[str], filters.get("language_codes") or allowed_language_codes or set())
+        if not _job_language_allowed(job, effective_languages or None):
             continue
-        remote = _is_remote_job(job)
-        if not remote and c_lat is not None and c_lng is not None:
-            j_lat = job.get("lat")
-            j_lng = job.get("lng")
-            if j_lat is None or j_lng is None:
-                continue
-            try:
-                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
-            except Exception:
-                continue
-            if distance > _DIGEST_RADIUS_KM:
-                continue
+        profile_match, distance = _job_matches_digest_profile_filters(
+            job,
+            digest_filters=digest_filters,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
+        if not profile_match:
+            continue
 
         picks.append(
             {
@@ -868,12 +1105,14 @@ def _fetch_role_focused_jobs(
                 "company": job.get("company") or "",
                 "location": job.get("location") or "",
                 "country_code": job.get("country_code") or "",
+                "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
                 "detail_url": f"{_APP_URL}/jobs/{job_id}",
             }
         )
-        if len(picks) >= limit:
-            break
+    picks = sorted(picks, key=_digest_job_sort_key)
+    if picks:
+        return picks[:limit]
     if not picks and lookback_hours:
         return _fetch_role_focused_jobs(
             role_title=role_title,
@@ -882,6 +1121,7 @@ def _fetch_role_focused_jobs(
             address=address,
             country_code=country_code,
             allowed_language_codes=allowed_language_codes,
+            digest_filters=digest_filters,
             lookback_hours=None,
             limit=limit,
         )
@@ -895,6 +1135,7 @@ def _fetch_domain_focused_jobs(
     address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    digest_filters: Optional[dict[str, Any]] = None,
     lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
@@ -910,18 +1151,22 @@ def _fetch_domain_focused_jobs(
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
 
     try:
+        filters = digest_filters or {}
+        country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
         )
         if cutoff:
             query = query.gte("scraped_at", cutoff)
-        if country_code:
-            query = query.ilike("country_code", str(country_code))
-        if c_lat is None or c_lng is None:
+        if len(country_scope) == 1:
+            query = query.ilike("country_code", next(iter(country_scope)))
+        elif country_scope:
+            query = query.in_("country_code", list(country_scope))
+        if bool(filters.get("enable_commute_filter")) and (c_lat is None or c_lng is None):
             city = _extract_city_from_address(address)
             if city:
                 query = query.ilike("location", f"%{city}%")
@@ -947,22 +1192,19 @@ def _fetch_domain_focused_jobs(
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code):
+        if not _job_in_country(job, country_scope or country_code):
             continue
-        if not _job_language_allowed(job, allowed_language_codes):
+        effective_languages = cast(set[str], filters.get("language_codes") or allowed_language_codes or set())
+        if not _job_language_allowed(job, effective_languages or None):
             continue
-        remote = _is_remote_job(job)
-        if not remote and c_lat is not None and c_lng is not None:
-            j_lat = job.get("lat")
-            j_lng = job.get("lng")
-            if j_lat is None or j_lng is None:
-                continue
-            try:
-                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
-            except Exception:
-                continue
-            if distance > _DIGEST_RADIUS_KM:
-                continue
+        profile_match, distance = _job_matches_digest_profile_filters(
+            job,
+            digest_filters=digest_filters,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
+        if not profile_match:
+            continue
 
         picks.append(
             {
@@ -971,12 +1213,14 @@ def _fetch_domain_focused_jobs(
                 "company": job.get("company") or "",
                 "location": job.get("location") or "",
                 "country_code": job.get("country_code") or "",
+                "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
                 "detail_url": f"{_APP_URL}/jobs/{job_id}",
             }
         )
-        if len(picks) >= limit:
-            break
+    picks = sorted(picks, key=_digest_job_sort_key)
+    if picks:
+        return picks[:limit]
     if not picks and lookback_hours:
         return _fetch_domain_focused_jobs(
             domain_key=domain_key,
@@ -985,6 +1229,7 @@ def _fetch_domain_focused_jobs(
             address=address,
             country_code=country_code,
             allowed_language_codes=allowed_language_codes,
+            digest_filters=digest_filters,
             lookback_hours=None,
             limit=limit,
         )
@@ -1010,7 +1255,11 @@ def _merge_digest_jobs(primary: List[Dict], secondary: List[Dict], limit: int) -
 
 def _fetch_newest_jobs_relaxed(
     country_code: Optional[str],
+    c_lat: Optional[float] = None,
+    c_lng: Optional[float] = None,
+    address: Optional[str] = None,
     allowed_language_codes: Optional[set[str]] = None,
+    digest_filters: Optional[dict[str, Any]] = None,
     lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
@@ -1023,22 +1272,22 @@ def _fetch_newest_jobs_relaxed(
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
 
     try:
-        resp = (
+        filters = digest_filters or {}
+        country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
+        query = (
             supabase.table("jobs")
-            .select("id,title,company,location,work_model,work_type,description,scraped_at,country_code,language_code")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(100)
-            .gte("scraped_at", cutoff)
-            .execute()
-            if cutoff
-            else supabase.table("jobs")
-            .select("id,title,company,location,scraped_at,country_code,language_code")
-            .eq("legality_status", "legal")
-            .order("scraped_at", desc=True)
-            .limit(100)
-            .execute()
         )
+        if cutoff:
+            query = query.gte("scraped_at", cutoff)
+        if bool(filters.get("enable_commute_filter")) and (c_lat is None or c_lng is None):
+            city = _extract_city_from_address(address)
+            if city:
+                query = query.ilike("location", f"%{city}%")
+        resp = query.execute()
     except Exception as exc:
         print(f"⚠️ Relaxed fallback jobs query failed: {exc}")
         return []
@@ -1052,9 +1301,18 @@ def _fetch_newest_jobs_relaxed(
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code, allow_missing=True, remote_if_missing=bool(country_code)):
+        if not _job_in_country(job, country_scope or country_code, allow_missing=True, remote_if_missing=bool(country_scope or country_code)):
             continue
-        if not _job_language_allowed(job, allowed_language_codes):
+        effective_languages = cast(set[str], filters.get("language_codes") or allowed_language_codes or set())
+        if not _job_language_allowed(job, effective_languages or None):
+            continue
+        profile_match, distance = _job_matches_digest_profile_filters(
+            job,
+            digest_filters=digest_filters,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
+        if not profile_match:
             continue
         picks.append(
             {
@@ -1062,16 +1320,22 @@ def _fetch_newest_jobs_relaxed(
                 "title": job.get("title") or "",
                 "company": job.get("company") or "",
                 "location": job.get("location") or "",
+                "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
                 "detail_url": f"{_APP_URL}/jobs/{job_id}",
             }
         )
-        if len(picks) >= limit:
-            break
+    picks = sorted(picks, key=_digest_job_sort_key)
+    if picks:
+        return picks[:limit]
     if not picks and lookback_hours:
         return _fetch_newest_jobs_relaxed(
+            c_lat=c_lat,
+            c_lng=c_lng,
+            address=address,
             country_code=country_code,
             allowed_language_codes=allowed_language_codes,
+            digest_filters=digest_filters,
             lookback_hours=None,
             limit=limit,
         )
@@ -1151,6 +1415,13 @@ def run_daily_job_digest() -> None:
             )
             locale = _resolve_locale(str(row.get("preferred_locale") or "") or None, digest_country_code)
             allowed_languages = _allowed_language_codes(locale, digest_country_code)
+            digest_filters = _resolve_digest_profile_filters(
+                candidate_profile,
+                base_language_codes=allowed_languages,
+                digest_country_code=digest_country_code,
+                c_lat=c_lat,
+                c_lng=c_lng,
+            )
             intent = resolve_candidate_intent_profile(candidate_profile)
             role_title = str(intent.get("target_role") or "").strip()
             primary_domain = str(intent.get("primary_domain") or "").strip() or None
@@ -1177,6 +1448,7 @@ def run_daily_job_digest() -> None:
                         country_code=digest_country_code,
                         allowed_language_codes=allowed_languages,
                         candidate_profile=candidate_profile,
+                        digest_filters=digest_filters,
                         limit=_DIGEST_MAX_JOBS,
                     )
                 except Exception as exc:
@@ -1189,6 +1461,7 @@ def run_daily_job_digest() -> None:
                     address=c_address,
                     country_code=digest_country_code,
                     allowed_language_codes=allowed_languages,
+                    digest_filters=digest_filters,
                     limit=_DIGEST_MAX_JOBS,
                 )
             if primary_domain:
@@ -1199,6 +1472,7 @@ def run_daily_job_digest() -> None:
                     address=c_address,
                     country_code=digest_country_code,
                     allowed_language_codes=allowed_languages,
+                    digest_filters=digest_filters,
                     limit=_DIGEST_MAX_JOBS,
                 )
             digest_jobs = _merge_digest_jobs(digest_jobs, _merge_digest_jobs(role_jobs, domain_jobs, _DIGEST_MAX_JOBS), _DIGEST_MAX_JOBS)
@@ -1212,6 +1486,7 @@ def run_daily_job_digest() -> None:
                         address=c_address,
                         country_code=digest_country_code,
                         allowed_language_codes=allowed_languages,
+                        digest_filters=digest_filters,
                         limit=max(3, _DIGEST_MAX_JOBS // 2),
                     )
                     digest_jobs = _merge_digest_jobs(digest_jobs, adjacent_jobs, _DIGEST_MAX_JOBS)
@@ -1227,6 +1502,7 @@ def run_daily_job_digest() -> None:
                     address=c_address,
                     country_code=digest_country_code,
                     allowed_language_codes=allowed_languages,
+                    digest_filters=digest_filters,
                     limit=_DIGEST_MAX_JOBS,
                 )
                 if not digest_jobs:
@@ -1235,8 +1511,12 @@ def run_daily_job_digest() -> None:
                         "using relaxed fallback."
                     )
                     digest_jobs = _fetch_newest_jobs_relaxed(
+                        c_lat=c_lat,
+                        c_lng=c_lng,
+                        address=c_address,
                         country_code=digest_country_code,
                         allowed_language_codes=allowed_languages,
+                        digest_filters=digest_filters,
                         limit=_DIGEST_MAX_JOBS,
                     )
                 if not digest_jobs and allowed_languages:
@@ -1245,8 +1525,12 @@ def run_daily_job_digest() -> None:
                         "retrying without language restriction."
                     )
                     digest_jobs = _fetch_newest_jobs_relaxed(
+                        c_lat=c_lat,
+                        c_lng=c_lng,
+                        address=c_address,
                         country_code=digest_country_code,
                         allowed_language_codes=None,
+                        digest_filters={**digest_filters, "language_codes": set()},
                         limit=_DIGEST_MAX_JOBS,
                     )
                 if not digest_jobs and digest_country_code:
@@ -1255,8 +1539,12 @@ def run_daily_job_digest() -> None:
                         "retrying across all countries."
                     )
                     digest_jobs = _fetch_newest_jobs_relaxed(
+                        c_lat=c_lat,
+                        c_lng=c_lng,
+                        address=c_address,
                         country_code=None,
                         allowed_language_codes=None,
+                        digest_filters={**digest_filters, "country_scope": set(), "language_codes": set()},
                         limit=_DIGEST_MAX_JOBS,
                     )
     

@@ -13,6 +13,10 @@ const parseErrorDetail = async (response: Response, fallback: string): Promise<s
   return fallback;
 };
 
+const isOptionalSignalBoostFeedUnavailable = (status: number): boolean => (
+  [401, 403, 404, 409, 501, 503].includes(status)
+);
+
 const mapOutput = (payload: any): JobSignalBoostOutput => ({
   id: String(payload?.id || ''),
   share_slug: String(payload?.share_slug || ''),
@@ -144,6 +148,9 @@ export const fetchMySignalBoostOutputs = async (
     headers: { 'Content-Type': 'application/json' },
   });
 
+  if (isOptionalSignalBoostFeedUnavailable(response.status)) {
+    return [];
+  }
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, 'Failed to load Signal Boost outputs.'));
   }

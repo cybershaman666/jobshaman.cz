@@ -9,6 +9,7 @@ from backend.app.services.daily_digest import (
     _job_language_allowed,
     _job_role_families,
     _pick_personalized_digest_jobs,
+    _resolve_digest_profile_filters,
     _resolve_digest_country_code,
     _resolve_locale,
     _should_send_now,
@@ -532,6 +533,226 @@ def test_pick_personalized_digest_jobs_skips_it_roles_when_profile_is_driver():
 
     assert len(picks) == 1
     assert picks[0]["id"] == "job-driver-1"
+
+
+def test_resolve_digest_profile_filters_reads_search_profile_defaults():
+    candidate_profile = {
+        "address": "Brno, Czechia",
+        "preferences": {
+            "searchProfile": {
+                "nearBorder": True,
+                "wantsContractorRoles": True,
+                "wantsDogFriendlyOffice": True,
+                "wantsRemoteRoles": False,
+                "preferredWorkArrangement": "hybrid",
+                "remoteLanguageCodes": ["en", "de"],
+                "preferredBenefitKeys": ["meal_allowance"],
+                "defaultEnableCommuteFilter": True,
+                "defaultMaxDistanceKm": 45,
+            }
+        },
+    }
+
+    filters = _resolve_digest_profile_filters(
+        candidate_profile,
+        base_language_codes={"cs", "sk"},
+        digest_country_code="CZ",
+        c_lat=49.1951,
+        c_lng=16.6068,
+    )
+
+    assert filters["enable_commute_filter"] is True
+    assert filters["max_distance_km"] == 45.0
+    assert filters["filter_work_arrangement"] == "hybrid"
+    assert filters["remote_only"] is False
+    assert filters["language_codes"] == {"cs", "sk"}
+    assert filters["country_scope"] == {"CZ", "SK", "PL", "DE", "AT"}
+    assert "ico" in filters["contract_filter_tags"]
+    assert {"meal_allowance", "dog_friendly"}.issubset(filters["benefit_filter_tags"])
+
+
+def test_pick_personalized_digest_jobs_respects_remote_language_contract_and_benefit_preferences():
+    candidate_profile = {
+        "address": "Brno, Czechia",
+        "preferences": {
+            "searchProfile": {
+                "nearBorder": False,
+                "wantsContractorRoles": True,
+                "wantsDogFriendlyOffice": False,
+                "wantsRemoteRoles": True,
+                "preferredWorkArrangement": "remote",
+                "remoteLanguageCodes": ["en", "de"],
+                "preferredBenefitKeys": ["meal_allowance"],
+                "defaultEnableCommuteFilter": False,
+                "defaultMaxDistanceKm": 30,
+            }
+        },
+    }
+    digest_filters = _resolve_digest_profile_filters(
+        candidate_profile,
+        base_language_codes={"cs", "sk"},
+        digest_country_code="CZ",
+        c_lat=49.1951,
+        c_lng=16.6068,
+    )
+    recs = [
+        {
+            "score": 96,
+            "job": {
+                "id": "job-remote-b2b-en",
+                "title": "Remote Product Owner",
+                "company": "Acme",
+                "company_name": "Acme",
+                "location": "Prague",
+                "country_code": "CZ",
+                "language_code": "en",
+                "work_model": "remote",
+                "contract_type": "B2B / ICO",
+                "benefits": ["Meal allowance", "Home office"],
+                "lat": None,
+                "lng": None,
+            },
+        },
+        {
+            "score": 94,
+            "job": {
+                "id": "job-onsite-b2b-en",
+                "title": "Operations Lead",
+                "company": "OpsCo",
+                "company_name": "OpsCo",
+                "location": "Brno",
+                "country_code": "CZ",
+                "language_code": "en",
+                "work_model": "onsite",
+                "contract_type": "B2B / ICO",
+                "benefits": ["Meal allowance"],
+                "lat": 49.1951,
+                "lng": 16.6068,
+            },
+        },
+        {
+            "score": 92,
+            "job": {
+                "id": "job-remote-hpp-en",
+                "title": "Remote Product Owner",
+                "company": "ScaleUp",
+                "company_name": "ScaleUp",
+                "location": "Remote",
+                "country_code": "CZ",
+                "language_code": "en",
+                "work_model": "remote",
+                "contract_type": "HPP",
+                "benefits": ["Meal allowance"],
+                "lat": None,
+                "lng": None,
+            },
+        },
+        {
+            "score": 90,
+            "job": {
+                "id": "job-remote-b2b-cs",
+                "title": "Remote Product Owner",
+                "company": "LocaleCo",
+                "company_name": "LocaleCo",
+                "location": "Remote",
+                "country_code": "CZ",
+                "language_code": "cs",
+                "work_model": "remote",
+                "contract_type": "ICO",
+                "benefits": ["Meal allowance"],
+                "lat": None,
+                "lng": None,
+            },
+        },
+    ]
+
+    picks = _pick_personalized_digest_jobs(
+        recs=recs,
+        c_lat=49.1951,
+        c_lng=16.6068,
+        country_code="CZ",
+        allowed_language_codes={"cs", "sk"},
+        candidate_profile=candidate_profile,
+        digest_filters=digest_filters,
+        limit=5,
+    )
+
+    assert [job["id"] for job in picks] == ["job-remote-b2b-en"]
+
+
+def test_pick_personalized_digest_jobs_respects_commute_radius_and_near_border_scope():
+    candidate_profile = {
+        "address": "Breclav, Czechia",
+        "preferences": {
+            "searchProfile": {
+                "nearBorder": True,
+                "wantsContractorRoles": False,
+                "wantsDogFriendlyOffice": False,
+                "wantsRemoteRoles": False,
+                "preferredWorkArrangement": "onsite",
+                "remoteLanguageCodes": ["cs"],
+                "preferredBenefitKeys": [],
+                "defaultEnableCommuteFilter": True,
+                "defaultMaxDistanceKm": 30,
+            }
+        },
+    }
+    digest_filters = _resolve_digest_profile_filters(
+        candidate_profile,
+        base_language_codes={"cs", "sk"},
+        digest_country_code="CZ",
+        c_lat=48.758,
+        c_lng=16.882,
+    )
+    recs = [
+        {
+            "score": 91,
+            "job": {
+                "id": "job-vienna-near",
+                "title": "Site Operations Coordinator",
+                "company": "AT Build",
+                "company_name": "AT Build",
+                "location": "Poysdorf",
+                "country_code": "AT",
+                "language_code": "cs",
+                "work_model": "onsite",
+                "contract_type": "HPP",
+                "benefits": [],
+                "lat": 48.669,
+                "lng": 16.635,
+            },
+        },
+        {
+            "score": 95,
+            "job": {
+                "id": "job-prague-far",
+                "title": "Site Operations Coordinator",
+                "company": "CZ Build",
+                "company_name": "CZ Build",
+                "location": "Praha",
+                "country_code": "CZ",
+                "language_code": "cs",
+                "work_model": "onsite",
+                "contract_type": "HPP",
+                "benefits": [],
+                "lat": 50.0755,
+                "lng": 14.4378,
+            },
+        },
+    ]
+
+    picks = _pick_personalized_digest_jobs(
+        recs=recs,
+        c_lat=48.758,
+        c_lng=16.882,
+        country_code="CZ",
+        allowed_language_codes={"cs", "sk", "de"},
+        candidate_profile=candidate_profile,
+        digest_filters=digest_filters,
+        limit=5,
+    )
+
+    assert [job["id"] for job in picks] == ["job-vienna-near"]
 
 
 def test_run_daily_job_digest_retries_without_language_restriction(monkeypatch):
