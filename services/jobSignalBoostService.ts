@@ -231,9 +231,11 @@ export const updateSignalBoostOutput = async (
 export const fetchPublicSignalBoostOutput = async (
   shareSlug: string,
 ): Promise<JobSignalBoostOutput> => {
-  const response = await fetch(`${BACKEND_URL}/signal-boost/${encodeURIComponent(shareSlug)}`, {
+  const cacheBust = `v=${Date.now()}`;
+  const response = await fetch(`${BACKEND_URL}/signal-boost/${encodeURIComponent(shareSlug)}?${cacheBust}`, {
     method: 'GET',
     credentials: 'omit',
+    cache: 'no-store',
   });
   if (!response.ok) {
     throw new Error(await parseErrorDetail(response, 'Failed to load Signal Boost output.'));

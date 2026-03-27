@@ -1628,6 +1628,7 @@ export interface UserProfile {
     candidate_onboarding_v2?: CandidateOnboardingProgressV2;
     jcfpm_v1?: JcfpmSnapshotV1;
     jcfpm_jhi_adjustment_v1?: JcfpmJhiAdjustmentV1;
+    signal_boost_share_jcfpm?: boolean;
     postedMiniChallenges?: UserPostedMiniChallenge[];
   };
   taxProfile?: TaxProfile;

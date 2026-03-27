@@ -1155,6 +1155,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
+  const jcfpmShareEnabled = profile.preferences?.signal_boost_share_jcfpm !== false;
+  const jcfpmShareCopy = getProfileLocaleLabel({
+    cs: 'Zpřístupnit zkrácený JCFPM signal recruiterům ve veřejných Signal Boost odkazech',
+    sk: 'Sprístupniť skrátený JCFPM signal recruiterom vo verejných Signal Boost odkazoch',
+    de: 'Verkürztes JCFPM-Signal für Recruiter in öffentlichen Signal-Boost-Links freigeben',
+    at: 'Verkürztes JCFPM-Signal für Recruiter in öffentlichen Signal-Boost-Links freigeben',
+    pl: 'Udostępnij skrócony sygnał JCFPM rekruterom w publicznych linkach Signal Boost',
+    en: 'Allow recruiters to see a concise JCFPM signal inside public Signal Boost links',
+  }, profileLocale);
+  const jcfpmShareHintCopy = getProfileLocaleLabel({
+    cs: 'Nejde o celý report. Ve veřejném linku se ukáže jen kompaktní profilový signal: archetyp, několik silných stránek, vhodné prostředí a pár nejvýraznějších dimenzí.',
+    sk: 'Nejde o celý report. Vo verejnom linku sa ukáže len kompaktný profilový signal: archetyp, niekoľko silných stránok, vhodné prostredie a pár najsilnejších dimenzií.',
+    de: 'Es wird nicht der ganze Bericht geteilt. Im öffentlichen Link erscheint nur ein kompaktes Profilsignal: Archetyp, einige Stärken, passendes Umfeld und wenige markante Dimensionen.',
+    at: 'Es wird nicht der ganze Bericht geteilt. Im öffentlichen Link erscheint nur ein kompaktes Profilsignal: Archetyp, einige Stärken, passendes Umfeld und wenige markante Dimensionen.',
+    pl: 'To nie jest cały raport. W publicznym linku pokaże się tylko zwięzły sygnał profilu: archetyp, kilka mocnych stron, preferowane środowisko i kilka najmocniejszych wymiarów.',
+    en: 'This does not share the full report. Public links only show a compact profile signal: archetype, a few strengths, preferred environment, and a few standout dimensions.',
+  }, profileLocale);
   const jcfpmReasonLocale = (i18n.language || 'cs').toLowerCase();
   const jcfpmReasonLocaleBase = jcfpmReasonLocale.split('-')[0];
   const translateLegacyJhiReason = (reason?: string) => {
@@ -4687,6 +4704,34 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       }
                     }}
                   />
+                  {jcfpmSnapshot ? (
+                    <div className={jcfpmInnerCardClass}>
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={jcfpmShareEnabled}
+                          onChange={(event) => {
+                            onChange({
+                              ...profile,
+                              preferences: {
+                                ...profile.preferences,
+                                signal_boost_share_jcfpm: event.target.checked,
+                              },
+                            }, true);
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {jcfpmShareCopy}
+                          </div>
+                          <p className="mt-1 text-xs leading-6 text-slate-600 dark:text-slate-400">
+                            {jcfpmShareHintCopy}
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  ) : null}
                   {jcfpmSnapshot && (
                     <div id="profile-jcfpm-report" className={jcfpmInnerCardClass}>
                       <JcfpmReportPanel snapshot={jcfpmSnapshot} showAdvancedReport={isPremium} />

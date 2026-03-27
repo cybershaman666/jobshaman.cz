@@ -209,3 +209,19 @@ def test_serialize_signal_output_public_backfills_fit_context_for_legacy_outputs
     assert serialized["recruiter_readout"]["fit_context"]["transferable_strengths"]
     assert serialized["jcfpm_signal"]["strengths"]
     assert serialized["jcfpm_signal"]["top_dimensions"]
+
+
+def test_build_public_jcfpm_signal_respects_opt_out():
+    signal = signal_boost_router._build_public_jcfpm_signal(
+        {
+            "preferences": {
+                "signal_boost_share_jcfpm": False,
+                "jcfpm_v1": {
+                    "percentile_summary": {"d1_cognitive": 80},
+                    "ai_report": {"strengths": ["Systems thinker."]},
+                },
+            }
+        }
+    )
+
+    assert signal is None

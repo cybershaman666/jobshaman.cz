@@ -210,6 +210,8 @@ def _build_public_candidate_snapshot(source: dict[str, Any]) -> dict[str, Any]:
 
 def _build_public_jcfpm_signal(candidate_profile: dict[str, Any]) -> dict[str, Any] | None:
     preferences = _safe_dict(candidate_profile.get("preferences"))
+    if preferences.get("signal_boost_share_jcfpm") is False:
+        return None
     snapshot = _safe_dict(preferences.get("jcfpm_v1"))
     if not snapshot:
         return None
