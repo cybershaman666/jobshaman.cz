@@ -34,6 +34,7 @@ from .jobs import (
     _is_missing_table_error,
     _load_dialogue_solution_snapshot,
     _load_dialogue_solution_snapshot_context,
+    _normalize_dialogue_persisted_status,
     _normalize_job_id,
     _normalize_jcfpm_share_level,
     _read_job_record,
@@ -573,15 +574,16 @@ async def withdraw_my_dialogue_legacy(
         }
 
     try:
+        persisted_status = _normalize_dialogue_persisted_status("withdrawn") or "rejected"
         try:
             supabase.table("job_applications").update({
-                "status": "withdrawn",
+                "status": persisted_status,
                 "updated_at": now_iso(),
             }).eq("id", application_id).eq("candidate_id", user_id).execute()
         except Exception as exc:
             if _is_missing_column_error(exc, "updated_at"):
                 supabase.table("job_applications").update({
-                    "status": "withdrawn",
+                    "status": persisted_status,
                 }).eq("id", application_id).eq("candidate_id", user_id).execute()
             else:
                 raise

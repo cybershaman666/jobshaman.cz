@@ -840,6 +840,25 @@ def _build_closed_dialogue_payload(existing_payload: Any, close_reason: str) -> 
     return payload
 
 
+def _resolve_dialogue_runtime_status(row: dict | None) -> str:
+    source = row or {}
+    normalized_status = str(source.get("status") or "").strip().lower() or "pending"
+    close_reason = _normalize_dialogue_close_reason(_safe_dict(source.get("application_payload")).get("dialogue_closed_reason"))
+
+    if normalized_status == "rejected":
+        if close_reason == "timeout":
+            return "closed_timeout"
+        if close_reason == "withdrawn":
+            return "withdrawn"
+        if close_reason == "role_filled":
+            return "closed_role_filled"
+        if close_reason == "closed":
+            return "closed"
+    if normalized_status == "closed" and close_reason == "timeout":
+        return "closed_timeout"
+    return normalized_status
+
+
 def _normalize_dialogue_close_reason(value: Any) -> str | None:
     raw = str(value or "").strip().lower()
     if not raw:
@@ -907,8 +926,12 @@ def _normalize_dialogue_persisted_status(status: Any) -> str | None:
     normalized = str(status or "").strip().lower()
     if not normalized:
         return None
+    if normalized in {"pending", "reviewed", "shortlisted", "rejected", "hired"}:
+        return normalized
+    if normalized in {"withdrawn", "closed", "timeout", "role_filled"}:
+        return "rejected"
     if normalized.startswith("closed_"):
-        return "closed"
+        return "rejected"
     return normalized
 
 
@@ -1037,6 +1060,8 @@ def _schedule_dialogue_timeout(row: dict | None, current_turn: str) -> dict:
 
 def _expire_dialogue_if_needed(row: dict | None, sync_company_usage: bool = True) -> dict:
     source = dict(row or {})
+    if source:
+        source["status"] = _resolve_dialogue_runtime_status(source)
     if not source or not _is_active_dialogue_status(source.get("status")):
         return source
 
@@ -3629,6 +3654,7 @@ def _derive_candidate_headline(snapshot: dict | None) -> str | None:
 
 
 def _serialize_company_dialogue_row(row: dict) -> dict:
+    resolved_status = _resolve_dialogue_runtime_status(row)
     job = _safe_dict(row.get("jobs"))
     profile = _safe_dict(row.get("profiles"))
     candidate_snapshot = _safe_dict(row.get("candidate_profile_snapshot"))
@@ -3640,7 +3666,7 @@ def _serialize_company_dialogue_row(row: dict) -> dict:
         "id": row.get("id"),
         "job_id": row.get("job_id"),
         "candidate_id": row.get("candidate_id"),
-        "status": row.get("status"),
+        "status": resolved_status,
         "created_at": row.get("created_at"),
         "submitted_at": row.get("submitted_at") or row.get("applied_at") or row.get("created_at"),
         "updated_at": row.get("updated_at") or row.get("created_at"),
