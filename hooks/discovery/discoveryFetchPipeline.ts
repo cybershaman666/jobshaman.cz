@@ -19,6 +19,7 @@ interface RunSimplePaginationArgs {
 interface RunFilteredFetchArgs {
     page: number;
     pageSize: number;
+    previousJobsCount?: number;
     searchTerm: string;
     sortBy: string;
     searchMode: SearchMode;
@@ -114,6 +115,7 @@ export const runSimplePaginationPipeline = async ({
 export const runFilteredFetchPipeline = async ({
     page,
     pageSize,
+    previousJobsCount = 0,
     searchTerm,
     sortBy,
     searchMode,
@@ -190,7 +192,17 @@ export const runFilteredFetchPipeline = async ({
         reordered_by_profile: result.meta?.reordered_by_profile ?? false,
     };
 
-    if (visibleJobs.length === 0) {
+    const shouldEmitEmptyResultSignal =
+        visibleJobs.length === 0 && (
+            previousJobsCount <= 0 ||
+            !!String(searchTerm || '').trim() ||
+            !!String(filterCity || '').trim() ||
+            String(searchMode || '').trim().toLowerCase() !== 'discovery_default' ||
+            !!String(result.meta?.fallback_mode || '').trim() ||
+            Array.isArray(result.meta?.degraded_reasons) && result.meta.degraded_reasons.length > 0
+        );
+
+    if (shouldEmitEmptyResultSignal) {
         recordRuntimeSignal('custom:search_empty_result', {
             search_term: searchTerm || null,
             filter_city: filterCity || null,

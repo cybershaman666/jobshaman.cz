@@ -489,6 +489,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const filteredResult = await runFilteredFetchPipeline({
                 page,
                 pageSize: requestedPageSize,
+                previousJobsCount: jobsRef.current.length,
                 searchTerm,
                 searchMode,
                 filterCity,
@@ -690,6 +691,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     // Debounced reload when filters change
     useEffect(() => {
         if (!enabled) return;
+        const shouldDelayUntilProfileDefaultsApplied =
+            userProfile.isLoggedIn &&
+            Boolean(userProfile.id) &&
+            lastAppliedProfileDefaultsSignatureRef.current === null;
+        if (shouldDelayUntilProfileDefaultsApplied) {
+            if (DEBUG_DISCOVERY) {
+                console.log('⏸️ Waiting for profile discovery defaults before running the first fetch');
+            }
+            return;
+        }
         if (hasRunFilterEffectRef.current) {
             setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
             pendingHardRefreshRef.current = true;
@@ -709,7 +720,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [enabled, fetchFilteredJobs, primaryFetchSignature]);
+    }, [enabled, fetchFilteredJobs, primaryFetchSignature, userProfile.id, userProfile.isLoggedIn]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
@@ -734,9 +745,20 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
     // Initial load
     const loadInitialJobs = useCallback(() => {
+        const shouldDelayUntilProfileDefaultsApplied =
+            enabled &&
+            userProfile.isLoggedIn &&
+            Boolean(userProfile.id) &&
+            lastAppliedProfileDefaultsSignatureRef.current === null;
+        if (shouldDelayUntilProfileDefaultsApplied) {
+            if (DEBUG_DISCOVERY) {
+                console.log('⏸️ Skipping premature initial discovery fetch until profile defaults are applied');
+            }
+            return Promise.resolve();
+        }
         setCurrentPage(0);
         return fetchFilteredJobs(0, false, { force: true, reason: 'initial' });
-    }, [fetchFilteredJobs]);
+    }, [enabled, fetchFilteredJobs, userProfile.id, userProfile.isLoggedIn]);
 
     useEffect(() => {
         if (userProfile.isLoggedIn) return;

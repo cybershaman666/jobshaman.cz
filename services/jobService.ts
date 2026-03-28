@@ -2574,7 +2574,7 @@ export const fetchJobsWithFilters = async (
                 const hybridPayload = await hybridResponse.json();
                 throwIfAborted();
                 const backendMetaFallback = String(hybridPayload?.meta?.fallback || '').trim();
-                if (backendMetaFallback) {
+                if (backendMetaFallback && backendMetaFallback !== 'jobs_postgres_v1_bridge') {
                     recordRuntimeSignal('search_backend_meta_fallback', {
                         fallback: backendMetaFallback,
                         sort_mode: hybridPayload?.meta?.sort_mode || effectiveSortMode
