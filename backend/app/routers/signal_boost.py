@@ -34,16 +34,15 @@ from ..services.job_signal_boost_store import (
     update_signal_output,
 )
 from ..services.jobs_postgres_store import get_job_by_id
-from ..utils.helpers import now_iso
-from .jobs import (
-    _fetch_candidate_profile_for_draft,
-    _fetch_profile_identity,
+from ..services.jobs_ai_runtime import _fetch_candidate_profile_for_draft, _fetch_profile_identity
+from ..services.jobs_shared import (
     _normalize_job_id,
     _normalize_locale,
     _safe_dict,
     _safe_string_list,
     _trimmed_text,
 )
+from ..utils.helpers import now_iso
 
 router = APIRouter()
 
@@ -53,22 +52,7 @@ def _load_signal_boost_job_row(job_id: str) -> dict[str, Any] | None:
     postgres_row = get_job_by_id(normalized_job_id)
     if isinstance(postgres_row, dict) and postgres_row:
         return postgres_row
-    if not supabase:
-        return None
-    try:
-        resp = (
-            supabase
-            .table("jobs")
-            .select("*")
-            .eq("id", normalized_job_id)
-            .maybe_single()
-            .execute()
-        )
-        row = resp.data if resp else None
-        return row if isinstance(row, dict) else None
-    except Exception as exc:
-        print(f"⚠️ Failed to load Signal Boost job row for {job_id}: {exc}")
-        return None
+    return None
 
 
 def _enrich_signal_boost_brief_with_candidate_context(

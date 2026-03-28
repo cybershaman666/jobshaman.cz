@@ -12,6 +12,7 @@ from ..models.requests import (
     JobLifecycleUpdateRequest,
 )
 from ..services.dialogue_composer import build_dialogue_enrichment
+from ..services.job_catalog import list_publisher_jobs
 from ..services.jobs_postgres_store import update_job_fields
 from ..utils.helpers import now_iso
 from .jobs import (
@@ -22,7 +23,6 @@ from .jobs import (
     _derive_profile_mini_challenge_label,
     _expire_dialogue_if_needed,
     _extract_attachment_asset_ids,
-    _extract_job_description_metadata,
     _fetch_candidate_profile_for_draft,
     _fetch_profile_identity,
     _generate_native_job_id,
@@ -47,7 +47,6 @@ from .jobs import (
     _serialize_company_application_row,
     _serialize_dialogue_message,
     _serialize_dialogue_record,
-    _sync_main_job_shadow_to_supabase,
     _sync_main_job_to_jobs_postgres,
     _trimmed_text,
 )
@@ -74,29 +73,14 @@ async def list_publisher_mini_challenges(
     limit: int = Query(80, ge=1, le=200),
     user: dict = Depends(get_current_user),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
-
     user_id = str(user.get("id") or user.get("auth_id") or "").strip()
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    resp = (
-        supabase
-        .table("jobs")
-        .select("*")
-        .eq("posted_by", user_id)
-        .order("updated_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+    rows = list_publisher_jobs(user_id, limit=limit, challenge_format="micro_job")
     published_rows: list[dict[str, Any]] = []
     job_ids: list[int] = []
     for row in rows:
-        metadata, _cleaned = _extract_job_description_metadata(row.get("description"))
-        if metadata.get("challenge_format") != "micro_job":
-            continue
         normalized_job_id = _normalize_job_id(row.get("id"))
         repair_payload: dict[str, Any] = {}
         if str(row.get("legality_status") or "").strip().lower() != "legal":
@@ -108,14 +92,8 @@ async def list_publisher_mini_challenges(
         if repair_payload and isinstance(normalized_job_id, int):
             repair_payload["updated_at"] = now_iso()
             try:
-                try:
-                    update_job_fields(normalized_job_id, repair_payload)
-                except Exception:
-                    pass
-                shadow_row = dict(row)
-                shadow_row.update(repair_payload)
-                _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
-                row = shadow_row
+                update_job_fields(normalized_job_id, repair_payload)
+                row = {**row, **repair_payload}
             except Exception as exc:
                 print(f"⚠️ Failed to repair publisher mini challenge visibility fields: {exc}")
         published_rows.append(row)
@@ -234,7 +212,6 @@ async def create_publisher_mini_challenge(
 
     try:
         _sync_main_job_to_jobs_postgres(job_row, source_kind="native")
-        _sync_main_job_shadow_to_supabase(job_row, create_if_missing=True)
     except Exception as exc:
         print(f"⚠️ Failed to create publisher mini challenge: {exc}")
         raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
@@ -264,9 +241,6 @@ async def update_publisher_mini_challenge_lifecycle(
         update_job_fields(normalized_job_id, update_payload)
     except Exception:
         pass
-    shadow_row = dict(job_row)
-    shadow_row.update(update_payload)
-    _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
     return {"status": "success"}
 
 
@@ -287,7 +261,7 @@ async def list_publisher_mini_challenge_dialogues(
         resp = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .select("*,profiles(id,full_name,email,avatar_url)")
             .eq("job_id", normalized_job_id)
             .order("submitted_at", desc=True)
             .limit(limit)
@@ -324,7 +298,7 @@ async def get_publisher_dialogue_detail(
         resp = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .select("*,profiles(id,full_name,email,avatar_url)")
             .eq("id", dialogue_id)
             .maybe_single()
             .execute()

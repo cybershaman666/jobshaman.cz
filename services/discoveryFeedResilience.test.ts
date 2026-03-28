@@ -5,6 +5,7 @@ describe('discovery feed resilience', () => {
     expect(shouldPreserveBrowseResultsOnEmptyRefresh({
       page: 0,
       isLoadMore: false,
+      searchMode: 'discovery_default',
       searchTerm: '',
       filterCity: '',
       previousJobsCount: 50,
@@ -18,6 +19,7 @@ describe('discovery feed resilience', () => {
     expect(shouldPreserveBrowseResultsOnEmptyRefresh({
       page: 0,
       isLoadMore: false,
+      searchMode: 'manual_query',
       searchTerm: 'kuryr',
       filterCity: '',
       previousJobsCount: 50,
@@ -31,6 +33,7 @@ describe('discovery feed resilience', () => {
     expect(shouldPreserveBrowseResultsOnEmptyRefresh({
       page: 0,
       isLoadMore: false,
+      searchMode: 'discovery_default',
       searchTerm: '',
       filterCity: '',
       previousJobsCount: 0,
@@ -44,12 +47,27 @@ describe('discovery feed resilience', () => {
     expect(shouldPreserveBrowseResultsOnEmptyRefresh({
       page: 0,
       isLoadMore: false,
+      searchMode: 'discovery_default',
       searchTerm: '',
       filterCity: '',
       previousJobsCount: 50,
       nextJobsCount: 12,
       backendResultCount: 300,
       totalCount: 300,
+    })).toBe(false);
+  });
+
+  test('does not preserve empty refreshes outside default discovery mode', () => {
+    expect(shouldPreserveBrowseResultsOnEmptyRefresh({
+      page: 0,
+      isLoadMore: false,
+      searchMode: 'manual_filters',
+      searchTerm: '',
+      filterCity: '',
+      previousJobsCount: 50,
+      nextJobsCount: 0,
+      backendResultCount: 0,
+      totalCount: 0,
     })).toBe(false);
   });
 });

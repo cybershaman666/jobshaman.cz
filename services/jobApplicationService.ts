@@ -1,5 +1,6 @@
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
+import { fetchJobTitlesByIds } from './jobCatalogService';
 import { supabase } from './supabaseService';
 import {
     DialogueDossier,
@@ -648,10 +649,8 @@ const mapCompanyDialogueRow = (row: any): CompanyApplicationRow => ({
 
 const fetchLinkedJobs = async (jobIds: Array<string | number>): Promise<Map<string, { title?: string | null }>> => {
     const unique = Array.from(new Set(jobIds.map((id) => String(id || '').trim()).filter(Boolean)));
-    if (!supabase || unique.length === 0) return new Map();
-    const { data, error } = await supabase.from('jobs').select('id,title').in('id', unique);
-    if (error || !Array.isArray(data)) return new Map();
-    return new Map(data.map((row: any) => [String(row.id), { title: row.title }]));
+    if (unique.length === 0) return new Map();
+    return fetchJobTitlesByIds(unique);
 };
 
 const fetchLinkedProfiles = async (profileIds: string[]): Promise<Map<string, { full_name?: string | null; email?: string | null; avatar_url?: string | null }>> => {

@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Job } from '../types';
-import { supabase } from '../services/supabaseService';
 import { updateCompanyJobLifecycle } from '../services/companyJobDraftService';
 
 type TranslateFn = (key: string, options?: any) => string;
@@ -68,14 +67,7 @@ export const useCompanyJobActions = ({
   ): Promise<{ ok: boolean; via: 'api' | 'fallback' | 'failed' }> => {
     const result = await updateCompanyJobLifecycle(jobId, status);
     if (result.ok) return { ok: true, via: 'api' };
-    if (!supabase) return { ok: false, via: 'failed' };
-    const { error } = await supabase
-      .from('jobs')
-      .update({ status })
-      .eq('id', jobId);
-    return error
-      ? { ok: false, via: 'failed' }
-      : { ok: true, via: 'fallback' };
+    return { ok: false, via: 'failed' };
   };
 
   const handleDeleteJob = async (jobId: string) => {

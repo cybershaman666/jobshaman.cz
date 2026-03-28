@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Job } from '../types';
-import { supabase } from '../services/supabaseService';
 import { fetchCompanyJobViews } from '../services/companyDashboardService';
+import { fetchCompanyPublishedJobPayloads } from '../services/jobCatalogService';
+import { mapJobs } from '../services/jobService';
+import { supabase } from '../services/supabaseService';
 
 const loadCompanyJobsData = async (companyId?: string): Promise<{
   jobs: Job[];
   jobStats: Record<string, { views: number; applicants: number }>;
 }> => {
-  if (!companyId || !supabase) {
+  if (!companyId) {
     return { jobs: [], jobStats: {} };
   }
 
-  const { data: realJobs } = await supabase
-    .from('jobs')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
-
-  const jobs = (realJobs || []) as Job[];
+  const rawJobs = await fetchCompanyPublishedJobPayloads();
+  const jobs = mapJobs(rawJobs || [], undefined, undefined, true, true)
+    .filter((job) => String(job.company_id || '') === String(companyId))
+    .sort((left, right) => {
+      const leftTime = new Date((left as any).updated_at || left.scrapedAt || 0).getTime();
+      const rightTime = new Date((right as any).updated_at || right.scrapedAt || 0).getTime();
+      return rightTime - leftTime;
+    });
   const jobIds = jobs.map((job) => job.id);
   const stats: Record<string, { views: number; applicants: number }> = {};
   jobIds.forEach((id: string) => {
@@ -28,19 +31,20 @@ const loadCompanyJobsData = async (companyId?: string): Promise<{
     return { jobs, jobStats: stats };
   }
 
-  const [{ data: apps }, viewsResponse] = await Promise.all([
-    supabase
-      .from('job_applications')
-      .select('job_id')
-      .in('job_id', jobIds),
-    fetchCompanyJobViews(companyId, 90)
-  ]);
+  const { data: apps } = supabase
+    ? await supabase
+        .from('job_applications')
+        .select('job_id')
+        .in('job_id', jobIds)
+    : { data: null };
 
   apps?.forEach((app: any) => {
     if (stats[app.job_id]) {
       stats[app.job_id].applicants++;
     }
   });
+
+  const viewsResponse = await fetchCompanyJobViews(companyId, 90);
 
   viewsResponse?.job_views?.forEach((view: any) => {
     const jobId = String(view?.job_id || '');

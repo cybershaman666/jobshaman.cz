@@ -5,6 +5,7 @@ from ..core.security import get_current_user, verify_subscription, verify_csrf_t
 from ..models.requests import BillingVerificationRequest
 from ..core.database import supabase
 from ..services.email import send_email
+from ..services.job_catalog import count_company_active_jobs
 from ..services.subscription_access import invalidate_subscription_cache
 from ..utils.helpers import now_iso
 from datetime import datetime, timezone, timedelta
@@ -49,22 +50,6 @@ def _get_latest_subscription_by(column: str, value: str) -> dict | None:
         return resp.data[0] if resp.data else None
     except Exception:
         return None
-
-
-def _count_company_active_jobs(company_id: str) -> int:
-    if not company_id:
-        return 0
-    try:
-        jobs_resp = supabase.table("jobs").select("id,status").eq("company_id", company_id).execute()
-        total = 0
-        for row in jobs_resp.data or []:
-            status = str((row or {}).get("status") or "active").lower()
-            if status in {"closed", "paused", "archived"}:
-                continue
-            total += 1
-        return total
-    except Exception:
-        return 0
 
 
 def _count_company_active_dialogues(company_id: str) -> int:
@@ -161,7 +146,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     if resolved_is_company_context:
         try:
             target_company_id = resolved_company_id or require_company_access(user, user.get("company_id"))
-            real_job_count = _count_company_active_jobs(target_company_id)
+            real_job_count = count_company_active_jobs(target_company_id)
             real_dialogue_count = _count_company_active_dialogues(target_company_id)
         except:
             real_job_count = 0

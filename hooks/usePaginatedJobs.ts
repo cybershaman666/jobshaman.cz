@@ -7,9 +7,6 @@ import AnalyticsService from '../services/analyticsService';
 import {
     annotateJobsForCandidate,
     computeCandidateAnnotations,
-    getCandidateIntentDomainSeedKeyword,
-    getCandidateIntentDomainLabel,
-    getCandidateIntentRoleSeedKeyword,
     resolveCandidateIntentProfile,
 } from '../services/candidateIntentService';
 import { recordRuntimeSignal } from '../services/runtimeSignals';
@@ -21,19 +18,14 @@ import useDiscoveryFilters, {
 } from './useDiscoveryFilters';
 import useJobInteractionState from './useJobInteractionState';
 import {
-    applyExternalOverlayJobFilters,
-    runAsyncExternalOverlay,
     runFilteredFetchPipeline,
     runSimplePaginationPipeline,
 } from './discovery/discoveryFetchPipeline';
 import {
-    calculateDistanceKm,
     createDomesticCountrySafeguard,
     getCountryCodeFromAddress,
     getLogicalCountryCount,
     getSourceMixCounts,
-    inferJobCountryCode,
-    inferJobLanguageCode,
 } from './discovery/discoverySafeguards';
 import { markPerf, measurePerf } from '../src/app/perf/perfDebug';
 
@@ -79,15 +71,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         [i18n.language, i18n.resolvedLanguage]
     );
     const candidateIntent = useMemo(() => resolveCandidateIntentProfile(userProfile), [userProfile]);
-    const externalSearchSeedTerm = useMemo(() => {
-        const explicitRole = getCandidateIntentRoleSeedKeyword(candidateIntent.targetRole);
-        if (explicitRole) return explicitRole;
-        const keyword = getCandidateIntentDomainSeedKeyword(candidateIntent.primaryDomain);
-        if (keyword) return keyword;
-        // Last resort: localized label, but this tends to be worse for English-only sources.
-        const label = getCandidateIntentDomainLabel(candidateIntent.primaryDomain, i18n.language);
-        return String(label || '').trim();
-    }, [candidateIntent.primaryDomain, candidateIntent.targetRole, i18n.language]);
     const hasProfileLocation = useMemo(
         () => Boolean(
             userProfile.coordinates?.lat
@@ -115,8 +98,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         ]
     );
     const activeFetchControllerRef = useRef<AbortController | null>(null);
-    const externalOverlayControllerRef = useRef<AbortController | null>(null);
-    const lastExternalOverlaySignatureRef = useRef<string>('');
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
     const previousLocaleIdentityRef = useRef<string | null>(null);
@@ -445,26 +426,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             // don't block cross-border jobs (AT/SK/DE/PL...) that are still within the commute circle.
             const effectiveCountryCodes = (globalSearch || shouldAutoExpandBorderCountries) ? undefined : normalizedCountryCodes;
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
-            const applyExternalRecoveryFilters = (jobs: Job[]): Job[] => applyDomesticCountrySafeguard(
-                applyExternalOverlayJobFilters({
-                    jobs,
-                    effectiveCountryCodes,
-                    excludeCountryCodes,
-                    retrievalLanguageCodes,
-                    remoteOnly,
-                    filterWorkArrangement,
-                    filterCity,
-                    enableCommuteFilter: effectiveEnableCommuteFilter,
-                    filterMaxDistance,
-                    lat,
-                    lon,
-                    inferJobCountryCode,
-                    inferJobLanguageCode,
-                    normalizeCountryCodes,
-                    calculateDistanceKm,
-                    defaultMaxDistanceKm: effectiveImplicitRadiusKm,
-                })
-            );
 
             // Avoid heavy RPC paths when the user effectively wants "show me the newest feed".
             // Supabase PostgREST RPC can hit statement timeouts (57014) on broad queries, while
@@ -513,28 +474,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
                 setHasMore(simpleResult.resolvedHasMore);
                 setTotalCount(simpleResult.totalCount);
-
-                if (!isLoadMore && page === 0) {
-                    externalOverlayControllerRef.current?.abort();
-                    runAsyncExternalOverlay({
-                        searchTerm,
-                        filterCity,
-                        externalSearchSeedTerm,
-                        effectiveCountryCodes: hasCountryFilter ? normalizedCountryCodes : undefined,
-                        excludeCountryCodes: abroadOnly ? normalizedDefaultDomesticCountries : undefined,
-                        applyExternalRecoveryFilters,
-                        lastSignature: lastExternalOverlaySignatureRef.current,
-                        onSignatureChange: (signature) => {
-                            lastExternalOverlaySignatureRef.current = signature;
-                        },
-                        replaceController: (controller) => {
-                            externalOverlayControllerRef.current = controller;
-                        },
-                        setJobs: (updater) => {
-                            setJobs((prev) => applyProfileDiscoveryOrdering(updater(prev), searchMode).jobs);
-                        },
-                    });
-                }
                 return;
             }
 
@@ -546,11 +485,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const effectiveRadiusKm = effectiveEnableCommuteFilter
                 ? filterMaxDistance
                 : effectiveImplicitRadiusKm;
-            const shouldSuppressExternalOverlay =
-                !!effectiveRadiusKm &&
-                !remoteOnly &&
-                !searchTerm &&
-                !filterCity;
 
             const filteredResult = await runFilteredFetchPipeline({
                 page,
@@ -572,13 +506,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 retrievalLanguageCodes,
                 remoteOnly,
                 filterWorkArrangement,
-                externalSearchSeedTerm,
                 microJobsOnly,
                 abortSignal: fetchController.signal,
                 userProfile,
                 filterDismissedJobs,
                 applyDomesticCountrySafeguard,
-                applyExternalRecoveryFilters,
                 isStaleRequest,
                 getSourceMixCounts,
             });
@@ -598,6 +530,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             const shouldPreserveExistingBrowseFeed = shouldPreserveBrowseResultsOnEmptyRefresh({
                 page,
                 isLoadMore,
+                searchMode,
                 searchTerm,
                 filterCity,
                 previousJobsCount: jobsRef.current.length,
@@ -674,35 +607,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 console.groupEnd();
             }
 
-            // Async external overlay: never block the main feed. Fetch extras in the background
-            // and merge them into the already-rendered list (page 0 only).
-            if (!isLoadMore && page === 0) {
-                const hasExternalInPrimaryFeed = filteredResult.visibleJobs.some(
-                    (job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external)
-                );
-                if (!hasExternalInPrimaryFeed && !shouldSuppressExternalOverlay) {
-                    externalOverlayControllerRef.current?.abort();
-                    runAsyncExternalOverlay({
-                        searchTerm,
-                        filterCity,
-                        externalSearchSeedTerm,
-                        effectiveCountryCodes,
-                        excludeCountryCodes,
-                        applyExternalRecoveryFilters,
-                        lastSignature: lastExternalOverlaySignatureRef.current,
-                        onSignatureChange: (signature) => {
-                            lastExternalOverlaySignatureRef.current = signature;
-                        },
-                        replaceController: (controller) => {
-                            externalOverlayControllerRef.current = controller;
-                        },
-                        setJobs: (updater) => {
-                            setJobs((prev) => applyProfileDiscoveryOrdering(updater(prev), searchMode).jobs);
-                        },
-                    });
-                }
-            }
-
             // Track analytics
             if ((filterCity || filterContractType.length > 0 || filterBenefits.length > 0)) {
                 AnalyticsService.trackFilterUsage({
@@ -757,7 +661,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         applyProfileDiscoveryOrdering,
         countryCodes,
         enableCommuteFilter,
-        externalSearchSeedTerm,
         filterBenefits,
         filterCity,
         filterContractType,

@@ -537,6 +537,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     user_lat = filters.get("user_lat")
     user_lng = filters.get("user_lng")
     radius_km = filters.get("radius_km")
+    challenge_format = str(filters.get("filter_challenge_format") or "").strip().lower()
     filter_city = (filters.get("filter_city") or "").strip().lower()
     min_salary = filters.get("filter_min_salary")
     contract_types = set(_normalize_list(filters.get("filter_contract_types")))
@@ -564,6 +565,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
                 min_salary=min_salary,
                 search_term=search_term,
                 filter_city=filter_city,
+                challenge_format=challenge_format if challenge_format in {"standard", "micro_job"} else None,
             )
         if not supabase:
             return []
@@ -582,6 +584,8 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             query = query.eq("status", "active")
         if cutoff_iso:
             query = query.gte("scraped_at", cutoff_iso)
+        if challenge_format in {"standard", "micro_job"}:
+            query = query.eq("challenge_format", challenge_format)
         if country_codes:
             query = query.in_("country_code", list(country_codes))
         if language_codes:
@@ -616,6 +620,10 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
 
     filtered = []
     for job in rows:
+        if challenge_format in {"standard", "micro_job"}:
+            normalized_job_challenge_format = str(job.get("challenge_format") or "standard").strip().lower() or "standard"
+            if normalized_job_challenge_format != challenge_format:
+                continue
         cc = (job.get("country_code") or "").lower()
         if exclude_country_codes and cc in exclude_country_codes:
             continue
@@ -744,6 +752,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                 "user_lat": filters.get("user_lat"),
                 "user_lng": filters.get("user_lng"),
                 "radius_km": filters.get("radius_km"),
+                "filter_challenge_format": filters.get("filter_challenge_format"),
                 "filter_city": filters.get("filter_city"),
                 "filter_contract_types": filters.get("filter_contract_types") or None,
                 "filter_benefits": filters.get("filter_benefits") or None,

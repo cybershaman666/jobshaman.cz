@@ -20,7 +20,6 @@ from .jobs import (
     _build_company_dialogue_solution_snapshot_state,
     _build_dialogue_activity_payload,
     _build_dialogue_timeout_payload,
-    _canonical_job_id,
     _enforce_candidate_dialogue_limit,
     _enforce_company_dialogue_slot_limit,
     _expire_dialogue_if_needed,
@@ -265,7 +264,6 @@ async def list_my_dialogues_legacy(
             "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
             "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
             "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source,contact_email),"
             "companies(name,website)",
             "submitted_at",
         ),
@@ -273,7 +271,6 @@ async def list_my_dialogues_legacy(
             "id,job_id,company_id,status,created_at,submitted_at,applied_at,updated_at,"
             "reviewed_at,reviewed_by,source,cover_letter,cv_document_id,cv_snapshot,"
             "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source),"
             "companies(name,website)",
             "submitted_at",
         ),
@@ -281,7 +278,6 @@ async def list_my_dialogues_legacy(
             "id,job_id,company_id,status,created_at,applied_at,updated_at,"
             "source,cover_letter,cv_document_id,cv_snapshot,"
             "shared_jcfpm_payload,jcfpm_share_level,application_payload,"
-            "jobs(title,company,location,url,source),"
             "companies(name,website)",
             "applied_at",
         ),
@@ -289,21 +285,18 @@ async def list_my_dialogues_legacy(
             "id,job_id,company_id,status,created_at,applied_at,updated_at,"
             "source,cover_letter,cv_document_id,cv_snapshot,"
             "application_payload,"
-            "jobs(title,company,location,url,source),"
             "companies(name,website)",
             "applied_at",
         ),
         (
             "id,job_id,company_id,status,created_at,applied_at,updated_at,source,"
             "application_payload,"
-            "jobs(title,company,location,url,source),"
             "companies(name,website)",
             "applied_at",
         ),
         (
             "id,job_id,company_id,status,created_at,updated_at,source,"
             "application_payload,"
-            "jobs(title,company,location,url,source),"
             "companies(name,website)",
             "created_at",
         ),
@@ -354,27 +347,7 @@ async def list_my_dialogues_legacy(
                 return payload
 
             base_rows = [r for r in (base_resp.data or []) if isinstance(r, dict)]
-            job_ids = [_canonical_job_id(r.get("job_id")) for r in base_rows if _canonical_job_id(r.get("job_id"))]
             company_ids = [str(r.get("company_id") or "").strip() for r in base_rows if str(r.get("company_id") or "").strip()]
-
-            jobs_by_id: dict[str, dict] = {}
-            if job_ids:
-                try:
-                    jobs_resp = (
-                        supabase
-                        .table("jobs")
-                        .select("id,title,company,location,url,source,contact_email")
-                        .in_("id", list({int(x) for x in job_ids if x.isdigit()} or job_ids))
-                        .limit(len(job_ids))
-                        .execute()
-                    )
-                    for job in jobs_resp.data or []:
-                        if isinstance(job, dict):
-                            jid = _canonical_job_id(job.get("id"))
-                            if jid:
-                                jobs_by_id[jid] = job
-                except Exception as exc:
-                    print(f"⚠️ Candidate dialogues fallback: failed to hydrate jobs: {exc}")
 
             companies_by_id: dict[str, dict] = {}
             if company_ids:
@@ -398,10 +371,7 @@ async def list_my_dialogues_legacy(
             rows = []
             for row in base_rows:
                 enriched = dict(row)
-                jid = _canonical_job_id(row.get("job_id"))
                 cid = str(row.get("company_id") or "").strip()
-                if jid:
-                    enriched["jobs"] = jobs_by_id.get(jid) or {}
                 if cid:
                     enriched["companies"] = companies_by_id.get(cid) or {}
                 rows.append(enriched)
@@ -450,14 +420,14 @@ async def get_my_dialogue_detail_legacy(
         resp = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title,company,location,url,source,contact_email),companies(id,name,website)")
+            .select("*,companies(id,name,website)")
             .eq("id", application_id)
             .eq("candidate_id", user_id)
             .maybe_single()
             .execute()
         )
     except Exception as exc:
-        if _is_missing_relationship_error(exc, "job_applications", "jobs"):
+        if _is_missing_relationship_error(exc, "job_applications", "companies"):
             base = (
                 supabase
                 .table("job_applications")
@@ -470,21 +440,7 @@ async def get_my_dialogue_detail_legacy(
             row = base.data if base else None
             if not isinstance(row, dict):
                 raise HTTPException(status_code=404, detail="Application not found")
-            jid = _canonical_job_id(row.get("job_id"))
             cid = str(row.get("company_id") or "").strip()
-            if jid:
-                try:
-                    job_resp = (
-                        supabase
-                        .table("jobs")
-                        .select("id,title,company,location,url,source,contact_email")
-                        .eq("id", int(jid) if jid.isdigit() else jid)
-                        .maybe_single()
-                        .execute()
-                    )
-                    row["jobs"] = job_resp.data if job_resp and isinstance(job_resp.data, dict) else {}
-                except Exception:
-                    row["jobs"] = {}
             if cid:
                 try:
                     company_resp = (
@@ -500,17 +456,7 @@ async def get_my_dialogue_detail_legacy(
                     row["companies"] = {}
             resp = type("Resp", (), {"data": row})()
         else:
-            if not _is_missing_column_error(exc, "contact_email"):
-                raise HTTPException(status_code=500, detail="Failed to load application detail")
-            resp = (
-                supabase
-                .table("job_applications")
-                .select("*,jobs(id,title,company,location,url,source),companies(id,name,website)")
-                .eq("id", application_id)
-                .eq("candidate_id", user_id)
-                .maybe_single()
-                .execute()
-            )
+            raise HTTPException(status_code=500, detail="Failed to load application detail")
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -809,7 +755,7 @@ async def list_company_dialogues_legacy(
         query = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .select("*,profiles(id,full_name,email,avatar_url)")
             .eq("company_id", company_id)
             .order("submitted_at", desc=True)
             .limit(limit)
@@ -857,7 +803,7 @@ async def get_company_dialogue_detail_legacy(
         resp = (
             supabase
             .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email,avatar_url)")
+            .select("*,profiles(id,full_name,email,avatar_url)")
             .eq("id", application_id)
             .maybe_single()
             .execute()
@@ -1249,7 +1195,7 @@ async def list_my_solution_snapshots(
         resp = (
             supabase
             .table("job_solution_snapshots")
-            .select("*,jobs(id,title),companies(id,name)")
+            .select("*,companies(id,name)")
             .eq("candidate_id", user_id)
             .order("created_at", desc=True)
             .limit(limit)
@@ -1275,28 +1221,8 @@ async def list_my_solution_snapshots(
             .execute()
         )
         rows = [row for row in (fallback_resp.data or []) if isinstance(row, dict)]
-        job_ids = [int(jid) for jid in {_normalize_job_id(row.get("job_id")) for row in rows} if isinstance(jid, int)]
         company_ids = [cid for cid in {str((row or {}).get("company_id") or "").strip() for row in rows} if cid]
-        jobs_by_id: dict[int, dict] = {}
         companies_by_id: dict[str, dict] = {}
-
-        if job_ids:
-            try:
-                jobs_resp = (
-                    supabase
-                    .table("jobs")
-                    .select("id,title")
-                    .in_("id", job_ids)
-                    .limit(len(job_ids))
-                    .execute()
-                )
-                jobs_by_id = {
-                    int(row.get("id")): row
-                    for row in (jobs_resp.data or [])
-                    if isinstance(row, dict) and isinstance(row.get("id"), int)
-                }
-            except Exception:
-                jobs_by_id = {}
 
         if company_ids:
             try:
@@ -1317,9 +1243,6 @@ async def list_my_solution_snapshots(
                 companies_by_id = {}
 
         for row in rows:
-            normalized_job_id = _normalize_job_id(row.get("job_id"))
-            if isinstance(normalized_job_id, int):
-                row["jobs"] = jobs_by_id.get(normalized_job_id, {})
             company_id = str(row.get("company_id") or "").strip()
             if company_id:
                 row["companies"] = companies_by_id.get(company_id, {})

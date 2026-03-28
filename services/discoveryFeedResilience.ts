@@ -1,6 +1,7 @@
 interface ShouldPreserveBrowseResultsOnEmptyRefreshArgs {
   page: number;
   isLoadMore: boolean;
+  searchMode?: string;
   searchTerm?: string;
   filterCity?: string;
   previousJobsCount: number;
@@ -12,6 +13,7 @@ interface ShouldPreserveBrowseResultsOnEmptyRefreshArgs {
 export const shouldPreserveBrowseResultsOnEmptyRefresh = ({
   page,
   isLoadMore,
+  searchMode,
   searchTerm,
   filterCity,
   previousJobsCount,
@@ -22,6 +24,7 @@ export const shouldPreserveBrowseResultsOnEmptyRefresh = ({
   if (isLoadMore || page !== 0) return false;
   if (previousJobsCount <= 0 || nextJobsCount !== 0) return false;
   if (String(searchTerm || '').trim() || String(filterCity || '').trim()) return false;
+  if (String(searchMode || '').trim().toLowerCase() !== 'discovery_default') return false;
 
-  return backendResultCount > 0 || totalCount > 0;
+  return backendResultCount >= 0 || totalCount >= 0;
 };

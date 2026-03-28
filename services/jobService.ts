@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
+import { noteSupabaseNetworkFailure } from './supabaseService';
 import {
     Job,
     JobChallengeFormat,
@@ -29,7 +29,7 @@ import { recordRuntimeSignal } from './runtimeSignals';
 import { estimateNoise } from '../utils/noise';
 import { deriveChallengeFields, extractMarkdownSection } from './challengeContentService';
 import { dedupeJobsList, getJobDedupKeys } from '../utils/jobDedupe';
-import { resolveStrictFallbackWindow, shouldRecoverWithStrictClientFallback } from './jobSearchFallbackHeuristics';
+import { fetchJobPayloadsByIds } from './jobCatalogService';
 
 type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number; meta?: SearchDiagnosticsMeta };
 
@@ -41,7 +41,7 @@ const HYBRID_SEARCH_RECENT_TTL_MS = 20_000;
 const HYBRID_SEARCH_RECENT_EMPTY_TTL_MS = 120_000;
 const HYBRID_SEARCH_RECENT_EMPTY_SESSION_PREFIX = 'jobshaman_hybrid_recent_empty:';
 const BACKEND_SEARCH_UNAVAILABLE_TTL_MS = 90_000;
-const BACKEND_CACHED_FEED_UNAVAILABLE_TTL_MS = 90_000;
+const SINGLE_SOURCE_JOBS_DISCOVERY = true;
 
 const readSessionTimestamp = (key: string): number => {
     try {
@@ -79,41 +79,6 @@ const _normalizeKeyArray = (value: unknown): string[] | null => {
     return value.map((v) => String(v)).filter(Boolean).sort();
 };
 
-const getCountryFallbackMatchers = (countryCode: string): { locationTerms: string[]; sourceTerms: string[] } => {
-    const normalized = String(countryCode || '').trim().toUpperCase();
-    if (normalized === 'AT') {
-        return {
-            locationTerms: ['Austria', 'Osterreich', 'Österreich', 'Wien', 'Vienna', 'Graz', 'Linz', 'Salzburg'],
-            sourceTerms: ['karriere.at', 'stepstone.at'],
-        };
-    }
-    if (normalized === 'DE') {
-        return {
-            locationTerms: ['Germany', 'Deutschland', 'Berlin', 'München', 'Munich', 'Hamburg', 'Passau'],
-            sourceTerms: ['stepstone.de', 'germantechjobs'],
-        };
-    }
-    if (normalized === 'CZ') {
-        return {
-            locationTerms: ['Czech', 'Česko', 'Praha', 'Brno', 'Ostrava', 'Šumperk', 'Sumperk'],
-            sourceTerms: ['jobs.cz', 'prace.cz'],
-        };
-    }
-    if (normalized === 'SK') {
-        return {
-            locationTerms: ['Slovakia', 'Slovensko', 'Bratislava', 'Košice', 'Kosice'],
-            sourceTerms: ['profesia.sk'],
-        };
-    }
-    if (normalized === 'PL') {
-        return {
-            locationTerms: ['Poland', 'Polska', 'Warszawa', 'Kraków', 'Krakow'],
-            sourceTerms: ['pracuj.pl'],
-        };
-    }
-    return { locationTerms: [], sourceTerms: [] };
-};
-
 const _hybridSearchRecentCacheKey = (bases: string[], v2Enabled: boolean, payload: Record<string, unknown>) => {
     const stable = {
         v2: v2Enabled ? 1 : 0,
@@ -124,6 +89,7 @@ const _hybridSearchRecentCacheKey = (bases: string[], v2Enabled: boolean, payloa
         user_lat: payload.user_lat == null ? null : Number(payload.user_lat as any),
         user_lng: payload.user_lng == null ? null : Number(payload.user_lng as any),
         radius_km: payload.radius_km == null ? null : Number(payload.radius_km as any),
+        filter_challenge_format: String(payload.filter_challenge_format || ''),
         sort_mode: String(payload.sort_mode || ''),
         filter_city: String(payload.filter_city || ''),
         filter_contract_types: _normalizeKeyArray(payload.filter_contract_types),
@@ -651,75 +617,8 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
 
 // --- API ---
 
-const isTransientSupabaseError = (err: unknown): boolean => {
-    const msg = String((err as any)?.message || err || '').toLowerCase();
-    const code = String((err as any)?.code || '').toLowerCase();
-    const status = Number((err as any)?.status || (err as any)?.statusCode || 0);
-    return (
-        msg.includes('networkerror') ||
-        msg.includes('failed to fetch') ||
-        msg.includes('fetch resource') ||
-        msg.includes('statement timeout') ||
-        msg.includes('cors') ||
-        code === '57014' ||
-        status >= 500
-    );
-};
-
 export const getJobCount = async (): Promise<number> => {
-    if (!isSupabaseConfigured() || !supabase) {
-        console.warn("Supabase not configured.");
-        return 0;
-    }
-    if (isSupabaseNetworkCooldownActive()) return 0;
-
-    try {
-        let count: number | null = null;
-        let error: any = null;
-        const selectCount = async (buildQuery: (mode: 'exact' | 'planned') => any) => {
-            const exact = await buildQuery('exact');
-            if (!exact.error) return exact;
-            const planned = await buildQuery('planned');
-            return planned;
-        };
-
-        // Preferred definition for landing stat: truly active job offers.
-        // Some environments have `status`, some only `is_active`; handle both.
-        const primary = await selectCount((mode) =>
-            supabase
-                .from('jobs')
-                .select('id', { count: mode, head: true })
-                .eq('is_active', true)
-                .eq('status', 'active')
-        );
-        count = primary.count;
-        error = primary.error;
-
-        if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
-            const fallback = await selectCount((mode) =>
-                supabase
-                    .from('jobs')
-                    .select('id', { count: mode, head: true })
-                    .eq('is_active', true)
-            );
-            count = fallback.count;
-            error = fallback.error;
-        }
-
-        if (error) {
-            noteSupabaseNetworkFailure('getJobCount', error);
-            if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
-            console.warn("Job count query failed, returning 0 fallback:", error);
-            return 0;
-        }
-
-        return count || 0;
-    } catch (e) {
-        noteSupabaseNetworkFailure('getJobCount.catch', e);
-        if (isTransientSupabaseError(e) || isSupabaseNetworkCooldownActive()) return 0;
-        console.error("Error in getJobCount:", e);
-        return 0;
-    }
+    return getMainDatabaseJobCount();
 };
 
 export const getMainDatabaseJobCount = async (): Promise<number> => {
@@ -753,82 +652,7 @@ export const getMainDatabaseJobCount = async (): Promise<number> => {
 };
 
 export const getTodayAnalyzedCount = async (): Promise<number> => {
-    if (!isSupabaseConfigured() || !supabase) {
-        console.warn("Supabase not configured.");
-        return 0;
-    }
-    if (isSupabaseNetworkCooldownActive()) return 0;
-
-    try {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        const selectCount = async (buildQuery: (mode: 'exact' | 'planned') => any) => {
-            const exact = await buildQuery('exact');
-            if (!exact.error) return exact;
-            const planned = await buildQuery('planned');
-            return planned;
-        };
-
-        // "Reviewed on JHI today" = jobs updated today that already passed legality/JHI screening.
-        // Prefer updated_at; if status column is unavailable, fallback gracefully.
-        let count: number | null = null;
-        let error: any = null;
-
-        const withStatus = await selectCount((mode) =>
-            supabase
-                .from('jobs')
-                .select('id', { count: mode, head: true })
-                .eq('is_active', true)
-                .eq('status', 'active')
-                .in('legality_status', ['legal', 'review', 'illegal'])
-                .gte('updated_at', startOfDay.toISOString())
-        );
-        count = withStatus.count;
-        error = withStatus.error;
-
-        if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
-            const withoutStatus = await selectCount((mode) =>
-                supabase
-                    .from('jobs')
-                    .select('id', { count: mode, head: true })
-                    .eq('is_active', true)
-                    .in('legality_status', ['legal', 'review', 'illegal'])
-                    .gte('updated_at', startOfDay.toISOString())
-            );
-            count = withoutStatus.count;
-            error = withoutStatus.error;
-        }
-
-        if (error) {
-            noteSupabaseNetworkFailure('getTodayAnalyzedCount', error);
-            if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
-            console.warn("Today's analyzed count query failed, returning 0 fallback:", error);
-            return 0;
-        }
-
-        // Some pipelines only fill created_at meaningfully for daily batches.
-        // If updated_at is not maintained and result is zero, use created_at fallback.
-        if (!count || count <= 0) {
-            const createdFallback = await selectCount((mode) =>
-                supabase
-                    .from('jobs')
-                    .select('id', { count: mode, head: true })
-                    .eq('is_active', true)
-                    .in('legality_status', ['legal', 'review', 'illegal'])
-                    .gte('created_at', startOfDay.toISOString())
-            );
-            if (!createdFallback.error && Number.isFinite(createdFallback.count)) {
-                return createdFallback.count || 0;
-            }
-        }
-
-        return count || 0;
-    } catch (e) {
-        noteSupabaseNetworkFailure('getTodayAnalyzedCount.catch', e);
-        if (isTransientSupabaseError(e) || isSupabaseNetworkCooldownActive()) return 0;
-        console.error("Error in getTodayAnalyzedCount:", e);
-        return 0;
-    }
+    return 0;
 };
 
 export const fetchJobsPaginated = async (
@@ -844,12 +668,13 @@ export const fetchJobsPaginated = async (
     skipCount: boolean = false
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     const backendBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL) || normalizeBackendBaseUrl(BACKEND_URL);
+    const requestedChallengeFormat = microJobsOnly ? 'micro_job' : 'standard';
     const normalizedCountryCodes = Array.isArray(countryCode)
         ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
         : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
     const normalizedLanguageCodes = (languageCodes || []).map((code) => String(code || '').trim().toLowerCase()).filter(Boolean);
 
-    if (backendBase && !microJobsOnly) {
+    if (backendBase) {
         try {
             const response = await authenticatedFetch(`${backendBase}/jobs/hybrid-search-v2`, {
                 method: 'POST',
@@ -861,6 +686,7 @@ export const fetchJobsPaginated = async (
                     user_lat: userLat ?? null,
                     user_lng: userLng ?? null,
                     radius_km: (userLat != null && userLng != null) ? radiusKm : null,
+                    filter_challenge_format: requestedChallengeFormat,
                     filter_city: '',
                     filter_contract_types: [],
                     filter_benefits: [],
@@ -877,7 +703,9 @@ export const fetchJobsPaginated = async (
             if (response.ok) {
                 const payload = await response.json();
                 const rawJobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
-                const processedJobs = rawJobs.map((job: any) => transformJob(job, includeJhi));
+                const processedJobs = rawJobs
+                    .map((job: any) => transformJob(job, includeJhi))
+                    .filter((job: Job) => (microJobsOnly ? job.challenge_format === 'micro_job' : job.challenge_format !== 'micro_job'));
                 const filteredJobs = filterJobsByQuality(processedJobs);
                 return {
                     jobs: filteredJobs,
@@ -886,307 +714,16 @@ export const fetchJobsPaginated = async (
                 };
             }
         } catch (error) {
-            console.warn('Backend paginated jobs fetch failed, falling back to Supabase:', error);
+            console.warn('Backend paginated jobs fetch failed:', error);
         }
     }
 
-    if (!isSupabaseConfigured() || !supabase) {
-        console.warn("Supabase not configured.");
+    if (SINGLE_SOURCE_JOBS_DISCOVERY) {
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 
-    try {
-        // If user coordinates provided AND both lat/lng are defined, use spatial query
-        const singleCountryCode = normalizedCountryCodes.length === 1 ? normalizedCountryCodes[0] : undefined;
-
-        if (!microJobsOnly && userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
-            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km, country: ${singleCountryCode || normalizedCountryCodes.join(',') || 'all'}`);
-
-            const { data, error } = await supabase
-                .rpc('search_jobs_minimal', {
-                    user_lat: userLat,
-                    user_lng: userLng,
-                    radius_km: radiusKm,
-                    limit_count: pageSize,
-                    offset_val: page * pageSize,
-                    filter_country_code: singleCountryCode
-                });
-
-            if (error) {
-                console.error('Spatial query error:', error);
-                // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, normalizedCountryCodes, languageCodes, includeJhi, microJobsOnly, skipCount);
-            }
-
-            if (!data || data.length === 0) {
-                console.log('🔍 No jobs found within radius');
-                return { jobs: [], hasMore: false, totalCount: 0 };
-            }
-
-            // Process results with distance information
-            const processedJobs = data.map((row: any) => {
-                const job = transformJob({
-                    id: row.id,
-                    company_id: row.company_id,
-                    title: row.title,
-                    company: row.company,
-                    location: row.location,
-                    description: row.description,
-                    role_summary: row.role_summary,
-                    first_reply_prompt: row.first_reply_prompt,
-                    company_truth_hard: row.company_truth_hard,
-                    company_truth_fail: row.company_truth_fail,
-                    benefits: row.benefits,
-                    contract_type: row.contract_type,
-                    salary_from: row.salary_from,
-                    salary_to: row.salary_to,
-                    salary_timeframe: row.salary_timeframe,
-                    work_type: row.work_type,
-                    scraped_at: row.scraped_at,
-                    source: row.source,
-                    education_level: row.education_level,
-                    url: row.url,
-                    lat: row.lat,
-                    lng: row.lng,
-                    country_code: row.country_code
-                }, includeJhi);
-
-                // Add distance information
-                (job as any).distance_km = row.distance_km;
-                return job;
-            });
-
-            // Filter by country code if provided
-            const countryFilteredJobs = countryCode
-                ? processedJobs.filter((job: Job) => normalizedCountryCodes.includes(String(job.country_code || '').trim().toUpperCase()))
-                : processedJobs;
-
-            // Filter by quality standards and remove duplicates
-            const filteredJobs = filterJobsByQuality(countryFilteredJobs);
-
-            const totalCount = data[0]?.total_count || 0;
-            const hasMore = data[0]?.has_more || false;
-
-            console.log(`📍 Found ${filteredJobs.length} valid jobs within ${radiusKm}km (total: ${totalCount}, filtered: ${processedJobs.length - filteredJobs.length})`);
-
-            return {
-                jobs: filteredJobs,
-                hasMore,
-                totalCount
-            };
-        }
-
-        // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, normalizedCountryCodes, languageCodes, includeJhi, microJobsOnly, skipCount);
-
-    } catch (e) {
-        console.error("Error in fetchJobsPaginated:", e);
-        return { jobs: [], hasMore: false, totalCount: 0 };
-    }
-};
-
-// Fallback function for regular pagination
-const fetchJobsPaginatedFallback = async (
-    page: number = 0,
-    pageSize: number = 50,
-    userLat?: number,
-    userLng?: number,
-    _radiusKm?: number, // Not used in fallback
-    countryCode?: string | string[],
-    languageCodes?: string[],
-    includeJhi: boolean = true,
-    microJobsOnly: boolean = false,
-    skipCount: boolean = false
-): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
-    try {
-        const normalizedCountryCodes = Array.isArray(countryCode)
-            ? countryCode.map((code) => String(code || '').trim().toUpperCase()).filter(Boolean)
-            : (countryCode ? [String(countryCode).trim().toUpperCase()] : []);
-        const primaryCountryCode = normalizedCountryCodes.length === 1 ? normalizedCountryCodes[0] : null;
-        const useBroadBrowseLegality =
-            Boolean(primaryCountryCode) &&
-            skipCount &&
-            !microJobsOnly &&
-            (!languageCodes || languageCodes.length === 0);
-        const countryCodeVariants = Array.from(new Set(
-            normalizedCountryCodes.flatMap((code) => {
-                const variants = [code, code.toLowerCase()];
-                if (code === 'CZ' || code === 'CS') {
-                    variants.push('CZ', 'cz', 'CS', 'cs');
-                }
-                return variants;
-            })
-        ));
-        const shouldSkipCount =
-            (skipCount && normalizedCountryCodes.length === 0 && (!languageCodes || languageCodes.length === 0) && !microJobsOnly) ||
-            false;
-        const buildBaseListQuery = (query: any) => {
-            let nextQuery = useBroadBrowseLegality
-                ? query.in('legality_status', ['legal', 'review', 'pending'])
-                : query.eq('legality_status', 'legal');
-
-            if (countryCodeVariants.length === 1) {
-                nextQuery = nextQuery.eq('country_code', countryCodeVariants[0]);
-            } else if (countryCodeVariants.length > 1) {
-                nextQuery = nextQuery.in('country_code', countryCodeVariants);
-            }
-            if (languageCodes && languageCodes.length > 0) {
-                nextQuery = nextQuery.in('language_code', languageCodes);
-            }
-            if (microJobsOnly) {
-                nextQuery = nextQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
-            }
-
-            return nextQuery;
-        };
-
-        let totalCount = 0;
-        if (!shouldSkipCount && (microJobsOnly || normalizedCountryCodes.length > 0 || (languageCodes && languageCodes.length > 0))) {
-            const { count, error: countError } = await buildBaseListQuery(
-                supabase.from('jobs').select('id', { count: 'exact', head: true })
-            );
-            if (countError) {
-                noteSupabaseNetworkFailure('fetchJobsPaginatedFallback.count', countError);
-                if (!isSupabaseNetworkCooldownActive()) {
-                    console.warn('Failed to count paginated jobs with scoped filters:', countError);
-                }
-            } else {
-                totalCount = Number(count || 0);
-            }
-        } else if (!shouldSkipCount) {
-            totalCount = await getJobCount();
-        }
-
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
-        const countryScopedBrowseWindow = primaryCountryCode
-            ? Math.max((page + 1) * pageSize * 4, 200)
-            : pageSize;
-        const queryFrom = primaryCountryCode ? 0 : from;
-        const queryTo = primaryCountryCode ? countryScopedBrowseWindow - 1 : to;
-
-        const listSelect = includeJhi
-            ? '*'
-            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
-        const query = buildBaseListQuery(supabase
-            .from('jobs')
-            .select(listSelect)
-        );
-
-        const { data, error } = await query
-            .range(queryFrom, queryTo)
-            .order('scraped_at', { ascending: false });
-
-        if (error) {
-            const message = String((error as any)?.message || error || '').toLowerCase();
-            const isAbort =
-                (error as any)?.name === 'AbortError' ||
-                message.includes('operation was aborted') ||
-                message.includes('aborted');
-            if (isAbort) {
-                return { jobs: [], hasMore: false, totalCount };
-            }
-            console.error(`Error fetching page ${page}:`, error);
-            return { jobs: [], hasMore: false, totalCount };
-        }
-
-        let mergedData = Array.isArray(data) ? [...data] : [];
-        if (primaryCountryCode && mergedData.length < countryScopedBrowseWindow) {
-            const { locationTerms, sourceTerms } = getCountryFallbackMatchers(primaryCountryCode);
-            const topUpLimit = Math.max(countryScopedBrowseWindow - mergedData.length, pageSize);
-            const locationFilters = locationTerms.map((term) => `location.ilike.%${term}%`);
-            const sourceFilters = sourceTerms.flatMap((term) => [
-                `source.ilike.%${term}%`,
-                `url.ilike.%${term}%`,
-            ]);
-            const fallbackFilters = [...locationFilters, ...sourceFilters];
-
-            if (fallbackFilters.length > 0) {
-                const fallbackBatches: any[] = [];
-                for (const emptyCountryMode of ['null', 'empty'] as const) {
-                    let fallbackQuery = supabase
-                        .from('jobs')
-                        .select(listSelect)
-                        .eq('legality_status', 'legal')
-                        .order('scraped_at', { ascending: false })
-                        .limit(topUpLimit * 2)
-                        .or(fallbackFilters.join(','));
-
-                    fallbackQuery = emptyCountryMode === 'null'
-                        ? fallbackQuery.is('country_code', null)
-                        : fallbackQuery.eq('country_code', '');
-
-                    if (languageCodes && languageCodes.length > 0) {
-                        fallbackQuery = fallbackQuery.in('language_code', languageCodes);
-                    }
-                    if (microJobsOnly) {
-                        fallbackQuery = fallbackQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
-                    }
-
-                    const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-                    if (!fallbackError && Array.isArray(fallbackData) && fallbackData.length > 0) {
-                        fallbackBatches.push(...fallbackData);
-                    }
-                }
-
-                if (fallbackBatches.length > 0) {
-                    const existingIds = new Set(mergedData.map((row: any) => String(row.id)));
-                    const dedupedFallback = fallbackBatches.filter((row: any) => !existingIds.has(String(row.id)));
-                    mergedData = [...mergedData, ...dedupedFallback];
-                }
-            }
-        }
-
-        if (!mergedData || mergedData.length === 0) {
-            return { jobs: [], hasMore: false, totalCount };
-        }
-
-        mergedData.sort((left: any, right: any) => {
-            const leftTime = new Date(left?.scraped_at || 0).getTime();
-            const rightTime = new Date(right?.scraped_at || 0).getTime();
-            return rightTime - leftTime;
-        });
-
-        console.log(`📋 Fallback: Fetched ${mergedData.length} jobs (page ${page}, total: ${totalCount}, country: ${normalizedCountryCodes.join(',') || 'all'})`);
-
-        const processedJobs = mergedData.map((job: any) => {
-            const transformed = transformJob(job, includeJhi);
-            // Calculate distance if coordinates provided
-            if (userLat && userLng && job.lat && job.lng) {
-                (transformed as any).distance_km = calculateDistanceKm(
-                    userLat, userLng,
-                    job.lat as number, job.lng as number
-                );
-            }
-            return transformed;
-        });
-
-        // Filter by quality standards and remove duplicates
-        const filteredPool = filterJobsByQuality(processedJobs);
-        const pagedJobs = primaryCountryCode
-            ? filteredPool.slice(from, to + 1)
-            : filteredPool;
-        const resolvedTotalCount = primaryCountryCode
-            ? Math.max(totalCount, filteredPool.length)
-            : (shouldSkipCount
-                ? page * pageSize + pagedJobs.length + (pagedJobs.length === pageSize ? pageSize : 0)
-                : totalCount);
-        const hasMore = primaryCountryCode
-            ? filteredPool.length > to + 1
-            : (shouldSkipCount
-                ? pagedJobs.length === pageSize
-                : (page + 1) * pageSize < totalCount);
-
-        return {
-            jobs: pagedJobs,
-            hasMore,
-            totalCount: resolvedTotalCount
-        };
-
-    } catch (e) {
-        console.error("Error in fetchJobsPaginatedFallback:", e);
-        return { jobs: [], hasMore: false, totalCount: 0 };
-    }
+    void skipCount;
+    return { jobs: [], hasMore: false, totalCount: 0 };
 };
 
 export const searchJobs = async (
@@ -1195,42 +732,23 @@ export const searchJobs = async (
     pageSize: number = 20,
     countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean }> => {
-    if (!isSupabaseConfigured() || !supabase || !searchTerm.trim()) {
+    const term = String(searchTerm || '').trim();
+    if (!term) {
         return { jobs: [], hasMore: false };
     }
 
     try {
-        console.log(`🔍 Searching for: "${searchTerm}" (page ${page}, country: ${countryCode || 'all'})`);
-        const from = page * pageSize;
-        const to = from + pageSize;
-
-        let query = supabase
-            .from('jobs')
-            .select('*')
-            .eq('legality_status', 'legal')
-            .ilike('title', `%${searchTerm}%`);
-
-        // Apply country code filter if provided
-        if (countryCode) {
-            query = query.eq('country_code', countryCode);
-        }
-
-        const { data, error } = await query
-            .order('scraped_at', { ascending: false })
-            .range(from, to);
-
-        if (error) {
-            console.error("❌ Error searching jobs:", error);
-            return { jobs: [], hasMore: false };
-        }
-
-        const hasMore = data.length > pageSize;
-        const rawJobs = hasMore ? data.slice(0, pageSize) : data;
-
-        const allJobs = mapJobs(rawJobs);
-        const validJobs = filterJobsByQuality(allJobs);
-
-        return { jobs: validJobs, hasMore };
+        const result = await fetchJobsWithFilters({
+            searchTerm: term,
+            page,
+            pageSize,
+            countryCodes: countryCode ? [countryCode] : undefined,
+            filterDatePosted: 'all',
+            sortMode: 'default',
+            searchMode: 'manual_query',
+            includeJhi: true,
+        });
+        return { jobs: result.jobs, hasMore: result.hasMore };
     } catch (e) {
         console.error("Error in searchJobs:", e);
         return { jobs: [], hasMore: false };
@@ -1248,70 +766,26 @@ export const searchJobsByLocation = async (
     pageSize: number = 50,
     countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
-    if (!isSupabaseConfigured() || !supabase || !locationText.trim()) {
+    const locationQuery = String(locationText || '').trim();
+    if (!locationQuery) {
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 
     try {
-        console.log(`🏙️  Searching jobs by location text: "${locationText}" (country: ${countryCode || 'all'})`);
-
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
-
-        // First, get the total count of matching jobs
-        let countQuery = supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .eq('legality_status', 'legal')
-            .ilike('location', `%${locationText}%`);
-
-        if (countryCode) {
-            countQuery = countQuery.eq('country_code', countryCode);
-        }
-
-        const { count, error: countError } = await countQuery;
-
-        if (countError) {
-            console.error("Error getting location search count:", countError);
-            return { jobs: [], hasMore: false, totalCount: 0 };
-        }
-
-        const totalCount = count || 0;
-
-        // Then fetch the paginated results
-        let dataQuery = supabase
-            .from('jobs')
-            .select('*')
-            .eq('legality_status', 'legal')
-            .ilike('location', `%${locationText}%`);
-
-        if (countryCode) {
-            dataQuery = dataQuery.eq('country_code', countryCode);
-        }
-
-        const { data, error } = await dataQuery
-            .order('scraped_at', { ascending: false })
-            .range(from, to);
-
-        if (error) {
-            console.error("Error searching jobs by location:", error);
-            return { jobs: [], hasMore: false, totalCount };
-        }
-
-        if (!data || data.length === 0) {
-            console.log(`🏙️  No jobs found with location matching "${locationText}"`);
-            return { jobs: [], hasMore: false, totalCount };
-        }
-
-        const processedJobs = mapJobs(data, undefined, undefined, true);
-        const filteredJobs = filterJobsByQuality(processedJobs);
-
-        console.log(`🏙️  Found ${filteredJobs.length} jobs with location containing "${locationText}" (total: ${totalCount})`);
-
+        const result = await fetchJobsWithFilters({
+            filterCity: locationQuery,
+            page,
+            pageSize,
+            countryCodes: countryCode ? [countryCode] : undefined,
+            filterDatePosted: 'all',
+            sortMode: 'newest',
+            searchMode: 'manual_filters',
+            includeJhi: true,
+        });
         return {
-            jobs: filteredJobs,
-            hasMore: (page + 1) * pageSize < totalCount,
-            totalCount
+            jobs: result.jobs,
+            hasMore: result.hasMore,
+            totalCount: result.totalCount,
         };
 
     } catch (e) {
@@ -1362,21 +836,11 @@ export interface JobFilterOptions {
     userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
     includeJhi?: boolean;
-    // Used only for external/live sources that require keywords (e.g. Jooble).
-    // This should be a single, specific token to avoid overly strict AND matching.
-    externalSearchSeedTerm?: string;
-    // Controls whether external sources are merged synchronously into the main feed.
-    // - 'sync' (default): merge cached + live overlays inside this call.
-    // - 'async': return DB results fast; external overlays should be fetched separately.
-    // - 'off': never include external overlays.
-    externalOverlayMode?: 'sync' | 'async' | 'off';
     microJobsOnly?: boolean;
     // Profile hard constraints are too opaque for the main discovery feed.
     // Keep them opt-in so manual search filters remain the single source of truth.
     respectHardConstraints?: boolean;
 }
-
-const MICRO_JOB_DESCRIPTION_MARKER = 'jobshaman:challenge_format=micro_job';
 
 const isSearchV2Enabled = (): boolean => {
     const flag = String(import.meta.env.VITE_SEARCH_V2_ENABLED ?? 'true').toLowerCase();
@@ -1384,7 +848,6 @@ const isSearchV2Enabled = (): boolean => {
 };
 
 const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
-const SUPABASE_RPC_MAX_PAGE_SIZE = 200;
 let lastHybridFallbackWarnAt = 0;
 
 const normalizeBackendBaseUrl = (value?: string): string | null => {
@@ -1427,533 +890,6 @@ const createAbortError = (): Error => {
     return error;
 };
 
-const fetchWeWorkRemotelyLiveJobs = async (options: {
-    searchTerm: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    limit?: number;
-    includeJhi?: boolean;
-}): Promise<Job[]> => {
-    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
-    if (!backendBase) return [];
-
-    const searchTerm = String(options.searchTerm || '').trim();
-    const filterCity = String(options.filterCity || '').trim();
-    if (!searchTerm && !filterCity) return [];
-
-    const params = new URLSearchParams();
-    params.set('search_term', searchTerm);
-    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
-    if (filterCity) {
-        params.set('filter_city', filterCity);
-    }
-    if (options.countryCodes && options.countryCodes.length > 0) {
-        params.set('country_codes', options.countryCodes.join(','));
-    }
-    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
-        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
-    }
-
-    try {
-        const response = await authenticatedFetch(
-            `${backendBase}/jobs/external/weworkremotely/search?${params.toString()}`,
-            {
-                method: 'GET',
-                signal: options.abortSignal
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`WWR live search failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
-    } catch (error) {
-        if (isAbortFetchError(error)) {
-            throw error;
-        }
-        console.warn('WWR live RSS overlay unavailable:', error);
-        return [];
-    }
-};
-
-const fetchJoobleLiveJobs = async (options: {
-    searchTerm: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    limit?: number;
-    includeJhi?: boolean;
-    page?: number;
-}): Promise<Job[]> => {
-    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
-    if (!backendBase) return [];
-
-    const searchTerm = String(options.searchTerm || '').trim();
-    if (!searchTerm) return [];
-
-    const params = new URLSearchParams();
-    params.set('search_term', searchTerm);
-    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
-    params.set('page', String(Math.max(1, Math.min(options.page || 1, 10))));
-    if (options.filterCity && options.filterCity.trim()) {
-        params.set('filter_city', options.filterCity.trim());
-    }
-    if (options.countryCodes && options.countryCodes.length > 0) {
-        params.set('country_codes', options.countryCodes.join(','));
-    }
-    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
-        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
-    }
-
-    try {
-        const response = await authenticatedFetch(
-            `${backendBase}/jobs/external/jooble/search?${params.toString()}`,
-            {
-                method: 'GET',
-                signal: options.abortSignal
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`Jooble live search failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
-    } catch (error) {
-        if (isAbortFetchError(error)) {
-            throw error;
-        }
-        console.warn('Jooble live API overlay unavailable:', error);
-        return [];
-    }
-};
-
-const fetchArbeitnowLiveJobs = async (options: {
-    searchTerm: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    limit?: number;
-    includeJhi?: boolean;
-}): Promise<Job[]> => {
-    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
-    if (!backendBase) return [];
-
-    const searchTerm = String(options.searchTerm || '').trim();
-    const filterCity = String(options.filterCity || '').trim();
-    if (!searchTerm && !filterCity) return [];
-
-    const params = new URLSearchParams();
-    params.set('search_term', searchTerm);
-    params.set('limit', String(Math.max(1, Math.min(options.limit || 8, 20))));
-    params.set('page', '1');
-    if (filterCity) {
-        params.set('filter_city', filterCity);
-    }
-    if (options.countryCodes && options.countryCodes.length > 0) {
-        params.set('country_codes', options.countryCodes.join(','));
-    }
-    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
-        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
-    }
-
-    try {
-        const response = await authenticatedFetch(
-            `${backendBase}/jobs/external/arbeitnow/search?${params.toString()}`,
-            {
-                method: 'GET',
-                signal: options.abortSignal
-            }
-        );
-        if (!response.ok) {
-            throw new Error(`Arbeitnow live search failed: ${response.status}`);
-        }
-        const payload = await response.json();
-        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'live_external'));
-    } catch (error) {
-        if (isAbortFetchError(error)) {
-            throw error;
-        }
-        console.warn('Arbeitnow live API overlay unavailable:', error);
-        return [];
-    }
-};
-
-const fetchCachedExternalFeedJobs = async (options: {
-    searchTerm?: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    page?: number;
-    pageSize?: number;
-    includeJhi?: boolean;
-}): Promise<JobsFetchResult> => {
-    const cooldownKey = 'jobshaman_cached_external_unavailable';
-    if (isRecentSessionFlagActive(cooldownKey, BACKEND_CACHED_FEED_UNAVAILABLE_TTL_MS)) {
-        return {
-            jobs: [],
-            hasMore: false,
-            totalCount: 0,
-            meta: {
-                fallback_mode: 'degraded',
-                cache_hit: false,
-                degraded_reasons: ['cached_feed_unavailable_recent']
-            }
-        };
-    }
-
-    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
-    if (!backendBase) {
-        return { jobs: [], hasMore: false, totalCount: 0, meta: { fallback_mode: 'internal_only', cache_hit: false, degraded_reasons: ['backend_unavailable'] } };
-    }
-
-    const params = new URLSearchParams();
-    params.set('page', String(Math.max(0, options.page || 0)));
-    params.set('page_size', String(Math.max(1, Math.min(options.pageSize || 12, 80))));
-    if ((options.searchTerm || '').trim()) {
-        params.set('search_term', String(options.searchTerm).trim());
-    }
-    if ((options.filterCity || '').trim()) {
-        params.set('filter_city', String(options.filterCity).trim());
-    }
-    if (options.countryCodes && options.countryCodes.length > 0) {
-        params.set('country_codes', options.countryCodes.join(','));
-    }
-    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
-        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
-    }
-
-    try {
-        const response = await authenticatedFetch(
-            `${backendBase}/jobs/external/cached-feed?${params.toString()}`,
-            {
-                method: 'GET',
-                signal: options.abortSignal
-            }
-        );
-        if (!response.ok) {
-            if (response.status >= 500) {
-                writeSessionTimestamp(cooldownKey, Date.now());
-                return {
-                    jobs: [],
-                    hasMore: false,
-                    totalCount: 0,
-                    meta: {
-                        fallback_mode: 'degraded',
-                        cache_hit: false,
-                        degraded_reasons: ['cached_feed_backend_5xx']
-                    }
-                };
-            }
-            throw new Error(`External cached feed failed: ${response.status}`);
-        }
-        const payload = await response.json();
-        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return {
-            jobs: filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'cached_external')),
-            hasMore: Boolean(payload?.has_more),
-            totalCount: Number(payload?.total_count || 0),
-            meta: payload?.meta || undefined
-        };
-    } catch (error) {
-        if (isAbortFetchError(error)) {
-            throw error;
-        }
-        writeSessionTimestamp(cooldownKey, Date.now());
-        console.warn('External cached feed unavailable:', error);
-        return {
-            jobs: [],
-            hasMore: false,
-            totalCount: 0,
-            meta: {
-                fallback_mode: 'degraded',
-                cache_hit: false,
-                degraded_reasons: ['cached_feed_unavailable']
-            }
-        };
-    }
-};
-
-const fetchJobSpyExternalJobs = async (options: {
-    searchTerm?: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    page?: number;
-    pageSize?: number;
-    includeJhi?: boolean;
-}): Promise<Job[]> => {
-    const backendBase = normalizeBackendBaseUrl(BACKEND_URL);
-    if (!backendBase) return [];
-
-    const params = new URLSearchParams();
-    params.set('page', String(Math.max(0, options.page || 0)));
-    params.set('page_size', String(Math.max(1, Math.min(options.pageSize || 24, 100))));
-    if ((options.searchTerm || '').trim()) {
-        params.set('search_term', String(options.searchTerm).trim());
-    }
-    if ((options.filterCity || '').trim()) {
-        params.set('location', String(options.filterCity).trim());
-    }
-    if (options.countryCodes && options.countryCodes.length > 0) {
-        params.set('country_codes', options.countryCodes.join(','));
-    }
-    if (options.excludeCountryCodes && options.excludeCountryCodes.length > 0) {
-        params.set('exclude_country_codes', options.excludeCountryCodes.join(','));
-    }
-
-    try {
-        const response = await authenticatedFetch(
-            `${backendBase}/jobs/external/jobspy/search?${params.toString()}`,
-            {
-                method: 'GET',
-                signal: options.abortSignal
-            }
-        );
-        if (response.status === 404) {
-            return [];
-        }
-        if (!response.ok) {
-            throw new Error(`JobSpy external search failed: ${response.status}`);
-        }
-        const payload = await response.json();
-        const rows = Array.isArray(payload?.jobs) ? payload.jobs : [];
-        return filterJobsByQuality(attachSearchSource(mapJobs(rows, undefined, undefined, options.includeJhi ?? true, true), 'cached_external'));
-    } catch (error) {
-        if (isAbortFetchError(error)) {
-            throw error;
-        }
-        if (String((error as any)?.message || '').includes('404')) {
-            return [];
-        }
-        console.warn('JobSpy external cache unavailable:', error);
-        return [];
-    }
-};
-
-export const fetchExternalOverlayJobs = async (options: {
-    searchTerm?: string;
-    externalSeedTerm?: string;
-    filterCity?: string;
-    countryCodes?: string[];
-    excludeCountryCodes?: string[];
-    abortSignal?: AbortSignal;
-    includeJhi?: boolean;
-    mode?: 'default' | 'recovery';
-}): Promise<Job[]> => {
-    const safeSearchTerm = String(options.searchTerm || '').trim();
-    const safeSeed = String(options.externalSeedTerm || '').trim();
-    const filterCity = String(options.filterCity || '').trim();
-    const providerSearchTerm = buildExternalProviderQueryTerm(safeSearchTerm, safeSeed);
-    const countryCodes = options.countryCodes;
-    const excludeCountryCodes = options.excludeCountryCodes;
-    const abortSignal = options.abortSignal;
-    const includeJhi = options.includeJhi ?? false;
-    const mode = options.mode || 'default';
-
-    const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
-        if (!ms || ms <= 0) return promise;
-        let timer: number | null = null;
-        try {
-            return await Promise.race([
-                promise,
-                new Promise<T>((resolve) => {
-                    timer = window.setTimeout(() => resolve(fallback), ms);
-                })
-            ]);
-        } finally {
-            if (timer != null) window.clearTimeout(timer);
-        }
-    };
-
-    const browseWithoutExplicitQuery = !safeSearchTerm && !filterCity;
-    const shouldWidenBrowseWindow =
-        browseWithoutExplicitQuery && (
-            (countryCodes && countryCodes.length > 0) ||
-            (excludeCountryCodes && excludeCountryCodes.length > 0)
-        );
-    const cachedBudgetMs = mode === 'recovery'
-        ? (safeSearchTerm ? 3200 : 1800)
-        : (safeSearchTerm ? 1200 : (shouldWidenBrowseWindow ? 1200 : 650));
-    const cached = await withTimeout(
-        fetchCachedExternalFeedJobs({
-            searchTerm: browseWithoutExplicitQuery ? undefined : (providerSearchTerm || safeSearchTerm || undefined),
-            filterCity,
-            countryCodes,
-            excludeCountryCodes,
-            abortSignal,
-            page: 0,
-            pageSize: mode === 'recovery' ? 30 : (shouldWidenBrowseWindow ? 80 : 24),
-            includeJhi
-        }),
-        cachedBudgetMs,
-        {
-            jobs: [],
-            hasMore: false,
-            totalCount: 0,
-            meta: {
-                fallback_mode: 'degraded',
-                cache_hit: false,
-                degraded_reasons: ['cached_feed_timeout']
-            }
-        }
-    );
-
-    if ((cached.meta?.degraded_reasons || []).length > 0) {
-        const degradedReasons = cached.meta?.degraded_reasons || [];
-        const isExpectedCachedFeedFallback = degradedReasons.every((reason) =>
-            reason === 'cached_feed_timeout' || reason === 'cached_feed_unavailable'
-        );
-        recordRuntimeSignal('custom:external_cached_feed_degraded', {
-            fallback_mode: cached.meta?.fallback_mode || null,
-            degraded_reasons: degradedReasons,
-        }, {
-            dedupeKey: `${cached.meta?.fallback_mode || 'unknown'}:${degradedReasons.join(',') || 'none'}`,
-            throttleMs: 30_000,
-            emitConsole: !isExpectedCachedFeedFallback,
-        });
-    }
-
-    const directJobSpyJobs = await withTimeout(
-        fetchJobSpyExternalJobs({
-            searchTerm: browseWithoutExplicitQuery ? undefined : (providerSearchTerm || safeSearchTerm || undefined),
-            filterCity,
-            countryCodes,
-            excludeCountryCodes,
-            abortSignal,
-            page: 0,
-            pageSize: mode === 'recovery' ? 40 : 32,
-            includeJhi
-        }),
-        mode === 'recovery' ? 2200 : 1200,
-        []
-    );
-
-    let cachedJobs = filterJobsByQuality(dedupeJobsList([...(cached.jobs || []), ...directJobSpyJobs]));
-    if (!safeSearchTerm && safeSeed && !browseWithoutExplicitQuery) {
-        const tokens = safeSeed
-            .toLowerCase()
-            .split(/\s+/g)
-            .filter(Boolean)
-            .slice(0, 4);
-        if (tokens.length > 0) {
-            cachedJobs = cachedJobs.filter((job) => {
-                const haystack = `${job.title || ''}\n${job.company || ''}\n${job.location || ''}\n${job.description || ''}`.toLowerCase();
-                return tokens.every((tok) => haystack.includes(tok));
-            });
-        }
-    }
-
-    const shouldLive = !!providerSearchTerm || !!filterCity;
-    if (!shouldLive) {
-        return filterJobsByQuality(cachedJobs);
-    }
-
-    const overlayLimit = mode === 'recovery'
-        ? (safeSearchTerm ? 16 : 10)
-        : (safeSearchTerm ? 8 : 6);
-    const liveBudgetMs = mode === 'recovery'
-        ? (safeSearchTerm ? 5200 : 3200)
-        : (safeSearchTerm ? 1500 : 1100);
-    const jooblePagePromises: Promise<Job[]>[] = [
-        fetchJoobleLiveJobs({
-            searchTerm: providerSearchTerm,
-            filterCity,
-            countryCodes,
-            excludeCountryCodes,
-            abortSignal,
-            limit: overlayLimit,
-            includeJhi
-        })
-    ];
-    if (mode === 'recovery' && safeSearchTerm) {
-        jooblePagePromises.push(
-            fetchJoobleLiveJobs({
-                searchTerm: providerSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi,
-                page: 2
-            })
-        );
-        jooblePagePromises.push(
-            fetchJoobleLiveJobs({
-                searchTerm: providerSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi,
-                page: 3
-            })
-        );
-    }
-
-    const [wwr, jooblePages, arbeitnow] = await withTimeout(
-        Promise.all([
-            fetchWeWorkRemotelyLiveJobs({
-                searchTerm: providerSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            }),
-            Promise.all(jooblePagePromises),
-            fetchArbeitnowLiveJobs({
-                searchTerm: providerSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            })
-        ]),
-        liveBudgetMs,
-        [[], [[]], []] as [Job[], Job[][], Job[]]
-    );
-
-    let mergedJobs = filterJobsByQuality(dedupeJobsList([
-        ...cachedJobs,
-        ...wwr,
-        ...jooblePages.flat(),
-        ...arbeitnow
-    ]));
-
-    if (safeSearchTerm) {
-        const matcher = buildSearchMatcher(safeSearchTerm);
-        if (matcher.queryTokens.length > 0) {
-            mergedJobs = mergedJobs.filter((job) => matchesSearchMatcher([
-                job.title || '',
-                job.company || '',
-                job.location || '',
-                job.description || '',
-                ...(job.tags || []),
-                ...(job.benefits || [])
-            ].join(' '), matcher));
-        }
-    }
-
-    return mergedJobs;
-};
 
 const normalizeTokenText = (input: string): string =>
     input
@@ -2003,17 +939,6 @@ const ALLOWED_SHORT_SEARCH_TOKENS = new Set([
 
 const dedupeSearchTokens = (tokens: string[]): string[] =>
     Array.from(new Set(tokens.map((token) => token.trim()).filter(Boolean)));
-
-const EXTERNAL_QUERY_STOP_TOKENS = new Set([
-    'and',
-    'for',
-    'mit',
-    'pro',
-    'sk',
-    'skup',
-    'skupina',
-    'group',
-]);
 
 const UNIVERSAL_QUALIFIER_TOKENS = new Set([
     'junior',
@@ -2147,24 +1072,6 @@ const normalizeBackendSearchTerm = (input: string): string => {
     }
 
     return input.trim();
-};
-
-const buildExternalProviderQueryTerm = (searchTerm: string, externalSeedTerm?: string): string => {
-    const candidates = [searchTerm, externalSeedTerm || ''];
-
-    for (const candidate of candidates) {
-        const matcher = buildSearchMatcher(candidate);
-        const compactTokens = dedupeSearchTokens([
-            ...matcher.requiredTokens,
-            ...matcher.queryTokens.filter((token) => ALLOWED_SHORT_SEARCH_TOKENS.has(token) || token.length >= 2)
-        ]).filter((token) => !EXTERNAL_QUERY_STOP_TOKENS.has(token));
-
-        if (compactTokens.length > 0) {
-            return compactTokens.slice(0, 3).join(' ');
-        }
-    }
-
-    return '';
 };
 
 const inferCountryCodeFromSearchText = (input: string): string => {
@@ -2592,16 +1499,6 @@ const getJobSearchSource = (job: Job): SearchResultSource => {
 
 const isExternalSearchSource = (source: SearchResultSource): boolean => source !== 'native';
 
-const attachSearchSource = (jobs: Job[], source: SearchResultSource): Job[] =>
-    jobs.map((job) => ({
-        ...job,
-        searchDiagnostics: {
-            ...(job.searchDiagnostics || {}),
-            source,
-            external: isExternalSearchSource(source),
-        }
-    }));
-
 const getNormalizedWorkArrangement = (job: Job): JobWorkArrangementFilter => {
     if (isRemoteJob(job)) return 'remote';
     const normalizedWorkModel = normalizeTokenText(String(job.work_model || ''));
@@ -2736,14 +1633,10 @@ const warnHybridFallbackThrottled = (error: unknown): void => {
     });
     const fallbackReason = String((error as any)?.code || '').toLowerCase();
     if (isTimeout) {
-        console.info('Hybrid search was slow, using RPC filters for this request.');
+        console.info('Hybrid search was slow, retrying backend search before degrading this request.');
         return;
     }
-    if (fallbackReason === 'empty_page_fallback') {
-        console.info('Hybrid bridge returned an empty next page, using RPC filters for this request.');
-        return;
-    }
-    console.warn('Hybrid search unavailable, falling back to RPC filters:', error);
+    console.warn(`Hybrid search unavailable (${fallbackReason || 'unknown'}), retrying backend search or degrading this request.`, error);
 };
 
 const parseTimestampMs = (value?: string): number => {
@@ -2917,9 +1810,8 @@ export const rankJobsForSearchMode = (
 export const fetchJobsWithFilters = async (
     options: JobFilterOptions
 ): Promise<JobsFetchResult> => {
-    const hasSupabaseSearchFallback = isSupabaseConfigured() && !!supabase;
-    if (!BACKEND_URL && !hasSupabaseSearchFallback) {
-        console.warn("Supabase not configured.");
+    if (!BACKEND_URL) {
+        console.warn("Backend search not configured.");
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 
@@ -2947,8 +1839,6 @@ export const fetchJobsWithFilters = async (
         userTaxProfile,
         abortSignal,
         includeJhi = true,
-        externalSearchSeedTerm,
-        externalOverlayMode = 'sync',
         microJobsOnly = false,
         respectHardConstraints = false
     } = options;
@@ -3012,11 +1902,7 @@ export const fetchJobsWithFilters = async (
     const safeRawSearchTerm = rawSearchTermNormalized.length < 2 ? '' : rawSearchTermNormalized;
     const normalizedSearchTerm = normalizeBackendSearchTerm(rawSearchTermNormalized);
     const safeSearchTerm = normalizedSearchTerm.length < 2 ? safeRawSearchTerm : normalizedSearchTerm;
-    const normalizedExternalSeed = String(externalSearchSeedTerm || '').trim();
-    const safeExternalSeedTerm = normalizedExternalSeed.length < 2 ? '' : normalizedExternalSeed;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
-    const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
-    const compactSearchLength = safeSearchTerm.replace(/\s+/g, '').length;
     let finalUserLat = userLat;
     let finalUserLng = userLng;
     const hasCoords = typeof finalUserLat === 'number' && typeof finalUserLng === 'number';
@@ -3025,44 +1911,23 @@ export const fetchJobsWithFilters = async (
         console.warn('⚠️ Commute filter requested without coordinates; skipping radius filter.');
     }
 
-    const shouldUseHybridSearch = !microJobsOnly && !!BACKEND_URL;
+    const requestedChallengeFormat = microJobsOnly ? 'micro_job' : 'standard';
+    const shouldUseHybridSearch = !!BACKEND_URL;
+    const shouldUseSingleSourceJobsSearch = SINGLE_SOURCE_JOBS_DISCOVERY;
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedLanguageCodes = (filterLanguageCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedContractFilters = (filterContractTypes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
-    const normalizedBenefitFilters = (filterBenefits || []).map((b) => normalizeTokenText(String(b))).filter(Boolean);
     const benefitFilterParts = splitBenefitFilters(filterBenefits || []);
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
     const searchMatcher = buildSearchMatcher(safeRawSearchTerm || safeSearchTerm);
-    const externalProviderSearchTerm = buildExternalProviderQueryTerm(safeSearchTerm, safeExternalSeedTerm);
+    const shouldThrottleRecentEmptyHybridResult =
+        searchMode === 'manual_query' ||
+        searchMode === 'manual_filters' ||
+        !!safeSearchTerm ||
+        !!normalizedFilterCity;
     const datePostedCutoffMs = getDatePostedCutoffMs(filterDatePosted);
-    const hasStrictFilterConstraints =
-        safeRadiusKm !== null ||
-        !!normalizedFilterCity ||
-        remoteOnly ||
-        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
-        normalizedContractFilters.length > 0 ||
-        normalizedBenefitFilters.length > 0 ||
-        normalizedExperienceFilters.length > 0 ||
-        normalizedExcludedCountryCodes.length > 0 ||
-        (filterMinSalary || 0) > 0 ||
-        datePostedCutoffMs !== null ||
-        (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
-    const hasExpandedStrictFallbackCoverage =
-        safeRadiusKm !== null ||
-        !!normalizedFilterCity ||
-        remoteOnly ||
-        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
-        normalizedContractFilters.length > 0 ||
-        normalizedBenefitFilters.length > 0 ||
-        normalizedExperienceFilters.length > 0 ||
-        normalizedCountryCodes.length > 0 ||
-        normalizedExcludedCountryCodes.length > 0 ||
-        normalizedLanguageCodes.length > 0 ||
-        (filterMinSalary || 0) > 0 ||
-        datePostedCutoffMs !== null;
-
     const throwIfAborted = (): void => {
         if (abortSignal?.aborted) {
             throw createAbortError();
@@ -3103,8 +1968,8 @@ export const fetchJobsWithFilters = async (
     };
 
     const matchesRequestedChallengeFormat = (job: Job): boolean => {
-        if (!microJobsOnly) return true;
-        return job.challenge_format === 'micro_job';
+        if (microJobsOnly) return job.challenge_format === 'micro_job';
+        return job.challenge_format !== 'micro_job';
     };
 
     const matchesContractFilters = (job: Job): boolean => {
@@ -3402,219 +2267,12 @@ export const fetchJobsWithFilters = async (
         };
     };
 
-    const withTimeout = async <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
-        if (!ms || ms <= 0) return promise;
-        let timer: number | null = null;
-        try {
-            return await Promise.race([
-                promise,
-                new Promise<T>((resolve) => {
-                    timer = window.setTimeout(() => resolve(fallback), ms);
-                })
-            ]);
-        } finally {
-            if (timer != null) window.clearTimeout(timer);
-        }
-    };
-
-    const shouldOverlayLiveImports =
-        externalOverlayMode === 'sync' &&
-        page === 0 &&
-        // Live overlay should not slow down the default feed. Only run it when the user
-        // explicitly searches (or pins a city), not when we auto-seed external keywords.
-        (!!safeSearchTerm || !!normalizedFilterCity);
-
-    const suppressGenericCachedExternalFeed =
-        safeRadiusKm !== null &&
-        !safeSearchTerm &&
-        !normalizedFilterCity;
-
-    const shouldIncludeCachedExternalFeed =
-        externalOverlayMode === 'sync' &&
-        page >= 0 &&
-        !suppressGenericCachedExternalFeed;
-
-    const shouldWidenExternalBrowseWindow =
-        page === 0 && (
-            safeRadiusKm !== null ||
-            !!normalizedFilterCity ||
-            normalizedCountryCodes.length > 0 ||
-            normalizedExcludedCountryCodes.length > 0 ||
-            (filterMinSalary || 0) > 0
-        );
-
     const getSourceMixCounts = (jobs: Job[]): Partial<Record<SearchResultSource, number>> => {
         return jobs.reduce<Partial<Record<SearchResultSource, number>>>((acc, job) => {
             const source = getJobSearchSource(job);
             acc[source] = (acc[source] || 0) + 1;
             return acc;
         }, {});
-    };
-
-    const maybeMergeCachedExternalFeed = async (
-        result: JobsFetchResult
-    ): Promise<JobsFetchResult> => {
-        if (!shouldIncludeCachedExternalFeed) {
-            return result;
-        }
-
-        const cachedBudgetMs = safeSearchTerm ? 1200 : (shouldWidenExternalBrowseWindow ? 1200 : 650);
-        const cachedExternalPageSize = shouldWidenExternalBrowseWindow
-            ? 80
-            : Math.max(6, Math.min(18, Math.floor(safeRpcPageSize * 0.6)));
-        const externalResult = await withTimeout(fetchCachedExternalFeedJobs({
-            // Avoid triggering expensive keyword-based providers (Jooble) when the user didn't
-            // explicitly type a query. We'll locally filter broad cache snapshots by seed term.
-            searchTerm: safeSearchTerm || undefined,
-            filterCity,
-            countryCodes,
-            excludeCountryCodes,
-            abortSignal,
-            page,
-            pageSize: cachedExternalPageSize,
-            includeJhi
-        }), cachedBudgetMs, {
-            jobs: [],
-            hasMore: false,
-            totalCount: 0,
-            meta: {
-                fallback_mode: 'degraded',
-                cache_hit: false,
-                degraded_reasons: ['cached_feed_timeout'],
-            }
-        });
-
-        if (!externalResult.jobs.length) {
-            if ((externalResult.meta?.degraded_reasons || []).length > 0) {
-                return {
-                    ...result,
-                    meta: {
-                        ...(result.meta || {}),
-                        provider_status: externalResult.meta?.provider_status || result.meta?.provider_status,
-                        fallback_mode: externalResult.meta?.fallback_mode || result.meta?.fallback_mode || 'internal_only',
-                        cache_hit: externalResult.meta?.cache_hit ?? result.meta?.cache_hit,
-                        degraded_reasons: Array.from(new Set([...(result.meta?.degraded_reasons || []), ...(externalResult.meta?.degraded_reasons || [])])),
-                    }
-                };
-            }
-            return result;
-        }
-
-        let externalJobs = externalResult.jobs;
-        if (!safeSearchTerm && safeExternalSeedTerm) {
-            const tokens = String(safeExternalSeedTerm || '')
-                .trim()
-                .toLowerCase()
-                .split(/\s+/g)
-                .filter(Boolean)
-                .slice(0, 4);
-            if (tokens.length > 0) {
-                externalJobs = externalJobs.filter((job) => {
-                    const haystack = `${job.title || ''}\n${job.company || ''}\n${job.location || ''}\n${job.description || ''}`
-                        .toLowerCase();
-                    return tokens.every((tok) => haystack.includes(tok));
-                });
-            }
-        }
-
-        const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...externalJobs]));
-        const mergedJobs = rankJobsForSearchMode(
-            applyStrictClientFilters(mergedUnique),
-            effectiveSortMode,
-            searchMode,
-            searchMatcher
-        );
-
-        return {
-            jobs: mergedJobs,
-            hasMore: result.hasMore || externalResult.hasMore,
-            totalCount: Math.max(result.totalCount, mergedJobs.length, externalResult.totalCount),
-            meta: {
-                ...(result.meta || {}),
-                provider_status: externalResult.meta?.provider_status || result.meta?.provider_status,
-                fallback_mode: externalResult.meta?.fallback_mode || result.meta?.fallback_mode || 'cache_only',
-                cache_hit: externalResult.meta?.cache_hit ?? result.meta?.cache_hit,
-                degraded_reasons: Array.from(new Set([...(result.meta?.degraded_reasons || []), ...(externalResult.meta?.degraded_reasons || [])])),
-                source_mix: getSourceMixCounts(mergedJobs),
-            }
-        };
-    };
-
-    const maybeOverlayLiveImportJobs = async (
-        result: JobsFetchResult
-    ): Promise<JobsFetchResult> => {
-        if (!shouldOverlayLiveImports) {
-            return result;
-        }
-
-        const overlayLimit = Math.min(10, Math.max(4, Math.floor(safeRpcPageSize / 3)));
-        const liveBudgetMs = safeSearchTerm ? 1500 : 1100;
-        const [wwrLiveJobs, joobleLiveJobs, arbeitnowLiveJobs] = await withTimeout(Promise.all([
-            fetchWeWorkRemotelyLiveJobs({
-                searchTerm: externalProviderSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            }),
-            Promise.all([
-                fetchJoobleLiveJobs({
-                    searchTerm: externalProviderSearchTerm,
-                    filterCity,
-                    countryCodes,
-                    excludeCountryCodes,
-                    abortSignal,
-                    limit: overlayLimit,
-                    includeJhi
-                }),
-                ...(externalProviderSearchTerm ? [fetchJoobleLiveJobs({
-                    searchTerm: externalProviderSearchTerm,
-                    filterCity,
-                    countryCodes,
-                    excludeCountryCodes,
-                    abortSignal,
-                    limit: overlayLimit,
-                    includeJhi,
-                    page: 2
-                })] : [])
-            ]).then((pages) => pages.flat()),
-            fetchArbeitnowLiveJobs({
-                searchTerm: externalProviderSearchTerm,
-                filterCity,
-                countryCodes,
-                excludeCountryCodes,
-                abortSignal,
-                limit: overlayLimit,
-                includeJhi
-            })
-        ]), liveBudgetMs, [[], [], []] as [Job[], Job[], Job[]]);
-        const liveJobs = filterJobsByQuality([...wwrLiveJobs, ...joobleLiveJobs, ...arbeitnowLiveJobs]);
-
-        if (!liveJobs.length) {
-            return result;
-        }
-
-        const mergedUnique = dedupeJobsList(filterJobsByQuality([...result.jobs, ...liveJobs]));
-        const mergedJobs = rankJobsForSearchMode(
-            applyStrictClientFilters(mergedUnique),
-            effectiveSortMode,
-            searchMode,
-            searchMatcher
-        );
-        return {
-            jobs: mergedJobs,
-            hasMore: result.hasMore,
-            totalCount: Math.max(result.totalCount, mergedJobs.length),
-            meta: {
-                ...(result.meta || {}),
-                fallback_mode: 'async_overlay',
-                cache_hit: result.meta?.cache_hit ?? false,
-                degraded_reasons: result.meta?.degraded_reasons || [],
-                source_mix: getSourceMixCounts(mergedJobs),
-            }
-        };
     };
 
     const finalizeResults = async (result: JobsFetchResult) => {
@@ -3634,18 +2292,16 @@ export const fetchJobsWithFilters = async (
                 reordered_by_profile: false,
             }
         };
-        const withCachedExternalFeed = await maybeMergeCachedExternalFeed(rankedBaseResult);
-        const withLiveOverlay = await maybeOverlayLiveImportJobs(withCachedExternalFeed);
         const finalized = applyHardConstraintsWithNearFallback(
-            withLiveOverlay.jobs,
-            withLiveOverlay.hasMore,
-            withLiveOverlay.totalCount,
+            rankedBaseResult.jobs,
+            rankedBaseResult.hasMore,
+            rankedBaseResult.totalCount,
             {
-                ...(withLiveOverlay.meta || {}),
+                ...(rankedBaseResult.meta || {}),
                 search_mode: searchMode,
                 base_result_count: baseResultCount,
-                post_filter_count: withLiveOverlay.jobs.length,
-                source_mix: getSourceMixCounts(withLiveOverlay.jobs),
+                post_filter_count: rankedBaseResult.jobs.length,
+                source_mix: getSourceMixCounts(rankedBaseResult.jobs),
                 reordered_by_profile: false,
             }
         );
@@ -3660,238 +2316,6 @@ export const fetchJobsWithFilters = async (
                 reordered_by_profile: false,
             }
         };
-    };
-
-    const fetchViaStrictClientFallback = async (
-        reason: string,
-        options?: {
-            preferDeeperScan?: boolean;
-        }
-    ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
-        throwIfAborted();
-        const fallbackWindow = resolveStrictFallbackWindow({
-            page,
-            pageSize: safeRpcPageSize,
-            hasSearchTerm: !!safeSearchTerm,
-            hasExpandedFilterCoverage: hasExpandedStrictFallbackCoverage,
-            preferDeeperScan: options?.preferDeeperScan ?? false,
-        });
-        const strictSelect = includeJhi
-            ? '*'
-            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
-        let fallbackQuery = supabase
-            .from('jobs')
-            .select(strictSelect)
-            .eq('legality_status', 'legal')
-            .order('scraped_at', { ascending: false })
-            .range(0, fallbackWindow - 1);
-
-        if (countryCodes && countryCodes.length > 0) {
-            fallbackQuery = fallbackQuery.in('country_code', countryCodes);
-        }
-        if (filterLanguageCodes && filterLanguageCodes.length > 0) {
-            fallbackQuery = fallbackQuery.in('language_code', filterLanguageCodes);
-        }
-        if (microJobsOnly) {
-            fallbackQuery = fallbackQuery.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
-        }
-        if (filterCity && filterCity.trim()) {
-            fallbackQuery = fallbackQuery.ilike('location', `%${filterCity.trim()}%`);
-        }
-        if (datePostedCutoffMs !== null) {
-            fallbackQuery = fallbackQuery.gte('scraped_at', new Date(datePostedCutoffMs).toISOString());
-        }
-
-        const { data, error } = await fallbackQuery;
-        throwIfAborted();
-        if (error) {
-            noteSupabaseNetworkFailure('fetchJobsWithFilters.strictFallback', error);
-            throw error;
-        }
-
-        const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
-        const strictJobs = rankJobsForSearchMode(applyStrictClientFilters(baseJobs), effectiveSortMode, searchMode, searchMatcher);
-        if (strictJobs.length === 0 && safeSearchTerm) {
-            const textFallbackResult = await fetchViaTextFallback();
-            if (textFallbackResult) {
-                recordRuntimeSignal('custom:search_strict_to_text_fallback', {
-                    reason,
-                    query: safeSearchTerm,
-                }, {
-                    dedupeKey: `${reason}:${safeSearchTerm}`,
-                    throttleMs: 20_000
-                });
-                return textFallbackResult;
-            }
-        }
-        const start = page * safeRpcPageSize;
-        const end = start + safeRpcPageSize;
-        const pagedJobs = strictJobs.slice(start, end);
-        const sourceExhausted = (data || []).length < fallbackWindow;
-        const hasMoreFromSlice = strictJobs.length > end;
-        const hasMore = hasMoreFromSlice || (!sourceExhausted && pagedJobs.length === safeRpcPageSize);
-        const totalCountEstimate = hasMore ? Math.max(strictJobs.length, end + 1) : strictJobs.length;
-        const shouldLogStrictFallback =
-            reason !== 'sparse_radius_browse' || pagedJobs.length > 0;
-
-        if (shouldLogStrictFallback) {
-            recordRuntimeSignal('search_strict_fallback', {
-                reason,
-                page,
-                page_size: safeRpcPageSize,
-                result_count: pagedJobs.length,
-                has_search_term: !!safeSearchTerm,
-                has_radius_filter: safeRadiusKm !== null,
-                has_city_filter: !!normalizedFilterCity,
-                has_contract_filter: normalizedContractFilters.length > 0,
-                has_language_filter: normalizedLanguageCodes.length > 0,
-                has_country_filter: normalizedCountryCodes.length > 0
-            }, {
-                dedupeKey: reason,
-                throttleMs: 20_000
-            });
-            console.warn(`⚠️ Using strict client fallback for filters (${reason}).`);
-        }
-        return finalizeResults({
-            jobs: pagedJobs,
-            hasMore,
-            totalCount: totalCountEstimate
-        });
-    };
-
-    const maybeRecoverSparseFilteredResult = async ({
-        source,
-        reason,
-        backendMetaFallback,
-        rawResultCount,
-        totalCount,
-        finalizedResult,
-    }: {
-        source: 'hybrid' | 'hybrid_v1_fallback' | 'rpc';
-        reason: string;
-        backendMetaFallback?: string | null;
-        rawResultCount: number;
-        totalCount: number;
-        finalizedResult: JobsFetchResult;
-    }): Promise<JobsFetchResult | null> => {
-        if (!shouldRecoverWithStrictClientFallback({
-            page,
-            pageSize: safeRpcPageSize,
-            totalCount,
-            rawResultCount,
-            finalResultCount: finalizedResult.jobs.length,
-            hasExpandedFilterCoverage: hasExpandedStrictFallbackCoverage,
-            backendMetaFallback,
-        })) {
-            return null;
-        }
-
-        recordRuntimeSignal('custom:search_strict_filter_recovery', {
-            source,
-            reason,
-            page,
-            raw_count: rawResultCount,
-            final_count: finalizedResult.jobs.length,
-            total_count: totalCount,
-            backend_fallback: backendMetaFallback || null,
-        }, {
-            dedupeKey: `${source}:${reason}:${page}`,
-            throttleMs: 20_000,
-        });
-        console.warn(`⚠️ ${source} returned a sparse filtered page from a large result pool; widening strict fallback scan (${reason}).`);
-
-        const recovered = await fetchViaStrictClientFallback(reason, { preferDeeperScan: true });
-        if (recovered.jobs.length > finalizedResult.jobs.length || (page > 0 && recovered.jobs.length > 0)) {
-            return recovered;
-        }
-
-        return null;
-    };
-
-    const fetchViaTextFallback = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number } | null> => {
-        throwIfAborted();
-        if (!safeSearchTerm || !safeSearchTerm.trim()) return null;
-        if (hasStrictFilterConstraints) return null;
-        const sanitizedTerm = safeSearchTerm.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim();
-        if (!sanitizedTerm) return null;
-        const fallbackMatcher = buildSearchMatcher(sanitizedTerm);
-        const fallbackQueryTokens = fallbackMatcher.requiredTokens.length > 0
-            ? fallbackMatcher.requiredTokens
-            : fallbackMatcher.queryTokens;
-        if (fallbackQueryTokens.length === 0) return null;
-
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
-        const textSelect = includeJhi
-            ? '*'
-            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
-        const dedupedSearchTerms = dedupeSearchTokens([
-            fallbackMatcher.normalizedQuery,
-            ...fallbackQueryTokens
-        ]);
-        const orFilters = dedupedSearchTerms.flatMap((token) => ([
-            `title.ilike.%${token}%`,
-            `company.ilike.%${token}%`,
-            `location.ilike.%${token}%`,
-            `description.ilike.%${token}%`
-        ])).join(',');
-        const canUseFullTextFallback = dedupedSearchTerms.every((token) => token.length >= 3);
-        let query = supabase
-            .from('jobs')
-            .select(textSelect, { count: 'exact' })
-            .eq('legality_status', 'legal');
-
-        if (canUseFullTextFallback) {
-            query = query.textSearch('search_text', dedupedSearchTerms.join(' '), {
-                type: 'websearch',
-                config: 'simple'
-            });
-        } else {
-            query = query.or(orFilters);
-        }
-
-        query = query
-            .order('scraped_at', { ascending: false })
-            .range(from, to);
-
-        if (countryCodes && countryCodes.length > 0) {
-            query = query.in('country_code', countryCodes);
-        }
-        if (filterLanguageCodes && filterLanguageCodes.length > 0) {
-            query = query.in('language_code', filterLanguageCodes);
-        }
-        if (microJobsOnly) {
-            query = query.ilike('description', `%${MICRO_JOB_DESCRIPTION_MARKER}%`);
-        }
-
-        const { data, error, count } = await query;
-        throwIfAborted();
-        if (error) {
-            console.warn('Text fallback query failed:', error);
-            return null;
-        }
-
-        const processedJobs = mapJobs(data || [], undefined, undefined, includeJhi);
-        let fallbackJobs = filterJobsByQuality(processedJobs).filter((job) => matchesSearchMatcher([
-            job.title || '',
-            job.company || '',
-            job.location || '',
-            job.description || '',
-            ...(job.tags || []),
-            ...(job.benefits || [])
-        ].join(' '), fallbackMatcher));
-        const isShortSingleTokenQuery = compactSearchLength <= 2 && fallbackMatcher.queryTokens.length === 1;
-        fallbackJobs = rankJobsForSearchMode(applyStrictClientFilters(fallbackJobs), effectiveSortMode, searchMode, fallbackMatcher);
-        if (fallbackJobs.length === 0) {
-            return null;
-        }
-
-        const totalCountForResponse = fallbackJobs.length;
-        return finalizeResults({
-            jobs: fallbackJobs,
-            hasMore: fallbackJobs.length === pageSize && !isShortSingleTokenQuery && !!count && count > (page + 1) * pageSize,
-            totalCount: totalCountForResponse
-        });
     };
 
     const fetchViaBackendHybrid = async (hybridAbortSignal?: AbortSignal): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
@@ -3912,6 +2336,7 @@ export const fetchJobsWithFilters = async (
             user_lat: finalUserLat ?? null,
             user_lng: finalUserLng ?? null,
             radius_km: safeRadiusKm,
+            filter_challenge_format: requestedChallengeFormat,
             filter_city: filterCity || null,
             filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
             filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
@@ -4035,15 +2460,21 @@ export const fetchJobsWithFilters = async (
         // don't keep hammering the backend when the app is idle or stuck in a retry loop.
         const emptySessionKey = `${HYBRID_SEARCH_RECENT_EMPTY_SESSION_PREFIX}${cacheKey}`;
         const lastEmptyAt = readSessionTimestamp(emptySessionKey);
-        if (lastEmptyAt && (Date.now() - lastEmptyAt) < HYBRID_SEARCH_RECENT_EMPTY_TTL_MS) {
+        if (
+            shouldThrottleRecentEmptyHybridResult &&
+            lastEmptyAt &&
+            (Date.now() - lastEmptyAt) < HYBRID_SEARCH_RECENT_EMPTY_TTL_MS
+        ) {
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
 
         const cached = HYBRID_SEARCH_RECENT_CACHE.get(cacheKey);
         if (cached) {
-            const ttl = cached.result.jobs.length === 0 ? HYBRID_SEARCH_RECENT_EMPTY_TTL_MS : HYBRID_SEARCH_RECENT_TTL_MS;
+            const ttl = cached.result.jobs.length === 0
+                ? (shouldThrottleRecentEmptyHybridResult ? HYBRID_SEARCH_RECENT_EMPTY_TTL_MS : 0)
+                : HYBRID_SEARCH_RECENT_TTL_MS;
             if ((Date.now() - cached.at) < ttl) {
-                if (cached.result.jobs.length === 0) {
+                if (cached.result.jobs.length === 0 && shouldThrottleRecentEmptyHybridResult) {
                     writeSessionTimestamp(emptySessionKey, cached.at);
                 } else {
                     deleteSessionKey(emptySessionKey);
@@ -4055,8 +2486,13 @@ export const fetchJobsWithFilters = async (
 
         const cacheAndReturn = async (resultPromise: Promise<JobsFetchResult>) => {
             const result = await resultPromise;
-            HYBRID_SEARCH_RECENT_CACHE.set(cacheKey, { at: Date.now(), result });
-            if (result.jobs.length === 0) {
+            const shouldCacheResult = result.jobs.length > 0 || shouldThrottleRecentEmptyHybridResult;
+            if (shouldCacheResult) {
+                HYBRID_SEARCH_RECENT_CACHE.set(cacheKey, { at: Date.now(), result });
+            } else {
+                HYBRID_SEARCH_RECENT_CACHE.delete(cacheKey);
+            }
+            if (result.jobs.length === 0 && shouldThrottleRecentEmptyHybridResult) {
                 writeSessionTimestamp(emptySessionKey, Date.now());
             } else {
                 deleteSessionKey(emptySessionKey);
@@ -4118,17 +2554,6 @@ export const fetchJobsWithFilters = async (
                         hasMore: !!fallbackPayload.has_more,
                         totalCount: rawTotalCount
                     });
-                    const recoveredFallbackResult = await maybeRecoverSparseFilteredResult({
-                        source: 'hybrid_v1_fallback',
-                        reason: 'hybrid_v1_filter_recovery',
-                        backendMetaFallback: 'jobs_postgres_v1_bridge',
-                        rawResultCount: fallbackJobs.length,
-                        totalCount: rawTotalCount,
-                        finalizedResult: finalizedFallbackResult,
-                    });
-                    if (recoveredFallbackResult) {
-                        return recoveredFallbackResult;
-                    }
                     return await cacheAndReturn(Promise.resolve(finalizedFallbackResult));
                 }
 
@@ -4167,59 +2592,7 @@ export const fetchJobsWithFilters = async (
                     hasMore: !!hybridPayload.has_more,
                     totalCount: rawTotalCount
                 });
-                const recoveredHybridResult = await maybeRecoverSparseFilteredResult({
-                    source: 'hybrid',
-                    reason: 'hybrid_filter_recovery',
-                    backendMetaFallback,
-                    rawResultCount: processedJobs.length,
-                    totalCount: rawTotalCount,
-                    finalizedResult: finalizedHybridResult,
-                });
-                if (recoveredHybridResult) {
-                    return recoveredHybridResult;
-                }
-                const hybridResult = await cacheAndReturn(Promise.resolve(finalizedHybridResult));
-                const shouldFallbackSuspiciousEmptyPage =
-                    page > 0 &&
-                    !safeSearchTerm &&
-                    !normalizedFilterCity &&
-                    backendMetaFallback === 'jobs_postgres_v1_bridge' &&
-                    hybridResult.jobs.length === 0 &&
-                    hasSupabaseSearchFallback &&
-                    !!supabase;
-                if (shouldFallbackSuspiciousEmptyPage) {
-                    const emptyPageError = new Error('Hybrid bridge returned an empty next page');
-                    (emptyPageError as any).code = 'empty_page_fallback';
-                    throw emptyPageError;
-                }
-                const shouldRetrySparseRadiusBrowse =
-                    safeRadiusKm !== null &&
-                    page === 0 &&
-                    !safeSearchTerm &&
-                    !normalizedFilterCity &&
-                    hybridResult.jobs.length < 6;
-
-                if (shouldRetrySparseRadiusBrowse && hasSupabaseSearchFallback && supabase) {
-                    try {
-                        const strictRadiusFallback = await fetchViaStrictClientFallback('sparse_radius_browse');
-                        if (strictRadiusFallback.jobs.length > hybridResult.jobs.length) {
-                            recordRuntimeSignal('custom:search_sparse_radius_recovery', {
-                                fallback: 'strict_client',
-                                initial_count: hybridResult.jobs.length,
-                                recovered_count: strictRadiusFallback.jobs.length,
-                                radius_km: safeRadiusKm,
-                            }, {
-                                dedupeKey: `sparse_radius_browse:${safeRadiusKm}`,
-                                throttleMs: 20_000,
-                            });
-                            return strictRadiusFallback;
-                        }
-                    } catch (sparseFallbackError) {
-                        console.warn('⚠️ Sparse radius fallback failed:', sparseFallbackError);
-                    }
-                }
-
-                return hybridResult;
+                return await cacheAndReturn(Promise.resolve(finalizedHybridResult));
             } catch (err) {
                 if (isAbortFetchError(err)) {
                     throw err;
@@ -4276,12 +2649,28 @@ export const fetchJobsWithFilters = async (
             effectiveSortMode
         });
 
-        if (microJobsOnly) {
-            return await fetchViaStrictClientFallback('micro_job_filter');
-        }
-
-        // Prefer backend search for the whole discovery/search surface.
-        if (shouldUseHybridSearch) {
+        // Single-source mode: all roles come from Northflank Postgres via backend search only.
+        if (shouldUseSingleSourceJobsSearch) {
+            if (!shouldUseHybridSearch) {
+                recordRuntimeSignal('custom:search_backend_only_failure', {
+                    reason: 'backend_unconfigured',
+                    search_mode: searchMode,
+                    page,
+                }, {
+                    dedupeKey: `backend-unconfigured:${searchMode}:${page}`,
+                    throttleMs: 20_000,
+                });
+                return {
+                    jobs: [],
+                    hasMore: false,
+                    totalCount: 0,
+                    meta: {
+                        search_mode: searchMode,
+                        fallback_mode: 'degraded',
+                        degraded_reasons: ['backend_search_unconfigured'],
+                    }
+                };
+            }
             try {
                 return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
             } catch (hybridErr) {
@@ -4290,219 +2679,72 @@ export const fetchJobsWithFilters = async (
                 }
                 warnHybridFallbackThrottled(hybridErr);
                 try {
-                    console.info('🔁 Retrying backend search with a longer timeout before using legacy Supabase fallbacks.');
+                    console.info('🔁 Retrying backend search with a longer timeout before giving up.');
                     return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_RETRY_TIMEOUT_MS, 'Hybrid search retry');
                 } catch (retryErr) {
                     if (isAbortFetchError(retryErr)) {
                         throw retryErr;
                     }
-                    console.warn('⚠️ Backend retry failed; continuing to legacy fallback path.', retryErr);
+                    console.warn('⚠️ Backend retry failed in single-source mode.', retryErr);
+                    recordRuntimeSignal('custom:search_backend_only_failure', {
+                        reason: 'backend_retry_failed',
+                        search_mode: searchMode,
+                        page,
+                        message: String((retryErr as any)?.message || retryErr || ''),
+                    }, {
+                        dedupeKey: `backend-retry-failed:${searchMode}:${page}`,
+                        throttleMs: 20_000,
+                    });
+                    return {
+                        jobs: [],
+                        hasMore: false,
+                        totalCount: 0,
+                        meta: {
+                            search_mode: searchMode,
+                            fallback_mode: 'degraded',
+                            degraded_reasons: ['backend_search_failed'],
+                        }
+                    };
                 }
             }
         }
 
-        // When radius is disabled (undefined/null), also disable spatial filtering
-        // by setting coordinates to null
-        const usesSpatialFilter = safeRadiusKm !== undefined && safeRadiusKm !== null;
-        const spatialLat = usesSpatialFilter ? finalUserLat : null;
-        const spatialLng = usesSpatialFilter ? finalUserLng : null;
-        const spatialRadius = usesSpatialFilter ? safeRadiusKm : null;
-
-        const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
-
-        if (!hasSupabaseSearchFallback || !supabase) {
-            if (safeSearchTerm) {
-                const textFallback = await fetchViaTextFallback();
-                if (textFallback) return textFallback;
-            }
-            return await fetchViaStrictClientFallback('backend_only_mode');
-        }
-
-        const { data, error } = await supabase.rpc('search_jobs_with_filters', {
-            search_term: safeSearchTerm || null,
-            user_lat: spatialLat,
-            user_lng: spatialLng,
-            radius_km: spatialRadius,
-            filter_city: filterCity || null,
-            filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
-            filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
-            filter_min_salary: minSalaryFilter,
-            filter_date_posted: filterDatePosted,
-            filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
-            limit_count: safeRpcPageSize,
-            offset_val: page * safeRpcPageSize,
-            filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
-            exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
-            filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+        recordRuntimeSignal('custom:search_unexpected_legacy_path', {
+            search_mode: searchMode,
+            micro_jobs_only: microJobsOnly,
+            page,
+        }, {
+            dedupeKey: `legacy-path:${searchMode}:${page}:${microJobsOnly ? 'micro' : 'jobs'}`,
+            throttleMs: 20_000,
         });
-        throwIfAborted();
-
-        if (error) {
-            throwIfAborted();
-            noteSupabaseNetworkFailure('fetchJobsWithFilters.rpc', error);
-            const msg = String((error as any)?.message || '').toLowerCase();
-            const status = Number((error as any)?.status || (error as any)?.statusCode || 0);
-            const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
-            const isServerOverload = status >= 500 || (error as any)?.code === '57014' || msg.includes('statement timeout');
-            if (isNetworkError && shouldUseHybridSearch) {
-                try {
-                    throwIfAborted();
-                    console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
-                    return await fetchViaBackendHybrid();
-                } catch (fallbackErr) {
-                    if (isAbortFetchError(fallbackErr)) {
-                        throw fallbackErr;
-                    }
-                    console.warn('⚠️ Backend fallback failed:', fallbackErr);
-                }
+        console.warn('⚠️ Unexpected legacy search path reached; returning empty result.');
+        return {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                search_mode: searchMode,
+                fallback_mode: 'degraded',
+                degraded_reasons: ['unexpected_legacy_search_path'],
             }
-
-            if (safeSearchTerm) {
-                const textFallback = await fetchViaTextFallback();
-                if (textFallback) return textFallback;
-            }
-
-            // Postgres timeout/5xx: degrade to simpler query path.
-            if (isServerOverload) {
-                recordRuntimeSignal('search_rpc_overload', {
-                    status,
-                    code: (error as any)?.code || null,
-                    message: msg
-                }, {
-                    dedupeKey: 'rpc_overload',
-                    throttleMs: 20_000
-                });
-                console.warn('⏱️ Filtered jobs query timed out or overloaded. Falling back to strict client filters.');
-                try {
-                    return await fetchViaStrictClientFallback('rpc_overload');
-                } catch (strictFallbackErr) {
-                    console.warn('⚠️ Strict fallback failed:', strictFallbackErr);
-                }
-            }
-
-            console.error('❌ Error fetching filtered jobs:', error);
-            return { jobs: [], hasMore: false, totalCount: 0 };
-        }
-
-        if (!data || data.length === 0) {
-            throwIfAborted();
-            if (safeSearchTerm) {
-                const textFallback = await fetchViaTextFallback();
-                if (textFallback) return textFallback;
-            }
-            console.log('🔍 No jobs found matching filter criteria');
-            return { jobs: [], hasMore: false, totalCount: 0 };
-        }
-
-        // Process results
-        const processedJobs = data.map((row: any) => {
-            const job = transformJob({
-                id: row.id,
-                company_id: row.company_id,
-                title: row.title,
-                company: row.company,
-                location: row.location,
-                description: row.description,
-                role_summary: row.role_summary,
-                first_reply_prompt: row.first_reply_prompt,
-                company_truth_hard: row.company_truth_hard,
-                company_truth_fail: row.company_truth_fail,
-                benefits: row.benefits,
-                contract_type: row.contract_type,
-                salary_from: row.salary_from,
-                salary_to: row.salary_to,
-                salary_timeframe: row.salary_timeframe,
-                work_type: row.work_type,
-                scraped_at: row.scraped_at,
-                source: row.source,
-                education_level: row.education_level,
-                url: row.url,
-                lat: row.lat,
-                lng: row.lng,
-                country_code: row.country_code,
-                language_code: row.language_code,
-                legality_status: row.legality_status,
-                verification_notes: row.verification_notes
-            }, includeJhi);
-
-            // Add distance and tags information
-            (job as any).distance_km = row.distance_km;
-            if (row.tags) {
-                job.tags = [...job.tags, ...row.tags];
-            }
-            job.searchDiagnostics = {
-                source: 'native',
-                external: false,
-                backendScore: Number((row as any).hybrid_score || 0),
-            };
-
-            return job;
-        });
-
-        const totalCount = data[0]?.total_count || 0;
-        const hasMore = (page + 1) * safeRpcPageSize < totalCount;
-        const finalizedRpcResult = await finalizeResults({
-            jobs: processedJobs,
-            hasMore,
-            totalCount
-        });
-        const recoveredRpcResult = await maybeRecoverSparseFilteredResult({
-            source: 'rpc',
-            reason: 'rpc_filter_recovery',
-            rawResultCount: processedJobs.length,
-            totalCount,
-            finalizedResult: finalizedRpcResult,
-        });
-
-        console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
-
-        throwIfAborted();
-        return recoveredRpcResult || finalizedRpcResult;
+        };
 
     } catch (e: any) {
         if (isAbortFetchError(e)) {
             throw e;
         }
         noteSupabaseNetworkFailure('fetchJobsWithFilters.catch', e);
-        const msg = String(e?.message || '').toLowerCase();
-        const status = Number(e?.status || e?.statusCode || 0);
-        const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
-        if (isNetworkError && shouldUseHybridSearch) {
-            try {
-                throwIfAborted();
-                console.warn('⚠️ Exception indicates browser network issue to Supabase; using backend fallback.');
-                return await fetchViaBackendHybrid();
-            } catch (fallbackErr) {
-                if (isAbortFetchError(fallbackErr)) {
-                    throw fallbackErr;
-                }
-                console.warn('⚠️ Backend fallback failed:', fallbackErr);
-            }
-        }
-
-        if (safeSearchTerm) {
-            const textFallback = await fetchViaTextFallback();
-            if (textFallback) return textFallback;
-        }
-
-        if (e?.code === '57014' || status >= 500 || msg.includes('statement timeout')) {
-            recordRuntimeSignal('search_rpc_overload', {
-                status,
-                code: e?.code || null,
-                message: msg
-            }, {
-                dedupeKey: 'rpc_exception',
-                throttleMs: 20_000
-            });
-            console.warn('⏱️ Filtered jobs query timed out/overloaded (exception). Falling back to strict client filters.');
-            try {
-                return await fetchViaStrictClientFallback('rpc_exception');
-            } catch (strictFallbackErr) {
-                console.warn('⚠️ Strict fallback failed:', strictFallbackErr);
-            }
-        }
         console.error("Error in fetchJobsWithFilters:", e);
-        return { jobs: [], hasMore: false, totalCount: 0 };
+        return {
+            jobs: [],
+            hasMore: false,
+            totalCount: 0,
+            meta: {
+                search_mode: searchMode,
+                fallback_mode: 'degraded',
+                degraded_reasons: ['search_execution_failed'],
+            }
+        };
     }
 };
 
@@ -4511,28 +2753,25 @@ export const fetchJobsWithFilters = async (
  */
 export const fetchJobById = async (jobId: string): Promise<Job | null> => {
     try {
-        if (!supabase) {
-            console.error('❌ Supabase not configured');
+        const backendBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL) || normalizeBackendBaseUrl(BACKEND_URL);
+        if (!backendBase) {
+            console.error('❌ Backend not configured for job detail fetch');
             return null;
         }
 
         console.log(`🔍 Fetching job by ID: ${jobId}`);
-
-        const { data, error } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('id', jobId)
-            .single();
-
-        if (error) {
-            console.error('❌ Error fetching job by ID:', error);
-            return null;
-        }
-
-        if (!data) {
+        const response = await authenticatedFetch(`${backendBase}/jobs/${encodeURIComponent(jobId)}`, {
+            method: 'GET'
+        });
+        if (response.status === 404) {
             console.log('🔍 No job found with ID:', jobId);
             return null;
         }
+        if (!response.ok) {
+            console.error('❌ Error fetching job by ID:', response.status);
+            return null;
+        }
+        const data = await response.json();
 
         const job = transformJob({
             id: data.id,
@@ -4606,38 +2845,23 @@ export const fetchJobRelatedChallenges = async (jobId: string | number): Promise
 };
 
 export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
-    if (!isSupabaseConfigured() || !supabase || !Array.isArray(jobIds) || jobIds.length === 0) {
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
         return [];
     }
 
     const normalizedIds = Array.from(new Set(jobIds.map((id) => String(id).trim()).filter(Boolean)));
     if (!normalizedIds.length) return [];
-
-    // Strip 'db-' prefix if present for querying the database
-    const dbIds = normalizedIds.map(id => id.startsWith('db-') ? id.substring(3) : id);
+    const lookupIds = normalizedIds.map((id) => (id.startsWith('db-') ? id.substring(3) : id));
 
     try {
         const chunks: string[][] = [];
-        for (let i = 0; i < dbIds.length; i += 100) {
-            chunks.push(dbIds.slice(i, i + 100));
+        for (let i = 0; i < lookupIds.length; i += 100) {
+            chunks.push(lookupIds.slice(i, i + 100));
         }
 
         const fetched: Job[] = [];
         for (const chunk of chunks) {
-            // Convert to numbers if the id column is integer (usually is in our schema)
-            const numericChunk = chunk.map(id => parseInt(id)).filter(id => !isNaN(id));
-            if (numericChunk.length === 0) continue;
-
-            const { data, error } = await supabase
-                .from('jobs')
-                .select('*')
-                .in('id', numericChunk);
-
-            if (error) {
-                console.warn('Failed to fetch saved jobs batch:', error);
-                continue;
-            }
-
+            const data = await fetchJobPayloadsByIds(chunk);
             const mapped = mapJobs(data || [], undefined, undefined, true, true);
             fetched.push(...mapped);
         }
@@ -4669,76 +2893,27 @@ export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> =
 export const fetchRealJobs = async (
     onProgress?: (jobs: Job[]) => void
 ): Promise<Job[]> => {
-    if (!isSupabaseConfigured() || !supabase) {
-        console.warn("Supabase not configured.");
-        return [];
-    }
-
     try {
-        console.log("Fetching jobs from Supabase...");
-
-        // 1. Get total count
-        const { count, error: countError } = await supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true });
-
-        if (countError) {
-            console.error("Error fetching job count:", countError);
-            return [];
-        }
-
-        const totalJobs = count || 0;
-        console.log(`Found ${totalJobs} jobs in database.`);
-
-        if (totalJobs === 0) return [];
-
+        console.log("Fetching jobs from primary Jobs Postgres backend...");
         const MAX_JOBS = 25000;
-        const PAGE_SIZE = 500; // Smaller chunks for smoother UI
-        const totalToFetch = Math.min(totalJobs, MAX_JOBS);
+        const PAGE_SIZE = 500;
         let allJobs: Job[] = [];
 
-        // 2. Linear Fetch with Callbacks (to enable "silent" loading)
-        for (let i = 0; i < totalToFetch; i += PAGE_SIZE) {
-            const from = i;
-            const to = Math.min(i + PAGE_SIZE - 1, totalToFetch - 1);
-
-            const { data, error } = await supabase
-                .from('jobs')
-                .select('*')
-                .eq('legality_status', 'legal')
-                .range(from, to)
-                .order('scraped_at', { ascending: false });
-
-            if (error) {
-                console.error(`Error fetching sequence ${i}:`, error);
-                continue;
+        for (let page = 0; allJobs.length < MAX_JOBS; page += 1) {
+            const result = await fetchJobsPaginated(page, PAGE_SIZE, undefined, undefined, 50, undefined, undefined, true, false, true);
+            if (!result.jobs.length) {
+                break;
             }
-
-            if (data && data.length > 0) {
-                // Process mapping in "idle" time to prevent thread lock
-                const chunk = mapJobs(data);
-
-                // Sort chunk newest first
-                chunk.sort((a, b) => {
-                    const getTime = (dateStr?: string) => {
-                        if (!dateStr) return 0;
-                        const cleanStr = dateStr.replace(' ', 'T');
-                        const d = new Date(cleanStr);
-                        return isNaN(d.getTime()) ? 0 : d.getTime();
-                    };
-                    return getTime(b.scrapedAt) - getTime(a.scrapedAt);
-                });
-
-                allJobs = [...allJobs, ...chunk];
-
-                if (onProgress) {
-                    // Send update to UI
-                    onProgress([...allJobs]);
-                }
-
-                // Yield to main thread
-                await new Promise(resolve => setTimeout(resolve, 0));
+            const roomLeft = Math.max(0, MAX_JOBS - allJobs.length);
+            const chunk = result.jobs.slice(0, roomLeft);
+            allJobs = [...allJobs, ...chunk];
+            if (onProgress) {
+                onProgress([...allJobs]);
             }
+            if (!result.hasMore || chunk.length < PAGE_SIZE) {
+                break;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
 
         console.log(`Finished loading ${allJobs.length} jobs.`);
@@ -4987,38 +3162,24 @@ export const mapJobs = (data: any[], userLat?: number, userLng?: number, include
 }
 
 export const fetchJobsByCompany = async (companyId: string, limit: number = 20): Promise<Job[]> => {
-    if (!isSupabaseConfigured() || !supabase || !companyId) {
+    if (!companyId) {
         return [];
     }
 
     try {
         const exactLimit = Math.max(1, Math.min(50, Math.floor(limit || 20)));
-        let data: any[] | null = null;
-
-        const activeResult = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('company_id', companyId)
-            .eq('status', 'active')
-            .order('scraped_at', { ascending: false })
-            .limit(exactLimit);
-
-        if (!activeResult.error && Array.isArray(activeResult.data)) {
-            data = activeResult.data;
-        } else {
-            const fallback = await supabase
-                .from('jobs')
-                .select('*')
-                .eq('company_id', companyId)
-                .order('scraped_at', { ascending: false })
-                .limit(exactLimit);
-            if (fallback.error || !Array.isArray(fallback.data)) {
-                return [];
-            }
-            data = fallback.data;
+        const backendBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL) || normalizeBackendBaseUrl(BACKEND_URL);
+        if (!backendBase) {
+            return [];
         }
-
-        return mapJobs(data || [], undefined, undefined, true, true);
+        const response = await authenticatedFetch(`${backendBase}/jobs/by-company/${encodeURIComponent(companyId)}?limit=${exactLimit}`, {
+            method: 'GET',
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const payload = await response.json();
+        return mapJobs(Array.isArray(payload?.jobs) ? payload.jobs : [], undefined, undefined, true, true);
     } catch (error) {
         console.warn('Failed to fetch company jobs:', error);
         return [];

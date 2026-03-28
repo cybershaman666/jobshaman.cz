@@ -11,22 +11,20 @@ jest.mock('./runtimeSignals', () => ({
 
 jest.mock('./jobService', () => ({
   dedupeJobsList: jest.fn((jobs: unknown[]) => jobs),
-  fetchExternalOverlayJobs: jest.fn(),
   fetchJobsPaginated: jest.fn(),
   fetchJobsWithFilters: jest.fn(),
 }));
 
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 import { resolveDiscoveryCoordinates } from './discoveryCoordinates';
-import { fetchExternalOverlayJobs, fetchJobsWithFilters } from './jobService';
-import { applyExternalOverlayJobFilters, runFilteredFetchPipeline } from '../hooks/discovery/discoveryFetchPipeline';
+import { fetchJobsWithFilters } from './jobService';
+import { runFilteredFetchPipeline } from '../hooks/discovery/discoveryFetchPipeline';
 import { createDomesticCountrySafeguard } from '../hooks/discovery/discoverySafeguards';
 import type { Job, UserProfile } from '../types';
 
 const mockedGeocodeWithCaching = geocodeWithCaching as jest.MockedFunction<typeof geocodeWithCaching>;
 const mockedGetStaticCoordinates = getStaticCoordinates as jest.MockedFunction<typeof getStaticCoordinates>;
 const mockedFetchJobsWithFilters = fetchJobsWithFilters as jest.MockedFunction<typeof fetchJobsWithFilters>;
-const mockedFetchExternalOverlayJobs = fetchExternalOverlayJobs as jest.MockedFunction<typeof fetchExternalOverlayJobs>;
 
 const makeProfile = (overrides?: Partial<UserProfile>): UserProfile => ({
   id: 'candidate-1',
@@ -49,7 +47,6 @@ describe('resolveDiscoveryCoordinates', () => {
     mockedGeocodeWithCaching.mockReset();
     mockedGetStaticCoordinates.mockReset();
     mockedFetchJobsWithFilters.mockReset();
-    mockedFetchExternalOverlayJobs.mockReset();
   });
 
   test('geocodes the profile address for implicit radius filtering even when commute toggle is off', async () => {
@@ -79,62 +76,6 @@ describe('resolveDiscoveryCoordinates', () => {
 
     expect(mockedGeocodeWithCaching).not.toHaveBeenCalled();
     expect(coords).toEqual({ lat: undefined, lon: undefined });
-  });
-});
-
-describe('applyExternalOverlayJobFilters', () => {
-  test('keeps remote roles outside commute radius but drops onsite jobs without usable distance', () => {
-    const jobs = [
-      {
-        id: 'remote-no-coords',
-        title: 'Product Owner',
-        company: 'Remote Co',
-        location: 'Remote',
-        description: 'Fully remote role.',
-        work_model: 'remote',
-        listingKind: 'imported',
-      },
-      {
-        id: 'onsite-no-coords',
-        title: 'Store Manager',
-        company: 'Retail Co',
-        location: 'Praha',
-        description: 'Onsite retail role.',
-        work_model: 'onsite',
-        listingKind: 'imported',
-      },
-      {
-        id: 'onsite-near',
-        title: 'Operations Manager',
-        company: 'Ops Co',
-        location: 'Brno',
-        description: 'Onsite role nearby.',
-        work_model: 'onsite',
-        lat: 49.1951,
-        lng: 16.6068,
-      },
-    ] as Job[];
-
-    const filtered = applyExternalOverlayJobFilters({
-      jobs,
-      effectiveCountryCodes: undefined,
-      excludeCountryCodes: undefined,
-      retrievalLanguageCodes: undefined,
-      remoteOnly: false,
-      filterWorkArrangement: 'all',
-      filterCity: '',
-      enableCommuteFilter: true,
-      filterMaxDistance: 45,
-      lat: 49.1951,
-      lon: 16.6068,
-      inferJobCountryCode: () => 'cz',
-      inferJobLanguageCode: () => 'cs',
-      normalizeCountryCodes: (codes) => codes,
-      calculateDistanceKm: () => 0,
-      defaultMaxDistanceKm: 45,
-    });
-
-    expect(filtered.map((job) => job.id)).toEqual(['remote-no-coords', 'onsite-near']);
   });
 });
 
@@ -186,7 +127,7 @@ describe('createDomesticCountrySafeguard', () => {
 describe('runFilteredFetchPipeline', () => {
   const abortController = new AbortController();
 
-  test('does not trigger seed recovery during commute-based sparse browse mode', async () => {
+  test('keeps native results during commute-based sparse browse mode without external recovery', async () => {
     mockedFetchJobsWithFilters.mockResolvedValue({
       jobs: [
         {
@@ -214,18 +155,6 @@ describe('runFilteredFetchPipeline', () => {
       totalCount: 2,
       meta: {},
     });
-    mockedFetchExternalOverlayJobs.mockResolvedValue([
-      {
-        id: 'remote-1',
-        title: 'Remote Product Owner',
-        company: 'Remote Co',
-        location: 'Remote',
-        description: 'Remote role seeded by intent',
-        work_model: 'remote',
-        listingKind: 'imported',
-      } as Job,
-    ]);
-
     const result = await runFilteredFetchPipeline({
       page: 0,
       pageSize: 50,
@@ -246,23 +175,20 @@ describe('runFilteredFetchPipeline', () => {
       retrievalLanguageCodes: ['cs'],
       remoteOnly: false,
       filterWorkArrangement: 'all',
-      externalSearchSeedTerm: 'operations manager',
       microJobsOnly: false,
       abortSignal: abortController.signal,
       userProfile: makeProfile(),
       filterDismissedJobs: (jobs) => jobs,
       applyDomesticCountrySafeguard: (jobs) => jobs,
-      applyExternalRecoveryFilters: (jobs) => jobs,
       isStaleRequest: () => false,
       getSourceMixCounts: () => ({}),
     });
 
-    expect(mockedFetchExternalOverlayJobs).not.toHaveBeenCalled();
     expect(result?.visibleJobs.map((job) => job.id)).toEqual(['local-1', 'local-2']);
     expect(result?.resolvedTotalCount).toBe(2);
   });
 
-  test('supplements sparse browse mode with seed-based external recovery when commute radius is off', async () => {
+  test('does not supplement sparse browse mode from external recovery when commute radius is off', async () => {
     mockedFetchJobsWithFilters.mockResolvedValue({
       jobs: [
         {
@@ -278,18 +204,6 @@ describe('runFilteredFetchPipeline', () => {
       totalCount: 1,
       meta: {},
     });
-    mockedFetchExternalOverlayJobs.mockResolvedValue([
-      {
-        id: 'remote-1',
-        title: 'Remote Product Owner',
-        company: 'Remote Co',
-        location: 'Remote',
-        description: 'Remote role seeded by intent',
-        work_model: 'remote',
-        listingKind: 'imported',
-      } as Job,
-    ]);
-
     const result = await runFilteredFetchPipeline({
       page: 0,
       pageSize: 50,
@@ -310,19 +224,16 @@ describe('runFilteredFetchPipeline', () => {
       retrievalLanguageCodes: ['cs'],
       remoteOnly: false,
       filterWorkArrangement: 'all',
-      externalSearchSeedTerm: 'operations manager',
       microJobsOnly: false,
       abortSignal: abortController.signal,
       userProfile: makeProfile(),
       filterDismissedJobs: (jobs) => jobs,
       applyDomesticCountrySafeguard: (jobs) => jobs,
-      applyExternalRecoveryFilters: (jobs) => jobs,
       isStaleRequest: () => false,
       getSourceMixCounts: () => ({}),
     });
 
-    expect(mockedFetchExternalOverlayJobs).toHaveBeenCalled();
-    expect(result?.visibleJobs.map((job) => job.id)).toEqual(['local-1', 'remote-1']);
-    expect(result?.resolvedTotalCount).toBe(2);
+    expect(result?.visibleJobs.map((job) => job.id)).toEqual(['local-1']);
+    expect(result?.resolvedTotalCount).toBe(1);
   });
 });

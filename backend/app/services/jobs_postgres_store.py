@@ -843,6 +843,7 @@ def query_jobs_for_hybrid_search(
     min_salary: int | None = None,
     search_term: str | None = None,
     filter_city: str | None = None,
+    challenge_format: str | None = None,
 ) -> list[dict[str, Any]]:
     if not jobs_postgres_main_enabled():
         return []
@@ -863,6 +864,10 @@ def query_jobs_for_hybrid_search(
     if normalized_filter_city:
         where_parts.append("LOWER(COALESCE(location, '')) LIKE %s")
         params.append(f"%{normalized_filter_city}%")
+    normalized_challenge_format = str(challenge_format or "").strip().lower()
+    if normalized_challenge_format in {"standard", "micro_job"}:
+        where_parts.append("LOWER(COALESCE(challenge_format, 'standard')) = %s")
+        params.append(normalized_challenge_format)
     if cutoff_iso:
         where_parts.append("scraped_at >= %s")
         params.append(_coerce_timestamp(cutoff_iso))
@@ -974,6 +979,36 @@ def get_job_by_id(job_id: Any) -> dict[str, Any] | None:
     return None
 
 
+def get_jobs_by_ids(job_ids: list[Any]) -> list[dict[str, Any]]:
+    if not jobs_postgres_main_enabled():
+        return []
+    normalized_ids = [str(job_id or "").strip() for job_id in (job_ids or []) if str(job_id or "").strip()]
+    if not normalized_ids:
+        return []
+    unique_ids = list(dict.fromkeys(normalized_ids))
+    _ensure_schema()
+    conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT id::text AS lookup_id, payload_json
+            FROM {config.JOBS_POSTGRES_JOBS_TABLE}
+            WHERE id::text = ANY(%s)
+              AND {cutoff_sql}
+            """,
+            (unique_ids, *cutoff_params),
+        )
+        rows = cur.fetchall() or []
+    by_id: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        payload = _json_load((row or {}).get("payload_json"), {})
+        lookup_id = str((row or {}).get("lookup_id") or "").strip()
+        if lookup_id and isinstance(payload, dict) and payload:
+            by_id[lookup_id] = dict(payload)
+    return [by_id[job_id] for job_id in unique_ids if job_id in by_id]
+
+
 def get_job_by_url(url: Any) -> dict[str, Any] | None:
     if not jobs_postgres_main_enabled():
         return None
@@ -1016,6 +1051,39 @@ def list_company_jobs(*, company_id: str, limit: int = 200) -> list[dict[str, An
             """,
             (normalized_company_id, *cutoff_params, max(1, int(limit or 200))),
         )
+        rows = cur.fetchall() or []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        payload = _json_load((row or {}).get("payload_json"), {})
+        if isinstance(payload, dict):
+            out.append(dict(payload))
+    return out
+
+
+def list_jobs_by_posted_by(*, posted_by: str, limit: int = 200, challenge_format: str | None = None) -> list[dict[str, Any]]:
+    if not jobs_postgres_main_enabled():
+        return []
+    normalized_posted_by = str(posted_by or "").strip()
+    if not normalized_posted_by:
+        return []
+    normalized_challenge_format = str(challenge_format or "").strip().lower() or None
+    _ensure_schema()
+    conn = _connect()
+    cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
+    query = f"""
+        SELECT payload_json
+        FROM {config.JOBS_POSTGRES_JOBS_TABLE}
+        WHERE posted_by = %s
+          AND {cutoff_sql}
+    """
+    params: list[Any] = [normalized_posted_by, *cutoff_params]
+    if normalized_challenge_format:
+        query += " AND LOWER(COALESCE(challenge_format, 'standard')) = %s"
+        params.append(normalized_challenge_format)
+    query += " ORDER BY updated_at DESC, scraped_at DESC LIMIT %s"
+    params.append(max(1, int(limit or 200)))
+    with conn.cursor() as cur:
+        cur.execute(query, tuple(params))
         rows = cur.fetchall() or []
     out: list[dict[str, Any]] = []
     for row in rows:

@@ -18,7 +18,7 @@ except Exception:
 
 from .core.limiter import limiter
 from .core.security import add_security_headers
-from .routers import admin, ai, analytics, assets, assessments, auth, benchmarks, billing, career_map, dialogues, email, jobs, company_jobs, learning_resources, profile, publisher_challenges, push, scraper, signal_boost, stripe, tests
+from .routers import admin, ai, analytics, assets, assessments, auth, benchmarks, billing, career_map, dialogues, email, jobs, jobs_ai, jobs_catalog, jobs_company_native, jobs_external, jobs_interactions, jobs_recommendations, jobs_search, company_jobs, learning_resources, profile, publisher_challenges, push, scraper, signal_boost, stripe, tests
 from .runtime import start_background_scheduler, stop_background_scheduler
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -177,6 +177,13 @@ def _register_middlewares(app: FastAPI, allowed_origins: list[str]) -> None:
 
 def _register_routers(app: FastAPI) -> None:
     app.include_router(jobs.router, tags=["Jobs"])
+    app.include_router(jobs_company_native.router, tags=["JobsCompanyNative"])
+    app.include_router(jobs_ai.router, tags=["JobsAI"])
+    app.include_router(jobs_search.router, tags=["JobsSearch"])
+    app.include_router(jobs_recommendations.router, tags=["JobsRecommendations"])
+    app.include_router(jobs_interactions.router, tags=["JobsInteractions"])
+    app.include_router(jobs_external.router, tags=["JobsExternal"])
+    app.include_router(jobs_catalog.router, tags=["JobsCatalog"])
     app.include_router(billing.router, tags=["Billing"])
     app.include_router(stripe.router, tags=["Stripe"])
     app.include_router(assessments.router, prefix="/assessments", tags=["Assessments"])

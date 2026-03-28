@@ -6,7 +6,7 @@ from ..core.database import supabase
 from ..core.limiter import limiter
 from ..core.security import require_company_access, verify_csrf_token_header, verify_subscription
 from ..models.requests import JobDraftPublishRequest, JobDraftUpsertRequest, JobLifecycleUpdateRequest
-from ..services.jobs_postgres_store import update_job_fields
+from ..services.jobs_postgres_store import list_company_jobs, update_job_fields
 from ..utils.helpers import now_iso
 from .jobs import (
     _build_job_human_context_editor_state,
@@ -67,6 +67,20 @@ async def list_company_roles(
     response = await list_company_job_drafts(request=request, user=user)
     rows = response.get("drafts") or []
     return {"roles": [_serialize_role_record(row) for row in rows if isinstance(row, dict)]}
+
+
+@router.get("/company/jobs/published")
+@limiter.limit("60/minute")
+async def list_company_published_jobs(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+    limit: int = Query(200, ge=1, le=1000),
+):
+    company_id = str(user.get("company_id") or "").strip()
+    if not company_id:
+        raise HTTPException(status_code=400, detail="Company account required")
+    rows = list_company_jobs(company_id=company_id, limit=limit)
+    return {"jobs": rows}
 
 
 @router.get("/company/roles/{role_id}")

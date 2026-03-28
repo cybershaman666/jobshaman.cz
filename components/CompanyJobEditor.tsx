@@ -32,7 +32,6 @@ import {
   validateCompanyJobDraft
 } from '../services/companyJobDraftService';
 import { optimizeJobDescription } from '../services/geminiService';
-import { supabase } from '../services/supabaseService';
 import { cn } from './ui/primitives';
 
 type JobDraftTextSection =
@@ -426,34 +425,6 @@ const extractHandshakeFields = (draft: Partial<JobDraft> | null | undefined): Re
 const extractMicroJobState = (draft: Partial<JobDraft> | null | undefined): MicroJobEditorState => {
   const editorState = ((draft?.editor_state || {}) as Record<string, unknown>);
   return normalizeMicroJobState(editorState.micro_job);
-};
-
-const attachDraftDescriptionMetadata = (
-  description: string,
-  hiringStage?: JobHiringStage | null,
-  microJobState: MicroJobEditorState = createEmptyMicroJobState()
-): string => {
-  const markers: string[] = [];
-  const normalizedStage = normalizeHiringStage(hiringStage) || DEFAULT_HIRING_STAGE;
-  markers.push(`<!-- jobshaman:hiring_stage=${normalizedStage} -->`);
-  if (microJobState.challenge_format === 'micro_job') {
-    markers.push('<!-- jobshaman:challenge_format=micro_job -->');
-    if (microJobState.kind) {
-      markers.push(`<!-- jobshaman:micro_job_kind=${microJobState.kind} -->`);
-    }
-    if (microJobState.time_estimate) {
-      markers.push(`<!-- jobshaman:micro_time_estimate=${microJobState.time_estimate.replace(/--/g, '-').replace(/>/g, '')} -->`);
-    }
-    if (microJobState.collaboration_modes.length) {
-      markers.push(`<!-- jobshaman:micro_collaboration=${microJobState.collaboration_modes.join(',')} -->`);
-    }
-    if (microJobState.long_term_potential) {
-      markers.push(`<!-- jobshaman:micro_long_term=${microJobState.long_term_potential} -->`);
-    }
-  }
-  const trimmedDescription = description.trim();
-  const prefix = markers.join('\n');
-  return trimmedDescription ? `${prefix}\n\n${trimmedDescription}` : prefix;
 };
 
 const toDraftInput = (draft: JobDraft) => {
@@ -891,10 +862,6 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   };
 
   const loadLocalVersions = (): JobVersion[] => readLocalJson<JobVersion[]>(localVersionStorageKey, []);
-
-  const persistLocalVersions = (rows: JobVersion[]) => {
-    writeLocalJson(localVersionStorageKey, rows);
-  };
 
   useEffect(() => {
     let active = true;
@@ -1391,8 +1358,6 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     setPublishing(true);
     try {
       let nextDraft = draft;
-      const nextMicroJobState = extractMicroJobState(nextDraft);
-      const nextIsMicroJob = nextMicroJobState.challenge_format === 'micro_job';
       if (usesLocalFallback) {
         const report = createLocalValidationReport(nextDraft, validationMessages);
         nextDraft = {
@@ -1407,95 +1372,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           setPublishing(false);
           return;
         }
-        if (!supabase) {
-          setErrorMessage(t('company.job_editor.feedback.publish_supabase_unavailable', { defaultValue: 'Supabase is unavailable, so local compatibility mode cannot publish this draft yet.' }));
-          setPublishing(false);
-          return;
-        }
-
-        const jobPayload = {
-          title: nextDraft.title,
-          company: companyProfile.name,
-          description: attachDraftDescriptionMetadata(
-            composePreviewMarkdown(nextDraft, companyProfile.name, previewLabels),
-            nextDraft.hiring_stage,
-            extractMicroJobState(nextDraft)
-          ),
-          location: nextDraft.location_public || nextDraft.workplace_address || t('company.job_editor.feedback.location_unspecified', { defaultValue: 'Location not specified' }),
-          salary_from: nextDraft.salary_from ?? null,
-          salary_to: nextDraft.salary_to ?? null,
-          salary_currency: nextDraft.salary_currency || 'CZK',
-          salary_timeframe: nextIsMicroJob
-            ? 'project_total'
-            : (nextDraft.salary_timeframe || 'month'),
-          benefits: nextIsMicroJob ? [] : (nextDraft.benefits_structured || []),
-          contact_email: nextDraft.contact_email || null,
-          workplace_address: nextDraft.workplace_address || null,
-          company_id: companyProfile.id,
-          contract_type: nextIsMicroJob ? null : (nextDraft.contract_type || null),
-          work_type: nextDraft.work_model || null,
-          source: 'jobshaman.cz',
-          scraped_at: new Date().toISOString(),
-          status: 'active'
-        };
-
-        let publishedJobId = nextDraft.job_id;
-        if (nextDraft.job_id) {
-          const { data, error } = await supabase
-            .from('jobs')
-            .update(jobPayload)
-            .eq('id', nextDraft.job_id)
-            .select('id')
-            .single();
-          if (error) throw error;
-          publishedJobId = data?.id || nextDraft.job_id;
-        } else {
-          const { data, error } = await supabase
-            .from('jobs')
-            .insert(jobPayload)
-            .select('id')
-            .single();
-          if (error) throw error;
-          publishedJobId = data?.id;
-        }
-
-        const existingVersions = loadLocalVersions();
-        const currentVersions = existingVersions.filter((item) => String(item.job_id) === String(publishedJobId));
-        const nextVersionNumber = currentVersions.length > 0
-          ? Math.max(...currentVersions.map((item) => item.version_number)) + 1
-          : 1;
-        const versionRecord: JobVersion = {
-          id: `local-version-${crypto.randomUUID()}`,
-          job_id: publishedJobId as string | number,
-          draft_id: nextDraft.id,
-          version_number: nextVersionNumber,
-          published_snapshot: {
-            title: nextDraft.title,
-            description: jobPayload.description,
-            location: jobPayload.location,
-            benefits: nextIsMicroJob ? [] : (nextDraft.benefits_structured || []),
-          },
-          change_summary: changeSummary.trim() || null,
-          published_by: userEmail || null,
-          published_at: new Date().toISOString()
-        };
-        persistLocalVersions([versionRecord, ...existingVersions]);
-        setVersions((prev) => [versionRecord, ...prev]);
-
-        const publishedDraft: JobDraft = {
-          ...nextDraft,
-          job_id: publishedJobId,
-          status: 'published_linked',
-          updated_at: new Date().toISOString()
-        };
-        updateDraft(publishedDraft);
-        setChangeSummary('');
-        setStatusMessage(
-          nextVersionNumber > 1
-            ? t('company.job_editor.feedback.publish_success_versioned', { defaultValue: 'Update published as version {{version}}.', version: nextVersionNumber })
-            : t('company.job_editor.feedback.publish_success', { defaultValue: 'Job published successfully.' })
-        );
-        onJobLifecycleChange?.(publishedJobId as string | number, 'active', { skipAudit: true, refreshJobs: true });
+        setErrorMessage(t('company.job_editor.feedback.publish_api_required', { defaultValue: 'Publishing now requires the backend role API. This local compatibility draft can stay saved, but it cannot publish directly into the old jobs table anymore.' }));
         return;
       }
 
@@ -1530,8 +1407,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
       onJobLifecycleChange?.(response.job_id, 'active', { skipAudit: true, refreshJobs: true });
     } catch (error) {
       if (isMissingFeatureError(error)) {
-        setUsesLocalFallback(true);
-        setErrorMessage(t('company.job_editor.feedback.publish_api_unavailable', { defaultValue: 'Draft publishing API is not available on this backend yet. Save once more and publish again in compatibility mode.' }));
+        setErrorMessage(t('company.job_editor.feedback.publish_api_unavailable', { defaultValue: 'Draft publishing API is not available on this backend yet. Direct publishing to the legacy jobs table has been disabled.' }));
       } else {
         console.error('Failed to publish draft:', error);
         setErrorMessage(t('company.job_editor.feedback.publish_failed', { defaultValue: 'Publishing failed. Please validate and try again.' }));
@@ -1588,41 +1464,10 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     setStatusMessage(null);
     try {
       if (usesLocalFallback) {
-        if (!supabase) {
-          setErrorMessage(t('company.job_editor.feedback.lifecycle_supabase_unavailable', { defaultValue: 'Supabase is unavailable, so lifecycle updates cannot be applied right now.' }));
-          return;
-        }
-        const { error } = await supabase
-          .from('jobs')
-          .update({ status })
-          .eq('id', draft.job_id);
-        if (error) {
-          setErrorMessage(t('company.job_editor.feedback.lifecycle_failed', { defaultValue: 'Lifecycle update failed.' }));
-          return;
-        }
-        setStatusMessage(t('company.job_editor.feedback.lifecycle_moved', { defaultValue: 'Live job moved to {{status}}.', status: getLifecycleStatusLabel(status) }));
-        onJobLifecycleChange?.(draft.job_id, status, { skipAudit: false, refreshJobs: false });
+        setErrorMessage(t('company.job_editor.feedback.lifecycle_api_required', { defaultValue: 'Lifecycle changes now require the backend role API. Direct updates to the legacy jobs table have been disabled.' }));
         return;
       }
       const result = await updateCompanyRoleLifecycle(draft.job_id, status);
-      if (!result.ok && result.via === 'unavailable') {
-        setUsesLocalFallback(true);
-        if (!supabase) {
-          setErrorMessage(t('company.job_editor.feedback.lifecycle_api_unavailable', { defaultValue: 'Lifecycle API is not available on this backend yet.' }));
-          return;
-        }
-        const { error } = await supabase
-          .from('jobs')
-          .update({ status })
-          .eq('id', draft.job_id);
-        if (error) {
-          setErrorMessage(t('company.job_editor.feedback.lifecycle_failed', { defaultValue: 'Lifecycle update failed.' }));
-          return;
-        }
-        setStatusMessage(t('company.job_editor.feedback.lifecycle_moved', { defaultValue: 'Live job moved to {{status}}.', status: getLifecycleStatusLabel(status) }));
-        onJobLifecycleChange?.(draft.job_id, status, { skipAudit: false, refreshJobs: false });
-        return;
-      }
       if (!result.ok) {
         setErrorMessage(t('company.job_editor.feedback.lifecycle_failed', { defaultValue: 'Lifecycle update failed.' }));
         return;
@@ -1631,8 +1476,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
       onJobLifecycleChange?.(draft.job_id, status, { skipAudit: true, refreshJobs: false });
     } catch (error) {
       if (isMissingFeatureError(error)) {
-        setUsesLocalFallback(true);
-        setErrorMessage(t('company.job_editor.feedback.lifecycle_api_unavailable_direct', { defaultValue: 'Lifecycle API is not available on this backend yet. Try again and the editor will use direct compatibility mode.' }));
+        setErrorMessage(t('company.job_editor.feedback.lifecycle_api_unavailable_direct', { defaultValue: 'Lifecycle API is not available on this backend yet. Direct compatibility updates to the legacy jobs table have been disabled.' }));
       } else {
         console.error('Failed to update lifecycle:', error);
         setErrorMessage(t('company.job_editor.feedback.lifecycle_failed', { defaultValue: 'Lifecycle update failed.' }));
