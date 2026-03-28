@@ -187,7 +187,9 @@ export const runFilteredFetchPipeline = async ({
     });
     if (isStaleRequest()) return null;
 
-    let visibleJobs = dedupeJobsList(applyDomesticCountrySafeguard(filterDismissedJobs(result.jobs)));
+    const jobsAfterDismissFilter = filterDismissedJobs(result.jobs);
+    const jobsAfterDomesticSafeguard = applyDomesticCountrySafeguard(jobsAfterDismissFilter);
+    let visibleJobs = dedupeJobsList(jobsAfterDomesticSafeguard);
     let resolvedHasMore = result.hasMore;
     let resolvedTotalCount = Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length));
 
@@ -286,6 +288,9 @@ export const runFilteredFetchPipeline = async ({
             filter_city: filterCity || null,
             fallback_mode: result.meta?.fallback_mode || null,
             degraded_reasons: result.meta?.degraded_reasons || [],
+            backend_result_count: result.jobs.length,
+            after_dismissed_count: jobsAfterDismissFilter.length,
+            after_domestic_safeguard_count: jobsAfterDomesticSafeguard.length,
         }, {
             dedupeKey: JSON.stringify({
                 searchTerm: searchTerm || '',

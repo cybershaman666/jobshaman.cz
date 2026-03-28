@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, SearchDiagnosticsMeta, UserProfile } from '../types';
 import { dedupeJobsList } from '../services/jobService';
+import { shouldPreserveBrowseResultsOnEmptyRefresh } from '../services/discoveryFeedResilience';
 import AnalyticsService from '../services/analyticsService';
 import {
     annotateJobsForCandidate,
@@ -143,6 +144,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
     const [impressionSessionKey, setImpressionSessionKey] = useState(() => `impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const [backendUnreachable, setBackendUnreachable] = useState(false);
     const [searchDiagnostics, setSearchDiagnostics] = useState<SearchDiagnosticsMeta | null>(null);
+    const jobsRef = useRef<Job[]>(jobs);
     const {
         abroadOnly,
         applyDiscoveryDefaults,
@@ -260,6 +262,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
     // Persist a warm cache so first paint is never empty when backend wakes up.
     useEffect(() => {
+        jobsRef.current = jobs;
+    }, [jobs]);
+
+    useEffect(() => {
         if (!jobs || jobs.length === 0) return;
         try {
             localStorage.setItem(JOBS_FEED_CACHE_KEY, JSON.stringify(jobs.slice(0, JOBS_FEED_CACHE_MAX)));
@@ -270,8 +276,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
     useEffect(() => {
         if (!dismissedJobIds.length) return;
-        setJobs(prev => prev.filter(job => !dismissedJobIds.includes(job.id)));
-    }, [dismissedJobIds]);
+        setJobs(prev => filterDismissedJobs(prev));
+    }, [dismissedJobIds, filterDismissedJobs]);
 
     useEffect(() => {
         return () => {
@@ -589,6 +595,38 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                 });
             }
             const annotatedFiltered = applyProfileDiscoveryOrdering(filteredResult.visibleJobs, searchMode);
+            const shouldPreserveExistingBrowseFeed = shouldPreserveBrowseResultsOnEmptyRefresh({
+                page,
+                isLoadMore,
+                searchTerm,
+                filterCity,
+                previousJobsCount: jobsRef.current.length,
+                nextJobsCount: annotatedFiltered.jobs.length,
+                backendResultCount: Number(
+                    filteredResult.diagnostics.base_result_count ?? filteredResult.result.jobs.length
+                ) || 0,
+                totalCount: Number(filteredResult.resolvedTotalCount || 0),
+            });
+
+            if (shouldPreserveExistingBrowseFeed) {
+                recordRuntimeSignal('custom:search_empty_refresh_preserved', {
+                    previous_count: jobsRef.current.length,
+                    backend_result_count: filteredResult.result.jobs.length,
+                    total_count: filteredResult.resolvedTotalCount,
+                    fallback_mode: filteredResult.result.meta?.fallback_mode || null,
+                    degraded_reasons: filteredResult.result.meta?.degraded_reasons || [],
+                }, {
+                    dedupeKey: JSON.stringify({
+                        searchTerm: searchTerm || '',
+                        filterCity: filterCity || '',
+                        previousCount: jobsRef.current.length,
+                        fallbackMode: filteredResult.result.meta?.fallback_mode || 'none',
+                    }),
+                    throttleMs: 20_000,
+                });
+                return;
+            }
+
             setSearchDiagnostics({
                 ...filteredResult.diagnostics,
                 reordered_by_profile: filteredResult.diagnostics.reordered_by_profile || annotatedFiltered.reordered,
