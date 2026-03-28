@@ -3,6 +3,7 @@ import re
 import time
 import json
 import hashlib
+import random
 from statistics import median
 from typing import Any, cast
 from importlib import import_module
@@ -665,6 +666,20 @@ def _require_company_tier(user: dict, company_id: str, allowed_tiers: set[str]) 
 
 
 def _count_company_active_jobs(company_id: str, exclude_job_id=None) -> int:
+    if jobs_postgres_main_enabled() and company_id:
+        rows = list_company_jobs(company_id=company_id, limit=5000)
+        if rows or not supabase:
+            normalized_exclude = _canonical_job_id(exclude_job_id) if exclude_job_id is not None else None
+            total = 0
+            for row in rows:
+                row_id = _canonical_job_id(row.get("id"))
+                if normalized_exclude is not None and row_id == normalized_exclude:
+                    continue
+                status = str(row.get("status") or "active").lower()
+                if status in {"closed", "paused", "archived"}:
+                    continue
+                total += 1
+            return total
     if not supabase or not company_id:
         return 0
     resp = supabase.table("jobs").select("id,status").eq("company_id", company_id).execute()
@@ -1424,35 +1439,16 @@ def _filter_out_dismissed_jobs(jobs: list[dict], dismissed_job_ids: set[str]) ->
 
 
 def _filter_existing_job_ids(job_ids: set[str]) -> set[str]:
-    if not supabase or not job_ids:
+    if not job_ids:
         return set()
     existing: set[str] = set()
-    normalized_ints = []
     for jid in job_ids:
-        if str(jid).isdigit():
-            normalized_ints.append(int(jid))
-    if not normalized_ints:
-        return set()
-
-    batch_size = 500
-    for i in range(0, len(normalized_ints), batch_size):
-        chunk = normalized_ints[i : i + batch_size]
-        try:
-            resp = (
-                supabase
-                .table("jobs")
-                .select("id")
-                .in_("id", chunk)
-                .limit(len(chunk))
-                .execute()
-            )
-            for row in _safe_rows(resp.data if resp else None):
-                job_id = _canonical_job_id((row or {}).get("id"))
-                if job_id:
-                    existing.add(job_id)
-        except Exception as exc:
-            print(f"⚠️ Failed to filter existing job IDs for sync: {exc}")
-            return set()
+        canonical = _canonical_job_id(jid)
+        normalized = _normalize_job_id(canonical)
+        if not canonical or not isinstance(normalized, int):
+            continue
+        if _read_job_record(normalized):
+            existing.add(canonical)
     return existing
 
 
@@ -1568,6 +1564,204 @@ def _sync_main_job_to_jobs_postgres(job_row: dict[str, Any] | None, *, source_ki
         pass
     from ..services.jobs_postgres_store import backfill_jobs_from_documents
     backfill_jobs_from_documents([payload])
+
+
+def _job_shadow_is_active(status: str, explicit: Any = None) -> bool:
+    if explicit is not None:
+        return bool(explicit)
+    return status not in {"paused", "closed", "archived"}
+
+
+def _normalize_supabase_job_shadow_payload(job_row: dict[str, Any]) -> dict[str, Any]:
+    normalized_id = _normalize_job_id(job_row.get("id"))
+    if not isinstance(normalized_id, int):
+        raise ValueError("Supabase jobs shadow requires a numeric job id")
+
+    status = str(job_row.get("status") or "active").strip().lower() or "active"
+    benefits = job_row.get("benefits")
+    if not isinstance(benefits, list):
+        benefits = []
+
+    payload = {
+        "id": normalized_id,
+        "title": str(job_row.get("title") or "").strip(),
+        "url": str(job_row.get("url") or "").strip() or None,
+        "company": str(job_row.get("company") or "").strip() or None,
+        "location": str(job_row.get("location") or job_row.get("workplace_address") or "").strip() or None,
+        "description": str(job_row.get("description") or "").strip() or None,
+        "benefits": benefits,
+        "contract_type": job_row.get("contract_type"),
+        "salary_from": _parse_optional_int(job_row.get("salary_from")),
+        "salary_to": _parse_optional_int(job_row.get("salary_to")),
+        "work_type": job_row.get("work_type") or job_row.get("work_model"),
+        "education_level": job_row.get("education_level"),
+        "source": job_row.get("source") or _NATIVE_JOB_SOURCE,
+        "scraped_at": job_row.get("scraped_at") or job_row.get("updated_at") or now_iso(),
+        "company_id": job_row.get("company_id"),
+        "recruiter_id": job_row.get("recruiter_id"),
+        "is_active": _job_shadow_is_active(status, job_row.get("is_active")),
+        "currency": job_row.get("currency") or job_row.get("salary_currency") or "CZK",
+        "lat": job_row.get("lat"),
+        "lng": job_row.get("lng"),
+        "legality_status": str(job_row.get("legality_status") or "legal"),
+        "verification_notes": job_row.get("verification_notes"),
+        "posted_by": job_row.get("posted_by"),
+        "country_code": job_row.get("country_code"),
+        "ai_analysis": job_row.get("ai_analysis"),
+        "updated_at": job_row.get("updated_at") or now_iso(),
+        "work_model": job_row.get("work_model") or job_row.get("work_type"),
+        "salary_currency": job_row.get("salary_currency") or job_row.get("currency") or "CZK",
+        "salary_timeframe": job_row.get("salary_timeframe"),
+        "language_code": job_row.get("language_code"),
+        "status": status,
+        "contact_email": job_row.get("contact_email"),
+        "workplace_address": job_row.get("workplace_address"),
+        "created_at": job_row.get("created_at") or job_row.get("scraped_at") or now_iso(),
+    }
+
+    return payload
+
+
+def _sync_main_job_shadow_to_supabase(job_row: dict[str, Any], *, create_if_missing: bool = True) -> bool:
+    if not supabase or not isinstance(job_row, dict) or not job_row:
+        return False
+    payload = _normalize_supabase_job_shadow_payload(job_row)
+    normalized_id = cast(int, payload["id"])
+    try:
+        existing_resp = supabase.table("jobs").select("id").eq("id", normalized_id).maybe_single().execute()
+        existing = _safe_row(existing_resp.data if existing_resp else None)
+        if existing:
+            update_payload = dict(payload)
+            update_payload.pop("id", None)
+            supabase.table("jobs").update(update_payload).eq("id", normalized_id).execute()
+            return True
+        if not create_if_missing:
+            return False
+        supabase.table("jobs").insert(payload).execute()
+        return True
+    except Exception as exc:
+        print(f"⚠️ Failed to sync job {normalized_id} to Supabase jobs shadow: {exc}")
+        return False
+
+
+def _serialize_job_reference_for_dialogues(job_row: dict[str, Any] | None) -> dict[str, Any]:
+    source = _safe_dict(job_row)
+    if not source:
+        return {}
+    return {
+        "id": source.get("id"),
+        "title": _trimmed_text(source.get("title"), 200) or None,
+        "company": _trimmed_text(source.get("company"), 200) or None,
+        "location": _trimmed_text(source.get("location") or source.get("workplace_address"), 200) or None,
+        "url": _trimmed_text(source.get("url"), 500) or None,
+        "source": _trimmed_text(source.get("source"), 120) or None,
+        "contact_email": _trimmed_text(source.get("contact_email"), 200) or None,
+        "description": _trimmed_text(source.get("description"), 8000) or None,
+    }
+
+
+def _ensure_job_shadow_for_id(job_id: Any, *, create_if_missing: bool = True) -> bool:
+    normalized_id = _normalize_job_id(job_id)
+    if not supabase or not isinstance(normalized_id, int):
+        return False
+    try:
+        existing_resp = supabase.table("jobs").select("id").eq("id", normalized_id).maybe_single().execute()
+        existing = _safe_row(existing_resp.data if existing_resp else None)
+        if existing:
+            return True
+    except Exception:
+        pass
+
+    primary_row = _read_job_record(normalized_id)
+    if not isinstance(primary_row, dict) or not primary_row:
+        return False
+    return _sync_main_job_shadow_to_supabase(primary_row, create_if_missing=create_if_missing)
+
+
+def _ensure_job_shadows_for_ids(job_ids: list[Any] | set[Any] | tuple[Any, ...], *, create_if_missing: bool = True) -> set[str]:
+    ensured: set[str] = set()
+    for raw_job_id in job_ids:
+        canonical = _canonical_job_id(raw_job_id)
+        normalized_id = _normalize_job_id(canonical)
+        if not canonical or not isinstance(normalized_id, int):
+            continue
+        if _ensure_job_shadow_for_id(normalized_id, create_if_missing=create_if_missing):
+            ensured.add(canonical)
+    return ensured
+
+
+def _hydrate_rows_with_primary_jobs(
+    rows: list[dict[str, Any]] | None,
+    *,
+    row_job_key: str = "job_id",
+    target_key: str = "jobs",
+) -> list[dict[str, Any]]:
+    normalized_rows = rows or []
+    if not normalized_rows:
+        return []
+
+    jobs_by_id: dict[str, dict[str, Any]] = {}
+    for row in normalized_rows:
+        if not isinstance(row, dict):
+            continue
+        job_ref = _safe_dict(row.get(target_key))
+        canonical_job_id = _canonical_job_id(row.get(row_job_key))
+        if not canonical_job_id:
+            continue
+        if job_ref.get("title"):
+            jobs_by_id[canonical_job_id] = job_ref
+            continue
+        primary_row = _read_job_record(canonical_job_id)
+        serialized_job = _serialize_job_reference_for_dialogues(primary_row)
+        if serialized_job:
+            jobs_by_id[canonical_job_id] = serialized_job
+
+    enriched_rows: list[dict[str, Any]] = []
+    for row in normalized_rows:
+        if not isinstance(row, dict):
+            continue
+        enriched = dict(row)
+        canonical_job_id = _canonical_job_id(row.get(row_job_key))
+        if canonical_job_id and jobs_by_id.get(canonical_job_id):
+            enriched[target_key] = dict(jobs_by_id[canonical_job_id])
+        elif target_key not in enriched:
+            enriched[target_key] = {}
+        enriched_rows.append(enriched)
+    return enriched_rows
+
+
+def _delete_main_job_shadow_from_supabase(job_id: Any) -> bool:
+    normalized_id = _normalize_job_id(job_id)
+    if not supabase or not isinstance(normalized_id, int):
+        return False
+    try:
+        supabase.table("jobs").delete().eq("id", normalized_id).execute()
+        return True
+    except Exception as exc:
+        print(f"⚠️ Failed to delete job {normalized_id} from Supabase jobs shadow: {exc}")
+        return False
+
+
+def _job_id_exists_in_any_store(job_id: int) -> bool:
+    if get_job_by_id(job_id):
+        return True
+    if not supabase:
+        return False
+    try:
+        resp = supabase.table("jobs").select("id").eq("id", job_id).maybe_single().execute()
+        return bool(_safe_row(resp.data if resp else None))
+    except Exception:
+        return False
+
+
+def _generate_native_job_id() -> int:
+    lower_bound = 1_800_000_000
+    upper_bound = 2_100_000_000
+    for _ in range(64):
+        candidate = random.randint(lower_bound, upper_bound)
+        if not _job_id_exists_in_any_store(candidate):
+            return candidate
+    raise RuntimeError("Unable to allocate a unique native job id")
 
 
 def _empty_job_human_context_trust() -> dict[str, Any]:
@@ -2094,7 +2288,9 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
             .maybe_single()
             .execute()
         )
-        return _safe_row(resp.data if resp else None)
+        row = _safe_row(resp.data if resp else None)
+        hydrated_rows = _hydrate_rows_with_primary_jobs([row] if row else [])
+        return hydrated_rows[0] if hydrated_rows else row
     except Exception as exc:
         if not (
             _is_missing_relationship_error(exc, "job_applications", "jobs")
@@ -2114,20 +2310,8 @@ def _load_dialogue_solution_snapshot_context(dialogue_id: str) -> dict[str, Any]
     if not row:
         return None
 
-    normalized_job_id = _normalize_job_id(row.get("job_id"))
-    if isinstance(normalized_job_id, int):
-        try:
-            job_resp = (
-                supabase
-                .table("jobs")
-                .select("id,title,description")
-                .eq("id", normalized_job_id)
-                .maybe_single()
-                .execute()
-            )
-            row["jobs"] = _safe_dict(job_resp.data if job_resp else None)
-        except Exception:
-            row["jobs"] = {}
+    hydrated_rows = _hydrate_rows_with_primary_jobs([row])
+    row = hydrated_rows[0] if hydrated_rows else row
 
     company_id = str(row.get("company_id") or "").strip()
     if company_id:
@@ -2158,7 +2342,9 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
             .maybe_single()
             .execute()
         )
-        return _safe_row(resp.data if resp else None)
+        row = _safe_row(resp.data if resp else None)
+        hydrated_rows = _hydrate_rows_with_primary_jobs([row] if row else [])
+        return hydrated_rows[0] if hydrated_rows else row
     except Exception as exc:
         if _is_missing_table_error(exc, "job_solution_snapshots"):
             return None
@@ -2180,20 +2366,8 @@ def _load_dialogue_solution_snapshot(dialogue_id: str) -> dict[str, Any] | None:
     if not row:
         return None
 
-    normalized_job_id = _normalize_job_id(row.get("job_id"))
-    if isinstance(normalized_job_id, int):
-        try:
-            job_resp = (
-                supabase
-                .table("jobs")
-                .select("id,title")
-                .eq("id", normalized_job_id)
-                .maybe_single()
-                .execute()
-            )
-            row["jobs"] = _safe_dict(job_resp.data if job_resp else None)
-        except Exception:
-            row["jobs"] = {}
+    hydrated_rows = _hydrate_rows_with_primary_jobs([row])
+    row = hydrated_rows[0] if hydrated_rows else row
 
     company_id = str(row.get("company_id") or "").strip()
     if company_id:
@@ -2876,6 +3050,22 @@ def _write_interaction_feedback_rows(
         row for row in feedback_rows
         if str(row.get("signal_type") or "").strip().lower() in _RECOMMENDATION_ALLOWED_SIGNALS
     ]
+    valid_job_ids = _filter_existing_job_ids({
+        _canonical_job_id(row.get("job_id"))
+        for row in feedback_rows
+        if isinstance(row, dict) and row.get("job_id") is not None
+    })
+    if valid_job_ids:
+        feedback_rows = [
+            row for row in feedback_rows
+            if isinstance(row, dict) and _canonical_job_id(row.get("job_id")) in valid_job_ids
+        ]
+        recommendation_rows = [
+            row for row in recommendation_rows
+            if isinstance(row, dict) and _canonical_job_id(row.get("job_id")) in valid_job_ids
+        ]
+    else:
+        return
 
     try:
         if recommendation_rows:
@@ -2917,6 +3107,17 @@ def _write_recommendation_exposures(exposure_rows: list[dict[str, Any]]) -> None
     if not exposure_rows or not supabase:
         return
     try:
+        valid_job_ids = _filter_existing_job_ids({
+            _canonical_job_id(row.get("job_id"))
+            for row in exposure_rows
+            if isinstance(row, dict) and row.get("job_id") is not None
+        })
+        if not valid_job_ids:
+            return
+        exposure_rows = [
+            row for row in exposure_rows
+            if isinstance(row, dict) and _canonical_job_id(row.get("job_id")) in valid_job_ids
+        ]
         supabase.table("recommendation_exposures").upsert(
             exposure_rows, on_conflict="request_id,user_id,job_id"
         ).execute()
@@ -2931,6 +3132,17 @@ def _write_search_exposures(request_id: str, exposures: list[dict[str, Any]]) ->
 
     exposure_write_started = datetime.now(timezone.utc)
     try:
+        valid_job_ids = _filter_existing_job_ids({
+            _canonical_job_id(row.get("job_id"))
+            for row in exposures
+            if isinstance(row, dict) and row.get("job_id") is not None
+        })
+        if not valid_job_ids:
+            return
+        exposures = [
+            row for row in exposures
+            if isinstance(row, dict) and _canonical_job_id(row.get("job_id")) in valid_job_ids
+        ]
         supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
         exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
         print(
@@ -4111,9 +4323,8 @@ Rules:
 def _require_job_access(user: dict, job_id: str):
     """Ensure the current user is authorized to manage the given job."""
     job_id_norm = _normalize_job_id(job_id)
-
-    job_resp = supabase.table("jobs").select("id, company_id, posted_by, recruiter_id, title, status").eq("id", job_id_norm).maybe_single().execute()
-    job_row = _safe_row(job_resp.data if job_resp else None)
+    source = _read_job_record(job_id_norm)
+    job_row = _safe_row(source)
     if not job_row:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -4171,26 +4382,26 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
     elif needs_review:
         db_status = 'review'
     
-    # Update Supabase
+    # Update primary Jobs Postgres store first, then best-effort mirror the legacy Supabase row.
     print(f"💾 [DB] Updating job {job.id} legality_status to: {db_status}")
     try:
-        # Ensure job ID is treated as integer for BIGINT column
-        job_id_int = int(job.id) if str(job.id).isdigit() else job.id
-        
-        # Use existing columns: legality_status, risk_score, verification_notes
+        job_id_norm = _normalize_job_id(job.id)
         update_data = {
             "legality_status": db_status,
             "risk_score": risk_score,
-            "verification_notes": ", ".join(reasons) if reasons else ""
+            "verification_notes": ", ".join(reasons) if reasons else "",
         }
-        
-        update_result = supabase.table("jobs").update(update_data).eq("id", job_id_int).execute()
-        
-        if not update_result.data:
-            print(f"⚠️ [DB WARNING] No rows updated for job {job.id}. Check if ID exists and types match.")
+
+        primary_updated = update_job_fields(job_id_norm, update_data)
+        shadow_updated = False
+        existing_row = _read_job_record(job_id_norm) or {"id": job_id_norm}
+        existing_row.update(update_data)
+        shadow_updated = _sync_main_job_shadow_to_supabase(existing_row, create_if_missing=False)
+
+        if not primary_updated and not shadow_updated:
+            print(f"⚠️ [DB WARNING] No primary or shadow row updated for job {job.id}.")
         else:
-            print(f"✅ [DB] Successfully updated status for job {job.id}")
-            
+            print(f"✅ [DB] Successfully updated legality state for job {job.id}")
     except Exception as e:
         print(f"❌ [DB ERROR] Failed to update job status for {job.id}: {e}")
 
@@ -4229,13 +4440,19 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
 async def update_job_status(job_id: str, update: JobStatusUpdateRequest, request: Request, user: dict = Depends(get_current_user)):
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
-    _require_job_access(user, job_id)
-    # Query Supabase for job ownership and update status
-    resp = supabase.table("jobs").update({"status": update.status}).eq("id", job_id).execute()
+    job_row = _require_job_access(user, job_id)
+    normalized_job_id = _normalize_job_id(job_id)
+    patch = {
+        "status": update.status,
+        "is_active": update.status not in {"paused", "closed", "archived"},
+    }
     try:
-        update_job_fields(job_id, {"status": update.status})
+        update_job_fields(normalized_job_id, patch)
     except Exception:
         pass
+    shadow_row = dict(job_row)
+    shadow_row.update(patch)
+    _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
     return {"status": "success"}
 
 @router.delete("/{job_id}")
@@ -4244,11 +4461,11 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     _require_job_access(user, job_id)
-    supabase.table("jobs").delete().eq("id", job_id).execute()
     try:
         delete_job_by_id(job_id)
     except Exception:
         pass
+    _delete_main_job_shadow_from_supabase(job_id)
     return {"status": "success"}
 
 @router.post("/jobs/interactions")
@@ -4277,6 +4494,11 @@ async def log_job_interaction(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
     if _is_cached_invalid_interaction_job_id(payload.job_id):
+        if not _read_job_record(payload.job_id):
+            return {"status": "degraded", "reason": "job_interactions_invalid_job_id"}
+        _clear_invalid_interaction_job_id(payload.job_id)
+    if not _read_job_record(payload.job_id):
+        _mark_invalid_interaction_job_id(payload.job_id)
         return {"status": "degraded", "reason": "job_interactions_invalid_job_id"}
 
     metadata = getattr(payload, "metadata", None) or {}

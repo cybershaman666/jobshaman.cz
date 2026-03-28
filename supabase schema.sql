@@ -199,7 +199,7 @@ CREATE TABLE public.assessment_invitations (
 CREATE TABLE public.assessment_results (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   candidate_id uuid,
-  job_id integer,
+  job_id bigint,
   score_percent double precision NOT NULL,
   ai_summary text,
   raw_responses jsonb,
@@ -209,8 +209,7 @@ CREATE TABLE public.assessment_results (
   ai_evaluation jsonb,
   application_id uuid,
   CONSTRAINT assessment_results_pkey PRIMARY KEY (id),
-  CONSTRAINT assessment_results_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id),
-  CONSTRAINT assessment_results_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT assessment_results_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
 );
 CREATE TABLE public.benefit_valuations (
   benefit_name text NOT NULL,
@@ -476,13 +475,12 @@ CREATE TABLE public.job_applications (
 );
 CREATE TABLE public.job_candidate_matches (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  job_id integer,
+  job_id bigint,
   candidate_id uuid,
   match_score double precision,
   match_reasons ARRAY,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT job_candidate_matches_pkey PRIMARY KEY (id),
-  CONSTRAINT job_candidate_matches_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
   CONSTRAINT job_candidate_matches_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
 );
 CREATE TABLE public.job_drafts (
@@ -522,21 +520,19 @@ CREATE TABLE public.job_embeddings (
   embedding_model text NOT NULL,
   embedding_version text NOT NULL,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT job_embeddings_pkey PRIMARY KEY (job_id),
-  CONSTRAINT job_embeddings_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT job_embeddings_pkey PRIMARY KEY (job_id)
 );
 CREATE TABLE public.job_interactions (
   id bigint NOT NULL DEFAULT nextval('job_interactions_id_seq'::regclass),
   user_id uuid NOT NULL,
-  job_id integer NOT NULL,
+  job_id bigint NOT NULL,
   event_type text NOT NULL CHECK (event_type = ANY (ARRAY['impression'::text, 'swipe_left'::text, 'swipe_right'::text, 'open_detail'::text, 'apply_click'::text, 'save'::text, 'unsave'::text])),
   dwell_time_ms integer,
   session_id text,
   metadata jsonb,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT job_interactions_pkey PRIMARY KEY (id),
-  CONSTRAINT job_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT job_interactions_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT job_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.job_public_people (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -553,7 +549,6 @@ CREATE TABLE public.job_public_people (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT job_public_people_pkey PRIMARY KEY (id),
-  CONSTRAINT job_public_people_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
   CONSTRAINT job_public_people_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT job_public_people_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
@@ -593,7 +588,6 @@ CREATE TABLE public.job_solution_snapshots (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT job_solution_snapshots_pkey PRIMARY KEY (id),
   CONSTRAINT job_solution_snapshots_dialogue_id_fkey FOREIGN KEY (dialogue_id) REFERENCES public.job_applications(id),
-  CONSTRAINT job_solution_snapshots_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
   CONSTRAINT job_solution_snapshots_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT job_solution_snapshots_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.profiles(id),
   CONSTRAINT job_solution_snapshots_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
@@ -803,8 +797,7 @@ CREATE TABLE public.recommendation_cache (
   expires_at timestamp with time zone NOT NULL,
   scoring_version text,
   CONSTRAINT recommendation_cache_pkey PRIMARY KEY (id),
-  CONSTRAINT recommendation_cache_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id),
-  CONSTRAINT recommendation_cache_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT recommendation_cache_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id)
 );
 CREATE TABLE public.recommendation_exposures (
   id bigint NOT NULL DEFAULT nextval('recommendation_exposures_id_seq'::regclass),
@@ -820,8 +813,7 @@ CREATE TABLE public.recommendation_exposures (
   source text NOT NULL DEFAULT 'recommendations_api'::text,
   shown_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT recommendation_exposures_pkey PRIMARY KEY (id),
-  CONSTRAINT recommendation_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id),
-  CONSTRAINT recommendation_exposures_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT recommendation_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.candidate_profiles(id)
 );
 CREATE TABLE public.recommendation_feedback_events (
   id bigint NOT NULL DEFAULT nextval('recommendation_feedback_events_id_seq'::regclass),
@@ -835,8 +827,7 @@ CREATE TABLE public.recommendation_feedback_events (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT recommendation_feedback_events_pkey PRIMARY KEY (id),
-  CONSTRAINT recommendation_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT recommendation_feedback_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT recommendation_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.recruiter_profiles (
   id uuid NOT NULL,
@@ -937,28 +928,26 @@ CREATE TABLE public.search_exposures (
   id bigint NOT NULL DEFAULT nextval('search_exposures_id_seq'::regclass),
   request_id uuid NOT NULL,
   user_id uuid,
-  job_id integer NOT NULL,
+  job_id bigint NOT NULL,
   position integer NOT NULL,
   query text,
   filters_json jsonb DEFAULT '{}'::jsonb,
   ranking_features_json jsonb DEFAULT '{}'::jsonb,
   shown_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT search_exposures_pkey PRIMARY KEY (id),
-  CONSTRAINT search_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT search_exposures_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT search_exposures_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.search_feedback_events (
   id bigint NOT NULL DEFAULT nextval('search_feedback_events_id_seq'::regclass),
   request_id uuid,
   user_id uuid,
-  job_id integer NOT NULL,
+  job_id bigint NOT NULL,
   signal_type text NOT NULL,
   signal_value double precision,
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT search_feedback_events_pkey PRIMARY KEY (id),
-  CONSTRAINT search_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
-  CONSTRAINT search_feedback_events_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+  CONSTRAINT search_feedback_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.seasonal_bias_corrections (
   id bigint NOT NULL DEFAULT nextval('seasonal_bias_corrections_id_seq'::regclass),

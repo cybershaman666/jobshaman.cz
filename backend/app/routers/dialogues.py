@@ -26,6 +26,7 @@ from .jobs import (
     _expire_dialogue_if_needed,
     _extract_attachment_asset_ids,
     _get_cached_my_dialogues,
+    _hydrate_rows_with_primary_jobs,
     _invalidate_my_dialogues_cache,
     _is_active_dialogue_status,
     _is_missing_column_error,
@@ -35,6 +36,7 @@ from .jobs import (
     _load_dialogue_solution_snapshot_context,
     _normalize_job_id,
     _normalize_jcfpm_share_level,
+    _read_job_record,
     _normalize_solution_snapshot_tags,
     _persist_dialogue_state,
     _safe_dict,
@@ -118,9 +120,10 @@ async def create_dialogue_legacy(
 
     company_id = None
     try:
-        job_resp = supabase.table("jobs").select("company_id,posted_by").eq("id", job_id).maybe_single().execute()
-        job_row = job_resp.data or {}
-        company_id = job_row.get("company_id") if job_resp else None
+        job_row = _safe_dict(_read_job_record(job_id))
+        if not job_row:
+            raise HTTPException(status_code=404, detail="Job not found")
+        company_id = job_row.get("company_id")
         posted_by = str(job_row.get("posted_by") or "").strip()
         if posted_by and posted_by == str(user_id):
             raise HTTPException(status_code=409, detail="You cannot open a dialogue on your own mini challenge.")
@@ -401,6 +404,7 @@ async def list_my_dialogues_legacy(
                 if cid:
                     enriched["companies"] = companies_by_id.get(cid) or {}
                 rows.append(enriched)
+            rows = _hydrate_rows_with_primary_jobs(rows)
             rows = [_expire_dialogue_if_needed(row) for row in rows if isinstance(row, dict)]
             payload = {
                 "applications": [_serialize_candidate_application_row(row) for row in rows],
@@ -417,7 +421,8 @@ async def list_my_dialogues_legacy(
         _set_cached_my_dialogues(user_id, limit, payload)
         return payload
 
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
+    rows = _hydrate_rows_with_primary_jobs([row for row in (resp.data or []) if isinstance(row, dict)])
+    rows = [_expire_dialogue_if_needed(row) for row in rows]
     payload = {
         "applications": [_serialize_candidate_application_row(row) for row in rows],
         "candidate_capacity": _serialize_candidate_dialogue_capacity_from_rows(user_id, rows, user=user),
@@ -508,6 +513,8 @@ async def get_my_dialogue_detail_legacy(
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
+    hydrated_rows = _hydrate_rows_with_primary_jobs([row] if isinstance(row, dict) else [])
+    row = hydrated_rows[0] if hydrated_rows else row
     row = _expire_dialogue_if_needed(row)
 
     application = _serialize_candidate_application_row(row)
@@ -825,7 +832,8 @@ async def list_company_dialogues_legacy(
         except Exception:
             return {"company_id": company_id, "applications": []}
 
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
+    rows = _hydrate_rows_with_primary_jobs([row for row in (resp.data or []) if isinstance(row, dict)])
+    rows = [_expire_dialogue_if_needed(row) for row in rows]
     out = []
     for row in rows:
         out.append(_serialize_company_application_row(row))
@@ -867,6 +875,8 @@ async def get_company_dialogue_detail_legacy(
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
+    hydrated_rows = _hydrate_rows_with_primary_jobs([row] if isinstance(row, dict) else [])
+    row = hydrated_rows[0] if hydrated_rows else row
     row = _expire_dialogue_if_needed(row)
     require_company_access(user, str(row.get("company_id") or ""))
     application = _serialize_application_dossier(row)
@@ -1311,6 +1321,7 @@ async def list_my_solution_snapshots(
             company_id = str(row.get("company_id") or "").strip()
             if company_id:
                 row["companies"] = companies_by_id.get(company_id, {})
+    rows = _hydrate_rows_with_primary_jobs(rows)
 
     return {
         "snapshots": [

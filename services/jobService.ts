@@ -29,6 +29,7 @@ import { recordRuntimeSignal } from './runtimeSignals';
 import { estimateNoise } from '../utils/noise';
 import { deriveChallengeFields, extractMarkdownSection } from './challengeContentService';
 import { dedupeJobsList, getJobDedupKeys } from '../utils/jobDedupe';
+import { resolveStrictFallbackWindow, shouldRecoverWithStrictClientFallback } from './jobSearchFallbackHeuristics';
 
 type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number; meta?: SearchDiagnosticsMeta };
 
@@ -1384,8 +1385,6 @@ const isSearchV2Enabled = (): boolean => {
 
 const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
 const SUPABASE_RPC_MAX_PAGE_SIZE = 200;
-const STRICT_FALLBACK_MULTIPLIER = 4;
-const STRICT_FALLBACK_MAX_WINDOW = 400;
 let lastHybridFallbackWarnAt = 0;
 
 const normalizeBackendBaseUrl = (value?: string): string | null => {
@@ -2955,7 +2954,8 @@ export const fetchJobsWithFilters = async (
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'default' : sortMode;
 
-    const HYBRID_SEARCH_TIMEOUT_MS = 2600;
+    const HYBRID_SEARCH_TIMEOUT_MS = 5200;
+    const HYBRID_SEARCH_RETRY_TIMEOUT_MS = 9000;
     const createTimeoutError = (label: string) => {
         const err = new Error(`${label} timed out`);
         (err as any).code = 'timeout';
@@ -2981,6 +2981,25 @@ export const fetchJobsWithFilters = async (
             if (timeoutId !== null) {
                 clearTimeout(timeoutId);
             }
+        }
+    };
+
+    const fetchViaBackendHybridWithTimeout = async (
+        timeoutMs: number,
+        label: string
+    ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+        const { controller: hybridAbortController, cleanup: cleanupHybridAbort } = createLinkedAbortController(abortSignal);
+        const hybridPromise = fetchViaBackendHybrid(hybridAbortController.signal);
+        try {
+            return await raceWithTimeout(
+                hybridPromise,
+                timeoutMs,
+                label,
+                () => hybridAbortController.abort()
+            );
+        } finally {
+            cleanupHybridAbort();
+            hybridPromise.catch(() => { });
         }
     };
 
@@ -3030,6 +3049,19 @@ export const fetchJobsWithFilters = async (
         (filterMinSalary || 0) > 0 ||
         datePostedCutoffMs !== null ||
         (effectiveSortMode !== 'default' && effectiveSortMode !== 'newest');
+    const hasExpandedStrictFallbackCoverage =
+        safeRadiusKm !== null ||
+        !!normalizedFilterCity ||
+        remoteOnly ||
+        (filterWorkArrangement && filterWorkArrangement !== 'all') ||
+        normalizedContractFilters.length > 0 ||
+        normalizedBenefitFilters.length > 0 ||
+        normalizedExperienceFilters.length > 0 ||
+        normalizedCountryCodes.length > 0 ||
+        normalizedExcludedCountryCodes.length > 0 ||
+        normalizedLanguageCodes.length > 0 ||
+        (filterMinSalary || 0) > 0 ||
+        datePostedCutoffMs !== null;
 
     const throwIfAborted = (): void => {
         if (abortSignal?.aborted) {
@@ -3631,16 +3663,19 @@ export const fetchJobsWithFilters = async (
     };
 
     const fetchViaStrictClientFallback = async (
-        reason: string
+        reason: string,
+        options?: {
+            preferDeeperScan?: boolean;
+        }
     ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         throwIfAborted();
-        const baseFallbackWindow = Math.max(
-            safeRpcPageSize * STRICT_FALLBACK_MULTIPLIER,
-            (page + 1) * safeRpcPageSize * 2
-        );
-        const fallbackWindow = safeSearchTerm
-            ? Math.min(1200, Math.max(baseFallbackWindow, 900))
-            : Math.min(STRICT_FALLBACK_MAX_WINDOW, baseFallbackWindow);
+        const fallbackWindow = resolveStrictFallbackWindow({
+            page,
+            pageSize: safeRpcPageSize,
+            hasSearchTerm: !!safeSearchTerm,
+            hasExpandedFilterCoverage: hasExpandedStrictFallbackCoverage,
+            preferDeeperScan: options?.preferDeeperScan ?? false,
+        });
         const strictSelect = includeJhi
             ? '*'
             : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
@@ -3722,6 +3757,55 @@ export const fetchJobsWithFilters = async (
             hasMore,
             totalCount: totalCountEstimate
         });
+    };
+
+    const maybeRecoverSparseFilteredResult = async ({
+        source,
+        reason,
+        backendMetaFallback,
+        rawResultCount,
+        totalCount,
+        finalizedResult,
+    }: {
+        source: 'hybrid' | 'hybrid_v1_fallback' | 'rpc';
+        reason: string;
+        backendMetaFallback?: string | null;
+        rawResultCount: number;
+        totalCount: number;
+        finalizedResult: JobsFetchResult;
+    }): Promise<JobsFetchResult | null> => {
+        if (!shouldRecoverWithStrictClientFallback({
+            page,
+            pageSize: safeRpcPageSize,
+            totalCount,
+            rawResultCount,
+            finalResultCount: finalizedResult.jobs.length,
+            hasExpandedFilterCoverage: hasExpandedStrictFallbackCoverage,
+            backendMetaFallback,
+        })) {
+            return null;
+        }
+
+        recordRuntimeSignal('custom:search_strict_filter_recovery', {
+            source,
+            reason,
+            page,
+            raw_count: rawResultCount,
+            final_count: finalizedResult.jobs.length,
+            total_count: totalCount,
+            backend_fallback: backendMetaFallback || null,
+        }, {
+            dedupeKey: `${source}:${reason}:${page}`,
+            throttleMs: 20_000,
+        });
+        console.warn(`⚠️ ${source} returned a sparse filtered page from a large result pool; widening strict fallback scan (${reason}).`);
+
+        const recovered = await fetchViaStrictClientFallback(reason, { preferDeeperScan: true });
+        if (recovered.jobs.length > finalizedResult.jobs.length || (page > 0 && recovered.jobs.length > 0)) {
+            return recovered;
+        }
+
+        return null;
     };
 
     const fetchViaTextFallback = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number } | null> => {
@@ -4028,11 +4112,24 @@ export const fetchJobsWithFilters = async (
                     const fallbackPayload = await fallbackResponse.json();
                     const fallbackRows = fallbackPayload.jobs || [];
                     const fallbackJobs = mapFallbackRowsToJobs(fallbackRows);
-                    return await cacheAndReturn(finalizeResults({
+                    const rawTotalCount = Number(fallbackPayload.total_count || fallbackJobs.length);
+                    const finalizedFallbackResult = await finalizeResults({
                         jobs: fallbackJobs,
                         hasMore: !!fallbackPayload.has_more,
-                        totalCount: Number(fallbackPayload.total_count || fallbackJobs.length)
-                    }));
+                        totalCount: rawTotalCount
+                    });
+                    const recoveredFallbackResult = await maybeRecoverSparseFilteredResult({
+                        source: 'hybrid_v1_fallback',
+                        reason: 'hybrid_v1_filter_recovery',
+                        backendMetaFallback: 'jobs_postgres_v1_bridge',
+                        rawResultCount: fallbackJobs.length,
+                        totalCount: rawTotalCount,
+                        finalizedResult: finalizedFallbackResult,
+                    });
+                    if (recoveredFallbackResult) {
+                        return recoveredFallbackResult;
+                    }
+                    return await cacheAndReturn(Promise.resolve(finalizedFallbackResult));
                 }
 
                 if (!hybridResponse.ok) {
@@ -4064,11 +4161,24 @@ export const fetchJobsWithFilters = async (
 
                 const hybridRows = hybridPayload.jobs || [];
                 const processedJobs = mapHybridRowsToJobs(hybridRows, hybridPayload);
-                const hybridResult = await cacheAndReturn(finalizeResults({
+                const rawTotalCount = Number(hybridPayload.total_count || processedJobs.length);
+                const finalizedHybridResult = await finalizeResults({
                     jobs: processedJobs,
                     hasMore: !!hybridPayload.has_more,
-                    totalCount: Number(hybridPayload.total_count || processedJobs.length)
-                }));
+                    totalCount: rawTotalCount
+                });
+                const recoveredHybridResult = await maybeRecoverSparseFilteredResult({
+                    source: 'hybrid',
+                    reason: 'hybrid_filter_recovery',
+                    backendMetaFallback,
+                    rawResultCount: processedJobs.length,
+                    totalCount: rawTotalCount,
+                    finalizedResult: finalizedHybridResult,
+                });
+                if (recoveredHybridResult) {
+                    return recoveredHybridResult;
+                }
+                const hybridResult = await cacheAndReturn(Promise.resolve(finalizedHybridResult));
                 const shouldFallbackSuspiciousEmptyPage =
                     page > 0 &&
                     !safeSearchTerm &&
@@ -4173,24 +4283,21 @@ export const fetchJobsWithFilters = async (
         // Prefer backend search for the whole discovery/search surface.
         if (shouldUseHybridSearch) {
             try {
-                const { controller: hybridAbortController, cleanup: cleanupHybridAbort } = createLinkedAbortController(abortSignal);
-                const hybridPromise = fetchViaBackendHybrid(hybridAbortController.signal);
-                try {
-                    return await raceWithTimeout(
-                        hybridPromise,
-                        HYBRID_SEARCH_TIMEOUT_MS,
-                        'Hybrid search',
-                        () => hybridAbortController.abort()
-                    );
-                } finally {
-                    cleanupHybridAbort();
-                    hybridPromise.catch(() => { });
-                }
+                return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
             } catch (hybridErr) {
                 if (isAbortFetchError(hybridErr)) {
                     throw hybridErr;
                 }
                 warnHybridFallbackThrottled(hybridErr);
+                try {
+                    console.info('🔁 Retrying backend search with a longer timeout before using legacy Supabase fallbacks.');
+                    return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_RETRY_TIMEOUT_MS, 'Hybrid search retry');
+                } catch (retryErr) {
+                    if (isAbortFetchError(retryErr)) {
+                        throw retryErr;
+                    }
+                    console.warn('⚠️ Backend retry failed; continuing to legacy fallback path.', retryErr);
+                }
             }
         }
 
@@ -4334,15 +4441,23 @@ export const fetchJobsWithFilters = async (
 
         const totalCount = data[0]?.total_count || 0;
         const hasMore = (page + 1) * safeRpcPageSize < totalCount;
-
-        console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
-
-        throwIfAborted();
-        return finalizeResults({
+        const finalizedRpcResult = await finalizeResults({
             jobs: processedJobs,
             hasMore,
             totalCount
         });
+        const recoveredRpcResult = await maybeRecoverSparseFilteredResult({
+            source: 'rpc',
+            reason: 'rpc_filter_recovery',
+            rawResultCount: processedJobs.length,
+            totalCount,
+            finalizedResult: finalizedRpcResult,
+        });
+
+        console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
+
+        throwIfAborted();
+        return recoveredRpcResult || finalizedRpcResult;
 
     } catch (e: any) {
         if (isAbortFetchError(e)) {

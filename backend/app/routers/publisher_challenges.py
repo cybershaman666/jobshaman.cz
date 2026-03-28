@@ -25,6 +25,8 @@ from .jobs import (
     _extract_job_description_metadata,
     _fetch_candidate_profile_for_draft,
     _fetch_profile_identity,
+    _generate_native_job_id,
+    _hydrate_rows_with_primary_jobs,
     _is_active_dialogue_status,
     _is_missing_column_error,
     _is_missing_table_error,
@@ -45,6 +47,7 @@ from .jobs import (
     _serialize_company_application_row,
     _serialize_dialogue_message,
     _serialize_dialogue_record,
+    _sync_main_job_shadow_to_supabase,
     _sync_main_job_to_jobs_postgres,
     _trimmed_text,
 )
@@ -105,12 +108,14 @@ async def list_publisher_mini_challenges(
         if repair_payload and isinstance(normalized_job_id, int):
             repair_payload["updated_at"] = now_iso()
             try:
-                supabase.table("jobs").update(repair_payload).eq("id", normalized_job_id).execute()
-                row = {**row, **repair_payload}
                 try:
                     update_job_fields(normalized_job_id, repair_payload)
                 except Exception:
                     pass
+                shadow_row = dict(row)
+                shadow_row.update(repair_payload)
+                _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
+                row = shadow_row
             except Exception as exc:
                 print(f"⚠️ Failed to repair publisher mini challenge visibility fields: {exc}")
         published_rows.append(row)
@@ -160,8 +165,6 @@ async def create_publisher_mini_challenge(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
 
@@ -201,7 +204,10 @@ async def create_publisher_mini_challenge(
         long_term_potential=long_term_potential,
     )
 
-    insert_payload = {
+    now = now_iso()
+    job_id = _generate_native_job_id()
+    job_row = {
+        "id": job_id,
         "title": title,
         "company": company_label,
         "location": location,
@@ -215,31 +221,25 @@ async def create_publisher_mini_challenge(
         "source": _NATIVE_JOB_SOURCE,
         "legality_status": "legal",
         "verification_notes": "publisher_profile_mini_challenge",
-        "scraped_at": now_iso(),
+        "scraped_at": now,
         "posted_by": user_id,
         "recruiter_id": user_id,
         "contact_email": contact_email,
         "country_code": country_code,
         "status": "active",
         "is_active": True,
-        "updated_at": now_iso(),
+        "created_at": now,
+        "updated_at": now,
     }
 
     try:
-        job_resp = supabase.table("jobs").insert(insert_payload).execute()
+        _sync_main_job_to_jobs_postgres(job_row, source_kind="native")
+        _sync_main_job_shadow_to_supabase(job_row, create_if_missing=True)
     except Exception as exc:
         print(f"⚠️ Failed to create publisher mini challenge: {exc}")
         raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
 
-    job_row = (job_resp.data or [None])[0]
-    if not isinstance(job_row, dict):
-        raise HTTPException(status_code=500, detail="Failed to publish mini challenge")
-
-    sync_row = dict(job_row)
-    sync_row.update(insert_payload)
-    sync_row["id"] = job_row.get("id")
-    _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
-    return {"job": sync_row}
+    return {"job": job_row}
 
 
 @router.patch("/publisher/mini-challenges/{job_id}/lifecycle")
@@ -250,23 +250,23 @@ async def update_publisher_mini_challenge_lifecycle(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
 
-    _require_job_access(user, job_id)
+    job_row = _require_job_access(user, job_id)
     normalized_job_id = _normalize_job_id(job_id)
     update_payload = {
         "status": payload.status,
         "is_active": payload.status == "active",
         "updated_at": now_iso(),
     }
-    supabase.table("jobs").update(update_payload).eq("id", normalized_job_id).execute()
     try:
         update_job_fields(normalized_job_id, update_payload)
     except Exception:
         pass
+    shadow_row = dict(job_row)
+    shadow_row.update(update_payload)
+    _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
     return {"status": "success"}
 
 
@@ -305,7 +305,8 @@ async def list_publisher_mini_challenge_dialogues(
             .execute()
         )
 
-    rows = [_expire_dialogue_if_needed(row) for row in (resp.data or []) if isinstance(row, dict)]
+    rows = _hydrate_rows_with_primary_jobs([row for row in (resp.data or []) if isinstance(row, dict)])
+    rows = [_expire_dialogue_if_needed(row) for row in rows]
     return {"dialogues": [_serialize_dialogue_record(_serialize_company_application_row(row)) for row in rows]}
 
 
@@ -340,6 +341,8 @@ async def get_publisher_dialogue_detail(
     row = resp.data if resp else None
     if not isinstance(row, dict):
         raise HTTPException(status_code=404, detail="Dialogue not found")
+    hydrated_rows = _hydrate_rows_with_primary_jobs([row])
+    row = hydrated_rows[0] if hydrated_rows else row
     row = _expire_dialogue_if_needed(row)
     _require_dialogue_publisher_access(user, row)
     application = _serialize_application_dossier(row)

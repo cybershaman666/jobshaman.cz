@@ -21,6 +21,7 @@ from .jobs import (
     _fetch_company_public_member_ids,
     _fetch_company_team_context,
     _fetch_profiles_map,
+    _generate_native_job_id,
     _get_draft_micro_job_state,
     _increment_company_role_opens_usage,
     _is_missing_column_error,
@@ -37,6 +38,7 @@ from .jobs import (
     _serialize_role_record,
     _sync_company_active_jobs_usage,
     _sync_job_public_people,
+    _sync_main_job_shadow_to_supabase,
     _sync_main_job_to_jobs_postgres,
     _trimmed_text,
     _write_company_activity_log,
@@ -494,6 +496,10 @@ async def publish_company_job_draft(
     is_micro_job = micro_job.get("challenge_format") == "micro_job"
     handshake = _safe_dict(_safe_dict(draft.get("editor_state")).get("handshake"))
     company_goal = str(draft.get("company_goal") or handshake.get("company_goal") or "").strip() or None
+    actor_user_id = user.get("id") or user.get("auth_id")
+    existing_job_id = _normalize_job_id(draft.get("job_id"))
+    existing_job_row = _read_job_record(existing_job_id) if existing_job_id else None
+    now = now_iso()
 
     job_payload = {
         "title": draft.get("title"),
@@ -508,52 +514,36 @@ async def publish_company_job_draft(
         "contact_email": draft.get("contact_email"),
         "workplace_address": draft.get("workplace_address"),
         "company_id": company_id,
+        "posted_by": actor_user_id,
+        "recruiter_id": actor_user_id,
         "company_goal": company_goal,
         "contract_type": None if is_micro_job else draft.get("contract_type"),
         "work_type": draft.get("work_model"),
+        "work_model": draft.get("work_model"),
+        "currency": draft.get("salary_currency") or "CZK",
         "source": "jobshaman.cz",
         "source_kind": "native",
-        "scraped_at": now_iso(),
+        "status": "active",
+        "is_active": True,
+        "legality_status": existing_job_row.get("legality_status") if isinstance(existing_job_row, dict) and existing_job_row.get("legality_status") else "legal",
+        "created_at": (existing_job_row or {}).get("created_at") or now,
+        "updated_at": now,
+        "scraped_at": now,
     }
 
-    existing_job_id = _normalize_job_id(draft.get("job_id"))
     if not existing_job_id:
         _enforce_company_role_open_limit(company_id, user)
     _enforce_company_job_publish_limit(company_id, user, existing_job_id=existing_job_id)
-    job_id = existing_job_id
-    if job_id:
+    job_id = existing_job_id or _generate_native_job_id()
+    if existing_job_id:
         _require_job_access(user, str(job_id))
-        try:
-            job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "company_goal"):
-                fallback_payload = dict(job_payload)
-                fallback_payload.pop("company_goal", None)
-                job_resp = supabase.table("jobs").update(fallback_payload).eq("id", job_id).execute()
-            else:
-                raise
-        job_row = (job_resp.data or [None])[0] or {"id": job_id}
-    else:
-        try:
-            job_resp = supabase.table("jobs").insert(job_payload).execute()
-        except Exception as exc:
-            if _is_missing_column_error(exc, "company_goal"):
-                fallback_payload = dict(job_payload)
-                fallback_payload.pop("company_goal", None)
-                job_resp = supabase.table("jobs").insert(fallback_payload).execute()
-            else:
-                raise
-        job_row = (job_resp.data or [None])[0]
-        if not job_row:
-            raise HTTPException(status_code=500, detail="Failed to publish draft")
-        job_id = _normalize_job_id(job_row.get("id"))
 
-    if isinstance(job_row, dict):
-        sync_row = dict(job_row)
-        sync_row.update(job_payload)
-        sync_row["id"] = job_id
-        sync_row["company_id"] = company_id
-        _sync_main_job_to_jobs_postgres(sync_row, source_kind="native")
+    job_row = dict(existing_job_row or {})
+    job_row.update(job_payload)
+    job_row["id"] = job_id
+    job_row["company_id"] = company_id
+    _sync_main_job_to_jobs_postgres(job_row, source_kind="native")
+    _sync_main_job_shadow_to_supabase(job_row, create_if_missing=True)
 
     next_version = 1
     try:
@@ -598,8 +588,8 @@ async def publish_company_job_draft(
             "version_number": next_version,
             "published_snapshot": snapshot,
             "change_summary": payload.change_summary,
-            "published_by": user.get("id") or user.get("auth_id"),
-            "published_at": now_iso(),
+            "published_by": actor_user_id,
+            "published_at": now,
         }).execute()
     except Exception as exc:
         print(f"⚠️ Failed to persist job version: {exc}")
@@ -609,8 +599,8 @@ async def publish_company_job_draft(
             "job_id": job_id,
             "status": "published_linked",
             "quality_report": validation,
-            "updated_by": user.get("id") or user.get("auth_id"),
-            "updated_at": now_iso(),
+            "updated_by": actor_user_id,
+            "updated_at": now,
         }).eq("id", draft_id).execute()
     except Exception as exc:
         print(f"⚠️ Failed to update draft after publish: {exc}")
@@ -626,7 +616,7 @@ async def publish_company_job_draft(
             version_number=next_version,
             next_status="active",
         ),
-        actor_user_id=user.get("id") or user.get("auth_id"),
+        actor_user_id=actor_user_id,
         subject_type="job",
         subject_id=str(job_id),
     )
@@ -795,16 +785,22 @@ async def update_company_job_lifecycle(
     request: Request,
     user: dict = Depends(verify_subscription),
 ):
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database unavailable")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     job_row = _require_job_access(user, job_id)
-    supabase.table("jobs").update({"status": payload.status}).eq("id", _normalize_job_id(job_id)).execute()
+    normalized_job_id = _normalize_job_id(job_id)
+    patch = {
+        "status": payload.status,
+        "is_active": payload.status not in {"paused", "closed", "archived"},
+        "updated_at": now_iso(),
+    }
     try:
-        update_job_fields(_normalize_job_id(job_id), {"status": payload.status})
+        update_job_fields(normalized_job_id, patch)
     except Exception:
         pass
+    shadow_row = dict(job_row)
+    shadow_row.update(patch)
+    _sync_main_job_shadow_to_supabase(shadow_row, create_if_missing=False)
 
     event_type = (
         "job_closed" if payload.status == "closed"
@@ -826,4 +822,4 @@ async def update_company_job_lifecycle(
         subject_id=str(job_id),
     )
     _sync_company_active_jobs_usage(str(job_row.get("company_id") or ""))
-    return {"status": "success", "job_id": _normalize_job_id(job_id), "next_status": payload.status}
+    return {"status": "success", "job_id": normalized_job_id, "next_status": payload.status}

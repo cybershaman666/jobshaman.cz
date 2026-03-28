@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple
 
 from ..core.database import supabase
-from ..services.jobs_postgres_store import jobs_postgres_main_enabled, read_recent_jobs
+from ..services.jobs_postgres_store import get_job_by_id, jobs_postgres_main_enabled, read_recent_jobs
 
 from .embeddings import EMBEDDING_MODEL, EMBEDDING_VERSION, embed_text
 
@@ -43,6 +43,26 @@ def _parse_vector(raw) -> List[float]:
         except Exception:
             return []
     return []
+
+
+def _read_job_reference(job_id) -> Dict:
+    try:
+        normalized_job_id = int(job_id)
+    except Exception:
+        normalized_job_id = job_id
+    try:
+        row = get_job_by_id(normalized_job_id)
+        if isinstance(row, dict) and row:
+            return row
+    except Exception:
+        pass
+    if not supabase:
+        return {}
+    try:
+        resp = supabase.table("jobs").select("*").eq("id", normalized_job_id).maybe_single().execute()
+        return resp.data if resp and isinstance(resp.data, dict) else {}
+    except Exception:
+        return {}
 
 
 def ensure_candidate_embedding(candidate_id: str, text: str, persist: bool = True) -> List[float]:
@@ -143,7 +163,7 @@ def read_cached_recommendations(user_id: str, limit: int) -> List[Dict]:
     try:
         resp = (
             supabase.table("recommendation_cache")
-            .select("job_id, score, breakdown_json, reasons_json, model_version, scoring_version, jobs(*)")
+            .select("job_id, score, breakdown_json, reasons_json, model_version, scoring_version")
             .eq("user_id", user_id)
             .gte("expires_at", now_iso)
             .order("score", desc=True)
@@ -154,9 +174,11 @@ def read_cached_recommendations(user_id: str, limit: int) -> List[Dict]:
         out = []
         for row in rows:
             breakdown = row.get("breakdown_json") or {}
+            job_id = row.get("job_id")
+            job = _read_job_reference(job_id) or {"id": job_id}
             out.append(
                 {
-                    "job": row.get("jobs") or {"id": row.get("job_id")},
+                    "job": job,
                     "score": float(row.get("score") or 0),
                     "reasons": row.get("reasons_json") or [],
                     "breakdown": breakdown,
