@@ -525,6 +525,30 @@ def _normalize_sort_mode(value: Optional[str]) -> str:
     return "default"
 
 
+def _resolve_hybrid_candidate_limit(
+    *,
+    page: int,
+    page_size: int,
+    search_term: str,
+    has_radius_filter: bool,
+) -> int:
+    safe_page = max(0, int(page or 0))
+    safe_page_size = max(1, min(200, int(page_size or 50)))
+    requested_window = max(1, (safe_page + 1) * safe_page_size)
+    normalized_search_term = (search_term or "").strip()
+
+    if normalized_search_term:
+        # Manual fulltext queries need a much wider candidate pool than the
+        # discovery feed, otherwise global searches get capped far below the
+        # real result set before ranking/pagination even starts.
+        return max(1200, min(5000, requested_window * 12))
+
+    if has_radius_filter:
+        return max(900, min(1800, max(safe_page_size * 20, requested_window * 20)))
+
+    return max(250, min(1400, max(safe_page_size * 6, requested_window * 8)))
+
+
 def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dict:
     if not supabase and not jobs_postgres_main_enabled():
         return {"jobs": [], "has_more": False, "total_count": 0}
@@ -550,10 +574,12 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     cutoff_iso = _date_cutoff_iso(filters.get("filter_date_posted"))
     safe_page_size = max(1, min(200, int(page_size or 50)))
     has_radius_filter = radius_km and user_lat is not None and user_lng is not None
-    if has_radius_filter and not search_term:
-        candidate_limit = max(900, min(1400, safe_page_size * 20))
-    else:
-        candidate_limit = max(250, min(900, safe_page_size * 6))
+    candidate_limit = _resolve_hybrid_candidate_limit(
+        page=page,
+        page_size=safe_page_size,
+        search_term=search_term,
+        has_radius_filter=bool(has_radius_filter),
+    )
 
     def _run_base_query(with_status_filter: bool):
         if jobs_postgres_main_enabled():

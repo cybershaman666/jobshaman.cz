@@ -596,3 +596,38 @@ def test_hybrid_search_jobs_radius_keeps_remote_roles_but_filters_far_onsite(mon
     assert "remote-far-coords" in returned_ids
     assert "far-onsite" not in returned_ids
     assert "unknown-onsite" not in returned_ids
+
+
+def test_hybrid_search_jobs_expands_candidate_window_for_manual_query(monkeypatch):
+    captured: dict[str, int] = {}
+
+    def _fake_query(**kwargs):
+        captured["limit"] = int(kwargs.get("limit") or 0)
+        return [
+            {
+                "id": "job-1",
+                "title": "Hotel Receptionist",
+                "description": "Hotel front desk role in Europe.",
+                "location": "Vienna",
+                "scraped_at": "2026-03-20T12:00:00+00:00",
+            }
+        ]
+
+    monkeypatch.setattr(serve, "jobs_postgres_main_enabled", lambda: True)
+    monkeypatch.setattr(serve, "query_jobs_for_hybrid_search", _fake_query)
+    monkeypatch.setattr(serve, "get_release_flag", lambda *_a, **_k: {"effective_enabled": True})
+    monkeypatch.setattr(serve, "get_active_model_config", lambda *_a, **_k: {"config_json": {}})
+
+    result = serve.hybrid_search_jobs(
+        {
+            "search_term": "hotel",
+            "user_lat": None,
+            "user_lng": None,
+            "radius_km": None,
+        },
+        page=0,
+        page_size=50,
+    )
+
+    assert result["total_count"] == 1
+    assert captured["limit"] >= 1200
