@@ -369,20 +369,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
 
         try {
-            const suppressImplicitCommuteForManualQuery = searchMode === 'manual_query';
             const effectiveEnableCommuteFilter = enableCommuteFilter;
-            const defaultMaxDistanceKm = Number(profileDiscoveryDefaults.filterMaxDistance || 0) || undefined;
-            const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
-            const effectiveImplicitRadiusKm =
-                !suppressImplicitCommuteForManualQuery && !effectiveEnableCommuteFilter && !hasExplicitLocationFilter
-                    ? defaultMaxDistanceKm
-                    : undefined;
 
             const { lat, lon } = await resolveDiscoveryCoordinates({
                 userProfile,
                 enableCommuteFilter: effectiveEnableCommuteFilter,
                 filterCity,
-                allowProfileAddressGeocode: Boolean(effectiveEnableCommuteFilter || effectiveImplicitRadiusKm),
+                allowProfileAddressGeocode: Boolean(effectiveEnableCommuteFilter),
             });
 
             const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
@@ -480,7 +473,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
 
             const effectiveRadiusKm = effectiveEnableCommuteFilter
                 ? filterMaxDistance
-                : effectiveImplicitRadiusKm;
+                : undefined;
 
             const filteredResult = await runFilteredFetchPipeline({
                 page,
@@ -585,7 +578,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     remote_only: remoteOnly,
                     work_arrangement: filterWorkArrangement,
                     commute_enabled: effectiveEnableCommuteFilter,
-                    implicit_commute_suppressed: suppressImplicitCommuteForManualQuery,
                     radius_km: effectiveRadiusKm ?? null,
                 });
                 console.table(
