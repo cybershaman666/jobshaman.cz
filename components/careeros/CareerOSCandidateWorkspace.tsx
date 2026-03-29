@@ -551,8 +551,13 @@ const normalizeRoleClusterTitle = (value: string): string => {
   return normalized || String(value || '').trim() || 'Role';
 };
 
-const getChallengePrimaryDomain = (challenge: CareerOSChallenge, job?: Job | null): string =>
-  challenge.matchedDomains?.[0] || resolveJobDomain(job || ({} as Job)) || 'general';
+const getChallengePrimaryDomain = (challenge: CareerOSChallenge, job?: Job | null): string => {
+  const jobDomain = resolveJobDomain(job || ({} as Job));
+  if (jobDomain) {
+    return jobDomain;
+  }
+  return challenge.matchedDomains?.[0] || jobDomain || 'general';
+};
 
 const challengeMatchesCustomDomainQuery = (challenge: CareerOSChallenge, customDomainQuery: string): boolean => {
   const normalizedQuery = normalizeRemapQuery(customDomainQuery);
@@ -2162,6 +2167,8 @@ export const SearchCockpit: React.FC<{
                       const nextValue = event.target.value;
                       setSearchTerm(nextValue);
                       if (nextValue.trim()) {
+                        setRemoteOnly(false);
+                        setFilterWorkArrangement('all');
                         setEnableCommuteFilter(false);
                         setGlobalSearch(true);
                         setAbroadOnly(false);
@@ -4538,6 +4545,10 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     ),
     [deferredJobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
   );
+  const challengeGraphSignature = useMemo(
+    () => workspace.challenges.map((challenge) => challenge.id).join('|'),
+    [workspace.challenges],
+  );
 
   const selectedPath = useMemo(
     () => pathNodes.find((node) => node.id === selectedPathId) || pathNodes[0] || null,
@@ -4888,6 +4899,13 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       setSelectedRoleId(selectedPath.roleNodes[0].id);
     }
   }, [selectedPath, selectedRoleId]);
+
+  useEffect(() => {
+    setExpandedPathId(null);
+    setSelectedRoleId(null);
+    setPanelChallenge(null);
+    setPanelDismissed(true);
+  }, [challengeGraphSignature]);
 
   useEffect(() => {
     if (!onNavigationStateChange) return;

@@ -369,12 +369,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
 
         try {
-            const hasUserPinnedCommuteFilter = filterSources.enableCommuteFilter === 'user_toggle';
-            const suppressImplicitCommuteForManualQuery =
-                searchMode === 'manual_query' && !hasUserPinnedCommuteFilter;
-            const effectiveEnableCommuteFilter = suppressImplicitCommuteForManualQuery
-                ? false
-                : enableCommuteFilter;
+            const suppressImplicitCommuteForManualQuery = searchMode === 'manual_query';
+            const effectiveEnableCommuteFilter = enableCommuteFilter;
             const defaultMaxDistanceKm = Number(profileDiscoveryDefaults.filterMaxDistance || 0) || undefined;
             const hasExplicitLocationFilter = !!(filterCity && filterCity.trim());
             const effectiveImplicitRadiusKm =

@@ -336,11 +336,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   ];
 
   const submitDiscoverySearch = () => {
+    if (searchTerm.trim()) {
+      setRemoteOnly(false);
+      setFilterWorkArrangement('all');
+      setEnableCommuteFilter(false);
+      setGlobalSearch(true);
+      setAbroadOnly(false);
+    }
     ensureDiscoverySearchSurface(false);
     performSearch(searchTerm);
     window.setTimeout(() => {
       document.getElementById('challenge-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 0);
+  };
+
+  const handleDiscoverySearchTermChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.trim()) {
+      setRemoteOnly(false);
+      setFilterWorkArrangement('all');
+      setEnableCommuteFilter(false);
+      setGlobalSearch(true);
+      setAbroadOnly(false);
+    }
   };
 
   const ensureDiscoverySearchSurface = (scrollToResults: boolean = false) => {
@@ -438,7 +456,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   <input
                     id="appheader-discovery-search"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => handleDiscoverySearchTermChange(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && submitDiscoverySearch()}
                     onFocus={() => setDiscoverySearchMode?.(true)}
                     placeholder={searchUiCopy.searchPlaceholder}
@@ -642,7 +660,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <Search size={18} className="absolute left-4 top-3 text-[var(--text-faint)]" />
                 <input
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleDiscoverySearchTermChange(e.target.value)}
                   onFocus={() => setDiscoverySearchMode?.(true)}
                   placeholder={searchUiCopy.searchPlaceholder}
                   className={headerInputClass}
