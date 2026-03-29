@@ -847,7 +847,7 @@ const isSearchV2Enabled = (): boolean => {
     return flag !== '0' && flag !== 'false' && flag !== 'off';
 };
 
-const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
+const BACKEND_HYBRID_MAX_PAGE_SIZE = 500;
 let lastHybridFallbackWarnAt = 0;
 
 const normalizeBackendBaseUrl = (value?: string): string | null => {

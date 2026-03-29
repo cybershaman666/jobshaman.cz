@@ -2853,6 +2853,14 @@ const CareerPathStage: React.FC<{
   const remainingExpandedCount = expandedNode ? Math.max(0, expandedNode.roleNodes.length - expandedChildren.length) : 0;
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+  const dragStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
   const [hoveredPathId, setHoveredPathId] = useState<string | null>(null);
   const guestCenterCopy = locale === 'cs'
     ? {
@@ -2901,6 +2909,37 @@ const CareerPathStage: React.FC<{
       });
     }
     stepZoom(setZoom, event.deltaY < 0 ? 'in' : 'out');
+  };
+  const handleCanvasPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!interactive) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a, input, textarea, select, [data-map-control="true"]')) {
+      return;
+    }
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: canvasOffset.x,
+      originY: canvasOffset.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    setCanvasOffset({
+      x: dragState.originX + (event.clientX - dragState.startX),
+      y: dragState.originY + (event.clientY - dragState.startY),
+    });
+  };
+  const handleCanvasPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    dragStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const defaultHud = !expandedNode && showDefaultHud ? (
@@ -2987,11 +3026,28 @@ const CareerPathStage: React.FC<{
   const routeWaypoints = navigationRoute?.waypoints || [];
 
   return (
-  <div ref={stageRef} className={cn('relative h-full w-full overflow-hidden', !interactive && 'pointer-events-none')} onWheel={handleCanvasWheel}>
+  <div
+    ref={stageRef}
+    className={cn(
+      'relative h-full w-full overflow-hidden',
+      interactive ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none',
+    )}
+    onWheel={handleCanvasWheel}
+    onPointerDown={handleCanvasPointerDown}
+    onPointerMove={handleCanvasPointerMove}
+    onPointerUp={handleCanvasPointerEnd}
+    onPointerCancel={handleCanvasPointerEnd}
+  >
     <StageBackground accent="emerald" />
     <div className="absolute inset-0">
       <div className={cn('absolute inset-0 transition-all duration-300', expandedNode ? 'scale-[0.98] opacity-20 blur-[2px]' : '')}>
-        <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%` }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: `translate3d(${canvasOffset.x}px, ${canvasOffset.y}px, 0) scale(${zoom})`,
+            transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+          }}
+        >
           <div className="absolute inset-0 flex items-center justify-center">
             <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
           <defs>
@@ -3522,6 +3578,14 @@ const JobOffersStage: React.FC<{
   const offers = useMemo(() => buildOfferNodes(selectedRole), [selectedRole]);
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+  const dragStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
   const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
     const rect = stageRef.current?.getBoundingClientRect();
@@ -3535,9 +3599,47 @@ const JobOffersStage: React.FC<{
     }
     stepZoom(setZoom, event.deltaY < 0 ? 'in' : 'out');
   };
+  const handleCanvasPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a, input, textarea, select, [data-map-control="true"]')) {
+      return;
+    }
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: canvasOffset.x,
+      originY: canvasOffset.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    setCanvasOffset({
+      x: dragState.originX + (event.clientX - dragState.startX),
+      y: dragState.originY + (event.clientY - dragState.startY),
+    });
+  };
+  const handleCanvasPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    dragStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
   return (
-    <div ref={stageRef} className="relative h-full w-full overflow-hidden" onWheel={handleCanvasWheel}>
+    <div
+      ref={stageRef}
+      className="relative h-full w-full overflow-hidden cursor-grab active:cursor-grabbing"
+      onWheel={handleCanvasWheel}
+      onPointerDown={handleCanvasPointerDown}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerUp={handleCanvasPointerEnd}
+      onPointerCancel={handleCanvasPointerEnd}
+    >
       <StageBackground accent="blue" />
       <button
         type="button"
@@ -3556,7 +3658,13 @@ const JobOffersStage: React.FC<{
       </div>
 
       <div className="absolute inset-0">
-        <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%` }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: `translate3d(${canvasOffset.x}px, ${canvasOffset.y}px, 0) scale(${zoom})`,
+            transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+          }}
+        >
           <div className="absolute inset-0 flex items-center justify-center">
             <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
             <defs>
