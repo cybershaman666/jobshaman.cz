@@ -2159,7 +2159,13 @@ export const SearchCockpit: React.FC<{
                   <input
                     value={searchTerm}
                     onChange={(event) => {
-                      setSearchTerm(event.target.value);
+                      const nextValue = event.target.value;
+                      setSearchTerm(nextValue);
+                      if (nextValue.trim()) {
+                        setEnableCommuteFilter(false);
+                        setGlobalSearch(true);
+                        setAbroadOnly(false);
+                      }
                       activateLiveDiscovery();
                     }}
                     placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, mission, company' })}
@@ -2198,6 +2204,19 @@ export const SearchCockpit: React.FC<{
                     className="careeros-cyan-range w-full"
                   />
                   <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEnableCommuteFilter(false);
+                        activateLiveDiscovery();
+                      }}
+                      className={cn(
+                        filterChipClass,
+                        !enableCommuteFilter ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
+                      )}
+                    >
+                      {t('careeros.filters.off', { defaultValue: 'Off' })}
+                    </button>
                     {[20, 50, 80].map((value) => (
                       <button
                         key={value}

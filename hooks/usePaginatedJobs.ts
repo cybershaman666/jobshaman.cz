@@ -843,6 +843,43 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         }
     }, [abroadOnly, globalSearch, setAbroadOnlyTracked, setGlobalSearchTracked]);
 
+    useEffect(() => {
+        if (searchMode !== 'manual_query') return;
+
+        if (filterSources.enableCommuteFilter !== 'user_toggle' && enableCommuteFilter) {
+            setEnableCommuteFilterTracked(false, 'default');
+        }
+        if (filterSources.globalSearch !== 'user_toggle' && !globalSearch) {
+            setGlobalSearchTracked(true, 'default');
+        }
+        if (filterSources.abroadOnly !== 'user_toggle' && abroadOnly) {
+            setAbroadOnlyTracked(false, 'default');
+        }
+        if (filterSources.filterWorkArrangement !== 'user_toggle' && filterWorkArrangement !== 'all') {
+            setFilterWorkArrangementTracked('all', 'default');
+        }
+        if (filterSources.filterLanguageCodes !== 'user_toggle' && filterLanguageCodes.length > 0) {
+            setFilterLanguageCodesTracked([], 'default');
+        }
+    }, [
+        abroadOnly,
+        enableCommuteFilter,
+        filterLanguageCodes,
+        filterSources.abroadOnly,
+        filterSources.enableCommuteFilter,
+        filterSources.filterLanguageCodes,
+        filterSources.filterWorkArrangement,
+        filterSources.globalSearch,
+        filterWorkArrangement,
+        globalSearch,
+        searchMode,
+        setAbroadOnlyTracked,
+        setEnableCommuteFilterTracked,
+        setFilterLanguageCodesTracked,
+        setFilterWorkArrangementTracked,
+        setGlobalSearchTracked,
+    ]);
+
     // Perform search is now just setting the search term
     const performSearch = useCallback((term: string) => {
         setSearchTermTracked(term);
