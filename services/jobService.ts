@@ -100,6 +100,8 @@ const _hybridSearchRecentCacheKey = (bases: string[], v2Enabled: boolean, payloa
         filter_country_codes: _normalizeKeyArray(payload.filter_country_codes),
         exclude_country_codes: _normalizeKeyArray(payload.exclude_country_codes),
         filter_language_codes: _normalizeKeyArray(payload.filter_language_codes),
+        remote_only: Boolean(payload.remote_only),
+        filter_work_arrangement: String(payload.filter_work_arrangement || 'all'),
     };
     return JSON.stringify(stable);
 };
@@ -2346,6 +2348,8 @@ export const fetchJobsWithFilters = async (
             filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
             exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
             filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
+            remote_only: remoteOnly,
+            filter_work_arrangement: filterWorkArrangement,
         };
 
         const mapHybridRowsToJobs = (rows: any[], hybridPayload: any) => {
@@ -2645,6 +2649,9 @@ export const fetchJobsWithFilters = async (
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
             searchTerm: safeSearchTerm || 'none',
+            remoteOnly,
+            filterWorkArrangement,
+            searchMode,
             microJobsOnly,
             effectiveSortMode
         });
