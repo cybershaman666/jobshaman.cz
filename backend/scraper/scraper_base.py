@@ -45,11 +45,17 @@ except Exception:
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
 try:
-    from app.services.jobs_postgres_store import backfill_jobs_from_documents, get_job_by_url, jobs_postgres_enabled
+    from app.services.jobs_postgres_store import (
+        backfill_jobs_from_documents,
+        get_job_by_url,
+        jobs_postgres_enabled,
+        jobs_postgres_main_write_enabled,
+    )
 except Exception:
     backfill_jobs_from_documents = None  # type: ignore
     get_job_by_url = None  # type: ignore
     jobs_postgres_enabled = None  # type: ignore
+    jobs_postgres_main_write_enabled = None  # type: ignore
 
 # --- Environment Setup ---
 
@@ -190,6 +196,8 @@ def get_supabase_client() -> Optional[Client]:
 
 def jobs_postgres_write_available() -> bool:
     try:
+        if callable(jobs_postgres_main_write_enabled):
+            return bool(jobs_postgres_main_write_enabled())
         return bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
     except Exception:
         return False
@@ -845,7 +853,11 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         if not callable(backfill_jobs_from_documents):
             return
         try:
-            enabled = bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
+            enabled = (
+                bool(jobs_postgres_main_write_enabled())
+                if callable(jobs_postgres_main_write_enabled)
+                else (bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False)
+            )
         except Exception:
             enabled = False
         if not enabled:
@@ -861,7 +873,11 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         if not callable(backfill_jobs_from_documents):
             return False
         try:
-            enabled = bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False
+            enabled = (
+                bool(jobs_postgres_main_write_enabled())
+                if callable(jobs_postgres_main_write_enabled)
+                else (bool(jobs_postgres_enabled()) if callable(jobs_postgres_enabled) else False)
+            )
         except Exception:
             enabled = False
         if not enabled:
@@ -1062,6 +1078,17 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
 
     if _upsert_direct_to_jobs_postgres(job_data):
         return True
+
+    if callable(jobs_postgres_enabled):
+        try:
+            postgres_enabled = bool(jobs_postgres_enabled())
+        except Exception:
+            postgres_enabled = False
+        if postgres_enabled and not jobs_postgres_write_available():
+            print(
+                "    ⚠️ Jobs Postgres je nakonfigurovaný, ale zapis do main tabulky není aktivní. "
+                "Nastav `JOBS_POSTGRES_WRITE_MAIN=true`, jinak scraper spadne do Supabase fallbacku."
+            )
 
     if not supabase:
         print("Chyba: Supabase klient není inicializován, data nebudou uložena.")

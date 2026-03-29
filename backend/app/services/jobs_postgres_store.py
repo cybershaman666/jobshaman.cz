@@ -47,6 +47,10 @@ def jobs_postgres_main_enabled() -> bool:
     return bool(jobs_postgres_enabled() and config.JOBS_POSTGRES_SERVE_MAIN)
 
 
+def jobs_postgres_main_write_enabled() -> bool:
+    return bool(jobs_postgres_enabled() and config.JOBS_POSTGRES_WRITE_MAIN)
+
+
 def _inject_local_venv_site_packages() -> list[str]:
     added: list[str] = []
     current_file = Path(__file__).resolve()

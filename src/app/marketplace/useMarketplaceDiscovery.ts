@@ -114,7 +114,6 @@ export const useMarketplaceDiscovery = ({
 
     const isProfileReady = effectiveUserProfile.isLoggedIn ? !!effectiveUserProfile.id : true;
     if (!isProfileReady) return;
-
     const defaults = getDefaultCandidateSearchFilters(effectiveUserProfile);
     const nextSignature = JSON.stringify({
       profileId: effectiveUserProfile.id || 'guest',
@@ -122,6 +121,8 @@ export const useMarketplaceDiscovery = ({
       filterWorkArrangement: defaults.filterWorkArrangement || 'all',
     });
     if (appliedRemoteDefaultsSignatureRef.current === nextSignature) return;
+    // Keep geography filters independent from profile-level remote preferences.
+    return;
 
     if (DEBUG_DISCOVERY) {
       console.log('🏁 Applying initial remote search default...');
