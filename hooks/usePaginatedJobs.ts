@@ -206,7 +206,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
         userProfile,
     });
 
-    const applyProfileDiscoveryOrdering = useCallback((visibleJobs: Job[], currentSearchMode: string) => {
+    const applyProfileDiscoveryOrdering = useCallback((
+        visibleJobs: Job[],
+        currentSearchMode: string,
+        currentSortMode: string
+    ) => {
         if (!visibleJobs.length || !shouldAnnotateDiscoveryByProfile) {
             return {
                 jobs: visibleJobs,
@@ -217,6 +221,23 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             return {
                 jobs: computeCandidateAnnotations(visibleJobs, userProfile, i18n.language),
                 reordered: false,
+            };
+        }
+        if (currentSearchMode === 'manual_filters') {
+            const shouldRespectExplicitSort =
+                currentSortMode === 'newest'
+                || currentSortMode === 'distance'
+                || currentSortMode === 'salary_desc'
+                || currentSortMode === 'jhi_desc';
+            if (shouldRespectExplicitSort) {
+                return {
+                    jobs: computeCandidateAnnotations(visibleJobs, userProfile, i18n.language),
+                    reordered: false,
+                };
+            }
+            return {
+                jobs: annotateJobsForCandidate(visibleJobs, userProfile, i18n.language),
+                reordered: true,
             };
         }
         return {
@@ -450,13 +471,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                         retrievalLanguageCodes: retrievalLanguageCodes || [],
                     });
                 }
-                const annotatedSimple = applyProfileDiscoveryOrdering(simpleResult.visibleJobs, searchMode);
+                const annotatedSimple = applyProfileDiscoveryOrdering(simpleResult.visibleJobs, searchMode, sortBy);
                 setSearchDiagnostics({
                     ...simpleResult.diagnostics,
                     reordered_by_profile: simpleResult.diagnostics.reordered_by_profile || annotatedSimple.reordered,
                 });
                 if (isLoadMore) {
-                    setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedSimple.jobs, prev), searchMode).jobs);
+                    setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedSimple.jobs, prev), searchMode, sortBy).jobs);
                 } else {
                     setJobs(annotatedSimple.jobs);
                 }
@@ -516,7 +537,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
                     searchMode,
                 });
             }
-            const annotatedFiltered = applyProfileDiscoveryOrdering(filteredResult.visibleJobs, searchMode);
+            const annotatedFiltered = applyProfileDiscoveryOrdering(filteredResult.visibleJobs, searchMode, sortBy);
             const shouldPreserveExistingBrowseFeed = shouldPreserveBrowseResultsOnEmptyRefresh({
                 page,
                 isLoadMore,
@@ -556,7 +577,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50, enabled = 
             });
 
             if (isLoadMore) {
-                setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedFiltered.jobs, prev), searchMode).jobs);
+                setJobs(prev => applyProfileDiscoveryOrdering(dedupeJobs(annotatedFiltered.jobs, prev), searchMode, sortBy).jobs);
             } else {
                 setJobs(annotatedFiltered.jobs);
             }

@@ -515,15 +515,6 @@ const inferTargetRoleDomain = (targetRole: string): CandidateDomainKey | null =>
   return inferred;
 };
 
-const isIncompatibleDomainPair = (
-  expected: CandidateDomainKey | null,
-  actual: CandidateDomainKey | null,
-): boolean => {
-  if (!expected || !actual) return false;
-  if (expected === actual) return false;
-  return !getRelatedDomains(expected).includes(actual);
-};
-
 const isFrontlineHospitalityRole = (job: Job): boolean => {
   const text = normalizeText([job.title, job.description, job.challenge].filter(Boolean).join(' '));
   if (!text) return false;
@@ -605,6 +596,129 @@ const getFallbackDistancePenalty = (profile: UserProfile, job: Job, isRemote: bo
   return 0;
 };
 
+const inferJobWorkArrangement = (job: Job): Exclude<Job['type'], undefined> => {
+  const normalizedType = normalizeText(String(job.type || ''));
+  const normalizedModel = normalizeText(String(job.work_model || ''));
+  const normalizedDescription = normalizeText([job.title, job.location, job.description].filter(Boolean).join(' '));
+  const haystack = `${normalizedType} ${normalizedModel} ${normalizedDescription}`.trim();
+  if (/\b(remote|home office|work from home|wfh|z domova|na dalku|zdalna)\b/.test(haystack)) return 'Remote';
+  if (/\b(hybrid)\b/.test(haystack)) return 'Hybrid';
+  return 'On-site';
+};
+
+const resolvePreferredWorkArrangement = (profile: UserProfile): 'remote' | 'hybrid' | 'onsite' | null => {
+  const searchProfile = profile.preferences?.searchProfile;
+  const explicit = searchProfile?.preferredWorkArrangement;
+  if (explicit) return explicit;
+  if (searchProfile?.wantsRemoteRoles) return 'remote';
+  const homeOfficePreference = Number(profile.jhiPreferences?.workStyle?.homeOfficePreference || 0);
+  if (homeOfficePreference >= 72) return 'remote';
+  if (homeOfficePreference >= 52) return 'hybrid';
+  if (homeOfficePreference > 0 && homeOfficePreference <= 30) return 'onsite';
+  return null;
+};
+
+const scoreRoleComponent = (job: Job, targetRole: string): number => {
+  const roleScore = roleSignalScore(job.title, targetRole);
+  if (roleScore >= 1) return 35;
+  if (roleScore >= 0.75) return 28;
+  if (roleScore >= 0.5) return 20;
+  if (roleScore >= 0.34) return 12;
+  return 0;
+};
+
+const scoreDomainComponent = (
+  primaryJobDomain: CandidateDomainKey | null,
+  intent: CandidateIntentProfile,
+  targetRoleDomain: CandidateDomainKey | null,
+): number => {
+  if (!primaryJobDomain) return 0;
+  if (intent.avoidDomains.includes(primaryJobDomain)) return -26;
+  if (targetRoleDomain && primaryJobDomain === targetRoleDomain) return 25;
+  if (intent.primaryDomain && primaryJobDomain === intent.primaryDomain) return 22;
+  if (intent.secondaryDomains.includes(primaryJobDomain)) return 14;
+  if (intent.includeAdjacentDomains) {
+    if (targetRoleDomain && getRelatedDomains(targetRoleDomain).includes(primaryJobDomain)) return 10;
+    if (intent.primaryDomain && getRelatedDomains(intent.primaryDomain).includes(primaryJobDomain)) return 8;
+  }
+  return -8;
+};
+
+const scoreSeniorityComponent = (
+  inferredSeniority: CandidateSeniority | null,
+  requestedSeniority: CandidateSeniority | null,
+): number => {
+  if (!requestedSeniority || !inferredSeniority) return 0;
+  const distance = seniorityDistance(requestedSeniority, inferredSeniority);
+  if (distance === 0) return 8;
+  if (distance === 1) return 3;
+  return -8;
+};
+
+const scoreDistanceComponent = (profile: UserProfile, job: Job, isRemote: boolean): number => {
+  if (isRemote) return 8;
+
+  const explicitDistance = Number(job.distanceKm);
+  if (Number.isFinite(explicitDistance)) {
+    if (explicitDistance <= 10) return 10;
+    if (explicitDistance <= 25) return 8;
+    if (explicitDistance <= 45) return 5;
+    if (explicitDistance <= 80) return 1;
+    if (explicitDistance <= 120) return -8;
+    return -16;
+  }
+
+  const fallbackPenalty = getFallbackDistancePenalty(profile, job, isRemote);
+  return fallbackPenalty === 0 ? 0 : Math.max(-16, fallbackPenalty);
+};
+
+const scoreWorkModeComponent = (profile: UserProfile, arrangement: 'Remote' | 'Hybrid' | 'On-site'): number => {
+  const preferred = resolvePreferredWorkArrangement(profile);
+  if (!preferred) return 0;
+  if (preferred === 'remote') {
+    if (arrangement === 'Remote') return 12;
+    if (arrangement === 'Hybrid') return 6;
+    return -10;
+  }
+  if (preferred === 'hybrid') {
+    if (arrangement === 'Hybrid') return 10;
+    if (arrangement === 'Remote') return 4;
+    return 4;
+  }
+  if (arrangement === 'On-site') return 10;
+  if (arrangement === 'Hybrid') return 4;
+  return -12;
+};
+
+const scoreSalaryGrowthFreshnessComponent = (profile: UserProfile, job: Job): number => {
+  let score = 0;
+
+  const growth = Number(job.jhi?.growth || 0);
+  if (profile.jhiPreferences?.hardConstraints?.growthRequired) {
+    score += growth >= 55 ? 6 : -10;
+  } else if (growth > 0) {
+    score += Math.min(4, Math.round(growth / 25));
+  }
+
+  const salaryHigh = Math.max(Number(job.salary_from || 0), Number(job.salary_to || 0));
+  const minNet = Number(profile.jhiPreferences?.hardConstraints?.minNetMonthly || 0);
+  if (salaryHigh > 0 && minNet > 0) {
+    score += salaryHigh >= minNet ? 4 : -6;
+  } else if (salaryHigh > 0) {
+    score += Math.min(3, Math.round(salaryHigh / 40000));
+  }
+
+  score += Math.round((getFreshnessPriorityBoost(job) / 18) * 8);
+  return score;
+};
+
+const getBackendRelevanceComponent = (job: Job): number => {
+  const backendScore = Number(job.searchDiagnostics?.backendScore ?? (job as any).hybrid_score ?? job.searchScore ?? 0);
+  if (!Number.isFinite(backendScore) || backendScore <= 0) return 0;
+  if (backendScore <= 1) return Math.round(backendScore * 8);
+  return Math.min(8, Math.round(backendScore / 12));
+};
+
 export const annotateJobsForCandidate = (
   jobs: Job[],
   profile: UserProfile,
@@ -619,157 +733,79 @@ export const computeCandidateAnnotations = (
   locale?: string
 ): Job[] => {
   const intent = resolveCandidateIntentProfile(profile);
-  const localizedDomain = intent.primaryDomain ? getCandidateIntentDomainLabel(intent.primaryDomain, locale) : '';
   const targetRoleDomain = inferTargetRoleDomain(intent.targetRole);
-  const roleDirectedMode = Boolean(intent.targetRole);
   const explicitRoleMode = Boolean(intent.usedManualRole && intent.targetRole);
-  const dominantIntentDomain =
-    roleDirectedMode && targetRoleDomain
-      ? targetRoleDomain
-      : intent.primaryDomain;
-  const localizedDominantDomain = dominantIntentDomain ? getCandidateIntentDomainLabel(dominantIntentDomain, locale) : '';
 
   return jobs
-    .map((job, index) => {
+    .map((job) => {
       const jobDomainInference = resolveJobDomains(job);
       const jobDomains = jobDomainInference.domains;
       const primaryJobDomain = jobDomainInference.primaryDomain;
       const inferredSeniority = inferSeniorityFromText(job.title, job.description, job.challenge, job.risk);
-      const reasons: string[] = [];
-      let priorityScore = 0;
-      let matchBucket: CandidateMatchBucket = 'broader';
-
+      const arrangement = inferJobWorkArrangement(job);
+      const isRemote = arrangement === 'Remote';
       const roleScore = roleSignalScore(job.title, intent.targetRole);
-      if (roleScore >= 1) {
-        priorityScore += 42;
-        reasons.push(intent.targetRole);
-      } else if (roleScore >= 0.5) {
-        priorityScore += 24;
-        reasons.push(intent.targetRole);
-      }
-
-      if (targetRoleDomain && primaryJobDomain === targetRoleDomain) {
-        priorityScore += 36;
-        if (localizedDominantDomain) reasons.push(localizedDominantDomain);
-      }
-
-      if (dominantIntentDomain && primaryJobDomain === dominantIntentDomain) {
-        priorityScore += 34;
-        matchBucket = 'best_fit';
-        if (localizedDominantDomain) reasons.push(localizedDominantDomain);
-      } else if (
-        intent.primaryDomain &&
-        primaryJobDomain === intent.primaryDomain &&
-        dominantIntentDomain !== intent.primaryDomain &&
-        !roleDirectedMode
-      ) {
-        priorityScore += 8;
-        if (localizedDomain) reasons.push(localizedDomain);
-      } else if (intent.secondaryDomains.includes(primaryJobDomain as CandidateDomainKey)) {
-        priorityScore += 20;
-        matchBucket = 'adjacent';
-        if (primaryJobDomain) reasons.push(getCandidateIntentDomainLabel(primaryJobDomain, locale));
-      } else if (
-        intent.includeAdjacentDomains &&
-        intent.primaryDomain &&
-        getRelatedDomains(intent.primaryDomain).includes(primaryJobDomain as CandidateDomainKey)
-      ) {
-        priorityScore += 16;
-        matchBucket = 'adjacent';
-        if (primaryJobDomain) reasons.push(getCandidateIntentDomainLabel(primaryJobDomain, locale));
-      }
-
-      if (intent.seniority && inferredSeniority) {
-        const distance = seniorityDistance(intent.seniority, inferredSeniority);
-        if (distance === 0) {
-          priorityScore += 8;
-        } else if (distance === 1) {
-          priorityScore += 4;
-        } else {
-          priorityScore -= 6;
-        }
-      }
-
-      const hasTargetRoleDomainMismatch = isIncompatibleDomainPair(targetRoleDomain, primaryJobDomain);
-      const hasQualificationMismatch = missingRoleSpecificQualification(profile, job, intent.targetRole);
-      if (explicitRoleMode && roleScore < 0.34) {
-        priorityScore -= 26;
-      }
-      if (explicitRoleMode && roleScore === 0 && hasTargetRoleDomainMismatch) {
-        priorityScore -= 38;
-      }
-      if (
-        explicitRoleMode &&
-        intent.seniority &&
-        (intent.seniority === 'senior' || intent.seniority === 'lead') &&
-        isKnowledgeRoleTarget(intent.targetRole) &&
-        isFrontlineHospitalityRole(job)
-      ) {
-        priorityScore -= 34;
-      }
-      if (
-        explicitRoleMode &&
-        isKnowledgeRoleTarget(intent.targetRole) &&
-        isManualIndustrialRole(job)
-      ) {
-        priorityScore -= 36;
-      }
-      if (
+      const roleComponent = scoreRoleComponent(job, intent.targetRole);
+      const domainComponent = scoreDomainComponent(primaryJobDomain, intent, targetRoleDomain);
+      const seniorityComponent = scoreSeniorityComponent(inferredSeniority, intent.seniority);
+      const workModeComponent = scoreWorkModeComponent(profile, arrangement);
+      const distanceComponent = scoreDistanceComponent(profile, job, isRemote);
+      const salaryGrowthFreshnessComponent = scoreSalaryGrowthFreshnessComponent(profile, job);
+      const backendRelevanceComponent = getBackendRelevanceComponent(job);
+      const qualificationMismatch = missingRoleSpecificQualification(profile, job, intent.targetRole);
+      const explicitDomainMismatch = Boolean(
         explicitRoleMode &&
         targetRoleDomain &&
         primaryJobDomain &&
         primaryJobDomain !== targetRoleDomain &&
         !getRelatedDomains(targetRoleDomain).includes(primaryJobDomain)
-      ) {
-        priorityScore -= 22;
+      );
+      const shouldHideDomainReasons =
+        qualificationMismatch
+        || explicitDomainMismatch
+        || (explicitRoleMode && roleScore < 0.34);
+      const reasons: string[] = [];
+      let priorityScore =
+        roleComponent +
+        domainComponent +
+        seniorityComponent +
+        workModeComponent +
+        distanceComponent +
+        salaryGrowthFreshnessComponent +
+        backendRelevanceComponent;
+
+      if (roleComponent >= 20 && intent.targetRole) {
+        reasons.push(intent.targetRole);
       }
-      if (hasQualificationMismatch) {
-        priorityScore -= 48;
+      if (!shouldHideDomainReasons && primaryJobDomain && domainComponent >= 8) {
+        reasons.push(getCandidateIntentDomainLabel(primaryJobDomain, locale));
       }
-      if (primaryJobDomain && intent.avoidDomains.includes(primaryJobDomain)) {
-        priorityScore -= 46;
+      if (workModeComponent >= 8) {
+        reasons.push(
+          arrangement === 'Remote'
+            ? 'Remote'
+            : arrangement === 'Hybrid'
+              ? 'Hybrid'
+              : locale === 'cs'
+                ? 'On-site'
+                : 'On-site'
+        );
+      }
+      if (distanceComponent >= 8) {
+        reasons.push(locale === 'cs' ? 'blízko' : 'nearby');
+      }
+      if (salaryGrowthFreshnessComponent >= 7) {
+        reasons.push(locale === 'cs' ? 'čerstvé' : 'fresh');
       }
 
-      priorityScore += Math.min(12, Math.round((job.jhi?.score || 0) / 10));
-      priorityScore += getFreshnessPriorityBoost(job);
-
-      // Heavily penalize jobs that are simply too far, unless they are remote
-      const isRemote = String(job.type || '').toLowerCase() === 'remote' || String(job.location || '').toLowerCase() === 'remote';
-      if (!isRemote && Number.isFinite(Number(job.distanceKm))) {
-        const dist = Number(job.distanceKm);
-        if (dist > 40) priorityScore -= 15;
-        if (dist > 80) priorityScore -= 30;
-        if (dist > 150) priorityScore -= 60;
+      if (qualificationMismatch) {
+        priorityScore -= 28;
       }
-      priorityScore += getFallbackDistancePenalty(profile, job, isRemote);
-
-      // ENHANCED: Prevent false-positive role matches across incompatible domains
-      // If user has explicit primary domain (e.g., Product Manager = operations domain),
-      // and job is completely different domain (e.g., manufacturing),
-      // do NOT upgrade to adjacent/best_fit based on partial word matches.
-      const hasIncompatibleDomain =
-        dominantIntentDomain &&
-        primaryJobDomain &&
-        primaryJobDomain !== dominantIntentDomain &&
-        !intent.secondaryDomains.includes(primaryJobDomain as CandidateDomainKey) &&
-        !getRelatedDomains(dominantIntentDomain).includes(primaryJobDomain as CandidateDomainKey);
-
-      const hasExplicitRoleMismatch =
-        explicitRoleMode &&
-        roleScore < 0.34 &&
-        hasTargetRoleDomainMismatch;
-
-      if (matchBucket === 'broader' && roleScore >= 0.5 && !hasIncompatibleDomain && !hasExplicitRoleMismatch) {
-        matchBucket = 'adjacent';
+      if (explicitRoleMode && roleScore < 0.34) {
+        priorityScore -= 18;
       }
-      if (matchBucket === 'adjacent' && roleScore >= 1 && intent.primaryDomain && primaryJobDomain === intent.primaryDomain) {
-        matchBucket = 'best_fit';
-      }
-      if (hasQualificationMismatch) {
-        matchBucket = 'broader';
-      }
-      if (primaryJobDomain && intent.avoidDomains.includes(primaryJobDomain)) {
-        matchBucket = 'broader';
+      if (explicitDomainMismatch) {
+        priorityScore -= 18;
       }
       if (
         explicitRoleMode &&
@@ -777,11 +813,24 @@ export const computeCandidateAnnotations = (
         isFrontlineHospitalityRole(job) &&
         roleScore < 0.5
       ) {
-        matchBucket = 'broader';
+        priorityScore -= 20;
+      }
+      if (
+        explicitRoleMode &&
+        isKnowledgeRoleTarget(intent.targetRole) &&
+        isManualIndustrialRole(job)
+      ) {
+        priorityScore -= 20;
       }
 
-      if (!intent.primaryDomain && !intent.targetRole) {
-        priorityScore = (job.jhi?.score || 0) + Math.max(0, 40 - index);
+      let matchBucket: CandidateMatchBucket = 'broader';
+      if (priorityScore >= 58) {
+        matchBucket = 'best_fit';
+      } else if (priorityScore >= 32) {
+        matchBucket = 'adjacent';
+      }
+      if (qualificationMismatch || (explicitRoleMode && roleScore < 0.2 && explicitDomainMismatch)) {
+        matchBucket = 'broader';
       }
 
       return {
@@ -790,23 +839,22 @@ export const computeCandidateAnnotations = (
         matchBucket,
         matchReasons: uniqueStrings(
           reasons.concat(
-            (
-              explicitRoleMode && hasExplicitRoleMismatch
-                ? []
-                : uniqueDomains(jobDomains)
-                    .filter((domain) => {
-                      if (!dominantIntentDomain) return !roleDirectedMode;
-                      if (domain === dominantIntentDomain) return true;
-                      if (intent.secondaryDomains.includes(domain)) return true;
-                      return getRelatedDomains(dominantIntentDomain).includes(domain);
-                    })
-                    .slice(0, 2)
-                    .map((domain) => getCandidateIntentDomainLabel(domain, locale))
-            )
+            shouldHideDomainReasons
+              ? []
+              : uniqueDomains(jobDomains)
+                  .filter((domain) => {
+                    if (!intent.primaryDomain && !targetRoleDomain) return true;
+                    if (domain === targetRoleDomain || domain === intent.primaryDomain) return true;
+                    if (intent.secondaryDomains.includes(domain)) return true;
+                    return Boolean(
+                      (targetRoleDomain && getRelatedDomains(targetRoleDomain).includes(domain))
+                      || (intent.primaryDomain && getRelatedDomains(intent.primaryDomain).includes(domain))
+                    );
+                  })
+                  .slice(0, 2)
+                  .map((domain) => getCandidateIntentDomainLabel(domain, locale))
           )
-        )
-          .filter((reason) => !(hasQualificationMismatch && reason === getCandidateIntentDomainLabel(primaryJobDomain, locale)))
-          .slice(0, 3),
+        ).slice(0, 3),
         matchedDomains: jobDomains,
         inferredDomain: primaryJobDomain,
         inferredDomainConfidence: jobDomainInference.confidence,
