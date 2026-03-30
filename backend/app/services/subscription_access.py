@@ -34,6 +34,36 @@ def is_active_subscription(sub: dict | None) -> bool:
     return True
 
 
+def _subscription_priority(sub: dict | None) -> tuple[int, int, datetime]:
+    if not sub:
+        return (0, 0, datetime.min.replace(tzinfo=timezone.utc))
+
+    tier = str(sub.get("tier") or "").lower()
+    tier_weight = {
+        "enterprise": 6,
+        "professional": 5,
+        "growth": 4,
+        "starter": 3,
+        "premium": 2,
+        "trial": 1,
+        "free": 0,
+    }.get(tier, 0)
+
+    updated_at = (
+        parse_iso_datetime(str(sub.get("updated_at") or ""))
+        or parse_iso_datetime(str(sub.get("current_period_end") or ""))
+        or datetime.min.replace(tzinfo=timezone.utc)
+    )
+    return (1 if is_active_subscription(sub) else 0, tier_weight, updated_at)
+
+
+def _pick_best_subscription(rows: list[dict] | None) -> dict | None:
+    candidates = [row for row in (rows or []) if isinstance(row, dict)]
+    if not candidates:
+        return None
+    return max(candidates, key=_subscription_priority)
+
+
 def fetch_latest_subscription_by(column: str, value: str) -> dict | None:
     if not supabase or not value:
         return None
@@ -51,10 +81,10 @@ def fetch_latest_subscription_by(column: str, value: str) -> dict | None:
             .select("*")
             .eq(column, value)
             .order("updated_at", desc=True)
-            .limit(1)
+            .limit(25)
             .execute()
         )
-        value_out = resp.data[0] if resp.data else None
+        value_out = _pick_best_subscription(resp.data if resp else None)
         _SUBSCRIPTION_CACHE[key] = (now + timedelta(seconds=_SUBSCRIPTION_CACHE_TTL_SECONDS), deepcopy(value_out) if value_out else None)
         return deepcopy(value_out) if value_out else None
     except Exception:

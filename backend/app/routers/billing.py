@@ -44,10 +44,28 @@ def _get_latest_subscription_by(column: str, value: str) -> dict | None:
             .select("*")
             .eq(column, value)
             .order("updated_at", desc=True)
-            .limit(1)
+            .limit(25)
             .execute()
         )
-        return resp.data[0] if resp.data else None
+        rows = [row for row in (resp.data or []) if isinstance(row, dict)]
+        if not rows:
+            return None
+
+        def _priority(sub: dict) -> tuple[int, int, datetime]:
+            tier = str(sub.get("tier") or "").lower()
+            tier_weight = {
+                "enterprise": 6,
+                "professional": 5,
+                "growth": 4,
+                "starter": 3,
+                "premium": 2,
+                "trial": 1,
+                "free": 0,
+            }.get(tier, 0)
+            updated_at = _parse_iso_datetime(sub.get("updated_at")) or _parse_iso_datetime(sub.get("current_period_end")) or datetime.min.replace(tzinfo=timezone.utc)
+            return (1 if _is_active_subscription(sub) else 0, tier_weight, updated_at)
+
+        return max(rows, key=_priority)
     except Exception:
         return None
 

@@ -2505,20 +2505,36 @@ export const fetchJobsWithFilters = async (
         };
         let lastError: unknown = null;
 
+        const requestHybridPayload = async (
+            baseUrl: string,
+            endpointPath: string,
+            payload: Record<string, unknown>,
+            hybridSignal?: AbortSignal
+        ) => {
+            const response = await authenticatedFetch(`${baseUrl}${endpointPath}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: hybridSignal ?? abortSignal,
+                body: JSON.stringify(payload)
+            });
+            throwIfAborted();
+            return response;
+        };
+
         for (const baseUrl of backendBases) {
             throwIfAborted();
             try {
-                const hybridResponse = await authenticatedFetch(`${baseUrl}${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: hybridAbortSignal ?? abortSignal,
-                    body: JSON.stringify({
-                        ...requestPayloadBase,
-                        sort_mode: effectiveSortMode,
-                        debug: false
-                    })
-                });
-                throwIfAborted();
+                const hybridRequestPayload = {
+                    ...requestPayloadBase,
+                    sort_mode: effectiveSortMode,
+                    debug: false
+                };
+                const hybridResponse = await requestHybridPayload(
+                    baseUrl,
+                    endpoint,
+                    hybridRequestPayload,
+                    hybridAbortSignal
+                );
 
                 if (!hybridResponse.ok && v2Enabled) {
                     if (hybridResponse.status >= 500) {
@@ -2527,13 +2543,12 @@ export const fetchJobsWithFilters = async (
                         (err as any).status = hybridResponse.status;
                         throw err;
                     }
-                    const fallbackResponse = await authenticatedFetch(`${baseUrl}/jobs/hybrid-search`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        signal: hybridAbortSignal ?? abortSignal,
-                        body: JSON.stringify(requestPayloadBase)
-                    });
-                    throwIfAborted();
+                    const fallbackResponse = await requestHybridPayload(
+                        baseUrl,
+                        '/jobs/hybrid-search',
+                        requestPayloadBase,
+                        hybridAbortSignal
+                    );
 
                     if (!fallbackResponse.ok) {
                         if (fallbackResponse.status >= 500) {
@@ -2588,7 +2603,53 @@ export const fetchJobsWithFilters = async (
                     });
                 }
 
-                const hybridRows = hybridPayload.jobs || [];
+                let hybridRows = hybridPayload.jobs || [];
+                const hybridTotalCount = Number(hybridPayload.total_count || 0);
+                const shouldRetrySparseWindow =
+                    hybridRows.length === 0 &&
+                    hybridTotalCount > 0 &&
+                    page === 0 &&
+                    safeBackendPageSize > 100;
+
+                if (shouldRetrySparseWindow) {
+                    const reducedPageSize = Math.min(100, Math.max(25, Math.floor(safeBackendPageSize / 5)));
+                    console.warn('⚠️ Hybrid search returned total_count without rows; retrying with a smaller page size.', {
+                        previousPageSize: safeBackendPageSize,
+                        reducedPageSize,
+                        totalCount: hybridTotalCount,
+                        searchMode,
+                        remoteOnly,
+                        filterWorkArrangement,
+                        radiusKm: safeRadiusKm,
+                    });
+                    const reducedPayload = {
+                        ...hybridRequestPayload,
+                        page_size: reducedPageSize,
+                    };
+                    const reducedResponse = await requestHybridPayload(
+                        baseUrl,
+                        endpoint,
+                        reducedPayload,
+                        hybridAbortSignal
+                    );
+                    if (reducedResponse.ok) {
+                        const reducedJson = await reducedResponse.json();
+                        hybridRows = reducedJson?.jobs || [];
+                        if (hybridRows.length > 0) {
+                            hybridPayload.jobs = hybridRows;
+                            hybridPayload.total_count = reducedJson?.total_count ?? hybridPayload.total_count;
+                            hybridPayload.has_more = reducedJson?.has_more ?? hybridPayload.has_more;
+                            hybridPayload.meta = {
+                                ...(hybridPayload.meta || {}),
+                                ...(reducedJson?.meta || {}),
+                                sparse_window_recovered: true,
+                                sparse_window_original_page_size: safeBackendPageSize,
+                                sparse_window_retry_page_size: reducedPageSize,
+                            };
+                        }
+                    }
+                }
+
                 const processedJobs = mapHybridRowsToJobs(hybridRows, hybridPayload);
                 const rawTotalCount = Number(hybridPayload.total_count || processedJobs.length);
                 const finalizedHybridResult = await finalizeResults({
