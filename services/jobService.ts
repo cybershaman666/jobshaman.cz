@@ -1641,6 +1641,43 @@ const warnHybridFallbackThrottled = (error: unknown): void => {
     console.warn(`Hybrid search unavailable (${fallbackReason || 'unknown'}), retrying backend search or degrading this request.`, error);
 };
 
+const getAdaptiveHybridTimeouts = (options: {
+    pageSize: number;
+    searchMode: SearchMode;
+    hasRadiusFilter: boolean;
+    hasSearchTerm: boolean;
+}) => {
+    const { pageSize, searchMode, hasRadiusFilter, hasSearchTerm } = options;
+    let primaryTimeoutMs = 5200;
+    let retryTimeoutMs = 9000;
+
+    if (pageSize >= 500) {
+        primaryTimeoutMs += 7000;
+        retryTimeoutMs += 9000;
+    } else if (pageSize >= 250) {
+        primaryTimeoutMs += 4500;
+        retryTimeoutMs += 6500;
+    } else if (pageSize >= 100) {
+        primaryTimeoutMs += 2500;
+        retryTimeoutMs += 3500;
+    }
+
+    if (hasRadiusFilter) {
+        primaryTimeoutMs += 1500;
+        retryTimeoutMs += 2500;
+    }
+
+    if (hasSearchTerm || searchMode === 'manual_query' || searchMode === 'manual_filters') {
+        primaryTimeoutMs += 1000;
+        retryTimeoutMs += 1500;
+    }
+
+    return {
+        primaryTimeoutMs,
+        retryTimeoutMs: Math.max(retryTimeoutMs, primaryTimeoutMs + 2500),
+    };
+};
+
 const parseTimestampMs = (value?: string): number => {
     if (!value) return 0;
     const ms = new Date(value).getTime();
@@ -1846,8 +1883,6 @@ export const fetchJobsWithFilters = async (
     } = options;
     const effectiveSortMode = sortMode === 'recommended' ? 'default' : sortMode;
 
-    const HYBRID_SEARCH_TIMEOUT_MS = 5200;
-    const HYBRID_SEARCH_RETRY_TIMEOUT_MS = 9000;
     const createTimeoutError = (label: string) => {
         const err = new Error(`${label} timed out`);
         (err as any).code = 'timeout';
@@ -1924,6 +1959,12 @@ export const fetchJobsWithFilters = async (
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
     const searchMatcher = buildSearchMatcher(safeRawSearchTerm || safeSearchTerm);
+    const { primaryTimeoutMs: hybridSearchTimeoutMs, retryTimeoutMs: hybridSearchRetryTimeoutMs } = getAdaptiveHybridTimeouts({
+        pageSize: safeBackendPageSize,
+        searchMode,
+        hasRadiusFilter: safeRadiusKm != null,
+        hasSearchTerm: Boolean(String(safeSearchTerm || '').trim()),
+    });
     const shouldThrottleRecentEmptyHybridResult =
         searchMode === 'manual_query' ||
         searchMode === 'manual_filters' ||
@@ -2740,19 +2781,19 @@ export const fetchJobsWithFilters = async (
                 };
             }
             try {
-                return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
+                return await fetchViaBackendHybridWithTimeout(hybridSearchTimeoutMs, 'Hybrid search');
             } catch (hybridErr) {
                 if (isAbortFetchError(hybridErr)) {
                     throw hybridErr;
                 }
-                warnHybridFallbackThrottled(hybridErr);
                 try {
                     console.info('🔁 Retrying backend search with a longer timeout before giving up.');
-                    return await fetchViaBackendHybridWithTimeout(HYBRID_SEARCH_RETRY_TIMEOUT_MS, 'Hybrid search retry');
+                    return await fetchViaBackendHybridWithTimeout(hybridSearchRetryTimeoutMs, 'Hybrid search retry');
                 } catch (retryErr) {
                     if (isAbortFetchError(retryErr)) {
                         throw retryErr;
                     }
+                    warnHybridFallbackThrottled(retryErr);
                     console.warn('⚠️ Backend retry failed in single-source mode.', retryErr);
                     recordRuntimeSignal('custom:search_backend_only_failure', {
                         reason: 'backend_retry_failed',
