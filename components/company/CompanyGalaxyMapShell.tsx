@@ -45,12 +45,18 @@ interface CompanyGalaxyMapShellProps {
   title?: string;
   subtitle?: string;
   center: {
+    eyebrow?: string;
     name: string;
     motto: string;
     tone?: string;
     logoUrl?: string | null;
     statusLine?: string;
     values?: string[];
+    promptLabel?: string;
+    promptPlaceholder?: string;
+    promptValue?: string;
+    promptActionLabel?: string;
+    onPromptAction?: () => void;
   };
   layers?: CompanyGalaxyMapLayer[];
   nodes: CompanyGalaxyMapNode[];
@@ -192,8 +198,8 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
 
       return {
         ...node,
-        stageX: position.x,
-        stageY: position.y,
+        stageX: Math.round(position.x),
+        stageY: Math.round(position.y),
         orbitDistance,
         gravityPull,
         floatX: (index % 2 === 0 ? 1 : -1) * (3.5 + gravityPull * 3.2),
@@ -343,7 +349,7 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
                 </div>
                 <div className="mt-4 w-[min(24rem,88vw)] rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 text-center shadow-lg backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/88 dark:shadow-[0_24px_64px_rgba(2,6,23,0.45)]">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-                    {text({
+                    {center.eyebrow || text({
                       cs: 'Jádro firmy',
                       sk: 'Jadro firmy',
                       en: 'Company Core',
@@ -357,6 +363,29 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
                   <p className="mt-2 text-[13px] leading-6 text-slate-600 dark:text-slate-300">
                     {center.motto}
                   </p>
+                  {center.promptLabel || center.promptPlaceholder || center.promptActionLabel ? (
+                    <div className="mt-4 rounded-[20px] border border-cyan-100/80 bg-cyan-50/70 p-3 text-left dark:border-cyan-900/40 dark:bg-cyan-950/25">
+                      {center.promptLabel ? (
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
+                          {center.promptLabel}
+                        </div>
+                      ) : null}
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="min-w-0 flex-1 rounded-full border border-white/90 bg-white/92 px-4 py-2.5 text-left text-[12px] text-slate-500 shadow-sm dark:border-slate-700/80 dark:bg-slate-950/88 dark:text-slate-300">
+                          {center.promptValue || center.promptPlaceholder}
+                        </div>
+                        {center.promptActionLabel ? (
+                          <button
+                            type="button"
+                            onClick={center.onPromptAction}
+                            className="shrink-0 rounded-full bg-slate-950 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-slate-800 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+                          >
+                            {center.promptActionLabel}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                   {center.statusLine ? (
                     <div className="mt-3 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                       {center.statusLine}
@@ -383,16 +412,13 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
               </div>
             </div>
 
-            {stageNodes.map((node, index) => {
+            {stageNodes.map((node) => {
               const active = Boolean(node.active);
-              const restingScale = active ? 1.02 : 0.92 + node.gravityPull * 0.06;
-              const elevatedScale = active ? 1.08 : restingScale;
+              const restingScale = active ? 1.02 : 1;
+              const elevatedScale = active ? 1.05 : restingScale;
               const driftStyle = {
-                '--careeros-float-x': `${node.floatX * 0.6}px`,
-                '--careeros-float-y': `${node.floatY * 0.55}px`,
-                animation: `careeros-node-float ${15 + index * 0.55}s ease-in-out ${-(index % 5) * 0.6}s infinite`,
-                willChange: 'transform',
-              } as React.CSSProperties & Record<'--careeros-float-x' | '--careeros-float-y', string>;
+                willChange: 'auto',
+              } as React.CSSProperties;
 
               return (
                 <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
@@ -400,7 +426,7 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
                     className="relative flex flex-col items-center transform-gpu"
                     style={{
                       transform: `translate3d(${node.stageX}px, ${node.stageY}px, 0) scale(${elevatedScale})`,
-                      opacity: active ? 1 : 0.9,
+                      opacity: 1,
                       transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out',
                       willChange: 'transform, opacity',
                     }}
@@ -557,9 +583,11 @@ const CompanyGalaxyMapShell: React.FC<CompanyGalaxyMapShellProps> = ({
         ) : null}
 
         {detailPanel ? (
-          <div className="pointer-events-none absolute right-6 top-6 z-[32] hidden min-w-[240px] max-w-[290px] lg:block">
-            <div className="pointer-events-auto rounded-[18px] border border-white/70 bg-white/92 px-4 py-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+          <div className="pointer-events-none absolute bottom-6 right-6 top-6 z-[32] hidden min-w-[240px] max-w-[320px] lg:block">
+            <div className="pointer-events-auto flex h-full max-h-full flex-col overflow-hidden rounded-[18px] border border-white/70 bg-white/92 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
               {detailPanel}
+              </div>
             </div>
           </div>
         ) : null}

@@ -94,7 +94,7 @@ export const GalaxyLayerSidebar: React.FC<{
               {Icon ? <Icon className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
             </div>
             {!collapsed ? (
-              <div className="min-w-0 text-left whitespace-nowrap text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <div className="min-w-0 flex-1 text-left text-sm font-semibold leading-5 text-slate-800 whitespace-normal break-words dark:text-slate-100">
                 {item.label}
               </div>
             ) : null}

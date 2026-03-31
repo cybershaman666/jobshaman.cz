@@ -4,13 +4,14 @@ import { ArrowRight, Briefcase, CreditCard, LogIn, Plus, Sparkles, Users } from 
 
 import type { Assessment, CompanyApplicationRow, DialogueDossier, Job } from '../types';
 import AnalyticsService from '../services/analyticsService';
+import type { CompanyActivityLogEntry } from '../services/companyActivityService';
 import CompanyMapScene, {
   type CompanyGalaxyMapBreadcrumb,
   type CompanyGalaxyMapLayer,
   type CompanyGalaxyMapNode,
 } from './company/CompanyMapScene';
 import CompanyHumanDetailPanel from './company/map/CompanyHumanDetailPanel';
-import { CompanyWaveClusterPanel } from './company/map/CompanyMapPanels';
+import { CompanyMapOverviewPanel, CompanyWaveClusterPanel } from './company/map/CompanyMapPanels';
 import {
   LandingDemoConversationPanel,
   LandingDemoOpenChallengePanel,
@@ -32,6 +33,7 @@ type LandingNavigationState = {
   activeLayer: LandingMapLayer;
   selectedWaveId: string | null;
   selectedDialogueId: string | null;
+  rootDashboardOpen: boolean;
   panelDismissed: boolean;
   canvasZoom: number;
 };
@@ -90,6 +92,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     activeLayer: 'challenge_map',
     selectedWaveId: 'demo-platform-engineer',
     selectedDialogueId: 'dialogue-sara',
+    rootDashboardOpen: false,
     panelDismissed: false,
     canvasZoom: 1,
   });
@@ -104,22 +107,22 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     login: isCsLike ? 'Vstoupit do firemního účtu' : 'Enter company workspace',
     whyShell: isCsLike ? 'Proč firmy zbystří' : 'Why teams lean in',
     sameGalaxy: isCsLike ? 'Jedna mapa pro celý hiring. Méně chaosu, více jistoty a rychlejší rozhodnutí.' : 'One map for the whole hiring flow. Less chaos, more confidence, faster decisions.',
-    challengeMap: 'Challenge Map',
-    challengeCluster: 'Challenge Cluster',
-    humanDetail: 'Human Detail',
-    openChallenge: 'Open Challenge',
-    pricing: 'Pricing',
-    defaultLayer: isCsLike ? 'Vstupní vrstva' : 'Entry layer',
+    challengeMap: isCsLike ? 'Co se u vás děje' : 'What is happening in your hiring',
+    challengeCluster: isCsLike ? 'Možné směry řešení' : 'Possible ways forward',
+    humanDetail: isCsLike ? 'Jak konkrétní člověk přemýšlí' : 'How a real person thinks',
+    openChallenge: isCsLike ? 'Jak otevřít správné zadání' : 'How to frame the right challenge',
+    pricing: isCsLike ? 'Plány pro nábor' : 'Hiring plans',
+    defaultLayer: 'Dashboard',
     liveModule: isCsLike ? 'Živý hiring tok' : 'Live hiring flow',
     dossier: 'Dossier',
     readOnlyEditor: isCsLike ? 'Ukázka zadání' : 'Challenge preview',
-    capacity: isCsLike ? 'Kapacita týmu' : 'Team capacity',
-    companyCore: isCsLike ? 'Srdce firmy' : 'Company core',
+    capacity: isCsLike ? 'Limity a přístup' : 'Limits and access',
+    companyCore: isCsLike ? 'Výchozí bod' : 'Starting point',
     planCapacity: isCsLike ? 'Růst a kapacita' : 'Growth and capacity',
   }), [isCsLike]);
 
   const company = useMemo(() => ({
-    name: isCsLike ? 'Zde může být právě Vaše společnost!' : 'Your company could be here right now!',
+    name: isCsLike ? 'Vaše společnost' : 'Your company',
     philosophy: isCsLike
       ? 'JobShaman pomáhá firmám získat kontrolu nad hiringem od prvního briefu po finální rozhodnutí. Všechno důležité vidíte v jednom toku, takže tým reaguje rychleji a kandidáti nezažívají ticho.'
       : 'JobShaman helps companies regain control of hiring from the first brief to the final decision. Everything important lives in one flow, so your team reacts faster and candidates never disappear into silence.',
@@ -130,6 +133,34 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       isCsLike ? 'Tým rozhoduje nad stejným obrazem reality' : 'The whole team decides from the same source of truth',
     ],
   }), [isCsLike]);
+
+  const rootPainPoints = useMemo(() => (
+    isCsLike
+      ? [
+          '300 CV, která vypadají podobně a těžko se v nich hledá skutečný signál.',
+          'Dlouhé rozhodování bez jistoty, kdo je opravdu relevantní pro tým.',
+          'Kandidáti, kteří sedí na papíře, ale v realitě nepomohou vyřešit to podstatné.',
+        ]
+      : [
+          '300 CVs that look similar and hide the real signal.',
+          'Slow decisions without confidence about who actually fits the team.',
+          'Candidates who look right on paper but do not solve the real problem.',
+        ]
+  ), [isCsLike]);
+
+  const rootOutcomes = useMemo(() => (
+    isCsLike
+      ? [
+          'Jak člověk přemýšlí nad konkrétním problémem.',
+          'Jak reaguje na tlak, nejasnost a nutnost prioritizace.',
+          'Jestli dává smysl pro váš tým, ne jen pro popis role.',
+        ]
+      : [
+          'How a person thinks about the actual problem.',
+          'How they react to pressure, ambiguity, and prioritization.',
+          'Whether they make sense for your team, not just the job description.',
+        ]
+  ), [isCsLike]);
 
   const trackEvent = (eventName: string, metadata?: Record<string, unknown>) => {
     AnalyticsService.trackEvent(eventName, {
@@ -241,46 +272,46 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       id: 'free',
       name: 'Free',
       price: isCsLike ? 'Zdarma' : 'Free',
-      note: isCsLike ? 'Pro první ověření, že JobShaman dává vašemu týmu větší přehled a rychlejší reakční dobu.' : 'For validating that JobShaman gives your team more clarity and a faster response rhythm.',
+      note: isCsLike ? 'Pro první firmu, která si chce vyzkoušet JobShaman na jednom náboru a rychle vidět, jestli dává větší přehled i klid.' : 'For a first company trying JobShaman on one hiring flow and quickly validating whether it brings more clarity and calm.',
       roleOpens: '1',
       dialogueSlots: '3',
       aiAssessments: '10 / month',
       recruiterSeats: '1',
-      features: [isCsLike ? 'První živý náborový tok bez složitého zavádění' : 'Your first live hiring flow without heavy setup', isCsLike ? 'Rychlá viditelnost nad rolí, kandidátem i dalším krokem' : 'Fast visibility across role, candidate, and next step'],
+      features: [isCsLike ? '1 otevřená pozice současně' : '1 open role at a time', isCsLike ? 'Až 3 kandidáti rozpracovaní zároveň' : 'Up to 3 active candidates moving at once', isCsLike ? '10 AI screeningů měsíčně' : '10 AI screenings per month'],
     },
     {
       id: 'starter',
       name: 'Starter',
       price: '249 EUR / month',
-      note: isCsLike ? 'Pro menší tým, který chce přestat lovit informace po tabulkách a začít řídit hiring v jednom prostoru.' : 'For a smaller team that wants to stop hunting through spreadsheets and run hiring in one place.',
+      note: isCsLike ? 'Pro menší hiring tým, který už nabírá pravidelně a chce mít více rolí i kandidátů pod kontrolou v jednom prostoru.' : 'For a smaller hiring team recruiting regularly and wanting several roles and candidates under control in one place.',
       roleOpens: '3',
       dialogueSlots: '12',
       aiAssessments: '80 / month',
       recruiterSeats: '2',
-      features: [isCsLike ? 'Plynulý tok od role k člověku i rozhodnutí' : 'A smooth flow from role to person to decision', isCsLike ? 'Silnější signál dřív, než kandidát vychladne' : 'Stronger signal before the candidate cools off'],
+      features: [isCsLike ? '3 otevřené pozice najednou' : '3 open roles at once', isCsLike ? 'Až 12 kandidátů v aktivním procesu' : 'Up to 12 candidates in active process', isCsLike ? '2 členové týmu ve workspace' : '2 team members inside the workspace'],
     },
     {
       id: 'growth',
       name: 'Growth',
       price: '599 EUR / month',
-      note: isCsLike ? 'Pro firmy, které chtějí opakovatelný hiring, vyšší tempo a jistotu, že se nic důležitého neztratí.' : 'For companies that want repeatable hiring, a stronger pace, and confidence that nothing important gets lost.',
+      note: isCsLike ? 'Pro firmy, které chtějí nabírat opakovaně, rychleji a s jistotou, že se nic důležitého neztratí mezi lidmi ani nástroji.' : 'For companies that want repeatable, faster hiring without losing important context between people or tools.',
       roleOpens: '10',
       dialogueSlots: '40',
       aiAssessments: '250 / month',
       recruiterSeats: '5',
       highlighted: true,
-      features: [isCsLike ? 'Silný multi-role hiring bez přepínání kontextu' : 'Strong multi-role hiring without context switching', isCsLike ? 'Kapacita, tým i náborový výkon pod jedním pohledem' : 'Capacity, team, and hiring performance in one view'],
+      features: [isCsLike ? '10 otevřených pozic zároveň' : '10 open roles at once', isCsLike ? 'Až 40 kandidátů v aktivním procesu' : 'Up to 40 candidates in active process', isCsLike ? '5 členů týmu a 250 AI screeningů měsíčně' : '5 team members and 250 AI screenings per month'],
     },
     {
       id: 'professional',
       name: 'Professional',
       price: '899 EUR / month',
-      note: isCsLike ? 'Pro větší organizace, které potřebují držet kvalitu i přehled napříč více rolemi a týmy současně.' : 'For larger organizations that need to preserve quality and clarity across many roles and teams at once.',
+      note: isCsLike ? 'Pro větší organizace, které potřebují sladit recruitery, hiring manažery i více týmů nad jedním společným přehledem.' : 'For larger organizations that need recruiters, hiring managers, and multiple teams aligned around one shared view.',
       roleOpens: '25',
       dialogueSlots: '100',
       aiAssessments: '600 / month',
       recruiterSeats: '12',
-      features: [isCsLike ? 'Vyšší kapacita bez rozpadu do chaosu' : 'Higher capacity without falling back into chaos', isCsLike ? 'Připravené pro paralelní hiring napříč firmou' : 'Ready for parallel hiring across the company'],
+      features: [isCsLike ? '25 otevřených pozic současně' : '25 open roles at once', isCsLike ? 'Až 100 kandidátů v aktivním procesu' : 'Up to 100 candidates in active process', isCsLike ? '12 členů týmu a 600 AI screeningů měsíčně' : '12 team members and 600 AI screenings per month'],
     },
   ]), [isCsLike]);
 
@@ -361,6 +392,35 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       candidate_profile_snapshot: { name: 'Elena Richter', email: 'elena.richter@example.com', avatar_url: 'https://i.pravatar.cc/160?img=47', jobTitle: 'Industrial architect', skills: ['Architecture', 'Industrial IoT'], values: [isCsLike ? 'Systémové myšlení' : 'Systems thinking'] },
     },
   }), [isCsLike, jobs]);
+  const activityLog = useMemo<CompanyActivityLogEntry[]>(() => ([
+    {
+      id: 'activity-1',
+      company_id: 'demo-company',
+      event_type: 'challenge_opened',
+      subject_type: 'job',
+      subject_id: 'demo-platform-engineer',
+      payload: { action_label: isCsLike ? 'Nová výzva otevřena pro provozní stabilitu' : 'New challenge opened for operational stability' },
+      created_at: '2026-03-28T09:10:00Z',
+    },
+    {
+      id: 'activity-2',
+      company_id: 'demo-company',
+      event_type: 'dialogue_shortlisted',
+      subject_type: 'dialogue',
+      subject_id: 'dialogue-sara',
+      payload: { action_label: isCsLike ? 'Sara Novak posunuta do shortlistu' : 'Sara Novak moved to shortlist' },
+      created_at: '2026-03-29T11:35:00Z',
+    },
+    {
+      id: 'activity-3',
+      company_id: 'demo-company',
+      event_type: 'assessment_ready',
+      subject_type: 'assessment',
+      subject_id: 'assessment-platform',
+      payload: { action_label: isCsLike ? 'Screening připraven pro další krok' : 'Screening prepared for the next step' },
+      created_at: '2026-03-30T08:05:00Z',
+    },
+  ]), [isCsLike]);
   const selectedJob = jobs.find((job) => job.id === navigation.selectedWaveId) || jobs[0] || null;
   const selectedDialogue = dialogues.find((dialogue) => dialogue.id === navigation.selectedDialogueId)
     || dialogues.find((dialogue) => String(dialogue.job_id) === String(selectedJob?.id))
@@ -406,7 +466,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     return callRegister(section, metadata);
   };
 
-  const navigate = (activeLayer: LandingMapLayer, options?: { waveId?: string | null; dialogueId?: string | null; keepPanel?: boolean }) => {
+  const navigate = (activeLayer: LandingMapLayer, options?: { waveId?: string | null; dialogueId?: string | null; keepPanel?: boolean; rootDashboardOpen?: boolean }) => {
     trackEvent('company_landing_demo_layer_open', {
       layer: activeLayer,
       wave_id: options?.waveId ?? navigation.selectedWaveId,
@@ -417,23 +477,29 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       activeLayer,
       selectedWaveId: options?.waveId ?? current.selectedWaveId,
       selectedDialogueId: options?.dialogueId ?? current.selectedDialogueId,
+      rootDashboardOpen: activeLayer === 'challenge_map'
+        ? (options?.rootDashboardOpen ?? current.rootDashboardOpen)
+        : false,
       panelDismissed: options?.keepPanel ? current.panelDismissed : false,
     }));
   };
 
+  const openRootMap = () => navigate('challenge_map', { rootDashboardOpen: false });
+  const openRootDashboard = () => navigate('challenge_map', { rootDashboardOpen: true });
   const openWave = (waveId: string) => navigate('challenge_cluster', { waveId });
   const openHumanDetail = (dialogueId: string, waveId?: string | null) => navigate('human_detail', { dialogueId, waveId: waveId ? String(waveId) : navigation.selectedWaveId });
   const layers: CompanyGalaxyMapLayer[] = [
-    { id: 'challenge_map', label: copy.challengeMap, icon: Sparkles, active: navigation.activeLayer === 'challenge_map', onClick: () => navigate('challenge_map') },
+    { id: 'challenge_map', label: copy.challengeMap, icon: Sparkles, active: navigation.activeLayer === 'challenge_map', onClick: openRootDashboard },
     { id: 'challenge_cluster', label: copy.challengeCluster, icon: Briefcase, active: navigation.activeLayer === 'challenge_cluster', onClick: () => navigate('challenge_cluster', { waveId: selectedJob?.id || null }) },
     { id: 'human_detail', label: copy.humanDetail, icon: Users, active: navigation.activeLayer === 'human_detail', onClick: () => navigate('human_detail', { waveId: selectedDialogue?.job_id ? String(selectedDialogue.job_id) : selectedJob?.id || null, dialogueId: selectedDialogue?.id || null }) },
     { id: 'open_challenge', label: copy.openChallenge, icon: Plus, active: navigation.activeLayer === 'open_challenge', onClick: () => navigate('open_challenge', { waveId: selectedJob?.id || null }) },
     { id: 'pricing', label: copy.pricing, icon: CreditCard, active: navigation.activeLayer === 'pricing', onClick: () => navigate('pricing') },
   ];
+  const visibleLayers = layers;
 
   const nodes: CompanyGalaxyMapNode[] = useMemo(() => {
     const positions: Record<LandingMapLayer, Record<LandingMapLayer, { x: number; y: number }>> = {
-      challenge_map: { challenge_map: { x: 50, y: 14 }, challenge_cluster: { x: 82, y: 28 }, human_detail: { x: 78, y: 78 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 18, y: 32 } },
+      challenge_map: { challenge_map: { x: 50, y: 14 }, challenge_cluster: { x: 82, y: 28 }, human_detail: { x: 78, y: 78 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 16, y: 22 } },
       challenge_cluster: { challenge_map: { x: 18, y: 32 }, challenge_cluster: { x: 50, y: 14 }, human_detail: { x: 80, y: 32 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 78, y: 78 } },
       human_detail: { challenge_map: { x: 18, y: 30 }, challenge_cluster: { x: 80, y: 28 }, human_detail: { x: 50, y: 14 }, open_challenge: { x: 22, y: 78 }, pricing: { x: 78, y: 78 } },
       open_challenge: { challenge_map: { x: 18, y: 30 }, challenge_cluster: { x: 78, y: 28 }, human_detail: { x: 82, y: 78 }, open_challenge: { x: 50, y: 14 }, pricing: { x: 24, y: 78 } },
@@ -448,31 +514,36 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       pricing: { id: 'pricing', label: copy.pricing, secondaryLabel: copy.capacity, narrative: isCsLike ? 'Firma hned vidí, jakou kapacitu potřebuje pro svůj hiring rytmus a růstové ambice.' : 'The team can instantly see what level of capacity fits its hiring pace and growth goals.', count: pricingPlans.length, accent: navigation.activeLayer === 'pricing' ? 'core' : 'muted', tone: 'orange', icon: <CreditCard size={28} /> },
     };
 
-    return (Object.keys(shared) as LandingMapLayer[]).map((id) => ({
+    const primaryNodes = (Object.keys(shared) as LandingMapLayer[])
+      .map((id) => ({
       ...shared[id],
       ...positions[navigation.activeLayer][id],
       active: navigation.activeLayer === id,
-      onClick: () => navigate(
+      onClick: () => (id === 'challenge_map'
+        ? openRootDashboard()
+        : navigate(
         id,
         id === 'human_detail'
           ? { waveId: selectedDialogue?.job_id ? String(selectedDialogue.job_id) : selectedJob?.id || null, dialogueId: selectedDialogue?.id || null }
           : id === 'challenge_cluster' || id === 'open_challenge'
             ? { waveId: selectedJob?.id || null }
             : undefined,
-      ),
+      )),
     }));
-  }, [copy, isCsLike, jobs.length, metrics.activeDialogues, metrics.roles, navigation.activeLayer, pricingPlans.length, selectedDialogue, selectedDossier, selectedJob, visibleDialogues.length]);
+
+    return primaryNodes;
+  }, [copy, isCsLike, jobs.length, metrics.activeDialogues, metrics.roles, navigation.activeLayer, openRootDashboard, pricingPlans.length, selectedDialogue, selectedDossier, selectedJob, visibleDialogues.length]);
 
   const breadcrumbs: CompanyGalaxyMapBreadcrumb[] = navigation.activeLayer === 'challenge_map'
     ? [
         {
           id: 'challenge_map',
           label: copy.challengeMap,
-          onClick: () => navigate('challenge_map'),
+          onClick: openRootMap,
         },
       ]
     : [
-        { id: 'challenge_map', label: copy.challengeMap, onClick: () => navigate('challenge_map') },
+        { id: 'challenge_map', label: copy.challengeMap, onClick: openRootMap },
         {
           id: navigation.activeLayer,
           label: layers.find((layer) => layer.id === navigation.activeLayer)?.label || navigation.activeLayer,
@@ -492,13 +563,26 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       {navigation.activeLayer === 'challenge_map' ? (
         <>
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.whyShell}</div>
-            <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{copy.sameGalaxy}</div>
-            <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{company.philosophy}</p>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Co tím řešíte' : 'What this helps you solve'}
+            </div>
+            <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">
+              {isCsLike ? 'Méně papírově správných kandidátů. Více skutečného porozumění.' : 'Fewer paper-perfect candidates. More real understanding.'}
+            </div>
           </div>
           <div className="grid gap-2">
-            {company.values.map((value) => (
+            {rootPainPoints.map((value) => (
               <div key={value} className="rounded-[18px] border border-white/70 bg-white/82 px-4 py-3 text-sm text-slate-700">{value}</div>
+            ))}
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Co uvidíte místo toho' : 'What you see instead'}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            {rootOutcomes.map((value) => (
+              <div key={value} className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-slate-700">{value}</div>
             ))}
           </div>
         </>
@@ -537,7 +621,23 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     </div>
   ) : null;
   const lowerContent = navigation.activeLayer === 'challenge_map'
-    ? null
+    ? (
+      navigation.rootDashboardOpen ? (
+        <CompanyMapOverviewPanel
+          locale={language}
+          metrics={{ roles: metrics.roles, activeDialogues: metrics.activeDialogues, candidates: metrics.candidates, assessments: metrics.assessments }}
+          jobs={jobs}
+          dialogues={visibleDialogues}
+          activityLog={activityLog}
+          formatDate={formatDate}
+          labelStatus={labelStatus}
+          onOpenWave={openWave}
+          onOpenDialogue={openHumanDetail}
+          onOpenCandidates={() => openHumanDetail(selectedDialogue?.id || 'dialogue-sara', selectedJob?.id || 'demo-platform-engineer')}
+          onOpenAssessments={() => navigate('challenge_cluster', { waveId: selectedJob?.id || null })}
+        />
+      ) : null
+    )
     : navigation.activeLayer === 'challenge_cluster'
     ? (
         <CompanyWaveClusterPanel
@@ -590,13 +690,33 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       title={copy.title}
       subtitle={copy.subtitle}
       center={{
-        name: navigation.activeLayer === 'challenge_map' ? company.name : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.title || company.name) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.candidate_name || selectedDialogue?.candidate_name || company.name) : navigation.activeLayer === 'open_challenge' ? copy.openChallenge : copy.planCapacity,
-        motto: navigation.activeLayer === 'challenge_map' ? company.philosophy : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.challenge || selectedJob?.description || company.philosophy) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.ai_summary?.summary || company.philosophy) : navigation.activeLayer === 'open_challenge' ? brief.challenge : (isCsLike ? 'Kapacita má růst spolu s hiringem, ne ho brzdit.' : 'Capacity should grow with hiring, not hold it back.'),
+        eyebrow: navigation.activeLayer === 'challenge_map'
+          ? copy.companyCore
+          : navigation.activeLayer === 'challenge_cluster'
+            ? (isCsLike ? 'Možný směr' : 'Possible direction')
+            : navigation.activeLayer === 'human_detail'
+              ? (isCsLike ? 'Reálný signál' : 'Real signal')
+              : navigation.activeLayer === 'open_challenge'
+                ? (isCsLike ? 'Zadání' : 'Challenge frame')
+                : copy.pricing,
+        name: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Tady začíná váš hiring' : 'This is where your hiring starts') : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.title || company.name) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.candidate_name || selectedDialogue?.candidate_name || company.name) : navigation.activeLayer === 'open_challenge' ? copy.openChallenge : copy.planCapacity,
+        motto: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Začněte realitou, ne popisem role.' : 'Start with reality, not the job description.') : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.challenge || selectedJob?.description || company.philosophy) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.ai_summary?.summary || company.philosophy) : navigation.activeLayer === 'open_challenge' ? brief.challenge : (isCsLike ? 'Kapacita má růst spolu s hiringem, ne ho brzdit.' : 'Capacity should grow with hiring, not hold it back.'),
         tone: company.tone,
-        statusLine: navigation.activeLayer === 'human_detail' ? labelStatus(selectedDossier?.status || 'pending') : navigation.activeLayer === 'pricing' ? 'Free / Starter / Growth / Professional' : `${metrics.roles} ${isCsLike ? 'aktivní výzvy' : 'active challenges'} / ${metrics.activeDialogues} ${isCsLike ? 'živé konverzace' : 'live conversations'}`,
-        values: company.values,
+        statusLine: navigation.activeLayer === 'challenge_map'
+          ? undefined
+          : navigation.activeLayer === 'human_detail'
+            ? labelStatus(selectedDossier?.status || 'pending')
+            : navigation.activeLayer === 'pricing'
+              ? 'Free / Starter / Growth / Professional'
+              : `${metrics.roles} ${isCsLike ? 'aktivní výzvy' : 'active challenges'} / ${metrics.activeDialogues} ${isCsLike ? 'živé konverzace' : 'live conversations'}`,
+        values: navigation.activeLayer === 'challenge_map' ? company.values.slice(0, 2) : company.values,
+        promptLabel: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Jaký problém u vás právě brzdí hiring?' : 'What problem is slowing your hiring down right now?') : undefined,
+        promptPlaceholder: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Např. dlouhé rozhodování bez jistoty' : 'For example: slow decisions without confidence') : undefined,
+        promptValue: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Dlouhé rozhodování bez jistoty' : 'Slow decisions without confidence') : undefined,
+        promptActionLabel: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Ukázat směr' : 'Show the path') : undefined,
+        onPromptAction: navigation.activeLayer === 'challenge_map' ? (() => navigate('challenge_cluster', { waveId: selectedJob?.id || null })) : undefined,
       }}
-      layers={layers}
+      layers={visibleLayers}
       nodes={nodes}
       workspaceBreadcrumbs={breadcrumbs}
       detailPanel={detailPanel}

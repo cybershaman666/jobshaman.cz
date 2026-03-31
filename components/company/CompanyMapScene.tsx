@@ -12,12 +12,18 @@ interface CompanyMapSceneProps {
   title: string;
   subtitle: string;
   center: {
+    eyebrow?: string;
     name: string;
     motto: string;
     tone?: string;
     logoUrl?: string | null;
     statusLine?: string;
     values?: string[];
+    promptLabel?: string;
+    promptPlaceholder?: string;
+    promptValue?: string;
+    promptActionLabel?: string;
+    onPromptAction?: () => void;
   };
   layers: CompanyGalaxyMapLayer[];
   nodes: CompanyGalaxyMapNode[];
