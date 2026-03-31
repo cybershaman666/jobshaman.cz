@@ -80,6 +80,12 @@ def _strip_accents(text: str) -> str:
     )
 
 
+def _normalize_search_text(text: str) -> str:
+    if not text:
+        return ""
+    return _strip_accents(text.lower())
+
+
 def _normalize_contract_text(value: Optional[str]) -> str:
     if not value:
         return ""
@@ -426,21 +432,23 @@ def _benefits_match(job_benefits, requested: List[str], job_description: Optiona
     if not job_benefits:
         return False
     if isinstance(job_benefits, str):
-        haystack = job_benefits.lower()
+        haystack = _normalize_search_text(job_benefits)
     elif isinstance(job_benefits, list):
-        haystack = " ".join(str(x).lower() for x in job_benefits)
+        haystack = _normalize_search_text(" ".join(str(x) for x in job_benefits))
     else:
-        haystack = str(job_benefits).lower()
-    return all(term in haystack for term in requested)
+        haystack = _normalize_search_text(str(job_benefits))
+
+    normalized_requested = [_normalize_search_text(term) for term in requested if term]
+    return all(term in haystack for term in normalized_requested)
 
 
 def _experience_match(job: Dict, requested: List[str]) -> bool:
     if not requested:
         return True
-    txt = f"{job.get('title') or ''} {job.get('description') or ''}".lower()
+    txt = _normalize_search_text(f"{job.get('title') or ''} {job.get('description') or ''}")
     for level in requested:
-        lvl = level.lower()
-        if lvl in txt:
+        lvl = _normalize_search_text(level)
+        if lvl and lvl in txt:
             return True
         if lvl == "medior" and ("mid" in txt or "middle" in txt):
             return True
@@ -450,9 +458,10 @@ def _experience_match(job: Dict, requested: List[str]) -> bool:
 def _lexical_score(text: str, tokens: List[str]) -> float:
     if not tokens:
         return 0.0
-    haystack = (text or "").lower()
-    hits = sum(1 for token in tokens if token and token in haystack)
-    return min(1.0, hits / max(1, len(tokens)))
+    haystack = _normalize_search_text(text or "")
+    normalized_tokens = [_normalize_search_text(token) for token in tokens if token]
+    hits = sum(1 for token in normalized_tokens if token and token in haystack)
+    return min(1.0, hits / max(1, len(normalized_tokens)))
 
 
 def _normalize_sort_mode(value: Optional[str]) -> str:
@@ -476,7 +485,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     user_lat = filters.get("user_lat")
     user_lng = filters.get("user_lng")
     radius_km = filters.get("radius_km")
-    filter_city = (filters.get("filter_city") or "").strip().lower()
+    filter_city = _normalize_search_text((filters.get("filter_city") or "").strip())
     min_salary = filters.get("filter_min_salary")
     contract_types = set(_normalize_list(filters.get("filter_contract_types")))
     contract_filter_tags = _normalize_contract_filters(list(contract_types)) if contract_types else set()
@@ -542,7 +551,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         cc = (job.get("country_code") or "").lower()
         if exclude_country_codes and cc in exclude_country_codes:
             continue
-        if filter_city and filter_city not in (job.get("location") or "").lower():
+        if filter_city and filter_city not in _normalize_search_text(str(job.get("location") or "")):
             continue
         if contract_filter_tags:
             job_tags = _contract_type_tags(job.get("contract_type") or "")

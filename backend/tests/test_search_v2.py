@@ -86,3 +86,7 @@ def test_hybrid_search_v2_infers_has_more_when_total_count_missing(monkeypatch):
     assert len(result["jobs"]) == 20
     assert result["has_more"] is True
     assert int(result["total_count"]) >= 21
+
+
+def test_lexical_score_is_accent_insensitive():
+    assert serve._lexical_score("Řidič dodávky", ["ridic"]) > 0
