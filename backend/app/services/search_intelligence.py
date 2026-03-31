@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Any, Dict, Optional
@@ -17,6 +19,15 @@ from ..core.runtime_config import get_active_model_config, get_release_flag
 _CACHE_TTL_SECONDS = 900
 _CACHE: dict[str, tuple[datetime, dict[str, Any]]] = {}
 _CACHE_LOCK = Lock()
+
+
+def _normalize_search_term_for_backend(input: str) -> str:
+    """Normalize search term by removing accents and converting to lowercase."""
+    if not input:
+        return ""
+    normalized = unicodedata.normalize("NFD", input)
+    without_accents = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return without_accents.lower().strip()
 
 
 def _is_enabled(subject_id: Optional[str]) -> bool:
@@ -109,10 +120,14 @@ def enrich_search_query(search_term: str, language: str = "cs", subject_id: Opti
         expanded_terms = [str(item).strip() for item in (parsed.get("expanded_terms") or []) if str(item).strip()][:6]
         must_terms = [str(item).strip() for item in (parsed.get("must_terms") or []) if str(item).strip()][:4]
         intent_role = str(parsed.get("intent_role") or "").strip()
+        backend_query_parts = [raw]
+        if normalized_query and normalized_query != raw:
+            backend_query_parts.append(normalized_query)
+        backend_query = " ".join(backend_query_parts)
         payload = {
             "original_query": raw,
             "normalized_query": normalized_query or raw,
-            "backend_query": normalized_query or raw,
+            "backend_query": backend_query,
             "expanded_terms": expanded_terms,
             "must_terms": must_terms,
             "intent_role": intent_role,
@@ -121,10 +136,11 @@ def enrich_search_query(search_term: str, language: str = "cs", subject_id: Opti
             "fallback_used": fallback_used,
         }
     except (AIClientError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        backend_query = raw
         payload = {
             "original_query": raw,
             "normalized_query": raw,
-            "backend_query": raw,
+            "backend_query": backend_query,
             "expanded_terms": [],
             "must_terms": [],
             "intent_role": "",

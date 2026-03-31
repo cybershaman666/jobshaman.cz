@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from ..core.database import supabase
 from ..services.jobs_postgres_store import jobs_postgres_main_enabled, query_jobs_for_hybrid_search
 from ..services.job_intelligence import refresh_job_intelligence
+from ..services.search_intelligence import _normalize_search_term_for_backend
 from ..core.runtime_config import (
     get_active_action_prediction_model,
     get_active_model_config,
@@ -93,6 +94,12 @@ def _strip_accents(text: str) -> str:
     return "".join(
         ch for ch in unicodedata.normalize("NFD", text) if unicodedata.category(ch) != "Mn"
     )
+
+
+def _normalize_search_text(text: str) -> str:
+    if not text:
+        return ""
+    return _strip_accents(text.lower())
 
 
 def _normalize_contract_text(value: Optional[str]) -> str:
@@ -500,10 +507,10 @@ def _benefits_match(job_benefits, requested: List[str], job_description: Optiona
 def _experience_match(job: Dict, requested: List[str]) -> bool:
     if not requested:
         return True
-    txt = f"{job.get('title') or ''} {job.get('description') or ''}".lower()
+    txt = _normalize_search_text(f"{job.get('title') or ''} {job.get('description') or ''}")
     for level in requested:
-        lvl = level.lower()
-        if lvl in txt:
+        lvl = _normalize_search_text(level)
+        if lvl and lvl in txt:
             return True
         if lvl == "medior" and ("mid" in txt or "middle" in txt):
             return True
@@ -513,9 +520,10 @@ def _experience_match(job: Dict, requested: List[str]) -> bool:
 def _lexical_score(text: str, tokens: List[str]) -> float:
     if not tokens:
         return 0.0
-    haystack = (text or "").lower()
-    hits = sum(1 for token in tokens if token and token in haystack)
-    return min(1.0, hits / max(1, len(tokens)))
+    haystack = _normalize_search_text(text or "")
+    normalized_tokens = [_normalize_search_text(token) for token in tokens if token]
+    hits = sum(1 for token in normalized_tokens if token and token in haystack)
+    return min(1.0, hits / max(1, len(normalized_tokens)))
 
 
 def _normalize_sort_mode(value: Optional[str]) -> str:
@@ -562,7 +570,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     user_lng = filters.get("user_lng")
     radius_km = filters.get("radius_km")
     challenge_format = str(filters.get("filter_challenge_format") or "").strip().lower()
-    filter_city = (filters.get("filter_city") or "").strip().lower()
+    filter_city = _normalize_search_text((filters.get("filter_city") or "").strip())
     min_salary = filters.get("filter_min_salary")
     contract_types = set(_normalize_list(filters.get("filter_contract_types")))
     contract_filter_tags = _normalize_contract_filters(list(contract_types)) if contract_types else set()
@@ -653,7 +661,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         cc = (job.get("country_code") or "").lower()
         if exclude_country_codes and cc in exclude_country_codes:
             continue
-        if filter_city and filter_city not in (job.get("location") or "").lower():
+        if filter_city and filter_city not in _normalize_search_text(str(job.get("location") or "")):
             continue
         if contract_filter_tags:
             job_tags = _contract_type_tags(job.get("contract_type") or "")

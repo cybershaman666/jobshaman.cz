@@ -1939,6 +1939,7 @@ export const fetchJobsWithFilters = async (
     const safeRawSearchTerm = rawSearchTermNormalized.length < 2 ? '' : rawSearchTermNormalized;
     const normalizedSearchTerm = normalizeBackendSearchTerm(rawSearchTermNormalized);
     const safeSearchTerm = normalizedSearchTerm.length < 2 ? safeRawSearchTerm : normalizedSearchTerm;
+    const effectiveBackendSearchTerm = safeRawSearchTerm;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     let finalUserLat = userLat;
     let finalUserLng = userLng;
@@ -2373,7 +2374,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const requestPayloadBase = {
-            search_term: safeSearchTerm,
+            search_term: effectiveBackendSearchTerm,
             page,
             page_size: safeBackendPageSize,
             user_lat: finalUserLat ?? null,
