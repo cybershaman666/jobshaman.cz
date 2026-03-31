@@ -1939,11 +1939,6 @@ export const fetchJobsWithFilters = async (
     const safeRawSearchTerm = rawSearchTermNormalized.length < 2 ? '' : rawSearchTermNormalized;
     const normalizedSearchTerm = normalizeBackendSearchTerm(rawSearchTermNormalized);
     const safeSearchTerm = normalizedSearchTerm.length < 2 ? safeRawSearchTerm : normalizedSearchTerm;
-    const backendSearchTerm = [rawSearchTermNormalized, normalizedSearchTerm]
-        .filter((v) => typeof v === 'string' && v.trim().length > 0)
-        .map((v) => v.trim())
-        .join(' ')
-        .trim();
     const effectiveBackendSearchTerm = safeRawSearchTerm;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     let finalUserLat = userLat;
