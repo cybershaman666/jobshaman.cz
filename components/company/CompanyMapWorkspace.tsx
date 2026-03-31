@@ -18,11 +18,11 @@ import AssessmentCreator from '../AssessmentCreator';
 import AssessmentInvitationModal from '../AssessmentInvitationModal';
 import AssessmentResultsList from '../AssessmentResultsList';
 import ApplicationMessageCenter from '../ApplicationMessageCenter';
-import CompanyGalaxyMapShell, {
+import CompanyMapScene, {
   type CompanyGalaxyMapBreadcrumb,
   type CompanyGalaxyMapLayer,
   type CompanyGalaxyMapNode,
-} from './CompanyGalaxyMapShell';
+} from './CompanyMapScene';
 import CompanyBrandCorePanel from './map/CompanyBrandCorePanel';
 import CompanyHumanDetailPanel from './map/CompanyHumanDetailPanel';
 import CompanyOpenWaveLayer from './map/CompanyOpenWaveLayer';
@@ -784,8 +784,7 @@ const CompanyMapWorkspace: React.FC<Props> = ({
 
   return (
     <>
-      <CompanyGalaxyMapShell
-        mode="workspace"
+      <CompanyMapScene
         locale={language}
         kicker={text({ cs: 'Firemní galaxy mapa', sk: 'Firemná galaxy mapa', en: 'Company galaxy map', de: 'Unternehmens-Galaxiekarte', pl: 'Galaktyczna mapa firmy' })}
         title={text({ cs: 'Dashboard -> Výzvy -> Human Detail -> Zadat výzvu', sk: 'Dashboard -> Výzvy -> Human Detail -> Zadať výzvu', en: 'Dashboard -> Challenges -> Human Detail -> Open Challenge', de: 'Dashboard -> Challenges -> Human Detail -> Challenge öffnen', pl: 'Dashboard -> Wyzwania -> Human Detail -> Otwórz wyzwanie' })}
