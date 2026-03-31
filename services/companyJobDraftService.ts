@@ -36,6 +36,9 @@ export type RoleLifecycleUpdateResult = JobLifecycleUpdateResult;
 export interface JobDraftUpsertInput {
     status?: JobDraft['status'];
     title?: string;
+    first_reply_prompt?: string;
+    company_truth_hard?: string;
+    company_truth_fail?: string;
     role_summary?: string;
     team_intro?: string;
     responsibilities?: string;

@@ -9,11 +9,21 @@ export const useCompanyDashboardNavigation = () => {
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab');
-      if (tab === 'dialogues') {
+      const tab = String(params.get('tab') || '').trim();
+      if (tab === 'dialogues' || tab === 'applications') {
         setActiveTab('applications');
+      } else if (tab === 'jobs' || tab === 'open_wave' || tab === 'open_challenge') {
+        setActiveTab('jobs');
+      } else if (tab === 'candidates') {
+        setActiveTab('candidates');
+      } else if (tab === 'settings' || tab === 'dna') {
+        setActiveTab('settings');
       } else if (tab === 'assessments') {
         setActiveTab('assessments');
+      } else if (tab === 'learning_resources' || tab === 'learning') {
+        setActiveTab('learning_resources');
+      } else if (tab === 'overview' || tab === 'problem_map') {
+        setActiveTab('overview');
       }
     } catch {
       // no-op

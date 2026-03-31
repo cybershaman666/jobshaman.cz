@@ -62,6 +62,8 @@ interface CompanyJobEditorProps {
   userEmail?: string;
   seedJobId?: string | null;
   createDraftSignal?: number;
+  draftSeedPayload?: Partial<JobDraft> | null;
+  onDraftSeedConsumed?: () => void;
   onSeedConsumed?: () => void;
   onJobLifecycleChange?: (
     jobId: string | number,
@@ -591,6 +593,33 @@ const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Pa
   hiring_stage: DEFAULT_HIRING_STAGE
 });
 
+const mergeDraftSeed = (
+  companyProfile: CompanyProfile,
+  userEmail: string | undefined,
+  seed?: Partial<JobDraft> | null
+): Partial<JobDraft> => {
+  const base = createBaseDraft(companyProfile, userEmail);
+  if (!seed) return base;
+  const baseHandshake = extractHandshakeFields(base);
+  const seedHandshake = extractHandshakeFields(seed);
+  return {
+    ...base,
+    ...seed,
+    editor_state: {
+      ...(base.editor_state || {}),
+      ...((seed.editor_state || {}) as Record<string, unknown>),
+      handshake: {
+        ...baseHandshake,
+        ...seedHandshake,
+      },
+    },
+    company_goal: seed.company_goal ?? seedHandshake.company_goal ?? base.company_goal,
+    first_reply_prompt: seed.first_reply_prompt ?? seedHandshake.first_reply_prompt ?? base.first_reply_prompt,
+    company_truth_hard: seed.company_truth_hard ?? seedHandshake.company_truth_hard ?? base.company_truth_hard,
+    company_truth_fail: seed.company_truth_fail ?? seedHandshake.company_truth_fail ?? base.company_truth_fail,
+  };
+};
+
 const createLocalValidationReport = (
   draft: JobDraft,
   messages: LocalValidationMessages = DEFAULT_LOCAL_VALIDATION_MESSAGES
@@ -761,6 +790,8 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   userEmail,
   seedJobId,
   createDraftSignal = 0,
+  draftSeedPayload,
+  onDraftSeedConsumed,
   onSeedConsumed,
   onJobLifecycleChange
 }) => {
@@ -1032,26 +1063,27 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     }, 2500);
   };
 
-  const handleCreateDraft = async () => {
+  const handleCreateDraft = async (seed?: Partial<JobDraft> | null) => {
     setErrorMessage(null);
     setStatusMessage(null);
     setSaving(true);
+    const draftInput = mergeDraftSeed(companyProfile, userEmail, seed);
     try {
       if (usesLocalFallback) {
-        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail));
+        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail, draftInput));
         updateDraft(created);
         flashDraftHighlight(created.id);
         setStatusMessage(t('company.job_editor.feedback.draft_created_local', { defaultValue: 'Draft created in local compatibility mode.' }));
         return;
       }
-      const created = normalizeDraft(await createCompanyJobDraft(createBaseDraft(companyProfile, userEmail)));
+      const created = normalizeDraft(await createCompanyJobDraft(draftInput));
       updateDraft(created);
       flashDraftHighlight(created.id);
       setStatusMessage(t('company.job_editor.feedback.draft_created', { defaultValue: 'Draft created. You can save partial progress at any time.' }));
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setUsesLocalFallback(true);
-        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail));
+        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail, draftInput));
         updateDraft(created);
         flashDraftHighlight(created.id);
         setStatusMessage(t('company.job_editor.feedback.draft_created_local_fallback', { defaultValue: 'Draft API is not available here yet. Created a local compatibility draft instead.' }));
@@ -1067,8 +1099,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   useEffect(() => {
     if (!createDraftSignal || createDraftSignal === lastHandledCreateDraftSignal.current) return;
     lastHandledCreateDraftSignal.current = createDraftSignal;
-    void handleCreateDraft();
-  }, [createDraftSignal]);
+    void handleCreateDraft(draftSeedPayload);
+    onDraftSeedConsumed?.();
+  }, [createDraftSignal, draftSeedPayload, onDraftSeedConsumed]);
 
   useEffect(() => {
     return () => {
@@ -1555,7 +1588,9 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               ) : null}
             </div>
             <button
-              onClick={handleCreateDraft}
+              onClick={() => {
+                void handleCreateDraft();
+              }}
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_14px_26px_-18px_rgba(15,23,42,0.9)] hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
             >

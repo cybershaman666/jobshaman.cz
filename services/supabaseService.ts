@@ -292,25 +292,32 @@ const fetchCompanyMemberRows = async (companyId: string): Promise<Record<string,
     try {
         const { data, error } = await supabase
             .from('company_members')
-            .select('id,user_id,role,invited_at,created_at,is_active')
+            .select('id,user_id,role,invited_at')
             .eq('company_id', companyId)
             .order('invited_at', { ascending: true });
         if (error) {
+            const missingCreatedAt = String(error?.message || '').toLowerCase().includes('created_at');
             const missingIsActive = String(error?.message || '').toLowerCase().includes('is_active');
-            if (!missingIsActive) {
+            if (!missingIsActive && !missingCreatedAt) {
                 console.warn('Company members fetch error:', error);
                 return [];
             }
-            const fallback = await supabase
-                .from('company_members')
-                .select('id,user_id,role,invited_at,created_at')
-                .eq('company_id', companyId)
-                .order('invited_at', { ascending: true });
-            if (fallback.error) {
-                console.warn('Company members fallback fetch error:', fallback.error);
-                return [];
+            const fallbackSelections = ['id,user_id,role,invited_at'];
+            for (const selection of fallbackSelections) {
+                const fallback = await supabase
+                    .from('company_members')
+                    .select(selection)
+                    .eq('company_id', companyId)
+                    .order('invited_at', { ascending: true });
+                if (fallback.error) {
+                    continue;
+                }
+                return Array.isArray(fallback.data)
+                    ? fallback.data.filter((row: any) => row?.is_active !== false)
+                    : [];
             }
-            return Array.isArray(fallback.data) ? fallback.data : [];
+            console.warn('Company members fallback fetch error:', error);
+            return [];
         }
         return Array.isArray(data) ? data.filter((row: any) => row?.is_active !== false) : [];
     } catch (error) {
@@ -1890,16 +1897,18 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
 
         const userId = existingUser?.id;
 
+        const insertPayload = {
+            company_id: companyId,
+            user_id: userId || null,
+            role: 'recruiter',
+            invited_by: invitedBy,
+            invited_at: new Date().toISOString()
+        };
+
         const { data, error } = await supabase
             .from('company_members')
-            .insert({
-                company_id: companyId,
-                user_id: userId || null,
-                role: 'recruiter',
-                invited_by: invitedBy,
-                invited_at: new Date().toISOString()
-            })
-            .select('id,user_id,role,invited_at,created_at')
+            .insert(insertPayload)
+            .select('id,user_id,role,invited_at')
             .single();
             
         if (error) {
@@ -1954,21 +1963,10 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
 };
 
 export const uploadCompanyLogo = async (companyId: string, file: File): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!companyId) throw new Error("Missing company id");
 
-    const sanitizedName = sanitizeFileName(file.name);
-    const fileName = `${companyId}/${Date.now()}-${sanitizedName}`;
-    const { error } = await supabase.storage
-        .from('logo')
-        .upload(fileName, file);
-
-    if (error) throw error;
-
-    const { data: { publicUrl } } = supabase.storage
-        .from('logo')
-        .getPublicUrl(fileName);
-
-    return publicUrl;
+    const asset = await uploadExternalAsset(file, 'attachment');
+    return asset.url;
 };
 
 export const updateCompanyProfile = async (companyId: string, updates: Partial<Record<string, any>>) => {

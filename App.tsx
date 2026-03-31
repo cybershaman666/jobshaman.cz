@@ -79,6 +79,7 @@ const CandidateOnboardingModal = lazy(() => import('./components/CandidateOnboar
 const CompanyRegistrationModal = lazy(() => import('./components/CompanyRegistrationModal'));
 const ApplicationModal = lazy(() => import('./components/ApplicationModal'));
 const PremiumUpgradeModal = lazy(() => import('./components/PremiumUpgradeModal'));
+const CompanyPricingModal = lazy(() => import('./components/CompanyPricingModal'));
 const CompanyOnboarding = lazy(() => import('./components/CompanyOnboarding'));
 const ApplyFollowupModal = lazy(() => import('./components/ApplyFollowupModal'));
 const CookieBanner = lazy(() => import('./components/CookieBanner'));
@@ -985,6 +986,15 @@ export default function App() {
         setViewState(ViewState.COMPANY_DASHBOARD);
     }, [viewState, userProfile.isLoggedIn, userProfile.role, companyProfile?.id, companyProfile?.industry, setViewState]);
 
+    useEffect(() => {
+        if (!showCompanyLanding) return;
+        if (!userProfile.isLoggedIn || userProfile.role !== 'recruiter') return;
+        if (!companyProfile?.id) return;
+        if (viewState !== ViewState.COMPANY_DASHBOARD) {
+            setViewState(ViewState.COMPANY_DASHBOARD);
+        }
+    }, [showCompanyLanding, userProfile.isLoggedIn, userProfile.role, companyProfile?.id, viewState, setViewState]);
+
     const refreshUserProfile = async () => {
         try {
             if (!supabase) return;
@@ -1783,6 +1793,7 @@ export default function App() {
     }, [jobsForDisplay, selectedCompanyId, selectedJob, selectedJobId, setDirectlyFetchedJob, setSelectedBlogPostSlug, setSelectedCompanyId, setSelectedJobId, usePageScrollLayout, viewState]);
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
+    const [showCompanyPricing, setShowCompanyPricing] = useState(false);
 
     const handleCompanyPageSelect = useCallback((companyId: string | null) => {
         setSelectedCompanyId(companyId);
@@ -1957,6 +1968,13 @@ export default function App() {
         && !selectedCompanyId
         && !isBlogOpen
         && !showCompanyLanding;
+    const isPrimaryCompanyWorkspace =
+        !isImmersiveAssessmentRoute
+        && !isStandaloneRoute
+        && (
+            viewState === ViewState.COMPANY_DASHBOARD
+            || (showCompanyLanding && userProfile.role === 'recruiter' && !!companyProfile)
+        );
 
     const sessionSceneState = useMemo(() => ({
         viewState,
@@ -2046,6 +2064,8 @@ export default function App() {
 
     const sceneActions = useMemo(() => ({
         onDeleteAccount: deleteAccount,
+        onOpenPremium: (featureLabel?: string) => setShowPremiumUpgrade({ open: true, feature: featureLabel }),
+        onOpenCompanyPricing: () => setShowCompanyPricing(true),
         onSignOut: signOut,
         onSetCompanyProfile: setCompanyProfile,
         onSetViewState: setViewState,
@@ -2269,6 +2289,14 @@ export default function App() {
             </Suspense>
 
             <Suspense fallback={null}>
+                <CompanyPricingModal
+                    open={showCompanyPricing}
+                    onClose={() => setShowCompanyPricing(false)}
+                    companyProfile={companyProfile}
+                />
+            </Suspense>
+
+            <Suspense fallback={null}>
                 <PremiumUpgradeModal
                     show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}
                     onClose={() => setShowPremiumUpgrade({ open: false })}
@@ -2367,18 +2395,18 @@ export default function App() {
     return (
         <AppViewportShell
             isImmersive={isImmersiveAssessmentRoute}
-            usePageScrollLayout={isPrimaryCareerOSHome ? false : (usePageScrollLayout || isStandaloneRoute)}
+            usePageScrollLayout={isPrimaryCareerOSHome || isPrimaryCompanyWorkspace ? false : (usePageScrollLayout || isStandaloneRoute)}
             header={headerNode}
-            banner={isPrimaryCareerOSHome || isStandaloneRoute ? null : bannerNode}
+            banner={isPrimaryCareerOSHome || isPrimaryCompanyWorkspace || isStandaloneRoute ? null : bannerNode}
             scene={standalonePageNode ?? sceneNode}
             footer={
-                !isImmersiveAssessmentRoute && !isPrimaryCareerOSHome ? (
+                !isImmersiveAssessmentRoute && !isPrimaryCareerOSHome && !isPrimaryCompanyWorkspace ? (
                     <Suspense fallback={null}>
                         <SiteFooter />
                     </Suspense>
                 ) : null
             }
-            floatingAction={isPrimaryCareerOSHome ? null : floatingActionNode}
+            floatingAction={isPrimaryCareerOSHome || isPrimaryCompanyWorkspace ? null : floatingActionNode}
             overlays={overlayNodes}
         />
     );

@@ -72,6 +72,8 @@ export interface DiscoverySceneState {
 
 export interface SceneActions {
     onDeleteAccount: () => Promise<boolean>;
+    onOpenPremium: (featureLabel?: string) => void;
+    onOpenCompanyPricing: () => void;
     onSignOut: () => Promise<void>;
     onSetCompanyProfile: (profile: CompanyProfile | null) => void;
     onSetViewState: (state: ViewState) => void;
@@ -384,9 +386,31 @@ const AppSceneRouter = memo(function AppSceneRouter({
             </div>
         );
     }
+    if (showCompanyLanding && userProfile.role === 'recruiter' && companyProfile) {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+                <CompanyDashboard
+                    companyProfile={companyProfile}
+                    userEmail={userProfile.email}
+                    onDeleteAccount={onDeleteAccount}
+                    onProfileUpdate={onSetCompanyProfile}
+                    onOpenCompanyPricing={sceneActions.onOpenCompanyPricing}
+                />
+            </div>
+        );
+    }
+    if (showCompanyLanding && userProfile.role === 'recruiter' && !companyProfile) {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+                <div className="flex h-full items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+                </div>
+            </div>
+        );
+    }
     if (showCompanyLanding) {
         return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                 <CompanyLandingPage
                     onRegister={() => onSetCompanyRegistrationOpen(true)}
                     onRequestDemo={() => {
@@ -407,12 +431,13 @@ const AppSceneRouter = memo(function AppSceneRouter({
             return null;
         }
         return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                 <CompanyDashboard
                     companyProfile={companyProfile}
                     userEmail={userProfile.email}
                     onDeleteAccount={onDeleteAccount}
                     onProfileUpdate={onSetCompanyProfile}
+                    onOpenCompanyPricing={sceneActions.onOpenCompanyPricing}
                 />
             </div>
         );

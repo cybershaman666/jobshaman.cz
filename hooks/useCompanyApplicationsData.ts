@@ -78,14 +78,14 @@ export const useCompanyDialoguesData = ({
   };
 
   useEffect(() => {
-    if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview')) return;
+    if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview' && activeTab !== 'problem_map')) return;
     void refreshDialogues({
       jobId: activeTab === 'applications' ? (selectedJobId || undefined) : undefined
     });
   }, [companyId, activeTab, selectedJobId]);
 
   useEffect(() => {
-    if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview')) return;
+    if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview' && activeTab !== 'problem_map')) return;
 
     const refreshVisibleDialogues = () => {
       void refreshDialogues({

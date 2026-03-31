@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   Clock3,
   Coins,
   Dog,
@@ -38,6 +37,13 @@ import { listProfileMiniChallenges } from '../../services/profileMiniChallengeSe
 import { getMainDatabaseJobCount } from '../../services/jobService';
 import { cn } from '../ui/primitives';
 import TransportModeSelector from '../TransportModeSelector';
+import {
+  GalaxyClusterNode,
+  GalaxyNeuralCircuitTexture as NeuralCircuitTexture,
+  GalaxyStageBackground as StageBackground,
+  galaxyShellPanelClass as shellPanel,
+} from '../galaxy/GalaxyShellPrimitives';
+import { GalaxyCanvasControls, GalaxyLayerSidebar } from '../galaxy/GalaxyWorkspaceChrome';
 import { resolveJobDomain } from '../../utils/domainAccents';
 import {
   buildCareerNavigationGoalFromAlternative,
@@ -238,12 +244,18 @@ interface MarketTrendAnalysis {
   narratives: MarketTrendNarrative[];
 }
 
-const shellPanel =
-  'border border-slate-200/70 bg-white/78 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/62 dark:shadow-[0_22px_58px_-36px_rgba(2,6,23,0.7)]';
-
 const filterChipInactiveClass =
   'border border-white/60 bg-white/60 text-slate-700 backdrop-blur-xl hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900/80 dark:hover:text-cyan-200';
 
+const clampZoom = (value: number): number => Math.max(0.72, Math.min(1.6, Number(value.toFixed(2))));
+
+const stepZoom = (
+  setZoom: React.Dispatch<React.SetStateAction<number>>,
+  direction: 'in' | 'out',
+): void => {
+  const delta = direction === 'in' ? 0.08 : -0.08;
+  setZoom((current) => clampZoom(current + delta));
+};
 
 const toneClasses = {
   emerald: {
@@ -1693,186 +1705,6 @@ const hasCareerPathProfileSignal = (userProfile: UserProfile): boolean => {
   );
 };
 
-const NeuralCircuitTexture: React.FC<{
-  accent?: 'emerald' | 'blue';
-  className?: string;
-  masked?: boolean;
-}> = ({ accent = 'emerald', className, masked = false }) => {
-  const accentStroke = accent === 'blue' ? '#60a5fa' : '#10b981';
-
-  return (
-    <div
-      className={cn('pointer-events-none absolute -inset-[12%] overflow-hidden', className)}
-      style={masked ? {
-        maskImage: 'radial-gradient(circle at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.94) 52%, rgba(0,0,0,0.42) 82%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(circle at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.94) 52%, rgba(0,0,0,0.42) 82%, transparent 100%)',
-      } : undefined}
-    >
-      <svg className="h-full w-full opacity-[0.3]" viewBox="0 0 1440 1024" preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <defs>
-          <filter id={`careeros-neural-glow-${accent}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <g fill="none" strokeLinecap="round" strokeLinejoin="round" filter={`url(#careeros-neural-glow-${accent})`}>
-          <path d="M82 180C210 210 252 296 346 318C446 342 504 232 622 236C758 240 800 392 936 404C1046 414 1128 326 1246 338C1318 346 1376 398 1416 452" stroke={accentStroke} strokeWidth="1.55" strokeDasharray="3 12" />
-          <path d="M34 742C130 704 222 612 318 624C430 638 476 804 596 810C716 816 776 650 900 642C1034 632 1100 760 1236 756C1320 754 1382 720 1420 684" stroke="#3b82f6" strokeWidth="1.45" strokeDasharray="4 14" />
-          <path d="M224 78C286 128 292 222 358 270C442 330 578 314 656 378C736 444 748 594 838 648C948 714 1126 672 1214 752" stroke="#f59e0b" strokeWidth="1.25" strokeDasharray="2 10" opacity="0.74" />
-          <path d="M1048 72C976 154 1012 292 936 370C860 448 716 438 640 516C568 590 572 738 492 806C422 866 302 888 234 950" stroke={accentStroke} strokeWidth="1.25" strokeDasharray="3 11" opacity="0.7" />
-          <path d="M128 496C240 458 308 364 420 374C544 386 602 560 736 572C868 584 942 448 1086 458C1210 466 1324 560 1416 612" stroke="#0f766e" strokeWidth="1.1" strokeDasharray="5 15" opacity="0.52" />
-          <path d="M116 876C194 804 226 712 316 694C424 672 540 776 646 748C762 718 798 556 918 526C1040 494 1174 596 1288 574" stroke="#38bdf8" strokeWidth="1.1" strokeDasharray="4 13" opacity="0.48" />
-
-          <path d="M356 318H508L566 236H684" stroke="#94a3b8" strokeWidth="0.95" opacity="0.5" />
-          <path d="M900 642H1016L1084 756H1216" stroke="#94a3b8" strokeWidth="0.95" opacity="0.5" />
-          <path d="M838 648V564L936 404H1082" stroke="#94a3b8" strokeWidth="0.95" opacity="0.46" />
-          <path d="M318 624V548L358 270H468" stroke="#94a3b8" strokeWidth="0.95" opacity="0.46" />
-          <path d="M646 748V664L736 572H882" stroke="#94a3b8" strokeWidth="0.9" opacity="0.38" />
-          <path d="M420 374V290L508 318H632" stroke="#94a3b8" strokeWidth="0.9" opacity="0.38" />
-        </g>
-
-        <g>
-          {[
-            [356, 318],
-            [566, 236],
-            [936, 404],
-            [318, 624],
-            [838, 648],
-            [1216, 756],
-            [234, 950],
-            [1048, 72],
-            [508, 318],
-            [1016, 642],
-            [736, 572],
-            [646, 748],
-            [420, 374],
-            [1288, 574],
-          ].map(([cx, cy], index) => (
-            <g key={`${cx}-${cy}-${index}`}>
-              <circle cx={cx} cy={cy} r="17" fill="white" opacity="0.72" />
-              <circle cx={cx} cy={cy} r="7" fill={index % 3 === 0 ? accentStroke : index % 3 === 1 ? '#3b82f6' : '#f59e0b'} opacity="0.68" />
-              <circle cx={cx} cy={cy} r="2.5" fill="white" opacity="0.95" />
-            </g>
-          ))}
-        </g>
-      </svg>
-    </div>
-  );
-};
-
-const StageBackground: React.FC<{ accent?: 'emerald' | 'blue' }> = ({ accent = 'emerald' }) => (
-  <>
-    <style>
-      {`
-        @keyframes careeros-dash-flow {
-          from { stroke-dashoffset: 96; }
-          to { stroke-dashoffset: 0; }
-        }
-
-        @keyframes careeros-node-float {
-          0% {
-            transform: translate3d(calc(var(--careeros-float-x, 0px) * -0.3), calc(var(--careeros-float-y, 0px) * -0.22), 0);
-          }
-          50% {
-            transform: translate3d(var(--careeros-float-x, 0px), var(--careeros-float-y, 0px), 0);
-          }
-          100% {
-            transform: translate3d(calc(var(--careeros-float-x, 0px) * -0.48), calc(var(--careeros-float-y, 0px) * -0.38), 0);
-          }
-        }
-
-        @keyframes careeros-soft-breathe {
-          0%, 100% {
-            opacity: 0.42;
-            transform: scale3d(0.985, 0.985, 1);
-          }
-          50% {
-            opacity: 0.52;
-            transform: scale3d(1.015, 1.015, 1);
-          }
-        }
-
-        @keyframes careeros-ring-breathe {
-          0%, 100% {
-            opacity: 0.84;
-            transform: scale3d(0.992, 0.992, 1);
-          }
-          50% {
-            opacity: 0.96;
-            transform: scale3d(1.012, 1.012, 1);
-          }
-        }
-
-        @keyframes careeros-route-pulse {
-          0%, 100% {
-            opacity: 0.72;
-            transform: scale3d(0.96, 0.96, 1);
-          }
-          50% {
-            opacity: 1;
-            transform: scale3d(1.04, 1.04, 1);
-          }
-        }
-      `}
-    </style>
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.08),transparent_28%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#f7fafc_52%,#f5f8fb_100%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.08),transparent_26%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]" />
-    <NeuralCircuitTexture accent={accent} masked className="opacity-[0.74]" />
-    <div className="pointer-events-none absolute left-[14%] top-[8%] h-[520px] w-[520px] rounded-full bg-emerald-400/8 blur-[140px]" />
-    <div className="pointer-events-none absolute bottom-[4%] right-[8%] h-[620px] w-[620px] rounded-full bg-blue-400/8 blur-[165px]" />
-    <div className="pointer-events-none absolute right-[24%] top-[34%] h-[420px] w-[420px] rounded-full bg-orange-400/8 blur-[120px]" />
-
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
-      <svg className="h-full w-full" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <filter id={`careeros-soft-glow-${accent}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="8" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <g transform="translate(500, 500)" filter={`url(#careeros-soft-glow-${accent})`}>
-          <circle
-            cx="0"
-            cy="0"
-            r="150"
-            fill="none"
-            stroke={accent === 'blue' ? '#60a5fa' : '#10b981'}
-            strokeWidth="0.5"
-            strokeDasharray="4 12"
-            className="animate-[spin_60s_linear_infinite]"
-          />
-          <circle
-            cx="0"
-            cy="0"
-            r="280"
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="0.5"
-            strokeDasharray="8 24"
-            className="animate-[spin_90s_linear_infinite_reverse]"
-          />
-          <circle
-            cx="0"
-            cy="0"
-            r="450"
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="0.5"
-            strokeDasharray="12 36"
-            className="animate-[spin_120s_linear_infinite]"
-          />
-        </g>
-      </svg>
-    </div>
-  </>
-);
-
 const NodeImage: React.FC<{
   src: string | null;
   alt: string;
@@ -1904,50 +1736,6 @@ const curatedBenefitOptions: Array<{ key: string; label: string; icon: React.Rea
   { key: 'meal_allowance', label: 'Meal allowance', icon: <UtensilsCrossed className="h-3.5 w-3.5" /> },
   { key: 'health_care', label: 'Health care', icon: <HeartPulse className="h-3.5 w-3.5" /> },
 ];
-
-const clampZoom = (value: number): number => Math.max(0.72, Math.min(1.6, Number(value.toFixed(2))));
-
-const stepZoom = (
-  setZoom: React.Dispatch<React.SetStateAction<number>>,
-  direction: 'in' | 'out',
-): void => {
-  const delta = direction === 'in' ? 0.08 : -0.08;
-  setZoom((current) => clampZoom(current + delta));
-};
-
-const CanvasControls: React.FC<{
-  zoom: number;
-  setZoom: React.Dispatch<React.SetStateAction<number>>;
-  className?: string;
-}> = ({ zoom, setZoom, className }) => (
-  <div className={cn('rounded-[20px] border border-slate-200/90 bg-white/94 p-2.5 shadow-[0_20px_48px_-30px_rgba(15,23,42,0.4)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/86 dark:shadow-[0_20px_48px_-30px_rgba(2,6,23,0.72)]', className)}>
-    <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Zoom</div>
-    <div className="mt-1.5 flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={() => stepZoom(setZoom, 'out')}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-base font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-      >
-        -
-      </button>
-      <div className="min-w-[56px] text-center text-xs font-semibold text-slate-700 dark:text-slate-200">{Math.round(zoom * 100)}%</div>
-      <button
-        type="button"
-        onClick={() => stepZoom(setZoom, 'in')}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-base font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-      >
-        +
-      </button>
-    </div>
-    <button
-      type="button"
-      onClick={() => setZoom(1)}
-      className="mt-1.5 w-full rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-    >
-      Reset
-    </button>
-  </div>
-);
 
 export const SearchCockpit: React.FC<{
   open: boolean;
@@ -2726,85 +2514,6 @@ const DomainRemapPanel: React.FC<{
 
 const Navbar: React.FC<any> = () => null;
 
-const Sidebar: React.FC<{
-  activeLayer: CareerOSLayer;
-  collapsed: boolean;
-  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  onNavigate: (layer: CareerOSLayer) => void;
-}> = ({
-  activeLayer,
-  collapsed,
-  setCollapsed,
-  onNavigate,
-}) => {
-  const { t, i18n } = useTranslation();
-  const locale = String(i18n.resolvedLanguage || i18n.language || 'en');
-  const sidebarCopy = getCareerOSSidebarCopy(locale);
-  const sidebarTitle = t('careeros.sidebar.title', { defaultValue: sidebarCopy.title });
-  return (
-    <aside
-      className={cn(
-        shellPanel,
-        'max-h-[calc(100vh-3rem)] overflow-y-auto rounded-[26px] p-4',
-        collapsed ? 'w-24' : 'w-72',
-      )}
-    >
-      <div className="mb-2 flex items-center justify-between px-2 py-2">
-        {!collapsed ? (
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{sidebarTitle}</h3>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => setCollapsed((current) => !current)}
-          className={cn('text-slate-400 transition-transform hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300', collapsed ? 'rotate-90' : '-rotate-90')}
-        >
-          <ChevronUp className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        {sidebarLayers.map((layer) => {
-          const Icon = layer.icon;
-          const active = layer.id === 'career_path' ? activeLayer === 'career_path' || activeLayer === 'job_offers' : activeLayer === layer.id;
-
-          return (
-            <button
-              key={layer.id}
-              type="button"
-              onClick={() => onNavigate(layer.id)}
-              className={cn(
-                'flex items-center gap-3 rounded-xl py-3 font-medium transition-all',
-                collapsed ? 'justify-center px-0' : 'px-4',
-                active ? 'border border-slate-200 bg-white text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100' : 'border border-transparent text-slate-500 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-slate-900/50',
-              )}
-            >
-              <div
-                className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                  active ? 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950/60 dark:text-cyan-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </div>
-              {!collapsed ? (
-                <div className="min-w-0 text-left whitespace-nowrap text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {getCareerOSLayerLabel(t, layer.id, locale)}
-                </div>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {!collapsed ? (
-        <></>
-      ) : null}
-    </aside>
-  );
-};
-
 const CareerPathStage: React.FC<{
   userLabel: string;
   headline: string;
@@ -3219,7 +2928,6 @@ const CareerPathStage: React.FC<{
 
             <AnimatePresence>
           {nodes.map((node, index) => {
-            const tone = toneClasses[node.tone];
             const active = selectedPathId === node.id;
             const strong = node.gravity === 'strong';
             const elevated = strong || hoveredPathId === node.id || active;
@@ -3253,88 +2961,31 @@ const CareerPathStage: React.FC<{
                   }}
                 >
                   <div className="relative flex flex-col items-center" style={driftStyle}>
-                    <button
-                      type="button"
+                    <GalaxyClusterNode
+                      title={node.title}
+                      eyebrow={t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
+                      subtitle={node.subtitle}
+                      description={compactText(node.preview || node.summary, elevated ? 84 : 64)}
+                      count={node.challengeCount}
+                      active={active}
+                      elevated={elevated || attracted}
+                      tone={node.tone === 'emerald' ? 'emerald' : 'orange'}
                       onClick={() => onNodeClick(node)}
                       onMouseEnter={() => interactive && setHoveredPathId(node.id)}
                       onMouseLeave={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
                       onFocus={() => interactive && setHoveredPathId(node.id)}
                       onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
                       disabled={!interactive}
-                      className={cn(
-                        'group relative flex flex-col items-center justify-start rounded-[28px] border border-transparent bg-transparent px-3 pt-2 transition-transform duration-200 ease-out hover:scale-[1.03]',
-                        elevated || attracted ? 'h-[182px] w-[226px]' : 'h-[170px] w-[206px]',
-                        active ? 'scale-105' : '',
+                      titleStyle={twoLineClampStyle}
+                      media={(
+                        <NodeImage
+                          src={node.imageUrl}
+                          alt={node.title}
+                          fallback={initials(node.title)}
+                          className="h-full w-full object-cover"
+                        />
                       )}
-                    >
-                      <div
-                        className={cn(
-                          'relative flex items-center justify-center rounded-full border bg-white/92 transition-transform duration-200 ease-out group-hover:scale-[1.08] dark:bg-slate-950/88',
-                          elevated || attracted ? 'h-[92px] w-[92px]' : 'h-[80px] w-[80px]',
-                          tone.ring,
-                          tone.glow,
-                          active ? 'border-emerald-400 shadow-[0_0_34px_rgba(16,185,129,0.28)]' : '',
-                        )}
-                      >
-                        <div className={cn('absolute inset-1 rounded-full blur-md', node.tone === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500', attracted ? 'opacity-35' : 'opacity-20')} />
-                        {node.challengeCount > 1 ? (
-                          <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[68px] w-[68px]' : 'h-[58px] w-[58px]')}>
-                            <NodeImage
-                              src={node.imageUrl}
-                              alt={node.title}
-                              fallback={initials(node.title)}
-                              className="h-full w-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-slate-900/26" />
-                            <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1 text-white">
-                              <Layers className="h-3.5 w-3.5" />
-                              <span className="text-[10px] font-bold">{node.challengeCount}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className={cn('relative z-10 overflow-hidden rounded-full border border-white shadow-sm', elevated ? 'h-[66px] w-[66px]' : 'h-[56px] w-[56px]')}>
-                            <NodeImage
-                              src={node.imageUrl}
-                              alt={node.title}
-                              fallback={initials(node.title)}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
-                          {node.challengeCount}
-                        </div>
-                      </div>
-
-                      <div
-                        className={cn(
-                          'mt-2 w-full rounded-2xl border text-center shadow-sm transition-[transform,colors,box-shadow] duration-200 ease-out',
-                          elevated ? 'px-4 py-3.5' : 'px-3.5 py-3.5',
-                          active ? 'border-cyan-200 bg-white/95 dark:border-cyan-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
-                        )}
-                        style={{
-                          transform: `translate3d(0, 0, 0) scale(${elevated ? 1.015 : 1})`,
-                          willChange: 'transform',
-                        }}
-                      >
-                        <div
-                          className="min-h-[2.5rem] text-[13px] font-bold leading-tight text-slate-800 dark:text-slate-100"
-                          style={twoLineClampStyle}
-                          title={node.title}
-                        >
-                          {node.title}
-                        </div>
-                        <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-cyan-600 dark:text-cyan-300">
-                          {t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
-                        </div>
-                        <div className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          {node.subtitle}
-                        </div>
-                        <div className="mt-2 text-[10px] leading-4 text-slate-600 dark:text-slate-300">
-                          {compactText(node.preview || node.summary, elevated ? 84 : 64)}
-                        </div>
-                      </div>
-                    </button>
+                    />
                   </div>
                 </div>
               </div>
@@ -3358,7 +3009,7 @@ const CareerPathStage: React.FC<{
           setManualDomainQuery={setManualDomainQuery}
           className="absolute bottom-6 right-6 z-[32] w-[min(26rem,calc(100vw-3rem))]"
         />
-        <CanvasControls
+        <GalaxyCanvasControls
           zoom={zoom}
           setZoom={setZoom}
           className="absolute bottom-6 left-6 z-[32] w-auto"
@@ -5664,14 +5315,20 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       ) : null}
 
       <div className="absolute left-6 top-6 z-[72] hidden lg:flex lg:flex-col lg:gap-4">
-        <Sidebar
-          activeLayer={activeLayer}
+        <GalaxyLayerSidebar
+          title={t('careeros.sidebar.title', { defaultValue: getCareerOSSidebarCopy(String(i18n.resolvedLanguage || i18n.language || 'en')).title })}
           collapsed={sidebarCollapsed}
           setCollapsed={setSidebarCollapsed}
-          onNavigate={handleSidebarNavigate}
+          items={sidebarLayers.map((layer) => ({
+            id: layer.id,
+            icon: layer.icon,
+            active: layer.id === 'career_path' ? activeLayer === 'career_path' || activeLayer === 'job_offers' : activeLayer === layer.id,
+            label: getCareerOSLayerLabel(t, layer.id, String(i18n.resolvedLanguage || i18n.language || 'en')),
+            onClick: () => handleSidebarNavigate(layer.id),
+          }))}
         />
         {!(activeLayer === 'career_path' && !expandedPathId) && (activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
-          <CanvasControls
+          <GalaxyCanvasControls
             zoom={canvasZoom}
             setZoom={setCanvasZoom}
             className={cn('self-start', sidebarCollapsed ? 'w-24' : 'w-72')}

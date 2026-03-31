@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CompanyProfile } from '../types';
 import { createCompany } from '../services/supabaseService';
 import { Building, MapPin, FileText, CheckCircle, Loader2, X, Briefcase, Info, ArrowRight } from 'lucide-react';
+import CompanyGalaxyBackdrop from './company/CompanyGalaxyBackdrop';
 
 interface CompanyOnboardingProps {
     userId: string;
@@ -193,7 +194,10 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
         <div className="app-modal-backdrop z-[100]">
             <div className="absolute inset-0" onClick={onCancel}></div>
 
-            <div className="app-modal-panel max-w-2xl overflow-hidden">
+            <div className="app-modal-panel relative max-w-2xl overflow-hidden rounded-[32px] border border-white/70 bg-white/88 shadow-[0_28px_80px_-38px_rgba(15,23,42,0.34)]">
+                <CompanyGalaxyBackdrop className="opacity-80" variant="workspace" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.62),transparent_48%)]" />
+                <div className="relative">
 
                 {/* Close Button */}
                 <button
@@ -236,6 +240,7 @@ const CompanyOnboarding: React.FC<CompanyOnboardingProps> = ({ userId, onComplet
 
                     {/* Content */}
                     {step === 1 ? renderStep1() : renderStep2()}
+                </div>
                 </div>
 
             </div>

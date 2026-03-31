@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Assessment } from '../types';
 import {
   duplicateCompanyAssessment,
@@ -16,15 +16,25 @@ export const useCompanyAssessmentsData = (
   const [showInvitationModal, setShowInvitationModal] = useState(false);
   const [showInvitationsList, setShowInvitationsList] = useState(false);
   const [lastAssessmentLibrarySyncAt, setLastAssessmentLibrarySyncAt] = useState<string | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const lastRefreshAtRef = useRef(0);
 
   const refreshAssessmentLibrary = async () => {
     if (!companyId) return;
+    const now = Date.now();
+    if (refreshInFlightRef.current) return;
+    if (now - lastRefreshAtRef.current < 2500) return;
+    refreshInFlightRef.current = true;
+    lastRefreshAtRef.current = now;
     setAssessmentLibraryLoading(true);
     try {
       const rows = await listCompanyAssessmentLibrary();
       setAssessmentLibrary(rows.filter((item) => item.status !== 'archived'));
       setLastAssessmentLibrarySyncAt(new Date().toISOString());
+    } catch (error) {
+      console.error('Failed to refresh assessment library', error);
     } finally {
+      refreshInFlightRef.current = false;
       setAssessmentLibraryLoading(false);
     }
   };
@@ -60,7 +70,7 @@ export const useCompanyAssessmentsData = (
   };
 
   useEffect(() => {
-    if (!companyId || (activeTab !== 'assessments' && activeTab !== 'overview')) return;
+    if (!companyId || activeTab !== 'assessments') return;
     void refreshAssessmentLibrary();
   }, [companyId, activeTab]);
 

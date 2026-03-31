@@ -428,6 +428,60 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     || String(job.companyProfile?.philosophy || '').trim()
     || String(job.companyGoal || '').trim()
     || missionBody;
+  const importedSummaryLabels = language === 'cs'
+    ? {
+        sectionTitle: 'Shrnuti role',
+        companyContext: 'Co firma pise o sobe',
+        quickFacts: 'Zakladni fakta',
+        workModel: 'Rezim prace',
+        benefits: 'Benefity z inzeratu',
+        originalListing: 'Puvodni text nabidky',
+        originalBody: 'Plny text nabidky zustava dostupny i tady, aby bylo jasne, z ceho role vychazi.',
+        decision: 'Co si overit pred reakci',
+      }
+    : language === 'sk'
+      ? {
+          sectionTitle: 'Zhrnutie roly',
+          companyContext: 'Co firma pise o sebe',
+          quickFacts: 'Zakladne fakty',
+          workModel: 'Rezim prace',
+          benefits: 'Benefity z inzeratu',
+          originalListing: 'Povodny text ponuky',
+          originalBody: 'Plny text ponuky zostava dostupny aj tu, aby bolo jasne, z coho rola vychadza.',
+          decision: 'Co si overit pred reakciou',
+        }
+      : language === 'de' || language === 'at'
+        ? {
+            sectionTitle: 'Rollenuberblick',
+            companyContext: 'Was die Firma uber sich schreibt',
+            quickFacts: 'Grundfakten',
+            workModel: 'Arbeitsmodell',
+            benefits: 'Benefits aus der Anzeige',
+            originalListing: 'Originaltext der Anzeige',
+            originalBody: 'Der volle Anzeigentext bleibt sichtbar, damit klar bleibt, worauf die Rolle basiert.',
+            decision: 'Was du vor der Reaktion prufen solltest',
+          }
+        : language === 'pl'
+          ? {
+              sectionTitle: 'Podsumowanie roli',
+              companyContext: 'Co firma pisze o sobie',
+              quickFacts: 'Podstawowe fakty',
+              workModel: 'Tryb pracy',
+              benefits: 'Benefity z ogloszenia',
+              originalListing: 'Oryginalny tekst ogloszenia',
+              originalBody: 'Pelna tresc ogloszenia zostaje tutaj widoczna, zeby bylo jasne, na czym opiera sie rola.',
+              decision: 'Co sprawdzic przed reakcja',
+            }
+          : {
+              sectionTitle: 'Role summary',
+              companyContext: 'What the company says about itself',
+              quickFacts: 'Key facts',
+              workModel: 'Work setup',
+              benefits: 'Benefits from the listing',
+              originalListing: 'Original listing text',
+              originalBody: 'The full source listing stays visible here so it is always clear what the role is based on.',
+              decision: 'What to verify before responding',
+            };
   const heroLead = isImported ? copy.heroLeadImported : copy.heroLeadNative;
   const companyPhilosophy = String(job.companyProfile?.philosophy || '').trim()
     || String(job.companyGoal || '').trim()
@@ -450,15 +504,23 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     }
   })();
   const importedQuickFacts = Array.from(new Set([
-    workModelValue ? `${importedStoryLabels.workModel}: ${workModelValue}` : '',
+    workModelValue ? `${importedSummaryLabels.workModel}: ${workModelValue}` : '',
     companyIndustry ? `${companyStoryLabels.industry}: ${companyIndustry}` : '',
     companyWebsiteLabel ? `${companyStoryLabels.website}: ${companyWebsiteLabel}` : '',
-    importedStory.toneSignal ? `${importedStoryLabels.tone}: ${importedStory.toneSignal}` : '',
   ].filter(Boolean))).slice(0, 4);
   const importedRoleSnapshot = importedStory.roleSnapshot || missionBody;
-  const importedFirstStep = importedStory.firstStep || firstStep || challenge.firstStepPrompt;
+  const importedFirstStep = importedStory.firstStep
+    || (language === 'cs'
+      ? 'Pred reakci si over hlavni napln role, jak casto bude potreba byt na miste a podle ceho se v ni pozna dobry vysledek.'
+      : language === 'sk'
+        ? 'Pred reakciou si over hlavnu napln roly, ako casto bude treba byt na mieste a podla coho sa v nej spozna dobry vysledok.'
+        : language === 'de' || language === 'at'
+          ? 'Prufe vor der Reaktion die Hauptverantwortung der Rolle, wie oft du vor Ort sein musst und woran guter Erfolg gemessen wird.'
+          : language === 'pl'
+            ? 'Przed reakcja sprawdz glowny zakres roli, jak czesto trzeba byc na miejscu i po czym poznac dobry wynik.'
+            : 'Before you respond, verify the core responsibility, how often the role needs you on-site, and how success will be measured.');
   const importedRisk = importedStory.risk;
-  const insideSectionTitle = isImported ? importedStoryLabels.sectionTitle : copy.insideTitle;
+  const insideSectionTitle = isImported ? importedSummaryLabels.sectionTitle : copy.insideTitle;
   const publisherFallbackCopy = isImported ? importedStoryLabels.peopleFallback : copy.companyPeopleFallback;
   const jhiDimensions = [
     { key: 'financial', label: copy.jhiDimensionFinancial, value: Number(job.jhi?.financial || 0) },
@@ -651,11 +713,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       : 'border-cyan-400/24 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]';
   const dashboardCardClass = 'rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_18px_36px_-30px_rgba(15,23,42,0.16)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(15,23,42,0.78)]';
   const warmPanelClass = 'rounded-[28px] border border-[rgba(201,165,106,0.18)] bg-[linear-gradient(180deg,rgba(255,251,244,0.9)_0%,rgba(248,243,235,0.84)_100%)] shadow-[0_24px_54px_-36px_rgba(108,82,42,0.16)] backdrop-blur-2xl dark:border-[rgba(240,217,184,0.18)] dark:bg-[linear-gradient(180deg,rgba(14,22,30,0.92)_0%,rgba(17,24,31,0.86)_100%)] dark:shadow-[0_26px_58px_-36px_rgba(0,0,0,0.72)]';
-  const importedDetailLabels = {
-    teaser: language === 'cs' ? 'Rychlý přehled bez vaty' : language === 'sk' ? 'Rýchly prehľad bez vaty' : language === 'de' || language === 'at' ? 'Schneller Überblick ohne Floskeln' : language === 'pl' ? 'Szybki przegląd bez waty' : 'Quick read without the fluff',
-    rawToggle: language === 'cs' ? 'Ukázat celý syrový text inzerátu' : language === 'sk' ? 'Ukázať celý surový text inzerátu' : language === 'de' || language === 'at' ? 'Kompletten Rohtext anzeigen' : language === 'pl' ? 'Pokaż pełny surowy tekst ogłoszenia' : 'Show full raw listing text',
-    rawClose: language === 'cs' ? 'Skrýt celý syrový text' : language === 'sk' ? 'Skryť celý surový text' : language === 'de' || language === 'at' ? 'Rohtext ausblenden' : language === 'pl' ? 'Ukryj pełny surowy tekst' : 'Hide full raw text',
-  };
   const aiToneStyles = decisionVerdict.tone === 'success'
       ? {
         panel: 'border-emerald-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(244,251,248,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#131d29_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(34,211,238,0.14)]',
@@ -1171,9 +1228,9 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
         <div className="mx-auto w-full max-w-[1480px]">
           <div className="space-y-5">
             {isImported ? (
-              <details open className={cn('group overflow-hidden', warmPanelClass)}>
+              <details className={cn('group overflow-hidden', warmPanelClass)}>
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-left">
-                  <div className="text-sm font-semibold text-[var(--text-strong)]">{copy.importedDetail}</div>
+                  <div className="text-sm font-semibold text-[var(--text-strong)]">{importedSummaryLabels.originalListing}</div>
                   <div className="rounded-[999px] bg-[rgba(255,255,255,0.06)] px-3 py-1 text-sm font-semibold text-[var(--text-muted)]">
                     <span className="group-open:hidden">+</span>
                     <span className="hidden group-open:inline">−</span>
@@ -1182,9 +1239,10 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                 <div className="border-t border-[rgba(191,161,106,0.18)] bg-transparent px-5 py-5">
                   <div className="mb-4 rounded-[16px] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                      {importedDetailLabels.teaser}
+                      {importedSummaryLabels.originalListing}
                     </div>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{copy.rawImportNote}</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{importedSummaryLabels.originalBody}</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{importedStoryLabels.sourceNote}</p>
                   </div>
                   <FormattedJobDescription
                     text={formattedDescription}
@@ -1193,19 +1251,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     maxParagraphLength={260}
                     maxListItems={4}
                   />
-                  <details className="group mt-4 rounded-[16px] bg-[rgba(255,255,255,0.04)]">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-[var(--text-strong)]">
-                      <span className="group-open:hidden">{importedDetailLabels.rawClose}</span>
-                      <span className="hidden group-open:inline">{importedDetailLabels.rawToggle}</span>
-                      <span className="text-[var(--text-faint)] transition-transform group-open:rotate-45">+</span>
-                    </summary>
-                    <div className="border-t border-[var(--border-subtle)] px-4 py-4">
-                      <FormattedJobDescription
-                        text={formattedDescription}
-                        fallback={copy.roleDetailUnavailable}
-                      />
-                    </div>
-                  </details>
                 </div>
               </details>
             ) : null}
@@ -1234,7 +1279,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         {importedStory.companyContext ? (
                           <div className={cn('p-5', dashboardCardClass)}>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                              {importedStoryLabels.companyContext}
+                              {importedSummaryLabels.companyContext}
                             </div>
                             <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">{importedStory.companyContext}</p>
                           </div>
@@ -1247,7 +1292,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                           </div>
                           {importedQuickFacts.length ? (
                             <div className={cn('p-4', dashboardCardClass)}>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedStoryLabels.quickFacts}</div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.quickFacts}</div>
                               <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
                                 {importedQuickFacts.map((fact) => (
                                   <div key={fact}>{fact}</div>
@@ -1259,7 +1304,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[rgba(var(--accent-rgb),0.12)]">
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.firstStep}</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.decision}</div>
                             <div className="mt-2 text-sm leading-6 text-[var(--text)]">{importedFirstStep}</div>
                           </div>
                           {importedRisk ? (
@@ -1272,7 +1317,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
                         {importedStory.benefits.length ? (
                           <div className={cn('p-4', dashboardCardClass)}>
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.benefits}</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.benefits}</div>
                             <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
                               {importedStory.benefits.map((benefit) => (
                                 <div key={benefit}>{benefit}</div>

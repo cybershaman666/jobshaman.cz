@@ -10,6 +10,7 @@ import {
   initializeCompanySubscription
 } from '../services/supabaseService';
 import { Eye, EyeOff, Building2, Mail, Lock, CheckCircle, ArrowRight, Loader2, Info, X } from 'lucide-react';
+import CompanyGalaxyBackdrop from './company/CompanyGalaxyBackdrop';
 
 interface CompanyRegistrationModalProps {
   isOpen: boolean;
@@ -143,7 +144,10 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
     <div className="app-modal-backdrop z-[100]">
       <div className="absolute inset-0" onClick={onClose}></div>
 
-      <div className="app-modal-panel max-w-3xl overflow-hidden">
+      <div className="app-modal-panel relative max-w-3xl overflow-hidden rounded-[32px] border border-white/70 bg-white/88 shadow-[0_28px_80px_-38px_rgba(15,23,42,0.34)]">
+        <CompanyGalaxyBackdrop className="opacity-80" variant="workspace" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.62),transparent_48%)]" />
+        <div className="relative">
         <div className="app-modal-topline" />
 
         {/* Close Button */}
@@ -403,6 +407,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
             {step === 3 ? t('company_registration.finish_button') : t('company_registration.continue_button')}
             {!isSubmitting && <ArrowRight size={18} />}
           </button>
+        </div>
         </div>
       </div>
     </div>

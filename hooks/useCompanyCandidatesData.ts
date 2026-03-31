@@ -159,7 +159,7 @@ export const useCompanyCandidatesData = (
   const [lastCandidatesSyncAt, setLastCandidatesSyncAt] = useState<string | null>(null);
 
   const refreshCandidateBenchmarks = async () => {
-    if (!companyId || (activeTab !== 'candidates' && activeTab !== 'overview')) return;
+    if (!companyId || (activeTab !== 'candidates' && activeTab !== 'overview' && activeTab !== 'problem_map')) return;
     setIsLoadingCandidateBenchmarks(true);
     try {
       const data = await fetchCandidateBenchmarkMetrics(companyId, selectedJobId || undefined);
@@ -174,7 +174,7 @@ export const useCompanyCandidatesData = (
   };
 
   const refreshCandidates = async () => {
-    if (!companyId || (activeTab !== 'candidates' && activeTab !== 'overview')) return;
+    if (!companyId || (activeTab !== 'candidates' && activeTab !== 'overview' && activeTab !== 'problem_map')) return;
     try {
       const backendCandidates = await fetchCompanyCandidates(companyId, 500);
       setCandidates(backendCandidates);
