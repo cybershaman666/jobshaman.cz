@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from ..core.database import supabase
 from ..services.jobs_postgres_store import jobs_postgres_main_enabled, query_jobs_for_hybrid_search
 from ..services.job_intelligence import refresh_job_intelligence
+from ..services.search_intelligence import _normalize_search_term_for_backend
 from ..core.runtime_config import (
     get_active_action_prediction_model,
     get_active_model_config,

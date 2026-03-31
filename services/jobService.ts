@@ -1944,7 +1944,7 @@ export const fetchJobsWithFilters = async (
         .map((v) => v.trim())
         .join(' ')
         .trim();
-    const effectiveBackendSearchTerm = backendSearchTerm || safeSearchTerm;
+    const effectiveBackendSearchTerm = safeRawSearchTerm;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     let finalUserLat = userLat;
     let finalUserLng = userLng;

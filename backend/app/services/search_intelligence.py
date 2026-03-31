@@ -81,15 +81,10 @@ def enrich_search_query(search_term: str, language: str = "cs", subject_id: Opti
         }
 
     if not _is_enabled(subject_id):
-        normalized_raw = _normalize_search_term_for_backend(raw)
-        backend_query_parts = [raw]
-        if normalized_raw and normalized_raw != raw.lower():
-            backend_query_parts.append(normalized_raw)
-        backend_query = " ".join(backend_query_parts)
         return {
             "original_query": raw,
             "normalized_query": raw,
-            "backend_query": backend_query,
+            "backend_query": raw,
             "expanded_terms": [],
             "must_terms": [],
             "intent_role": "",
@@ -126,10 +121,7 @@ def enrich_search_query(search_term: str, language: str = "cs", subject_id: Opti
         must_terms = [str(item).strip() for item in (parsed.get("must_terms") or []) if str(item).strip()][:4]
         intent_role = str(parsed.get("intent_role") or "").strip()
         backend_query_parts = [raw]
-        normalized_raw = _normalize_search_term_for_backend(raw)
-        if normalized_raw and normalized_raw != raw.lower():
-            backend_query_parts.append(normalized_raw)
-        if normalized_query and normalized_query != raw and normalized_query not in backend_query_parts:
+        if normalized_query and normalized_query != raw:
             backend_query_parts.append(normalized_query)
         backend_query = " ".join(backend_query_parts)
         payload = {
@@ -144,11 +136,7 @@ def enrich_search_query(search_term: str, language: str = "cs", subject_id: Opti
             "fallback_used": fallback_used,
         }
     except (AIClientError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        normalized_raw = _normalize_search_term_for_backend(raw)
-        backend_query_parts = [raw]
-        if normalized_raw and normalized_raw != raw.lower():
-            backend_query_parts.append(normalized_raw)
-        backend_query = " ".join(backend_query_parts)
+        backend_query = raw
         payload = {
             "original_query": raw,
             "normalized_query": raw,
