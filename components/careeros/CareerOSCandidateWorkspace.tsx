@@ -246,6 +246,8 @@ const filterChipInactiveClass =
   'border border-slate-200 bg-white text-slate-700 hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900 dark:hover:text-cyan-200';
 
 const clampZoom = (value: number): number => Math.max(0.72, Math.min(1.6, Number(value.toFixed(2))));
+const CAREER_MAP_CAMERA_DURATION_MS = 560;
+const CAREER_MAP_CAMERA_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 const stepZoom = (
   setZoom: React.Dispatch<React.SetStateAction<number>>,
@@ -3379,35 +3381,37 @@ const CareerPathStage: React.FC<{
     if (!rect.width || !rect.height) return;
 
     const branchExpanded = visibleBranchRoles.length > 0 && activeNode;
-    const minX = branchExpanded
-      ? Math.min(startCardPosition.x, activeNode!.x - 72)
-      : Math.min(startCardPosition.x, ...visibleNodes.map((node) => node.x - 72));
-    const maxX = branchExpanded
-      ? Math.max(
-          startCardPosition.x + startCardPosition.width,
-          activeNode!.x + 72,
-          ...visibleBranchRoles.map((role) => role.x + 164),
-        )
-      : Math.max(startCardPosition.x + startCardPosition.width, ...visibleNodes.map((node) => node.x + 72));
-    const minY = branchExpanded
-      ? Math.min(startCardPosition.y, activeNode!.y - 160, ...visibleBranchRoles.map((role) => role.y - 44))
-      : Math.min(startCardPosition.y, ...visibleNodes.map((node) => node.y - 86));
-    const maxY = branchExpanded
-      ? Math.max(
-          startCardPosition.y + startCardPosition.height,
-          activeNode!.y + 160,
-          ...visibleBranchRoles.map((role) => role.y + 44),
-        )
-      : Math.max(startCardPosition.y + startCardPosition.height, ...visibleNodes.map((node) => node.y + 86));
-    const focusX = (minX + maxX) / 2;
-    const focusY = (minY + maxY) / 2;
+    let focusX = (startCardPosition.x + treeJunctionPoint.x) / 2;
+    let focusY = treeJunctionPoint.y;
+
+    if (branchExpanded) {
+      const branchNodes = [activeNode!, ...visibleBranchRoles];
+      const branchMinY = Math.min(...branchNodes.map((node) => node.y));
+      const branchMaxY = Math.max(...branchNodes.map((node) => node.y));
+      const branchRoleMaxX = visibleBranchRoles.length
+        ? Math.max(...visibleBranchRoles.map((role) => role.x))
+        : activeNode!.x;
+      const branchWidth = Math.max(260, branchRoleMaxX - activeNode!.x);
+      focusX = activeNode!.x + branchWidth * 0.32;
+      focusY = (branchMinY + branchMaxY) / 2;
+    } else if (visibleNodes.length > 0) {
+      const rootMinY = Math.min(...visibleNodes.map((node) => node.y));
+      const rootMaxY = Math.max(...visibleNodes.map((node) => node.y));
+      const nearestNodeX = Math.min(...visibleNodes.map((node) => node.x));
+      const rootLeadX = (treeJunctionPoint.x + nearestNodeX) / 2;
+      focusX = Math.max(startCardPosition.x + startCardPosition.width * 0.72, rootLeadX);
+      focusY = (rootMinY + rootMaxY + treeJunctionPoint.y) / 3;
+    }
+
+    const desiredScreenX = branchExpanded ? rect.width * 0.34 : rect.width * 0.36;
+    const desiredScreenY = rect.height * 0.5;
 
     setIsAnimatingCamera(true);
     setCanvasOffset({
-      x: rect.width / 2 - focusX * zoom,
-      y: rect.height / 2 - focusY * zoom,
+      x: desiredScreenX - focusX * zoom,
+      y: desiredScreenY - focusY * zoom,
     });
-    const timer = window.setTimeout(() => setIsAnimatingCamera(false), 420);
+    const timer = window.setTimeout(() => setIsAnimatingCamera(false), CAREER_MAP_CAMERA_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [
     activeNode,
@@ -3417,6 +3421,8 @@ const CareerPathStage: React.FC<{
     startCardPosition.width,
     startCardPosition.x,
     startCardPosition.y,
+    treeJunctionPoint.x,
+    treeJunctionPoint.y,
     visibleNodes,
     visibleBranchRoles,
     zoom,
@@ -3508,7 +3514,8 @@ const CareerPathStage: React.FC<{
         style={{
           transform: `translate3d(${canvasOffset.x}px, ${canvasOffset.y}px, 0) scale(${zoom})`,
           transformOrigin: '0 0',
-          transition: isAnimatingCamera ? 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)' : undefined,
+          transition: isAnimatingCamera ? `transform ${CAREER_MAP_CAMERA_DURATION_MS}ms ${CAREER_MAP_CAMERA_EASING}` : undefined,
+          willChange: isAnimatingCamera ? 'transform' : undefined,
         }}
       >
         <div className="absolute inset-0">
