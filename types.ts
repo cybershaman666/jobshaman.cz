@@ -286,6 +286,21 @@ export interface CandidateSearchProfile {
   inferenceConfidence?: number | null;
 }
 
+export interface CareerMapNodeOffset {
+  x: number;
+  y: number;
+}
+
+export interface CareerMapBranchOverrides {
+  directionSlots?: Record<string, string>;
+  roleSlots?: Record<string, Record<string, string>>;
+}
+
+export interface CareerMapLayoutPreference {
+  positions?: Record<string, CareerMapNodeOffset>;
+  branchOverrides?: CareerMapBranchOverrides;
+}
+
 export interface UserPostedMiniChallenge {
   id: string;
   title: string;
@@ -1084,6 +1099,15 @@ export interface Candidate {
   id: string;
   name: string;
   role: string;
+  full_name?: string;
+  email?: string;
+  avatar_url?: string | null;
+  avatarUrl?: string | null;
+  photo?: string | null;
+  job_title?: string | null;
+  title?: string | null;
+  created_at?: string | null;
+  headline?: string | null;
   experienceYears: number;
   salaryExpectation: number;
   skills: string[];
@@ -1630,6 +1654,7 @@ export interface UserProfile {
     jcfpm_jhi_adjustment_v1?: JcfpmJhiAdjustmentV1;
     signal_boost_share_jcfpm?: boolean;
     postedMiniChallenges?: UserPostedMiniChallenge[];
+    careerMapLayout?: CareerMapLayoutPreference;
   };
   taxProfile?: TaxProfile;
   jhiPreferences?: JHIPreferences;

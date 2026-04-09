@@ -3,7 +3,7 @@ import React from 'react';
 import { cn } from '../ui/primitives';
 
 export const galaxyShellPanelClass =
-  'border border-slate-200/70 bg-white/78 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/62 dark:shadow-[0_22px_58px_-36px_rgba(2,6,23,0.7)]';
+  'border border-slate-200 bg-white/96 shadow-sm dark:border-slate-800 dark:bg-slate-950/94 dark:shadow-[0_18px_42px_-28px_rgba(2,6,23,0.62)]';
 
 export const GalaxyNeuralCircuitTexture: React.FC<{
   accent?: 'emerald' | 'blue';
@@ -131,11 +131,11 @@ export const GalaxyStageBackground: React.FC<{ accent?: 'emerald' | 'blue' }> = 
         }
       `}
     </style>
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.08),transparent_28%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#f7fafc_52%,#f5f8fb_100%)] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.08),transparent_26%),radial-gradient(circle_at_82%_78%,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]" />
-    <GalaxyNeuralCircuitTexture accent={accent} masked className="opacity-[0.74]" />
-    <div className="pointer-events-none absolute left-[14%] top-[8%] h-[520px] w-[520px] rounded-full bg-emerald-400/8 blur-[140px]" />
-    <div className="pointer-events-none absolute bottom-[4%] right-[8%] h-[620px] w-[620px] rounded-full bg-blue-400/8 blur-[165px]" />
-    <div className="pointer-events-none absolute right-[24%] top-[34%] h-[420px] w-[420px] rounded-full bg-orange-400/8 blur-[120px]" />
+    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_52%,#eef2f7_100%)] dark:bg-[linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]" />
+    <GalaxyNeuralCircuitTexture accent={accent} masked className="opacity-[0.38]" />
+    <div className="pointer-events-none absolute left-[14%] top-[8%] h-[520px] w-[520px] rounded-full bg-emerald-400/5 blur-[150px]" />
+    <div className="pointer-events-none absolute bottom-[4%] right-[8%] h-[620px] w-[620px] rounded-full bg-blue-400/5 blur-[170px]" />
+    <div className="pointer-events-none absolute right-[24%] top-[34%] h-[420px] w-[420px] rounded-full bg-orange-400/4 blur-[130px]" />
 
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
       <svg className="h-full w-full" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
@@ -279,19 +279,18 @@ export const GalaxyClusterNode: React.FC<GalaxyClusterNodeProps> = ({
       disabled={disabled}
       data-map-control={dataMapControl ? 'true' : undefined}
       className={cn(
-        'group relative flex w-[214px] flex-col items-center gap-3 rounded-[28px] border border-transparent bg-transparent px-2 py-2 text-center transition-transform duration-200 ease-out hover:scale-[1.03] focus:outline-none disabled:cursor-default disabled:hover:scale-100',
-        active ? 'scale-105' : '',
+        'group relative flex w-[214px] flex-col items-center gap-3 rounded-[28px] border border-transparent bg-transparent px-2 py-2 text-center focus:outline-none disabled:cursor-default',
         className,
       )}
     >
       <div
         className={cn(
-          'relative flex items-center justify-center rounded-full border bg-white/94 transition-transform duration-200 ease-out group-hover:scale-[1.05] dark:bg-slate-950/90',
+          'relative flex items-center justify-center rounded-full border bg-white/94 dark:bg-slate-950/90',
           emphasized ? 'h-[94px] w-[94px]' : 'h-[84px] w-[84px]',
           toneClasses.ring,
         )}
       >
-        <div className={cn('absolute inset-2 rounded-full bg-gradient-to-br blur-md', toneClasses.glow)} />
+        <div className={cn('absolute inset-2 rounded-full bg-gradient-to-br opacity-80', toneClasses.glow)} />
         <div
           className={cn(
             'relative z-10 flex items-center justify-center overflow-hidden rounded-full border border-white bg-white/96 shadow-sm dark:border-slate-700/80 dark:bg-slate-900/92',
@@ -304,15 +303,11 @@ export const GalaxyClusterNode: React.FC<GalaxyClusterNodeProps> = ({
 
       <div
         className={cn(
-          'relative w-full rounded-[22px] border bg-white/90 px-4 py-3.5 text-center shadow-sm transition-[transform,colors,box-shadow] duration-200 ease-out dark:bg-slate-950/84',
+          'relative w-full rounded-[22px] border bg-white/90 px-4 py-3.5 text-center shadow-sm dark:bg-slate-950/84',
           active
             ? `${toneClasses.active} shadow-[0_18px_42px_-30px_rgba(8,145,178,0.34)]`
             : 'border-slate-200/80 dark:border-slate-800',
         )}
-        style={{
-          transform: `translate3d(0, 0, 0) scale(${emphasized ? 1.015 : 1})`,
-          willChange: 'transform',
-        }}
       >
         {typeof count === 'number' ? (
           <div className="absolute right-3 top-3">

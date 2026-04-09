@@ -36,18 +36,20 @@ export const resolveCandidateSearchProfile = (profile?: UserProfile | null): Can
   return {
     ...defaults,
     ...(source || {}),
-    preferredWorkArrangement: normalizePreferredWorkArrangement(source?.preferredWorkArrangement) || (source?.wantsRemoteRoles ? 'remote' : defaults.preferredWorkArrangement),
+    preferredWorkArrangement: normalizePreferredWorkArrangement(source?.preferredWorkArrangement),
     remoteLanguageCodes: normalizeSearchLanguageCodes(source?.remoteLanguageCodes),
     preferredBenefitKeys: Array.from(
       new Set((source?.preferredBenefitKeys || defaults.preferredBenefitKeys || []).map((value) => String(value || '').trim()).filter(Boolean))
     ),
-    secondaryDomains: Array.from(new Set((source?.secondaryDomains || defaults.secondaryDomains || []).map((value) => String(value || '').trim()).filter(Boolean))).slice(0, 2) as CandidateSearchProfile['secondaryDomains'],
-    avoidDomains: Array.from(new Set((source?.avoidDomains || defaults.avoidDomains || []).map((value) => String(value || '').trim()).filter(Boolean))).slice(0, 3) as CandidateSearchProfile['avoidDomains'],
+    // Hidden legacy overrides created too many contradictory feeds. Keep the schema,
+    // but reset them to a neutral state until we reintroduce them with a clearer UX.
+    secondaryDomains: defaults.secondaryDomains,
+    avoidDomains: defaults.avoidDomains,
     defaultEnableCommuteFilter: Boolean(source?.defaultEnableCommuteFilter ?? defaults.defaultEnableCommuteFilter),
     defaultMaxDistanceKm: Math.max(5, Number(source?.defaultMaxDistanceKm ?? defaults.defaultMaxDistanceKm) || defaults.defaultMaxDistanceKm),
     targetRole: String(source?.targetRole || defaults.targetRole || '').trim(),
     inferredTargetRole: String(source?.inferredTargetRole || defaults.inferredTargetRole || '').trim(),
-    includeAdjacentDomains: Boolean(source?.includeAdjacentDomains ?? defaults.includeAdjacentDomains ?? true),
+    includeAdjacentDomains: true,
   };
 };
 
@@ -58,31 +60,18 @@ export const getDefaultCandidateSearchFilters = (
   }
 ): JobSearchFilters => {
   const searchProfile = resolveCandidateSearchProfile(profile);
-  const hasLocation = options?.hasLocation ?? Boolean(
-    profile?.coordinates?.lat
-    || profile?.coordinates?.lon
-    || String(profile?.address || '').trim()
-  );
-  const combinedBenefits = Array.from(
-    new Set([
-      ...(searchProfile.preferredBenefitKeys || []),
-      ...(searchProfile.wantsDogFriendlyOffice ? ['dog_friendly'] : [])
-    ])
-  );
-  const enableCommuteFilter = hasLocation && searchProfile.defaultEnableCommuteFilter;
-  const prefersRemote = searchProfile.wantsRemoteRoles || searchProfile.preferredWorkArrangement === 'remote';
-  const remoteOnly = !enableCommuteFilter && prefersRemote;
+  void options;
 
   return {
-    filterContractTypes: searchProfile.wantsContractorRoles ? ['ico'] : [],
-    filterBenefits: combinedBenefits,
-    filterLanguageCodes: remoteOnly ? searchProfile.remoteLanguageCodes : [],
-    enableCommuteFilter,
+    filterContractTypes: [],
+    filterBenefits: [],
+    filterLanguageCodes: [],
+    enableCommuteFilter: false,
     filterMaxDistance: searchProfile.defaultMaxDistanceKm,
-    globalSearch: searchProfile.nearBorder,
+    globalSearch: false,
     abroadOnly: false,
-    remoteOnly,
-    filterWorkArrangement: remoteOnly ? 'remote' : (searchProfile.preferredWorkArrangement || 'all'),
+    remoteOnly: false,
+    filterWorkArrangement: 'all',
   };
 };
 

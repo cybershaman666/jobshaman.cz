@@ -360,7 +360,7 @@ def _rank_role_candidates(job_row: dict[str, Any], *, detected_language: str, ma
 
 
 def _ai_available() -> bool:
-    return bool(config.MISTRAL_API_KEY or config.GEMINI_API_KEY)
+    return bool(config.MISTRAL_API_KEY)
 
 
 def _ai_exception_candidate(job_row: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any] | None:

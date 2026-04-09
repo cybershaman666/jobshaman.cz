@@ -41,38 +41,18 @@ import {
 import { AlertCircle, ArrowUp } from 'lucide-react';
 import { markPerf, measurePerf, measureSyncPerf } from './src/app/perf/perfDebug';
 import { trackAnalyticsEventDeferred, trackPageViewDeferred } from './services/deferredAnalytics';
+import { useAppTheme } from './src/app/core';
+import {
+    APPLY_FOLLOWUP_STORAGE_KEY,
+    EMAIL_CONFIRMATION_STORAGE_KEY,
+    getSavedJobIdAliases,
+} from './src/app/core/appStorage';
+import type { PendingApplyFollowup } from './src/app/core/appStorage';
 
-type PendingApplyFollowup = {
-    jobId: number;
-    title?: string;
-    company?: string;
-    url?: string;
-    openedAt: string;
-    sessionId?: string;
-    requestId?: string;
-    scoringVersion?: string;
-    modelVersion?: string;
-    snoozeUntil?: number;
-};
-
-const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
-const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 const SIGNAL_BOOST_PENDING_PREFIX = 'jobshaman_signal_boost_pending:';
 let initialSessionCheckPromise: Promise<void> | null = null;
 const noop = () => {};
-
-const normalizeSavedJobId = (jobId: string): string => {
-    const raw = String(jobId || '').trim();
-    if (!raw) return '';
-    return raw.startsWith('db-') ? raw.substring(3) : raw;
-};
-
-const getSavedJobIdAliases = (jobId: string): string[] => {
-    const raw = String(jobId || '').trim();
-    const normalized = normalizeSavedJobId(raw);
-    return Array.from(new Set([raw, normalized, normalized ? `db-${normalized}` : ''].filter(Boolean)));
-};
 
 const AuthModal = lazy(() => import('./components/AuthModal'));
 const CandidateOnboardingModal = lazy(() => import('./components/CandidateOnboardingModal'));
@@ -98,22 +78,7 @@ export default function App() {
     const ONBOARDING_ENABLED = false;
     const { t, i18n } = useTranslation();
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
-    const getSystemTheme = () => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light' as const;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' as const : 'light' as const;
-    };
-    const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
-        if (typeof window === 'undefined') return 'system';
-        const stored = localStorage.getItem('theme');
-        if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
-        return 'system';
-    });
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        if (typeof window === 'undefined') return 'light';
-        const stored = localStorage.getItem('theme');
-        if (stored === 'light' || stored === 'dark') return stored;
-        return getSystemTheme();
-    });
+    const { themeMode, setThemeMode, theme } = useAppTheme();
     useHeaderOffsets();
 
     useEffect(() => {
@@ -1456,36 +1421,6 @@ export default function App() {
             cancelled = true;
         };
     }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t, normalizedPath]);
-
-    useEffect(() => {
-        if (themeMode !== 'system') {
-            setTheme(themeMode);
-            return;
-        }
-
-        const syncSystemTheme = () => {
-            setTheme(getSystemTheme());
-        };
-
-        syncSystemTheme();
-
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = () => syncSystemTheme();
-
-        if (typeof mediaQuery.addEventListener === 'function') {
-            mediaQuery.addEventListener('change', handleChange);
-            return () => mediaQuery.removeEventListener('change', handleChange);
-        }
-
-        mediaQuery.addListener(handleChange);
-        return () => mediaQuery.removeListener(handleChange);
-    }, [themeMode]);
-
-    useEffect(() => {
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-        localStorage.setItem('theme', themeMode);
-    }, [theme, themeMode]);
 
     useEffect(() => {
         setIsApplyModalOpen(false);

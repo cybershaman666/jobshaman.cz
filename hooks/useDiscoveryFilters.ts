@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type {
     DiscoveryFilterSource,
@@ -151,31 +151,11 @@ export const useDiscoveryFilters = ({
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]);
     const [filterLanguageCodes, setFilterLanguageCodes] = useState<SearchLanguageCode[]>([]);
-    const [enableAutoLanguageGuard, setEnableAutoLanguageGuard] = useState(true);
-    const [globalSearch, setGlobalSearch] = useState(() => defaultCountryCodes.length === 0);
+    const [globalSearch, setGlobalSearch] = useState(false);
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [filterWorkArrangement, setFilterWorkArrangement] = useState<JobWorkArrangementFilter>('all');
     const [sortBy, setSortBy] = useState<string>('newest');
     const [filterSources, setFilterSources] = useState<DiscoveryFilterSourceMap>(DEFAULT_FILTER_SOURCES);
-
-    const marketBaselineCountryCodes = useMemo(() => {
-        const normalizedCurrent = normalizeCountryCodes(countryCodes);
-        if (
-            normalizedCurrent.length === 1 &&
-            !globalSearch &&
-            !abroadOnly &&
-            filterSources.globalSearch !== 'user_toggle' &&
-            filterSources.abroadOnly !== 'user_toggle'
-        ) {
-            return normalizedCurrent;
-        }
-        return defaultCountryCodes;
-    }, [abroadOnly, countryCodes, defaultCountryCodes, filterSources.abroadOnly, filterSources.globalSearch, globalSearch]);
-
-    const normalizedDefaultDomesticCountries = useMemo(
-        () => normalizeCountryCodes(marketBaselineCountryCodes),
-        [marketBaselineCountryCodes]
-    );
 
     const setCountryCodesSafe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
         setCountryCodes((prev) => {
@@ -187,51 +167,7 @@ export const useDiscoveryFilters = ({
         });
     }, []);
 
-    const implicitLanguageCodesApplied = useMemo(() => {
-        const hasCountryOverride = !sameCountryCodeSet(
-            normalizeCountryCodes(countryCodes),
-            normalizeCountryCodes(marketBaselineCountryCodes)
-        );
-        if (!enableAutoLanguageGuard) return [];
-        const hasAnyFilters =
-            !!searchTerm ||
-            !!filterCity ||
-            filterContractType.length > 0 ||
-            filterBenefits.length > 0 ||
-            !!filterMinSalary ||
-            filterDate !== 'all' ||
-            filterExperience.length > 0 ||
-            enableCommuteFilter ||
-            sortBy !== 'newest' ||
-            filterLanguageCodes.length > 0 ||
-            abroadOnly ||
-            remoteOnly ||
-            filterWorkArrangement !== 'all' ||
-            hasCountryOverride;
-        if (globalSearch) return [];
-        if (hasAnyFilters) return [];
-        if (defaultLanguageCodes.length === 0) return [];
-        return defaultLanguageCodes;
-    }, [
-        abroadOnly,
-        countryCodes,
-        defaultLanguageCodes,
-        enableAutoLanguageGuard,
-        enableCommuteFilter,
-        filterBenefits,
-        filterCity,
-        filterContractType,
-        filterDate,
-        filterExperience,
-        filterLanguageCodes,
-        filterMinSalary,
-        filterWorkArrangement,
-        globalSearch,
-        marketBaselineCountryCodes,
-        remoteOnly,
-        searchTerm,
-        sortBy,
-    ]);
+    const implicitLanguageCodesApplied = useMemo(() => [], []);
 
     const hasExplicitLanguageFilter = filterSources.filterLanguageCodes === 'user_toggle' && filterLanguageCodes.length > 0;
 
@@ -252,7 +188,7 @@ export const useDiscoveryFilters = ({
             remoteOnly,
             filterWorkArrangement,
             countryCodes,
-            defaultCountryCodes: marketBaselineCountryCodes,
+            defaultCountryCodes,
         }),
         [
             abroadOnly,
@@ -268,25 +204,11 @@ export const useDiscoveryFilters = ({
             filterWorkArrangement,
             filterSources,
             globalSearch,
-            marketBaselineCountryCodes,
+            defaultCountryCodes,
             remoteOnly,
             searchTerm,
         ]
     );
-
-    useEffect(() => {
-        if (!enableAutoLanguageGuard) return;
-        if (filterSources.filterLanguageCodes === 'user_toggle') return;
-        if (filterLanguageCodes.length > 0) return;
-        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
-    }, [defaultLanguageCodes, enableAutoLanguageGuard, filterLanguageCodes.length, filterSources.filterLanguageCodes]);
-
-    useEffect(() => {
-        if (filterSources.filterLanguageCodes === 'user_toggle') return;
-        if (filterLanguageCodes.length > 0) return;
-        setFilterLanguageCodes((prev) => (prev.length > 0 ? [] : prev));
-        setEnableAutoLanguageGuard(true);
-    }, [defaultCountryCodes, filterLanguageCodes.length, filterSources.filterLanguageCodes]);
 
     const updateFilterSource = useCallback((field: DiscoveryFilterField, source: DiscoveryFilterSource) => {
         setFilterSources((prev) => {
@@ -439,16 +361,16 @@ export const useDiscoveryFilters = ({
         setFilterExperienceTracked([], 'default');
         setFilterMaxDistanceTracked(50, 'default');
         setFilterLanguageCodesTracked([], 'default');
-        setEnableAutoLanguageGuard(true);
         setEnableCommuteFilterTracked(false, 'default');
         setAbroadOnlyTracked(false, 'default');
         setFilterWorkArrangementTracked('all', 'default');
-        setCountryCodesSafe([]);
-        setGlobalSearchTracked(true, 'default');
+        setCountryCodesSafe(defaultCountryCodes);
+        setGlobalSearchTracked(false, 'default');
         setFilterSources(DEFAULT_FILTER_SOURCES);
     }, [
         setAbroadOnlyTracked,
         setCountryCodesSafe,
+        defaultCountryCodes,
         setEnableCommuteFilterTracked,
         setFilterBenefitsTracked,
         setFilterCityTracked,
@@ -469,7 +391,6 @@ export const useDiscoveryFilters = ({
         countryCodes,
         defaultCountryCodes,
         defaultLanguageCodes,
-        enableAutoLanguageGuard,
         enableCommuteFilter,
         filterBenefits,
         filterCity,
@@ -484,15 +405,12 @@ export const useDiscoveryFilters = ({
         globalSearch,
         hasExplicitLanguageFilter,
         implicitLanguageCodesApplied,
-        marketBaselineCountryCodes,
-        normalizedDefaultDomesticCountries,
         resetDiscoveryFilters,
         searchMode,
         searchTerm,
         sortBy,
         setAbroadOnly: setAbroadOnlyTracked,
         setCountryCodes: setCountryCodesSafe,
-        setEnableAutoLanguageGuard,
         setEnableCommuteFilter: setEnableCommuteFilterTracked,
         setFilterBenefits: setFilterBenefitsTracked,
         setFilterCity: setFilterCityTracked,

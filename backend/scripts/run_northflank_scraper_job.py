@@ -46,20 +46,7 @@ def main() -> int:
 
     args = [sys.executable, str(target)]
     _append_flag(args, "SCRAPER_JOB_SKIP_SCRAPER_MULTI", "--skip-scraper-multi")
-    _append_flag(args, "SCRAPER_JOB_SKIP_JOBSPY", "--skip-jobspy")
     _append_flag(args, "SCRAPER_JOB_DISABLE_REMOTE_NORMALIZATION", "--disable-remote-normalization")
-    _append_flag(args, "SCRAPER_JOB_LINKEDIN_FETCH_DESCRIPTION", "--linkedin-fetch-description")
-    _append_flag(args, "SCRAPER_JOB_SKIP_JOBSPY_GEOCODING_BACKFILL", "--skip-jobspy-geocoding-backfill")
-
-    _append_option(args, "SCRAPER_JOB_COUNTRIES", "--countries")
-    _append_option(args, "SCRAPER_JOB_SITES", "--sites")
-    _append_option(args, "SCRAPER_JOB_QUERIES", "--queries")
-    _append_option(args, "SCRAPER_JOB_RESULTS_WANTED", "--results-wanted")
-    _append_option(args, "SCRAPER_JOB_HOURS_OLD", "--hours-old")
-    _append_option(args, "SCRAPER_JOB_JOBSPY_SLEEP_SECONDS", "--jobspy-sleep-seconds")
-    _append_option(args, "SCRAPER_JOB_LINKEDIN_RESULTS_WANTED_CAP", "--linkedin-results-wanted-cap")
-    _append_option(args, "SCRAPER_JOB_LIMIT_LOCATIONS_PER_COUNTRY", "--limit-locations-per-country")
-    _append_option(args, "SCRAPER_JOB_JOBSPY_GEOCODING_LIMIT", "--jobspy-geocoding-limit")
 
     print(
         "Starting Northflank scraper job:",

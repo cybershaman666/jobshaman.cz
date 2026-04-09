@@ -6,6 +6,7 @@ from ..core.security import cleanup_csrf_sessions
 from ..governance import run_retention_cleanup
 from ..matching_engine import run_daily_batch_jobs, run_hourly_batch_jobs
 from ..services.benchmarks_public import run_salary_public_reference_refresh
+from ..services.career_map_pools import refresh_career_map_pools
 from ..services.daily_digest import run_daily_job_digest
 from ..services.external_feed_warmup import run_external_feed_warmup
 
@@ -51,6 +52,15 @@ def start_background_scheduler() -> None:
                 max_instances=1,
                 coalesce=True,
             )
+        _scheduler.add_job(
+            refresh_career_map_pools,
+            'cron',
+            hour='1,9,17',
+            minute=35,
+            id="career_map_pool_refresh",
+            max_instances=1,
+            coalesce=True,
+        )
         _scheduler.start()
         print("✅ Background scheduler started.")
         if not _matching_batch_enabled:

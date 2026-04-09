@@ -21,5 +21,4 @@ langdetect
 user-agents
 sentry-sdk[fastapi]
 certifi
-python-jobspy
 psycopg[binary]

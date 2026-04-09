@@ -1,25 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Briefcase, CreditCard, LogIn, Plus, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LockKeyhole, LogIn, Sparkles, Target } from 'lucide-react';
 
-import type { Assessment, CompanyApplicationRow, DialogueDossier, Job } from '../types';
+import type { DialogueDossier } from '../types';
 import AnalyticsService from '../services/analyticsService';
-import type { CompanyActivityLogEntry } from '../services/companyActivityService';
-import CompanyMapScene, {
-  type CompanyGalaxyMapBreadcrumb,
-  type CompanyGalaxyMapLayer,
-  type CompanyGalaxyMapNode,
-} from './company/CompanyMapScene';
-import CompanyHumanDetailPanel from './company/map/CompanyHumanDetailPanel';
-import { CompanyMapOverviewPanel, CompanyWaveClusterPanel } from './company/map/CompanyMapPanels';
-import {
-  LandingDemoConversationPanel,
-  LandingDemoOpenChallengePanel,
-  LandingDemoPricingPanel,
-  type LandingDemoBrief,
-  type LandingDemoConversationMessage,
-  type LandingDemoPricingPlan,
-} from './company/landing/CompanyLandingDemoPanels';
+import { buildCompanyHandshakeDecisionView } from '../services/companyHandshakeDossierService';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
@@ -27,712 +12,916 @@ interface CompanyLandingPageProps {
   onLogin?: () => void;
 }
 
-type LandingMapLayer = 'challenge_map' | 'challenge_cluster' | 'human_detail' | 'open_challenge' | 'pricing';
-
-type LandingNavigationState = {
-  activeLayer: LandingMapLayer;
-  selectedWaveId: string | null;
-  selectedDialogueId: string | null;
-  rootDashboardOpen: boolean;
-  panelDismissed: boolean;
-  canvasZoom: number;
-};
-
-type LandingMapNodeTemplate = Omit<CompanyGalaxyMapNode, 'x' | 'y' | 'active' | 'onClick'>;
-
-type Copy = {
-  title: string;
-  subtitle: string;
-  register: string;
-  demo: string;
-  login: string;
-  whyShell: string;
-  sameGalaxy: string;
-  challengeMap: string;
-  challengeCluster: string;
-  humanDetail: string;
-  openChallenge: string;
-  pricing: string;
-  defaultLayer: string;
-  liveModule: string;
-  dossier: string;
-  readOnlyEditor: string;
-  capacity: string;
-  companyCore: string;
-  planCapacity: string;
-};
-
-const baseJob = (id: string, company: string, title: string, location: string, challenge: string): Job => ({
-  id,
-  title,
-  company,
-  location,
-  type: 'Hybrid',
-  description: challenge,
-  challenge,
-  postedAt: '2026-03-20T08:00:00Z',
-  source: 'demo',
-  jhi: { score: 80, baseScore: 78, personalizedScore: 82, financial: 76, timeCost: 71, mentalLoad: 69, growth: 86, values: 84 },
-  noiseMetrics: { score: 18, flags: [], level: 'low', keywords: ['clear-brief'], tone: 'Technical' },
-  transparency: { turnoverRate: 12, avgTenure: 4.6, ghostingRate: 6, hiringSpeed: 'Fast (10 days)', redFlags: [] },
-  market: { marketAvgSalary: 108000, percentile: 72, inDemandSkills: ['Python', 'Kubernetes', 'Operations design'], p25: 90000, p50: 108000, p75: 125000, confidenceTier: 'high' },
-  tags: ['Demo'],
-  benefits: ['Demo'],
-  required_skills: ['Demo'],
-  listingKind: 'challenge',
-  status: 'active',
-});
+interface LandingPlan {
+  id: string;
+  name: string;
+  price: string;
+  bestFor: string;
+  outcome: string;
+  roleOpens: string;
+  dialogueSlots: string;
+  recruiterSeats: string;
+  features: string[];
+  recommended?: boolean;
+}
 
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
   const { i18n } = useTranslation();
-  const language = String(i18n.resolvedLanguage || i18n.language || 'en').toLowerCase();
+  const language = String(i18n.resolvedLanguage || i18n.language || 'cs').toLowerCase();
   const isCsLike = language.startsWith('cs') || language.startsWith('sk');
-  const hasTrackedView = useRef(false);
-  const [navigation, setNavigation] = useState<LandingNavigationState>({
-    activeLayer: 'challenge_map',
-    selectedWaveId: 'demo-platform-engineer',
-    selectedDialogueId: 'dialogue-sara',
-    rootDashboardOpen: false,
-    panelDismissed: false,
-    canvasZoom: 1,
-  });
-
-  const copy: Copy = useMemo(() => ({
-    title: isCsLike ? 'Nábor, ve kterém firma konečně vidí, co se opravdu děje' : 'Hiring where your team finally sees what is really happening',
-    subtitle: isCsLike
-      ? 'JobShaman spojuje role, kandidáty, rozhodování i kapacitu do jedné přehledné mapy. Místo přepínání mezi nástroji získáte jasný hiring tah, méně ztracených kandidátů a rychlejší jistotu, koho posunout dál.'
-      : 'JobShaman brings roles, candidates, decisions, and capacity into one clear map. Instead of jumping between tools, your team gets a confident hiring rhythm, fewer lost candidates, and faster clarity on who moves forward.',
-    register: isCsLike ? 'Začít s JobShamanem' : 'Start with JobShaman',
-    demo: isCsLike ? 'Chci ukázku pro náš tým' : 'Show it to my team',
-    login: isCsLike ? 'Vstoupit do firemního účtu' : 'Enter company workspace',
-    whyShell: isCsLike ? 'Proč firmy zbystří' : 'Why teams lean in',
-    sameGalaxy: isCsLike ? 'Jedna mapa pro celý hiring. Méně chaosu, více jistoty a rychlejší rozhodnutí.' : 'One map for the whole hiring flow. Less chaos, more confidence, faster decisions.',
-    challengeMap: isCsLike ? 'Co se u vás děje' : 'What is happening in your hiring',
-    challengeCluster: isCsLike ? 'Možné směry řešení' : 'Possible ways forward',
-    humanDetail: isCsLike ? 'Jak konkrétní člověk přemýšlí' : 'How a real person thinks',
-    openChallenge: isCsLike ? 'Jak otevřít správné zadání' : 'How to frame the right challenge',
-    pricing: isCsLike ? 'Plány pro nábor' : 'Hiring plans',
-    defaultLayer: 'Dashboard',
-    liveModule: isCsLike ? 'Živý hiring tok' : 'Live hiring flow',
-    dossier: 'Dossier',
-    readOnlyEditor: isCsLike ? 'Ukázka zadání' : 'Challenge preview',
-    capacity: isCsLike ? 'Limity a přístup' : 'Limits and access',
-    companyCore: isCsLike ? 'Výchozí bod' : 'Starting point',
-    planCapacity: isCsLike ? 'Růst a kapacita' : 'Growth and capacity',
-  }), [isCsLike]);
-
-  const company = useMemo(() => ({
-    name: isCsLike ? 'Vaše společnost' : 'Your company',
-    philosophy: isCsLike
-      ? 'JobShaman pomáhá firmám získat kontrolu nad hiringem od prvního briefu po finální rozhodnutí. Všechno důležité vidíte v jednom toku, takže tým reaguje rychleji a kandidáti nezažívají ticho.'
-      : 'JobShaman helps companies regain control of hiring from the first brief to the final decision. Everything important lives in one flow, so your team reacts faster and candidates never disappear into silence.',
-    tone: isCsLike ? 'Jistota, tempo, důvěra' : 'Confidence, pace, trust',
-    values: [
-      isCsLike ? 'Jasně vidíte, kde hiring stojí' : 'See exactly where hiring slows down',
-      isCsLike ? 'Kandidáti dostávají rychlejší odpověď' : 'Candidates get faster responses',
-      isCsLike ? 'Tým rozhoduje nad stejným obrazem reality' : 'The whole team decides from the same source of truth',
-    ],
-  }), [isCsLike]);
-
-  const rootPainPoints = useMemo(() => (
-    isCsLike
-      ? [
-          '300 CV, která vypadají podobně a těžko se v nich hledá skutečný signál.',
-          'Dlouhé rozhodování bez jistoty, kdo je opravdu relevantní pro tým.',
-          'Kandidáti, kteří sedí na papíře, ale v realitě nepomohou vyřešit to podstatné.',
-        ]
-      : [
-          '300 CVs that look similar and hide the real signal.',
-          'Slow decisions without confidence about who actually fits the team.',
-          'Candidates who look right on paper but do not solve the real problem.',
-        ]
-  ), [isCsLike]);
-
-  const rootOutcomes = useMemo(() => (
-    isCsLike
-      ? [
-          'Jak člověk přemýšlí nad konkrétním problémem.',
-          'Jak reaguje na tlak, nejasnost a nutnost prioritizace.',
-          'Jestli dává smysl pro váš tým, ne jen pro popis role.',
-        ]
-      : [
-          'How a person thinks about the actual problem.',
-          'How they react to pressure, ambiguity, and prioritization.',
-          'Whether they make sense for your team, not just the job description.',
-        ]
-  ), [isCsLike]);
-
-  const trackEvent = (eventName: string, metadata?: Record<string, unknown>) => {
-    AnalyticsService.trackEvent(eventName, {
-      locale: i18n.language,
-      ...metadata,
-    });
-  };
+  const tracked = useRef(false);
 
   useEffect(() => {
-    if (hasTrackedView.current) return;
-    hasTrackedView.current = true;
-    trackEvent('company_landing_view', { section: 'workspace_demo_map', shell_mode: 'workspace_demo' });
-  }, []);
+    if (tracked.current) return;
+    tracked.current = true;
+    AnalyticsService.trackEvent('company_landing_view', {
+      locale: i18n.language,
+      section: 'conversion_first',
+      shell_mode: 'landing_page',
+    });
+  }, [i18n.language]);
 
-  const jobs = useMemo<Job[]>(() => ([
-    baseJob(
-      'demo-platform-engineer',
-      company.name,
-      isCsLike ? 'Lead pro stabilitu provozu a technické týmy' : 'Lead for operational stability and technical teams',
-      isCsLike ? 'Brno / hybrid' : 'Brno / hybrid',
-      isCsLike
-        ? 'Firma hledá člověka, který uklidní kritická místa v provozu, nastaví odpovědnosti a vrátí týmům jistotu v tom, co řešit jako první.'
-        : 'The company is looking for someone who can calm critical operational pressure points, clarify ownership, and give teams confidence about what to solve first.',
-    ),
-    baseJob(
-      'demo-operations-lead',
-      company.name,
-      isCsLike ? 'Hiring Operations Lead pro růst bez chaosu' : 'Hiring Operations Lead for scalable growth',
-      isCsLike ? 'Praha / onsite + 1 den remote' : 'Prague / onsite + 1 day remote',
-      isCsLike
-        ? 'Tým potřebuje lídra, který zkrátí čekání mezi kroky, dá recruiterům rytmus a pomůže škálovat hiring bez ztráty lidskosti.'
-        : 'The team needs a leader who can cut waiting time between steps, give recruiters a rhythm, and scale hiring without losing the human touch.',
-    ),
-  ]), [company.name, isCsLike]);
-
-  const dialogues = useMemo<CompanyApplicationRow[]>(() => ([
-    {
-      id: 'dialogue-sara',
-      job_id: 'demo-platform-engineer',
-      candidate_id: 'candidate-sara',
-      status: 'shortlisted',
-      submitted_at: '2026-03-24T09:20:00Z',
-      updated_at: '2026-03-27T11:45:00Z',
-      dialogue_deadline_at: '2026-04-02T16:00:00Z',
-      dialogue_current_turn: 'company',
-      dialogue_timeout_hours: 48,
-      job_title: jobs[0]?.title,
-      candidate_name: 'Sara Novak',
-      candidate_email: 'sara.novak@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=32',
-    },
-    {
-      id: 'dialogue-marek',
-      job_id: 'demo-operations-lead',
-      candidate_id: 'candidate-marek',
-      status: 'reviewed',
-      submitted_at: '2026-03-25T08:45:00Z',
-      updated_at: '2026-03-28T12:05:00Z',
-      dialogue_deadline_at: '2026-04-03T14:00:00Z',
-      dialogue_current_turn: 'candidate',
-      dialogue_timeout_hours: 72,
-      job_title: jobs[1]?.title,
-      candidate_name: 'Marek Svoboda',
-      candidate_email: 'marek.svoboda@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=53',
-    },
-    {
-      id: 'dialogue-elena',
-      job_id: 'demo-platform-engineer',
-      candidate_id: 'candidate-elena',
-      status: 'pending',
-      submitted_at: '2026-03-26T10:20:00Z',
-      updated_at: '2026-03-29T08:30:00Z',
-      dialogue_deadline_at: '2026-04-04T15:00:00Z',
-      dialogue_current_turn: 'candidate',
-      dialogue_timeout_hours: 48,
-      job_title: jobs[0]?.title,
-      candidate_name: 'Elena Richter',
-      candidate_email: 'elena.richter@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=47',
-    },
-  ]), [jobs]);
-
-  const assessments = useMemo<Assessment[]>(() => ([
-    {
-      id: 'assessment-platform',
-      title: 'Platform signal sprint',
-      role: jobs[0]?.title || 'Platform Engineer',
-      description: isCsLike ? 'Krátký screening, který rychle ukáže klid v tlaku, způsob rozhodování a schopnost převzít odpovědnost.' : 'A short screening that quickly shows calm under pressure, decision quality, and ownership.',
-      questions: [
-        { id: 'q1', text: isCsLike ? 'Jak bys rozdělil/a ownership mezi platformu a product engineering?' : 'How would you split ownership between platform and product engineering?', type: 'Open', category: 'Situational' },
-      ],
-      createdAt: '2026-03-21T07:30:00Z',
-    },
-    {
-      id: 'assessment-ops',
-      title: 'Hiring cockpit calibration',
-      role: jobs[1]?.title || 'Operations Lead',
-      description: isCsLike ? 'Praktický screening na prioritizaci, tempo rozhodování a schopnost udržet hiring v pohybu.' : 'A practical screening for prioritization, decision rhythm, and keeping hiring moving.',
-      questions: [
-        { id: 'q1', text: isCsLike ? 'Co uděláš první týden, když hiring fronta stojí?' : 'What do you do in the first week when the hiring queue stalls?', type: 'Scenario', category: 'Practical' },
-      ],
-      createdAt: '2026-03-19T12:00:00Z',
-    },
-  ]), [isCsLike, jobs]);
-
-  const pricingPlans = useMemo<LandingDemoPricingPlan[]>(() => ([
-    {
-      id: 'free',
-      name: 'Free',
-      price: isCsLike ? 'Zdarma' : 'Free',
-      note: isCsLike ? 'Pro první firmu, která si chce vyzkoušet JobShaman na jednom náboru a rychle vidět, jestli dává větší přehled i klid.' : 'For a first company trying JobShaman on one hiring flow and quickly validating whether it brings more clarity and calm.',
-      roleOpens: '1',
-      dialogueSlots: '3',
-      aiAssessments: '10 / month',
-      recruiterSeats: '1',
-      features: [isCsLike ? '1 otevřená pozice současně' : '1 open role at a time', isCsLike ? 'Až 3 kandidáti rozpracovaní zároveň' : 'Up to 3 active candidates moving at once', isCsLike ? '10 AI screeningů měsíčně' : '10 AI screenings per month'],
-    },
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: '249 EUR / month',
-      note: isCsLike ? 'Pro menší hiring tým, který už nabírá pravidelně a chce mít více rolí i kandidátů pod kontrolou v jednom prostoru.' : 'For a smaller hiring team recruiting regularly and wanting several roles and candidates under control in one place.',
-      roleOpens: '3',
-      dialogueSlots: '12',
-      aiAssessments: '80 / month',
-      recruiterSeats: '2',
-      features: [isCsLike ? '3 otevřené pozice najednou' : '3 open roles at once', isCsLike ? 'Až 12 kandidátů v aktivním procesu' : 'Up to 12 candidates in active process', isCsLike ? '2 členové týmu ve workspace' : '2 team members inside the workspace'],
-    },
-    {
-      id: 'growth',
-      name: 'Growth',
-      price: '599 EUR / month',
-      note: isCsLike ? 'Pro firmy, které chtějí nabírat opakovaně, rychleji a s jistotou, že se nic důležitého neztratí mezi lidmi ani nástroji.' : 'For companies that want repeatable, faster hiring without losing important context between people or tools.',
-      roleOpens: '10',
-      dialogueSlots: '40',
-      aiAssessments: '250 / month',
-      recruiterSeats: '5',
-      highlighted: true,
-      features: [isCsLike ? '10 otevřených pozic zároveň' : '10 open roles at once', isCsLike ? 'Až 40 kandidátů v aktivním procesu' : 'Up to 40 candidates in active process', isCsLike ? '5 členů týmu a 250 AI screeningů měsíčně' : '5 team members and 250 AI screenings per month'],
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      price: '899 EUR / month',
-      note: isCsLike ? 'Pro větší organizace, které potřebují sladit recruitery, hiring manažery i více týmů nad jedním společným přehledem.' : 'For larger organizations that need recruiters, hiring managers, and multiple teams aligned around one shared view.',
-      roleOpens: '25',
-      dialogueSlots: '100',
-      aiAssessments: '600 / month',
-      recruiterSeats: '12',
-      features: [isCsLike ? '25 otevřených pozic současně' : '25 open roles at once', isCsLike ? 'Až 100 kandidátů v aktivním procesu' : 'Up to 100 candidates in active process', isCsLike ? '12 členů týmu a 600 AI screeningů měsíčně' : '12 team members and 600 AI screenings per month'],
-    },
-  ]), [isCsLike]);
-
-  const brief = useMemo<LandingDemoBrief>(() => ({
-    title: isCsLike ? 'Ukázka zadání, které přivede lepší odpovědi hned na začátku' : 'A challenge preview that brings stronger answers from day one',
-    companyGoal: isCsLike ? 'Potřebujeme člověka, který uklidní kritická místa v provozu, sladí klíčové lidi a vrátí týmu důvěru, že hiring vede k reálnému zlepšení.' : 'We need someone who can calm critical operational pressure points, align the right people, and restore confidence that hiring leads to real improvement.',
-    challenge: isCsLike ? 'Navrhněte první měsíc tak, aby firma rychle viděla přínos: co stabilizovat nejdřív, koho zapojit a kde získat první viditelný výsledek.' : 'Design the first month so the company sees value quickly: what to stabilize first, who to involve, and where to create the first visible win.',
-    firstStep: isCsLike ? 'Kandidát ukáže, jak přemýšlí pod tlakem, co upřednostní a jak promění nejasné zadání v konkrétní další krok.' : 'The candidate shows how they think under pressure, what they prioritize, and how they turn ambiguity into a concrete next step.',
-    collaborationMode: isCsLike ? 'Hybrid / klíčová role pro tým' : 'Hybrid / key team role',
-    compensation: '90 000 - 125 000 CZK',
-    timeToSignal: isCsLike ? '7 dní' : '7 days',
-    successSignals: isCsLike ? ['Klid v prioritách', 'Jasný ownership', 'Srozumitelný plán', 'Rychlý první dopad'] : ['Calm prioritization', 'Clear ownership', 'A credible plan', 'Fast first impact'],
-    operatingNotes: [
-      isCsLike ? 'Dobré zadání zkracuje cestu k relevantním kandidátům a šetří čas celému týmu.' : 'A strong challenge brings better-fit candidates sooner and saves time across the team.',
-      isCsLike ? 'Ve vlastním workspace si firma podobné zadání upraví přesně podle své role, týmu a hiring cíle.' : 'Inside your own workspace, the team can tailor this kind of challenge to the exact role, team, and hiring goal.',
-    ],
-  }), [isCsLike]);
-
-  const conversationMessages = useMemo<LandingDemoConversationMessage[]>(() => ([
-    { id: 'message-1', author: 'Sara Novak', role: 'candidate', timestamp: isCsLike ? 'Pondělí 09:12' : 'Monday 09:12', body: isCsLike ? 'První týden bych zklidnila největší rizika, srovnala priority a dala týmu rychlý plán, kterému uvěří.' : 'In the first week I would calm the biggest risks, align priorities, and give the team a fast plan they can believe in.' },
-    { id: 'message-2', author: company.name, role: 'company', timestamp: isCsLike ? 'Pondělí 11:04' : 'Monday 11:04', body: isCsLike ? 'Jak byste poznala, že se tým skutečně posouvá a že kandidátům umíme dát rychlejší a jistější odpověď?' : 'How would you know the team is truly moving forward and that we can give candidates a faster, more confident response?' },
-    { id: 'message-3', author: isCsLike ? 'Hiring signál' : 'Hiring signal', role: 'system', timestamp: isCsLike ? 'Úterý 08:00' : 'Tuesday 08:00', body: isCsLike ? 'Právě tady JobShaman drží kontext, další krok i odpovědnost na jednom místě, takže hiring nezůstane viset mezi lidmi.' : 'This is where JobShaman keeps context, next step, and ownership together, so hiring does not get stuck between people.' },
-  ]), [company.name, isCsLike]);
-
-  const dossiers = useMemo<Record<string, DialogueDossier>>(() => ({
-    'dialogue-sara': {
-      id: 'dialogue-sara',
-      job_id: 'demo-platform-engineer',
-      company_id: 'demo-company',
-      candidate_id: 'candidate-sara',
-      source: 'landing_demo',
-      status: 'shortlisted',
-      submitted_at: '2026-03-24T09:20:00Z',
-      updated_at: '2026-03-27T11:45:00Z',
-      dialogue_deadline_at: '2026-04-02T16:00:00Z',
-      dialogue_current_turn: 'company',
-      dialogue_timeout_hours: 48,
-      dialogue_is_overdue: false,
-      cover_letter: isCsLike ? 'Spojuji technické týmy a provoz tak, aby se z napětí rychle stal konkrétní postup.' : 'I connect technical teams and operations so pressure turns into a concrete plan quickly.',
-      candidate_profile_snapshot: { name: 'Sara Novak', email: 'sara.novak@example.com', phone: '+420 777 111 222', jobTitle: 'Platform / SRE lead', avatar_url: 'https://i.pravatar.cc/160?img=32', linkedin: 'linkedin.com/in/saranovak', skills: ['Python', 'Kubernetes', 'Grafana', 'Incident response'], values: ['Ownership', isCsLike ? 'Klid pod tlakem' : 'Calm under pressure'] },
-      job_title: jobs[0]?.title,
-      candidate_name: 'Sara Novak',
-      candidate_email: 'sara.novak@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=32',
-      ai_summary: { summary: isCsLike ? 'Kandidátka působí jako člověk, který dokáže z chaosu rychle vytvořit důvěryhodný plán.' : 'The candidate comes across as someone who can turn chaos into a credible plan fast.' },
-      fit_evidence: { layers: { skills: { score: 84, evidence: ['Platform leadership'] }, motivation: { score: 81, evidence: ['Ownership signal'] }, experience: { score: 78, evidence: ['Incident response'] }, values: { score: 86, evidence: ['Systems thinking'] }, logistics: { score: 73, evidence: ['Brno hybrid'] } } },
-    },
-    'dialogue-marek': {
-      id: 'dialogue-marek',
-      job_id: 'demo-operations-lead',
-      source: 'landing_demo',
-      status: 'reviewed',
-      submitted_at: '2026-03-25T08:45:00Z',
-      updated_at: '2026-03-28T12:05:00Z',
-      dialogue_deadline_at: '2026-04-03T14:00:00Z',
-      dialogue_current_turn: 'candidate',
-      dialogue_timeout_hours: 72,
-      job_title: jobs[1]?.title,
-      candidate_name: 'Marek Svoboda',
-      candidate_email: 'marek.svoboda@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=53',
-      candidate_profile_snapshot: { name: 'Marek Svoboda', email: 'marek.svoboda@example.com', avatar_url: 'https://i.pravatar.cc/160?img=53', jobTitle: 'Operations lead', skills: ['Operations design', 'Recruiter enablement'], values: [isCsLike ? 'Tempo bez chaosu' : 'Speed without chaos'] },
-    },
-    'dialogue-elena': {
-      id: 'dialogue-elena',
-      job_id: 'demo-platform-engineer',
-      source: 'landing_demo',
-      status: 'pending',
-      submitted_at: '2026-03-26T10:20:00Z',
-      updated_at: '2026-03-29T08:30:00Z',
-      dialogue_deadline_at: '2026-04-04T15:00:00Z',
-      dialogue_current_turn: 'candidate',
-      dialogue_timeout_hours: 48,
-      job_title: jobs[0]?.title,
-      candidate_name: 'Elena Richter',
-      candidate_email: 'elena.richter@example.com',
-      candidate_avatar_url: 'https://i.pravatar.cc/160?img=47',
-      candidate_profile_snapshot: { name: 'Elena Richter', email: 'elena.richter@example.com', avatar_url: 'https://i.pravatar.cc/160?img=47', jobTitle: 'Industrial architect', skills: ['Architecture', 'Industrial IoT'], values: [isCsLike ? 'Systémové myšlení' : 'Systems thinking'] },
-    },
-  }), [isCsLike, jobs]);
-  const activityLog = useMemo<CompanyActivityLogEntry[]>(() => ([
-    {
-      id: 'activity-1',
-      company_id: 'demo-company',
-      event_type: 'challenge_opened',
-      subject_type: 'job',
-      subject_id: 'demo-platform-engineer',
-      payload: { action_label: isCsLike ? 'Nová výzva otevřena pro provozní stabilitu' : 'New challenge opened for operational stability' },
-      created_at: '2026-03-28T09:10:00Z',
-    },
-    {
-      id: 'activity-2',
-      company_id: 'demo-company',
-      event_type: 'dialogue_shortlisted',
-      subject_type: 'dialogue',
-      subject_id: 'dialogue-sara',
-      payload: { action_label: isCsLike ? 'Sara Novak posunuta do shortlistu' : 'Sara Novak moved to shortlist' },
-      created_at: '2026-03-29T11:35:00Z',
-    },
-    {
-      id: 'activity-3',
-      company_id: 'demo-company',
-      event_type: 'assessment_ready',
-      subject_type: 'assessment',
-      subject_id: 'assessment-platform',
-      payload: { action_label: isCsLike ? 'Screening připraven pro další krok' : 'Screening prepared for the next step' },
-      created_at: '2026-03-30T08:05:00Z',
-    },
-  ]), [isCsLike]);
-  const selectedJob = jobs.find((job) => job.id === navigation.selectedWaveId) || jobs[0] || null;
-  const selectedDialogue = dialogues.find((dialogue) => dialogue.id === navigation.selectedDialogueId)
-    || dialogues.find((dialogue) => String(dialogue.job_id) === String(selectedJob?.id))
-    || dialogues[0]
-    || null;
-  const selectedDossier = selectedDialogue ? dossiers[selectedDialogue.id] || null : null;
-  const visibleDialogues = dialogues.filter((dialogue) => !selectedJob?.id || String(dialogue.job_id) === String(selectedJob.id));
-  const metrics = { roles: jobs.length, activeDialogues: dialogues.filter((item) => ['pending', 'reviewed', 'shortlisted'].includes(String(item.status))).length, candidates: 14, assessments: assessments.length };
-
-  const formatDate = (value: string | null | undefined) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString(language, { dateStyle: 'medium', timeStyle: 'short' });
+  const trackClick = (eventName: string, metadata?: Record<string, unknown>) => {
+    AnalyticsService.trackEvent(eventName, { locale: i18n.language, ...metadata });
   };
 
-  const labelStatus = (status: string) => ({
-    pending: isCsLike ? 'Čeká' : 'Pending',
-    reviewed: isCsLike ? 'Prohlédnuto' : 'Reviewed',
-    shortlisted: 'Shortlist',
-    rejected: isCsLike ? 'Zamítnuto' : 'Rejected',
-    active: isCsLike ? 'Aktivní' : 'Active',
-    closed: isCsLike ? 'Uzavřeno' : 'Closed',
-  }[status] || status);
-
-  const callRegister = (section: string, metadata?: Record<string, unknown>) => {
-    trackEvent('company_landing_cta_register_click', { section, ...metadata });
+  const callRegister = (source: string) => {
+    trackClick('company_landing_register_click', { source });
     onRegister?.();
   };
 
-  const callDemo = (section: string, metadata?: Record<string, unknown>) => {
-    trackEvent('company_landing_cta_demo_click', { section, ...metadata });
+  const callDemo = (source: string) => {
+    trackClick('company_landing_demo_click', { source });
     onRequestDemo?.();
   };
 
-  const callLogin = (section: string, metadata?: Record<string, unknown>) => {
-    trackEvent('company_landing_cta_login_click', { section, ...metadata });
+  const callLogin = (source: string) => {
+    trackClick('company_landing_login_click', { source });
     onLogin?.();
   };
 
-  const handleReadOnlyAction = (section: string, target: 'register' | 'demo' | 'login' = 'register', metadata?: Record<string, unknown>) => {
-    if (target === 'demo') return callDemo(section, metadata);
-    if (target === 'login') return callLogin(section, metadata);
-    return callRegister(section, metadata);
-  };
+  const copy = useMemo(() => (
+    isCsLike
+      ? {
+          kicker: 'JobShaman pro firmy',
+          heroTitle: 'Kandidáta nečtete z CV. Poznáte ho z toho, jak řeší váš reálný problém.',
+          heroBody: 'Firma zadá krátkou výzvu z praxe. Kandidát ukáže první tah. Vy dostanete anonymní hodnoticí přehled, ze kterého je opravdu možné vybrat silné lidi ještě před prvním pohovorem.',
+          primaryCta: 'Vytvořit účet a první výzvu',
+          secondaryCta: 'Ukázat mi to na demu',
+          tertiaryCta: 'Přihlásit se',
+          heroProofs: [
+            'Žádné CV-first třídění naslepo',
+            'Krátká praktická reakce místo generických odpovědí',
+            'Anonymní hodnoticí přehled ještě před odhalením identity',
+          ],
+          stepsTitle: 'Jednoduchý princip. Silnější náborová rozhodnutí.',
+          dossierTitle: 'Během pár minut víte, jestli toho člověka chcete opravdu poznat blíž',
+          dossierBody: 'Místo dalšího slepého callu dostanete odpověď, ze které je okamžitě cítit úsudek, priorita a schopnost řešit vaši realitu. Přesně ten typ signálu, kvůli kterému si řeknete: ano, tohle má smysl posunout dál.',
+          compareTitle: 'Konečně nábor, ve kterém už po prvním kontaktu víte, kdo stojí za další krok',
+          pricingTitle: 'Pricing bez chaosu a bez zbytečného překlikávání',
+          pricingBody: 'Všechny plány vidíte najednou. Hned je jasné, co odemknete, kolik výzev můžete vést a pro jak velký náborový tým to dává smysl.',
+          finalTitle: 'Pokud chcete méně slepých telefonátů a víc rozhodnutí z reálného signálu, začíná to první výzvou.',
+          finalBody: 'Stačí vytvořit firemní účet, popsat jednu skutečnou situaci a nechat kandidáty ukázat první tah.',
+        }
+      : {
+          kicker: 'JobShaman for companies',
+          heroTitle: 'Do not read candidates from their CV. Read them from how they solve your real problem.',
+          heroBody: 'Your team frames a short practical challenge. The candidate shows the first move. You get an anonymous skill-first dossier strong enough to shortlist before the interview.',
+          primaryCta: 'Create account and first challenge',
+          secondaryCta: 'Show me the demo',
+          tertiaryCta: 'Log in',
+          heroProofs: [
+            'No more blind CV-first filtering',
+            'Short practical handshake instead of generic answers',
+            'Anonymous recruiter dossier before identity reveal',
+          ],
+          stepsTitle: 'A simple principle. Stronger hiring decisions.',
+          dossierTitle: 'Within minutes, you know whether this is someone you genuinely want to meet',
+          dossierBody: 'Instead of another blind call, you get a response that immediately shows judgment, priorities, and the ability to solve your reality. Exactly the kind of signal that makes a team say: yes, this person is worth moving forward.',
+          compareTitle: 'Finally, a hiring flow where the first contact already tells you who deserves the next step',
+          pricingTitle: 'Pricing without chaos or pointless toggling',
+          pricingBody: 'All plans are visible at once. You immediately see what unlocks, how many challenges you can run, and what team size each plan fits.',
+          finalTitle: 'If you want fewer blind calls and more decisions from real signal, it starts with the first challenge.',
+          finalBody: 'Create the company account, describe one real situation, and let candidates show the first move.',
+        }
+  ), [isCsLike]);
 
-  const navigate = (activeLayer: LandingMapLayer, options?: { waveId?: string | null; dialogueId?: string | null; keepPanel?: boolean; rootDashboardOpen?: boolean }) => {
-    trackEvent('company_landing_demo_layer_open', {
-      layer: activeLayer,
-      wave_id: options?.waveId ?? navigation.selectedWaveId,
-      dialogue_id: options?.dialogueId ?? navigation.selectedDialogueId,
+  const sampleDossier = useMemo<DialogueDossier>(() => ({
+    id: 'landing-dialogue-platform-lead',
+    candidate_id: 'candidate-signal-01',
+    job_id: 'job-platform-lead',
+    job_title: 'Platform / SRE Lead',
+    status: 'shortlisted',
+    submitted_at: '2026-04-02T09:20:00Z',
+    updated_at: '2026-04-02T11:45:00Z',
+    dialogue_deadline_at: '2026-04-04T16:00:00Z',
+    dialogue_current_turn: 'company',
+    dialogue_timeout_hours: 48,
+    dialogue_is_overdue: false,
+    candidate_name: 'Signal Candidate',
+    candidate_email: 'signal.candidate@example.com',
+    candidate_profile_snapshot: {
+      name: 'Signal Candidate',
+      email: 'signal.candidate@example.com',
+      jobTitle: 'Platform / SRE Lead',
+      skills: ['Incident response', 'Kubernetes', 'Operational design', 'Python'],
+      values: isCsLike ? ['Ownership', 'Klid pod tlakem'] : ['Ownership', 'Calm under pressure'],
+    },
+    application_payload: {
+      practical_assessment_brief: {
+        kicker: 'Practical handshake',
+        timebox: isCsLike ? '15 až 20 minut' : '15 to 20 minutes',
+        scenario_title: isCsLike ? 'První měsíc ve chvíli, kdy tým ztrácí důvěru v priority' : 'First month when the team has lost trust in priorities',
+        scenario_context: isCsLike
+          ? 'Produkt i platform tým jsou po sérii incidentů přetížené a lidé nevěří, že se řeší správné věci ve správném pořadí.'
+          : 'After repeated incidents, product and platform are overloaded and people no longer trust that the right things are being solved in the right order.',
+        core_problem: isCsLike
+          ? 'Navrhněte první týden a první měsíc tak, aby se zklidnil provoz, srovnal ownership a tým viděl rychlý důkaz zlepšení.'
+          : 'Design the first week and first month to calm operations, restore ownership, and show fast proof of improvement.',
+        constraints: isCsLike
+          ? ['Bez velké reorganizace', 'Bez ztráty důvěry týmu', 'První viditelný dopad do 30 dní']
+          : ['No big reorg', 'Do not lose team trust', 'First visible impact within 30 days'],
+        structured_sections: [
+          { id: 'first_move', title: isCsLike ? 'První tah' : 'First move' },
+          { id: 'what_to_verify', title: isCsLike ? 'Co si ověřit' : 'What to verify' },
+          { id: 'risk_tradeoffs', title: isCsLike ? 'Rizika a trade-offy' : 'Risks and trade-offs' },
+        ],
+      },
+      practical_assessment_response: {
+        first_move: isCsLike
+          ? 'První 72 hodin bych neřešil všechno. Srovnal bych tři nejbolestivější incidenty, zviditelnil ownership handoffy a otevřel jeden veřejný decision log, aby tým hned viděl, co se mění.'
+          : 'In the first 72 hours I would not try to fix everything. I would stabilize the three most painful incidents, make ownership handoffs visible, and open one public decision log so the team sees change immediately.',
+        what_to_verify: isCsLike
+          ? 'Potřebuji ověřit, kde dnes vzniká největší latency mezi product a platform, kdo ve skutečnosti schvaluje kritické změny a jestli incident review mění chování, nebo jen archivuje stres.'
+          : 'I need to verify where the largest latency appears between product and platform, who actually approves critical changes, and whether incident review changes behavior or only archives stress.',
+        risk_tradeoffs: isCsLike
+          ? 'Největší riziko je přepálit centralizaci a vytvořit nové bottlenecky. Proto bych oddělil dočasný stabilizační režim od dlouhodobého operating modelu.'
+          : 'The biggest risk is over-centralizing and creating new bottlenecks. I would separate the temporary stabilization mode from the long-term operating model.',
+      },
+    } as any,
+    signal_boost: {
+      signal_summary: {
+        items: [
+          { key: 'context_read', label: 'Context read', score: 84 },
+          { key: 'decision_quality', label: 'Decision quality', score: 81 },
+          { key: 'risk_judgment', label: 'Risk judgment', score: 76 },
+          { key: 'role_specificity', label: 'Role specificity', score: 82 },
+        ],
+      },
+      recruiter_readout: {
+        headline: isCsLike
+          ? 'Kandidát okamžitě odděluje stabilizaci od redesignu a neskrývá se za obecné best practices.'
+          : 'The candidate immediately separates stabilization from redesign and does not hide behind generic best practices.',
+        evidence_excerpt: isCsLike
+          ? 'První odpověď ukazuje klid pod tlakem, realistickou priorizaci a schopnost vrátit týmu důvěru bez velkého divadla.'
+          : 'The first answer shows calm under pressure, realistic prioritization, and the ability to restore team trust without drama.',
+        strength_signals: isCsLike
+          ? ['Klidná priorizace', 'Silný ownership framing', 'Praktický follow-through']
+          : ['Calm prioritization', 'Strong ownership framing', 'Practical follow-through'],
+        risk_flags: isCsLike
+          ? ['Ověřit stakeholder sequencing ve větší organizaci']
+          : ['Verify stakeholder sequencing in a larger organization'],
+        what_cv_does_not_show: isCsLike
+          ? ['Jak přemýšlí pod tlakem', 'Jak zachází s ownership chaosem', 'Jak odděluje rychlou stabilizaci od redesignu']
+          : ['How they think under pressure', 'How they handle ownership chaos', 'How they separate stabilization from redesign'],
+        follow_up_questions: isCsLike
+          ? ['Jak by rozdělil ownership mezi product a platform?', 'Kdy by ukončil stabilizační režim?']
+          : ['How would they split ownership between product and platform?', 'When would they end the stabilization mode?'],
+        recommended_next_step: isCsLike
+          ? 'Pozvat do krátkého navazujícího hovoru a ověřit práci s neformálním vlivem ve větším týmu.'
+          : 'Invite to a short follow-up call and validate how they handle informal influence in a larger team.',
+        fit_context: {
+          headline: isCsLike
+            ? 'Vysoká pravděpodobnost, že zklidní napětí a vrátí týmu důvěru v rozhodování během prvních týdnů.'
+            : 'High probability of calming tension and restoring trust in decision-making within the first weeks.',
+          recruiter_validation_focus: isCsLike
+            ? ['Ověřit práci s neformálním vlivem', 'Ověřit práci s leadership alignment']
+            : ['Validate informal influence', 'Validate leadership alignment'],
+          recruiter_soft_signals: isCsLike
+            ? ['Nízké ego', 'Systémové myšlení', 'Klid v tlaku']
+            : ['Low ego', 'Systems thinking', 'Calm under pressure'],
+          stretch_areas: isCsLike
+            ? ['Doplnit sequencing stakeholderů na delším horizontu']
+            : ['Add stakeholder sequencing for the longer horizon'],
+        },
+      },
+    } as any,
+  }), [isCsLike]);
+
+  const view = useMemo(() => buildCompanyHandshakeDecisionView(sampleDossier), [sampleDossier]);
+  const visualAssets = useMemo(() => ({
+    heroPhoto: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1400&q=80',
+    workspacePhoto: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80',
+  }), []);
+  const radarChart = useMemo(() => {
+    const size = 260;
+    const center = size / 2;
+    const radius = 88;
+    const levels = [0.25, 0.5, 0.75, 1];
+    const cards = view.scoreCards;
+    const pointFor = (index: number, valueRatio: number) => {
+      const angle = (-Math.PI / 2) + (index / cards.length) * Math.PI * 2;
+      const r = radius * valueRatio;
+      const x = center + Math.cos(angle) * r;
+      const y = center + Math.sin(angle) * r;
+      return { x, y };
+    };
+    const polygon = cards.map((card, index) => {
+      const p = pointFor(index, Math.max(0, Math.min(1, card.score / 100)));
+      return `${p.x},${p.y}`;
+    }).join(' ');
+    const axes = cards.map((card, index) => {
+      const edge = pointFor(index, 1);
+      const label = pointFor(index, 1.18);
+      return { card, edge, label };
     });
-    setNavigation((current) => ({
-      ...current,
-      activeLayer,
-      selectedWaveId: options?.waveId ?? current.selectedWaveId,
-      selectedDialogueId: options?.dialogueId ?? current.selectedDialogueId,
-      rootDashboardOpen: activeLayer === 'challenge_map'
-        ? (options?.rootDashboardOpen ?? current.rootDashboardOpen)
-        : false,
-      panelDismissed: options?.keepPanel ? current.panelDismissed : false,
-    }));
-  };
+    const rings = levels.map((level) => cards.map((_, index) => {
+      const p = pointFor(index, level);
+      return `${p.x},${p.y}`;
+    }).join(' '));
+    return { size, center, polygon, axes, rings };
+  }, [view.scoreCards]);
+  const landingDossierCopy = useMemo(() => (
+    isCsLike
+      ? {
+          kicker: 'První silný signál pro další krok',
+          title: 'U tohohle člověka rychle cítíte, že by mohl týmu skutečně pomoct',
+          summary: 'Ne proto, že má hezké CV. Ale proto, že jeho první odpověď působí klidně, přesně a prakticky. Přesně tak vypadá moment, kdy náborář přestane jen číst a začne si říkat: tohohle člověka chci poznat blíž.',
+          signalBadge: 'Signál, který dává smysl posunout dál',
+          companyProblem: 'Co firma potřebuje vyřešit',
+          candidateMove: 'Jak kandidát přemýšlí o prvním tahu',
+          businessImpact: 'Proč to působí silně už teď',
+          nextStep: 'Co dává smysl udělat hned potom',
+          scoreLabels: {
+            context_read: 'Porozumění situaci',
+            decision_quality: 'Kvalita rozhodnutí',
+            risk_judgment: 'Práce s rizikem',
+            role_specificity: 'Přenos do role',
+          } as Record<string, string>,
+          scoreVerdict: 'Silný nadprůměrný dojem',
+          evidenceTitle: 'Co firmu přesvědčí během pár vteřin',
+          identityTitle: 'Identita zůstává zamčená, dokud není na stole skutečný zájem',
+          identityBody: 'Nejdřív se rozhodujete z kvality reakce. Jméno, kontakt a celý profil se odemknou až ve chvíli, kdy opravdu chcete navázat další krok.',
+        }
+      : {
+          kicker: 'First shortlist-ready signal',
+          title: 'This is the kind of candidate who immediately feels useful to the team',
+          summary: 'Not because the CV looks polished, but because the first response feels calm, precise, and practical. This is the moment when a recruiter stops just reading and starts thinking: yes, I want to meet this person.',
+          signalBadge: 'A signal worth moving forward',
+          companyProblem: 'What the company needs solved',
+          candidateMove: 'How the candidate thinks about the first move',
+          businessImpact: 'Why this already feels strong',
+          nextStep: 'What makes sense to do next',
+          scoreLabels: {
+            context_read: 'Situational understanding',
+            decision_quality: 'Decision quality',
+            risk_judgment: 'Risk handling',
+            role_specificity: 'Role transfer',
+          } as Record<string, string>,
+          scoreVerdict: 'Strong above-baseline signal',
+          evidenceTitle: 'What convinces the team within seconds',
+          identityTitle: 'Identity stays locked until there is real interest',
+          identityBody: 'The team decides from response quality first. Name, direct contact, and full profile unlock only when you genuinely want to continue.',
+        }
+  ), [isCsLike]);
 
-  const openRootMap = () => navigate('challenge_map', { rootDashboardOpen: false });
-  const openRootDashboard = () => navigate('challenge_map', { rootDashboardOpen: true });
-  const openWave = (waveId: string) => navigate('challenge_cluster', { waveId });
-  const openHumanDetail = (dialogueId: string, waveId?: string | null) => navigate('human_detail', { dialogueId, waveId: waveId ? String(waveId) : navigation.selectedWaveId });
-  const layers: CompanyGalaxyMapLayer[] = [
-    { id: 'challenge_map', label: copy.challengeMap, icon: Sparkles, active: navigation.activeLayer === 'challenge_map', onClick: openRootDashboard },
-    { id: 'challenge_cluster', label: copy.challengeCluster, icon: Briefcase, active: navigation.activeLayer === 'challenge_cluster', onClick: () => navigate('challenge_cluster', { waveId: selectedJob?.id || null }) },
-    { id: 'human_detail', label: copy.humanDetail, icon: Users, active: navigation.activeLayer === 'human_detail', onClick: () => navigate('human_detail', { waveId: selectedDialogue?.job_id ? String(selectedDialogue.job_id) : selectedJob?.id || null, dialogueId: selectedDialogue?.id || null }) },
-    { id: 'open_challenge', label: copy.openChallenge, icon: Plus, active: navigation.activeLayer === 'open_challenge', onClick: () => navigate('open_challenge', { waveId: selectedJob?.id || null }) },
-    { id: 'pricing', label: copy.pricing, icon: CreditCard, active: navigation.activeLayer === 'pricing', onClick: () => navigate('pricing') },
-  ];
-  const visibleLayers = layers;
+  const steps = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            title: '1. Zadáte reálný problém',
+            body: 'Ne další generický inzerát. Jednu konkrétní situaci, kterou nový člověk opravdu převezme.',
+          },
+          {
+            title: '2. Kandidát ukáže první tah',
+            body: 'Krátká praktická reakce odhalí úsudek, priority, práci s rizikem a přenos do reality týmu.',
+          },
+          {
+            title: '3. Dostanete hodnoticí přehled',
+            body: 'Anonymní, srovnatelný a lidský výstup, ze kterého můžete vybrat silné lidi dřív než z CV.',
+          },
+        ]
+      : [
+          {
+            title: '1. Frame a real problem',
+            body: 'Not another generic listing. One concrete situation the new person will actually take over.',
+          },
+          {
+            title: '2. The candidate shows the first move',
+            body: 'A short practical handshake reveals judgment, priorities, risk, and practical transfer into the team reality.',
+          },
+          {
+            title: '3. You get a recruiter dossier',
+            body: 'An anonymous, comparable, human output strong enough to shortlist before the CV becomes the center.',
+          },
+        ]
+  ), [isCsLike]);
 
-  const nodes: CompanyGalaxyMapNode[] = useMemo(() => {
-    const positions: Record<LandingMapLayer, Record<LandingMapLayer, { x: number; y: number }>> = {
-      challenge_map: { challenge_map: { x: 50, y: 14 }, challenge_cluster: { x: 82, y: 28 }, human_detail: { x: 78, y: 78 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 16, y: 22 } },
-      challenge_cluster: { challenge_map: { x: 18, y: 32 }, challenge_cluster: { x: 50, y: 14 }, human_detail: { x: 80, y: 32 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 78, y: 78 } },
-      human_detail: { challenge_map: { x: 18, y: 30 }, challenge_cluster: { x: 80, y: 28 }, human_detail: { x: 50, y: 14 }, open_challenge: { x: 22, y: 78 }, pricing: { x: 78, y: 78 } },
-      open_challenge: { challenge_map: { x: 18, y: 30 }, challenge_cluster: { x: 78, y: 28 }, human_detail: { x: 82, y: 78 }, open_challenge: { x: 50, y: 14 }, pricing: { x: 24, y: 78 } },
-      pricing: { challenge_map: { x: 18, y: 30 }, challenge_cluster: { x: 80, y: 28 }, human_detail: { x: 78, y: 78 }, open_challenge: { x: 24, y: 78 }, pricing: { x: 50, y: 14 } },
-    };
+  const compareItems = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            title: 'Běžný náborový proces',
+            points: [
+              'Nejdřív čtete profil, ale až call ukáže, jestli ten člověk opravdu přemýšlí způsobem, který potřebujete.',
+              'První rozhovory často jen dohánějí to, co mělo být jasné už předem.',
+              'Tým investuje čas do lidí, u kterých se základní jistota objeví až příliš pozdě.',
+            ],
+            tone: 'border-slate-200 bg-white shadow-sm',
+          },
+          {
+            title: 'Nábor přes JobShaman',
+            points: [
+              'Už první reakce ukáže, jestli ten člověk umí přemýšlet nad vaším problémem klidně, prakticky a s prioritou.',
+              'Do dalšího kola posouváte lidi, u kterých už teď cítíte reálný přínos pro tým.',
+              'Náborář i vedoucí týmu se opírají o jeden silný signál, ne o pocit z hezky napsaného CV.',
+            ],
+            tone: 'border-slate-200 bg-white shadow-sm',
+          },
+        ]
+      : [
+          {
+            title: 'Standard hiring flow',
+            points: [
+              'You read the profile first, but only the call tells you whether the person actually thinks the way you need.',
+              'Early interviews often exist just to discover what should have been obvious earlier.',
+              'The team spends time on people before there is enough confidence they are truly worth it.',
+            ],
+            tone: 'border-slate-200 bg-white shadow-sm',
+          },
+          {
+            title: 'Hiring with JobShaman',
+            points: [
+              'The first response already shows whether the person thinks about your problem in a calm, practical, high-priority way.',
+              'You move forward with people who already feel capable of helping the team.',
+              'Recruiters and hiring managers align around one strong signal instead of a polished CV impression.',
+            ],
+            tone: 'border-slate-200 bg-white shadow-sm',
+          },
+        ]
+  ), [isCsLike]);
 
-    const shared: Record<LandingMapLayer, LandingMapNodeTemplate> = {
-      challenge_map: { id: 'challenge_map', label: copy.challengeMap, secondaryLabel: copy.defaultLayer, narrative: isCsLike ? 'Přehled, ve kterém firma během chvíle uvidí role, kandidáty i bottlenecky bez přeskakování mezi nástroji.' : 'A map where the team can see roles, candidates, and bottlenecks in seconds without jumping between tools.', count: metrics.roles + metrics.activeDialogues, accent: navigation.activeLayer === 'challenge_map' ? 'core' : 'muted', tone: navigation.activeLayer === 'challenge_map' ? 'emerald' : 'blue', icon: <Sparkles size={28} /> },
-      challenge_cluster: { id: 'challenge_cluster', label: copy.challengeCluster, secondaryLabel: selectedJob?.title || copy.liveModule, narrative: isCsLike ? 'Každá role má jasný další krok, odpovědnost i tempo, takže hiring neztrácí tah.' : 'Each role gets a clear next step, clear ownership, and steady pace so hiring keeps moving.', count: visibleDialogues.length + jobs.length, accent: navigation.activeLayer === 'challenge_cluster' ? 'core' : 'accent', tone: 'emerald', icon: <Briefcase size={28} /> },
-      human_detail: { id: 'human_detail', label: copy.humanDetail, secondaryLabel: selectedDossier?.candidate_name || copy.dossier, narrative: isCsLike ? 'Kandidát už není jen karta v tabulce. Tým okamžitě vidí kontext, signál i další rozhodnutí.' : 'A candidate is no longer just a row in a spreadsheet. The team sees context, signal, and the next decision immediately.', count: selectedDossier ? 1 : visibleDialogues.length, accent: navigation.activeLayer === 'human_detail' ? 'core' : 'muted', tone: 'blue', imageUrl: selectedDossier?.candidate_profile_snapshot?.avatar_url || selectedDialogue?.candidate_avatar_url || null, icon: <Users size={28} /> },
-      open_challenge: { id: 'open_challenge', label: copy.openChallenge, secondaryLabel: copy.readOnlyEditor, narrative: isCsLike ? 'Dobře položené zadání přitahuje lepší kandidáty a šetří čas ještě před prvním kolem.' : 'A well-framed challenge attracts better-fit candidates and saves time before the first interview.', count: jobs.length, accent: navigation.activeLayer === 'open_challenge' ? 'core' : 'accent', tone: 'orange', icon: <Plus size={28} /> },
-      pricing: { id: 'pricing', label: copy.pricing, secondaryLabel: copy.capacity, narrative: isCsLike ? 'Firma hned vidí, jakou kapacitu potřebuje pro svůj hiring rytmus a růstové ambice.' : 'The team can instantly see what level of capacity fits its hiring pace and growth goals.', count: pricingPlans.length, accent: navigation.activeLayer === 'pricing' ? 'core' : 'muted', tone: 'orange', icon: <CreditCard size={28} /> },
-    };
+  const plans = useMemo<LandingPlan[]>(() => (
+    isCsLike
+      ? [
+          {
+            id: 'free',
+            name: 'Free',
+            price: 'Zdarma',
+            bestFor: 'Na první vyzkoušení, jestli vám nábor podle reálného signálu sedí ještě před placeným nasazením.',
+            outcome: 'Jedna živá pozice a první reálný aha moment bez závazku.',
+            roleOpens: '1 aktivní výzva',
+            dialogueSlots: '3 kandidáti v procesu',
+            recruiterSeats: '1 člen týmu',
+            features: ['Vyzkoušení na jedné pozici', 'První praktická reakce a hodnoticí přehled', 'Bez rizika, jen ověření, jestli to sedí vašemu týmu'],
+          },
+          {
+            id: 'starter',
+            name: 'Starter',
+            price: '249 EUR / měsíc',
+            bestFor: 'Pro menší tým, který chce začít nabírat podle reálného signálu místo chaosu kolem CV.',
+            outcome: 'První opakovatelný postup pro několik klíčových rolí.',
+            roleOpens: '3 aktivní výzvy',
+            dialogueSlots: '12 kandidátů v procesu',
+            recruiterSeats: '2 členové týmu',
+            features: ['Praktická reakce jako první filtr', 'Hodnoticí přehled u každé reakce', 'Základ pro první výběr bez slepých telefonátů'],
+          },
+          {
+            id: 'growth',
+            name: 'Růst',
+            price: '599 EUR / měsíc',
+            bestFor: 'Pro firmy, které chtějí z náboru udělat jasný systém, ne improvizaci role po roli.',
+            outcome: 'Dost kapacity pro opakovatelný nábor napříč několika rolemi a náboráři.',
+            roleOpens: '10 aktivních výzev',
+            dialogueSlots: '40 kandidátů v procesu',
+            recruiterSeats: '5 členů týmu',
+            features: ['Doporučený plán pro většinu týmů', 'Silná kapacita pro další výběr a navazující kroky', 'Jeden konzistentní jazyk náboru napříč týmem'],
+            recommended: true,
+          },
+          {
+            id: 'professional',
+            name: 'Pokročilý',
+            price: '899 EUR / měsíc',
+            bestFor: 'Pro větší náborové organizace, které chtějí sladit náboráře, vedoucí týmů i rychlost rozhodování.',
+            outcome: 'Širší náborový provoz bez ztráty přehledu a kvality signálu.',
+            roleOpens: '25 aktivních výzev',
+            dialogueSlots: '100 kandidátů v procesu',
+            recruiterSeats: '12 členů týmu',
+            features: ['Vysoká průchodnost bez chaosu v tarifech', 'Více týmů v jednom prostředí', 'Kapacita pro větší rozpracovaný výběr i více lidí v rozhodování'],
+          },
+        ]
+      : [
+          {
+            id: 'free',
+            name: 'Free',
+            price: 'Free',
+            bestFor: 'To validate whether skill-first hiring fits your team before paying for rollout.',
+            outcome: 'One live role and the first real aha moment without commitment.',
+            roleOpens: '1 active challenge',
+            dialogueSlots: '3 candidates in process',
+            recruiterSeats: '1 team member',
+            features: ['Try it on one live role', 'First practical handshake and dossier', 'Low-risk validation for your team'],
+          },
+          {
+            id: 'starter',
+            name: 'Starter',
+            price: '249 EUR / month',
+            bestFor: 'For smaller teams that want to move from CV chaos to real hiring signal.',
+            outcome: 'The first repeatable workflow for a few key roles.',
+            roleOpens: '3 active challenges',
+            dialogueSlots: '12 candidates in process',
+            recruiterSeats: '2 team members',
+            features: ['Skill-first handshake workflow', 'Recruiter dossier on every response', 'A real shortlist workflow before blind calls'],
+          },
+          {
+            id: 'growth',
+            name: 'Growth',
+            price: '599 EUR / month',
+            bestFor: 'For companies that want a clear hiring system instead of role-by-role improvisation.',
+            outcome: 'Enough capacity for repeatable hiring across multiple roles and recruiters.',
+            roleOpens: '10 active challenges',
+            dialogueSlots: '40 candidates in process',
+            recruiterSeats: '5 team members',
+            features: ['Recommended for most teams', 'Strong shortlist and follow-up capacity', 'One consistent skill-first hiring language across the team'],
+            recommended: true,
+          },
+          {
+            id: 'professional',
+            name: 'Professional',
+            price: '899 EUR / month',
+            bestFor: 'For larger hiring organizations aligning recruiters, hiring managers, and decision speed.',
+            outcome: 'Wider hiring operations without losing clarity or signal quality.',
+            roleOpens: '25 active challenges',
+            dialogueSlots: '100 candidates in process',
+            recruiterSeats: '12 team members',
+            features: ['Higher throughput without pricing chaos', 'Multiple teams in one hiring workspace', 'Capacity for larger pipelines and more stakeholders'],
+          },
+        ]
+  ), [isCsLike]);
 
-    const primaryNodes = (Object.keys(shared) as LandingMapLayer[])
-      .map((id) => ({
-      ...shared[id],
-      ...positions[navigation.activeLayer][id],
-      active: navigation.activeLayer === id,
-      onClick: () => (id === 'challenge_map'
-        ? openRootDashboard()
-        : navigate(
-        id,
-        id === 'human_detail'
-          ? { waveId: selectedDialogue?.job_id ? String(selectedDialogue.job_id) : selectedJob?.id || null, dialogueId: selectedDialogue?.id || null }
-          : id === 'challenge_cluster' || id === 'open_challenge'
-            ? { waveId: selectedJob?.id || null }
-            : undefined,
-      )),
-    }));
+  return (
+    <div className="min-h-full overflow-y-auto bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <section className="rounded-[32px] border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8 lg:px-10 lg:py-10">
+          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800">
+                <Sparkles size={13} />
+                {copy.kicker}
+              </div>
+              <h1 className="mt-5 max-w-5xl text-4xl font-black tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
+                {copy.heroTitle}
+              </h1>
+              <p className="mt-5 max-w-3xl text-base leading-8 text-slate-700 sm:text-lg">
+                {copy.heroBody}
+              </p>
 
-    return primaryNodes;
-  }, [copy, isCsLike, jobs.length, metrics.activeDialogues, metrics.roles, navigation.activeLayer, openRootDashboard, pricingPlans.length, selectedDialogue, selectedDossier, selectedJob, visibleDialogues.length]);
-
-  const breadcrumbs: CompanyGalaxyMapBreadcrumb[] = navigation.activeLayer === 'challenge_map'
-    ? [
-        {
-          id: 'challenge_map',
-          label: copy.challengeMap,
-          onClick: openRootMap,
-        },
-      ]
-    : [
-        { id: 'challenge_map', label: copy.challengeMap, onClick: openRootMap },
-        {
-          id: navigation.activeLayer,
-          label: layers.find((layer) => layer.id === navigation.activeLayer)?.label || navigation.activeLayer,
-          onClick: () => navigate(
-            navigation.activeLayer,
-            navigation.activeLayer === 'human_detail'
-              ? { dialogueId: selectedDialogue?.id || null, waveId: selectedDialogue?.job_id ? String(selectedDialogue.job_id) : selectedJob?.id || null }
-              : navigation.activeLayer === 'challenge_cluster' || navigation.activeLayer === 'open_challenge'
-                ? { waveId: selectedJob?.id || null }
-                : undefined,
-          ),
-        },
-      ];
-
-  const detailPanel = !navigation.panelDismissed ? (
-    <div className="space-y-4">
-      {navigation.activeLayer === 'challenge_map' ? (
-        <>
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              {isCsLike ? 'Co tím řešíte' : 'What this helps you solve'}
+              <div className="mt-7 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => callRegister('landing_hero_primary')}
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_18px_42px_-24px_rgba(12,74,110,0.45)]"
+                >
+                  {copy.primaryCta}
+                  <ArrowRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => callDemo('landing_hero_secondary')}
+                  className="rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700"
+                >
+                  {copy.secondaryCta}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => callLogin('landing_hero_login')}
+                  className="inline-flex items-center gap-2 rounded-full border border-transparent px-5 py-3.5 text-sm font-semibold text-slate-500"
+                >
+                  <LogIn size={15} />
+                  {copy.tertiaryCta}
+                </button>
+              </div>
             </div>
-            <div className="mt-2 text-lg font-semibold text-[var(--text-strong)]">
-              {isCsLike ? 'Méně papírově správných kandidátů. Více skutečného porozumění.' : 'Fewer paper-perfect candidates. More real understanding.'}
+
+            <div className="relative min-h-[420px]">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-slate-950 shadow-sm">
+                <img
+                  src={visualAssets.heroPhoto}
+                  alt={isCsLike ? 'Hiring tým v reálném pracovním prostředí' : 'Hiring team in a real work setting'}
+                  className="h-[420px] w-full object-cover opacity-95"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.36)_56%,rgba(15,23,42,0.74)_100%)]" />
+
+                <div className="absolute inset-x-0 bottom-0 p-6">
+                  <div className="max-w-sm rounded-[22px] border border-white/15 bg-slate-950/72 p-5">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                      {isCsLike ? 'Nábor podle reálného signálu v praxi' : 'Skill-first hiring in practice'}
+                    </div>
+                    <div className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
+                      {isCsLike ? 'Méně slepých telefonátů. Víc silných výběrů.' : 'Fewer blind calls. More strong shortlists.'}
+                    </div>
+                    <div className="mt-3 text-sm leading-7 text-slate-200">
+                      {isCsLike
+                        ? 'Landing má teď ukazovat skutečný pocit z lepšího náboru, ne jen seznam funkcí.'
+                        : 'The landing should now feel like better hiring in motion, not a stack of feature boxes.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -left-3 top-6 hidden max-w-[220px] rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_20px_48px_-32px_rgba(15,23,42,0.35)] md:block">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                  {isCsLike ? 'První dojem pro firmu' : 'First company impression'}
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-950">
+                  {isCsLike ? 'Tým vidí reálnou reakci na problém, ne jen hezky napsanou zkušenost.' : 'The team sees a real response to a problem, not just a polished background.'}
+                </div>
+              </div>
+
+              <div className="absolute -right-3 bottom-8 hidden max-w-[240px] rounded-[22px] border border-cyan-200 bg-cyan-50 px-4 py-4 shadow-[0_20px_48px_-32px_rgba(14,116,144,0.35)] md:block">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-cyan-700">
+                  {isCsLike ? 'Aha moment' : 'Aha moment'}
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-950">
+                  {isCsLike ? '„Tohle chci zkusit hned teď.“' : '"I want to try this right now."'}
+                </div>
+                <div className="mt-2 text-sm leading-6 text-slate-700">
+                  {isCsLike ? 'Přesně ten pocit má nový landing vyvolat během prvních sekund.' : 'That is the exact feeling the new landing should create within seconds.'}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="grid gap-2">
-            {rootPainPoints.map((value) => (
-              <div key={value} className="rounded-[18px] border border-white/70 bg-white/82 px-4 py-3 text-sm text-slate-700">{value}</div>
-            ))}
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              {isCsLike ? 'Co uvidíte místo toho' : 'What you see instead'}
-            </div>
-          </div>
-          <div className="grid gap-2">
-            {rootOutcomes.map((value) => (
-              <div key={value} className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-slate-700">{value}</div>
-            ))}
-          </div>
-        </>
-      ) : navigation.activeLayer === 'challenge_cluster' ? (
-        <>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.challengeCluster}</div>
-          <div className="text-lg font-semibold text-[var(--text-strong)]">{selectedJob?.title}</div>
-          <p className="text-sm leading-7 text-[var(--text-muted)]">{selectedJob?.challenge || selectedJob?.description}</p>
-        </>
-      ) : navigation.activeLayer === 'human_detail' ? (
-        <>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.humanDetail}</div>
-          <div className="text-lg font-semibold text-[var(--text-strong)]">{selectedDossier?.candidate_name || selectedDialogue?.candidate_name}</div>
-          <p className="text-sm leading-7 text-[var(--text-muted)]">{isCsLike ? 'Tady je vidět, jak rychle se může z prvního dojmu stát kvalitní rozhodnutí, když má tým kontext i další krok na očích.' : 'This is where you see how quickly a first impression can become a strong decision when the team has context and the next step in plain view.'}</p>
-        </>
-      ) : navigation.activeLayer === 'open_challenge' ? (
-        <>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.readOnlyEditor}</div>
-          <div className="text-lg font-semibold text-[var(--text-strong)]">{isCsLike ? 'Lepší zadání přináší lepší reakce už od prvního dne.' : 'Better framing creates better responses from the very first day.'}</div>
-          <p className="text-sm leading-7 text-[var(--text-muted)]">{brief.companyGoal}</p>
-        </>
-      ) : (
-        <>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{copy.pricing}</div>
-          <div className="text-lg font-semibold text-[var(--text-strong)]">{isCsLike ? 'Vyberete takovou kapacitu, která podpoří růst bez zbytečných prostojů.' : 'Choose a level of capacity that supports growth without unnecessary delays.'}</div>
-          <div className="space-y-2">
-            {pricingPlans.slice(0, 3).map((plan) => (
-              <div key={plan.id} className="rounded-[18px] border border-white/70 bg-white/82 px-4 py-3">
-                <div className="text-sm font-semibold text-slate-950">{plan.name}</div>
-                <div className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--accent)]">{plan.price}</div>
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
+            {copy.heroProofs.map((proof) => (
+              <div key={proof} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                {proof}
               </div>
             ))}
           </div>
-        </>
-      )}
-    </div>
-  ) : null;
-  const lowerContent = navigation.activeLayer === 'challenge_map'
-    ? (
-      navigation.rootDashboardOpen ? (
-        <CompanyMapOverviewPanel
-          locale={language}
-          metrics={{ roles: metrics.roles, activeDialogues: metrics.activeDialogues, candidates: metrics.candidates, assessments: metrics.assessments }}
-          jobs={jobs}
-          dialogues={visibleDialogues}
-          activityLog={activityLog}
-          formatDate={formatDate}
-          labelStatus={labelStatus}
-          onOpenWave={openWave}
-          onOpenDialogue={openHumanDetail}
-          onOpenCandidates={() => openHumanDetail(selectedDialogue?.id || 'dialogue-sara', selectedJob?.id || 'demo-platform-engineer')}
-          onOpenAssessments={() => navigate('challenge_cluster', { waveId: selectedJob?.id || null })}
-        />
-      ) : null
-    )
-    : navigation.activeLayer === 'challenge_cluster'
-    ? (
-        <CompanyWaveClusterPanel
-          locale={language}
-          jobs={jobs}
-          selectedJobId={selectedJob?.id || null}
-          jobStats={{ 'demo-platform-engineer': { views: 84, applicants: 12 }, 'demo-operations-lead': { views: 51, applicants: 8 } }}
-          assessmentCount={assessments.length}
-          dialoguesLoading={false}
-          dialogues={visibleDialogues}
-          dialoguesUpdating={{}}
-          selectedDialogueId={selectedDialogue?.id || null}
-          labelStatus={labelStatus}
-          onCreateNewChallenge={() => handleReadOnlyAction('landing_demo_create_challenge', 'register')}
-          onCreateMiniChallenge={() => handleReadOnlyAction('landing_demo_create_mini_challenge', 'register')}
-          onOpenWave={openWave}
-          onOpenEditor={(waveId) => navigate('open_challenge', { waveId })}
-          onCloseWave={(waveId) => handleReadOnlyAction('landing_demo_close_wave', 'register', { waveId })}
-          onReopenWave={(waveId) => handleReadOnlyAction('landing_demo_reopen_wave', 'register', { waveId })}
-          onArchiveWave={(waveId) => handleReadOnlyAction('landing_demo_archive_wave', 'demo', { waveId })}
-          onCreateAssessment={(waveId) => handleReadOnlyAction('landing_demo_create_assessment', 'demo', { waveId })}
-          onOpenDialogue={openHumanDetail}
-          onDialogueStatusChange={(dialogueId, status) => handleReadOnlyAction('landing_demo_dialogue_status', 'register', { dialogueId, status })}
-        />
-      )
-      : navigation.activeLayer === 'human_detail'
-        ? (
-          <div className="space-y-5">
-            <CompanyHumanDetailPanel
-              dossier={selectedDossier}
-              dialogueOptions={dialogues.map((dialogue) => ({ id: dialogue.id, candidateName: dialogue.candidate_name || 'Candidate', jobTitle: dialogue.job_title, status: dialogue.status, avatarUrl: dialogue.candidate_avatar_url || dialogue.candidateAvatarUrl || null }))}
-              locale={language}
-              formatDate={formatDate}
-              labelStatus={labelStatus}
-              onOpenDialogue={(dialogueId) => openHumanDetail(dialogueId, dialogues.find((item) => item.id === dialogueId)?.job_id ? String(dialogues.find((item) => item.id === dialogueId)?.job_id) : selectedJob?.id || null)}
-              onCreateAssessment={() => handleReadOnlyAction('landing_demo_human_detail_create_assessment', 'register', { dialogueId: selectedDialogue?.id || null })}
-              onInviteAssessment={() => handleReadOnlyAction('landing_demo_human_detail_invite_assessment', 'demo', { dialogueId: selectedDialogue?.id || null })}
-            />
-            <LandingDemoConversationPanel locale={language} messages={conversationMessages} onRegister={() => callRegister('landing_demo_conversation_register')} onRequestDemo={() => callDemo('landing_demo_conversation_demo')} onLogin={() => callLogin('landing_demo_conversation_login')} />
-          </div>
-        )
-        : navigation.activeLayer === 'open_challenge'
-          ? <LandingDemoOpenChallengePanel locale={language} brief={brief} onRegister={() => callRegister('landing_demo_open_challenge_register')} onRequestDemo={() => callDemo('landing_demo_open_challenge_demo')} />
-          : <LandingDemoPricingPanel locale={language} plans={pricingPlans} onRegister={(planId) => callRegister('landing_demo_pricing_register', { planId })} onRequestDemo={() => callDemo('landing_demo_pricing_demo')} onLogin={() => callLogin('landing_demo_pricing_login')} />;
+        </section>
 
-  return (
-    <CompanyMapScene
-      locale={language}
-      kicker={isCsLike ? 'JobShaman pro firmy' : 'JobShaman for companies'}
-      title={copy.title}
-      subtitle={copy.subtitle}
-      center={{
-        eyebrow: navigation.activeLayer === 'challenge_map'
-          ? copy.companyCore
-          : navigation.activeLayer === 'challenge_cluster'
-            ? (isCsLike ? 'Možný směr' : 'Possible direction')
-            : navigation.activeLayer === 'human_detail'
-              ? (isCsLike ? 'Reálný signál' : 'Real signal')
-              : navigation.activeLayer === 'open_challenge'
-                ? (isCsLike ? 'Zadání' : 'Challenge frame')
-                : copy.pricing,
-        name: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Tady začíná váš hiring' : 'This is where your hiring starts') : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.title || company.name) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.candidate_name || selectedDialogue?.candidate_name || company.name) : navigation.activeLayer === 'open_challenge' ? copy.openChallenge : copy.planCapacity,
-        motto: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Začněte realitou, ne popisem role.' : 'Start with reality, not the job description.') : navigation.activeLayer === 'challenge_cluster' ? (selectedJob?.challenge || selectedJob?.description || company.philosophy) : navigation.activeLayer === 'human_detail' ? (selectedDossier?.ai_summary?.summary || company.philosophy) : navigation.activeLayer === 'open_challenge' ? brief.challenge : (isCsLike ? 'Kapacita má růst spolu s hiringem, ne ho brzdit.' : 'Capacity should grow with hiring, not hold it back.'),
-        tone: company.tone,
-        statusLine: navigation.activeLayer === 'challenge_map'
-          ? undefined
-          : navigation.activeLayer === 'human_detail'
-            ? labelStatus(selectedDossier?.status || 'pending')
-            : navigation.activeLayer === 'pricing'
-              ? 'Free / Starter / Growth / Professional'
-              : `${metrics.roles} ${isCsLike ? 'aktivní výzvy' : 'active challenges'} / ${metrics.activeDialogues} ${isCsLike ? 'živé konverzace' : 'live conversations'}`,
-        values: navigation.activeLayer === 'challenge_map' ? company.values.slice(0, 2) : company.values,
-        promptLabel: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Jaký problém u vás právě brzdí hiring?' : 'What problem is slowing your hiring down right now?') : undefined,
-        promptPlaceholder: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Např. dlouhé rozhodování bez jistoty' : 'For example: slow decisions without confidence') : undefined,
-        promptValue: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Dlouhé rozhodování bez jistoty' : 'Slow decisions without confidence') : undefined,
-        promptActionLabel: navigation.activeLayer === 'challenge_map' ? (isCsLike ? 'Ukázat směr' : 'Show the path') : undefined,
-        onPromptAction: navigation.activeLayer === 'challenge_map' ? (() => navigate('challenge_cluster', { waveId: selectedJob?.id || null })) : undefined,
-      }}
-      layers={visibleLayers}
-      nodes={nodes}
-      workspaceBreadcrumbs={breadcrumbs}
-      detailPanel={detailPanel}
-      lowerContent={lowerContent}
-      zoom={navigation.canvasZoom}
-      onZoomIn={() => setNavigation((current) => ({ ...current, canvasZoom: Math.min(1.24, current.canvasZoom + 0.08) }))}
-      onZoomOut={() => setNavigation((current) => ({ ...current, canvasZoom: Math.max(0.8, current.canvasZoom - 0.08) }))}
-      onZoomReset={() => setNavigation((current) => ({ ...current, canvasZoom: 1 }))}
-      topActions={(
-        <>
-          <button type="button" onClick={() => callRegister('landing_workspace_header')} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white">{copy.register}<ArrowRight size={16} /></button>
-          <button type="button" onClick={() => callDemo('landing_workspace_demo')} className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--text-strong)]">{copy.demo}</button>
-          <button type="button" onClick={() => callLogin('landing_workspace_login')} className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/84 px-4 py-2.5 text-sm font-semibold text-[var(--text-strong)]"><LogIn size={15} />{copy.login}</button>
-        </>
-      )}
-    />
+        <section className="mt-8">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Jak to funguje' : 'How it works'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {copy.stepsTitle}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{step.title}</div>
+                <p className="mt-3 text-sm leading-7 text-slate-700">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8 overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative h-full min-h-[320px]">
+              <img
+                src={visualAssets.workspacePhoto}
+                alt={isCsLike ? 'Lidé spolupracující v moderním týmu' : 'People collaborating in a modern team'}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.12)_0%,rgba(15,23,42,0.04)_42%,rgba(255,255,255,0.02)_100%)]" />
+            </div>
+            <div className="flex flex-col justify-center px-6 py-8 sm:px-8 lg:px-10">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                {isCsLike ? 'Lidštější nábor' : 'Human-like hiring'}
+              </div>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+                {isCsLike ? 'Firma i kandidát mají mít pocit, že se už trochu znají ještě před prvním interview.' : 'The company and the candidate should already feel like they know each other a bit before the first interview.'}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-700">
+                {isCsLike
+                  ? 'Tohle není jen nový layout. Celý princip je postavený tak, aby první interakce byla konkrétní, lidská a rozhodovací zároveň.'
+                  : 'This is not just a new layout. The whole principle is built so the first interaction feels concrete, human, and decision-ready at the same time.'}
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {[
+                  isCsLike ? 'Reálný problém místo obecného inzerátu' : 'A real problem instead of a generic listing',
+                  isCsLike ? 'První tah místo motivačního textu' : 'A first move instead of motivational fluff',
+                  isCsLike ? 'Hodnoticí přehled místo poznámkového chaosu' : 'A dossier instead of scattered notes',
+                  isCsLike ? 'Silnější výběr ještě před prvním hovorem' : 'A stronger shortlist before the call',
+                ].map((item) => (
+                  <div key={item} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Tohle je moment rozhodnutí' : 'This is the decision moment'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {copy.dossierTitle}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-700">
+              {copy.dossierBody}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-5 xl:grid-cols-[1.12fr_0.88fr]">
+            <div className="rounded-[28px] border border-slate-200 bg-white p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-700">
+                    {landingDossierCopy.kicker}
+                  </div>
+                  <h3 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950">
+                    {landingDossierCopy.title}
+                  </h3>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                    {landingDossierCopy.summary}
+                  </p>
+                </div>
+                <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-800">
+                  {landingDossierCopy.signalBadge}
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[26px] border border-cyan-100 bg-cyan-50/70 px-5 py-5">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-cyan-700">
+                  {landingDossierCopy.companyProblem}
+                </div>
+                <div className="mt-2 text-base font-semibold leading-7 text-slate-950">
+                  {view.task.coreProblem}
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                  {landingDossierCopy.candidateMove}
+                </div>
+                <div className="mt-3 text-lg font-semibold leading-8 text-slate-950">
+                  {view.spotlight.candidateMove}
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.14em] text-emerald-700">
+                      {landingDossierCopy.businessImpact}
+                    </div>
+                    <div className="mt-2 text-sm leading-7 text-slate-700">
+                      {view.spotlight.businessImpact}
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                      {landingDossierCopy.nextStep}
+                    </div>
+                    <div className="mt-2 text-sm leading-7 text-slate-700">
+                      {view.spotlight.nextStep}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-[26px] border border-slate-200 bg-white px-5 py-5">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                  {landingDossierCopy.evidenceTitle}
+                </div>
+                <div className="mt-4 space-y-3">
+                  {view.evidenceBlocks.slice(0, 2).map((block) => (
+                    <div key={block.title} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="text-sm font-semibold text-slate-950">{block.title}</div>
+                      <div className="mt-2 text-sm leading-7 text-slate-700">{block.body}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                  {isCsLike ? 'Rychlý vizuální otisk kandidáta' : 'Quick visual signal snapshot'}
+                </div>
+                <div className="mx-auto mt-4 w-full max-w-[300px]">
+                  <svg viewBox={`0 0 ${radarChart.size} ${radarChart.size}`} className="h-full w-full overflow-visible">
+                    {radarChart.rings.map((ring, index) => (
+                      <polygon
+                        key={`ring-${index}`}
+                        points={ring}
+                        fill={index === radarChart.rings.length - 1 ? 'rgba(14,165,233,0.06)' : 'transparent'}
+                        stroke="rgba(148,163,184,0.32)"
+                        strokeWidth="1"
+                      />
+                    ))}
+                    {radarChart.axes.map((axis) => (
+                      <line
+                        key={`axis-${axis.card.key}`}
+                        x1={radarChart.center}
+                        y1={radarChart.center}
+                        x2={axis.edge.x}
+                        y2={axis.edge.y}
+                        stroke="rgba(148,163,184,0.28)"
+                        strokeWidth="1"
+                      />
+                    ))}
+                    <polygon
+                      points={radarChart.polygon}
+                      fill="rgba(14,165,233,0.18)"
+                      stroke="rgba(8,145,178,0.95)"
+                      strokeWidth="2.5"
+                    />
+                    {radarChart.axes.map((axis) => {
+                      const label = landingDossierCopy.scoreLabels[axis.card.key] || axis.card.label;
+                      return (
+                        <g key={`label-${axis.card.key}`}>
+                          <circle cx={axis.edge.x} cy={axis.edge.y} r="3.5" fill="rgba(8,145,178,0.95)" />
+                          <text
+                            x={axis.label.x}
+                            y={axis.label.y}
+                            textAnchor={axis.label.x < radarChart.center - 8 ? 'end' : axis.label.x > radarChart.center + 8 ? 'start' : 'middle'}
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fill="#475569"
+                            style={{ fontWeight: 600 }}
+                          >
+                            {label}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+                <div className="mt-4 text-sm leading-7 text-slate-700">
+                  {isCsLike
+                    ? 'Jedním pohledem je vidět, že tenhle člověk už teď působí jistě, prakticky a přenositelně do reality týmu.'
+                    : 'At a glance, it is clear this person already feels confident, practical, and transferable into the team reality.'}
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
+                <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  <LockKeyhole size={12} />
+                  {landingDossierCopy.identityTitle}
+                </div>
+                <div className="mt-3 text-lg font-semibold text-slate-950">
+                  {isCsLike ? 'Firma nejdřív vidí kvalitu, ne jméno' : 'The team sees quality before identity'}
+                </div>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  {landingDossierCopy.identityBody}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {view.identity.skills.slice(0, 3).map((skill) => (
+                    <span key={skill} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Proč to funguje lépe' : 'Why it works better'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {copy.compareTitle}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {compareItems.map((item) => (
+              <div key={item.title} className={`rounded-[24px] border p-6 ${item.tone}`}>
+                <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{item.title}</h3>
+                <div className="mt-4 space-y-3">
+                  {item.points.map((point) => (
+                    <div key={point} className="flex items-start gap-3 text-sm leading-7 text-slate-700">
+                      <Target size={15} className="mt-1 shrink-0 text-[var(--accent)]" />
+                      <span>{point}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-[34px] border border-slate-800 bg-[linear-gradient(180deg,#0f172a_0%,#111827_100%)] px-6 py-8 shadow-[0_34px_90px_-46px_rgba(15,23,42,0.58)] sm:px-8">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              {isCsLike ? 'Pricing bez chaosu' : 'Pricing without chaos'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">
+              {copy.pricingTitle}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              {copy.pricingBody}
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-4">
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`relative rounded-[26px] border p-5 shadow-sm ${plan.recommended ? 'border-cyan-300 bg-[linear-gradient(180deg,rgba(14,165,233,0.20)_0%,rgba(8,47,73,0.88)_100%)] shadow-[0_28px_62px_-34px_rgba(8,145,178,0.5)]' : 'border-slate-700 bg-slate-900/88'}`}
+              >
+                {plan.recommended ? (
+                  <div className="absolute -top-3 left-5 rounded-full border border-cyan-300 bg-slate-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
+                    {isCsLike ? 'Nejčastější volba' : 'Most popular'}
+                  </div>
+                ) : null}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className={`text-xl font-semibold tracking-[-0.03em] ${plan.recommended ? 'text-white' : 'text-slate-100'}`}>{plan.name}</div>
+                    <div className={`mt-1 text-2xl font-black ${plan.recommended ? 'text-white' : 'text-slate-50'}`}>{plan.price}</div>
+                  </div>
+                  {plan.recommended ? (
+                    <div className="rounded-full border border-cyan-200 bg-white/95 px-3 py-1 text-[11px] font-semibold text-cyan-800">
+                      {isCsLike ? 'Doporučený plán' : 'Recommended'}
+                    </div>
+                  ) : null}
+                </div>
+
+                <p className={`mt-3 text-sm leading-6 ${plan.recommended ? 'text-cyan-50' : 'text-slate-300'}`}>{plan.bestFor}</p>
+
+                <div className="mt-4 grid gap-2">
+                  {[plan.roleOpens, plan.dialogueSlots, plan.recruiterSeats].map((item) => (
+                    <div key={item} className={`rounded-[16px] border px-3.5 py-2.5 text-sm font-medium ${plan.recommended ? 'border-cyan-200/30 bg-white/10 text-white' : 'border-slate-700 bg-slate-950/80 text-slate-200'}`}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+
+                <div className={`mt-4 rounded-[18px] border px-4 py-3.5 ${plan.recommended ? 'border-cyan-200/30 bg-white/10' : 'border-slate-700 bg-slate-950/80'}`}>
+                  <div className={`text-[11px] uppercase tracking-[0.14em] ${plan.recommended ? 'text-cyan-100/80' : 'text-slate-500'}`}>
+                    {isCsLike ? 'Co odemknete' : 'What it unlocks'}
+                  </div>
+                  <div className={`mt-2 text-sm leading-6 ${plan.recommended ? 'text-white' : 'text-slate-300'}`}>
+                    {plan.outcome}
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2.5">
+                  {plan.features.slice(0, 3).map((feature) => (
+                    <div key={feature} className={`flex items-start gap-2.5 text-sm leading-6 ${plan.recommended ? 'text-cyan-50' : 'text-slate-300'}`}>
+                      <CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-500" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => callRegister(`landing_pricing_${plan.id}`)}
+                  className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold ${plan.recommended ? 'bg-white text-slate-950' : 'border border-slate-600 bg-slate-800 text-white'}`}
+                >
+                  {plan.id === 'free'
+                    ? (isCsLike ? 'Vyzkoušet zdarma' : 'Try for free')
+                    : (isCsLike ? 'Začít s tímto plánem' : 'Start with this plan')}
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-[28px] border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                {isCsLike ? 'Začít je jednodušší, než vypadá' : 'Starting is simpler than it looks'}
+              </div>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+                {copy.finalTitle}
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700">
+                {copy.finalBody}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => callRegister('landing_final_primary')}
+                className="rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white"
+              >
+                {copy.primaryCta}
+              </button>
+              <button
+                type="button"
+                onClick={() => callDemo('landing_final_secondary')}
+                className="rounded-full border border-slate-200 bg-slate-50 px-6 py-3.5 text-sm font-semibold text-slate-700"
+              >
+                {copy.secondaryCta}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 };
 

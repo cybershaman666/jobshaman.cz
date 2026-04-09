@@ -1,7 +1,7 @@
 import { UserProfile } from '../types';
 import { updateCVDocumentParsedData, updateUserCVSelection, uploadCVDocument, uploadCVFile } from './supabaseService';
 import { parseProfileFromCVWithFallback } from './cvParserService';
-import { parseProfileFromCV } from './geminiService';
+import { parseProfileFromCV } from './mistralService';
 
 export const MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 

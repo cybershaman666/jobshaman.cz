@@ -49,37 +49,19 @@ export const SEARCH_BACKEND_URL =
   import.meta.env.VITE_SEARCH_BACKEND_URL ||
   BACKEND_URL;
 
-export const FEATURE_ASSESSMENT_THREE =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE || 'true').toLowerCase() !== 'false';
-
-export const FEATURE_ASSESSMENT_COCKPIT_V2 =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_COCKPIT_V2 || 'false').toLowerCase() === 'true';
-
-export const FEATURE_HAPPINESS_AUDIT_THREE =
-  false;
-
-export const FEATURE_ASSESSMENT_THREE_GALAXY_V3 =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE_GALAXY_V3 || 'true').toLowerCase() !== 'false';
-
-export const FEATURE_ASSESSMENT_THREE_GALAXY_FALLBACK =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE_GALAXY_FALLBACK || 'true').toLowerCase() !== 'false';
-
-export const FEATURE_ASSESSMENT_ROLE_DYNAMIC_WORLDS =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_ROLE_DYNAMIC_WORLDS || 'true').toLowerCase() !== 'false';
-
-export const FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN || 'true').toLowerCase() !== 'false';
-
-export const FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 || 'false').toLowerCase() === 'true';
-
-
-export const FEATURE_SALARY_BENCHMARKS =
-  String(import.meta.env.VITE_FEATURE_SALARY_BENCHMARKS || 'false').toLowerCase() === 'true';
+// Assessment system flags (stable features, no longer experimental)
+export const FEATURE_ASSESSMENT_THREE = true;
+export const FEATURE_ASSESSMENT_THREE_GALAXY_V3 = true;
+export const FEATURE_ASSESSMENT_THREE_GALAXY_FALLBACK = true;
+export const FEATURE_ASSESSMENT_ROLE_DYNAMIC_WORLDS = true;
+export const FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN = true;
 
 // Backward-compatible flag used by older assessment router imports.
-export const FEATURE_ASSESSMENT_CLASSIC_TOGGLE =
-  String(import.meta.env.VITE_FEATURE_ASSESSMENT_CLASSIC_TOGGLE || 'true').toLowerCase() !== 'false';
+export const FEATURE_ASSESSMENT_CLASSIC_TOGGLE = true;
+
+// Feature toggles for future features
+export const FEATURE_SALARY_BENCHMARKS =
+  String(import.meta.env.VITE_FEATURE_SALARY_BENCHMARKS || 'false').toLowerCase() === 'true';
 
 export const JHI_COLORS = {
   high: '#059669', // Emerald 600

@@ -132,8 +132,8 @@ def log_ai_generation(event: Dict[str, Any]) -> None:
 def estimate_text_cost_usd(model_name: str, tokens_in: int, tokens_out: int) -> float:
     # Coarse price mapping; replace when billing is finalized.
     pricing = {
-        "gemini-1.5-flash": (0.00000035, 0.00000105),
-        "gemini-1.5-flash-8b": (0.00000018, 0.00000054),
+        "mistral-small-latest": (0.0000002, 0.0000006),
+        "mistral-medium-latest": (0.0000007, 0.0000021),
     }
     in_price, out_price = pricing.get(model_name, (0.0000004, 0.0000012))
     return round(tokens_in * in_price + tokens_out * out_price, 8)

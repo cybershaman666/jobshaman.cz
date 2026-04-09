@@ -30,6 +30,7 @@ interface ChallengeFeedWorkspaceProps {
   onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
   onCreateMiniChallenge: () => void;
   isMobileViewport?: boolean;
+  embeddedVariant?: 'default' | 'career_map_offers';
 }
 
 const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
@@ -53,6 +54,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   onOpenAuth,
   onCreateMiniChallenge,
   isMobileViewport = false,
+  embeddedVariant = 'default',
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMode, setMobileMode] = React.useState<'swipe' | 'feed'>('swipe');
@@ -85,6 +87,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
   const showAddressPrompt = isMobileViewport && userProfile.isLoggedIn && !hasAddress;
   const useCompactSearchLayout = searchDiagnostics?.search_mode === 'manual_query';
   const shouldUseCompactEditorialLayout = !isMobileViewport || useCompactSearchLayout;
+  const isCareerMapOffersMode = embeddedVariant === 'career_map_offers';
   React.useEffect(() => {
     let cancelled = false;
 
@@ -285,7 +288,7 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
     <div className="space-y-5 lg:space-y-6">
       {isMobileViewport ? (
         <div className="space-y-4 lg:hidden">
-          {statsPanel}
+          {!isCareerMapOffersMode ? statsPanel : null}
           <div className="flex flex-wrap gap-2">
             <FilterChip active={mobileMode === 'swipe'} onClick={() => setMobileMode('swipe')}>
               {copy.swipe}
@@ -327,40 +330,45 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
                 savedJobIds={savedJobIds}
                 locale={activeLocale}
                 compactLayout={shouldUseCompactEditorialLayout}
+                embeddedVariant={embeddedVariant}
                 onSelect={(jobId: string) => handleJobSelect(jobId)}
                 onOpen={(jobId: string) => handleJobSelect(jobId)}
                 onToggleSave={(jobId: string) => handleToggleSave(jobId)}
               />
             </div>
 
-            {mobileMode === 'feed' ? mobileSupportPanel : null}
-            {paginationPanel}
+            {!isCareerMapOffersMode && mobileMode === 'feed' ? mobileSupportPanel : null}
+            {!isCareerMapOffersMode ? paginationPanel : null}
 
-            <MiniChallengesRail
-              jobs={jobs}
-              onOpen={(jobId) => handleJobSelect(jobId)}
-              onSelect={(jobId) => handleJobSelect(jobId)}
-              selectedJobId={selectedJobId}
-              locale={activeLocale}
-              onCreateTask={onCreateMiniChallenge}
-              hidePostBtn={true}
-              postInfo={
-                <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
-                  {copy.postLead}{' '}
-                  <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
-                    {copy.profile}
-                  </button>{' '}
-                  {copy.postTail}
-                </div>
-              }
-            />
+            {!isCareerMapOffersMode ? (
+              <MiniChallengesRail
+                jobs={jobs}
+                onOpen={(jobId) => handleJobSelect(jobId)}
+                onSelect={(jobId) => handleJobSelect(jobId)}
+                selectedJobId={selectedJobId}
+                locale={activeLocale}
+                onCreateTask={onCreateMiniChallenge}
+                hidePostBtn={true}
+                postInfo={
+                  <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
+                    {copy.postLead}{' '}
+                    <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
+                      {copy.profile}
+                    </button>{' '}
+                    {copy.postTail}
+                  </div>
+                }
+              />
+            ) : null}
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,540px)_minmax(420px,1fr)] xl:items-start">
-              {statsPanel}
-              {mobileSupportPanel}
-            </div>
+            {!isCareerMapOffersMode ? (
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,540px)_minmax(420px,1fr)] xl:items-start">
+                {statsPanel}
+                {mobileSupportPanel}
+              </div>
+            ) : null}
 
             <div className="space-y-4">
               <ChallengeEditorialFeed
@@ -370,32 +378,35 @@ const ChallengeFeedWorkspace: React.FC<ChallengeFeedWorkspaceProps> = ({
                 savedJobIds={savedJobIds}
                 locale={activeLocale}
                 compactLayout={shouldUseCompactEditorialLayout}
+                embeddedVariant={embeddedVariant}
                 onSelect={(jobId: string) => handleJobSelect(jobId)}
                 onOpen={(jobId: string) => handleJobSelect(jobId)}
                 onToggleSave={(jobId: string) => handleToggleSave(jobId)}
               />
             </div>
 
-            {paginationPanel}
+            {!isCareerMapOffersMode ? paginationPanel : null}
 
-            <MiniChallengesRail
-              jobs={jobs}
-              onOpen={(jobId) => handleJobSelect(jobId)}
-              onSelect={(jobId) => handleJobSelect(jobId)}
-              selectedJobId={selectedJobId}
-              locale={activeLocale}
-              onCreateTask={onCreateMiniChallenge}
-              hidePostBtn={true}
-              postInfo={
-                <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
-                  {copy.postLead}{' '}
-                  <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
-                    {copy.profile}
-                  </button>{' '}
-                  {copy.postTail}
-                </div>
-              }
-            />
+            {!isCareerMapOffersMode ? (
+              <MiniChallengesRail
+                jobs={jobs}
+                onOpen={(jobId) => handleJobSelect(jobId)}
+                onSelect={(jobId) => handleJobSelect(jobId)}
+                selectedJobId={selectedJobId}
+                locale={activeLocale}
+                onCreateTask={onCreateMiniChallenge}
+                hidePostBtn={true}
+                postInfo={
+                  <div className="max-w-[160px] text-[10px] leading-tight text-[var(--text-faint)]">
+                    {copy.postLead}{' '}
+                    <button type="button" onClick={onOpenProfile} className="text-[var(--accent)] hover:underline">
+                      {copy.profile}
+                    </button>{' '}
+                    {copy.postTail}
+                  </div>
+                }
+              />
+            ) : null}
           </div>
         )}
       </div>

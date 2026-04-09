@@ -336,13 +336,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   ];
 
   const submitDiscoverySearch = () => {
-    if (searchTerm.trim()) {
-      setRemoteOnly(false);
-      setFilterWorkArrangement('all');
-      setEnableCommuteFilter(false);
-      setGlobalSearch(true);
-      setAbroadOnly(false);
-    }
     ensureDiscoverySearchSurface(false);
     performSearch(searchTerm);
     window.setTimeout(() => {
@@ -352,13 +345,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const handleDiscoverySearchTermChange = (value: string) => {
     setSearchTerm(value);
-    if (value.trim()) {
-      setRemoteOnly(false);
-      setFilterWorkArrangement('all');
-      setEnableCommuteFilter(false);
-      setGlobalSearch(true);
-      setAbroadOnly(false);
-    }
   };
 
   const ensureDiscoverySearchSurface = (scrollToResults: boolean = false) => {

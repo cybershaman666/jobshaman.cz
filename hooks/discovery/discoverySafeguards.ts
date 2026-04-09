@@ -1,7 +1,6 @@
 import { recordRuntimeSignal } from '../../services/runtimeSignals';
-import { isRemoteJob } from '../../services/commuteService';
 import type { Job, SearchDiagnosticsMeta } from '../../types';
-import { expandCountryAliases, normalizeCountryCodes, sameCountryCodeSet } from '../useDiscoveryFilters';
+import { expandCountryAliases, normalizeCountryCodes } from '../useDiscoveryFilters';
 
 export const getCountryCodeFromAddress = (address: string): string | null => {
     if (!address) return null;
@@ -147,7 +146,7 @@ export const getSourceMixCounts = (jobs: Job[]): NonNullable<SearchDiagnosticsMe
 
 interface CreateDomesticCountrySafeguardArgs {
     countryCodes: string[];
-    marketBaselineCountryCodes: string[];
+    domesticCountryCodes: string[];
     enableCommuteFilter: boolean;
     globalSearch: boolean;
     abroadOnly: boolean;
@@ -156,10 +155,10 @@ interface CreateDomesticCountrySafeguardArgs {
 
 export const createDomesticCountrySafeguard = ({
     countryCodes,
-    marketBaselineCountryCodes,
-    enableCommuteFilter,
+    domesticCountryCodes,
+    enableCommuteFilter: _enableCommuteFilter,
     globalSearch,
-    abroadOnly,
+    abroadOnly: _abroadOnly,
     filterLanguageCodes,
 }: CreateDomesticCountrySafeguardArgs) => {
     return (list: Job[]) => {
@@ -168,23 +167,12 @@ export const createDomesticCountrySafeguard = ({
         }
 
         const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
-        const isDefaultCountrySelection = sameCountryCodeSet(
-            normalizedCountryCodes,
-            normalizeCountryCodes(marketBaselineCountryCodes)
-        );
-
-        const shouldAllowCrossBorderRadius =
-            enableCommuteFilter &&
-            !globalSearch &&
-            !abroadOnly &&
-            isDefaultCountrySelection;
-
-        const allowedCountryCodes = (!globalSearch && !shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0)
+        const fallbackDomesticCountries = normalizeCountryCodes(domesticCountryCodes);
+        const allowedCountryCodes = (!globalSearch && normalizedCountryCodes.length > 0)
             ? new Set(normalizedCountryCodes)
-            : null;
-        const remoteFallbackCountryCodes = shouldAllowCrossBorderRadius && normalizedCountryCodes.length > 0
-            ? new Set(normalizedCountryCodes)
-            : null;
+            : (!globalSearch && fallbackDomesticCountries.length > 0)
+                ? new Set(fallbackDomesticCountries)
+                : null;
         const allowedLanguageCodes = filterLanguageCodes.length > 0
             ? new Set(filterLanguageCodes.map((code) => String(code).trim().toLowerCase()))
             : null;
@@ -194,11 +182,6 @@ export const createDomesticCountrySafeguard = ({
             if (allowedCountryCodes) {
                 const inferredCountry = inferJobCountryCode(job);
                 if (!inferredCountry || !allowedCountryCodes.has(inferredCountry)) {
-                    return false;
-                }
-            } else if (remoteFallbackCountryCodes && isRemoteJob(job)) {
-                const inferredCountry = inferJobCountryCode(job);
-                if (!inferredCountry || !remoteFallbackCountryCodes.has(inferredCountry)) {
                     return false;
                 }
             }

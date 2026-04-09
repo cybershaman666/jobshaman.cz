@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type CompanyDashboardTab = 'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments' | 'learning_resources';
+export type CompanyDashboardTab = 'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments' | 'learning_resources' | 'calendar';
 
 export const useCompanyDashboardNavigation = () => {
   const [activeTab, setActiveTab] = useState<CompanyDashboardTab>('overview');
@@ -20,6 +20,8 @@ export const useCompanyDashboardNavigation = () => {
         setActiveTab('settings');
       } else if (tab === 'assessments') {
         setActiveTab('assessments');
+      } else if (tab === 'calendar') {
+        setActiveTab('calendar');
       } else if (tab === 'learning_resources' || tab === 'learning') {
         setActiveTab('learning_resources');
       } else if (tab === 'overview' || tab === 'problem_map') {

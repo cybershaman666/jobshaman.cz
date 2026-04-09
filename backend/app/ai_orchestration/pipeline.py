@@ -153,9 +153,11 @@ def generate_profile_with_orchestration(
     primary_model = model_cfg.get("primary_model") or DEFAULT_PRIMARY_MODEL
     fallback_model = model_cfg.get("fallback_model") or DEFAULT_FALLBACK_MODEL
 
-    if str(primary_model).lower().startswith("gemini"):
+    legacy_primary = str(primary_model).lower()
+    if legacy_primary and "mistral" not in legacy_primary and "gpt" not in legacy_primary:
         primary_model = DEFAULT_PRIMARY_MODEL
-    if str(fallback_model).lower().startswith("gemini"):
+    legacy_fallback = str(fallback_model).lower()
+    if legacy_fallback and "mistral" not in legacy_fallback and "gpt" not in legacy_fallback:
         fallback_model = DEFAULT_FALLBACK_MODEL
     generation_config = {
         "temperature": model_cfg.get("temperature", 0),

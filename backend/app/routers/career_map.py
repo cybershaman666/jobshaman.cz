@@ -3,7 +3,7 @@ from __future__ import annotations
 import unicodedata
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 from ..matching_engine.role_taxonomy import (
@@ -12,6 +12,7 @@ from ..matching_engine.role_taxonomy import (
     ROLE_FAMILY_RELATIONS,
     TAXONOMY_VERSION,
 )
+from ..services.career_map_pools import get_career_map_pool
 
 router = APIRouter()
 
@@ -124,6 +125,21 @@ class CareerMapInferResponse(BaseModel):
     jobs: List[CareerMapInferJobResult]
 
 
+class CareerMapPoolMeta(BaseModel):
+    scope: str
+    country_code: Optional[str] = None
+    base_pool_count: int
+    filtered_count: int
+    generated_at: Optional[str] = None
+    cache_age_seconds: Optional[int] = None
+    database_total_count: int
+
+
+class CareerMapPoolResponse(BaseModel):
+    jobs: List[Dict[str, Any]]
+    meta: CareerMapPoolMeta
+
+
 @router.post("/api/career-map/infer", response_model=CareerMapInferResponse)
 async def career_map_infer(payload: CareerMapInferRequest) -> CareerMapInferResponse:
     results: List[CareerMapInferJobResult] = []
@@ -155,3 +171,33 @@ async def career_map_infer(payload: CareerMapInferRequest) -> CareerMapInferResp
         meta=CareerMapInferMeta(taxonomy_version=TAXONOMY_VERSION),
         jobs=results,
     )
+
+
+@router.get("/api/career-map/pool", response_model=CareerMapPoolResponse)
+async def career_map_pool(
+    country_code: str | None = Query(default=None, max_length=5),
+    scope: str = Query(default="domestic", pattern="^(domestic|all)$"),
+    limit: int = Query(default=1200, ge=1, le=3000),
+    user_lat: float | None = Query(default=None),
+    user_lng: float | None = Query(default=None),
+    radius_km: float | None = Query(default=None, ge=1, le=250),
+    remote_only: bool = Query(default=False),
+    work_arrangement: str = Query(default="all", pattern="^(all|remote|hybrid|onsite)$"),
+    contract_types: str | None = Query(default=None),
+    benefits: str | None = Query(default=None),
+    min_salary: int | None = Query(default=None, ge=0),
+) -> CareerMapPoolResponse:
+    result = get_career_map_pool(
+        country_code=country_code,
+        scope=scope,
+        limit=limit,
+        user_lat=user_lat,
+        user_lng=user_lng,
+        radius_km=radius_km,
+        remote_only=remote_only,
+        work_arrangement=work_arrangement,
+        contract_types=[item.strip() for item in str(contract_types or "").split(",") if item.strip()],
+        benefits=[item.strip() for item in str(benefits or "").split(",") if item.strip()],
+        min_salary=min_salary,
+    )
+    return CareerMapPoolResponse(**result)

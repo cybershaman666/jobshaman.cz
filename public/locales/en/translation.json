@@ -1077,6 +1077,53 @@
       "workspace_label": "Recruiter workspace",
       "workspace_desc": "One place for roles, applicants, assessments, and team focus."
     },
+    "nav": {
+      "primary": "Overview",
+      "ops": "Hiring"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "talent_pool": "Talent pool",
+      "assessment": "Assessments",
+      "calendar": "Calendar",
+      "challenges": "Open roles",
+      "reactions": "Responses",
+      "team": "Team",
+      "settings": "Settings"
+    },
+    "hero": {
+      "dashboard_kicker": "Hiring control center",
+      "talent_kicker": "Talent pool",
+      "talent_title": "Candidate signal overview",
+      "talent_copy": "Review strong profiles, compare signals, and move the most promising candidates forward faster.",
+      "assessment_kicker": "Assessment center",
+      "assessment_title": "Practical proof before the decision",
+      "assessment_copy": "Create, run, and compare skill-first assessments without slowing hiring momentum.",
+      "calendar_kicker": "Hiring calendar",
+      "calendar_title": "Shared view of interviews and team blocks",
+      "calendar_copy": "Keep interviews, syncs, and decision windows in one shared calendar for the whole hiring team.",
+      "jobs_kicker": "Active hiring",
+      "jobs_title": "Open role management",
+      "jobs_copy": "Stay close to which roles are open, where the strongest signal is, and where the pipeline needs more attention.",
+      "applications_kicker": "Pipeline flow",
+      "applications_title": "Response review in context",
+      "applications_copy": "Keep the team moving through new responses, open loops, and pending decisions without losing context.",
+      "team_kicker": "Team and roles",
+      "team_title": "Recruiter and hiring role management",
+      "team_copy": "Invite colleagues, set responsibilities, and keep the whole team in one shared workflow.",
+      "settings_kicker": "Company settings",
+      "settings_title": "Company identity and operating settings",
+      "settings_copy": "Keep your company presentation, legal details, and hiring defaults together in one clear place."
+    },
+    "actions": {
+      "nova_vyzva": "Add new role",
+      "mini_vyzva": "Mini challenge"
+    },
+    "calendar": {
+      "badge": "Shared hiring calendar",
+      "title": "Calendar",
+      "copy": "Keep interviews, team syncs, and decision windows in one shared overview so everyone knows what is planned and who owns the next step."
+    },
     "dashboard": {
       "title": "Recruitment Overview",
       "subtitle": "Statistics for the whole company and individual recruiters.",

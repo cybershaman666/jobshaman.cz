@@ -1,6 +1,5 @@
 import React from 'react';
 import { Assessment, AssessmentMode } from '../types';
-import { FEATURE_ASSESSMENT_COCKPIT_V2 } from '../constants';
 import AssessmentTaker from './AssessmentTaker';
 import { resolveAssessmentMode } from './assessmentMode';
 
@@ -27,7 +26,7 @@ const AssessmentExperienceRouter: React.FC<Props> = ({
   embedded = false,
   forceAssessmentMode,
 }) => {
-  const derivedMode = forceAssessmentMode || resolveAssessmentMode(FEATURE_ASSESSMENT_COCKPIT_V2);
+  const derivedMode = forceAssessmentMode || resolveAssessmentMode(false);
   return (
     <div className="relative h-full">
       <AssessmentTaker

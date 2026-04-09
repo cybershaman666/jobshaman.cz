@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Assessment, CompanyProfile, Job } from '../types';
-import { generateAssessment, extractSkillsFromJob } from '../services/geminiService';
-import { FEATURE_ASSESSMENT_THREE } from '../constants';
+import { generateAssessment, extractSkillsFromJob } from '../services/mistralService';
 import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
 import BiophilicCockpitScene from './three/BiophilicCockpitScene';
@@ -40,7 +39,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [isExtracting, setIsExtracting] = useState(false);
     const [selectedDemoOutputId, setSelectedDemoOutputId] = useState<string>('demo-backend-senior');
     const [showDemoCenter, setShowDemoCenter] = useState(false);
-    const [showThreePreview, setShowThreePreview] = useState<boolean>(FEATURE_ASSESSMENT_THREE);
+    const [showThreePreview, setShowThreePreview] = useState<boolean>(true);
     const [savedAssessmentId, setSavedAssessmentId] = useState<string | null>(null);
     const demoUsesCockpit = false;
     const demoOutputRef = useRef<HTMLDivElement>(null);
@@ -890,7 +889,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                     ? t('assessment_creator.demo_center.hide', { defaultValue: 'Hide demo assessments' })
                                     : t('assessment_creator.demo_center.show', { defaultValue: 'Show demo assessments' })}
                             </button>
-                            {FEATURE_ASSESSMENT_THREE && showDemoCenter && (
+                            {showDemoCenter && (
                                 <button
                                     onClick={() => setShowThreePreview((prev) => !prev)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
@@ -963,7 +962,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 ))}
                             </div>
 
-                            {FEATURE_ASSESSMENT_THREE && showThreePreview && (
+                            {showThreePreview && (
                                 <div className={`mt-5 rounded-xl border p-3 ${
                                     demoUsesCockpit
                                         ? 'border-white/20 bg-black/25 backdrop-blur-sm'

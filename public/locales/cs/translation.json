@@ -1126,6 +1126,53 @@
       "workspace_label": "Recruiterský workspace",
       "workspace_desc": "Jedno místo pro role, aplikace, assessmenty a soustředěnou práci týmu."
     },
+    "nav": {
+      "primary": "Přehled",
+      "ops": "Nábor"
+    },
+    "tabs": {
+      "overview": "Přehled",
+      "talent_pool": "Talent pool",
+      "assessment": "Hodnocení",
+      "calendar": "Kalendář",
+      "challenges": "Otevřené role",
+      "reactions": "Reakce",
+      "team": "Tým",
+      "settings": "Nastavení"
+    },
+    "hero": {
+      "dashboard_kicker": "Řídicí centrum náboru",
+      "talent_kicker": "Talent pool",
+      "talent_title": "Přehled kandidátních signálů",
+      "talent_copy": "Projděte silné profily, porovnejte signály a posuňte nejslibnější kandidáty rychleji do dalšího kroku.",
+      "assessment_kicker": "Centrum hodnocení",
+      "assessment_title": "Praktický důkaz před rozhodnutím",
+      "assessment_copy": "Vytvářejte, spouštějte a porovnávejte skill-first hodnocení bez ztráty náborového tempa.",
+      "calendar_kicker": "Kalendář náboru",
+      "calendar_title": "Sdílený přehled interview a týmových bloků",
+      "calendar_copy": "Držte interview, synchronizace i rozhodovací okna v jednom společném kalendáři pro celý hiring tým.",
+      "jobs_kicker": "Aktivní nábor",
+      "jobs_title": "Správa otevřených rolí",
+      "jobs_copy": "Mějte přehled, které role jsou otevřené, kde je signál nejsilnější a kde pipeline potřebuje další pozornost.",
+      "applications_kicker": "Tok pipeline",
+      "applications_title": "Vyhodnocení reakcí v kontextu",
+      "applications_copy": "Udržte tým v pohybu nad novými reakcemi, otevřenými smyčkami a čekajícími rozhodnutími bez ztráty kontextu.",
+      "team_kicker": "Tým a role",
+      "team_title": "Správa recruiterů a hiring rolí",
+      "team_copy": "Pozvěte kolegy, nastavte odpovědnosti a udržte celý tým v jednom sdíleném workflow.",
+      "settings_kicker": "Nastavení firmy",
+      "settings_title": "Identita firmy a provozní nastavení",
+      "settings_copy": "Udržujte firemní prezentaci, právní údaje a základní hiring kontext v jednom přehledném místě."
+    },
+    "actions": {
+      "nova_vyzva": "Přidat novou pozici",
+      "mini_vyzva": "Mini výzva"
+    },
+    "calendar": {
+      "badge": "Sdílený náborový kalendář",
+      "title": "Kalendář",
+      "copy": "Udržte interview, týmové synchronizace i rozhodovací okna v jednom sdíleném přehledu. Každý v týmu hned vidí, co je naplánované a kdo je vlastníkem dalšího kroku."
+    },
     "dashboard": {
       "title": "Přehled Náboru",
       "subtitle": "Statistiky pro celou firmu a jednotlivé náboráře.",
@@ -2118,7 +2165,7 @@
       "more_title": "Další Funkce",
       "optimization": {
         "title": "AI Optimalizace Inzerátů",
-        "desc": "Automatické vylepšení textu inzerátů pro maximální atraktivitu a oslovení kvalitnějších kandidátů. Využívá Gemini AI."
+        "desc": "Automatické vylepšení textu inzerátů pro maximální atraktivitu a oslovení kvalitnějších kandidátů. Využívá Mistral AI."
       },
       "assessment": {
         "title": "AI Assessment Center",

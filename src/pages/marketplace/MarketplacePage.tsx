@@ -39,6 +39,7 @@ export interface MarketplacePageProps {
   onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
   showSidebar?: boolean;
   embeddedInCareerOS?: boolean;
+  embeddedVariant?: 'default' | 'career_map_offers';
 }
 
 const MarketplacePage: React.FC<MarketplacePageProps> = ({
@@ -75,6 +76,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   onOpenAuth,
   showSidebar = true,
   embeddedInCareerOS = false,
+  embeddedVariant = 'default',
 }) => {
   return (
     <div className="space-y-6">
@@ -113,6 +115,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           selectedJobId={selectedJobId}
           showSidebar={showSidebar}
           embeddedInCareerOS={embeddedInCareerOS}
+          embeddedVariant={embeddedVariant}
         />
       </div>
     </div>

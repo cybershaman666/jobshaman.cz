@@ -16,6 +16,7 @@ interface ChallengeEditorialFeedProps {
   savedJobIds: string[];
   locale: string;
   compactLayout?: boolean;
+  embeddedVariant?: 'default' | 'career_map_offers';
   onSelect: (jobId: string) => void;
   onOpen: (jobId: string) => void;
   onToggleSave: (jobId: string) => void;
@@ -632,11 +633,12 @@ const OfferCard: React.FC<{
   language: string;
   variant?: 'default' | 'hero' | 'large';
   contrast?: boolean;
+  embeddedVariant?: 'default' | 'career_map_offers';
   className?: string;
   onSelect: () => void;
   onOpen: () => void;
   onToggleSave: () => void;
-}> = ({ job, selected, saved, language, variant = 'default', contrast = false, className, onSelect, onOpen, onToggleSave }) => {
+}> = ({ job, selected, saved, language, variant = 'default', contrast = false, embeddedVariant = 'default', className, onSelect, onOpen, onToggleSave }) => {
   const isCsLike = language === 'cs' || language === 'sk';
   const avatarUrl = String(job.companyProfile?.logo_url || '').trim() || getFallbackCompanyAvatarUrl(job.company);
   const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
@@ -664,7 +666,9 @@ const OfferCard: React.FC<{
   const coverRadiusClass = variant === 'hero' ? 'rounded-2xl' : 'rounded-[18px]';
 
   const isImported = job.listingKind === 'imported' || !job.challenge;
-  const ctaLabel = localeText(language, { cs: 'Vstoupit do firmy', sk: 'Vstúpiť do firmy', de: 'In die Firma eintreten', pl: 'Wejdź do firmy', en: 'Enter the company' });
+  const ctaLabel = embeddedVariant === 'career_map_offers'
+    ? localeText(language, { cs: 'Zobrazit detail nabídky', sk: 'Zobraziť detail ponuky', de: 'Angebotsdetail öffnen', pl: 'Pokaż szczegóły oferty', en: 'Open offer details' })
+    : localeText(language, { cs: 'Vstoupit do firmy', sk: 'Vstúpiť do firmy', de: 'In die Firma eintreten', pl: 'Wejdź do firmy', en: 'Enter the company' });
   const isFeatureCard = variant === 'hero' || contrast;
   const isDefaultCard = variant === 'default';
   const companyLogo = avatarUrl;
@@ -1045,11 +1049,13 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
   savedJobIds,
   locale,
   compactLayout = false,
+  embeddedVariant = 'default',
   onSelect,
   onOpen,
   onToggleSave,
 }) => {
   const language = String(locale || 'en').split('-')[0].toLowerCase();
+  const isCareerMapOffersMode = embeddedVariant === 'career_map_offers';
   const feedCopy = useMemo(() => ({
     empty: localeText(language, { cs: 'Teď tu nic rozumného neleží. Zkus povolit filtry nebo hrábnout jinam.', sk: 'Teraz tu nič rozumné neleží. Skús povoliť filtre alebo zájsť inam.', de: 'Gerade liegt hier nichts Brauchbares. Lockere die Filter oder geh anders ran.', pl: 'Na razie nie ma tu nic sensownego. Poluzuj filtry albo poszukaj inaczej.', en: 'Nothing solid here right now. Loosen the filters or search from another angle.' }),
     heroTitle: localeText(language, { cs: 'Dnes by tě mohlo posunout', sk: 'Dnes by ťa mohlo posunúť', de: 'Heute könnte dich das weiterbringen', pl: 'Dziś może cię to popchnąć dalej', en: 'This could move you forward today' }),
@@ -1068,7 +1074,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
   const { sections, remaining, compactJobs, heroJob } = useMemo(() => {
     const pool = Array.isArray(jobs) ? jobs.slice() : [];
-    const sorted = compactLayout ? pool : sortJobsForDiscovery(pool);
+    const sorted = compactLayout || isCareerMapOffersMode ? pool : sortJobsForDiscovery(pool);
     const used = new Set<string>();
     const isImportedListing = (job: Job) => job.listingKind === 'imported' || Boolean(job.searchDiagnostics?.external);
 
@@ -1098,12 +1104,12 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
       used.add(heroCandidate.id);
     }
 
-    if (compactLayout) {
+    if (compactLayout || isCareerMapOffersMode) {
       return {
         sections: [] as FeedSection[],
         remaining: [] as Job[],
         compactJobs: placeBadVerdictsLater(standardSorted.filter((job) => job.id !== heroCandidate?.id)),
-        heroJob: heroCandidate,
+        heroJob: isCareerMapOffersMode ? null : heroCandidate,
       };
     }
 
@@ -1198,6 +1204,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     return { sections: sectionsList, remaining: remainingJobs, compactJobs: [] as Job[], heroJob: heroCandidate };
   }, [
     compactLayout,
+    isCareerMapOffersMode,
     feedCopy.classicSubtitle,
     feedCopy.classicTitle,
     feedCopy.guidanceSubtitle,
@@ -1241,7 +1248,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     return <LoadingEditorialFeedSkeleton compactLayout={compactLayout} />;
   }
 
-  if (compactLayout) {
+  if (compactLayout || isCareerMapOffersMode) {
     if (compactJobs.length === 0) {
       return (
         <div className="py-10 text-center text-sm text-[var(--text-muted)]">
@@ -1252,7 +1259,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     return (
       <div className="space-y-5">
-        {heroJob ? (
+        {!isCareerMapOffersMode && heroJob ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3 px-1">
               <div>
@@ -1272,6 +1279,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
               language={language}
               variant="hero"
               contrast={true}
+              embeddedVariant={embeddedVariant}
               className="w-full"
               onSelect={() => onSelect(heroJob.id)}
               onOpen={() => onOpen(heroJob.id)}
@@ -1279,7 +1287,10 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
             />
           </div>
         ) : null}
-        <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-6 xl:grid-cols-12">
+        <div className={cn(
+          'grid items-stretch gap-5',
+          isCareerMapOffersMode ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-6 xl:grid-cols-12',
+        )}>
           {compactDisplayJobs.map((job, index, list) => (
             <OfferCard
               key={job.id}
@@ -1288,8 +1299,9 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
               saved={savedJobIds.includes(job.id)}
               language={language}
               variant="default"
-              contrast={compactHighlightIndexes.has(index)}
-              className={getBalancedGridSpanClass(index, list.length)}
+              contrast={isCareerMapOffersMode ? false : compactHighlightIndexes.has(index)}
+              embeddedVariant={embeddedVariant}
+              className={isCareerMapOffersMode ? 'w-full' : getBalancedGridSpanClass(index, list.length)}
               onSelect={() => onSelect(job.id)}
               onOpen={() => onOpen(job.id)}
               onToggleSave={() => onToggleSave(job.id)}

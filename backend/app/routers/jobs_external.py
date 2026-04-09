@@ -1,14 +1,11 @@
 import os
 from importlib import import_module
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-from ..core import config
 from ..core.config import SCRAPER_TOKEN
 from ..core.limiter import limiter
-from ..core.security import get_current_user
-from ..services.jobs_ai_runtime import _fetch_candidate_profile_for_draft
 from ..services.jobs_external_runtime import (
     _mark_provider_failure,
     _mark_provider_success,
@@ -19,20 +16,9 @@ from ..services.jobs_external_runtime import (
     _read_cached_external_jobs,
     _write_external_cache_snapshot,
 )
-from ..services.jobs_interactions_runtime import (
-    _attach_job_dialogue_preview_metrics,
-    _fetch_user_interaction_state,
-)
-from ..services.jobspy_career_ops import build_career_ops_feed, refresh_jobspy_career_ops_snapshots
-from ..services.jobspy_jobs import (
-    backfill_jobspy_postgres_from_mongo,
-    get_jobspy_storage_health,
-    import_jobspy_jobs,
-    jobspy_mongo_enabled,
-    search_jobspy_jobs,
-)
+from ..services.jobs_interactions_runtime import _attach_job_dialogue_preview_metrics
 from ..services.jobs_migration import backfill_jobs_postgres_from_supabase
-from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_jobs_postgres_health, jobs_postgres_enabled
+from ..services.jobs_postgres_store import ensure_jobs_postgres_schema, get_jobs_postgres_health
 
 router = APIRouter()
 
@@ -81,7 +67,12 @@ async def search_weworkremotely_live(
         exclude_country_codes=_parse_csv(exclude_country_codes),
     )
     _attach_job_dialogue_preview_metrics(jobs)
-    return {"jobs": jobs, "has_more": len(jobs) >= limit, "total_count": len(jobs), "source": "weworkremotely_live_rss"}
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "weworkremotely_live_rss",
+    }
 
 
 @router.get("/jobs/external/jooble/search")
@@ -109,7 +100,12 @@ async def search_jooble_live(
         exclude_country_codes=_parse_csv(exclude_country_codes),
     )
     _attach_job_dialogue_preview_metrics(jobs)
-    return {"jobs": jobs, "has_more": len(jobs) >= limit, "total_count": len(jobs), "source": "jooble_live_api"}
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "jooble_live_api",
+    }
 
 
 @router.get("/jobs/external/arbeitnow/search")
@@ -138,10 +134,15 @@ async def search_arbeitnow_live(
             exclude_country_codes=_parse_csv(exclude_country_codes),
         )
     except Exception as exc:
-        print(f"⚠️ Arbeitnow live search failed: {exc}")
+        print(f"Warning: Arbeitnow live search failed: {exc}")
         jobs = []
     _attach_job_dialogue_preview_metrics(jobs)
-    return {"jobs": jobs, "has_more": len(jobs) >= limit, "total_count": len(jobs), "source": "arbeitnow_live_api"}
+    return {
+        "jobs": jobs,
+        "has_more": len(jobs) >= limit,
+        "total_count": len(jobs),
+        "source": "arbeitnow_live_api",
+    }
 
 
 @router.get("/jobs/external/cached-feed")
@@ -171,33 +172,16 @@ async def get_cached_external_feed(
         country_codes=parsed_country_codes,
         exclude_country_codes=parsed_exclude_codes,
     )
-    try:
-        jobspy_result = search_jobspy_jobs(
-            page=0,
-            page_size=max(80, max(1, page_size) * 4),
-            search_term=search_term,
-            location=filter_city,
-            country_codes=parsed_country_codes,
-            exclude_country_codes=parsed_exclude_codes,
-        )
-    except Exception as exc:
-        print(f"⚠️ Failed to read JobSpy Mongo cache: {exc}")
-        degraded_reasons.append(f"jobspy_unavailable:{type(exc).__name__}")
-        jobspy_result = {"jobs": [], "total_count": 0, "has_more": False}
-    merged_cached_jobs = _merge_external_job_lists(
-        supabase_result.get("jobs") or [],
-        jobspy_result.get("jobs") or [],
-    )
+    merged_cached_jobs = _merge_external_job_lists(supabase_result.get("jobs") or [])
     total_count = max(
         len(merged_cached_jobs),
         int(supabase_result.get("total_count") or 0),
-        int(jobspy_result.get("total_count") or 0),
     )
     jobs = merged_cached_jobs[start:end]
     result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
     if jobs:
         cache_hit = True
-        fallback_mode = "cache_only" if not (jobspy_result.get("jobs") or []) else "cache_plus_jobspy"
+        fallback_mode = "cache_only"
 
     if not jobs:
         seeded: list[dict] = []
@@ -230,7 +214,7 @@ async def get_cached_external_feed(
             except Exception as exc:
                 _mark_provider_failure("arbeitnow", exc)
                 degraded_reasons.append(f"provider_error:arbeitnow:{type(exc).__name__}")
-                print(f"⚠️ External cached feed seeding failed for arbeitnow: {exc}")
+                print(f"Warning: External cached feed seeding failed for arbeitnow: {exc}")
 
         if _provider_circuit_open("weworkremotely"):
             degraded_reasons.append("provider_circuit_open:weworkremotely")
@@ -258,7 +242,7 @@ async def get_cached_external_feed(
             except Exception as exc:
                 _mark_provider_failure("weworkremotely", exc)
                 degraded_reasons.append(f"provider_error:weworkremotely:{type(exc).__name__}")
-                print(f"⚠️ External cached feed seeding failed for weworkremotely: {exc}")
+                print(f"Warning: External cached feed seeding failed for weworkremotely: {exc}")
 
         if str(search_term or "").strip():
             if not str(os.getenv("JOOBLE_API_KEY") or "").strip():
@@ -290,7 +274,7 @@ async def get_cached_external_feed(
                 except Exception as exc:
                     _mark_provider_failure("jooble", exc)
                     degraded_reasons.append(f"provider_error:jooble:{type(exc).__name__}")
-                    print(f"⚠️ External cached feed seeding failed for jooble: {exc}")
+                    print(f"Warning: External cached feed seeding failed for jooble: {exc}")
 
         supabase_result = _read_cached_external_jobs(
             page=page,
@@ -302,27 +286,25 @@ async def get_cached_external_feed(
         )
         merged_cached_jobs = _merge_external_job_lists(
             supabase_result.get("jobs") or [],
-            jobspy_result.get("jobs") or [],
             seeded,
         )
         total_count = max(
             len(merged_cached_jobs),
             int(supabase_result.get("total_count") or 0),
-            int(jobspy_result.get("total_count") or 0),
         )
         jobs = merged_cached_jobs[start:end]
         result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
         if jobs:
             cache_hit = True
-            fallback_mode = "cache_seeded" if seeded else ("jobspy_only" if jobspy_result.get("jobs") else "cache_only")
+            fallback_mode = "cache_seeded" if seeded else "cache_only"
 
         if not jobs and seeded:
-            deduped = _merge_external_job_lists(jobspy_result.get("jobs") or [], seeded)
+            deduped = _merge_external_job_lists(seeded)
             total_count = len(deduped)
             jobs = deduped[start:end]
             result = {"jobs": jobs, "has_more": end < total_count, "total_count": total_count}
             fallback_mode = "live_seeded"
-            cache_hit = bool(jobspy_result.get("jobs"))
+            cache_hit = False
         elif not jobs and degraded_reasons:
             fallback_mode = "degraded"
 
@@ -337,116 +319,13 @@ async def get_cached_external_feed(
             "fallback_mode": fallback_mode,
             "cache_hit": cache_hit,
             "degraded_reasons": degraded_reasons,
-            "jobspy_total_count": int(jobspy_result.get("total_count") or 0),
         },
     }
 
 
-@router.post("/jobs/external/jobspy/run")
-@limiter.limit("5/minute")
-async def run_jobspy_external_import(
-    request: Request,
-    search_term: str = Query(..., min_length=1, max_length=200),
-    location: str = Query(default="", max_length=120),
-    google_search_term: str = Query(default="", max_length=240),
-    site_name: str | None = Query(default=None),
-    results_wanted: int = Query(default=20, ge=1, le=100),
-    hours_old: int | None = Query(default=None, ge=1, le=720),
-    country_indeed: str = Query(default="Austria", max_length=80),
-    job_type: str = Query(default="", max_length=40),
-    is_remote: bool = Query(default=False),
-    linkedin_fetch_description: bool = Query(default=False),
-    offset: int = Query(default=0, ge=0, le=1000),
-):
-    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    parsed_sites = [part.strip() for part in (site_name or "").split(",") if part and part.strip()]
-    result = import_jobspy_jobs(
-        site_name=parsed_sites or None,
-        search_term=search_term,
-        google_search_term=google_search_term,
-        location=location,
-        results_wanted=results_wanted,
-        hours_old=hours_old,
-        country_indeed=country_indeed,
-        job_type=job_type,
-        is_remote=is_remote,
-        linkedin_fetch_description=linkedin_fetch_description,
-        offset=offset,
-    )
-    return {"status": "success", "provider": "jobspy", "collection": result.collection, "imported_count": result.imported_count, "upserted_count": result.upserted_count, "matched_count": result.matched_count, "query_hash": result.query_hash, "jobs": result.sampled_jobs}
-
-
-@router.get("/jobs/external/jobspy/search")
-@limiter.limit("60/minute")
-async def get_jobspy_external_jobs(
-    request: Request,
-    search_term: str = Query(default="", max_length=200),
-    location: str = Query(default="", max_length=120),
-    source_sites: str | None = Query(default=None),
-    page: int = Query(default=0, ge=0, le=50),
-    page_size: int = Query(default=24, ge=1, le=100),
-):
-    parsed_sites = [part.strip() for part in (source_sites or "").split(",") if part and part.strip()]
-    try:
-        result = search_jobspy_jobs(page=page, page_size=page_size, search_term=search_term, location=location, source_sites=parsed_sites)
-        jobs = result.get("jobs") or []
-        _attach_job_dialogue_preview_metrics(jobs)
-        return {
-            "jobs": jobs,
-            "has_more": bool(result.get("has_more")),
-            "total_count": int(result.get("total_count") or 0),
-            "source": "jobspy_cache",
-            "meta": {
-                "collection": result.get("collection"),
-                "provider": "jobspy",
-                "storage": result.get("storage") or ("jobs_postgres" if jobs_postgres_enabled() else ("mongo" if jobspy_mongo_enabled() else "disabled")),
-            },
-        }
-    except Exception as exc:
-        print(f"⚠️ JobSpy external search unavailable: {exc}")
-        return {
-            "jobs": [],
-            "has_more": False,
-            "total_count": 0,
-            "source": "jobspy_cache",
-            "meta": {
-                "collection": config.JOBS_POSTGRES_JOBSPY_TABLE if jobs_postgres_enabled() else config.MONGODB_JOBSPY_COLLECTION,
-                "provider": "jobspy",
-                "degraded": True,
-                "error": exc.__class__.__name__,
-                "mongodb_configured": bool(config.MONGODB_URI),
-                "mongodb_enabled": jobspy_mongo_enabled(),
-                "storage": "jobs_postgres" if jobs_postgres_enabled() else ("mongo" if jobspy_mongo_enabled() else "disabled"),
-            },
-        }
-
-
-@router.post("/jobs/external/jobspy/career-ops/refresh")
-@limiter.limit("5/minute")
-async def refresh_jobspy_career_ops(
-    request: Request,
-    limit: int = Query(default=600, ge=1, le=2000),
-):
-    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    return refresh_jobspy_career_ops_snapshots(limit=limit)
-
-
-@router.get("/jobs/external/jobspy/health")
-@limiter.limit("20/minute")
-async def get_jobspy_health(request: Request):
-    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    health = get_jobspy_storage_health()
-    status = 200 if health.get("ok") else 503
-    return JSONResponse(status_code=status, content=health)
-
-
-@router.post("/jobs/external/jobspy/postgres/init")
+@router.post("/jobs/postgres/init")
 @limiter.limit("10/minute")
-async def init_jobspy_postgres_schema(request: Request):
+async def init_jobs_postgres_schema(request: Request):
     if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
         raise HTTPException(status_code=403, detail="Unauthorized")
     try:
@@ -457,24 +336,17 @@ async def init_jobspy_postgres_schema(request: Request):
         message = str(exc)
         hint = None
         if "failed to resolve host" in message.lower():
-            hint = "Configured Jobs Postgres hostname is not resolvable from this runtime. Verify that the backend service can reach the Northflank Postgres addon host."
-        return JSONResponse(status_code=503, content={"status": "error", "provider": "jobs_postgres", "error": exc.__class__.__name__, "message": message, "hint": hint})
-
-
-@router.post("/jobs/external/jobspy/postgres/backfill")
-@limiter.limit("5/minute")
-async def backfill_jobspy_postgres(
-    request: Request,
-    limit: int = Query(default=2000, ge=1, le=20000),
-    include_stale: bool = Query(default=False),
-):
-    if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    try:
-        result = backfill_jobspy_postgres_from_mongo(limit=limit, only_fresh=not include_stale)
-        return {"status": "success", "provider": "jobspy", **result}
-    except Exception as exc:
-        return JSONResponse(status_code=503, content={"status": "error", "provider": "jobspy", "error": exc.__class__.__name__, "message": str(exc)})
+            hint = "Configured Jobs Postgres hostname is not resolvable from this runtime."
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "provider": "jobs_postgres",
+                "error": exc.__class__.__name__,
+                "message": message,
+                "hint": hint,
+            },
+        )
 
 
 @router.post("/jobs/postgres/backfill")
@@ -488,59 +360,19 @@ async def backfill_jobs_postgres(
     if not SCRAPER_TOKEN or request.headers.get("X-Admin-Token") != SCRAPER_TOKEN:
         raise HTTPException(status_code=403, detail="Unauthorized")
     try:
-        result = backfill_jobs_postgres_from_supabase(limit=limit, batch_size=batch_size, only_active=not include_inactive)
+        result = backfill_jobs_postgres_from_supabase(
+            limit=limit,
+            batch_size=batch_size,
+            only_active=not include_inactive,
+        )
         return {"status": "success", "provider": "jobs_postgres", **result}
     except Exception as exc:
-        return JSONResponse(status_code=503, content={"status": "error", "provider": "jobs_postgres", "error": exc.__class__.__name__, "message": str(exc)})
-
-
-@router.get("/jobs/external/jobspy/career-ops")
-@limiter.limit("30/minute")
-async def get_jobspy_career_ops_feed(
-    request: Request,
-    refresh: bool = Query(default=False),
-    job_limit: int = Query(default=24, ge=1, le=60),
-    company_limit: int = Query(default=10, ge=1, le=30),
-    action_limit: int = Query(default=14, ge=1, le=50),
-    user: dict = Depends(get_current_user),
-):
-    user_id = str(user.get("id") or user.get("auth_id") or "").strip()
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    candidate_profile = _fetch_candidate_profile_for_draft(user_id)
-    if not candidate_profile:
-        raise HTTPException(status_code=404, detail="Candidate profile not found")
-
-    saved_job_ids, dismissed_job_ids = _fetch_user_interaction_state(user_id, limit=12000)
-    try:
-        feed = build_career_ops_feed(
-            candidate_profile={**candidate_profile, "id": user_id},
-            saved_job_ids=saved_job_ids,
-            dismissed_job_ids=dismissed_job_ids,
-            refresh=refresh,
-            job_limit=job_limit,
-            company_limit=company_limit,
-            action_limit=action_limit,
-        )
-        return {**feed, "source": "jobspy_career_ops"}
-    except Exception as exc:
-        print(f"⚠️ JobSpy career-ops unavailable: {exc}")
-        return {
-            "source": "jobspy_career_ops",
-            "jobs": [],
-            "companies": [],
-            "actions": [],
-            "meta": {
-                "fallback_mode": "degraded_empty",
-                "counts": {
-                    "raw_jobs_seen": 0,
-                    "enriched_jobs_scored": 0,
-                    "companies_ranked": 0,
-                    "actions": 0,
-                },
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "provider": "jobs_postgres",
                 "error": exc.__class__.__name__,
-                "mongodb_configured": bool(config.MONGODB_URI),
-                "mongodb_enabled": jobspy_mongo_enabled(),
+                "message": str(exc),
             },
-        }
+        )

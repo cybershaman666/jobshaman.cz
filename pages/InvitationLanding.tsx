@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { generateAssessment } from '../services/geminiService';
-import { BACKEND_URL, FEATURE_ASSESSMENT_COCKPIT_V2, FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1, FEATURE_ASSESSMENT_THREE } from '../constants';
+import { generateAssessment } from '../services/mistralService';
+import { BACKEND_URL } from '../constants';
 import AssessmentExperienceRouter from '../components/AssessmentExperienceRouter';
 import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from '../components/three/SceneShell';
@@ -28,7 +28,7 @@ const InvitationLanding: React.FC = () => {
   const [assessment, setAssessment] = useState<any | null>(null);
   const [invitationToken, setInvitationToken] = useState<string>('');
   const [journeyOptInQuery, setJourneyOptInQuery] = useState(false);
-  const [showLandingScene, setShowLandingScene] = useState(FEATURE_ASSESSMENT_THREE);
+  const [showLandingScene, setShowLandingScene] = useState(true);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -81,9 +81,8 @@ const InvitationLanding: React.FC = () => {
   }, []);
 
   const experienceEnabled = useMemo(() => {
-    if (!invitation) return FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 || journeyOptInQuery;
+    if (!invitation) return journeyOptInQuery;
     return Boolean(
-      FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 ||
       journeyOptInQuery ||
       invitation.metadata?.journey_experience_v1 === true ||
       invitation.metadata?.internal_preview === true
@@ -159,12 +158,12 @@ const InvitationLanding: React.FC = () => {
     );
   }
 
-  const cockpitHeroEnabled = FEATURE_ASSESSMENT_COCKPIT_V2 && experienceEnabled;
+  const cockpitHeroEnabled = false && experienceEnabled;
   return (
     <div className="min-h-screen app-grid-bg app-grid-bg--soft">
       <div className="max-w-5xl mx-auto p-6">
         <div className={`mb-4 rounded-2xl overflow-hidden h-44 md:h-56 relative ${cockpitHeroEnabled ? 'cockpit-panel border border-white/20 shadow-[0_22px_52px_rgba(2,18,13,0.45)]' : 'border border-slate-200/70 dark:border-slate-700/60 bg-white/72 dark:bg-slate-900/40 backdrop-blur-md shadow-[0_10px_24px_rgba(15,23,42,0.08)] dark:shadow-none'}`}>
-          {FEATURE_ASSESSMENT_THREE && showLandingScene ? (
+          {showLandingScene ? (
             <SceneShell
               capability={sceneCapability}
               glide
@@ -182,16 +181,14 @@ const InvitationLanding: React.FC = () => {
           ) : (
             <div className={`absolute inset-0 ${cockpitHeroEnabled ? 'cockpit-scene-fallback' : 'bg-[radial-gradient(circle_at_58%_24%,rgba(100,116,139,0.14),transparent_52%),linear-gradient(180deg,rgba(248,250,252,0.75),rgba(226,232,240,0.88))] dark:bg-[radial-gradient(circle_at_58%_24%,rgba(148,163,184,0.12),transparent_52%),linear-gradient(180deg,rgba(2,6,23,0.9),rgba(15,23,42,0.95))]'}`} />
           )}
-          {FEATURE_ASSESSMENT_THREE && (
-            <button
-              onClick={() => setShowLandingScene((v) => !v)}
-              className="absolute top-3 right-3 z-10 rounded-lg border border-slate-300/80 dark:border-slate-600/70 bg-white/80 dark:bg-slate-900/65 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-100"
-            >
-              {showLandingScene
-                ? t('assessment_3d.preview_on', { defaultValue: '3D Preview: ON' })
-                : t('assessment_3d.preview_off', { defaultValue: '3D Preview: OFF' })}
-            </button>
-          )}
+          <button
+            onClick={() => setShowLandingScene((v) => !v)}
+            className="absolute top-3 right-3 z-10 rounded-lg border border-slate-300/80 dark:border-slate-600/70 bg-white/80 dark:bg-slate-900/65 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-100"
+          >
+            {showLandingScene
+              ? t('assessment_3d.preview_on', { defaultValue: '3D Preview: ON' })
+              : t('assessment_3d.preview_off', { defaultValue: '3D Preview: OFF' })}
+          </button>
           <div className={`absolute inset-0 ${cockpitHeroEnabled ? 'bg-[linear-gradient(180deg,rgba(2,20,16,0.1),rgba(2,18,13,0.6))]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(226,232,240,0.72))] dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.18),rgba(2,6,23,0.72))]'}`} />
           <div className={`absolute bottom-3 left-4 right-4 rounded-xl backdrop-blur-md px-3 py-2 text-sm ${cockpitHeroEnabled ? 'border border-white/20 bg-black/30 text-cyan-50' : 'border border-slate-300/70 dark:border-slate-700/70 bg-white/65 dark:bg-slate-900/55 text-slate-700 dark:text-slate-100'}`}>
             {t('assessment_journey.mission_tagline', { defaultValue: 'Navigace k roli, ne školní test' })}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseService';
 import { AssessmentResult } from '../types';
-import { evaluateAssessmentResult } from '../services/geminiService';
+import { evaluateAssessmentResult } from '../services/mistralService';
 import { FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { openAssessmentPreviewPage } from '../services/assessmentPreviewNavigation';

@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, CompanyApplicationRow, DialogueDossier, SearchLanguageCode, UserProfile, UserPostedMiniChallenge, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1, SolutionSnapshot } from '../types';
+import React, { Suspense, lazy, useEffect, useState, useRef, useMemo } from 'react';
+import { CandidateDomainKey, CandidateSearchProfile, CandidateSeniority, CompanyApplicationRow, DialogueDossier, SearchLanguageCode, UserProfile, UserPostedMiniChallenge, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, JcfpmSnapshotV1, SolutionSnapshot } from '../types';
 import {
   User,
   Upload,
@@ -35,7 +35,6 @@ import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../s
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
-import { FEATURE_HAPPINESS_AUDIT_THREE } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
 import CVManager from './CVManager';
@@ -47,15 +46,7 @@ import TransportModeSelector from './TransportModeSelector';
 import { createDefaultCandidateSearchProfile, createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 import { enrichSearchProfileWithInference, getCandidateIntentDomainLabel, getCandidateIntentDomainOptions, getCandidateIntentSignals, resolveCandidateIntentProfile } from '../services/candidateIntentService';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
-import { simulateHappinessAudit } from '../services/assessmentThreeService';
 import { fetchJobsByIds } from '../services/jobService';
-import { useSceneCapability } from '../hooks/useSceneCapability';
-import SceneShell from './three/SceneShell';
-import LifeSustainabilityOrbit from './three/LifeSustainabilityOrbit';
-import CareerAnchorDrift from './three/CareerAnchorDrift';
-import NebulaOfPotential from './three/NebulaOfPotential';
-import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
-import AnalyticsService from '../services/analyticsService';
 import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
 import JcfpmReportPanel from './jcfpm/JcfpmReportPanel';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
@@ -970,6 +961,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     { code: 'sk', label: getProfileLocaleLabel({ cs: 'Slovenština', sk: 'Slovenčina', de: 'Slowakisch', at: 'Slowakisch', pl: 'Słowacki', en: 'Slovak' }, profileLocale) },
     { code: 'pl', label: getProfileLocaleLabel({ cs: 'Polština', sk: 'Poľština', de: 'Polnisch', at: 'Polnisch', pl: 'Polski', en: 'Polish' }, profileLocale) },
   ];
+  void remoteLanguageOptions;
   const searchBenefitOptions: Array<{ key: string; label: string }> = [
     { key: 'childcare_support', label: getProfileLocaleLabel({ cs: 'Podpora péče o děti', sk: 'Podpora starostlivosti o deti', de: 'Kinderbetreuung', at: 'Kinderbetreuung', pl: 'Wsparcie opieki nad dziećmi', en: 'Childcare support' }, profileLocale) },
     { key: 'child_friendly', label: getProfileLocaleLabel({ cs: 'Pro rodiče', sk: 'Pre rodičov', de: 'Familienfreundlich', at: 'Familienfreundlich', pl: 'Przyjazne rodzicom', en: 'Child-friendly environment' }, profileLocale) },
@@ -1159,25 +1151,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   });
   const [activeExperienceId, setActiveExperienceId] = useState<string | null>(null);
   const [activeEducationId, setActiveEducationId] = useState<string | null>(null);
-  const [happinessAuditInput, setHappinessAuditInput] = useState<HappinessAuditInput>({
-    salary: 60000,
-    tax_profile: profile.taxProfile,
-    commute_minutes_daily: 105,
-    commute_cost: 8100,
-    work_mode: 'onsite',
-    subjective_energy: 45,
-    home_office_days: 0,
-    role_shift: 55,
-  });
-  const [happinessAuditOutput, setHappinessAuditOutput] = useState<HappinessAuditOutput | null>(null);
-  const [isSimulatingAudit, setIsSimulatingAudit] = useState(false);
-  const [enableLive3D, setEnableLive3D] = useState(true);
-  const [resourceLeakToggles, setResourceLeakToggles] = useState({
-    commute: true,
-    taxes: true,
-    fixed: true,
-  });
-  const [narrativeStory, setNarrativeStory] = useState('');
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
@@ -1239,44 +1212,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     return map[field] || field;
   };
   const [hasJcfpmDraft, setHasJcfpmDraft] = useState<boolean>(() => Boolean(readJcfpmDraft(profile.id)));
-  const [culturalCompass, setCulturalCompass] = useState({
-    individualVsTeam: 52,
-    chaosVsStructure: 58,
-    companyIndividualVsTeam: 36,
-    companyChaosVsStructure: 68,
-  });
-  const sceneCapability = useSceneCapability();
-
-  const extractNarrativeSkills = (text: string): string[] => {
-    const t = (text || '').toLowerCase();
-    const map: Array<[string, string[]]> = [
-      ['Building from Zero', ['from zero', 'od nuly', 'start', 'setup']],
-      ['Crisis Management', ['krize', 'incident', 'urgent', 'stres']],
-      ['Stakeholder Communication', ['stakeholder', 'ceo', 'management', 'vedení']],
-      ['Process Architecture', ['proces', 'framework', 'systém', 'standard']],
-      ['Team Leadership', ['tým', 'lead', 'mentoring', 'koučink']],
-      ['Value Communication', ['hodnota', 'value', 'dopad', 'outcome']],
-    ];
-    return map
-      .filter(([, keys]) => keys.some((key) => t.includes(key)))
-      .map(([skill]) => skill);
-  };
-
-  const disconnectedPipes = Object.values(resourceLeakToggles).filter((v) => !v).length;
-  const monthlyCommuteHours = Number(((happinessAuditInput.commute_minutes_daily * 22) / 60).toFixed(1));
-  const narrativeSkills = extractNarrativeSkills(narrativeStory);
-  const narrativeFrame = {
-    timestamp: new Date().toISOString(),
-    unlocked_skills: narrativeSkills,
-    narrative_integrity: Math.max(15, Math.min(95, 38 + narrativeSkills.length * 12 + Math.round(narrativeStory.length / 40))),
-    confidence: Math.max(25, Math.min(92, 30 + narrativeSkills.length * 10)),
-    evidence: narrativeSkills,
-  };
-  const culturalMismatch = Math.round((
-    Math.abs(culturalCompass.individualVsTeam - culturalCompass.companyIndividualVsTeam) +
-    Math.abs(culturalCompass.chaosVsStructure - culturalCompass.companyChaosVsStructure)
-  ) / 2);
-  const culturalAlignment = Math.max(0, 100 - culturalMismatch);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -1389,9 +1324,39 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [formData, setFormData] = useState(() => buildFormDataFromProfile(profile));
   const commuteOriginAddress = String(formData.personal.address || profile.address || '').trim();
 
+  const profileSyncSignature = useMemo(() => JSON.stringify({
+    id: profile.id ?? '',
+    name: profile.name ?? '',
+    jobTitle: profile.jobTitle ?? '',
+    email: profile.email ?? '',
+    phone: profile.phone ?? '',
+    address: profile.address ?? '',
+    cvUrl: profile.cvUrl ?? '',
+    cvText: profile.cvText ?? '',
+    cvAiText: profile.cvAiText ?? '',
+    skills: profile.skills || [],
+    workHistory: profile.workHistory || [],
+    education: profile.education || [],
+    preferences: profile.preferences?.searchProfile || null,
+  }), [
+    profile.address,
+    profile.cvAiText,
+    profile.cvText,
+    profile.cvUrl,
+    profile.education,
+    profile.email,
+    profile.id,
+    profile.jobTitle,
+    profile.name,
+    profile.phone,
+    profile.preferences?.searchProfile,
+    profile.skills,
+    profile.workHistory,
+  ]);
+
   useEffect(() => {
     setFormData(buildFormDataFromProfile(profile));
-  }, [profile]);
+  }, [profile, profileSyncSignature]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1687,23 +1652,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     formData.searchProfile.primaryDomain,
     formData.searchProfile.targetRole,
     formData.searchProfile.seniority,
-    (formData.searchProfile.avoidDomains || []).length > 0,
-    formData.searchProfile.nearBorder,
     formData.searchProfile.wantsContractorRoles,
-    formData.searchProfile.wantsDogFriendlyOffice,
-    formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support'),
-    formData.searchProfile.wantsRemoteRoles,
     formData.searchProfile.preferredWorkArrangement,
-    formData.searchProfile.remoteLanguageCodes.length > 0,
     formData.searchProfile.defaultEnableCommuteFilter,
     formData.jhiPreferences.hardConstraints.excludeShift,
+    formData.searchProfile.wantsDogFriendlyOffice,
+    formData.searchProfile.preferredBenefitKeys.includes('child_friendly') || formData.searchProfile.preferredBenefitKeys.includes('childcare_support'),
     formData.searchProfile.preferredBenefitKeys.length > 0
   ].filter(Boolean).length;
-  const searchSetupAreas = [
-    searchProfileCopy.impactMarketplace,
-    searchProfileCopy.impactSaved,
-    searchProfileCopy.impactFeed
-  ];
   const resolvedIntentProfile = resolveCandidateIntentProfile({
     ...profile,
     jobTitle: formData.personal.jobTitle,
@@ -1727,6 +1683,94 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       searchProfile: formData.searchProfile,
     },
   }, i18n.language || 'en').slice(0, 3);
+  const topProfileSkills = formData.skills.slice(0, 4);
+  const topProfileIntentSignals = onboardingIntentSignals.slice(0, 3);
+  const latestSolutionSnapshot = solutionSnapshots[0] || null;
+  const profileMissingSignals = [
+    !formData.personal.jobTitle?.trim()
+      ? getProfileLocaleLabel({
+        cs: 'doplnit roli',
+        sk: 'doplniť rolu',
+        de: 'Rolle ergänzen',
+        at: 'Rolle ergänzen',
+        pl: 'uzupełnić rolę',
+        en: 'add your role'
+      }, profileLocale)
+      : null,
+    formData.skills.length < 3
+      ? getProfileLocaleLabel({
+        cs: 'přidat konkrétní skills',
+        sk: 'pridať konkrétne skills',
+        de: 'konkrete Skills ergänzen',
+        at: 'konkrete Skills ergänzen',
+        pl: 'dodać konkretne umiejętności',
+        en: 'add concrete skills'
+      }, profileLocale)
+      : null,
+    !showSolvedProblemsSection
+      ? getProfileLocaleLabel({
+        cs: 'ukázat vyřešenou situaci',
+        sk: 'ukázať vyriešenú situáciu',
+        de: 'eine gelöste Situation zeigen',
+        at: 'eine gelöste Situation zeigen',
+        pl: 'pokazać rozwiązaną sytuację',
+        en: 'show a solved situation'
+      }, profileLocale)
+      : null,
+    !profileDocumentsReady
+      ? getProfileLocaleLabel({
+        cs: 'připravit podpůrný kontext',
+        sk: 'pripraviť podporný kontext',
+        de: 'optionalen Kontext vorbereiten',
+        at: 'optionalen Kontext vorbereiten',
+        pl: 'przygotować dodatkowy kontekst',
+        en: 'prepare supporting context'
+      }, profileLocale)
+      : null
+  ].filter(Boolean) as string[];
+  const profileHumanSignalCopy = {
+    cs: {
+      badge: 'Jak vás firma přečte před callem',
+      title: 'Ještě před prvním rozhovorem by z profilu mělo být cítit, jak pracujete, co umíte přenést do reality a proč si vás zapamatovat.',
+      firstRead: 'První dojem',
+      firstReadValue: formData.personal.jobTitle?.trim()
+        ? `${formData.personal.jobTitle}${formData.experience.length > 0 ? ` • ${formData.experience.length}+ rolí v historii` : ''}`
+        : 'Doplňte roli a headline, aby firma během vteřiny věděla, koho si otevírá.',
+      proof: 'Co už teď působí jako důkaz',
+      proofValue: latestSolutionSnapshot?.solution || latestSolutionSnapshot?.result || (showSolvedProblemsSection
+        ? 'Máte uložené outcome z micro jobů. To je přesně ten typ stopy, který firma čte lépe než CV.'
+        : 'Přidejte první konkrétní situaci nebo outcome. Právě to dělá z profilu živého člověka, ne jen formulář.'),
+      energy: 'Lidské signály navíc',
+      energyValue: topProfileIntentSignals.length > 0
+        ? 'Z onboardingu už je vidět, co vás přirozeně táhne a v jakém prostředí nejspíš zafungujete.'
+        : 'Doplňte preference a pracovní styl, ať firmy necítí jen skill fit, ale i lidský fit.',
+      missing: 'Co ještě doladit',
+      missingValue: profileMissingSignals.length > 0
+        ? profileMissingSignals.join(' • ')
+        : 'Profil už působí připraveně pro první silný dojem.'
+    },
+    en: {
+      badge: 'How companies read you before the call',
+      title: 'Before the first interview, your profile should already show how you work, what you can turn into real outcomes, and why a team should remember you.',
+      firstRead: 'First read',
+      firstReadValue: formData.personal.jobTitle?.trim()
+        ? `${formData.personal.jobTitle}${formData.experience.length > 0 ? ` • ${formData.experience.length}+ roles in your story` : ''}`
+        : 'Add your role and headline so a team knows who they are opening in one glance.',
+      proof: 'What already feels like proof',
+      proofValue: latestSolutionSnapshot?.solution || latestSolutionSnapshot?.result || (showSolvedProblemsSection
+        ? 'You already have outcome artifacts from micro jobs. That is exactly the kind of proof teams trust more than a CV.'
+        : 'Add one concrete situation or outcome. That is what makes the profile feel like a real person, not just a form.'),
+      energy: 'Human signal on top',
+      energyValue: topProfileIntentSignals.length > 0
+        ? 'Your onboarding already shows what naturally pulls you in and where you are likely to do your best work.'
+        : 'Add work preferences and working-style context so teams feel both skill fit and human fit.',
+      missing: 'What to sharpen next',
+      missingValue: profileMissingSignals.length > 0
+        ? profileMissingSignals.join(' • ')
+        : 'The profile already feels ready for a strong first impression.'
+    }
+  } as const;
+  const profileHumanSignal = profileHumanSignalCopy[profileLocale === 'en' ? 'en' : 'cs'];
   const inferredIntentAvailable = Boolean(resolvedIntentProfile.inferredPrimaryDomain || resolvedIntentProfile.inferredTargetRole);
   const hasManualIntent = Boolean(formData.searchProfile.primaryDomain || formData.searchProfile.targetRole || formData.searchProfile.seniority);
   const focusIntentSetup = () => {
@@ -1737,7 +1781,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
   const applyInferredIntentSuggestion = () => {
     handleSearchProfileChange('primaryDomain', resolvedIntentProfile.inferredPrimaryDomain);
-    handleSearchProfileChange('secondaryDomains', resolvedIntentProfile.secondaryDomains.slice(0, 2));
+    handleSearchProfileChange('secondaryDomains', []);
+    handleSearchProfileChange('avoidDomains', []);
+    handleSearchProfileChange('includeAdjacentDomains', true);
     if (resolvedIntentProfile.inferredTargetRole) {
       handleSearchProfileChange('targetRole', resolvedIntentProfile.inferredTargetRole);
     }
@@ -2052,7 +2098,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="space-y-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.primaryDomain}</label>
@@ -2066,6 +2112,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <option key={option.key} value={option.key}>{option.label}</option>
               ))}
             </select>
+            <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+              {getProfileLocaleLabel({
+                cs: 'Vybíráte z plného seznamu oborů. Stačí zvolit ten, ve kterém se chcete opravdu pohybovat.',
+                sk: 'Vyberáte z plného zoznamu odborov. Stačí zvoliť ten, v ktorom sa chcete naozaj pohybovať.',
+                de: 'Sie wählen aus einer vollständigen Bereichsliste. Es reicht, den Bereich zu markieren, in dem Sie sich wirklich bewegen wollen.',
+                at: 'Sie wählen aus einer vollständigen Bereichsliste. Es reicht, den Bereich zu markieren, in dem Sie sich wirklich bewegen wollen.',
+                pl: 'Wybierasz z pełnej listy obszarów. Wystarczy zaznaczyć ten, w którym naprawdę chcesz się poruszać.',
+                en: 'You are choosing from the full domain list. Pick the one you genuinely want your search to follow.'
+              }, profileLocale)}
+            </div>
           </div>
 
           <div>
@@ -2103,85 +2159,74 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         </div>
 
         <div className="space-y-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3.5">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.secondaryDomains}</label>
-            <div className="flex flex-wrap gap-2">
-              {intentDomainOptions
-                .filter((option) => option.key !== formData.searchProfile.primaryDomain)
-                .map((option) => {
-                  const active = (formData.searchProfile.secondaryDomains || []).includes(option.key);
-                  const disabled = !active && (formData.searchProfile.secondaryDomains || []).length >= 2;
-                  return (
-                    <button
-                      key={option.key}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => {
-                        const current = formData.searchProfile.secondaryDomains || [];
-                        const next = active
-                          ? current.filter((item) => item !== option.key)
-                          : [...current, option.key];
-                        handleSearchProfileChange('secondaryDomains', next);
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
-                        ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                        } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+          <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+              {getProfileLocaleLabel({
+                cs: 'Jednoduché pravidlo',
+                sk: 'Jednoduché pravidlo',
+                de: 'Einfache Regel',
+                at: 'Einfache Regel',
+                pl: 'Prosta zasada',
+                en: 'Simple rule'
+              }, profileLocale)}
             </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+              {getProfileLocaleLabel({
+                cs: 'Vyberte hlavní obor, cílovou roli a pár praktických podmínek. Hledání se pak bude řídit přesně tím, co tu opravdu nastavíte.',
+                sk: 'Vyberte hlavný odbor, cieľovú rolu a pár praktických podmienok. Hľadanie sa potom bude riadiť presne tým, čo tu naozaj nastavíte.',
+                de: 'Wählen Sie Hauptbereich, Zielrolle und ein paar praktische Rahmenbedingungen. Die Suche folgt dann genau diesen Einstellungen.',
+                at: 'Wählen Sie Hauptbereich, Zielrolle und ein paar praktische Rahmenbedingungen. Die Suche folgt dann genau diesen Einstellungen.',
+                pl: 'Wybierz główny obszar, docelową rolę i kilka praktycznych warunków. Wyszukiwanie będzie się potem trzymać dokładnie tych ustawień.',
+                en: 'Choose your main domain, target role, and a few practical constraints. Search will then follow exactly those settings.'
+              }, profileLocale)}
+            </p>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--text-strong)]">{intentProfileCopy.avoidDomains}</label>
-            <div className="flex flex-wrap gap-2">
-              {intentDomainOptions
-                .filter((option) => option.key !== formData.searchProfile.primaryDomain && !(formData.searchProfile.secondaryDomains || []).includes(option.key))
-                .map((option) => {
-                  const active = (formData.searchProfile.avoidDomains || []).includes(option.key);
-                  const disabled = !active && (formData.searchProfile.avoidDomains || []).length >= 3;
-                  return (
-                    <button
-                      key={`avoid-${option.key}`}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => {
-                        const current = formData.searchProfile.avoidDomains || [];
-                        const next = active
-                          ? current.filter((item) => item !== option.key)
-                          : [...current, option.key];
-                        handleSearchProfileChange('avoidDomains', next);
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
-                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300'
-                        : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-rose-200 hover:bg-rose-50/70 dark:hover:border-rose-900/30 dark:hover:bg-rose-950/20'
-                        } ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                {getProfileLocaleLabel({
+                  cs: 'Jak to funguje',
+                  sk: 'Ako to funguje',
+                  de: 'So funktioniert es',
+                  at: 'So funktioniert es',
+                  pl: 'Jak to działa',
+                  en: 'How it works'
+                }, profileLocale)}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                {getProfileLocaleLabel({
+                  cs: 'Stačí držet jeden jasný směr. Obor a cílová role určují, co uvidíte jako první, a ostatní filtry to už jen prakticky zpřesní.',
+                  sk: 'Stačí držať jeden jasný smer. Odbor a cieľová rola určujú, čo uvidíte ako prvé, a ostatné filtre to už len prakticky spresnia.',
+                  de: 'Ein klarer Fokus reicht. Bereich und Zielrolle bestimmen, was Sie zuerst sehen, und die restlichen Filter präzisieren es praktisch.',
+                  at: 'Ein klarer Fokus reicht. Bereich und Zielrolle bestimmen, was Sie zuerst sehen, und die restlichen Filter präzisieren es praktisch.',
+                  pl: 'Wystarczy jeden jasny kierunek. Obszar i rola docelowa decydują o tym, co zobaczysz najpierw, a reszta filtrów tylko to doprecyzuje.',
+                  en: 'One clear direction is enough. Domain and target role decide what you see first, and the remaining filters simply refine it.'
+                }, profileLocale)}
+              </div>
             </div>
-            <div className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
-              {intentProfileCopy.avoidDomainsHint}
+            <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                {getProfileLocaleLabel({
+                  cs: 'Co už nemusíte řešit',
+                  sk: 'Čo už nemusíte riešiť',
+                  de: 'Was Sie nicht mehr manuell lösen müssen',
+                  at: 'Was Sie nicht mehr manuell lösen müssen',
+                  pl: 'Czego nie musisz już ustawiać ręcznie',
+                  en: 'What you no longer need to manage manually'
+                }, profileLocale)}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                {getProfileLocaleLabel({
+                  cs: 'Nemusíte řešit žádné vedlejší obory ani skryté přepínače. To důležité nastavíte tady přímo a zbytek se do hledání nemíchá.',
+                  sk: 'Nemusíte riešiť žiadne vedľajšie odbory ani skryté prepínače. To dôležité nastavíte priamo tu a zvyšok sa do hľadania nemieša.',
+                  de: 'Sie müssen keine Nebenbereiche oder versteckten Umschalter mehr pflegen. Was zählt, stellen Sie hier direkt ein.',
+                  at: 'Sie müssen keine Nebenbereiche oder versteckten Umschalter mehr pflegen. Was zählt, stellen Sie hier direkt ein.',
+                  pl: 'Nie musisz już pilnować pobocznych obszarów ani ukrytych przełączników. To, co ważne, ustawiasz tutaj bezpośrednio.',
+                  en: 'You no longer need secondary domains or hidden overrides. What matters is set directly here.'
+                }, profileLocale)}
+              </div>
             </div>
-          </div>
-
-          <label className="flex items-start gap-3 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text)]">
-            <input
-              type="checkbox"
-              checked={formData.searchProfile.includeAdjacentDomains ?? true}
-              onChange={(event) => handleSearchProfileChange('includeAdjacentDomains', event.target.checked)}
-              className="mt-1 accent-[var(--accent)]"
-            />
-            <span>{intentProfileCopy.includeAdjacent}</span>
-          </label>
-
-          <div className="rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.14)] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-3 text-sm leading-6 text-[var(--text-muted)]">
-            {intentProfileCopy.manualWins}
           </div>
         </div>
       </div>
@@ -2196,10 +2241,26 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <div className="app-eyebrow w-fit">{searchProfileCopy.title}</div>
+            <div className="app-eyebrow w-fit">
+              {getProfileLocaleLabel({
+                cs: 'Co musí sedět v reálném životě',
+                sk: 'Čo musí sedieť v reálnom živote',
+                de: 'Was im echten Leben passen muss',
+                at: 'Was im echten Leben passen muss',
+                pl: 'Co musi pasować w prawdziwym życiu',
+                en: 'What needs to work in real life'
+              }, profileLocale)}
+            </div>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
               {isPremium
-                ? searchProfileCopy.intro
+                ? getProfileLocaleLabel({
+                  cs: 'Tady si nastavíte jen to podstatné: jak chcete pracovat, co je pro vás prakticky zvládnutelné a jaké podmínky vám mají opravdu sedět.',
+                  sk: 'Tu si nastavíte len to podstatné: ako chcete pracovať, čo je pre vás prakticky zvládnuteľné a aké podmienky vám majú naozaj sedieť.',
+                  de: 'Hier stellen Sie nur das Wesentliche ein: wie Sie arbeiten wollen, was praktisch machbar ist und welche Bedingungen wirklich zu Ihrem Leben passen.',
+                  at: 'Hier stellen Sie nur das Wesentliche ein: wie Sie arbeiten wollen, was praktisch machbar ist und welche Bedingungen wirklich zu Ihrem Leben passen.',
+                  pl: 'Tutaj ustawiasz tylko to, co naprawdę ważne: jak chcesz pracować, co jest praktycznie wykonalne i jakie warunki naprawdę mają Ci pasować.',
+                  en: 'Set only what matters: how you want to work, what is realistically manageable, and which conditions genuinely fit your life.'
+                }, profileLocale)
                 : profileUiCopy.premiumLifeContext}
             </p>
           </div>
@@ -2224,9 +2285,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         <>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {[
-              { field: 'nearBorder' as const, label: searchProfileCopy.nearBorder, active: formData.searchProfile.nearBorder },
-              { field: 'wantsContractorRoles' as const, label: searchProfileCopy.contractor, active: formData.searchProfile.wantsContractorRoles },
-              { field: 'wantsRemoteRoles' as const, label: searchProfileCopy.remote, active: formData.searchProfile.wantsRemoteRoles }
+              { field: 'wantsContractorRoles' as const, label: searchProfileCopy.contractor, active: formData.searchProfile.wantsContractorRoles }
             ].map((item) => (
               <label
                 key={item.field}
@@ -2289,7 +2348,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
 
           <div className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.workArrangement}</label>
+            <label className="block text-sm font-medium text-[var(--text-strong)]">
+              {getProfileLocaleLabel({
+                cs: 'Jak chcete pracovat',
+                sk: 'Ako chcete pracovať',
+                de: 'Wie Sie arbeiten möchten',
+                at: 'Wie Sie arbeiten möchten',
+                pl: 'Jak chcesz pracować',
+                en: 'How you want to work'
+              }, profileLocale)}
+            </label>
             <div className="flex flex-wrap gap-2">
               {[
                 { key: 'remote', label: searchProfileCopy.remoteOption },
@@ -2318,9 +2386,27 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-xl space-y-2">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                  {searchProfileCopy.commuteTitle}
+                  {getProfileLocaleLabel({
+                    cs: 'Co je ještě rozumně dosažitelné',
+                    sk: 'Čo je ešte rozumne dosiahnuteľné',
+                    de: 'Was noch realistisch erreichbar ist',
+                    at: 'Was noch realistisch erreichbar ist',
+                    pl: 'Co jest jeszcze realnie osiągalne',
+                    en: 'What is still realistically reachable'
+                  }, profileLocale)}
                 </div>
-                <p className="text-sm leading-6 text-[var(--text-muted)]">{searchProfileCopy.commuteIntro}</p>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
+                  {commuteOriginAddress
+                    ? getProfileLocaleLabel({
+                      cs: `Když zapnete dojezd, budeme vycházet z adresy ${commuteOriginAddress}.`,
+                      sk: `Keď zapnete dochádzanie, budeme vychádzať z adresy ${commuteOriginAddress}.`,
+                      de: `Wenn Sie Pendeln aktivieren, rechnen wir ab ${commuteOriginAddress}.`,
+                      at: `Wenn Sie Pendeln aktivieren, rechnen wir ab ${commuteOriginAddress}.`,
+                      pl: `Po włączeniu dojazdu będziemy liczyć od adresu ${commuteOriginAddress}.`,
+                      en: `When commute is enabled, we calculate from ${commuteOriginAddress}.`
+                    }, profileLocale)
+                    : searchProfileCopy.commuteOriginMissing}
+                </p>
               </div>
               <div className="grid min-w-[220px] gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <div className="rounded-[0.9rem] border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
@@ -2427,34 +2513,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
 
           <div className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.languages}</label>
-            <div className="flex flex-wrap gap-2">
-              {remoteLanguageOptions.map((option) => {
-                const active = formData.searchProfile.remoteLanguageCodes.includes(option.code);
-                return (
-                  <button
-                    key={option.code}
-                    type="button"
-                    onClick={() => {
-                      const next = active
-                        ? formData.searchProfile.remoteLanguageCodes.filter((code) => code !== option.code)
-                        : [...formData.searchProfile.remoteLanguageCodes, option.code];
-                      handleSearchProfileChange('remoteLanguageCodes', next as SearchLanguageCode[]);
-                    }}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
-                      ? 'border-[rgba(var(--accent-rgb),0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                      : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text)] hover:border-[rgba(var(--accent-rgb),0.16)]'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-[var(--text-strong)]">{searchProfileCopy.benefitPriorities}</label>
+            <label className="block text-sm font-medium text-[var(--text-strong)]">
+              {getProfileLocaleLabel({
+                cs: 'Co je pro vás důležité navíc',
+                sk: 'Čo je pre vás dôležité navyše',
+                de: 'Was Ihnen zusätzlich wichtig ist',
+                at: 'Was Ihnen zusätzlich wichtig ist',
+                pl: 'Co jest dla Ciebie dodatkowo ważne',
+                en: 'What else matters to you'
+              }, profileLocale)}
+            </label>
             <div className="flex flex-wrap gap-2">
               {searchBenefitOptions.map((option) => {
                 const active = formData.searchProfile.preferredBenefitKeys.includes(option.key);
@@ -2474,23 +2542,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               })}
             </div>
           </div>
-
-          <div className="mt-4 rounded-[0.95rem] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-              {searchProfileCopy.impactTitle}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {searchSetupAreas.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[11px] font-medium text-[var(--text-muted)]"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-            <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{searchProfileCopy.helper}</p>
-          </div>
         </>
       ) : (
         <div className="mt-4 rounded-[0.95rem] border border-[rgba(var(--accent-rgb),0.16)] bg-[var(--surface-muted)] p-4">
@@ -2498,7 +2549,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
                 {[
-                  searchProfileCopy.nearBorder,
                   searchProfileCopy.contractor,
                   searchProfileCopy.remote,
                   searchProfileCopy.dogFriendly,
@@ -2533,52 +2583,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       )}
     </div>
   ) : null;
-
-  useEffect(() => {
-    if (!FEATURE_HAPPINESS_AUDIT_THREE || !isPremium) return;
-
-    const timer = window.setTimeout(async () => {
-      setIsSimulatingAudit(true);
-      try {
-        AnalyticsService.trackEvent('happiness_audit_parameter_changed', {
-          commute_minutes_daily: happinessAuditInput.commute_minutes_daily,
-          home_office_days: happinessAuditInput.home_office_days,
-          role_shift: happinessAuditInput.role_shift,
-        });
-        const result = await simulateHappinessAudit({
-          ...happinessAuditInput,
-          commute_cost: resourceLeakToggles.commute ? happinessAuditInput.commute_cost : 0,
-          subjective_energy: Math.min(100, happinessAuditInput.subjective_energy + disconnectedPipes * 8),
-          role_shift: Math.max(0, Math.min(100, happinessAuditInput.role_shift + Math.round(culturalMismatch * 0.2) - narrativeSkills.length * 3)),
-          tax_profile: formData.taxProfile,
-        });
-        AnalyticsService.trackEvent('happiness_audit_simulation_run', {
-          sustainability: result.sustainability_score,
-          drift: result.drift_score,
-        });
-        setHappinessAuditOutput(result);
-      } catch {
-        const timeRing = Math.min(100, Math.round((happinessAuditInput.commute_minutes_daily / 120) * 100));
-        const energyRing = Math.min(100, Math.round((100 - happinessAuditInput.subjective_energy) * 0.7));
-        const sustainability = Math.max(0, 100 - Math.round(timeRing * 0.45 + energyRing * 0.55));
-        setHappinessAuditOutput({
-          time_ring: timeRing,
-          energy_ring: energyRing,
-          sustainability_score: sustainability,
-          drift_score: Math.round((happinessAuditInput.role_shift * 0.6) + (timeRing * 0.2)),
-          recommendations: [
-            'Lokální fallback režim: ověřte čísla po obnovení backendu.',
-            'Jde o orientační výstup. Finální rozhodnutí zůstává na vás.',
-          ],
-          advisory_disclaimer: 'Jde o orientační výstup.',
-        });
-      } finally {
-        setIsSimulatingAudit(false);
-      }
-    }, 400);
-
-    return () => window.clearTimeout(timer);
-  }, [happinessAuditInput, isPremium, formData.taxProfile, resourceLeakToggles, disconnectedPipes, culturalMismatch, narrativeSkills.length]);
 
   useEffect(() => {
     if (formData.experience.length === 0) {
@@ -2714,42 +2718,29 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       // Merge parsed data into profile
       const updatedProfile = mergeProfileWithParsedCv(profile, cvUrl, parsedData);
       const updatedSearchProfile = enrichSearchProfileWithInference(updatedProfile);
-
-      // Update local form data to sync UI immediately
-      setFormData(prev => ({
-        ...prev,
-        personal: {
-          ...prev.personal,
-          name: parsedData.name || prev.personal.name,
-          email: parsedData.email || prev.personal.email,
-          phone: parsedData.phone || prev.personal.phone,
-          jobTitle: parsedData.jobTitle || prev.personal.jobTitle,
-        },
-        experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : prev.experience,
-        education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : prev.education,
-        skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : prev.skills
-      }));
-
-      // Save the updated profile with parsed data
-      onChange({
+      const nextProfile = {
         ...updatedProfile,
         preferences: {
           ...updatedProfile.preferences,
           searchProfile: updatedSearchProfile,
         }
-      }, true);
+      };
+
+      // Update local form data to sync UI immediately
+      setFormData(buildFormDataFromProfile(nextProfile));
+      setEditableCvAiText(String(nextProfile.cvAiText || nextProfile.cvText || '').trim());
+
+      // Save the updated profile with parsed data
+      await Promise.resolve(onChange(nextProfile, true));
       if (!profile.preferences?.searchProfile?.primaryDomain && !profile.preferences?.searchProfile?.targetRole && (updatedSearchProfile.inferredPrimaryDomain || updatedSearchProfile.inferredTargetRole)) {
         setShowIntentNudge(true);
         focusIntentSetup();
       }
       alert(t('profile.cv_upload_success'));
 
-      // Trigger profile refresh after a short delay to allow UI to sync
-      setTimeout(() => {
-        if (onRefreshProfile) {
-          onRefreshProfile();
-        }
-      }, 1000);
+      if (onRefreshProfile) {
+        await Promise.resolve(onRefreshProfile());
+      }
     } catch (error) {
       console.error('CV upload failed:', error);
       alert(t('profile.cv_upload_error'));
@@ -2814,7 +2805,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   ) => {
     const nextSearchProfile: CandidateSearchProfile = {
       ...formData.searchProfile,
-      [field]: value
+      ...createDefaultCandidateSearchProfile(),
+      ...formData.searchProfile,
+      [field]: value,
+      nearBorder: false,
+      secondaryDomains: [],
+      avoidDomains: [],
+      includeAdjacentDomains: true,
     };
 
     if (field === 'remoteLanguageCodes') {
@@ -2836,19 +2833,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       nextSearchProfile.wantsRemoteRoles = arrangement === 'remote';
       if (arrangement === 'remote') {
         nextSearchProfile.defaultEnableCommuteFilter = false;
+      } else {
+        nextSearchProfile.remoteLanguageCodes = ['cs'];
       }
     }
 
     if (field === 'preferredBenefitKeys') {
       nextSearchProfile.preferredBenefitKeys = Array.from(new Set(((value as string[]) || []).map((item) => String(item || '').trim()).filter(Boolean)));
-    }
-
-    if (field === 'secondaryDomains') {
-      nextSearchProfile.secondaryDomains = Array.from(new Set(((value as CandidateDomainKey[]) || []).filter(Boolean))).slice(0, 2);
-    }
-
-    if (field === 'avoidDomains') {
-      nextSearchProfile.avoidDomains = Array.from(new Set(((value as CandidateDomainKey[]) || []).filter(Boolean))).slice(0, 3);
     }
 
     if (field === 'defaultMaxDistanceKm') {
@@ -3459,6 +3450,61 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <span>{saveFeedback.text}</span>
             </div>
           )}
+        </div>
+
+        <div className={`${profileSurfaceClass} p-5`}>
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                <Sparkles className="h-3.5 w-3.5" />
+                {profileHumanSignal.badge}
+              </div>
+              <h2 className="mt-3 text-xl font-semibold text-[var(--text-strong)] sm:text-2xl">
+                {profileHumanSignal.title}
+              </h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {topProfileSkills.length > 0 ? topProfileSkills.map((skill) => (
+                  <span key={skill} className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text)]">
+                    {skill}
+                  </span>
+                )) : (
+                  <span className="rounded-full border border-dashed border-[var(--border-subtle)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs text-[var(--text-muted)]">
+                    {getProfileLocaleLabel({
+                      cs: 'Přidejte pár konkrétních skills pro rychlý první dojem.',
+                      sk: 'Pridajte pár konkrétnych skills pre rýchly prvý dojem.',
+                      de: 'Ergänzen Sie ein paar konkrete Skills für einen schnellen ersten Eindruck.',
+                      at: 'Ergänzen Sie ein paar konkrete Skills für einen schnellen ersten Eindruck.',
+                      pl: 'Dodaj kilka konkretnych umiejętności dla mocniejszego pierwszego wrażenia.',
+                      en: 'Add a few concrete skills for a stronger first impression.'
+                    }, profileLocale)}
+                  </span>
+                )}
+                {topProfileIntentSignals.map((signal) => (
+                  <span key={signal} className="rounded-full border border-transparent bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)]">
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid w-full gap-3 xl:max-w-[34rem] sm:grid-cols-2">
+              {[
+                { label: profileHumanSignal.firstRead, value: profileHumanSignal.firstReadValue },
+                { label: profileHumanSignal.proof, value: profileHumanSignal.proofValue },
+                { label: profileHumanSignal.energy, value: profileHumanSignal.energyValue },
+                { label: profileHumanSignal.missing, value: profileHumanSignal.missingValue }
+              ].map((item) => (
+                <div key={item.label} className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                    {item.label}
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-[var(--text)]">
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -4426,320 +4472,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                 </div>
 
-                {FEATURE_HAPPINESS_AUDIT_THREE && (
-                  <div className={profileSurfaceClass}>
-                    <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                            {t('happiness_audit_3d.title', { defaultValue: profileUiCopy.happinessTitle })}
-                          </h2>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {t('happiness_audit_3d.subtitle', { defaultValue: profileUiCopy.happinessSubtitle })}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                            {profileUiCopy.premiumBadge}
-                          </span>
-                          <button
-                            onClick={() => setEnableLive3D((prev) => !prev)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
-                              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                              }`}
-                          >
-                            {enableLive3D
-                              ? t('happiness_audit_3d.live_on', { defaultValue: profileUiCopy.live3dOn })
-                              : t('happiness_audit_3d.live_off', { defaultValue: profileUiCopy.live3dOffButton })}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      {!isPremium && (
-                        <div className="text-sm text-amber-700 dark:text-amber-300">
-                          {t('happiness_audit_3d.premium_required', { defaultValue: profileUiCopy.premiumRequired })}
-                        </div>
-                      )}
-                      <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
-                        <div className="space-y-4">
-                          <div className="rounded-xl border border-[rgba(var(--accent-rgb),0.18)] bg-[rgba(var(--accent-rgb),0.06)] p-4">
-                            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                              {profileUiCopy.auditQuest1}
-                            </div>
-                            <p className="text-sm text-slate-700 dark:text-slate-200">
-                              {profileUiCopy.quest1Body} ({monthlyCommuteHours} h)
-                            </p>
-                            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                              {([
-                                ['commute', profileUiCopy.commute],
-                                ['taxes', profileUiCopy.taxes],
-                                ['fixed', profileUiCopy.fixedCosts],
-                              ] as const).map(([key, label]) => (
-                                <button
-                                  key={key}
-                                  type="button"
-                                  onClick={() => setResourceLeakToggles((prev) => ({ ...prev, [key]: !prev[key] }))}
-                                  className={`px-3 py-2 rounded-lg text-sm border ${resourceLeakToggles[key]
-                                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
-                                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300'
-                                    }`}
-                                >
-                                  {resourceLeakToggles[key]
-                                    ? `${profileUiCopy.pipeOn}: ${label}`
-                                    : `${profileUiCopy.pipeOff}: ${label}`}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                              {profileUiCopy.disconnected}: {disconnectedPipes} / 3
-                            </div>
-                          </div>
-
-                          <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
-                            <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
-                              {profileUiCopy.auditQuest2}
-                            </div>
-                            <p className="text-sm text-slate-700 dark:text-slate-200">
-                              {profileUiCopy.quest2Body}
-                            </p>
-                            <textarea
-                              value={narrativeStory}
-                              onChange={(e) => setNarrativeStory(e.target.value)}
-                              placeholder={profileUiCopy.storyPlaceholder}
-                              className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
-                            />
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {narrativeSkills.length > 0 ? narrativeSkills.map((skill, index) => (
-                                <span key={`${skill}-${index}`} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                  {skill}
-                                </span>
-                              )) : (
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{profileUiCopy.noConstellation}</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4">
-                            <div className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 mb-2">
-                              {profileUiCopy.auditQuest3}
-                            </div>
-                            <p className="text-sm text-slate-700 dark:text-slate-200">
-                              {profileUiCopy.quest3Body}
-                            </p>
-                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <label className="text-xs text-slate-600 dark:text-slate-300">
-                                {profileUiCopy.individualVsTeam} ({culturalCompass.individualVsTeam})
-                                <input
-                                  type="range"
-                                  min={0}
-                                  max={100}
-                                  step={5}
-                                  value={culturalCompass.individualVsTeam}
-                                  onChange={(e) => setCulturalCompass((prev) => ({ ...prev, individualVsTeam: Number(e.target.value) || 0 }))}
-                                  className="mt-1 w-full"
-                                />
-                              </label>
-                              <label className="text-xs text-slate-600 dark:text-slate-300">
-                                {profileUiCopy.chaosVsStructure} ({culturalCompass.chaosVsStructure})
-                                <input
-                                  type="range"
-                                  min={0}
-                                  max={100}
-                                  step={5}
-                                  value={culturalCompass.chaosVsStructure}
-                                  onChange={(e) => setCulturalCompass((prev) => ({ ...prev, chaosVsStructure: Number(e.target.value) || 0 }))}
-                                  className="mt-1 w-full"
-                                />
-                              </label>
-                            </div>
-                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                              {profileUiCopy.companyOffNorth.replace('{{value}}', String(culturalMismatch))}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.salary', { defaultValue: profileUiCopy.monthlyGrossSalary })}
-                              <input
-                                type="number"
-                                min={0}
-                                value={happinessAuditInput.salary}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, salary: Number(e.target.value) || 0 }))}
-                                className={`mt-1 ${profileCompactInputClass}`}
-                              />
-                            </label>
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.commute_cost', { defaultValue: profileUiCopy.monthlyCommuteCost })}
-                              <input
-                                type="number"
-                                min={0}
-                                value={happinessAuditInput.commute_cost}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_cost: Number(e.target.value) || 0 }))}
-                                className={`mt-1 ${profileCompactInputClass}`}
-                              />
-                            </label>
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.home_office_days', { defaultValue: profileUiCopy.homeOfficeDays })}
-                              <input
-                                type="range"
-                                min={0}
-                                max={5}
-                                step={1}
-                                value={happinessAuditInput.home_office_days}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, home_office_days: Number(e.target.value) || 0 }))}
-                                className="mt-2 w-full"
-                              />
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.home_office_days} / 5</div>
-                            </label>
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.commute_minutes', { defaultValue: profileUiCopy.commuteMinutes })}
-                              <input
-                                type="range"
-                                min={0}
-                                max={180}
-                                step={5}
-                                value={happinessAuditInput.commute_minutes_daily}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_minutes_daily: Number(e.target.value) || 0 }))}
-                                className="mt-2 w-full"
-                              />
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} {profileUiCopy.minutesPerDay}</div>
-                            </label>
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.energy', { defaultValue: profileUiCopy.subjectiveEnergy })}
-                              <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={happinessAuditInput.subjective_energy}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, subjective_energy: Number(e.target.value) || 0 }))}
-                                className="mt-2 w-full"
-                              />
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.subjective_energy}/100</div>
-                            </label>
-                            <label className="text-sm text-slate-700 dark:text-slate-300">
-                              {t('happiness_audit_3d.role_shift', { defaultValue: profileUiCopy.roleDrift })}
-                              <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={happinessAuditInput.role_shift}
-                                onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, role_shift: Number(e.target.value) || 0 }))}
-                                className="mt-2 w-full"
-                              />
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.role_shift}/100</div>
-                            </label>
-                          </div>
-                        </div>
-                      </fieldset>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                          <div className="mb-2 text-xs uppercase tracking-wider text-[var(--accent)]">
-                            {profileUiCopy.orbitTitle}
-                          </div>
-                          {enableLive3D ? (
-                            <SceneShell
-                              capability={sceneCapability}
-                              enableControls
-                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                            >
-                              <LifeSustainabilityOrbit output={happinessAuditOutput} />
-                            </SceneShell>
-                          ) : (
-                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                              {profileUiCopy.live3dOff}
-                            </div>
-                          )}
-                        </div>
-                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                          <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
-                            {profileUiCopy.anchorTitle}
-                          </div>
-                          {enableLive3D ? (
-                            <SceneShell
-                              capability={sceneCapability}
-                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                            >
-                              <CareerAnchorDrift output={happinessAuditOutput} />
-                            </SceneShell>
-                          ) : (
-                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                              {profileUiCopy.live3dOff}
-                            </div>
-                          )}
-                        </div>
-                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                          <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
-                            {profileUiCopy.mirrorTitle}
-                          </div>
-                          {enableLive3D ? (
-                            <SceneShell
-                              capability={sceneCapability}
-                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                            >
-                              <NebulaOfPotential frame={narrativeFrame} />
-                            </SceneShell>
-                          ) : (
-                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                              {profileUiCopy.live3dOff}
-                            </div>
-                          )}
-                        </div>
-                        <div className="rounded-[1rem] border border-slate-200 bg-slate-50 p-3 shadow-[0_16px_30px_-30px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900/40">
-                          <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
-                            {profileUiCopy.northstarTitle}
-                          </div>
-                          {enableLive3D ? (
-                            <SceneShell
-                              capability={sceneCapability}
-                              fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">{profileUiCopy.fallback3d}</div>}
-                            >
-                              <CulturalNorthstarCompass
-                                alignmentScore={culturalAlignment}
-                                individualVsTeam={culturalCompass.individualVsTeam}
-                                chaosVsStructure={culturalCompass.chaosVsStructure}
-                              />
-                            </SceneShell>
-                          ) : (
-                            <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
-                              {profileUiCopy.live3dOff}
-                            </div>
-                          )}
-                          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            {`${profileUiCopy.alignmentLabel}: ${culturalAlignment}% · ${profileUiCopy.mismatchLabel}: ${culturalMismatch}%`}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
-                          {isSimulatingAudit
-                            ? t('happiness_audit_3d.simulating', { defaultValue: profileUiCopy.simulating })
-                            : t('happiness_audit_3d.results', { defaultValue: profileUiCopy.auditOutput })}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                          <div><span className="text-slate-500">{profileUiCopy.timeRing}</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
-                          <div><span className="text-slate-500">{profileUiCopy.energyRing}</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
-                          <div><span className="text-slate-500">{profileUiCopy.sustainability}</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
-                          <div><span className="text-slate-500">{profileUiCopy.drift}</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
-                        </div>
-                        <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                          {(happinessAuditOutput?.recommendations || []).map((item, index) => (
-                            <li key={`${item}-${index}`}>• {item}</li>
-                          ))}
-                        </ul>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-                          {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: profileUiCopy.advisoryDisclaimer })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
               </>
             )}
 
@@ -4759,7 +4491,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <div className="space-y-5 bg-[linear-gradient(180deg,rgba(247,252,255,0.92),rgba(248,250,252,0.98))] p-6 dark:bg-[linear-gradient(180deg,rgba(14,28,36,0.3),rgba(10,18,32,0.96))]">
                   <JcfpmEntryCard
                     isPremium={isPremium}
-                    sceneCapability={sceneCapability}
                     hasDraft={hasJcfpmDraft}
                     hasSnapshot={Boolean(jcfpmSnapshot)}
                     lastUpdatedAt={jcfpmSnapshot?.completed_at}

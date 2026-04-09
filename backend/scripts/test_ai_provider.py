@@ -36,13 +36,13 @@ def _resolve_models() -> tuple[str, str | None]:
             os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano"),
         )
     return (
-        os.getenv("GEMINI_PRIMARY_MODEL", "gemini-2.0-flash"),
-        os.getenv("GEMINI_FALLBACK_MODEL", "gemini-1.5-flash"),
+        os.getenv("MISTRAL_MODEL", "mistral-small-latest"),
+        os.getenv("MISTRAL_FALLBACK_MODEL", None),
     )
 
 
 def main() -> int:
-    provider = (os.getenv("AI_PROVIDER") or "").strip().lower() or "gemini"
+    provider = (os.getenv("AI_PROVIDER") or "").strip().lower() or "mistral"
     primary_model, fallback_model = _resolve_models()
     endpoint = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1/chat/completions")
 
@@ -52,7 +52,7 @@ def main() -> int:
     print(f"fallback_model: {fallback_model}")
     print(f"OPENAI_ENDPOINT: {endpoint}")
     print(f"OPENAI_API_KEY: {_mask(os.getenv('OPENAI_API_KEY'))}")
-    print(f"GEMINI_API_KEY: {_mask(os.getenv('GEMINI_API_KEY'))}")
+    print(f"MISTRAL_API_KEY: {_mask(os.getenv('MISTRAL_API_KEY'))}")
     print(f"OPENROUTER_HTTP_REFERER: {os.getenv('OPENROUTER_HTTP_REFERER', '(default)')}")
     print(f"OPENROUTER_APP_TITLE: {os.getenv('OPENROUTER_APP_TITLE', '(default)')}")
     print("")

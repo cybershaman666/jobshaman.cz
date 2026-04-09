@@ -4,7 +4,6 @@ import { BACKEND_URL, SEARCH_BACKEND_URL } from '../../../constants';
 import { usePaginatedJobs } from '../../../hooks/usePaginatedJobs';
 import { ViewState, type Job, type UserProfile } from '../../../types';
 import { clearJobCache, fetchJobById } from '../../../services/jobService';
-import { getDefaultCandidateSearchFilters } from '../../../services/searchProfilePresets';
 
 const DEBUG_DISCOVERY =
   String(import.meta.env.VITE_DEBUG_DISCOVERY || '').toLowerCase() === 'true';
@@ -30,10 +29,10 @@ export const useMarketplaceDiscovery = ({
   enabled,
   discoveryMode,
   challengeRemoteOnly,
-  setChallengeRemoteOnly,
+  setChallengeRemoteOnly: _setChallengeRemoteOnly,
   selectedJobId,
   setDirectlyFetchedJob,
-  isAdminRoute,
+  isAdminRoute: _isAdminRoute,
   isCompanyProfile,
   companyCoordinates,
   viewState,
@@ -55,7 +54,6 @@ export const useMarketplaceDiscovery = ({
     setEnableCommuteFilter,
   } = discovery;
 
-  const appliedRemoteDefaultsSignatureRef = useRef<string | null>(null);
   const reloadLockRef = useRef(false);
   const backendWakeRetryRef = useRef(false);
   const backendRetryCountRef = useRef(0);
@@ -108,32 +106,6 @@ export const useMarketplaceDiscovery = ({
       cancelled = true;
     };
   }, [selectedJobId, jobs, isLoadingJobs, setDirectlyFetchedJob]);
-
-  useEffect(() => {
-    if (isAdminRoute) return;
-
-    const isProfileReady = effectiveUserProfile.isLoggedIn ? !!effectiveUserProfile.id : true;
-    if (!isProfileReady) return;
-    const defaults = getDefaultCandidateSearchFilters(effectiveUserProfile);
-    const nextSignature = JSON.stringify({
-      profileId: effectiveUserProfile.id || 'guest',
-      remoteOnly: Boolean(defaults.remoteOnly),
-      filterWorkArrangement: defaults.filterWorkArrangement || 'all',
-    });
-    if (appliedRemoteDefaultsSignatureRef.current === nextSignature) return;
-    // Keep geography filters independent from profile-level remote preferences.
-    return;
-
-    if (DEBUG_DISCOVERY) {
-      console.log('🏁 Applying initial remote search default...');
-    }
-    appliedRemoteDefaultsSignatureRef.current = nextSignature;
-    setChallengeRemoteOnly(Boolean(defaults.remoteOnly));
-  }, [
-    effectiveUserProfile,
-    isAdminRoute,
-    setChallengeRemoteOnly,
-  ]);
 
   useEffect(() => {
     if (!challengeRemoteOnly || !enableCommuteFilter) return;

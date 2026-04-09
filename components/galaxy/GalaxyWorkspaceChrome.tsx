@@ -40,12 +40,12 @@ export const GalaxyLayerSidebar: React.FC<{
   <aside
     className={cn(
       galaxyShellPanelClass,
-      'max-h-[calc(100vh-3rem)] overflow-y-auto rounded-[26px] p-4',
-      collapsed ? 'w-24' : 'w-72',
+      'max-h-[calc(100vh-3rem)] overflow-y-auto rounded-[24px]',
+      collapsed ? 'w-16 p-2' : 'w-72 p-4',
       className,
     )}
   >
-    <div className="mb-2 flex items-center justify-between px-2 py-2">
+    <div className={cn('mb-2 flex items-center justify-between px-2 py-2', collapsed && 'justify-center px-0')}>
       {!collapsed ? (
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
@@ -76,18 +76,18 @@ export const GalaxyLayerSidebar: React.FC<{
             type="button"
             onClick={item.onClick}
             className={cn(
-              'flex items-center gap-3 rounded-xl py-3 font-medium transition-all',
-              collapsed ? 'justify-center px-0' : 'px-4',
+              'flex items-center gap-3 rounded-xl font-medium transition-all',
+              collapsed ? 'mx-auto h-10 w-10 justify-center px-0 py-0' : 'px-4 py-3',
               item.active
-                ? 'border border-slate-200 bg-white text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
-                : 'border border-transparent text-slate-500 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-slate-900/50',
+                ? 'border border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-500/40 dark:bg-cyan-950/30 dark:text-cyan-100'
+                : 'border border-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900/50',
             )}
           >
             <div
               className={cn(
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                 item.active
-                  ? 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950/60 dark:text-cyan-300'
+                  ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
               )}
             >
@@ -153,7 +153,7 @@ export const GalaxyCanvasControls: React.FC<{
   return (
     <div
       className={cn(
-        'rounded-[20px] border border-slate-200/90 bg-white/94 p-2.5 shadow-[0_20px_48px_-30px_rgba(15,23,42,0.4)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/86 dark:shadow-[0_20px_48px_-30px_rgba(2,6,23,0.72)]',
+        'w-[112px] rounded-[20px] border border-slate-200/90 bg-white/94 p-2.5 shadow-[0_20px_48px_-30px_rgba(15,23,42,0.4)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/86 dark:shadow-[0_20px_48px_-30px_rgba(2,6,23,0.72)]',
         className,
       )}
     >

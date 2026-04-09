@@ -6,7 +6,6 @@ import SignalBoostModal from '../../../components/SignalBoostModal';
 import { Badge, SurfaceCard, cn } from '../../../components/ui/primitives';
 import type { CommuteAnalysis, Job, JobHumanContext, JobPublicPerson, UserProfile } from '../../../types';
 import ChallengeComposer from '../../../components/challenges/ChallengeComposer';
-import FormattedJobDescription from '../../../components/challenges/FormattedJobDescription';
 import JHIChart from '../../../components/JHIChart';
 import {
   ChallengeHumanContextSection,
@@ -19,10 +18,8 @@ import { getFallbackCompanyAvatarUrl, isStockCompanyAvatarUrl } from '../../../u
 import { analyzeJobBullshit } from '../../../utils/bullshitDetector';
 import { getDomainAccent, resolveJobDomain } from '../../../utils/domainAccents';
 import { getStockCoverForDomain, getStockGalleryForDomain } from '../../../utils/domainCoverImages';
-import { formatJobDescription } from '../../../utils/formatters';
 import { getChallengeDetailPageCopy } from '../../../components/challenges/challengeDetailCopy';
 import { trackAnalyticsEvent } from '../../../services/supabaseService';
-import { buildImportedJobInsideStory } from '../../../services/importedJobDetailService';
 
 export interface ChallengeDetailPageProps {
   job: Job;
@@ -142,7 +139,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     [job.companyProfile?.gallery_urls],
   );
   const stockGalleryImages = useMemo(
-    () => getStockGalleryForDomain(effectiveDomain, `${job.company || ''}-${job.id || ''}-${job.title || ''}`, 3),
+    () => getStockGalleryForDomain(effectiveDomain, `${job.company || ''}-${job.id || ''}-${job.title || ''}`, 5),
     [effectiveDomain, job.company, job.id, job.title],
   );
   const coverImageUrl = useMemo(
@@ -155,7 +152,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     () => Array.from(new Set([
       ...(isNativeChallenge ? nativeCompanyGallery : []),
       ...stockGalleryImages,
-    ])).slice(0, 3),
+    ])).slice(0, 5),
     [isNativeChallenge, nativeCompanyGallery, stockGalleryImages],
   );
   const domainAccent = useMemo(() => getDomainAccent(effectiveDomain), [effectiveDomain]);
@@ -262,8 +259,16 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   const missionBody = String(job.challenge || job.aiAnalysis?.summary || job.description || '').trim() || copy.companyFallback;
   const firstStep = String(job.firstStepPrompt || '').trim();
   const riskBody = String(job.risk || job.aiAnalysis?.culturalFit || '').trim();
-  const formattedDescription = useMemo(() => formatJobDescription(job.description || ''), [job.description]);
-  const importedStory = useMemo(() => buildImportedJobInsideStory(job), [job]);
+  const importedStory = useMemo(
+    () => ({
+      roleSnapshot: missionBody,
+      firstStep: firstStep || challenge.firstStepPrompt || '',
+      risk: riskBody || '',
+      companyContext: missionBody,
+      benefits: Array.from(new Set((Array.isArray(job.benefits) ? job.benefits : []).map((value) => String(value || '').trim()).filter(Boolean))).slice(0, 4),
+    }),
+    [challenge.firstStepPrompt, firstStep, job.benefits, missionBody, riskBody],
+  );
   const bullshitAnalysis = useMemo(() => analyzeJobBullshit(job, language), [job, language]);
   const trustDialoguesCount = humanContext?.trust?.dialogues_last_90d ?? null;
   const trustResponseHours = humanContext?.trust?.median_first_response_hours_last_90d ?? null;
@@ -503,25 +508,55 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       return raw.replace(/^https?:\/\//, '').replace(/^www\./, '');
     }
   })();
+  const companyIdentityLabels = language === 'cs'
+    ? { registration: 'IČO / registrace', tax: 'DIČ / daňové ID', legalAddress: 'Právní adresa' }
+    : language === 'sk'
+      ? { registration: 'IČO / registrácia', tax: 'DIČ / daňové ID', legalAddress: 'Právna adresa' }
+      : language === 'de' || language === 'at'
+        ? { registration: 'Register / Firmen-ID', tax: 'Steuer-ID', legalAddress: 'Rechtsadresse' }
+        : language === 'pl'
+          ? { registration: 'Rejestr / identyfikator firmy', tax: 'NIP / ID podatkowe', legalAddress: 'Adres prawny' }
+          : { registration: 'Registration / company ID', tax: 'Tax ID', legalAddress: 'Legal address' };
+  const companyIdentityFacts = [
+    String(job.companyProfile?.ico || job.companyProfile?.registry_info || '').trim()
+      ? `${companyIdentityLabels.registration}: ${String(job.companyProfile?.ico || job.companyProfile?.registry_info || '').trim()}`
+      : '',
+    String(job.companyProfile?.dic || '').trim()
+      ? `${companyIdentityLabels.tax}: ${String(job.companyProfile?.dic || '').trim()}`
+      : '',
+    String(job.companyProfile?.legal_address || '').trim()
+      ? `${companyIdentityLabels.legalAddress}: ${String(job.companyProfile?.legal_address || '').trim()}`
+      : '',
+  ].filter(Boolean);
   const importedQuickFacts = Array.from(new Set([
-    workModelValue ? `${importedSummaryLabels.workModel}: ${workModelValue}` : '',
+    workModelValue ? `${companyStoryLabels.industry}: ${workModelValue}` : '',
     companyIndustry ? `${companyStoryLabels.industry}: ${companyIndustry}` : '',
     companyWebsiteLabel ? `${companyStoryLabels.website}: ${companyWebsiteLabel}` : '',
   ].filter(Boolean))).slice(0, 4);
   const importedRoleSnapshot = importedStory.roleSnapshot || missionBody;
-  const importedFirstStep = importedStory.firstStep
-    || (language === 'cs'
-      ? 'Pred reakci si over hlavni napln role, jak casto bude potreba byt na miste a podle ceho se v ni pozna dobry vysledek.'
-      : language === 'sk'
-        ? 'Pred reakciou si over hlavnu napln roly, ako casto bude treba byt na mieste a podla coho sa v nej spozna dobry vysledok.'
-        : language === 'de' || language === 'at'
-          ? 'Prufe vor der Reaktion die Hauptverantwortung der Rolle, wie oft du vor Ort sein musst und woran guter Erfolg gemessen wird.'
-          : language === 'pl'
-            ? 'Przed reakcja sprawdz glowny zakres roli, jak czesto trzeba byc na miejscu i po czym poznac dobry wynik.'
-            : 'Before you respond, verify the core responsibility, how often the role needs you on-site, and how success will be measured.');
-  const importedRisk = importedStory.risk;
-  const insideSectionTitle = isImported ? importedSummaryLabels.sectionTitle : copy.insideTitle;
+  const importedFirstStep = importedStory.firstStep || firstStep || challenge.firstStepPrompt || '';
+  const importedRisk = importedStory.risk || '';
+  const insideSectionTitle = isImported ? copy.importedSnapshot : copy.insideTitle;
   const publisherFallbackCopy = isImported ? importedStoryLabels.peopleFallback : copy.companyPeopleFallback;
+  const importedOriginalDescription = String(job.description || importedStory.roleSnapshot || '').trim();
+  const importedRealityLead = language === 'cs'
+    ? 'Kolik ti po všem z téhle role skutečně zůstane'
+    : language === 'sk'
+      ? 'Kolko ti po všetkom z tejto roly skutočne zostane'
+      : language === 'de' || language === 'at'
+        ? 'Was dir aus dieser Rolle am Ende wirklich bleibt'
+        : language === 'pl'
+        ? 'Ile naprawdę zostanie ci z tej roli po wszystkim'
+        : 'What this role really leaves you with after everything is counted';
+  const importedOriginalListingTitle = language === 'cs'
+    ? 'Původní text nabídky'
+    : language === 'sk'
+      ? 'Pôvodný text ponuky'
+      : language === 'de' || language === 'at'
+        ? 'Originaltext der Anzeige'
+        : language === 'pl'
+          ? 'Oryginalny tekst ogłoszenia'
+          : 'Original listing';
   const jhiDimensions = [
     { key: 'financial', label: copy.jhiDimensionFinancial, value: Number(job.jhi?.financial || 0) },
     { key: 'timeCost', label: copy.jhiDimensionTimeCost, value: Number(job.jhi?.timeCost || 0) },
@@ -712,7 +747,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       ? 'border-rose-400/24 shadow-[0_0_0_1px_rgba(251,113,133,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]'
       : 'border-cyan-400/24 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]';
   const dashboardCardClass = 'rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_18px_36px_-30px_rgba(15,23,42,0.16)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(15,23,42,0.78)]';
-  const warmPanelClass = 'rounded-[28px] border border-[rgba(201,165,106,0.18)] bg-[linear-gradient(180deg,rgba(255,251,244,0.9)_0%,rgba(248,243,235,0.84)_100%)] shadow-[0_24px_54px_-36px_rgba(108,82,42,0.16)] backdrop-blur-2xl dark:border-[rgba(240,217,184,0.18)] dark:bg-[linear-gradient(180deg,rgba(14,22,30,0.92)_0%,rgba(17,24,31,0.86)_100%)] dark:shadow-[0_26px_58px_-36px_rgba(0,0,0,0.72)]';
   const aiToneStyles = decisionVerdict.tone === 'success'
       ? {
         panel: 'border-emerald-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(244,251,248,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#131d29_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(34,211,238,0.14)]',
@@ -739,7 +773,86 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
           chartAccent: 'cyan' as const,
           bar: 'bg-cyan-400/80 dark:bg-cyan-300/80',
         };
-  const realityPanel = (
+  const importedRealityPanel = (
+    <SurfaceCard className={cn('border-transparent p-5 text-[var(--text-strong)] sm:p-6', dashboardPanelClass)} variant="dock">
+      <div className="space-y-5">
+        <SectionTitle title={copy.financialTitle} />
+
+        <div className="rounded-[28px] border border-slate-900/6 bg-[linear-gradient(180deg,#0b1322_0%,#111a2b_100%)] p-6 text-slate-50 shadow-[0_28px_72px_-40px_rgba(2,6,23,0.56)]">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/76">{copy.financialTitle}</div>
+            <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">
+              {commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary}
+            </div>
+            <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-cyan-50">{importedRealityLead}</div>
+            <p className="mt-3 text-sm leading-6 text-slate-200/86">
+              {commuteAnalysis
+                ? copy.financialFormula
+                    .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+                    .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+                    .replace('{{commute}}', `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+                    .replace('{{total}}', `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+                : copy.financialBody}
+            </p>
+          </div>
+
+          {commuteAnalysis ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.net}</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
+                  {`${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.benefits}</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
+                  {`${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.commute}</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
+                  {remoteRole ? copy.zeroCost : `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.dailyTime}</div>
+                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
+                  {remoteRole ? '0 min' : `${commuteMinutesRoundTrip} min`}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {!userProfile.isLoggedIn ? (
+          <div className={cn('px-4 py-4', dashboardCardClass)}>
+            <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.loginPrompt}</p>
+            <button
+              type="button"
+              onClick={onRequireAuth}
+              className="app-button-primary mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+            >
+              {copy.signInCreate}
+            </button>
+          </div>
+        ) : (!userProfile.address && !userProfile.coordinates && !remoteRole) ? (
+          <div className={cn('px-4 py-4', dashboardCardClass)}>
+            <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.addressPrompt}</p>
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className="app-button-dock mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
+            >
+              {copy.openProfile}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </SurfaceCard>
+  );
+  const realityPanel = isImported ? importedRealityPanel : (
     <SurfaceCard className={cn('border-transparent p-5 text-[var(--text-strong)] sm:p-6', dashboardPanelClass)} variant="dock">
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1184,6 +1297,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                           {companyIndustry ? <div>{companyStoryLabels.industry}: {companyIndustry}</div> : null}
                           {companyTone ? <div>{companyTone}</div> : null}
                           {companyWebsiteLabel ? <div>{companyStoryLabels.website}: {companyWebsiteLabel}</div> : null}
+                          {companyIdentityFacts.map((fact) => <div key={fact}>{fact}</div>)}
                         </div>
                       </div>
                     </div>
@@ -1227,32 +1341,15 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 
         <div className="mx-auto w-full max-w-[1480px]">
           <div className="space-y-5">
-            {isImported ? (
-              <details className={cn('group overflow-hidden', warmPanelClass)}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-left">
-                  <div className="text-sm font-semibold text-[var(--text-strong)]">{importedSummaryLabels.originalListing}</div>
-                  <div className="rounded-[999px] bg-[rgba(255,255,255,0.06)] px-3 py-1 text-sm font-semibold text-[var(--text-muted)]">
-                    <span className="group-open:hidden">+</span>
-                    <span className="hidden group-open:inline">−</span>
-                  </div>
-                </summary>
-                <div className="border-t border-[rgba(191,161,106,0.18)] bg-transparent px-5 py-5">
-                  <div className="mb-4 rounded-[16px] bg-[rgba(var(--accent-rgb),0.05)] px-4 py-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                      {importedSummaryLabels.originalListing}
-                    </div>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{importedSummaryLabels.originalBody}</p>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{importedStoryLabels.sourceNote}</p>
-                  </div>
-                  <FormattedJobDescription
-                    text={formattedDescription}
-                    fallback={copy.roleDetailUnavailable}
-                    maxSections={4}
-                    maxParagraphLength={260}
-                    maxListItems={4}
-                  />
+            {isImported && importedOriginalDescription ? (
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text-strong)]">{importedOriginalListingTitle}</h2>
                 </div>
-              </details>
+                <div className="rounded-[16px] border border-[rgba(191,161,106,0.12)] bg-white/4 p-6 dark:bg-slate-950/40">
+                  <p className="whitespace-pre-wrap text-base leading-8 text-[var(--text-base)]">{importedOriginalDescription}</p>
+                </div>
+              </div>
             ) : null}
 
             {!isImported ? (
@@ -1269,6 +1366,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
             ) : null}
 
+            {!isImported ? (
             <SurfaceCard className={cn('border-transparent p-5 sm:p-6', dashboardPanelClass)} variant="dock">
               <div className="space-y-5">
                 <SectionTitle title={insideSectionTitle} />
@@ -1435,6 +1533,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                             {companyIndustry ? <div>{companyStoryLabels.industry}: {companyIndustry}</div> : null}
                             {companyTone ? <div>{companyTone}</div> : null}
                             {companyWebsiteLabel ? <div>{companyStoryLabels.website}: {companyWebsiteLabel}</div> : null}
+                            {companyIdentityFacts.map((fact) => <div key={fact}>{fact}</div>)}
                           </div>
                         </>
                       )}
@@ -1454,6 +1553,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                 </div>
               </div>
             </SurfaceCard>
+            ) : null}
 
         </div>
           </div>

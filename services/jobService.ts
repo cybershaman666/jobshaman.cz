@@ -33,6 +33,33 @@ import { fetchJobPayloadsByIds } from './jobCatalogService';
 
 type JobsFetchResult = { jobs: Job[]; hasMore: boolean; totalCount: number; meta?: SearchDiagnosticsMeta };
 
+export interface CareerMapPoolOptions {
+    countryCode?: string;
+    scope?: 'domestic' | 'all';
+    limit?: number;
+    userLat?: number;
+    userLng?: number;
+    radiusKm?: number;
+    remoteOnly?: boolean;
+    workArrangement?: JobWorkArrangementFilter;
+    contractTypes?: string[];
+    benefits?: string[];
+    minSalary?: number;
+}
+
+export interface CareerMapPoolResult {
+    jobs: Job[];
+    meta: {
+        scope: 'domestic' | 'all';
+        country_code?: string | null;
+        base_pool_count: number;
+        filtered_count: number;
+        generated_at?: string | null;
+        cache_age_seconds?: number | null;
+        database_total_count: number;
+    };
+}
+
 // Guard against accidental frontend polling loops that hammer the search backend.
 // If the same hybrid-search request is triggered repeatedly with identical filters,
 // serve a short-lived cached result instead of issuing another request.
@@ -651,6 +678,82 @@ export const getMainDatabaseJobCount = async (): Promise<number> => {
     }
 
     return 0;
+};
+
+export const getCareerMapPool = async (options: CareerMapPoolOptions = {}): Promise<CareerMapPoolResult> => {
+    const backendBases = resolveHybridBackendBases();
+    if (!backendBases.length) {
+        return {
+            jobs: [],
+            meta: {
+                scope: options.scope || 'domestic',
+                country_code: options.countryCode || null,
+                base_pool_count: 0,
+                filtered_count: 0,
+                generated_at: null,
+                cache_age_seconds: null,
+                database_total_count: 0,
+            },
+        };
+    }
+
+    const params = new URLSearchParams();
+    if (options.countryCode) params.set('country_code', options.countryCode);
+    params.set('scope', options.scope || 'domestic');
+    params.set('limit', String(Math.max(1, Math.min(3000, options.limit || 1400))));
+    if (options.userLat != null) params.set('user_lat', String(options.userLat));
+    if (options.userLng != null) params.set('user_lng', String(options.userLng));
+    if (options.radiusKm != null) params.set('radius_km', String(options.radiusKm));
+    if (options.remoteOnly) params.set('remote_only', 'true');
+    if (options.workArrangement && options.workArrangement !== 'all') params.set('work_arrangement', options.workArrangement);
+    if (options.contractTypes?.length) params.set('contract_types', options.contractTypes.join(','));
+    if (options.benefits?.length) params.set('benefits', options.benefits.join(','));
+    if (options.minSalary != null && options.minSalary > 0) params.set('min_salary', String(options.minSalary));
+
+    for (const baseUrl of backendBases) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+            const response = await fetch(`${baseUrl}/api/career-map/pool?${params.toString()}`, {
+                method: 'GET',
+                signal: controller.signal,
+            }).finally(() => clearTimeout(timeoutId));
+            if (!response.ok) continue;
+
+            const payload = await response.json();
+            const rawJobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+            return {
+                jobs: mapJobs(rawJobs, options.userLat, options.userLng, false, true),
+                meta: {
+                    scope: payload?.meta?.scope === 'all' ? 'all' : 'domestic',
+                    country_code: payload?.meta?.country_code || null,
+                    base_pool_count: Number(payload?.meta?.base_pool_count || 0),
+                    filtered_count: Number(payload?.meta?.filtered_count || rawJobs.length),
+                    generated_at: payload?.meta?.generated_at || null,
+                    cache_age_seconds: payload?.meta?.cache_age_seconds ?? null,
+                    database_total_count: Number(payload?.meta?.database_total_count || 0),
+                },
+            };
+        } catch (error) {
+            if (isAbortFetchError(error)) {
+                throw error;
+            }
+            console.warn('Career map pool unavailable:', error);
+        }
+    }
+
+    return {
+        jobs: [],
+        meta: {
+            scope: options.scope || 'domestic',
+            country_code: options.countryCode || null,
+            base_pool_count: 0,
+            filtered_count: 0,
+            generated_at: null,
+            cache_age_seconds: null,
+            database_total_count: 0,
+        },
+    };
 };
 
 export const getTodayAnalyzedCount = async (): Promise<number> => {
@@ -1684,22 +1787,6 @@ const parseTimestampMs = (value?: string): number => {
     return Number.isFinite(ms) ? ms : 0;
 };
 
-const isImportedListing = (job: Job): boolean => job.listingKind === 'imported';
-
-const prioritizeNativeListings = (jobs: Job[]): Job[] => {
-    if (!jobs.length) return jobs;
-    const native: Job[] = [];
-    const imported: Job[] = [];
-    jobs.forEach((job) => {
-        if (isImportedListing(job)) {
-            imported.push(job);
-            return;
-        }
-        native.push(job);
-    });
-    return [...native, ...imported];
-};
-
 const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
@@ -1719,31 +1806,25 @@ const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
 
 const sortJobsForMode = (
     jobs: Job[],
-    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc',
-    options?: {
-        preferNative?: boolean;
-    }
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc'
 ): Job[] => {
-    const preferNative = options?.preferNative ?? true;
-    const maybePrioritizeNative = (items: Job[]) => (preferNative ? prioritizeNativeListings(items) : items);
-
     if (!jobs.length || sortMode === 'default' || sortMode === 'recommended') {
-        return maybePrioritizeNative(jobs);
+        return jobs;
     }
 
     const sorted = [...jobs];
     if (sortMode === 'newest') {
-        return maybePrioritizeNative(sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt)));
+        return sorted.sort((a, b) => parseTimestampMs(b.scrapedAt) - parseTimestampMs(a.scrapedAt));
     }
     if (sortMode === 'jhi_desc') {
-        return maybePrioritizeNative(sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0)));
+        return sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0));
     }
     if (sortMode === 'distance') {
-        return maybePrioritizeNative(sorted.sort((a, b) => {
+        return sorted.sort((a, b) => {
             const da = (a as any)?.distance_km ?? (a as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             const db = (b as any)?.distance_km ?? (b as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
             return da - db;
-        }));
+        });
     }
     if (sortMode === 'salary_desc') {
         const toMonthly = (job: Job) => {
@@ -1762,9 +1843,9 @@ const sortJobsForMode = (
             if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
             return salary;
         };
-        return maybePrioritizeNative(sorted.sort((a, b) => toMonthly(b) - toMonthly(a)));
+        return sorted.sort((a, b) => toMonthly(b) - toMonthly(a));
     }
-    return maybePrioritizeNative(jobs);
+    return jobs;
 };
 
 const finalizeSearchDiagnostics = (
@@ -1807,7 +1888,6 @@ export const rankJobsForSearchMode = (
     }
 ): Job[] => {
     if (!jobs.length) return jobs;
-    const preferNativeBias = !(searchMode === 'manual_query' || matcher.queryTokens.length > 0);
 
     if (searchMode === 'manual_query' && matcher.queryTokens.length > 0) {
         const ranked = [...jobs].sort((left, right) => {
@@ -1819,9 +1899,7 @@ export const rankJobsForSearchMode = (
             if (backendDiff !== 0) return backendDiff;
             return Number(right.jhi?.score || 0) - Number(left.jhi?.score || 0);
         });
-        const sorted = sortJobsForMode(ranked, sortMode, { preferNative: preferNativeBias });
-        const capped = applyExternalTopCap(sorted);
-        return finalizeSearchDiagnostics(capped, matcher, searchMode);
+        return finalizeSearchDiagnostics(sortJobsForMode(ranked, sortMode), matcher, searchMode);
     }
 
     const sorted = matcher.queryTokens.length > 0
@@ -1835,7 +1913,7 @@ export const rankJobsForSearchMode = (
         : [...jobs];
 
     return finalizeSearchDiagnostics(
-        sortJobsForMode(sorted, sortMode, { preferNative: preferNativeBias }),
+        sortJobsForMode(sorted, sortMode),
         matcher,
         searchMode
     );
@@ -2255,7 +2333,7 @@ export const fetchJobsWithFilters = async (
         return { violations, distance };
     };
 
-    const applyHardConstraintsWithNearFallback = (
+    const applyHardConstraintsStrict = (
         jobs: Job[],
         hasMore: boolean,
         totalCount: number,
@@ -2276,38 +2354,20 @@ export const fetchJobsWithFilters = async (
             return { jobs, hasMore, totalCount, meta };
         }
 
-        const evaluated = jobs.map((job, index) => {
-            const { violations, distance } = evaluateHardConstraintViolations(job);
-            return { job, violations, distance, index };
-        });
-
-        const strictMatches = evaluated.filter((item) => item.violations.length === 0).map((item) => ({
-            ...item.job,
-            constraint_mode: 'strict' as const,
-            constraint_compromises: undefined
-        }));
-        if (strictMatches.length > 0) {
-            return {
-                jobs: strictMatches,
-                hasMore,
-                totalCount: strictMatches.length,
-                meta
-            };
-        }
-
-        const nearMatches = [...evaluated]
-            .sort((a, b) => (a.distance - b.distance) || (a.index - b.index))
+        const strictMatches = jobs
+            .map((job) => ({ job, evaluation: evaluateHardConstraintViolations(job) }))
+            .filter((item) => item.evaluation.violations.length === 0)
             .map((item) => ({
                 ...item.job,
-                constraint_mode: 'near' as const,
-                constraint_compromises: item.violations.slice(0, 3)
+                constraint_mode: 'strict' as const,
+                constraint_compromises: undefined,
             }));
 
         return {
-            jobs: nearMatches,
-            hasMore: false,
-            totalCount: nearMatches.length,
-            meta
+            jobs: strictMatches,
+            hasMore,
+            totalCount: strictMatches.length,
+            meta,
         };
     };
 
@@ -2336,7 +2396,7 @@ export const fetchJobsWithFilters = async (
                 reordered_by_profile: false,
             }
         };
-        const finalized = applyHardConstraintsWithNearFallback(
+        const finalized = applyHardConstraintsStrict(
             rankedBaseResult.jobs,
             rankedBaseResult.hasMore,
             rankedBaseResult.totalCount,
@@ -3306,37 +3366,32 @@ export const fetchJobsByCompany = async (companyId: string, limit: number = 20):
  * - Duplicate jobs (by title + company + location)
  */
 export const isValidJobPosting = (job: Job): boolean => {
-    // Check title - filter out "Neznámá pozice" (Unknown position)
-    if (!job.title ||
-        job.title.toLowerCase().includes('neznámá pozice') ||
-        job.title.toLowerCase().includes('unknown position') ||
-        job.title.trim().length === 0) {
+    // RELAXED: Only filter out completely broken jobs
+    // Previously required 200 chars description, which killed 176/200 jobs
+    
+    // Check title - only filter if completely missing
+    if (!job.title || job.title.trim().length === 0) {
         return false;
     }
 
-    // Check location - filter out "neznámá lokalita" (Unknown location)
-    if (!job.location ||
-        job.location.toLowerCase().includes('neznámá lokalita') ||
-        job.location.toLowerCase().includes('unknown location') ||
-        job.location.toLowerCase().includes('nepřesná lokalita') ||
-        job.location.toLowerCase().includes('bez lokality') ||
-        job.location.trim().length === 0) {
+    // Check location - only filter if completely missing
+    // RELAXED: Allow "unknown location" etc as many valid jobs have this
+    if (!job.location || job.location.trim().length === 0) {
         return false;
     }
 
-    const minDescriptionLength = job.listingKind === 'imported' ? 120 : 200;
-
-    // Check description exists and has minimum length (imported listings can be shorter)
+    // RELAXED: Minimal description check (just needs some content, not 200 chars)
+    const minDescriptionLength = 10; // Was 200 for non-imported, 120 for imported
     if (!job.description ||
         typeof job.description !== 'string' ||
         job.description.trim().length < minDescriptionLength) {
         return false;
     }
 
-    // Filter out if company is missing or generic
-    if (!job.company || job.company.trim().length === 0) {
-        return false;
-    }
+    // RELAXED: Company can be missing (many valid jobs don't have it)
+    // if (!job.company || job.company.trim().length === 0) {
+    //     return false;
+    // }
 
     return true;
 };

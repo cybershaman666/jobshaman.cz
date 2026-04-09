@@ -473,58 +473,6 @@ def _ensure_schema() -> None:
             cur.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE}_fetched_at ON {config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE} (fetched_at DESC)"
             )
-            cur.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {config.JOBS_POSTGRES_JOBSPY_TABLE} (
-                    id TEXT PRIMARY KEY,
-                    provider TEXT NOT NULL DEFAULT 'jobspy',
-                    source_site TEXT,
-                    title TEXT,
-                    company TEXT,
-                    location TEXT,
-                    city TEXT,
-                    state TEXT,
-                    country TEXT,
-                    country_code TEXT,
-                    job_type TEXT,
-                    interval TEXT,
-                    min_amount DOUBLE PRECISION,
-                    max_amount DOUBLE PRECISION,
-                    currency TEXT,
-                    job_url TEXT,
-                    description TEXT,
-                    is_remote BOOLEAN NOT NULL DEFAULT FALSE,
-                    lat DOUBLE PRECISION,
-                    lng DOUBLE PRECISION,
-                    geocode_source TEXT,
-                    search_term TEXT,
-                    google_search_term TEXT,
-                    location_query TEXT,
-                    search_location_query TEXT,
-                    queried_sites JSONB NOT NULL DEFAULT '[]'::jsonb,
-                    hours_old INTEGER,
-                    query_hash TEXT,
-                    search_blob TEXT,
-                    raw_payload_json JSONB,
-                    payload_json JSONB NOT NULL,
-                    scraped_at TIMESTAMPTZ NOT NULL,
-                    expires_at TIMESTAMPTZ NOT NULL,
-                    updated_at TIMESTAMPTZ NOT NULL
-                )
-                """
-            )
-            cur.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBSPY_TABLE}_scraped_at ON {config.JOBS_POSTGRES_JOBSPY_TABLE} (scraped_at DESC)"
-            )
-            cur.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBSPY_TABLE}_expires_at ON {config.JOBS_POSTGRES_JOBSPY_TABLE} (expires_at DESC)"
-            )
-            cur.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBSPY_TABLE}_country_code ON {config.JOBS_POSTGRES_JOBSPY_TABLE} (country_code)"
-            )
-            cur.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{config.JOBS_POSTGRES_JOBSPY_TABLE}_source_site ON {config.JOBS_POSTGRES_JOBSPY_TABLE} (source_site)"
-            )
         _schema_ready = True
 
 
@@ -1151,217 +1099,6 @@ def prune_expired_main_jobs() -> dict[str, int]:
     return {"deleted": int(deleted)}
 
 
-def upsert_jobspy_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
-    if not jobs_postgres_enabled():
-        return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
-    _ensure_schema()
-    if not documents:
-        return {"imported_count": 0, "upserted_count": 0, "matched_count": 0}
-    conn = _connect()
-    ids = [str(doc.get("_id") or "") for doc in documents if str(doc.get("_id") or "").strip()]
-    existing_ids: set[str] = set()
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT id FROM {config.JOBS_POSTGRES_JOBSPY_TABLE} WHERE id = ANY(%s)",
-            (ids,),
-        )
-        existing_ids = {str((row or {}).get("id") or "") for row in (cur.fetchall() or [])}
-        cur.executemany(
-            f"""
-            INSERT INTO {config.JOBS_POSTGRES_JOBSPY_TABLE}
-                (id, provider, source_site, title, company, location, city, state, country, country_code, job_type, interval, min_amount, max_amount, currency, job_url, description, is_remote, lat, lng, geocode_source, search_term, google_search_term, location_query, search_location_query, queried_sites, hours_old, query_hash, search_blob, raw_payload_json, payload_json, scraped_at, expires_at, updated_at)
-            VALUES (%(id)s, %(provider)s, %(source_site)s, %(title)s, %(company)s, %(location)s, %(city)s, %(state)s, %(country)s, %(country_code)s, %(job_type)s, %(interval)s, %(min_amount)s, %(max_amount)s, %(currency)s, %(job_url)s, %(description)s, %(is_remote)s, %(lat)s, %(lng)s, %(geocode_source)s, %(search_term)s, %(google_search_term)s, %(location_query)s, %(search_location_query)s, %(queried_sites)s::jsonb, %(hours_old)s, %(query_hash)s, %(search_blob)s, %(raw_payload_json)s::jsonb, %(payload_json)s::jsonb, %(scraped_at)s, %(expires_at)s, %(updated_at)s)
-            ON CONFLICT (id) DO UPDATE SET
-                provider = EXCLUDED.provider,
-                source_site = EXCLUDED.source_site,
-                title = EXCLUDED.title,
-                company = EXCLUDED.company,
-                location = EXCLUDED.location,
-                city = EXCLUDED.city,
-                state = EXCLUDED.state,
-                country = EXCLUDED.country,
-                country_code = EXCLUDED.country_code,
-                job_type = EXCLUDED.job_type,
-                interval = EXCLUDED.interval,
-                min_amount = EXCLUDED.min_amount,
-                max_amount = EXCLUDED.max_amount,
-                currency = EXCLUDED.currency,
-                job_url = EXCLUDED.job_url,
-                description = EXCLUDED.description,
-                is_remote = EXCLUDED.is_remote,
-                lat = EXCLUDED.lat,
-                lng = EXCLUDED.lng,
-                geocode_source = EXCLUDED.geocode_source,
-                search_term = EXCLUDED.search_term,
-                google_search_term = EXCLUDED.google_search_term,
-                location_query = EXCLUDED.location_query,
-                search_location_query = EXCLUDED.search_location_query,
-                queried_sites = EXCLUDED.queried_sites,
-                hours_old = EXCLUDED.hours_old,
-                query_hash = EXCLUDED.query_hash,
-                search_blob = EXCLUDED.search_blob,
-                raw_payload_json = EXCLUDED.raw_payload_json,
-                payload_json = EXCLUDED.payload_json,
-                scraped_at = EXCLUDED.scraped_at,
-                expires_at = EXCLUDED.expires_at,
-                updated_at = EXCLUDED.updated_at
-            """,
-            [
-                {
-                    "id": str(doc.get("_id") or ""),
-                    "provider": str(doc.get("provider") or "jobspy"),
-                    "source_site": doc.get("source_site"),
-                    "title": doc.get("title"),
-                    "company": doc.get("company"),
-                    "location": doc.get("location"),
-                    "city": doc.get("city"),
-                    "state": doc.get("state"),
-                    "country": doc.get("country"),
-                    "country_code": doc.get("country_code"),
-                    "job_type": doc.get("job_type"),
-                    "interval": doc.get("interval"),
-                    "min_amount": doc.get("min_amount"),
-                    "max_amount": doc.get("max_amount"),
-                    "currency": doc.get("currency"),
-                    "job_url": doc.get("job_url"),
-                    "description": doc.get("description"),
-                    "is_remote": bool(doc.get("is_remote")),
-                    "lat": doc.get("lat"),
-                    "lng": doc.get("lng"),
-                    "geocode_source": doc.get("geocode_source"),
-                    "search_term": doc.get("search_term"),
-                    "google_search_term": doc.get("google_search_term"),
-                    "location_query": doc.get("location_query"),
-                    "search_location_query": doc.get("search_location_query"),
-                    "queried_sites": _json_dumps(doc.get("queried_sites") or []),
-                    "hours_old": doc.get("hours_old"),
-                    "query_hash": doc.get("query_hash"),
-                    "search_blob": doc.get("search_blob"),
-                    "raw_payload_json": _json_dumps(doc.get("raw_payload") or {}),
-                    "payload_json": _json_dumps(doc),
-                    "scraped_at": doc.get("scraped_at"),
-                    "expires_at": doc.get("expires_at"),
-                    "updated_at": doc.get("updated_at"),
-                }
-                for doc in documents
-                if str(doc.get("_id") or "").strip()
-            ],
-        )
-    matched_count = len(existing_ids)
-    imported_count = len(ids)
-    upserted_count = max(0, imported_count - matched_count)
-    return {
-        "imported_count": imported_count,
-        "upserted_count": upserted_count,
-        "matched_count": matched_count,
-    }
-
-
-def search_jobspy_documents(
-    *,
-    page: int = 0,
-    page_size: int = 24,
-    search_term: str = "",
-    location: str = "",
-    source_sites: list[str] | None = None,
-    country_codes: list[str] | None = None,
-    exclude_country_codes: list[str] | None = None,
-    fresh_cutoff: datetime | None = None,
-) -> dict[str, Any]:
-    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_SERVE_EXTERNAL:
-        return {"jobs": [], "total_count": 0, "has_more": False, "collection": config.JOBS_POSTGRES_JOBSPY_TABLE}
-    _ensure_schema()
-    conn = _connect()
-    where_parts = ["expires_at > %s", "scraped_at >= %s"]
-    params: list[Any] = [_utcnow(), fresh_cutoff or (_utcnow() - timedelta(days=21))]
-
-    normalized_search = str(search_term or "").strip().lower()
-    normalized_location = str(location or "").strip().lower()
-    normalized_sites = [site.strip().lower() for site in (source_sites or []) if site and site.strip()]
-    normalized_country_codes = [code.strip().upper() for code in (country_codes or []) if code and code.strip()]
-    normalized_excluded_country_codes = [code.strip().upper() for code in (exclude_country_codes or []) if code and code.strip()]
-
-    if normalized_search:
-        where_parts.append("COALESCE(search_blob, '') ILIKE %s")
-        params.append(f"%{normalized_search}%")
-    if normalized_location:
-        where_parts.append("COALESCE(location, '') ILIKE %s")
-        params.append(f"%{normalized_location}%")
-    if normalized_sites:
-        where_parts.append("LOWER(COALESCE(source_site, '')) = ANY(%s)")
-        params.append(normalized_sites)
-    if normalized_country_codes:
-        where_parts.append("UPPER(COALESCE(country_code, '')) = ANY(%s)")
-        params.append(normalized_country_codes)
-    if normalized_excluded_country_codes:
-        where_parts.append("NOT (UPPER(COALESCE(country_code, '')) = ANY(%s))")
-        params.append(normalized_excluded_country_codes)
-
-    where_sql = " AND ".join(where_parts)
-    offset = max(0, page) * max(1, page_size)
-    limit = max(1, min(100, page_size))
-    with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT COUNT(*) AS count FROM {config.JOBS_POSTGRES_JOBSPY_TABLE} WHERE {where_sql}",
-            params,
-        )
-        count_row = cur.fetchone() or {}
-        total_count = int(count_row.get("count") or 0)
-        cur.execute(
-            f"""
-            SELECT payload_json
-            FROM {config.JOBS_POSTGRES_JOBSPY_TABLE}
-            WHERE {where_sql}
-            ORDER BY scraped_at DESC, updated_at DESC
-            OFFSET %s LIMIT %s
-            """,
-            [*params, offset, limit],
-        )
-        rows = cur.fetchall() or []
-    jobs = []
-    for row in rows:
-        payload = _json_load((row or {}).get("payload_json"), {})
-        if isinstance(payload, dict):
-            jobs.append(dict(payload))
-    return {
-        "jobs": jobs,
-        "total_count": total_count,
-        "has_more": (max(0, page) + 1) * limit < total_count,
-        "collection": config.JOBS_POSTGRES_JOBSPY_TABLE,
-    }
-
-
-def read_recent_jobspy_documents(*, limit: int = 800, fresh_cutoff: datetime | None = None) -> list[dict[str, Any]]:
-    if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_SERVE_EXTERNAL:
-        return []
-    _ensure_schema()
-    conn = _connect()
-    cutoff = fresh_cutoff or (_utcnow() - timedelta(days=21))
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""
-            SELECT payload_json
-            FROM {config.JOBS_POSTGRES_JOBSPY_TABLE}
-            WHERE expires_at > %s
-              AND scraped_at >= %s
-            ORDER BY scraped_at DESC, updated_at DESC
-            LIMIT %s
-            """,
-            (_utcnow(), cutoff, max(1, min(5000, int(limit or 800)))),
-        )
-        rows = cur.fetchall() or []
-    jobs: list[dict[str, Any]] = []
-    for row in rows:
-        payload = _json_load((row or {}).get("payload_json"), {})
-        if isinstance(payload, dict):
-            jobs.append(dict(payload))
-    return jobs
-
-
-def backfill_jobspy_from_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
-    return upsert_jobspy_documents(documents)
-
-
 def backfill_jobs_from_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
     return upsert_jobs_documents(documents)
 
@@ -1374,7 +1111,6 @@ def get_jobs_postgres_health() -> dict[str, Any]:
         "url_configured": bool(config.JOBS_POSTGRES_URL),
         "jobs_table": config.JOBS_POSTGRES_JOBS_TABLE,
         "external_cache_table": config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE,
-        "jobspy_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
         "serve_main": bool(config.JOBS_POSTGRES_SERVE_MAIN),
         "write_main": bool(config.JOBS_POSTGRES_WRITE_MAIN),
         "native_retention_days": int(config.JOBS_POSTGRES_NATIVE_RETENTION_DAYS),
@@ -1398,14 +1134,11 @@ def get_jobs_postgres_health() -> dict[str, Any]:
             jobs_count = int((cur.fetchone() or {}).get("count") or 0)
             cur.execute(f"SELECT COUNT(*) AS count FROM {config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE}")
             external_count = int((cur.fetchone() or {}).get("count") or 0)
-            cur.execute(f"SELECT COUNT(*) AS count FROM {config.JOBS_POSTGRES_JOBSPY_TABLE}")
-            jobspy_count = int((cur.fetchone() or {}).get("count") or 0)
         info.update({
             "ok": True,
             "counts": {
                 "jobs": jobs_count,
                 "external_cache": external_count,
-                "jobspy": jobspy_count,
             },
         })
         return info
@@ -1429,5 +1162,4 @@ def ensure_jobs_postgres_schema() -> dict[str, Any]:
         "enabled": True,
         "jobs_table": config.JOBS_POSTGRES_JOBS_TABLE,
         "external_cache_table": config.JOBS_POSTGRES_EXTERNAL_CACHE_TABLE,
-        "jobspy_table": config.JOBS_POSTGRES_JOBSPY_TABLE,
     }

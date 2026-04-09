@@ -9,7 +9,7 @@ import { createDefaultJHIPreferences } from '../services/profileDefaults';
 import { trackAnalyticsEventDeferred } from '../services/deferredAnalytics';
 import { isActivationComplete } from '../services/candidateActivationService';
 
-const CompanyDashboard = lazy(() => import('./CompanyDashboard'));
+const CompanyDashboard = lazy(() => import('../src/features/company/CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./CompanyLandingPage'));
 const AdminDashboard = lazy(() => import('../pages/AdminDashboard'));
 const SavedJobsPage = lazy(() => import('./SavedJobsPage'));
@@ -388,7 +388,7 @@ const AppSceneRouter = memo(function AppSceneRouter({
     }
     if (showCompanyLanding && userProfile.role === 'recruiter' && companyProfile) {
         return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
                 <CompanyDashboard
                     companyProfile={companyProfile}
                     userEmail={userProfile.email}
@@ -431,7 +431,7 @@ const AppSceneRouter = memo(function AppSceneRouter({
             return null;
         }
         return (
-            <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
                 <CompanyDashboard
                     companyProfile={companyProfile}
                     userEmail={userProfile.email}

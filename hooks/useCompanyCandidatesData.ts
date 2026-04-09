@@ -36,13 +36,64 @@ const normalizeSkills = (skills: unknown, workHistory: unknown, jobTitle: unknow
   }
   const fromHistory = Array.isArray(workHistory)
     ? (workHistory as any[])
-      .flatMap((w) => Array.isArray(w?.skills) ? w.skills : [])
-      .filter(Boolean)
-      .map((s) => String(s).trim())
+        .flatMap((w) => (Array.isArray(w?.skills) ? w.skills : []))
+        .filter(Boolean)
+        .map((s) => String(s).trim())
     : [];
   if (fromHistory.length > 0) return Array.from(new Set(fromHistory)).slice(0, 12);
   const title = String(jobTitle || '').trim();
   return title ? [title] : [];
+};
+
+const normalizeValues = (values: unknown): string[] =>
+  Array.isArray(values)
+    ? values.map((value) => String(value).trim()).filter(Boolean).slice(0, 12)
+    : [];
+
+const mapFallbackCandidate = ({
+  id,
+  fullName,
+  email,
+  avatarUrl,
+  jobTitle,
+  workHistory,
+  skills,
+  values,
+  createdAt,
+  t
+}: {
+  id: unknown;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+  jobTitle: string;
+  workHistory: unknown;
+  skills: string[];
+  values: string[];
+  createdAt: unknown;
+  t: TranslateFn;
+}): Candidate => {
+  const derivedName = fullName || email.split('@')[0] || 'Candidate';
+  return {
+    id: String(id),
+    name: derivedName,
+    full_name: fullName || derivedName,
+    email: email || undefined,
+    avatar_url: avatarUrl,
+    job_title: jobTitle || null,
+    title: jobTitle || null,
+    role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Candidate' }),
+    experienceYears: estimateExperienceYears(workHistory),
+    salaryExpectation: 0,
+    skills,
+    bio: t('company.candidates.registered_user_bio', {
+      defaultValue: 'Registered candidate on JobShaman.',
+      name: derivedName
+    }),
+    flightRisk: 'Medium',
+    values,
+    created_at: createdAt ? String(createdAt) : null
+  };
 };
 
 const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate[]> => {
@@ -56,6 +107,7 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
       id,
       full_name,
       email,
+      avatar_url,
       role,
       created_at,
       candidate_profiles (
@@ -78,30 +130,29 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
       ? row.candidate_profiles[0]
       : row.candidate_profiles;
     const workHistory = Array.isArray(candidateProfile?.work_history) ? candidateProfile.work_history : [];
-    const skills = normalizeSkills(candidateProfile?.skills, workHistory, candidateProfile?.job_title);
-    const values = Array.isArray(candidateProfile?.values) ? candidateProfile.values : [];
+    const normalizedSkills = normalizeSkills(candidateProfile?.skills, workHistory, candidateProfile?.job_title);
+    const values = normalizeValues(candidateProfile?.values);
     const fullName = String(row.full_name || '').trim();
     const email = String(row.email || '').trim();
-    const derivedName = fullName || email.split('@')[0] || 'Candidate';
     const jobTitle = String(candidateProfile?.job_title || '').trim();
 
-    return {
-      id: String(row.id),
-      name: derivedName,
-      role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Uchazeč' }),
-      experienceYears: estimateExperienceYears(workHistory),
-      salaryExpectation: 0,
-      skills,
-      bio: t('company.candidates.registered_user_bio', {
-        defaultValue: 'Registrovaný uchazeč na JobShaman.',
-        name: derivedName
-      }),
-      flightRisk: 'Medium',
-      values
-    };
+    return mapFallbackCandidate({
+      id: row.id,
+      fullName,
+      email,
+      avatarUrl: row.avatar_url || null,
+      jobTitle,
+      workHistory,
+      skills: normalizedSkills,
+      values,
+      createdAt: row.created_at,
+      t
+    });
   });
 
-  const lowDataCoverage = mapped.length > 0 && mapped.filter((c) => c.skills.length === 0 || c.experienceYears === 0).length / mapped.length > 0.6;
+  const lowDataCoverage =
+    mapped.length > 0 &&
+    mapped.filter((candidate) => candidate.skills.length === 0 || candidate.experienceYears === 0).length / mapped.length > 0.6;
   if (!lowDataCoverage) {
     return mapped;
   }
@@ -118,33 +169,33 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
   const ids = cpRows.map((row: any) => row.id).filter(Boolean);
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id,full_name,email,created_at')
+    .select('id,full_name,email,avatar_url,created_at')
     .in('id', ids)
     .limit(500);
   const profileMap = new Map((profileRows || []).map((row: any) => [String(row.id), row]));
 
-  return cpRows.map((cp: any) => {
-    const p = profileMap.get(String(cp.id)) || {};
+  mapped = cpRows.map((cp: any) => {
+    const profile = profileMap.get(String(cp.id)) || {};
     const workHistory = Array.isArray(cp?.work_history) ? cp.work_history : [];
     const jobTitle = String(cp?.job_title || '').trim();
-    const fullName = String((p as any).full_name || '').trim();
-    const email = String((p as any).email || '').trim();
-    const derivedName = fullName || email.split('@')[0] || 'Candidate';
-    return {
-      id: String(cp.id),
-      name: derivedName,
-      role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Uchazeč' }),
-      experienceYears: estimateExperienceYears(workHistory),
-      salaryExpectation: 0,
+    const fullName = String((profile as any).full_name || '').trim();
+    const email = String((profile as any).email || '').trim();
+
+    return mapFallbackCandidate({
+      id: cp.id,
+      fullName,
+      email,
+      avatarUrl: ((profile as any).avatar_url as string | null) || null,
+      jobTitle,
+      workHistory,
       skills: normalizeSkills(cp?.skills, workHistory, jobTitle),
-      bio: t('company.candidates.registered_user_bio', {
-        defaultValue: 'Registrovaný uchazeč na JobShaman.',
-        name: derivedName
-      }),
-      flightRisk: 'Medium',
-      values: Array.isArray(cp?.values) ? cp.values : []
-    } as Candidate;
+      values: normalizeValues(cp?.values),
+      createdAt: (profile as any).created_at,
+      t
+    });
   });
+
+  return mapped;
 };
 
 export const useCompanyCandidatesData = (
@@ -180,14 +231,14 @@ export const useCompanyCandidatesData = (
       setCandidates(backendCandidates);
       setLastCandidatesSyncAt(new Date().toISOString());
     } catch (error) {
-      const status = typeof error === 'object' && error && 'status' in error
-        ? Number((error as { status?: number }).status)
-        : null;
+      const status =
+        typeof error === 'object' && error && 'status' in error ? Number((error as { status?: number }).status) : null;
       const message = error instanceof Error ? error.message : String(error || '');
-      const isNetworkLikeFailure = error instanceof TypeError
-        || /failed to fetch/i.test(message)
-        || /networkerror/i.test(message)
-        || /company candidates endpoint unavailable/i.test(message);
+      const isNetworkLikeFailure =
+        error instanceof TypeError ||
+        /failed to fetch/i.test(message) ||
+        /networkerror/i.test(message) ||
+        /company candidates endpoint unavailable/i.test(message);
       if (status === 401 || status === 403 || isNetworkLikeFailure) {
         console.warn('Candidate API unavailable or denied; skipping direct Supabase fallback to avoid misleading self-data.', error);
         setCandidates([]);

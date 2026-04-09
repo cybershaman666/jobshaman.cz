@@ -2028,7 +2028,7 @@
       "more_title": "Ďalšie Funkcie",
       "optimization": {
         "title": "AI Optimalizácia Inzerátov",
-        "desc": "Automatické vylepšenie textu inzerátov pre maximálnu atraktivitu a oslovenie kvalitnejších kandidátov. Využíva Gemini AI."
+        "desc": "Automatické vylepšenie textu inzerátov pre maximálnu atraktivitu a oslovenie kvalitnejších kandidátov. Využíva Mistral AI."
       },
       "assessment": {
         "title": "AI Assessment Center",

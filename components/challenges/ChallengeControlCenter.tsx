@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../ui/primitives';
-import { computeCandidateAnnotations } from '../../services/candidateIntentService';
 import { Job, SearchDiagnosticsMeta, UserProfile } from '../../types';
 import ChallengeSidebar, { type DiscoveryMode } from './ChallengeSidebar';
 import CreateMiniChallengeModal from './CreateMiniChallengeModal';
@@ -41,6 +40,7 @@ interface ChallengeControlCenterProps {
   selectedJobId: string | null;
   showSidebar?: boolean;
   embeddedInCareerOS?: boolean;
+  embeddedVariant?: 'default' | 'career_map_offers';
 }
 
 const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
@@ -77,6 +77,7 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
   selectedJobId,
   showSidebar = true,
   embeddedInCareerOS = false,
+  embeddedVariant = 'default',
 }) => {
   const { i18n } = useTranslation();
   const isImportedListing = (job: Job): boolean =>
@@ -113,16 +114,15 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
     };
   }, [language]);
 
-  const annotatedJobs = useMemo(() => computeCandidateAnnotations(jobs || [], userProfile, locale), [jobs, locale, userProfile]);
-  const microJobs = useMemo(() => annotatedJobs.filter(isMicroJob), [annotatedJobs]);
-  const standardJobs = useMemo(() => annotatedJobs.filter((job) => !isMicroJob(job)), [annotatedJobs]);
+  const microJobs = useMemo(() => (jobs || []).filter(isMicroJob), [jobs]);
+  const standardJobs = useMemo(() => (jobs || []).filter((job) => !isMicroJob(job)), [jobs]);
   const importedJobs = useMemo(
-    () => annotatedJobs.filter((job) => isImportedListing(job) && !isMicroJob(job)),
-    [annotatedJobs]
+    () => standardJobs.filter((job) => isImportedListing(job)),
+    [standardJobs]
   );
   const nativeJobs = useMemo(
-    () => annotatedJobs.filter((job) => !isImportedListing(job) && !isMicroJob(job)),
-    [annotatedJobs]
+    () => standardJobs.filter((job) => !isImportedListing(job)),
+    [standardJobs]
   );
   const effectiveSearchMode = searchDiagnostics?.search_mode || 'discovery_default';
   const laneScopedJobs = useMemo(() => {
@@ -137,21 +137,11 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
       return standardJobs;
     }
 
-    const rankForFeed = (items: Job[]) => [...items].sort((left, right) => {
-      const leftScore = Number(left.priorityScore ?? left.searchScore ?? left.aiMatchScore ?? 0);
-      const rightScore = Number(right.priorityScore ?? right.searchScore ?? right.aiMatchScore ?? 0);
-      if (rightScore !== leftScore) return rightScore - leftScore;
-      const leftJhi = Number(left.jhi?.score || 0);
-      const rightJhi = Number(right.jhi?.score || 0);
-      if (rightJhi !== leftJhi) return rightJhi - leftJhi;
-      return 0;
-    });
-
     if (lane === 'imports') {
-      return rankForFeed(importedJobs);
+      return importedJobs;
     }
 
-    return rankForFeed([...nativeJobs, ...importedJobs, ...microJobs]);
+    return [...nativeJobs, ...importedJobs, ...microJobs];
   }, [discoveryMode, effectiveSearchMode, importedJobs, lane, microJobs, nativeJobs, standardJobs]);
 
   useEffect(() => {
@@ -294,18 +284,19 @@ const ChallengeControlCenter: React.FC<ChallengeControlCenterProps> = ({
                 loadMoreJobs={loadMoreJobs}
                 goToPage={goToPage}
                 onOpenProfile={onOpenProfile}
-                onOpenAuth={onOpenAuth}
-                onCreateMiniChallenge={() => {
-                  if (userProfile.isLoggedIn) {
-                    setIsCreateModalOpen(true);
-                  } else {
-                    onOpenAuth('register');
-                  }
-                }}
-                isMobileViewport={isMobileViewport}
-              />
-            </div>
+              onOpenAuth={onOpenAuth}
+              onCreateMiniChallenge={() => {
+                if (userProfile.isLoggedIn) {
+                  setIsCreateModalOpen(true);
+                } else {
+                  onOpenAuth('register');
+                }
+              }}
+              isMobileViewport={isMobileViewport}
+              embeddedVariant={embeddedVariant}
+            />
           </div>
+        </div>
         </div>
 
         <CreateMiniChallengeModal

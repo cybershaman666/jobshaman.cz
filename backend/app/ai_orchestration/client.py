@@ -267,7 +267,7 @@ def call_primary_with_fallback(
     if provider == "mistral":
         default_rescue = "mistral-small-latest"
 
-    rescue_raw = os.getenv("AI_RESCUE_MODELS") or os.getenv("GEMINI_RESCUE_MODELS") or default_rescue
+    rescue_raw = os.getenv("AI_RESCUE_MODELS") or default_rescue
     rescue_models = [m.strip() for m in rescue_raw.split(",") if m.strip()]
 
     chain = [primary_model]

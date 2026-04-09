@@ -83,7 +83,7 @@ describe('createDomesticCountrySafeguard', () => {
   test('blocks remote cross-border spillover during commute-based browse mode', () => {
     const safeguard = createDomesticCountrySafeguard({
       countryCodes: ['CZ'],
-      marketBaselineCountryCodes: ['CZ'],
+      domesticCountryCodes: ['CZ'],
       enableCommuteFilter: true,
       globalSearch: false,
       abroadOnly: false,

@@ -11,7 +11,7 @@ import {
   AssessmentMode,
   AssessmentSignalFrame,
 } from '../types';
-import { BACKEND_URL, FEATURE_ASSESSMENT_THREE } from '../constants';
+import { BACKEND_URL } from '../constants';
 import { supabase, trackAnalyticsEvent } from '../services/supabaseService';
 import { readAssessmentDraft, writeAssessmentDraft } from '../services/assessmentSessionState';
 import { fetchJourneyAnalyzeAnswer, fetchJourneyFinalize } from '../services/assessmentJourneyService';
@@ -352,7 +352,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     t('assessment_journey.checkpoint_4', { defaultValue: 'Kulturní Northstar' }),
     t('assessment_journey.checkpoint_5', { defaultValue: 'Souhrnný profil' }),
   ];
-  const cockpitThreeEnabled = FEATURE_ASSESSMENT_THREE;
+  const cockpitThreeEnabled = true;
   const [showCockpitScene, setShowCockpitScene] = useState(() => cockpitThreeEnabled);
   const [liveSignalFrame, setLiveSignalFrame] = useState<AssessmentSignalFrame>(() => defaultSignalFrame());
 

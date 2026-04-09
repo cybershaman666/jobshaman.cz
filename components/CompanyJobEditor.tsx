@@ -31,7 +31,7 @@ import {
   CompanySchemaRolloutStatus,
   validateCompanyJobDraft
 } from '../services/companyJobDraftService';
-import { optimizeJobDescription } from '../services/geminiService';
+import { optimizeJobDescription } from '../services/mistralService';
 import { cn } from './ui/primitives';
 
 type JobDraftTextSection =

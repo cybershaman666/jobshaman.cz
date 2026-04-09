@@ -106,13 +106,13 @@ const salaryLabelForJob = (job: Job): string => {
   if (to > 0) {
     return `${to.toLocaleString()} ${currency}`;
   }
-  return 'Comp hidden';
+  return 'Mzda neuvedena';
 };
 
 const sourceLabelForJob = (job: Job): string => {
-  if (job.listingKind === 'imported') return 'Imported';
-  if (job.challenge_format === 'micro_job' || job.micro_job_kind) return 'Micro challenge';
-  return 'Native challenge';
+  if (job.listingKind === 'imported') return 'Převzatá nabídka';
+  if (job.challenge_format === 'micro_job' || job.micro_job_kind) return 'Mini výzva';
+  return 'Vlastní výzva';
 };
 
 const topTagsForJob = (job: Job): string[] =>
@@ -148,19 +148,19 @@ export const mapJobToCareerOSChallenge = (
   },
 ): CareerOSChallenge => ({
   id: compact(job.id),
-  title: compact(job.title, 'Untitled challenge'),
+  title: compact(job.title, 'Neoznačená role'),
   companyId: compact(job.company_id) || null,
-  company: compact(job.company, 'Unknown company'),
+  company: compact(job.company, 'Neznámá firma'),
   avatarUrl: companyAvatarForJob(job),
   coverImageUrl: coverImageForJob(job),
-  location: compact(job.location, 'Location flexible'),
+  location: compact(job.location, 'Lokalita podle dohody'),
   salary: salaryLabelForJob(job),
   sourceLabel: sourceLabelForJob(job),
   listingKind: job.listingKind === 'imported' ? 'imported' : 'challenge',
-  challengeSummary: shortText(job.challenge || job.aiAnalysis?.summary || job.description, 168, 'Mission not loaded yet.'),
-  riskSummary: shortText(job.risk || job.aiAnalysis?.culturalFit, 132, 'Reality notes will appear here once the detail is opened.'),
-  firstStepPrompt: shortText(job.firstStepPrompt, 120, 'Open the challenge to see the first handshake step.'),
-  companyGoal: shortText(job.companyGoal, 120, 'Company goal not provided.'),
+  challengeSummary: shortText(job.challenge || job.aiAnalysis?.summary || job.description, 168, 'Shrnutí role zatím není k dispozici.'),
+  riskSummary: shortText(job.risk || job.aiAnalysis?.culturalFit, 132, 'Praktická realita se ukáže po otevření detailu.'),
+  firstStepPrompt: shortText(job.firstStepPrompt, 120, 'Otevřete detail a uvidíte první krok k navázání kontaktu.'),
+  companyGoal: shortText(job.companyGoal, 120, 'Firma zatím cíl role neupřesnila.'),
   jhiScore: Math.max(0, Math.min(100, Math.round(Number(job.jhi?.score || 0)))),
   requiredSkills: Array.isArray(job.required_skills)
     ? job.required_skills.map((skill) => compact(skill)).filter(Boolean).slice(0, 8)
@@ -197,6 +197,8 @@ export const mapJobsToCareerOSCandidateWorkspace = (input: {
     totalCount,
     searchDiagnostics,
   } = input;
+  const locale = String(userProfile.preferredLocale || 'cs').split('-')[0].toLowerCase();
+  const isCzechUi = locale === 'cs' || locale === 'sk';
 
   const selectedId = compact(selectedJobId);
   const mapped = jobs.map((job) =>
@@ -216,31 +218,40 @@ export const mapJobsToCareerOSCandidateWorkspace = (input: {
     : null;
 
   return {
-    greeting: userProfile.isLoggedIn ? 'CareerOS 2.0' : 'CareerOS guest mode',
-    userLabel: compact(userProfile.name || userProfile.email, userProfile.isLoggedIn ? 'Your workspace' : 'Open candidate workspace'),
+    greeting: userProfile.isLoggedIn ? (isCzechUi ? 'Kariérní mapa' : 'CareerOS 2.0') : (isCzechUi ? 'Mapa bez přihlášení' : 'CareerOS guest mode'),
+    userLabel: compact(
+      userProfile.name || userProfile.email,
+      userProfile.isLoggedIn
+        ? (isCzechUi ? 'Váš prostor' : 'Your workspace')
+        : (isCzechUi ? 'Otevřete si svůj prostor' : 'Open candidate workspace'),
+    ),
     headline: domainLabel
-      ? `Map the next move for ${domainLabel.replace(/_/g, ' ')}`
-      : 'Map the next move before you send a CV',
-    subheadline: 'One shell for career path, live challenges, learning paths and mini work.',
+      ? (isCzechUi
+          ? `Kam dál v oblasti ${domainLabel.replace(/_/g, ' ')}`
+          : `Map the next move for ${domainLabel.replace(/_/g, ' ')}`)
+      : (isCzechUi ? 'Najděte další krok dřív, než někam pošlete životopis' : 'Map the next move before you send a CV'),
+    subheadline: isCzechUi
+      ? 'Jedna mapa pro směry, konkrétní role, mini výzvy i další rozvoj.'
+      : 'One map for paths, concrete roles, mini challenges and further growth.',
     activeFilters: [
-      { label: 'Remote', value: remoteOnly ? 'On' : 'Off' },
-      { label: 'Commute', value: enableCommuteFilter ? 'Active' : 'Hidden' },
-      { label: 'Min comp', value: filterMinSalary ? filterMinSalary.toLocaleString() : 'Any' },
-      { label: 'Benefits', value: Array.isArray(filterBenefits) && filterBenefits.length > 0 ? `${filterBenefits.length} selected` : 'All' },
-      { label: 'Mode', value: discoveryMode === 'micro_jobs' ? 'Micro jobs' : 'All challenges' },
+      { label: 'Remote', value: remoteOnly ? 'Zapnuto' : 'Vypnuto' },
+      { label: 'Dojezd', value: enableCommuteFilter ? 'Vyhodnocuje se' : 'Nevyhodnocuje se' },
+      { label: 'Min. odměna', value: filterMinSalary ? filterMinSalary.toLocaleString() : 'Bez minima' },
+      { label: 'Benefity', value: Array.isArray(filterBenefits) && filterBenefits.length > 0 ? `${filterBenefits.length} vybráno` : 'Bez omezení' },
+      { label: 'Režim', value: discoveryMode === 'micro_jobs' ? 'Mini výzvy' : 'Všechny role' },
     ],
     layers: [
-      { id: 'career_path', label: 'Career Path', count: mapped.length },
-      { id: 'marketplace', label: 'Marketplace', count: totalCount || mapped.length },
-      { id: 'job_offers', label: 'Job Offers', count: totalCount || mapped.length },
-      { id: 'learning_path', label: 'Learning Path' },
-      { id: 'mini_challenges', label: 'Mini Challenges' },
-      { id: 'market_trends', label: 'Market Trends' },
+      { id: 'career_path', label: 'Kariérní mapa', count: mapped.length },
+      { id: 'marketplace', label: 'Seznam rolí', count: totalCount || mapped.length },
+      { id: 'job_offers', label: 'Konkrétní nabídky', count: totalCount || mapped.length },
+      { id: 'learning_path', label: 'Rozvojová cesta' },
+      { id: 'mini_challenges', label: 'Mini výzvy' },
+      { id: 'market_trends', label: 'Tržní signál' },
     ],
     highlights: [
-      { label: 'Live challenges', value: String(totalCount || mapped.length) },
-      { label: 'Saved', value: String(savedJobIds.length) },
-      { label: 'Best JHI', value: mapped.length > 0 ? `${Math.max(...mapped.map((item) => item.jhiScore))}` : '0' },
+      { label: 'Aktivní role', value: String(totalCount || mapped.length) },
+      { label: 'Uloženo', value: String(savedJobIds.length) },
+      { label: 'Nejvyšší JHI', value: mapped.length > 0 ? `${Math.max(...mapped.map((item) => item.jhiScore))}` : '0' },
     ],
     candidateSignals: [
       {
@@ -262,17 +273,17 @@ export const mapJobsToCareerOSCandidateWorkspace = (input: {
     learningSignals: [
       {
         label: 'Target role',
-        value: compact(userProfile.preferences?.searchProfile?.targetRole || userProfile.preferences?.desired_role, 'Role not set'),
+        value: compact(userProfile.preferences?.searchProfile?.targetRole || userProfile.preferences?.desired_role, 'Role není nastavená'),
         tone: 'accent',
       },
       {
         label: 'Primary domain',
-        value: domainLabel ? domainLabel.replace(/_/g, ' ') : 'Generalist path',
+        value: domainLabel ? domainLabel.replace(/_/g, ' ') : 'Obecný směr',
         tone: 'success',
       },
       {
         label: 'Format',
-        value: remoteOnly ? 'Remote-friendly' : 'Mixed format',
+        value: remoteOnly ? 'Vhodné pro remote' : 'Kombinovaný formát',
         tone: 'warning',
       },
     ],
@@ -286,7 +297,7 @@ export const mapJobsToCareerOSCandidateWorkspace = (input: {
       .slice(0, 5)
       .map((company) => ({
         label: company,
-        value: `${jobs.filter((job) => compact(job.company) === company).length} open challenges`,
+        value: `${jobs.filter((job) => compact(job.company) === company).length} aktivních výzev`,
       })),
     selectedChallenge,
     challenges: mapped,
@@ -299,14 +310,14 @@ export const mapCompanyToCareerOSSpace = (
   jobs: Job[],
 ): CareerOSCompanySpace => ({
   id: compact(company?.id) || null,
-  name: compact(company?.name, 'Company space'),
-  website: compact(company?.website, 'Website hidden'),
-  location: compact(company?.address || company?.legal_address, 'Location not shared yet'),
-  description: shortText(company?.description, 240, 'Public company description not available yet.'),
-  philosophy: shortText(company?.philosophy, 180, 'Mission statement not available yet.'),
-  tone: compact(company?.tone, 'Human, direct and transparent'),
+  name: compact(company?.name, 'Firemní prostor'),
+  website: compact(company?.website, 'Web zatím není uvedený'),
+  location: compact(company?.address || company?.legal_address, 'Lokalita zatím není sdílená'),
+  description: shortText(company?.description, 240, 'Veřejné představení firmy zatím není k dispozici.'),
+  philosophy: shortText(company?.philosophy, 180, 'Firemní přístup zatím není popsaný.'),
+  tone: compact(company?.tone, 'Lidský, srozumitelný a otevřený'),
   values: Array.from(new Set((Array.isArray(company?.values) ? company?.values : []).map((value) => compact(value)).filter(Boolean))).slice(0, 6),
-  openChallengesLabel: `${jobs.length} live challenge${jobs.length === 1 ? '' : 's'}`,
+  openChallengesLabel: `${jobs.length} aktivní${jobs.length === 1 ? ' výzva' : ' výzvy'}`,
   challenges: jobs.map((job) => mapJobToCareerOSChallenge(job)),
 });
 
@@ -330,7 +341,7 @@ export const mapCompanyProfileToCareerOSCompanyWorkspace = (input: {
       { label: 'Assessments', value: String(assessmentLibrary) },
       { label: 'Candidates', value: String(candidates) },
     ],
-    statusLine: `${compact(companyProfile.industry, 'Hiring workspace')} · ${compact(companyProfile.tone, 'Tone not configured')}`,
+    statusLine: `${compact(companyProfile.industry, 'Hiring workspace')} · ${compact(companyProfile.tone, 'Tón není nastavený')}`,
   };
 };
 

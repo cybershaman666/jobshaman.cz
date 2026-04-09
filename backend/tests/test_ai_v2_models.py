@@ -35,7 +35,7 @@ def test_ai_v2_response_shape():
         "cv_summary": "short",
         "meta": {
             "prompt_version": "v1",
-            "model_used": "gemini-1.5-flash",
+            "model_used": "mistral-small-latest",
             "fallback_used": False,
             "latency_ms": 123,
             "token_usage": {"input": 10, "output": 20},

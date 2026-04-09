@@ -12,17 +12,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Coins,
   Dog,
   Globe2,
   GraduationCap,
   HeartHandshake,
   HeartPulse,
-  Home,
   Layers,
   Mail,
   RotateCcw,
-  TrainFront,
   Sparkles,
   Star,
   TrendingUp,
@@ -30,15 +27,24 @@ import {
   X,
 } from 'lucide-react';
 
-import type { Job, JobWorkArrangementFilter, LearningResource, SearchLanguageCode, TransportMode, UserProfile } from '../../types';
-import { resolveCareerNavigationGoalWithAi } from '../../services/geminiService';
+import type {
+  CareerMapBranchOverrides,
+  CareerMapNodeOffset,
+  Job,
+  JobWorkArrangementFilter,
+  LearningResource,
+  SearchLanguageCode,
+  TransportMode,
+  UserProfile,
+} from '../../types';
+import { resolveCareerNavigationGoalWithAi } from '../../services/mistralService';
 import { fetchLearningResources } from '../../services/learningResourceService';
 import { listProfileMiniChallenges } from '../../services/profileMiniChallengeService';
-import { getMainDatabaseJobCount } from '../../services/jobService';
+import { getCareerMapPool, getMainDatabaseJobCount } from '../../services/jobService';
+import { updateUserProfile as persistUserProfile } from '../../services/supabaseService';
 import { cn } from '../ui/primitives';
 import TransportModeSelector from '../TransportModeSelector';
 import {
-  GalaxyClusterNode,
   GalaxyNeuralCircuitTexture as NeuralCircuitTexture,
   GalaxyStageBackground as StageBackground,
   galaxyShellPanelClass as shellPanel,
@@ -59,6 +65,7 @@ import {
 import {
   type CareerOSChallenge,
   type CareerOSLayer,
+  mapJobToCareerOSChallenge,
   mapJobsToCareerOSCandidateWorkspace,
 } from '../../src/app/careeros/model/viewModels';
 import { buildCareerOSNotificationFeed } from '../../src/app/careeros/model/notificationFeed';
@@ -99,6 +106,7 @@ export interface CareerOSNavigationState {
   activeLayer: CareerOSLayer;
   selectedPathId: string | null;
   expandedPathId: string | null;
+  activeBranchRoleId?: string | null;
   panelChallengeId: string | null;
   panelDismissed: boolean;
   canvasZoom: number;
@@ -107,6 +115,7 @@ export interface CareerOSNavigationState {
 interface PathNode {
   id: string;
   domainKey: string;
+  directionIcon: string;
   title: string;
   subtitle: string;
   summary: string;
@@ -139,33 +148,22 @@ interface RoleNode {
   imageUrl: string | null;
 }
 
-interface PathInsightPanelContent {
-  eyebrow: string;
-  title: string;
-  body: string;
-  entryLabel: string;
-  entryPoints: string[];
-  nextLabel: string;
-  nextSteps: string[];
-  roleStatement: string;
-  roleTitle: string;
-  roleSubtitle: string;
-  footer: string;
+interface PositionedPathNode extends PathNode {
+  slotId: string;
+  nodeKey: string;
+  baseX: number;
+  baseY: number;
+  distanceRank: number;
 }
 
-interface ExpandedClusterChild {
-  role: RoleNode;
-  x: number;
-  y: number;
-  textPos: 'left' | 'right';
-}
-
-interface OfferNode {
-  challenge: CareerOSChallenge;
-  x: number;
-  y: number;
-  textPos: 'left' | 'right';
-  labelPlacement: 'left' | 'right' | 'top' | 'bottom';
+interface PositionedRoleNode extends RoleNode {
+  slotId: string;
+  nodeKey: string;
+  pathId: string;
+  directionKey: string;
+  baseX: number;
+  baseY: number;
+  offerCount: number;
 }
 
 interface RemapDomainOption {
@@ -245,7 +243,7 @@ interface MarketTrendAnalysis {
 }
 
 const filterChipInactiveClass =
-  'border border-white/60 bg-white/60 text-slate-700 backdrop-blur-xl hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900/80 dark:hover:text-cyan-200';
+  'border border-slate-200 bg-white text-slate-700 hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900 dark:hover:text-cyan-200';
 
 const clampZoom = (value: number): number => Math.max(0.72, Math.min(1.6, Number(value.toFixed(2))));
 
@@ -272,6 +270,20 @@ const toneClasses = {
     chip: 'border-orange-200 bg-orange-100 text-orange-700',
     fill: 'from-orange-400 to-orange-600',
   },
+  blue: {
+    line: '#0ea5e9',
+    ring: 'border-sky-400/50',
+    glow: 'shadow-[0_0_24px_rgba(14,165,233,0.22)]',
+    chip: 'border-sky-200 bg-sky-100 text-sky-700',
+    fill: 'from-sky-500 to-blue-600',
+  },
+  slate: {
+    line: '#64748b',
+    ring: 'border-slate-300/70 dark:border-slate-600/80',
+    glow: 'shadow-[0_0_24px_rgba(100,116,139,0.18)]',
+    chip: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    fill: 'from-slate-500 to-slate-700',
+  },
 } as const;
 
 const sidebarLayers: Array<{ id: CareerOSLayer; icon: React.ComponentType<{ className?: string }> }> = [
@@ -284,154 +296,110 @@ const sidebarLayers: Array<{ id: CareerOSLayer; icon: React.ComponentType<{ clas
     : []),
 ];
 
-const pathLayoutPresets: Record<number, Array<{ x: number; y: number }>> = {
-  1: [{ x: 0, y: -250 }],
-  2: [
-    { x: -280, y: -40 },
-    { x: 280, y: -40 },
-  ],
-  3: [
-    { x: 0, y: -290 },
-    { x: -315, y: 120 },
-    { x: 315, y: 120 },
-  ],
-  4: [
-    { x: -285, y: -170 },
-    { x: 285, y: -170 },
-    { x: -255, y: 175 },
-    { x: 255, y: 175 },
-  ],
-  5: [
-    { x: 0, y: -300 },
-    { x: -330, y: -75 },
-    { x: 330, y: -75 },
-    { x: -225, y: 225 },
-    { x: 225, y: 225 },
-  ],
-};
-
-const buildAdaptiveOrbit = (
-  count: number,
-  radiusX: number,
-  radiusY: number,
-  startAngle = -Math.PI / 2,
-): Array<{ x: number; y: number; angle: number }> => {
-  if (count <= 1) {
-    return [{ x: 0, y: -radiusY, angle: startAngle }];
-  }
-
-  return Array.from({ length: count }, (_, index) => {
-    const angle = startAngle + (index / count) * Math.PI * 2;
-    return {
-      x: Math.cos(angle) * radiusX,
-      y: Math.sin(angle) * radiusY,
-      angle,
-    };
-  });
-};
-
-const getAdaptivePathLayoutSlots = (count: number): Array<{ x: number; y: number }> => {
-  const preset = pathLayoutPresets[count];
-  const slots = preset || buildAdaptiveOrbit(count, 340, 270).map(({ x, y }) => ({ x, y }));
-  if (count <= 0) return [];
-  if (count === 1) {
-    return [{ x: 310, y: -24 }];
-  }
-
-  return [...slots].sort((left, right) => {
-    const desirability = (slot: { x: number; y: number }) =>
-      Math.abs(slot.x) - Math.abs(slot.y) * 1.35 + (slot.x >= 0 ? 140 : 0);
-    return desirability(right) - desirability(left);
-  });
-};
-
-const buildGravitationalPathLayout = (
+const buildBranchingPathLayout = (
   rankedDomains: Array<{ score: number }>,
 ): Array<{ x: number; y: number; orbitDistance: number; gravityPull: number }> => {
-  const baseSlots = getAdaptivePathLayoutSlots(rankedDomains.length);
+  const slots = [
+    { x: -220, y: 0 },
+    { x: -90, y: -195 },
+    { x: -90, y: 195 },
+    { x: 80, y: -88 },
+    { x: 92, y: 108 },
+    { x: 188, y: -278 },
+  ];
   const scores = rankedDomains.map((item) => Number(item.score || 0));
   const maxScore = Math.max(...scores, 1);
-  const minScore = Math.min(...scores, maxScore);
-  const scoreSpan = Math.max(1, maxScore - minScore);
-  const rankPullFactors = [0.62, 0.78, 0.92, 1.05, 1.18];
-  const resolveCentralExclusionRadius = (dx: number, dy: number): number => {
-    const horizontalSafeRadius = 290;
-    const verticalSafeRadius = dy > 0 ? 300 : 236;
-    const denominator = Math.sqrt(
-      (dx * dx) / (horizontalSafeRadius * horizontalSafeRadius)
-      + (dy * dy) / (verticalSafeRadius * verticalSafeRadius),
-    );
-    return denominator > 0 ? 1 / denominator + 22 : verticalSafeRadius;
-  };
 
   return rankedDomains.map((cluster, index) => {
-    const baseSlot = baseSlots[index] || { x: 0, y: -250 };
-    const normalizedScore = (cluster.score - minScore) / scoreSpan;
-    const rankPull = rankPullFactors[index] ?? (1.18 + Math.max(0, index - rankPullFactors.length + 1) * 0.08);
-    const scorePull = normalizedScore * 0.08;
-    const pullFactor = Math.max(0.58, rankPull - scorePull);
-    let x = Number(baseSlot.x) * pullFactor;
-    let y = Number(baseSlot.y) * pullFactor;
-    const currentDistance = Math.hypot(x, y) || 1;
-    const dx = x / currentDistance;
-    const dy = y / currentDistance;
-    const safeDistance = resolveCentralExclusionRadius(dx, dy);
-    const orbitDistance = Math.max(172, currentDistance, safeDistance);
-    x = dx * orbitDistance;
-    y = dy * orbitDistance;
-    const gravityPull = Math.max(0.32, 1 - index * 0.15 + normalizedScore * 0.18);
-
+    const slot = slots[index] || { x: 188 + Math.max(0, index - 5) * 88, y: -278 + Math.max(0, index - 5) * 96 };
+    const normalizedScore = Math.max(0, Number(cluster.score || 0) / maxScore);
     return {
-      x,
-      y,
-      orbitDistance,
-      gravityPull,
+      x: slot.x,
+      y: slot.y,
+      orbitDistance: Math.hypot(slot.x, slot.y),
+      gravityPull: 0.48 + normalizedScore * 0.28,
     };
   });
 };
 
-const buildSideClusterLayout = (count: number): Array<{ x: number; y: number; textPos: 'left' | 'right' }> => {
-  if (count <= 0) return [];
-  if (count === 1) {
-    return [{ x: 260, y: 0, textPos: 'right' }];
-  }
+const TREE_DIRECTION_SLOTS = [
+  { id: 'primary', x: -90, y: -24, distanceRank: 0 },
+  { id: 'upper', x: 84, y: -238, distanceRank: 1 },
+  { id: 'lower', x: 74, y: 206, distanceRank: 2 },
+  { id: 'upper_far', x: 302, y: -356, distanceRank: 3 },
+  { id: 'mid_far', x: 346, y: -12, distanceRank: 4 },
+  { id: 'lower_far', x: 312, y: 324, distanceRank: 5 },
+] as const;
 
-  const leftCount = Math.ceil(count / 2);
-  const rightCount = Math.floor(count / 2);
-  const leftYs = Array.from({ length: leftCount }, (_, index) => {
-    if (leftCount === 1) return 0;
-    return -150 + (index * 300) / (leftCount - 1);
-  });
-  const rightYs = Array.from({ length: rightCount }, (_, index) => {
-    if (rightCount === 1) return 0;
-    return -150 + (index * 300) / (rightCount - 1);
-  });
+const TREE_ROLE_SLOT_OFFSETS = [-120, -40, 40, 120] as const;
 
-  const positions: Array<{ x: number; y: number; textPos: 'left' | 'right' }> = [];
-  let leftIndex = 0;
-  let rightIndex = 0;
+const createEmptyBranchOverrides = (): CareerMapBranchOverrides => ({
+  directionSlots: {},
+  roleSlots: {},
+});
 
-  for (let index = 0; index < count; index += 1) {
-    const placeOnLeft = index % 2 === 0;
-    if (placeOnLeft && leftIndex < leftYs.length) {
-      positions.push({
-        x: -250 - (leftIndex % 2 === 0 ? 8 : 24),
-        y: leftYs[leftIndex],
-        textPos: 'left',
-      });
-      leftIndex += 1;
-      continue;
-    }
+const createEmptyNodeOffsets = (): Record<string, CareerMapNodeOffset> => ({});
 
-    positions.push({
-      x: 250 + (rightIndex % 2 === 0 ? 8 : 24),
-      y: rightYs[rightIndex] ?? 0,
-      textPos: 'right',
-    });
-    rightIndex += 1;
-  }
+const sanitizeCareerMapNodeOffsets = (
+  positions: Record<string, CareerMapNodeOffset> | undefined | null,
+): Record<string, CareerMapNodeOffset> => {
+  if (!positions || typeof positions !== 'object') return createEmptyNodeOffsets();
+  return Object.fromEntries(
+    Object.entries(positions).map(([key, value]) => [
+      key,
+      {
+        x: Math.max(-260, Math.min(260, Number(value?.x || 0))),
+        y: Math.max(-220, Math.min(220, Number(value?.y || 0))),
+      },
+    ]),
+  );
+};
 
-  return positions;
+const getDirectionPositionKey = (directionId: string): string => `direction:${directionId}`;
+const getRolePositionKey = (pathId: string, roleId: string): string => `role:${pathId}:${roleId}`;
+
+const applyNodeOffset = (
+  baseX: number,
+  baseY: number,
+  nodeKey: string,
+  positions: Record<string, CareerMapNodeOffset>,
+) => {
+  const offset = positions[nodeKey];
+  return {
+    x: baseX + Number(offset?.x || 0),
+    y: baseY + Number(offset?.y || 0),
+  };
+};
+
+const buildWorkflowCurve = (
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  bend = 0.34,
+): string => {
+  const deltaX = Math.max(80, toX - fromX);
+  const controlOneX = fromX + Math.max(76, deltaX * bend);
+  const controlTwoX = toX - Math.max(56, deltaX * Math.max(0.18, bend - 0.08));
+  return `M ${fromX} ${fromY} C ${controlOneX} ${fromY}, ${controlTwoX} ${toY}, ${toX} ${toY}`;
+};
+
+const buildWorkflowRailPath = (
+  fromX: number,
+  fromY: number,
+  railX: number,
+  railY: number,
+  toX: number,
+  toY: number,
+): string => {
+  const safeRailX = Math.max(fromX + 48, railX);
+  const approachX = Math.max(safeRailX + 24, toX - 34);
+  return [
+    `M ${fromX} ${fromY}`,
+    `C ${fromX + 42} ${fromY}, ${safeRailX - 28} ${railY}, ${safeRailX} ${railY}`,
+    `L ${approachX} ${railY}`,
+    `C ${approachX + 16} ${railY}, ${toX - 12} ${toY}, ${toX} ${toY}`,
+  ].join(' ');
 };
 
 const initials = (value: string): string => {
@@ -440,10 +408,69 @@ const initials = (value: string): string => {
   return parts.map((part) => part[0]?.toUpperCase() || '').join('');
 };
 
-const titleCase = (value: string): string =>
-  value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+const shortenRoleWord = (word: string): string => {
+  const normalized = String(word || '').trim().toLowerCase();
+  const replacements: Record<string, string> = {
+    software: 'Software',
+    engineer: 'Eng',
+    engineering: 'Eng',
+    developer: 'Dev',
+    development: 'Dev',
+    manager: 'Mgr',
+    management: 'Mgmt',
+    specialist: 'Spec',
+    consultant: 'Consult',
+    customer: 'Customer',
+    success: 'Success',
+    support: 'Support',
+    project: 'Project',
+    product: 'Product',
+    account: 'Account',
+    operations: 'Ops',
+    operation: 'Ops',
+    technical: 'Tech',
+    technician: 'Tech',
+    architect: 'Architect',
+    analyst: 'Analyst',
+    assistant: 'Assist',
+    representative: 'Rep',
+    executive: 'Exec',
+    administrator: 'Admin',
+    coordinator: 'Coord',
+    quality: 'Quality',
+    assurance: 'QA',
+    writer: 'Writer',
+    recruiter: 'Recruiter',
+    sales: 'Sales',
+    marketing: 'Marketing',
+    finance: 'Finance',
+    hr: 'HR',
+    human: 'People',
+    resources: 'HR',
+    logistics: 'Logistics',
+    procurement: 'Procurement',
+    construction: 'Construction',
+  };
+  if (replacements[normalized]) return replacements[normalized];
+  if (normalized.length <= 10) {
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1, 9);
+};
+
+const getRoleNodeMoniker = (value: string): string[] => {
+  const stopWords = new Set(['and', 'or', 'for', 'with', 'the', 'a', 'an', 'of', 'to', 'in']);
+  const words = String(value || '')
+    .replace(/[|/(),.-]+/g, ' ')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word && !stopWords.has(word.toLowerCase()))
+    .slice(0, 3);
+
+  if (words.length === 0) return ['Role'];
+  if (words.length === 1) return [shortenRoleWord(words[0])];
+  return [shortenRoleWord(words[0]), shortenRoleWord(words[1])];
+};
 
 const toHumanLabel = (value: string): string =>
   String(value || '')
@@ -460,9 +487,6 @@ const toHumanLabel = (value: string): string =>
     })
     .join(' ');
 
-const challengeTone = (challenge: CareerOSChallenge): keyof typeof toneClasses =>
-  challenge.listingKind === 'imported' || challenge.jhiScore < 70 ? 'orange' : 'emerald';
-
 const topFilterCandidates = (jobs: Job[]): string[] =>
   Array.from(
     jobs
@@ -477,6 +501,22 @@ const topFilterCandidates = (jobs: Job[]): string[] =>
       }, new Map<string, string>())
       .values(),
   ).slice(0, 6);
+
+const buildCareerMapSourceJobs = (jobs: Job[]): Job[] => jobs;
+
+const localeToCountryCode = (locale: string): string => {
+  const base = String(locale || 'cs').split('-')[0].toLowerCase();
+  if (base === 'sk') return 'SK';
+  if (base === 'pl') return 'PL';
+  if (base === 'de') return 'DE';
+  return 'CZ';
+};
+
+const resolveCareerMapCountryCode = (userProfile: UserProfile, activeLocale: string): string => {
+  const explicit = String(userProfile.preferredCountryCode || '').trim().toUpperCase();
+  if (explicit) return explicit;
+  return localeToCountryCode(activeLocale);
+};
 
 const compactText = (value: string, max = 40): string => {
   if (value.length <= max) return value;
@@ -530,6 +570,46 @@ const domainLabelMap: Record<string, string> = {
   general: 'General',
 };
 
+const domainLabelMapCs: Record<string, string> = {
+  agriculture: 'Zemědělství',
+  ai_data: 'AI a data',
+  aviation: 'Letecký průmysl',
+  automotive: 'Automotive',
+  construction: 'Stavebnictví',
+  creative_media: 'Kreativa a média',
+  customer_support: 'Zákaznická péče',
+  ecommerce: 'E-commerce',
+  education: 'Vzdělávání',
+  energy_utilities: 'Energetika',
+  engineering: 'Inženýrství',
+  finance: 'Finance',
+  government_defense: 'Veřejná správa a obrana',
+  healthcare: 'Zdravotnictví',
+  hospitality: 'Gastro a služby',
+  insurance: 'Pojišťovnictví',
+  it: 'IT',
+  logistics: 'Logistika',
+  manufacturing: 'Výroba',
+  maritime: 'Námořní doprava',
+  marketing: 'Marketing',
+  media_design: 'Design',
+  mining_heavy_industry: 'Těžký průmysl',
+  operations: 'Provoz a operativa',
+  pharma_biotech: 'Farmacie a biotech',
+  procurement: 'Nákup',
+  product_management: 'Produkt',
+  public_services: 'Veřejné služby',
+  real_estate: 'Reality',
+  retail: 'Retail',
+  sales: 'Obchod',
+  science_lab: 'Věda a laboratoř',
+  security: 'Bezpečnost',
+  telecom_network: 'Telekomunikace',
+  hr: 'Lidé a HR',
+  people_ops: 'Lidé a HR',
+  general: 'Obecné',
+};
+
 const REMAP_PRIORITY_DOMAIN_OPTIONS: RemapDomainOption[] = [
   { value: 'logistics' },
   { value: 'healthcare' },
@@ -539,12 +619,110 @@ const REMAP_PRIORITY_DOMAIN_OPTIONS: RemapDomainOption[] = [
   { value: 'customer_support', label: 'Customer support' },
 ];
 
-const getLocalizedDomainLabel = (domain: string, t: TFunction): string =>
-  t(`careeros.domains.${domain}`, {
-    defaultValue: domainLabelMap[domain] || domain.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
+const getLocalizedDomainLabel = (domain: string, t: TFunction): string => {
+  const locale = normalizeNavigationLocale(String((t as any).i18n?.resolvedLanguage || (t as any).i18n?.language || 'en'));
+  const localizedFallback = locale === 'cs'
+    ? domainLabelMapCs[domain]
+    : domainLabelMap[domain];
+  return t(`careeros.domains.${domain}`, {
+    defaultValue: localizedFallback || domain.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
   });
+};
 
-const normalizeRemapQuery = (value: string): string =>
+interface LifeDirection {
+  id: string;
+  label: string;
+  labelCS: string;
+  description: string;
+  descriptionCS: string;
+  icon: string;
+}
+
+const LIFE_DIRECTIONS: LifeDirection[] = [
+  {
+    id: 'more_time',
+    label: 'More Time',
+    labelCS: 'V\u00edce \u010dasu pro \u017eivot',
+    description: 'Roles with healthier tempo, less unnecessary pressure and better room outside work.',
+    descriptionCS: 'Role s udr\u017eiteln\u011bj\u0161\u00edm tempem, men\u0161\u00edm tlakem a v\u011bt\u0161\u00edm prostorem mimo pr\u00e1ci.',
+    icon: '\u23f3',
+  },
+  {
+    id: 'less_commuting',
+    label: 'Less Commuting',
+    labelCS: 'M\u00e9n\u011b doj\u00ed\u017ed\u011bn\u00ed',
+    description: 'Directions with more remote flexibility or a closer practical fit to your day-to-day life.',
+    descriptionCS: 'Sm\u011bry s v\u011bt\u0161\u00ed flexibilitou pr\u00e1ce na d\u00e1lku nebo men\u0161\u00edm ka\u017edodenn\u00edm doj\u00ed\u017ed\u011bn\u00edm.',
+    icon: '\ud83d\ude97',
+  },
+  {
+    id: 'more_people',
+    label: 'More People Contact',
+    labelCS: 'V\u00edce mezi lidmi',
+    description: 'Work that stays close to people, service, relationships and visible human impact.',
+    descriptionCS: 'Pr\u00e1ce bl\u00ed\u017e lidem, slu\u017eb\u011b, vztah\u016fm a viditeln\u00e9mu lidsk\u00e9mu dopadu.',
+    icon: '\ud83e\udd1d',
+  },
+  {
+    id: 'more_field',
+    label: 'More Field Work',
+    labelCS: 'V\u00edce v ter\u00e9nu',
+    description: 'Less screen-bound work, more movement, operations, sites or real-world environments.',
+    descriptionCS: 'M\u00e9n\u011b pr\u00e1ce za obrazovkou, v\u00edce pohybu, provozu, provozoven nebo ter\u00e9nu.',
+    icon: '\ud83e\udded',
+  },
+  {
+    id: 'higher_income',
+    label: 'Higher Income',
+    labelCS: 'Vy\u0161\u0161\u00ed p\u0159\u00edjem',
+    description: 'Directions where stronger performance and responsibility are more often rewarded financially.',
+    descriptionCS: 'Sm\u011bry, kde se v\u00fdkon a odpov\u011bdnost \u010dast\u011bji prom\u00edtaj\u00ed do vy\u0161\u0161\u00ed odm\u011bny.',
+    icon: '\ud83d\udcb8',
+  },
+  {
+    id: 'faster_growth',
+    label: 'Faster Growth',
+    labelCS: 'Rychlej\u0161\u00ed r\u016fst',
+    description: 'Steeper learning curves, stronger development and clearer room to move upward.',
+    descriptionCS: 'Strm\u011bj\u0161\u00ed u\u010dic\u00ed k\u0159ivka, siln\u011bj\u0161\u00ed rozvoj a jasn\u011bj\u0161\u00ed prostor pro r\u016fst.',
+    icon: '\ud83d\udcc8',
+  },
+];
+
+const directionVisuals: Record<string, { tone: keyof typeof toneClasses; gradient: string; imageUrl: string }> = {
+  more_time: {
+    tone: 'slate',
+    gradient: 'from-slate-700 via-slate-600 to-cyan-700',
+    imageUrl: 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80',
+  },
+  less_commuting: {
+    tone: 'blue',
+    gradient: 'from-sky-700 via-cyan-500 to-blue-800',
+    imageUrl: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=1200&q=80',
+  },
+  more_people: {
+    tone: 'orange',
+    gradient: 'from-rose-600 via-orange-500 to-amber-500',
+    imageUrl: 'https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=1200&q=80',
+  },
+  more_field: {
+    tone: 'blue',
+    gradient: 'from-indigo-700 via-sky-600 to-cyan-500',
+    imageUrl: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=1200&q=80',
+  },
+  higher_income: {
+    tone: 'emerald',
+    gradient: 'from-emerald-700 via-teal-600 to-cyan-600',
+    imageUrl: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=1200&q=80',
+  },
+  faster_growth: {
+    tone: 'emerald',
+    gradient: 'from-lime-500 via-emerald-600 to-teal-700',
+    imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+  },
+};
+
+const normalizeLifeDirectionText = (value: string): string =>
   String(value || '')
     .toLowerCase()
     .normalize('NFD')
@@ -552,6 +730,82 @@ const normalizeRemapQuery = (value: string): string =>
     .replace(/[^a-z0-9\s/+.-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const deskBoundRolePattern = /\b(software|engineer|developer|backend|frontend|full stack|fullstack|qa|tester|data|analyst|designer|ux|ui|product manager|scrum|architect)\b/;
+const fieldRolePattern = /\b(field|field service|site|site manager|terrain|ter[eé]n|on site support|onsite support|technician|installer|installation|warehouse|store manager|branch|clinic|maintenance|manufacturing|production|operations on site|supervisor|construction)\b/;
+const peopleRolePattern = /\b(customer|support|service|sales|account|success|recruit|talent|hr|people|care|patient|community|hospitality|teacher|education|partner|client)\b/;
+const flexibilityPattern = /\b(remote|hybrid|home office|work from home|flexible|part time|part-time|4 day|4-day|wellbeing|well being|balance|na dalku|z domova|async)\b/;
+const growthPattern = /\b(growth|career|lead|senior|ownership|learning|develop|scale|promotion|mentor|growth path|rust|rozvoj)\b/;
+const highCompPattern = /\b(bonus|commission|ote|equity|stock|nadstandard|high salary)\b/;
+
+const peopleDomains = new Set(['customer_support', 'sales', 'retail', 'hospitality', 'healthcare', 'education', 'public_services']);
+const fieldDomains = new Set(['logistics', 'manufacturing', 'construction', 'healthcare', 'retail', 'hospitality', 'security', 'agriculture', 'energy_utilities', 'public_services', 'real_estate', 'automotive']);
+const remoteFriendlyDomains = new Set(['it', 'ai_data', 'finance', 'marketing', 'media_design', 'product_management', 'insurance', 'customer_support']);
+const incomeDomains = new Set(['it', 'ai_data', 'engineering', 'finance', 'sales', 'product_management', 'pharma_biotech', 'telecom_network']);
+const growthDomains = new Set(['it', 'ai_data', 'engineering', 'product_management', 'marketing', 'finance', 'telecom_network']);
+const deskBoundDomains = new Set(['it', 'ai_data', 'finance', 'marketing', 'media_design', 'product_management', 'insurance', 'telecom_network']);
+
+const scoreLifeDirectionsForJob = (job: Job): Array<{ id: string; score: number }> => {
+  const text = normalizeLifeDirectionText([
+    job.title,
+    job.description,
+    job.location,
+    ...(job.tags || []),
+    ...(job.benefits || []),
+  ].join(' '));
+  const workModel = normalizeLifeDirectionText(String((job as any).work_model || (job as any).workArrangement || ''));
+  const combined = `${text} ${workModel}`.trim();
+  const domain = String(resolveJobDomain(job) || '').toLowerCase();
+  const salaryFrom = Number((job as any).salary_from || 0);
+
+  const scores: Record<string, number> = {
+    more_time: 0,
+    less_commuting: 0,
+    more_people: 0,
+    more_field: 0,
+    higher_income: 0,
+    faster_growth: 0,
+  };
+
+  const hasFieldSignal = fieldRolePattern.test(combined);
+  const hasPeopleSignal = peopleRolePattern.test(combined);
+  const hasFlexSignal = flexibilityPattern.test(combined);
+  const hasGrowthSignal = growthPattern.test(combined);
+  const hasDeskBoundSignal = deskBoundRolePattern.test(combined);
+
+  if (hasFlexSignal) scores.less_commuting += 3;
+  if (remoteFriendlyDomains.has(domain)) scores.less_commuting += 1;
+  if (/onsite only|on site daily|every day onsite/.test(combined)) scores.less_commuting -= 2;
+
+  if (hasFlexSignal) scores.more_time += 2;
+  if (/\b(part time|part-time|4 day|4-day|wellbeing|balance)\b/.test(combined)) scores.more_time += 2;
+  if (/\b(shift|night shift|weekend)\b/.test(combined)) scores.more_time -= 1;
+
+  if (hasPeopleSignal) scores.more_people += 2;
+  if (peopleDomains.has(domain)) scores.more_people += 1;
+  if (hasDeskBoundSignal && !hasPeopleSignal) scores.more_people -= 1;
+
+  if (hasFieldSignal) scores.more_field += 3;
+  if (fieldDomains.has(domain)) scores.more_field += 1;
+  if (/travel|travelling|traveling|site visits|branch visits|regional/.test(combined)) scores.more_field += 1;
+  if (deskBoundDomains.has(domain)) scores.more_field -= 3;
+  if (hasDeskBoundSignal && !hasFieldSignal) scores.more_field -= 3;
+
+  if (salaryFrom >= 90000) scores.higher_income += 3;
+  else if (salaryFrom >= 70000) scores.higher_income += 2;
+  if (highCompPattern.test(combined)) scores.higher_income += 2;
+  if (incomeDomains.has(domain)) scores.higher_income += 1;
+
+  if (hasGrowthSignal) scores.faster_growth += 2;
+  if (growthDomains.has(domain)) scores.faster_growth += 2;
+  if (/\b(junior|trainee|graduate|lead|principal|staff)\b/.test(combined)) scores.faster_growth += 1;
+
+  return Object.entries(scores)
+    .filter(([id, score]) => score >= (id === 'more_field' ? 3 : 2))
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 2)
+    .map(([id, score]) => ({ id, score }));
+};
 
 const normalizeRoleClusterTitle = (value: string): string => {
   const normalized = String(value || '')
@@ -561,34 +815,6 @@ const normalizeRoleClusterTitle = (value: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
   return normalized || String(value || '').trim() || 'Role';
-};
-
-const getChallengePrimaryDomain = (challenge: CareerOSChallenge, job?: Job | null): string => {
-  const jobDomain = resolveJobDomain(job || ({} as Job));
-  if (jobDomain) {
-    return jobDomain;
-  }
-  return challenge.matchedDomains?.[0] || jobDomain || 'general';
-};
-
-const challengeMatchesCustomDomainQuery = (challenge: CareerOSChallenge, customDomainQuery: string): boolean => {
-  const normalizedQuery = normalizeRemapQuery(customDomainQuery);
-  if (!normalizedQuery) return true;
-
-  const tokens = normalizedQuery.split(' ').filter((token) => token.length >= 2);
-  const searchableText = normalizeRemapQuery([
-    challenge.title,
-    challenge.company,
-    challenge.challengeSummary,
-    challenge.companyGoal,
-    challenge.location,
-    ...challenge.requiredSkills,
-    ...challenge.topTags,
-  ].filter(Boolean).join(' '));
-
-  if (!searchableText) return false;
-  if (searchableText.includes(normalizedQuery)) return true;
-  return tokens.length > 0 && tokens.every((token) => searchableText.includes(token));
 };
 
 const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: TFunction): RoleNode[] => {
@@ -638,8 +864,6 @@ const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: T
       || right.featuredChallenge.jhiScore - left.featuredChallenge.jhiScore)
     .slice(0, 10);
 };
-
-const localeIsCzech = (locale: string): boolean => /^cs\b/i.test(String(locale || '').trim());
 
 const normalizeNavigationLocale = (locale?: string): 'cs' | 'sk' | 'de' | 'pl' | 'en' => {
   const base = String(locale || 'en').split('-')[0].toLowerCase();
@@ -744,162 +968,6 @@ const getNavigationUiCopy = (locale?: string) => {
   };
 };
 
-const buildPathInsightPanel = (node: PathNode, locale: string): PathInsightPanelContent => {
-  const isCs = localeIsCzech(locale);
-  const primaryRole = node.roleNodes[0] || null;
-  const roleTitle = primaryRole?.title || (isCs ? 'Konkrétní role' : 'Concrete role');
-  const roleSubtitle = primaryRole?.subtitle || (isCs ? 'Role, kterou stojí za to otevřít' : 'A role lane worth opening');
-  const signalText = normalizeRemapQuery([
-    node.title,
-    node.summary,
-    ...node.tags,
-    ...node.roleNodes.slice(0, 4).flatMap((role) => [role.title, role.summary]),
-    ...node.challenges.slice(0, 6).flatMap((challenge) => [
-      challenge.title,
-      challenge.challengeSummary,
-      ...challenge.requiredSkills,
-      ...challenge.topTags,
-    ]),
-  ].join(' '));
-  const supportFlow = /\b(customer support|customer service|support specialist|customer success|helpdesk|service desk|client care)\b/.test(signalText);
-  const operationsFlow = /\b(operations|office manager|front office|service operations|coordinator|back office)\b/.test(signalText);
-  const peopleFlow = /\b(hr|people ops|recruit|talent acquisition|onboarding)\b/.test(signalText);
-  const commercialFlow = /\b(account manager|sales|business development|relationship manager|client partner)\b/.test(signalText);
-  const topSignals = uniqStrings(node.challenges.flatMap((challenge) => [...challenge.requiredSkills, ...challenge.topTags]))
-    .filter((item) => item.length <= 28)
-    .slice(0, 2);
-  const nextRoleTitles = uniqStrings(node.roleNodes.slice(1, 4).map((role) => role.title)).slice(0, 2);
-
-  if (supportFlow) {
-    return {
-      eyebrow: 'Insight panel',
-      title: isCs ? 'Zákaznická podpora' : 'Customer support',
-      body: isCs
-        ? 'Práce s lidmi, řešení problémů v reálném čase.'
-        : 'Working with people and solving problems in real time.',
-      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
-      entryPoints: isCs ? ['Komunikace', 'Jazykové skills'] : ['Communication', 'Language skills'],
-      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
-      nextSteps: ['Customer Success', 'Operations'],
-      roleStatement: isCs
-        ? 'Denně řešíš problémy lidí a vidíš okamžitý dopad.'
-        : 'You solve people problems every day and see immediate impact.',
-      roleTitle,
-      roleSubtitle: isCs ? 'Teď už víš, proč na tuhle roli kliknout.' : 'Now the reason to click is obvious.',
-      footer: isCs
-        ? 'Nejdřív pochopíš směr. Teprve potom otevíráš konkrétní role.'
-        : 'Understand the direction first. Open concrete roles second.',
-    };
-  }
-
-  if (operationsFlow) {
-    return {
-      eyebrow: 'Insight panel',
-      title: isCs ? 'Operations' : 'Operations',
-      body: isCs
-        ? 'Držíš pohromadě provoz, priority a kvalitu bez zbytečného chaosu.'
-        : 'You keep operations, priorities, and service quality aligned without chaos.',
-      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
-      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Koordinace', 'Plánování'] : ['Coordination', 'Planning']),
-      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
-      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['Operations Manager', 'Team Lead'],
-      roleStatement: isCs
-        ? 'Hlídáš tok práce, lidi i detaily, na kterých stojí celý provoz.'
-        : 'You keep work, people, and details moving where the whole operation depends on them.',
-      roleTitle,
-      roleSubtitle,
-      footer: isCs
-        ? 'Panel má vysvětlit logiku směru, ne tě zahltit katalogem.'
-        : 'The panel should explain the direction, not bury you in a catalog.',
-    };
-  }
-
-  if (peopleFlow) {
-    return {
-      eyebrow: 'Insight panel',
-      title: isCs ? 'Práce s lidmi' : 'People path',
-      body: isCs
-        ? 'Tady se komunikace mění v onboarding, podporu týmu a práci s talenty.'
-        : 'This is where communication turns into onboarding, team support, and talent work.',
-      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
-      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Empatie', 'Komunikace'] : ['Empathy', 'Communication']),
-      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
-      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['People Ops', 'Recruiting'],
-      roleStatement: isCs
-        ? 'Máš dopad na to, jak lidé nastupují, rostou a fungují v týmu.'
-        : 'You shape how people join, grow, and function inside a team.',
-      roleTitle,
-      roleSubtitle,
-      footer: isCs
-        ? 'Nejdřív dává smysl pochopit lidskou část role. Nabídky přijdou až potom.'
-        : 'First understand the human side of the role. Offers can come second.',
-    };
-  }
-
-  if (commercialFlow) {
-    return {
-      eyebrow: 'Insight panel',
-      title: isCs ? 'Růst přes vztahy' : 'Relationship growth',
-      body: isCs
-        ? 'Vztahy, důvěra a obchodní cit se tady mění v konkrétní růst.'
-        : 'Relationships, trust, and commercial judgment turn into measurable growth here.',
-      entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
-      entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Komunikace', 'Vyjednávání'] : ['Communication', 'Negotiation']),
-      nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
-      nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : ['Customer Success', 'Account Management'],
-      roleStatement: isCs
-        ? 'Tahle role dává smysl, pokud umíš budovat důvěru a posouvat vztah dopředu.'
-        : 'This role makes sense when you know how to build trust and move a relationship forward.',
-      roleTitle,
-      roleSubtitle,
-      footer: isCs
-        ? 'Klik není o prohlížení katalogu. Je o pochopení, kde je tvoje síla.'
-        : 'The click is not about browsing a catalog. It is about seeing where your edge is.',
-    };
-  }
-
-  return {
-    eyebrow: 'Insight panel',
-    title: node.title,
-    body: isCs
-      ? 'Tady dáváš dohromady, co už umíš, s tím, kde může být další silný krok.'
-      : 'This is where what you already do well connects with the next strong move.',
-    entryLabel: isCs ? 'Nejčastější vstup' : 'Common entry points',
-    entryPoints: topSignals.length > 0 ? topSignals : (isCs ? ['Komunikace', 'Koordinace'] : ['Communication', 'Coordination']),
-    nextLabel: isCs ? 'Kam to vede' : 'Where it leads',
-    nextSteps: nextRoleTitles.length > 0 ? nextRoleTitles : [roleTitle],
-    roleStatement: isCs
-      ? 'Tahle role navazuje na to, co už děláš dobře, a dává tomu jasnější směr.'
-      : 'This role builds on what you already do well and gives it a clearer direction.',
-    roleTitle,
-    roleSubtitle,
-    footer: isCs
-      ? 'Nejdřív pochopíš směr. Pak teprve dává smysl jít do konkrétních nabídek.'
-      : 'Understand the direction first. Then it makes sense to open concrete offers.',
-  };
-};
-
-const uniqStrings = (values: string[]): string[] =>
-  Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)));
-
-const averageNumber = (values: number[]): number => {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-};
-
-const normalizeSkillKey = (value: string): string =>
-  String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const safeImage = (value: string | null | undefined): string | null => {
-  const src = String(value || '').trim();
-  return src || null;
-};
-
 const getCareerOSSidebarCopy = (locale: string) => {
   const language = String(locale || 'en').split('-')[0].toLowerCase();
   const copy = {
@@ -929,7 +997,7 @@ const getCareerOSSidebarCopy = (locale: string) => {
     },
     de: {
       title: 'Ansicht wählen',
-      subtitle: 'Wechseln Sie zwischen Karte, klassischer Liste und weiteren Ebenen, die bei der Entscheidung helfen.',
+      subtitle: 'Wechseln Sie zwischen Karte, klassischer Liste und weiter?n Ebenen, die bei der Entscheidung helfen.',
       layers: {
         career_path: { label: 'Karrierekarte', hint: 'Zeigt Richtungen, Übergänge und wohin eine Rolle führen kann.' },
         marketplace: { label: 'Liste', hint: 'Klassische Stellenliste zum schnellen Durchsehen und Vergleichen.' },
@@ -985,6 +1053,27 @@ const getCareerOSLayerLabel = (t: TFunction, layer: CareerOSLayer, locale: strin
     default:
       return layer;
   }
+};
+
+const uniqStrings = (values: string[]): string[] =>
+  Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)));
+
+const averageNumber = (values: number[]): number => {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
+
+const normalizeSkillKey = (value: string): string =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const safeImage = (value: string | null | undefined): string | null => {
+  const src = String(value || '').trim();
+  return src || null;
 };
 
 const getBenefitLabel = (t: TFunction, benefitKey: string, fallbackLabel?: string): string => {
@@ -1215,92 +1304,90 @@ const buildMarketTrendAnalysis = (
 
 const buildPathNodes = (
   jobs: Job[],
-  challenges: CareerOSChallenge[],
-  userProfile: UserProfile,
+  _challenges: CareerOSChallenge[],
+  _userProfile: UserProfile,
   t: TFunction,
-  selectedDomains: string[] = [],
-  customDomainQuery = '',
+  _selectedDomains: string[] = [],
+  _customDomainQuery = '',
 ): PathNode[] => {
-  const grouped = new Map<string, CareerOSChallenge[]>();
-  const jobsById = new Map(jobs.map((job) => [String(job.id), job]));
-  const preferredDomains = uniqStrings([
-    userProfile.preferences?.searchProfile?.primaryDomain || '',
-    ...(userProfile.preferences?.searchProfile?.secondaryDomains || []),
-  ]);
-  const normalizedCustomDomainQuery = normalizeRemapQuery(customDomainQuery);
+  const buckets = Object.fromEntries(
+    LIFE_DIRECTIONS.map((direction) => [direction.id, [] as Job[]]),
+  ) as Record<string, Job[]>;
 
-  challenges.forEach((challenge) => {
-    if (!challengeMatchesCustomDomainQuery(challenge, normalizedCustomDomainQuery)) return;
-    const fallbackJob = jobsById.get(String(challenge.id)) || null;
-    const domainKey = getChallengePrimaryDomain(challenge, fallbackJob);
-    const bucket = grouped.get(domainKey) || [];
-    bucket.push(challenge);
-    grouped.set(domainKey, bucket);
+  const jobsByRoleFamily = new Map<string, Array<{ job: Job; rankedDirections: Array<{ id: string; score: number }> }>>();
+
+  jobs.forEach((job) => {
+    const rankedDirections = scoreLifeDirectionsForJob(job);
+    if (rankedDirections.length === 0) return;
+    const roleFamily = normalizeRoleClusterTitle(String(job.title || '').trim() || 'unknown role').toLowerCase();
+    const bucket = jobsByRoleFamily.get(roleFamily) || [];
+    bucket.push({ job, rankedDirections });
+    jobsByRoleFamily.set(roleFamily, bucket);
   });
 
-  const rankedDomains = Array.from(grouped.entries())
-    .map(([domainKey, items]) => {
-      const sorted = [...items].sort((left, right) => right.jhiScore - left.jhiScore);
-      const roleNodes = buildRoleNodes(domainKey, sorted, t);
-      const featuredChallenge = sorted[0];
-      const preferenceBoost = selectedDomains.includes(domainKey)
-        ? 60
-        : preferredDomains.includes(domainKey)
-          ? 24
-          : 0;
-      const customQueryBoost = normalizedCustomDomainQuery ? Math.min(24, sorted.length * 4) : 0;
-      const genericPenalty = domainKey === 'general' ? 36 : 0;
+  jobsByRoleFamily.forEach((group) => {
+    const directionStrength = new Map<string, number>();
+
+    group.forEach(({ rankedDirections }) => {
+      rankedDirections.forEach(({ id, score }, index) => {
+        const current = directionStrength.get(id) || 0;
+        directionStrength.set(id, current + score - index * 0.35);
+      });
+    });
+
+    const dominantDirection = Array.from(directionStrength.entries())
+      .sort((left, right) => right[1] - left[1])[0]?.[0];
+
+    if (!dominantDirection) return;
+
+    group.forEach(({ job }) => {
+      buckets[dominantDirection].push(job);
+    });
+  });
+
+  const rankedDirections = LIFE_DIRECTIONS
+    .map((direction) => {
+      const mappedChallenges = (buckets[direction.id] || []).slice(0, 100).map((job) => mapJobToCareerOSChallenge(job));
+      const roleNodes = buildRoleNodes(direction.id, mappedChallenges, t);
+      const featuredChallenge = roleNodes[0]?.featuredChallenge || mappedChallenges[0];
       return {
-        domainKey,
-        items: sorted,
+        direction,
+        items: mappedChallenges,
         roleNodes,
         featuredChallenge,
-        score: averageNumber(sorted.map((item) => item.jhiScore)) + roleNodes.length * 4 + sorted.length + preferenceBoost + customQueryBoost - genericPenalty,
+        score: mappedChallenges.length + roleNodes.length * 4,
       };
     })
     .filter((item) => item.featuredChallenge && item.roleNodes.length > 0)
-    .filter((item) => selectedDomains.length === 0 || selectedDomains.includes(item.domainKey))
-    .filter((item, _, list) => item.domainKey !== 'general' || list.length === 1)
     .sort((left, right) => right.score - left.score)
-    .slice(0, 5);
+    .slice(0, 6);
 
-  const gravitationalLayout = buildGravitationalPathLayout(rankedDomains);
+  const branchingLayout = buildBranchingPathLayout(rankedDirections);
 
-  return rankedDomains.map((cluster, index) => {
-    const layout = gravitationalLayout[index] || { x: 0, y: -250, orbitDistance: 250, gravityPull: 0.4 };
+  return rankedDirections.map((cluster, index) => {
+    const layout = branchingLayout[index] || { x: -150, y: 0, orbitDistance: 150, gravityPull: 0.4 };
     const gravity: PathNode['gravity'] = index < 2 ? 'strong' : 'soft';
-    const domainLabel = getLocalizedDomainLabel(cluster.domainKey, t);
     const topRoleLabels = cluster.roleNodes.slice(0, 2).map((role) => role.title);
+    const visual = directionVisuals[cluster.direction.id] || directionVisuals.less_commuting;
 
     return {
-      id: `domain:${cluster.domainKey}`,
-      domainKey: cluster.domainKey,
-      title: domainLabel,
-      subtitle: t('careeros.map.domain_roles_offers', {
-        defaultValue: '{{roles}} roles · {{offers}} offers',
-        roles: cluster.roleNodes.length,
-        offers: cluster.items.length,
-      }),
-      summary: t('careeros.map.domain_summary', {
-        defaultValue: '{{domain}} split into concrete role lanes based on your current filters and nearby offers.',
-        domain: domainLabel,
-      }),
+      id: 'direction:' + cluster.direction.id,
+      domainKey: cluster.direction.id,
+      directionIcon: cluster.direction.icon,
+      title: cluster.direction.labelCS,
+      subtitle: cluster.roleNodes.length + ' rol\u00ed \u00b7 ' + cluster.items.length + ' nab\u00eddek',
+      summary: cluster.direction.descriptionCS,
       preview: topRoleLabels.length > 0
-        ? t('careeros.map.domain_preview_roles', {
-            defaultValue: 'Top roles: {{roles}}',
-            roles: topRoleLabels.join(' · '),
-          })
-        : t('careeros.map.domain_preview_default', {
-            defaultValue: 'Open this cluster to see role lanes in this direction.',
-          }),
+        ? 'Typick\u00e9 role: ' + topRoleLabels.join(' \u2022 ')
+        : cluster.direction.descriptionCS,
       tags: topRoleLabels.length > 0 ? topRoleLabels : Array.from(new Set(cluster.items.flatMap((item) => item.topTags))).slice(0, 2),
-      tone: averageNumber(cluster.items.map((item) => item.jhiScore)) >= 72 ? 'emerald' : 'orange',
+      tone: visual.tone,
       challengeCount: cluster.items.length,
       gravity,
       featuredChallenge: cluster.featuredChallenge,
       challenges: cluster.items,
       roleNodes: cluster.roleNodes,
-      imageUrl: cluster.featuredChallenge.coverImageUrl || cluster.featuredChallenge.avatarUrl || null,
+      imageUrl: cluster.featuredChallenge?.coverImageUrl || cluster.featuredChallenge?.avatarUrl || null,
       x: layout.x,
       y: layout.y,
       rank: index,
@@ -1311,58 +1398,34 @@ const buildPathNodes = (
   });
 };
 
-const buildOfferNodes = (selectedRole: RoleNode | null) => {
-  if (!selectedRole) return [];
+const buildJobOfferLayerJobs = (jobs: Job[], selectedPath: PathNode | null, selectedRole: RoleNode | null): Job[] => {
+  if (!selectedPath || !selectedRole) return [];
 
-  const unique = Array.from(new Map(selectedRole.challenges.map((challenge) => [challenge.id, challenge])).values())
-    .slice(0, 18);
+  const roleChallengeIds = new Set(selectedRole.challenges.map((challenge) => challenge.id));
+  const normalizedSelectedRole = normalizeRoleClusterTitle(selectedRole.title).toLowerCase();
 
-  return unique.map<OfferNode>((challenge, index, list) => {
-    const total = Math.max(1, list.length);
-    const ringCapacities = [4, 5, 6, 8];
-    let ringIndex = 0;
-    let itemsBeforeRing = 0;
-    while (ringIndex < ringCapacities.length - 1 && index >= itemsBeforeRing + ringCapacities[ringIndex]) {
-      itemsBeforeRing += ringCapacities[ringIndex];
-      ringIndex += 1;
-    }
-    const itemsInRing = Math.min(ringCapacities[ringIndex], total - itemsBeforeRing);
-    const ringPosition = index - itemsBeforeRing;
-    const angle = (ringPosition / Math.max(1, itemsInRing)) * Math.PI * 2 - Math.PI / 2;
-    const baseRadiusX = (total <= 6 ? 210 : total <= 10 ? 235 : 255) + ringIndex * 92 + (ringPosition % 2 === 0 ? 0 : 14);
-    const baseRadiusY = Math.max(170, baseRadiusX * 0.78);
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const labelPlacement =
-      Math.abs(cos) > Math.abs(sin)
-        ? (cos < 0 ? 'left' : 'right')
-        : (sin < 0 ? 'top' : 'bottom');
+  return jobs
+    .map((job) => {
+      const jobId = String(job.id || '');
+      const normalizedJobRole = normalizeRoleClusterTitle(String(job.title || '')).toLowerCase();
+      const isDirectRoleMatch = normalizedJobRole === normalizedSelectedRole;
+      const isRoleChallengeMatch = roleChallengeIds.has(jobId);
+      if (!isDirectRoleMatch && !isRoleChallengeMatch) {
+        return null;
+      }
 
-    return {
-      challenge,
-      x: cos * baseRadiusX,
-      y: sin * baseRadiusY,
-      textPos: cos < 0 ? 'left' : 'right',
-      labelPlacement,
-    };
-  });
-};
+      const score =
+        (isRoleChallengeMatch ? 100 : 0)
+        + (isDirectRoleMatch ? 80 : 0)
+        + Number(job.priorityScore || job.searchScore || job.aiMatchScore || 0)
+        + Math.min(20, Number(job.jhi?.score || 0) / 5);
 
-const buildExpandedClusterChildren = (node: PathNode | null): ExpandedClusterChild[] => {
-  if (!node) return [];
-
-  const visibleRoles = node.roleNodes.slice(0, 8);
-  const layout = buildSideClusterLayout(visibleRoles.length);
-
-  return visibleRoles.map((role, index) => {
-    const slot = layout[index] || { x: 250, y: 0, textPos: 'right' as const };
-    return {
-      role,
-      x: slot.x,
-      y: slot.y,
-      textPos: slot.textPos,
-    };
-  });
+      return { job, score };
+    })
+    .filter((item): item is { job: Job; score: number } => Boolean(item))
+    .sort((left, right) => right.score - left.score)
+    .map((item) => item.job)
+    .slice(0, 60);
 };
 
 const selectLearningRelevantChallenges = (
@@ -1725,6 +1788,132 @@ const NodeImage: React.FC<{
   );
 };
 
+const DirectionNodeMedia: React.FC<{
+  directionKey: string;
+  icon: string;
+  title: string;
+  className?: string;
+}> = ({ directionKey, icon, title, className }) => {
+  const visual = directionVisuals[directionKey] || directionVisuals.less_commuting;
+
+  return (
+    <div className={cn('relative h-full w-full overflow-hidden rounded-full', className)}>
+      <img src={visual.imageUrl} alt={title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+      <div className={cn('absolute inset-0 bg-gradient-to-br opacity-85', visual.gradient)} />
+      <div className="absolute inset-[8px] rounded-full border border-white/25 bg-slate-950/10" />
+      <div className="absolute inset-x-0 top-[10px] flex justify-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950/28 text-[20px] text-white shadow-sm backdrop-blur-md">
+          {icon}
+        </div>
+      </div>
+      <div className="absolute inset-x-[8px] bottom-[8px] rounded-full bg-slate-950/24 px-2 py-1 text-center backdrop-blur-sm">
+        <span className="block truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-white/92">
+          {title}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const roleNodeBadgeStyles: Record<string, { shell: string; core: string; text: string; chip: string }> = {
+  more_time: {
+    shell: 'border-slate-300 bg-gradient-to-br from-slate-50 to-cyan-50 shadow-[0_0_18px_rgba(148,163,184,0.18)]',
+    core: 'from-slate-600 to-cyan-600',
+    text: 'text-slate-700',
+    chip: 'border-slate-200 bg-white text-slate-600',
+  },
+  less_commuting: {
+    shell: 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-[0_0_18px_rgba(34,211,238,0.16)]',
+    core: 'from-cyan-500 to-blue-600',
+    text: 'text-cyan-700',
+    chip: 'border-cyan-200 bg-white text-cyan-700',
+  },
+  more_people: {
+    shell: 'border-orange-300 bg-gradient-to-br from-amber-50 to-rose-50 shadow-[0_0_18px_rgba(251,146,60,0.16)]',
+    core: 'from-orange-500 to-rose-500',
+    text: 'text-orange-700',
+    chip: 'border-orange-200 bg-white text-orange-700',
+  },
+  more_field: {
+    shell: 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-[0_0_18px_rgba(16,185,129,0.16)]',
+    core: 'from-emerald-500 to-teal-600',
+    text: 'text-emerald-700',
+    chip: 'border-emerald-200 bg-white text-emerald-700',
+  },
+  higher_income: {
+    shell: 'border-lime-300 bg-gradient-to-br from-lime-50 to-emerald-50 shadow-[0_0_18px_rgba(132,204,22,0.16)]',
+    core: 'from-lime-500 to-emerald-600',
+    text: 'text-emerald-700',
+    chip: 'border-lime-200 bg-white text-emerald-700',
+  },
+  faster_growth: {
+    shell: 'border-sky-300 bg-gradient-to-br from-sky-50 to-indigo-50 shadow-[0_0_18px_rgba(59,130,246,0.16)]',
+    core: 'from-sky-500 to-indigo-600',
+    text: 'text-sky-700',
+    chip: 'border-sky-200 bg-white text-sky-700',
+  },
+};
+
+const RolePreviewPill: React.FC<{
+  title: string;
+  count: number;
+  directionKey: string;
+  active?: boolean;
+}> = ({ title, count, directionKey, active = false }) => {
+  const style = roleNodeBadgeStyles[directionKey] || roleNodeBadgeStyles.less_commuting;
+
+  return (
+    <div
+      className={cn(
+        'inline-flex max-w-[188px] items-center gap-2 rounded-full border px-3 py-1.5 text-left shadow-sm backdrop-blur-sm transition-transform duration-200',
+        active ? 'translate-x-1 scale-[1.01] ring-2 ring-white shadow-[0_10px_28px_-18px_rgba(15,23,42,0.35)]' : '',
+        style.chip,
+      )}
+      title={title}
+    >
+      <span className={cn('truncate text-[10px] font-semibold', style.text)}>{compactText(title, 24)}</span>
+      <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-950/90 dark:text-slate-200">
+        {count}
+      </span>
+    </div>
+  );
+};
+
+const RoleNodeBadge: React.FC<{
+  title: string;
+  count: number;
+  directionKey: string;
+  active?: boolean;
+}> = ({ title, count, directionKey, active = false }) => {
+  const style = roleNodeBadgeStyles[directionKey] || roleNodeBadgeStyles.less_commuting;
+
+  return (
+    <div
+      className={cn(
+        'relative flex h-[96px] w-[96px] items-center justify-center rounded-full border transition-[border-color,box-shadow,transform] duration-200',
+        style.shell,
+        active ? 'scale-[1.04] ring-2 ring-white shadow-[0_0_28px_rgba(15,23,42,0.18)]' : '',
+      )}
+    >
+      <div
+        className={cn(
+          'flex h-[78px] w-[78px] flex-col items-center justify-center rounded-full bg-gradient-to-br px-1 text-center text-white',
+          style.core,
+        )}
+      >
+        {getRoleNodeMoniker(title).map((line, index) => (
+          <span key={`${title}-${index}`} className={cn(index === 0 ? 'text-[11px] font-bold leading-4' : 'text-[10px] font-semibold leading-3.5')}>
+            {line}
+          </span>
+        ))}
+      </div>
+      <div className={cn('absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-sm', style.chip)}>
+        {count}
+      </div>
+    </div>
+  );
+};
+
 const filterChipClass = 'rounded-full px-3 py-2 text-sm font-semibold transition';
 
 const curatedBenefitOptions: Array<{ key: string; label: string; icon: React.ReactNode }> = [
@@ -1795,14 +1984,14 @@ export const SearchCockpit: React.FC<{
   setFilterMaxDistance,
   transportMode,
   setTransportMode,
-  discoveryMode,
-  setDiscoveryMode,
+  discoveryMode: _discoveryMode,
+  setDiscoveryMode: _setDiscoveryMode,
   filterContractType,
   setFilterContractType,
-  filterExperience,
-  setFilterExperience,
-  filterLanguageCodes,
-  setFilterLanguageCodes,
+  filterExperience: _filterExperience,
+  setFilterExperience: _setFilterExperience,
+  filterLanguageCodes: _filterLanguageCodes,
+  setFilterLanguageCodes: _setFilterLanguageCodes,
   filterBenefits,
   setFilterBenefits,
   benefitCandidates,
@@ -1839,10 +2028,8 @@ export const SearchCockpit: React.FC<{
     + Number(Boolean(globalSearch || abroadOnly || enableCommuteFilter))
     + Number(filterMinSalary > 0)
     + filterContractType.length
-    + filterExperience.length
-    + filterLanguageCodes.length
     + filterBenefits.length
-    + Number(discoveryMode === 'micro_jobs');
+    + Number(transportMode !== 'car');
 
   const selectedWorkArrangement: JobWorkArrangementFilter = remoteOnly ? 'remote' : filterWorkArrangement;
   const geographicScope: 'domestic' | 'border' | 'all' = enableCommuteFilter ? 'border' : (globalSearch || abroadOnly ? 'all' : 'domestic');
@@ -1861,8 +2048,8 @@ export const SearchCockpit: React.FC<{
       >
         <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{t('careeros.filters.title', { defaultValue: 'Advanced Filters' })}</div>
-            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('careeros.filters.subtitle', { defaultValue: 'Reality filters, commute logic and life-fit presets from the shell.' })}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{t('careeros.filters.title', { defaultValue: 'Upresnit hledani' })}</div>
+            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('careeros.filters.subtitle', { defaultValue: 'Jen par jasnych voleb, ktere opravdu meni vysledky.' })}</div>
           </div>
           <div className="flex items-center gap-2">
             {activeFilterCount > 0 ? (
@@ -1876,17 +2063,15 @@ export const SearchCockpit: React.FC<{
                   setEnableCommuteFilter(false);
                   setFilterMinSalary(0);
                   setFilterMaxDistance(50);
-                  setDiscoveryMode('all');
                   setFilterContractType([]);
-                  setFilterExperience([]);
-                  setFilterLanguageCodes([]);
                   setFilterBenefits([]);
+                  setTransportMode('car');
                   activateLiveDiscovery();
                 }}
                 className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/55 px-3 py-2 text-xs font-semibold text-slate-700 backdrop-blur-xl transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                {t('careeros.filters.reset', { defaultValue: 'Reset' })}
+                {t('careeros.filters.reset', { defaultValue: 'Vyčistit' })}
               </button>
             ) : null}
             <button
@@ -1900,84 +2085,31 @@ export const SearchCockpit: React.FC<{
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="mb-4 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.6),rgba(255,255,255,0.28))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
-            <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.presets', { defaultValue: 'Reality presets' })}</div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setDiscoveryMode('all');
-                  setRemoteOnly(false);
-                  setFilterWorkArrangement('all');
-                  activateCommuteRadius(20);
-                }}
-                className={cn(filterChipClass, enableCommuteFilter && filterMaxDistance <= 20 ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-              >
-                <span className="inline-flex items-center gap-2"><TrainFront className="h-4 w-4" /> {t('careeros.filters.presets_less_commute', { defaultValue: 'Less commute, less stress' })}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDiscoveryMode('all');
-                  setRemoteOnly(false);
-                  setGlobalSearch(false);
-                  setAbroadOnly(false);
-                  setFilterWorkArrangement('remote');
-                  setEnableCommuteFilter(false);
-                  activateLiveDiscovery();
-                }}
-                className={cn(filterChipClass, selectedWorkArrangement === 'remote' && !enableCommuteFilter ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-              >
-                <span className="inline-flex items-center gap-2"><Home className="h-4 w-4" /> {t('careeros.filters.presets_remote_first', { defaultValue: 'Remote first' })}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDiscoveryMode('all');
-                  setFilterMinSalary(60000);
-                  activateLiveDiscovery();
-                }}
-                className={cn(filterChipClass, filterMinSalary >= 60000 ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-              >
-                <span className="inline-flex items-center gap-2"><Coins className="h-4 w-4" /> {t('careeros.filters.presets_money_first', { defaultValue: 'Money-first' })}</span>
-              </button>
-            </div>
-          </div>
-
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
             <div className="space-y-3 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.26))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Search' })}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Co hledáte' })}</span>
                   <input
                     value={searchTerm}
                     onChange={(event) => {
                       const nextValue = event.target.value;
                       setSearchTerm(nextValue);
-                      if (nextValue.trim()) {
-                        setRemoteOnly(false);
-                        setFilterWorkArrangement('all');
-                        setEnableCommuteFilter(false);
-                        setGlobalSearch(true);
-                        setAbroadOnly(false);
-                      }
                       activateLiveDiscovery();
                     }}
-                    placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, mission, company' })}
+                    placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, firma nebo klíčové slovo' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.city', { defaultValue: 'City / Location' })}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.city', { defaultValue: 'Kde chcete hledat' })}</span>
                   <input
                     value={filterCity}
                     onChange={(event) => {
                       setFilterCity(event.target.value);
-                      setGlobalSearch(false);
-                      setAbroadOnly(false);
                       activateLiveDiscovery();
                     }}
-                    placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'Prague, Vienna...' })}
+                    placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'Město, region nebo práce na dálku' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </label>
@@ -1986,7 +2118,7 @@ export const SearchCockpit: React.FC<{
               <div className="grid gap-3 md:grid-cols-[1.15fr_0.85fr]">
                 <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
                   <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                    <span>{t('careeros.filters.commute_distance', { defaultValue: 'Commute Distance' })}</span>
+                    <span>{t('careeros.filters.commute_distance', { defaultValue: 'Dojezdova vzdalenost' })}</span>
                     <span className="text-cyan-600">{filterMaxDistance} km</span>
                   </div>
                   <input
@@ -2010,7 +2142,7 @@ export const SearchCockpit: React.FC<{
                         !enableCommuteFilter ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
                       )}
                     >
-                      {t('careeros.filters.off', { defaultValue: 'Off' })}
+                      {t('careeros.filters.off', { defaultValue: 'Vypnout' })}
                     </button>
                     {[20, 50, 80].map((value) => (
                       <button
@@ -2029,33 +2161,54 @@ export const SearchCockpit: React.FC<{
                 </div>
 
                 <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.scope', { defaultValue: 'Scope' })}</div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[
-                      { id: 'all' as const, label: t('careeros.filters.scope_all', { defaultValue: 'All challenges' }) },
-                      { id: 'micro_jobs' as const, label: t('careeros.filters.scope_mini', { defaultValue: 'Mini challenges' }) },
-                    ].map((item) => (
-                      <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setDiscoveryMode(item.id);
-                        activateLiveDiscovery();
-                      }}
-                      className={cn(
-                          filterChipClass,
-                          discoveryMode === item.id ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
-                        )}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope', { defaultValue: 'Kde hledat' })}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope_desc', { defaultValue: 'Zaklad je vzdy domaci trh. Prihranici a zahranici se zapina jen kdyz to opravdu chcete.' })}</div>
+                  <div className="mt-3 grid gap-2">
+                    {([
+                      ['domestic', t('careeros.filters.scope_domestic', { defaultValue: 'Jen domaci trh' })],
+                      ['border', t('careeros.filters.scope_border', { defaultValue: 'I prihranici' })],
+                      ['all', t('careeros.filters.scope_all_markets', { defaultValue: 'I zahranici' })],
+                    ] as Array<['domestic' | 'border' | 'all', string]>).map(([value, label]) => {
+                      const active = geographicScope === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            if (value === 'domestic') {
+                              setGlobalSearch(false);
+                              setAbroadOnly(false);
+                              setEnableCommuteFilter(false);
+                              activateLiveDiscovery();
+                              return;
+                            }
+                            if (value === 'border') {
+                              setGlobalSearch(false);
+                              setAbroadOnly(false);
+                              setEnableCommuteFilter(true);
+                              activateLiveDiscovery();
+                              return;
+                            }
+                            setGlobalSearch(true);
+                            setAbroadOnly(false);
+                            setEnableCommuteFilter(false);
+                            activateLiveDiscovery();
+                          }}
+                          className={cn(
+                            'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition',
+                            active ? 'border-cyan-500 bg-cyan-600 text-white shadow-[0_18px_36px_-24px_rgba(8,145,178,0.8)]' : filterChipInactiveClass,
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Transport mode' })}</div>
+                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Jak dojíždíte' })}</div>
                 <TransportModeSelector
                   selectedMode={transportMode}
                   onModeChange={(value) => {
@@ -2067,7 +2220,7 @@ export const SearchCockpit: React.FC<{
               </div>
 
               <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.comp_floor', { defaultValue: 'Comp floor' })}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.comp_floor', { defaultValue: 'Minimální odměna' })}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[0, 40000, 60000, 90000].map((value) => (
                     <button
@@ -2082,7 +2235,7 @@ export const SearchCockpit: React.FC<{
                           filterMinSalary === value ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
                       )}
                     >
-                      {value === 0 ? t('careeros.filters.any', { defaultValue: 'Any' }) : value.toLocaleString()}
+                      {value === 0 ? t('careeros.filters.any', { defaultValue: 'Bez minima' }) : value.toLocaleString()}
                     </button>
                   ))}
                 </div>
@@ -2090,178 +2243,86 @@ export const SearchCockpit: React.FC<{
             </div>
 
             <div className="space-y-3 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.26))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
-            <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement', { defaultValue: 'Typ práce' })}</div>
-              <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement_desc', { defaultValue: 'Vyber, jestli chceš hlavně práci na dálku, na místě nebo něco mezi tím.' })}</div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {([
-                  ['remote', t('careeros.filters.arrangement_remote', { defaultValue: 'Remote' })],
-                  ['onsite', t('careeros.filters.arrangement_onsite', { defaultValue: 'On-site' })],
-                  ['hybrid', t('careeros.filters.arrangement_hybrid', { defaultValue: 'Hybrid' })],
-                ] as Array<[JobWorkArrangementFilter, string]>).map(([value, label]) => {
-                  const active = selectedWorkArrangement === value;
+              <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement', { defaultValue: 'Jak chcete pracovat' })}</div>
+                <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement_desc', { defaultValue: 'Jen to, co opravdu chcete videt: remote, onsite nebo neco mezi tim.' })}</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {([
+                    ['remote', t('careeros.filters.arrangement_remote', { defaultValue: 'Remote' })],
+                    ['onsite', t('careeros.filters.arrangement_onsite', { defaultValue: 'Na miste' })],
+                    ['hybrid', t('careeros.filters.arrangement_hybrid', { defaultValue: 'Hybrid' })],
+                  ] as Array<[JobWorkArrangementFilter, string]>).map(([value, label]) => {
+                    const active = selectedWorkArrangement === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          setRemoteOnly(false);
+                          setFilterWorkArrangement(active ? 'all' : value);
+                          activateLiveDiscovery();
+                        }}
+                        className={cn(
+                          'rounded-2xl border px-4 py-3 text-sm font-semibold transition',
+                          active ? 'border-cyan-500 bg-cyan-600 text-white shadow-[0_18px_36px_-24px_rgba(8,145,178,0.8)]' : filterChipInactiveClass,
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.contract_type', { defaultValue: 'Typ spoluprace' })}</div>
+              <div className="flex flex-wrap gap-2">
+                {['employee', 'contractor'].map((value) => {
+                  const active = filterContractType.includes(value);
                   return (
                     <button
                       key={value}
                       type="button"
                       onClick={() => {
-                        setRemoteOnly(false);
-                        setFilterWorkArrangement(active ? 'all' : value);
-                        activateLiveDiscovery();
-                      }}
-                      className={cn(
-                        'rounded-2xl border px-4 py-3 text-sm font-semibold transition',
-                        active ? 'border-cyan-500 bg-cyan-600 text-white shadow-[0_18px_36px_-24px_rgba(8,145,178,0.8)]' : filterChipInactiveClass,
-                      )}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope', { defaultValue: 'Kde hledat' })}</div>
-              <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope_desc', { defaultValue: 'Domácí trh drží jen místní nabídky, příhraničí hlídá dojezd a vše pustí i širší okolí.' })}</div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {([
-                  ['domestic', t('careeros.filters.scope_domestic', { defaultValue: 'Domácí trh' })],
-                  ['border', t('careeros.filters.scope_border', { defaultValue: 'Příhraničí' })],
-                  ['all', t('careeros.filters.scope_all_markets', { defaultValue: 'Vše' })],
-                ] as Array<['domestic' | 'border' | 'all', string]>).map(([value, label]) => {
-                  const active = geographicScope === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setAbroadOnly(false);
-                        if (value === 'domestic') {
-                          setGlobalSearch(false);
-                          setEnableCommuteFilter(false);
-                          activateLiveDiscovery();
-                          return;
-                        }
-                        if (value === 'border') {
-                          setGlobalSearch(false);
-                          setEnableCommuteFilter(true);
-                          activateLiveDiscovery();
-                          return;
-                        }
-                        setGlobalSearch(true);
-                        setEnableCommuteFilter(false);
-                        activateLiveDiscovery();
-                      }}
-                      className={cn(
-                        'rounded-2xl border px-4 py-3 text-sm font-semibold transition',
-                        active ? 'border-cyan-500 bg-cyan-600 text-white shadow-[0_18px_36px_-24px_rgba(8,145,178,0.8)]' : filterChipInactiveClass,
-                      )}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.contract_type', { defaultValue: 'Contract type' })}</div>
-            <div className="flex flex-wrap gap-2">
-              {['employee', 'contractor'].map((value) => {
-                const active = filterContractType.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      {
                         setFilterContractType(active ? filterContractType.filter((item) => item !== value) : [...filterContractType, value]);
                         activateLiveDiscovery();
-                      }
-                    }
-                    className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-                  >
-                    {value === 'employee' ? t('careeros.filters.employee', { defaultValue: 'Employee' }) : t('careeros.filters.contractor', { defaultValue: 'Contractor' })}
-                  </button>
-                );
-              })}
-            </div>
+                      }}
+                      className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
+                    >
+                      {value === 'employee' ? t('careeros.filters.employee', { defaultValue: 'HPP / zamestnani' }) : t('careeros.filters.contractor', { defaultValue: 'ICO / kontrakt' })}
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.experience', { defaultValue: 'Experience' })}</div>
-            <div className="flex flex-wrap gap-2">
-              {['junior', 'medior', 'senior'].map((value) => {
-                const active = filterExperience.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      {
-                        setFilterExperience(active ? filterExperience.filter((item) => item !== value) : [...filterExperience, value]);
-                        activateLiveDiscovery();
-                      }
-                    }
-                    className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-                  >
-                    {t(`careeros.filters.experience_levels.${value}`, { defaultValue: titleCase(value) })}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.languages', { defaultValue: 'Languages' })}</div>
-            <div className="flex flex-wrap gap-2">
-              {(['cs', 'en', 'de', 'pl', 'sk'] as SearchLanguageCode[]).map((value) => {
-                const active = filterLanguageCodes.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      {
-                        setFilterLanguageCodes(active ? filterLanguageCodes.filter((item) => item !== value) : [...filterLanguageCodes, value]);
-                        activateLiveDiscovery();
-                      }
-                    }
-                    className={cn(filterChipClass, active ? 'bg-cyan-600 text-white' : filterChipInactiveClass)}
-                  >
-                    {value.toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.life_benefits', { defaultValue: 'Life & benefits' })}</div>
-            <div className="flex flex-wrap gap-2">
-              {combinedBenefits.map((benefit) => {
-                const active = filterBenefits.includes(benefit.key);
-                return (
-                  <button
-                    key={benefit.key}
-                    type="button"
-                    onClick={() =>
-                      {
+              <div className="pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.life_benefits', { defaultValue: 'Co musi sedet v realnem zivote' })}</div>
+              <div className="flex flex-wrap gap-2">
+                {combinedBenefits.map((benefit) => {
+                  const active = filterBenefits.includes(benefit.key);
+                  return (
+                    <button
+                      key={benefit.key}
+                      type="button"
+                      onClick={() => {
                         setFilterBenefits(active ? filterBenefits.filter((item) => item !== benefit.key) : [...filterBenefits, benefit.key]);
                         activateLiveDiscovery();
-                      }
-                    }
-                    className={cn(
-                      filterChipClass,
-                      active ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
-                    )}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      {benefit.icon}
-                      {getBenefitLabel(t, benefit.key, benefit.label)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      }}
+                      className={cn(
+                        filterChipClass,
+                        active ? 'bg-cyan-600 text-white' : filterChipInactiveClass,
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        {benefit.icon}
+                        {getBenefitLabel(t, benefit.key, benefit.label)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-200">
-              {t('careeros.filters.live_apply', { defaultValue: 'Filters apply live as you type or click.' })}
-            </div>
+              <div className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-200">
+                {t('careeros.filters.live_apply', { defaultValue: 'Vysledky se meni hned podle toho, co si opravdu zvolite. Zadna skryta logika navic.' })}
+              </div>
             </div>
           </div>
         </div>
@@ -2418,13 +2479,13 @@ const DomainRemapPanel: React.FC<{
   const activeFilterCount = manualDomainSelection.length + (manualDomainQuery.trim() ? 1 : 0);
 
   return (
-    <div className={cn('rounded-[24px] border border-slate-200/80 bg-white/92 p-4 shadow-[0_22px_58px_-30px_rgba(15,23,42,0.48)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-950/88 dark:shadow-[0_28px_70px_-34px_rgba(2,6,23,0.82)]', className)}>
+    <div className={cn('rounded-[22px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_22px_58px_-34px_rgba(15,23,42,0.34)] backdrop-blur-xl dark:border-slate-800/90 dark:bg-slate-950/88 dark:shadow-[0_28px_70px_-34px_rgba(2,6,23,0.82)]', className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
             {t('careeros.map.remap_title', { defaultValue: 'Remap directions' })}
           </div>
-          <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          <div className="mt-1 max-w-[16rem] text-xs leading-5 text-slate-500 dark:text-slate-400">
             {t('careeros.map.remap_body', { defaultValue: 'Useful mainly for guests or whenever you want to steer the map toward specific domains.' })}
           </div>
         </div>
@@ -2502,7 +2563,7 @@ const DomainRemapPanel: React.FC<{
           </div>
         </>
       ) : (
-        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
           {activeFilterCount > 0
             ? t('careeros.map.remap_active', { defaultValue: '{{count}} filters active', count: activeFilterCount })
             : t('careeros.map.remap_system_default', { defaultValue: 'System default is active' })}
@@ -2511,15 +2572,17 @@ const DomainRemapPanel: React.FC<{
     </div>
   );
 };
+void DomainRemapPanel;
 
 const Navbar: React.FC<any> = () => null;
 
-const CareerPathStage: React.FC<{
+const LegacyCareerPathStage: React.FC<{
   userLabel: string;
   headline: string;
   userProfilePhoto: string | null;
   isGuest: boolean;
   formattedJobsCount: string;
+  formattedMappedPoolCount: string;
   formattedActiveCandidates: string;
   nodes: PathNode[];
   selectedPathId: string | null;
@@ -2541,25 +2604,26 @@ const CareerPathStage: React.FC<{
   setManualDomainQuery: React.Dispatch<React.SetStateAction<string>>;
   navigationRoute: CareerNavigationRoute | null;
   onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
+  expandedRoleOfferCounts: Record<string, number>;
   interactive?: boolean;
-}> = ({ userLabel, headline, userProfilePhoto, isGuest, formattedJobsCount, formattedActiveCandidates, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, navigationRoute, onOpenAuth, interactive = true }) => {
+}> = ({ userLabel, headline, userProfilePhoto, isGuest, formattedJobsCount, formattedMappedPoolCount, formattedActiveCandidates, nodes, selectedPathId, expandedPathId, activeClusterRoleId, zoom, setZoom, onNodeClick, onClusterRoleClick, onOpenOfferLayer, onCollapseCluster, showDefaultHud, remapOpen, setRemapOpen, availableDomains, manualDomainSelection, setManualDomainSelection, manualDomainQuery, setManualDomainQuery, navigationRoute, onOpenAuth, expandedRoleOfferCounts, interactive = true }) => {
   const { t, i18n } = useTranslation();
   const locale = String(i18n.resolvedLanguage || i18n.language || 'en').split('-')[0].toLowerCase();
-  const expandedNode = nodes.find((node) => node.id === expandedPathId) || null;
-  const expandedChildren = useMemo(() => buildExpandedClusterChildren(expandedNode), [expandedNode]);
-  const orbitGuides = useMemo(
-    () =>
-      nodes
-        .map((node) => ({
-          id: node.id,
-          orbitDistance: node.orbitDistance,
-          gravityPull: node.gravityPull,
-          active: selectedPathId === node.id,
-        }))
-        .sort((left, right) => left.orbitDistance - right.orbitDistance),
-    [nodes, selectedPathId],
-  );
-  const remainingExpandedCount = expandedNode ? Math.max(0, expandedNode.roleNodes.length - expandedChildren.length) : 0;
+  void formattedActiveCandidates;
+  void expandedPathId;
+  void onOpenOfferLayer;
+  void onCollapseCluster;
+  void remapOpen;
+  void setRemapOpen;
+  void availableDomains;
+  void manualDomainSelection;
+  void setManualDomainSelection;
+  void manualDomainQuery;
+  void setManualDomainQuery;
+  void navigationRoute;
+  const expandedNode: any = null;
+  const expandedChildren: any[] = [];
+  const remainingExpandedCount = 0;
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
@@ -2605,6 +2669,7 @@ const CareerPathStage: React.FC<{
               body: 'Create your profile to see roles, directions, and next steps arranged around you.',
               cta: 'Get started',
             };
+  const mapStartPoint = { x: -560, y: 0 };
   const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!interactive) return;
     event.preventDefault();
@@ -2651,40 +2716,49 @@ const CareerPathStage: React.FC<{
     }
   };
 
+  const selectedInlineRoles = useMemo(() => {
+    const selectedNode = nodes.find((node) => node.id === selectedPathId) || null;
+    if (!selectedNode) return [];
+    const roles = selectedNode.roleNodes.slice(0, 4);
+    const startY = selectedNode.y - ((roles.length - 1) * 56) / 2;
+    return roles.map((role, index) => ({
+      role,
+      directionKey: selectedNode.domainKey,
+      x: selectedNode.x + 270 + Math.max(0, index - 1) * 12,
+      y: startY + index * 56,
+      count: expandedRoleOfferCounts[role.id] ?? role.challengeCount,
+      sourceNode: selectedNode,
+    }));
+  }, [expandedRoleOfferCounts, nodes, selectedPathId]);
+
   const defaultHud = !expandedNode && showDefaultHud ? (
-    <div className="pointer-events-none absolute right-6 top-6 z-[36] min-w-[240px] rounded-[18px] border border-white/70 bg-white/92 px-4 py-3 text-right shadow-sm backdrop-blur-md dark:border-cyan-500/20 dark:bg-slate-950/96 dark:shadow-[0_22px_52px_-34px_rgba(2,6,23,0.88)]">
+    <div className="pointer-events-none absolute right-4 top-10 z-[36] min-w-[248px] max-w-[248px] rounded-[22px] border border-white/70 bg-white/90 px-4 py-4 text-right shadow-[0_24px_60px_-38px_rgba(15,23,42,0.22)] backdrop-blur-xl dark:border-cyan-500/20 dark:bg-slate-950/94 dark:shadow-[0_22px_52px_-34px_rgba(2,6,23,0.88)] xl:right-6">
       <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-        {t('careeros.map.title', { defaultValue: 'Neural Career Map' })}
+        {t('careeros.map.title', { defaultValue: 'Va\u0161e kari\u00e9rn\u00ed mapa' })}
       </div>
-      <div className="mt-3 grid gap-2">
-        <div className="rounded-2xl border border-slate-200/80 bg-white/84 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/96">
+      <div className="mt-3">
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/84 px-3.5 py-3 dark:border-slate-700/80 dark:bg-slate-900/96">
           <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedJobsCount}</div>
-          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
+          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
             {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
           </div>
           <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
             {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
           </div>
-        </div>
-        <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/76 px-3 py-2 dark:border-cyan-500/30 dark:bg-slate-900 dark:shadow-[0_14px_30px_-22px_rgba(8,145,178,0.45)]">
-          <div className="flex items-center justify-end gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)] dark:bg-cyan-300 dark:shadow-[0_0_0_4px_rgba(103,232,249,0.16)]" />
-            <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedActiveCandidates}</div>
-          </div>
-          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
-            {t('workspace.feed.stats_live_label', { defaultValue: 'Právě ve výzvách' })}
-          </div>
-          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
-            {t('workspace.feed.stats_live_body', { defaultValue: 'Počet uchazečů online' })}
+          <div className="mt-3 rounded-2xl bg-slate-50/90 px-3 py-2 text-left dark:bg-slate-900/72">
+            <div className="text-[16px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedMappedPoolCount}</div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              {t('careeros.map.pool_label', { defaultValue: 'V aktivním poolu mapy' })}
+            </div>
           </div>
         </div>
       </div>
     </div>
   ) : null;
   const guestCenterOverlay = isGuest ? (
-    <div className="pointer-events-none absolute left-1/2 top-1/2 z-[34] -translate-x-1/2 -translate-y-1/2">
-      <div className="relative h-[148px] w-[148px]">
-        <motion.button
+    <div className="pointer-events-none absolute left-1/2 top-1/2 z-[34] -translate-y-1/2" style={{ transform: `translate(calc(-50% + ${mapStartPoint.x}px), -50%)` }}>
+      <div className="relative h-[120px] w-[120px]">
+        <button
           type="button"
           aria-label={guestCenterCopy.title}
           onPointerDown={(event) => {
@@ -2694,40 +2768,35 @@ const CareerPathStage: React.FC<{
             event.stopPropagation();
             void onOpenAuth('register');
           }}
-          whileHover={{ scale: 1.018 }}
-          transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-          className="pointer-events-auto group relative flex h-[148px] w-[148px] items-center justify-center rounded-full"
+          className="pointer-events-auto group relative flex h-[120px] w-[120px] items-center justify-center rounded-full"
         >
           <span
             aria-hidden="true"
-            style={{ animation: 'careeros-soft-breathe 11s ease-in-out infinite', willChange: 'transform, opacity' }}
-            className="pointer-events-none absolute inset-[-40px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_74%)] blur-3xl transform-gpu dark:bg-[radial-gradient(circle,rgba(255,255,255,0.08),rgba(34,211,238,0.08),transparent_74%)]"
+            className="pointer-events-none absolute inset-[-28px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.2),rgba(34,211,238,0.08),transparent_74%)] blur-2xl dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),rgba(34,211,238,0.08),transparent_74%)]"
           />
           <span className="pointer-events-none absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
           <span className="pointer-events-none absolute inset-[0px] rounded-full border border-transparent border-b-slate-300/34 border-l-slate-300/24 dark:border-b-slate-700/60 dark:border-l-slate-700/44" />
           <span
             aria-hidden="true"
-            style={{ animation: 'careeros-ring-breathe 9.5s ease-in-out infinite', willChange: 'transform, opacity' }}
-            className="pointer-events-none absolute inset-[14px] rounded-full border-[1.5px] border-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.88),inset_0_0_18px_rgba(255,255,255,0.18),0_0_0_1px_rgba(255,255,255,0.88),0_0_18px_rgba(255,255,255,0.44),0_0_44px_rgba(255,255,255,0.28),0_0_88px_rgba(34,211,238,0.24)] backdrop-blur-[2px] transform-gpu dark:border-white/36 dark:bg-slate-950/10 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2),inset_0_0_18px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.2),0_0_14px_rgba(255,255,255,0.1),0_0_38px_rgba(255,255,255,0.08),0_0_94px_rgba(34,211,238,0.2)]"
+            className="pointer-events-none absolute inset-[14px] rounded-full border-[1.5px] border-white bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.88),0_0_0_1px_rgba(255,255,255,0.6),0_0_26px_rgba(34,211,238,0.14)] backdrop-blur-[2px] dark:border-white/28 dark:bg-slate-950/10 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),0_0_0_1px_rgba(255,255,255,0.16),0_0_24px_rgba(34,211,238,0.16)]"
           />
-          <span className="pointer-events-none absolute inset-[12px] rounded-full border border-white/42 opacity-95 blur-[1.2px] dark:border-cyan-100/24" />
-          <span className="pointer-events-none absolute inset-[16px] rounded-full border border-white/30 opacity-90 dark:border-white/10" />
-          <span className="pointer-events-none absolute inset-[36px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),transparent_72%)]" />
-          <span className="pointer-events-none absolute right-[22px] top-[28px] h-1.5 w-1.5 rounded-full bg-cyan-300/56 dark:bg-cyan-200/48" />
-          <span className="pointer-events-none absolute left-[26px] top-[80px] h-1.5 w-1.5 rounded-full bg-slate-300/56 dark:bg-slate-600/64" />
+          <span className="pointer-events-none absolute inset-[14px] rounded-full border border-white/30 opacity-90 dark:border-white/10" />
+          <span className="pointer-events-none absolute inset-[30px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),transparent_72%)]" />
+          <span className="pointer-events-none absolute right-[20px] top-[24px] h-1.5 w-1.5 rounded-full bg-cyan-300/56 dark:bg-cyan-200/48" />
+          <span className="pointer-events-none absolute left-[22px] top-[68px] h-1.5 w-1.5 rounded-full bg-slate-300/56 dark:bg-slate-600/64" />
           <span className="relative z-10 flex h-full items-center justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/62 bg-white/58 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-colors duration-200 group-hover:border-cyan-200/80 group-hover:text-cyan-700 dark:border-slate-700/68 dark:bg-slate-950/56 dark:text-slate-300 dark:group-hover:border-cyan-500/28 dark:group-hover:text-cyan-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/62 bg-white/58 px-3 py-1.5 text-[10px] font-semibold text-slate-600 shadow-sm transition-colors duration-200 group-hover:border-cyan-200/80 group-hover:text-cyan-700 dark:border-slate-700/68 dark:bg-slate-950/56 dark:text-slate-300 dark:group-hover:border-cyan-500/28 dark:group-hover:text-cyan-200">
               {guestCenterCopy.cta}
               <ChevronRight className="h-3.5 w-3.5 text-cyan-500/90 dark:text-cyan-300/90" />
             </span>
           </span>
-        </motion.button>
-        <div className="absolute left-1/2 top-[calc(100%+16px)] w-[280px] -translate-x-1/2 rounded-[24px] border border-white/60 bg-white/92 px-5 py-4 text-center shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/92 dark:shadow-[0_28px_90px_-40px_rgba(2,6,23,0.82)]">
+        </button>
+        <div className="absolute left-1/2 top-[calc(100%+14px)] w-[236px] -translate-x-1/2 rounded-[22px] border border-white/60 bg-white/92 px-4 py-3.5 text-center shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/92 dark:shadow-[0_28px_90px_-40px_rgba(2,6,23,0.82)]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
             {guestCenterCopy.badge}
           </div>
-          <div className="mt-2 text-[16px] font-bold leading-tight text-slate-900 dark:text-slate-100">{guestCenterCopy.title}</div>
-          <div className="mt-2 text-[13px] leading-6 text-slate-600 dark:text-slate-300">{guestCenterCopy.body}</div>
+          <div className="mt-2 text-[14px] font-bold leading-tight text-slate-900 dark:text-slate-100">{guestCenterCopy.title}</div>
+          <div className="mt-2 text-[12px] leading-5 text-slate-600 dark:text-slate-300">{compactText(guestCenterCopy.body, 78)}</div>
         </div>
       </div>
     </div>
@@ -2749,7 +2818,7 @@ const CareerPathStage: React.FC<{
   >
     <StageBackground accent="emerald" />
     <div className="absolute inset-0">
-      <div className={cn('absolute inset-0 transition-all duration-300', expandedNode ? 'scale-[0.98] opacity-20 blur-[2px]' : '')}>
+      <div className="absolute inset-0">
         <div
           className="absolute inset-0"
           style={{
@@ -2758,134 +2827,124 @@ const CareerPathStage: React.FC<{
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
-          <defs>
-            <filter id="careeros-path-line-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          {orbitGuides.map((orbit, index) => (
-            <circle
-              key={`orbit-${orbit.id}`}
-              cx="0"
-              cy="0"
-              r={orbit.orbitDistance}
-              fill="none"
-              stroke={orbit.active ? 'rgba(34,211,238,0.32)' : 'rgba(148,163,184,0.16)'}
-              strokeWidth={orbit.active ? '1.3' : '0.9'}
-              strokeDasharray={orbit.active ? '5 10' : '4 12'}
-              opacity={Math.max(0.18, 0.42 - index * 0.05 + orbit.gravityPull * 0.08)}
-            />
-          ))}
-          {routeWaypoints.length > 1 ? (
-            <g>
-              {routeWaypoints.slice(1).map((point, index) => {
-                const previousPoint = routeWaypoints[index];
+            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-1100 -620 2200 1240">
+              <defs>
+                <filter id="careeros-path-line-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {routeWaypoints.length > 1 ? (
+                <g>
+                  {routeWaypoints.slice(1).map((point, index) => {
+                    const previousPoint = routeWaypoints[index];
+                    return (
+                      <g key={`route-line-${point.id}`}>
+                        <line
+                          x1={previousPoint.x}
+                          y1={previousPoint.y}
+                          x2={point.x}
+                          y2={point.y}
+                          stroke="rgba(34,211,238,0.68)"
+                          strokeWidth="3.2"
+                          strokeLinecap="round"
+                          opacity="0.78"
+                        />
+                        <line
+                          x1={previousPoint.x}
+                          y1={previousPoint.y}
+                          x2={point.x}
+                          y2={point.y}
+                          stroke="rgba(255,255,255,0.7)"
+                          strokeWidth="1.15"
+                          strokeDasharray="7 10"
+                          strokeDashoffset="34"
+                          strokeLinecap="round"
+                          opacity="0.75"
+                        >
+                          <animate
+                            attributeName="stroke-dashoffset"
+                            from="34"
+                            to="0"
+                            dur="1.15s"
+                            begin={`${index * 0.08}s`}
+                            repeatCount="indefinite"
+                          />
+                        </line>
+                      </g>
+                    );
+                  })}
+                </g>
+              ) : null}
+              {nodes.map((node) => {
+                const tone = toneClasses[node.tone];
+                const active = selectedPathId === node.id;
+                const strong = node.gravity === 'strong';
+                const elevated = strong || hoveredPathId === node.id || active;
+                const nodeStartX = mapStartPoint.x + 138;
+                const branchJointX = node.x - 124;
                 return (
-                  <g key={`route-line-${point.id}`}>
-                    <line
-                      x1={previousPoint.x}
-                      y1={previousPoint.y}
-                      x2={point.x}
-                      y2={point.y}
-                      stroke="rgba(34,211,238,0.68)"
-                      strokeWidth="3.2"
+                  <g key={`line-${node.id}`}>
+                    <path
+                      d={`M ${nodeStartX} ${mapStartPoint.y} C ${nodeStartX + 110} ${mapStartPoint.y}, ${branchJointX - 54} ${node.y}, ${branchJointX} ${node.y}`}
+                      fill="none"
+                      stroke={tone.line}
+                      strokeWidth={elevated ? 3.1 : 2.1}
+                      opacity={elevated ? 0.88 : 0.52}
+                      filter="url(#careeros-path-line-glow)"
                       strokeLinecap="round"
-                      opacity="0.78"
                     />
-                    <line
-                      x1={previousPoint.x}
-                      y1={previousPoint.y}
-                      x2={point.x}
-                      y2={point.y}
-                      stroke="rgba(255,255,255,0.7)"
-                      strokeWidth="1.15"
-                      strokeDasharray="7 10"
-                      strokeDashoffset="34"
+                    <path
+                      d={`M ${nodeStartX} ${mapStartPoint.y} C ${nodeStartX + 110} ${mapStartPoint.y}, ${branchJointX - 54} ${node.y}, ${branchJointX} ${node.y}`}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.72)"
+                      strokeWidth="1.25"
+                      strokeDasharray="8 10"
+                      opacity={elevated ? 0.76 : 0.36}
+                      style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
                       strokeLinecap="round"
-                      opacity="0.75"
-                    >
-                      <animate
-                        attributeName="stroke-dashoffset"
-                        from="34"
-                        to="0"
-                        dur="1.15s"
-                        begin={`${index * 0.08}s`}
-                        repeatCount="indefinite"
-                      />
-                    </line>
+                    />
                   </g>
                 );
               })}
-              {routeWaypoints.filter((point) => point.kind !== 'current').map((point) => (
-                <g
-                  key={`route-point-${point.id}`}
-                  transform={`translate(${point.x} ${point.y})`}
-                  style={{ animation: 'careeros-route-pulse 1.6s ease-in-out infinite' }}
-                >
-                  <circle r="28" fill={point.kind === 'target' ? 'rgba(16,185,129,0.18)' : 'rgba(56,189,248,0.14)'} />
-                  <circle
-                    r="18"
-                    fill={point.kind === 'target' ? 'rgba(16,185,129,0.92)' : 'rgba(14,165,233,0.9)'}
-                    stroke="rgba(255,255,255,0.92)"
-                    strokeWidth="3"
-                  />
-                  <circle r="7" fill="rgba(255,255,255,0.98)" />
-                </g>
-              ))}
-            </g>
-          ) : null}
-          {nodes.map((node) => {
-            const dist = Math.hypot(node.x, node.y) || 1;
-            const dx = node.x / dist;
-            const dy = node.y / dist;
-            const tone = toneClasses[node.tone];
-            const strong = node.gravity === 'strong';
-            const elevated = strong || hoveredPathId === node.id || selectedPathId === node.id;
-            const lineOpacity = Math.min(0.36, 0.12 + node.gravityPull * 0.14);
-            const pulseOpacity = Math.min(0.92, 0.34 + node.gravityPull * 0.44);
-            const baseStrokeWidth = 1 + node.gravityPull * 0.55;
-            const pulseStrokeWidth = 1.6 + node.gravityPull * 1.15;
-
-            return (
-              <g key={`line-${node.id}`}>
-                <line
-                  x1={dx * 84}
-                  y1={dy * 84}
-                  x2={dx * (dist - 52)}
-                  y2={dy * (dist - 52)}
-                  stroke={tone.line}
-                  strokeWidth={elevated ? baseStrokeWidth + 0.3 : baseStrokeWidth}
-                  opacity={elevated ? lineOpacity + 0.06 : lineOpacity}
-                />
-                <line
-                  x1={dx * 84}
-                  y1={dy * 84}
-                  x2={dx * (dist - 52)}
-                  y2={dy * (dist - 52)}
-                  stroke={tone.line}
-                  strokeWidth={elevated ? pulseStrokeWidth + 0.35 : pulseStrokeWidth}
-                  strokeDasharray="8 8"
-                  filter="url(#careeros-path-line-glow)"
-                  opacity={elevated ? Math.min(0.98, pulseOpacity + 0.08) : pulseOpacity}
-                  style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
-                />
-              </g>
-            );
-          })}
+              {selectedInlineRoles.map((item) => {
+                const tone = toneClasses[item.sourceNode.tone];
+                const startX = item.sourceNode.x + 54;
+                const branchJoinX = item.x - 68;
+                return (
+                  <g key={`role-line-inline-${item.role.id}`}>
+                    <path
+                      d={`M ${startX} ${item.sourceNode.y} C ${startX + 56} ${item.sourceNode.y}, ${branchJoinX - 28} ${item.y}, ${branchJoinX} ${item.y}`}
+                      fill="none"
+                      stroke={tone.line}
+                      strokeWidth="1.9"
+                      opacity="0.46"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d={`M ${startX} ${item.sourceNode.y} C ${startX + 56} ${item.sourceNode.y}, ${branchJoinX - 28} ${item.y}, ${branchJoinX} ${item.y}`}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.65)"
+                      strokeWidth="1"
+                      strokeDasharray="7 9"
+                      opacity="0.42"
+                      strokeLinecap="round"
+                    />
+                  </g>
+                );
+              })}
             </svg>
 
-            <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-1/2 top-1/2 z-20 -translate-y-1/2" style={{ transform: `translate(calc(-50% + ${mapStartPoint.x}px), -50%)` }}>
           <div className="flex flex-col items-center">
             <div className={cn(
-              'pointer-events-none absolute inset-[-110px] blur-3xl',
+              'pointer-events-none absolute inset-[-92px] blur-3xl',
               isGuest
-                ? 'rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.28),rgba(34,211,238,0.08),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.06),rgba(34,211,238,0.08),transparent_72%)]'
-                : 'rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.22),rgba(34,211,238,0.12),transparent_70%)]',
+                ? 'rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.18),rgba(34,211,238,0.06),transparent_72%)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.04),rgba(34,211,238,0.06),transparent_72%)]'
+                : 'rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.14),rgba(34,211,238,0.08),transparent_70%)]',
             )} />
             <div className={cn(
               'pointer-events-none absolute inset-[-52px] rounded-full',
@@ -2896,8 +2955,7 @@ const CareerPathStage: React.FC<{
             {isGuest ? (
               <div
                 aria-hidden="true"
-                style={{ animation: 'careeros-ring-breathe 12.5s ease-in-out infinite', willChange: 'transform, opacity' }}
-                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full transform-gpu"
+                className="pointer-events-none relative flex h-[88px] w-[88px] items-center justify-center rounded-full"
               >
                 <div className="absolute inset-[-14px] rounded-full border border-transparent border-r-cyan-300/16 border-t-cyan-300/20 dark:border-r-cyan-300/12 dark:border-t-cyan-300/16" />
                 <div className="absolute inset-[4px] rounded-full border border-transparent border-b-slate-300/42 border-l-slate-300/28 dark:border-b-slate-700/64 dark:border-l-slate-700/48" />
@@ -2906,9 +2964,9 @@ const CareerPathStage: React.FC<{
               </div>
             ) : (
               <>
-                <div className="relative flex h-[124px] w-[124px] items-center justify-center rounded-full border border-emerald-500/30 bg-white shadow-[inset_0_0_20px_rgba(16,185,129,0.1),0_10px_40px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_20px_rgba(8,145,178,0.18),0_10px_40px_rgba(8,145,178,0.18)]">
-                  <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-emerald-500/10 to-orange-500/10 blur-md" />
-                  <div className="relative z-10 h-[104px] w-[104px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
+                <div className="relative flex h-[122px] w-[122px] items-center justify-center rounded-full border border-emerald-200 bg-white shadow-[0_20px_44px_-24px_rgba(15,23,42,0.22)] dark:border-cyan-500/30 dark:bg-slate-950/92 dark:shadow-[0_22px_44px_-24px_rgba(2,6,23,0.4)]">
+                  <div className="absolute inset-3 rounded-full border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900" />
+                  <div className="relative z-10 h-[94px] w-[94px] overflow-hidden rounded-full border-2 border-white shadow-lg dark:border-slate-800">
                     <NodeImage
                       src={userProfilePhoto}
                       alt={userLabel}
@@ -2917,9 +2975,18 @@ const CareerPathStage: React.FC<{
                     />
                   </div>
                 </div>
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-2 text-center shadow-lg backdrop-blur-md dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
-                  <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{userLabel}</div>
-                  <div className="text-[13px] font-medium text-cyan-600 dark:text-cyan-300">{compactText(headline.replace(/^Map the next move for /i, ''), 34)}</div>
+                <div className="mt-3 min-w-[220px] rounded-[22px] border border-slate-200 bg-white/96 px-4 py-3.5 text-center shadow-[0_22px_54px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Vaše současná situace</div>
+                  <div className="mt-2 text-[16px] font-bold text-slate-800 dark:text-slate-100">{userLabel}</div>
+                  <div className="mt-1 text-[12px] font-medium text-cyan-600 dark:text-cyan-300">
+                    {compactText(
+                      headline
+                        .replace(/^Map the next move for /i, '')
+                        .replace(/^Kam dál v oblasti /i, '')
+                        .replace(/^Najděte další krok dřív, než někam pošlete životopis$/i, 'Další krok'),
+                      40,
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -2927,70 +2994,70 @@ const CareerPathStage: React.FC<{
             </div>
 
             <AnimatePresence>
-          {nodes.map((node, index) => {
+          {nodes.map((node) => {
             const active = selectedPathId === node.id;
             const strong = node.gravity === 'strong';
             const elevated = strong || hoveredPathId === node.id || active;
-            const attracted = node.gravityPull >= 0.84;
-            const restingScale = 0.9 + node.gravityPull * 0.07;
-            const elevatedScale = Math.max(restingScale + 0.06, 0.98 + node.gravityPull * 0.04);
-            const driftX = (index % 2 === 0 ? 1 : -1) * (4 + node.gravityPull * 3);
-            const driftY = (index % 3 === 0 ? -1 : 1) * (3 + node.gravityPull * 2.5);
-            const shouldDrift = isGuest && !active && hoveredPathId !== node.id;
-            const driftAmplitudeX = driftX * 0.55;
-            const driftAmplitudeY = driftY * 0.5;
-            const driftDelay = (index % 5) * 0.6;
-            const driftStyle = shouldDrift
-              ? ({
-                  ['--careeros-float-x' as '--careeros-float-x']: `${driftAmplitudeX}px`,
-                  ['--careeros-float-y' as '--careeros-float-y']: `${driftAmplitudeY}px`,
-                  animation: `careeros-node-float ${15 + index * 0.55}s ease-in-out ${-driftDelay}s infinite`,
-                  willChange: 'transform',
-                } as React.CSSProperties & Record<'--careeros-float-x' | '--careeros-float-y', string>)
-              : undefined;
 
             return (
               <div key={node.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
                 <div
-                  className="relative flex flex-col items-center transform-gpu"
+                  className="relative flex flex-col items-center"
                   style={{
-                    transform: `translate3d(${node.x}px, ${node.y}px, 0) scale(${elevated ? elevatedScale : restingScale})`,
-                    opacity: elevated ? 1 : 0.88,
-                    transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out',
-                    willChange: 'transform, opacity',
+                    transform: `translate(${Math.round(node.x)}px, ${Math.round(node.y)}px)`,
                   }}
                 >
-                  <div className="relative flex flex-col items-center" style={driftStyle}>
-                    <GalaxyClusterNode
-                      title={node.title}
-                      eyebrow={t('careeros.map.career_direction', { defaultValue: 'Career direction' })}
-                      subtitle={node.subtitle}
-                      description={compactText(node.preview || node.summary, elevated ? 84 : 64)}
-                      count={node.challengeCount}
-                      active={active}
-                      elevated={elevated || attracted}
-                      tone={node.tone === 'emerald' ? 'emerald' : 'orange'}
-                      onClick={() => onNodeClick(node)}
-                      onMouseEnter={() => interactive && setHoveredPathId(node.id)}
-                      onMouseLeave={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
-                      onFocus={() => interactive && setHoveredPathId(node.id)}
-                      onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
-                      disabled={!interactive}
-                      titleStyle={twoLineClampStyle}
-                      media={(
-                        <NodeImage
-                          src={node.imageUrl}
-                          alt={node.title}
-                          fallback={initials(node.title)}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onNodeClick(node)}
+                    onMouseEnter={() => interactive && setHoveredPathId(node.id)}
+                    onMouseLeave={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
+                    onFocus={() => interactive && setHoveredPathId(node.id)}
+                    onBlur={() => interactive && setHoveredPathId((current) => (current === node.id ? null : current))}
+                    className="group flex flex-col items-center"
+                    disabled={!interactive}
+                  >
+                    <div className={cn(
+                      'relative h-[74px] w-[74px] rounded-full border border-white/70 bg-white/92 p-[5px] shadow-[0_16px_36px_-26px_rgba(15,23,42,0.28)] backdrop-blur-xl transition-transform duration-200 dark:border-slate-700/80 dark:bg-slate-950/90',
+                      elevated ? 'scale-[1.03] shadow-[0_22px_42px_-26px_rgba(15,23,42,0.34)]' : '',
+                    )}>
+                      <DirectionNodeMedia
+                        directionKey={node.domainKey}
+                        icon={node.directionIcon}
+                        title={node.title}
+                        className="h-full w-full"
+                      />
+                      <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-950 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm dark:border-slate-800">
+                        {node.challengeCount}
+                      </div>
+                    </div>
+                    <div className="mt-2 max-w-[144px] text-center">
+                      <div className="text-[13px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                        {node.title}
+                      </div>
+                      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+                        {node.roleNodes.length} rolí
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
             );
           })}
+          {selectedInlineRoles.map((item) => (
+            <div key={`inline-role-${item.role.id}`} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
+              <div className="relative" style={{ transform: `translate(${Math.round(item.x)}px, ${Math.round(item.y)}px)` }}>
+                <button type="button" onClick={() => onClusterRoleClick(item.role)} className="text-left">
+                  <RolePreviewPill
+                    title={item.role.title}
+                    count={item.count}
+                    directionKey={item.directionKey}
+                    active={activeClusterRoleId === item.role.id}
+                  />
+                </button>
+              </div>
+            </div>
+          ))}
             </AnimatePresence>
           </div>
         </div>
@@ -2999,16 +3066,6 @@ const CareerPathStage: React.FC<{
     {defaultHud}
     {!expandedNode && showDefaultHud ? (
       <>
-        <DomainRemapPanel
-          remapOpen={remapOpen}
-          setRemapOpen={setRemapOpen}
-          availableDomains={availableDomains}
-          manualDomainSelection={manualDomainSelection}
-          setManualDomainSelection={setManualDomainSelection}
-          manualDomainQuery={manualDomainQuery}
-          setManualDomainQuery={setManualDomainQuery}
-          className="absolute bottom-6 right-6 z-[32] w-[min(26rem,calc(100vw-3rem))]"
-        />
         <GalaxyCanvasControls
           zoom={zoom}
           setZoom={setZoom}
@@ -3018,42 +3075,47 @@ const CareerPathStage: React.FC<{
     ) : null}
     <AnimatePresence>
       {expandedNode ? (
-        <div className="absolute inset-0 z-[40] bg-white/18 backdrop-blur-[6px] dark:bg-slate-950/40">
+        <div className="absolute inset-0 z-[40] bg-slate-50/82 backdrop-blur-[28px] dark:bg-slate-950/80">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="absolute left-8 top-8 z-[42] flex items-center gap-3 lg:left-[312px]">
               <button
                 type="button"
                 onClick={onCollapseCluster}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/92 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-950/82 dark:text-slate-200"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950/96 dark:text-slate-200"
               >
                 <ChevronLeft className="h-4 w-4" />
-                {t('careeros.map.return_to_map', { defaultValue: 'Return to map' })}
+                {t('careeros.map.return_to_map', { defaultValue: 'Zp\u011bt na mapu' })}
               </button>
             </div>
 
-            <div className="pointer-events-none absolute left-1/2 top-8 z-[42] -translate-x-1/2 rounded-full border border-white/70 bg-white/88 px-5 py-2 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-950/82 dark:text-slate-400">
-              {t('careeros.map.cluster_layer', { defaultValue: 'Cluster Layer' })}
+            <div className="pointer-events-none absolute left-1/2 top-8 z-[42] -translate-x-1/2 rounded-full border border-slate-200 bg-white px-5 py-2 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-950/96 dark:text-slate-400">
+              {t('careeros.map.cluster_layer', { defaultValue: 'Vrstva obor\u016f' })}
             </div>
 
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
+            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-1100 -640 2200 1280">
               {expandedChildren.map((child) => {
-                const dist = Math.hypot(child.x, child.y) || 1;
-                const ux = child.x / dist;
-                const uy = child.y / dist;
+                const branchStartX = child.x > 0 ? 130 : -130;
+                const branchJoinX = child.x > 0 ? child.x - 132 : child.x + 132;
                 return (
                   <g key={`overlay-cluster-line-${child.role.id}`}>
-                    <line x1={ux * 66} y1={uy * 66} x2={child.x - ux * 34} y2={child.y - uy * 34} stroke="#60a5fa" strokeWidth="1" opacity="0.24" />
-                    <line
-                      x1={ux * 66}
-                      y1={uy * 66}
-                      x2={child.x - ux * 34}
-                      y2={child.y - uy * 34}
+                    <path
+                      d={`M ${branchStartX} 0 C ${branchStartX + (child.x > 0 ? 90 : -90)} 0, ${branchJoinX} ${child.y}, ${child.x - (child.x > 0 ? 46 : -46)} ${child.y}`}
+                      fill="none"
                       stroke="#60a5fa"
-                      strokeWidth="2"
-                      strokeDasharray="6 6"
-                      opacity="0.82"
+                      strokeWidth="2.2"
+                      opacity="0.34"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d={`M ${branchStartX} 0 C ${branchStartX + (child.x > 0 ? 90 : -90)} 0, ${branchJoinX} ${child.y}, ${child.x - (child.x > 0 ? 46 : -46)} ${child.y}`}
+                      fill="none"
+                      stroke="#60a5fa"
+                      strokeWidth="2.9"
+                      strokeDasharray="8 8"
+                      opacity="0.78"
                       filter="url(#careeros-path-line-glow)"
                       style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
+                      strokeLinecap="round"
                     />
                   </g>
                 );
@@ -3062,13 +3124,13 @@ const CareerPathStage: React.FC<{
 
             <div className="absolute left-1/2 top-1/2 z-[42] -translate-x-1/2 -translate-y-1/2">
               <div className="flex flex-col items-center">
-                <div className="relative flex h-[148px] w-[148px] items-center justify-center rounded-full border border-emerald-300/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[0_18px_40px_rgba(2,6,23,0.45)]">
-                  <div className="relative z-10 h-[114px] w-[114px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
-                    <NodeImage
-                      src={expandedNode.imageUrl}
-                      alt={expandedNode.title}
-                      fallback={initials(expandedNode.title)}
-                      className="h-full w-full object-cover"
+                <div className="relative flex h-[156px] w-[156px] items-center justify-center rounded-full border border-emerald-300/80 bg-white shadow-[0_28px_64px_-28px_rgba(15,23,42,0.24)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[0_18px_40px_rgba(2,6,23,0.45)]">
+                  <div className="relative z-10 h-[122px] w-[122px] overflow-hidden rounded-full border-2 border-white shadow-lg dark:border-slate-800">
+                    <DirectionNodeMedia
+                      directionKey={expandedNode.domainKey}
+                      icon={expandedNode.directionIcon}
+                      title={expandedNode.title}
+                      className="h-full w-full"
                     />
                     <div className="absolute inset-0 bg-slate-900/26" />
                     <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1 text-white">
@@ -3077,29 +3139,30 @@ const CareerPathStage: React.FC<{
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white/92 px-5 py-3 text-center shadow-lg backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/88 dark:shadow-[0_24px_64px_rgba(2,6,23,0.45)]">
-                  <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{expandedNode.title}</div>
-                  <div className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">{expandedNode.subtitle}</div>
+                <div className="mt-4 min-w-[300px] rounded-[24px] border border-slate-200 bg-white/96 px-5 py-4 text-center shadow-[0_28px_80px_-40px_rgba(15,23,42,0.3)] dark:border-slate-700/80 dark:bg-slate-950/92 dark:shadow-[0_24px_64px_rgba(2,6,23,0.45)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Rozbaleny smer</div>
+                  <div className="mt-2 text-[18px] font-bold text-slate-800 dark:text-slate-100">{expandedNode.title}</div>
+                  <div className="mt-1 text-[13px] leading-6 text-slate-500 dark:text-slate-400">{compactText(expandedNode.preview || expandedNode.subtitle, 88)}</div>
                   <div className="mt-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                     {t('careeros.map.roles_here', {
-                      defaultValue: '{{count}} roles here',
+                      defaultValue: '{{count}} rol\u00ed tady',
                       count: expandedChildren.length,
                     })}
-                    {remainingExpandedCount > 0 ? `, ${t('careeros.map.more_roles', { defaultValue: '{{count}} more roles', count: remainingExpandedCount })}` : ''}
+                    {remainingExpandedCount > 0 ? `, ${t('careeros.map.more_roles', { defaultValue: '{{count}} dal\u0161\u00edch rol\u00ed', count: remainingExpandedCount })}` : ''}
                   </div>
                 </div>
                 {interactive ? (
                   <button
                     type="button"
                     onClick={() => onOpenOfferLayer(expandedNode)}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/92 px-5 py-2.5 text-sm font-semibold text-cyan-700 shadow-sm backdrop-blur-md dark:border-cyan-500/40 dark:bg-slate-950/86 dark:text-cyan-300"
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/92 px-5 py-2.5 text-sm font-semibold text-cyan-700 shadow-[0_18px_40px_-28px_rgba(8,145,178,0.35)] backdrop-blur-md dark:border-cyan-500/40 dark:bg-slate-950/86 dark:text-cyan-300"
                   >
-                    {t('careeros.map.open_top_role_offers', { defaultValue: 'Open top role offers' })}
+                    {t('careeros.map.open_top_role_offers', { defaultValue: 'Otev\u0159\u00edt nab\u00eddky top role' })}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 ) : (
                   <div className="mt-4 rounded-full border border-white/70 bg-white/86 px-5 py-2 text-sm font-semibold text-slate-600 shadow-sm backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/82 dark:text-slate-300">
-                    {t('careeros.map.layer_2_cluster', { defaultValue: 'Layer 2: Cluster' })}
+                    {t('careeros.map.layer_2_cluster', { defaultValue: 'Vrstva 2: role' })}
                   </div>
                 )}
               </div>
@@ -3107,6 +3170,7 @@ const CareerPathStage: React.FC<{
 
             {expandedChildren.map((child) => {
               const activeChild = activeClusterRoleId === child.role.id;
+              const roleOfferCount = expandedRoleOfferCounts[child.role.id] ?? child.role.challengeCount;
               return (
                 <div key={child.role.id} className="absolute left-1/2 top-1/2 z-[43]" style={{ transform: 'translate(-50%, -50%)' }}>
                   <div
@@ -3114,47 +3178,40 @@ const CareerPathStage: React.FC<{
                     style={{ transform: `translate(${child.x}px, ${child.y}px)` }}
                   >
                     {child.textPos === 'left' ? (
-                      <div className="pointer-events-none absolute right-full mr-4 hidden w-[220px] text-right xl:block">
+                      <div className="pointer-events-none absolute right-full mr-6 hidden w-[320px] text-right xl:block">
                         <div
-                          className="text-[13px] font-semibold leading-5 text-slate-800 dark:text-slate-100"
-                          style={twoLineClampStyle}
+                          className="inline-flex max-w-full rounded-[22px] border border-white/80 bg-white/97 px-4 py-3.5 text-[13px] font-semibold leading-5 text-slate-800 shadow-[0_22px_54px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700/80 dark:bg-slate-950/94 dark:text-slate-100"
+                          style={{ ...twoLineClampStyle, WebkitLineClamp: 3 }}
                           title={child.role.title}
                         >
                           {child.role.title}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{child.role.subtitle}</div>
                       </div>
                     ) : null}
 
                     <button
                       type="button"
                       onClick={() => onClusterRoleClick(child.role)}
-                      className={cn(
-                        'relative flex h-[62px] w-[62px] items-center justify-center rounded-full border border-blue-200 bg-white/95 shadow-[0_0_16px_rgba(59,130,246,0.12)] transition-[transform,border-color,box-shadow] duration-200 ease-out hover:scale-[1.08] hover:border-blue-400 dark:border-blue-500/40 dark:bg-slate-950/84 dark:hover:border-blue-400',
-                        activeChild ? 'scale-[1.08] border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.22)] dark:border-blue-400 dark:shadow-[0_0_24px_rgba(59,130,246,0.26)]' : '',
-                      )}
-                      style={{ willChange: 'transform' }}
+                      className="relative"
+                      title={child.role.title}
                     >
-                        <div className="h-[52px] w-[52px] overflow-hidden rounded-full">
-                          <NodeImage
-                          src={child.role.imageUrl}
-                          alt={child.role.title}
-                          fallback={initials(child.role.title)}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+                      <RoleNodeBadge
+                        title={child.role.title}
+                        count={roleOfferCount}
+                        directionKey={expandedNode.domainKey}
+                        active={activeChild}
+                      />
                     </button>
 
                     {child.textPos === 'right' ? (
-                      <div className="pointer-events-none absolute left-full ml-4 hidden w-[220px] text-left xl:block">
+                      <div className="pointer-events-none absolute left-full ml-6 hidden w-[320px] text-left xl:block">
                         <div
-                          className="text-[13px] font-semibold leading-5 text-slate-800 dark:text-slate-100"
-                          style={twoLineClampStyle}
+                          className="inline-flex max-w-full rounded-[22px] border border-white/80 bg-white/97 px-4 py-3.5 text-[13px] font-semibold leading-5 text-slate-800 shadow-[0_22px_54px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700/80 dark:bg-slate-950/94 dark:text-slate-100"
+                          style={{ ...twoLineClampStyle, WebkitLineClamp: 3 }}
                           title={child.role.title}
                         >
                           {child.role.title}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{child.role.subtitle}</div>
                       </div>
                     ) : null}
                   </div>
@@ -3162,11 +3219,562 @@ const CareerPathStage: React.FC<{
               );
             })}
           </div>
+          <GalaxyCanvasControls
+            zoom={zoom}
+            setZoom={setZoom}
+            className="absolute bottom-6 left-6 z-[42] w-auto"
+          />
         </div>
       ) : null}
     </AnimatePresence>
     {guestCenterOverlay}
   </div>
+  );
+};
+
+void LegacyCareerPathStage;
+
+const CareerPathStage: React.FC<{
+  userLabel: string;
+  headline: string;
+  userProfilePhoto: string | null;
+  isGuest: boolean;
+  formattedJobsCount: string;
+  formattedMappedPoolCount: string;
+  nodes: PositionedPathNode[];
+  branchRoles: PositionedRoleNode[];
+  selectedPathId: string | null;
+  activeBranchRoleId: string | null;
+  zoom: number;
+  setZoom: React.Dispatch<React.SetStateAction<number>>;
+  onNodeClick: (node: PositionedPathNode) => void;
+  onClusterRoleClick: (role: RoleNode) => void;
+  onOpenAuth: (mode?: 'login' | 'register') => Promise<void> | void;
+  nodeOffsets: Record<string, CareerMapNodeOffset>;
+  onNodeOffsetChange: (nodeKey: string, nextOffset: CareerMapNodeOffset) => void;
+  onResetLayout: () => void;
+  interactive?: boolean;
+}> = ({
+  userLabel,
+  headline,
+  userProfilePhoto,
+  isGuest,
+  formattedJobsCount,
+  formattedMappedPoolCount,
+  nodes,
+  branchRoles,
+  selectedPathId,
+  activeBranchRoleId,
+  zoom,
+  setZoom,
+  onNodeClick,
+  onClusterRoleClick,
+  onOpenAuth,
+  nodeOffsets,
+  onNodeOffsetChange,
+  onResetLayout,
+  interactive = true,
+}) => {
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.resolvedLanguage || i18n.language || 'en').split('-')[0].toLowerCase();
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+  const [isAnimatingCamera, setIsAnimatingCamera] = useState(false);
+  const canvasDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+  const nodeDragRef = useRef<{
+    pointerId: number;
+    nodeKey: string;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+
+  const guestCenterCopy = locale === 'cs'
+    ? {
+        title: 'Vytvořte si mapu',
+        body: 'Začněte profilem a rozbalte si směry i obory přímo na plátně.',
+        cta: 'Začít',
+      }
+    : {
+        title: 'Create your map',
+        body: 'Start with your profile and unfold paths directly on the canvas.',
+        cta: 'Get started',
+      };
+  const onRemapDirection = (_slotId?: string, _nodeId?: string) => {};
+  const onRemapRole = (_slotId?: string, _roleId?: string) => {};
+
+  const CANVAS_WIDTH = 1840;
+  const CANVAS_HEIGHT = 1120;
+  const startCardPosition = { x: 88, y: 486, width: 246, height: 100 };
+  const startAnchorPoint = {
+    x: startCardPosition.x + startCardPosition.width,
+    y: startCardPosition.y + startCardPosition.height / 2,
+  };
+  const treeJunctionPoint = { x: startAnchorPoint.x + 144, y: startAnchorPoint.y };
+  const treeRecommendedSlots = useMemo(
+    () => [
+      { x: treeJunctionPoint.x + 248, y: treeJunctionPoint.y + 8, laneY: treeJunctionPoint.y + 8, railX: treeJunctionPoint.x + 96 },
+      { x: treeJunctionPoint.x + 414, y: treeJunctionPoint.y - 194, laneY: treeJunctionPoint.y - 82, railX: treeJunctionPoint.x + 112 },
+      { x: treeJunctionPoint.x + 426, y: treeJunctionPoint.y + 254, laneY: treeJunctionPoint.y + 92, railX: treeJunctionPoint.x + 114 },
+      { x: treeJunctionPoint.x + 736, y: treeJunctionPoint.y - 360, laneY: treeJunctionPoint.y - 176, railX: treeJunctionPoint.x + 204 },
+      { x: treeJunctionPoint.x + 852, y: treeJunctionPoint.y + 142, laneY: treeJunctionPoint.y + 36, railX: treeJunctionPoint.x + 276 },
+      { x: treeJunctionPoint.x + 744, y: treeJunctionPoint.y + 426, laneY: treeJunctionPoint.y + 188, railX: treeJunctionPoint.x + 210 },
+    ],
+    [treeJunctionPoint.x, treeJunctionPoint.y],
+  );
+
+  const visibleNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        const slot = treeRecommendedSlots[node.distanceRank] || treeRecommendedSlots[treeRecommendedSlots.length - 1];
+        const positioned = applyNodeOffset(slot.x, slot.y, node.nodeKey, nodeOffsets);
+        return {
+          ...node,
+          x: positioned.x,
+          y: positioned.y,
+          laneY: Number(slot.laneY || positioned.y),
+          railX: Number(slot.railX || treeJunctionPoint.x + 96),
+        };
+      }),
+    [nodeOffsets, nodes, treeJunctionPoint.x, treeRecommendedSlots],
+  );
+
+  const activeNode = useMemo(
+    () => visibleNodes.find((node) => node.id === selectedPathId) || visibleNodes[0] || null,
+    [selectedPathId, visibleNodes],
+  );
+
+  const visibleBranchRoles = useMemo(() => {
+    if (!activeNode || branchRoles.length === 0) return [];
+    const middleIndex = (branchRoles.length - 1) / 2;
+    return branchRoles.map((role, index) => {
+      const baseX = activeNode.x + 372;
+      const baseY = activeNode.y + (index - middleIndex) * 102;
+      const positioned = applyNodeOffset(baseX, baseY, role.nodeKey, nodeOffsets);
+      return {
+        ...role,
+        x: positioned.x,
+        y: positioned.y,
+      };
+    });
+  }, [activeNode, branchRoles, nodeOffsets]);
+
+  const branchSignature = useMemo(
+    () => visibleBranchRoles.map((role) => role.id).join('|'),
+    [visibleBranchRoles],
+  );
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    if (nodeDragRef.current || canvasDragRef.current) return;
+    const rect = stage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const branchExpanded = visibleBranchRoles.length > 0 && activeNode;
+    const minX = branchExpanded
+      ? Math.min(startCardPosition.x, activeNode!.x - 72)
+      : Math.min(startCardPosition.x, ...visibleNodes.map((node) => node.x - 72));
+    const maxX = branchExpanded
+      ? Math.max(
+          startCardPosition.x + startCardPosition.width,
+          activeNode!.x + 72,
+          ...visibleBranchRoles.map((role) => role.x + 164),
+        )
+      : Math.max(startCardPosition.x + startCardPosition.width, ...visibleNodes.map((node) => node.x + 72));
+    const minY = branchExpanded
+      ? Math.min(startCardPosition.y, activeNode!.y - 160, ...visibleBranchRoles.map((role) => role.y - 44))
+      : Math.min(startCardPosition.y, ...visibleNodes.map((node) => node.y - 86));
+    const maxY = branchExpanded
+      ? Math.max(
+          startCardPosition.y + startCardPosition.height,
+          activeNode!.y + 160,
+          ...visibleBranchRoles.map((role) => role.y + 44),
+        )
+      : Math.max(startCardPosition.y + startCardPosition.height, ...visibleNodes.map((node) => node.y + 86));
+    const focusX = (minX + maxX) / 2;
+    const focusY = (minY + maxY) / 2;
+
+    setIsAnimatingCamera(true);
+    setCanvasOffset({
+      x: rect.width / 2 - focusX * zoom,
+      y: rect.height / 2 - focusY * zoom,
+    });
+    const timer = window.setTimeout(() => setIsAnimatingCamera(false), 420);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeNode,
+    branchSignature,
+    selectedPathId,
+    startCardPosition.height,
+    startCardPosition.width,
+    startCardPosition.x,
+    startCardPosition.y,
+    visibleNodes,
+    visibleBranchRoles,
+    zoom,
+  ]);
+
+  const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!interactive) return;
+    event.preventDefault();
+    stepZoom(setZoom, event.deltaY < 0 ? 'in' : 'out');
+  };
+
+  const handleCanvasPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!interactive || nodeDragRef.current) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a, input, textarea, select, [data-map-control="true"]')) return;
+    setIsAnimatingCamera(false);
+    canvasDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: canvasOffset.x,
+      originY: canvasOffset.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const nodeDrag = nodeDragRef.current;
+    if (nodeDrag && nodeDrag.pointerId === event.pointerId) {
+      onNodeOffsetChange(nodeDrag.nodeKey, {
+        x: nodeDrag.originX + Math.round((event.clientX - nodeDrag.startX) / zoom),
+        y: nodeDrag.originY + Math.round((event.clientY - nodeDrag.startY) / zoom),
+      });
+      return;
+    }
+
+    const canvasDrag = canvasDragRef.current;
+    if (!canvasDrag || canvasDrag.pointerId !== event.pointerId) return;
+    setCanvasOffset({
+      x: canvasDrag.originX + (event.clientX - canvasDrag.startX),
+      y: canvasDrag.originY + (event.clientY - canvasDrag.startY),
+    });
+  };
+
+  const handleCanvasPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (nodeDragRef.current?.pointerId === event.pointerId) {
+      nodeDragRef.current = null;
+    }
+    if (canvasDragRef.current?.pointerId === event.pointerId) {
+      canvasDragRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+  };
+
+  const beginNodeDrag = (event: React.PointerEvent<HTMLElement>, nodeKey: string) => {
+    if (!interactive) return;
+    event.stopPropagation();
+    setIsAnimatingCamera(false);
+    nodeDragRef.current = {
+      pointerId: event.pointerId,
+      nodeKey,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: Number(nodeOffsets[nodeKey]?.x || 0),
+      originY: Number(nodeOffsets[nodeKey]?.y || 0),
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  return (
+    <div
+      ref={stageRef}
+      className={cn(
+        'relative h-full w-full overflow-hidden',
+        interactive ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none',
+      )}
+      onWheel={handleCanvasWheel}
+      onPointerDown={handleCanvasPointerDown}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerUp={handleCanvasPointerEnd}
+      onPointerCancel={handleCanvasPointerEnd}
+    >
+      <StageBackground accent="emerald" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(255,255,255,0.3)_62%,rgba(255,255,255,0.5))] dark:bg-[radial-gradient(circle_at_center,rgba(2,6,23,0.04),rgba(2,6,23,0.14)_62%,rgba(2,6,23,0.24))]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: `translate3d(${canvasOffset.x}px, ${canvasOffset.y}px, 0) scale(${zoom})`,
+          transformOrigin: '0 0',
+          transition: isAnimatingCamera ? 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)' : undefined,
+        }}
+      >
+        <div className="absolute inset-0">
+          <svg
+            className="pointer-events-none absolute left-0 top-0"
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+          >
+            <path
+              d={buildWorkflowCurve(startAnchorPoint.x, startAnchorPoint.y, treeJunctionPoint.x, treeJunctionPoint.y, 0.42)}
+              fill="none"
+              stroke="rgba(15,23,42,0.18)"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <motion.path
+              d={buildWorkflowCurve(startAnchorPoint.x, startAnchorPoint.y, treeJunctionPoint.x, treeJunctionPoint.y, 0.42)}
+              fill="none"
+              stroke="rgba(255,255,255,0.68)"
+              strokeWidth="1"
+              strokeDasharray="7 12"
+              opacity="0.22"
+              strokeLinecap="round"
+              animate={{ strokeDashoffset: [0, -19] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+            />
+            {visibleNodes.map((node) => {
+              const tone = toneClasses[node.tone];
+              const active = selectedPathId === node.id;
+              const startX = treeJunctionPoint.x;
+              const endX = node.x - 40;
+              const laneY = Number((node as any).laneY ?? node.y);
+              const railX = Number((node as any).railX ?? treeJunctionPoint.x + 96);
+              const guidePath = buildWorkflowRailPath(startX, treeJunctionPoint.y, railX, laneY, endX, node.y);
+              return (
+                <g key={`tree-line-${node.id}`}>
+                  <path
+                    d={guidePath}
+                    fill="none"
+                    stroke={tone.line}
+                    strokeWidth={active ? '2.35' : '1.55'}
+                    opacity={active ? '0.7' : '0.22'}
+                    strokeLinecap="round"
+                  />
+                  <motion.path
+                    d={guidePath}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.72)"
+                    strokeWidth="1"
+                    strokeDasharray="6 11"
+                    opacity={active ? '0.3' : '0.08'}
+                    strokeLinecap="round"
+                    animate={{ strokeDashoffset: active ? [0, -16] : [0, -10] }}
+                    transition={{ duration: active ? 1.5 : 2.4, repeat: Infinity, ease: 'linear' }}
+                  />
+                </g>
+              );
+            })}
+            {activeNode && visibleBranchRoles.map((role) => {
+              const tone = toneClasses[activeNode.tone];
+              const startX = activeNode.x + 58;
+              const endX = role.x - 22;
+              const branchPath = buildWorkflowCurve(startX, activeNode.y, endX, role.y, 0.3);
+              return (
+                <g key={`branch-line-${role.id}`}>
+                  <path
+                    d={branchPath}
+                    fill="none"
+                    stroke={tone.line}
+                    strokeWidth="1.7"
+                    opacity="0.34"
+                    strokeLinecap="round"
+                  />
+                  <motion.path
+                    d={branchPath}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.7)"
+                    strokeWidth="1"
+                    strokeDasharray="6 10"
+                    opacity="0.18"
+                    strokeLinecap="round"
+                    animate={{ strokeDashoffset: [0, -12] }}
+                    transition={{ duration: 1.7, repeat: Infinity, ease: 'linear' }}
+                  />
+                </g>
+              );
+            })}
+            <circle
+              cx={treeJunctionPoint.x}
+              cy={treeJunctionPoint.y}
+              r="4"
+              fill="rgba(255,255,255,0.92)"
+              stroke="rgba(15,23,42,0.14)"
+              strokeWidth="1.5"
+            />
+          </svg>
+
+          <div className="absolute z-20" style={{ left: startCardPosition.x, top: startCardPosition.y }}>
+            {isGuest ? (
+              <button
+                type="button"
+                data-map-control="true"
+                onClick={() => void onOpenAuth('register')}
+                className="rounded-full border border-white/70 bg-white/88 px-5 py-3 text-sm font-semibold text-cyan-700 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/90 dark:text-cyan-200"
+              >
+                {guestCenterCopy.cta}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 rounded-[22px] border border-white/70 bg-white/84 px-4 py-3 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/88">
+                <div className="relative flex h-[58px] w-[58px] items-center justify-center rounded-full border border-emerald-200 bg-white shadow-sm dark:border-cyan-500/30 dark:bg-slate-950/92">
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-emerald-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900" />
+                  <div className="relative z-10 h-[42px] w-[42px] overflow-hidden rounded-full border-2 border-white dark:border-slate-800">
+                    <NodeImage src={userProfilePhoto} alt={userLabel} fallback={initials(userLabel)} className="h-full w-full object-cover" />
+                  </div>
+                </div>
+                <div className="min-w-[146px]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+                    {t('careeros.map.start_label', { defaultValue: 'Vaše současná situace' })}
+                  </div>
+                  <div className="mt-1 text-[14px] font-bold text-slate-900 dark:text-slate-100">{userLabel}</div>
+                  <div className="mt-1 text-[11px] font-medium text-cyan-600 dark:text-cyan-300">
+                    {compactText(
+                      headline
+                        .replace(/^Map the next move for /i, '')
+                        .replace(/^Kam dĂˇl v oblasti /i, '')
+                        .replace(/^NajdÄ›te dalĹˇĂ­ krok dĹ™Ă­v, neĹľ nÄ›kam poĹˇlete Ĺľivotopis$/i, 'DalĹˇĂ­ krok'),
+                      36,
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {visibleNodes.map((node) => {
+            const active = selectedPathId === node.id;
+            const deemphasized = Boolean(selectedPathId) && selectedPathId !== node.id && visibleBranchRoles.length > 0;
+            return (
+              <div key={node.id} className="absolute z-20" style={{ left: Math.round(node.x), top: Math.round(node.y), transform: 'translate(-50%, -50%)' }}>
+                <div className="relative">
+                  <div className={cn('flex flex-col items-center transition-opacity', deemphasized ? 'opacity-45' : 'opacity-100')}>
+                    <button
+                      type="button"
+                      onPointerDown={(event) => beginNodeDrag(event, node.nodeKey)}
+                      onClick={() => onNodeClick(node)}
+                      className="group flex flex-col items-center"
+                      disabled={!interactive}
+                    >
+                      <div className={cn(
+                        'relative h-[62px] w-[62px] rounded-full border border-white/70 bg-white/88 p-[5px] shadow-[0_12px_26px_-24px_rgba(15,23,42,0.18)] backdrop-blur-xl transition-transform duration-200 dark:border-slate-700/80 dark:bg-slate-950/88',
+                        active ? 'scale-[1.03] ring-2 ring-cyan-200 dark:ring-cyan-500/40' : 'group-hover:scale-[1.015]',
+                      )}>
+                        <DirectionNodeMedia
+                          directionKey={node.domainKey}
+                          icon={node.directionIcon}
+                          title={node.title}
+                          className="h-full w-full"
+                        />
+                        <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-950 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm dark:border-slate-800">
+                          {node.challengeCount}
+                        </div>
+                      </div>
+                      <div className="mt-2 max-w-[148px] text-center">
+                        <div className="text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">{node.title}</div>
+                        <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                          {node.roleNodes.length} {t('careeros.map.roles_short', { defaultValue: 'rolí' })}
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      data-map-control="true"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRemapDirection(node.slotId, node.id);
+                      }}
+                      className="hidden"
+                      title={t('careeros.map.remap_direction_node', { defaultValue: 'Přemapovat směr' })}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {visibleBranchRoles.map((role) => (
+            <div key={role.id} className="absolute z-20" style={{ left: Math.round(role.x), top: Math.round(role.y), transform: 'translate(-50%, -50%)' }}>
+              <div className="relative flex items-center gap-2">
+                <button
+                  type="button"
+                  onPointerDown={(event) => beginNodeDrag(event, role.nodeKey)}
+                  onClick={() => onClusterRoleClick(role)}
+                  className="text-left"
+                  disabled={!interactive}
+                >
+                  <RolePreviewPill
+                    title={role.title}
+                    count={role.offerCount}
+                    directionKey={role.directionKey}
+                    active={activeBranchRoleId === role.id}
+                  />
+                </button>
+                <button
+                  type="button"
+                  data-map-control="true"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onRemapRole(role.slotId, role.id);
+                  }}
+                  className="hidden"
+                  title={t('careeros.map.remap_role_node', { defaultValue: 'Přemapovat roli' })}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="absolute right-5 top-10 z-[36] min-w-[206px] max-w-[206px] rounded-[22px] border border-white/70 bg-white/78 px-4 py-4 text-right shadow-[0_16px_42px_-38px_rgba(15,23,42,0.14)] backdrop-blur-xl dark:border-cyan-500/20 dark:bg-slate-950/84 dark:shadow-[0_18px_42px_-30px_rgba(2,6,23,0.74)] xl:right-6">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+          {t('careeros.map.title', { defaultValue: 'Vaše kariérní mapa' })}
+        </div>
+        <div className="mt-3 rounded-[20px] border border-slate-200/70 bg-white/76 px-3.5 py-3 dark:border-slate-700/80 dark:bg-slate-900/94">
+          <div className="text-[20px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedJobsCount}</div>
+          <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_jobs_label', { defaultValue: 'V databázi právě máme' })}
+          </div>
+          <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
+            {t('workspace.feed.stats_jobs_body', { defaultValue: 'aktivních nabídek.' })}
+          </div>
+          <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-left dark:bg-slate-900/80">
+            <div className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">{formattedMappedPoolCount}</div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              {t('careeros.map.pool_label', { defaultValue: 'V aktivním poolu mapy' })}
+            </div>
+          </div>
+          <button
+            type="button"
+            data-map-control="true"
+            onClick={onResetLayout}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {t('careeros.map.reset_layout', { defaultValue: 'Reset mapy' })}
+          </button>
+        </div>
+      </div>
+
+      <GalaxyCanvasControls zoom={zoom} setZoom={setZoom} className="absolute bottom-6 left-6 z-[32] w-auto" />
+
+      {isGuest ? (
+        <div className="absolute bottom-8 left-[310px] z-[34] max-w-[280px] rounded-[24px] border border-white/70 bg-white/92 px-5 py-4 shadow-[0_22px_56px_-34px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/92">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
+            {guestCenterCopy.title}
+          </div>
+          <div className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {guestCenterCopy.body}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 };
 
@@ -3213,401 +3821,6 @@ const CareerPathSetupState: React.FC<{
         </div>
       </div>
     </div>
-  );
-};
-
-const JobOffersStage: React.FC<{
-  selectedPath: PathNode;
-  selectedRole: RoleNode;
-  selectedChallengeId: string | null;
-  zoom: number;
-  setZoom: React.Dispatch<React.SetStateAction<number>>;
-  onBack: () => void;
-  onOfferClick: (challenge: CareerOSChallenge) => void;
-}> = ({ selectedPath, selectedRole, selectedChallengeId, zoom, setZoom, onBack, onOfferClick }) => {
-  const { t } = useTranslation();
-  const offers = useMemo(() => buildOfferNodes(selectedRole), [selectedRole]);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
-  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
-  const dragStateRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    originX: number;
-    originY: number;
-  } | null>(null);
-  const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (rect) {
-      const nextX = ((event.clientX - rect.left) / rect.width) * 100;
-      const nextY = ((event.clientY - rect.top) / rect.height) * 100;
-      setZoomOrigin({
-        x: Math.max(0, Math.min(100, nextX)),
-        y: Math.max(0, Math.min(100, nextY)),
-      });
-    }
-    stepZoom(setZoom, event.deltaY < 0 ? 'in' : 'out');
-  };
-  const handleCanvasPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('button, a, input, textarea, select, [data-map-control="true"]')) {
-      return;
-    }
-    dragStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: canvasOffset.x,
-      originY: canvasOffset.y,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const handleCanvasPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) return;
-    setCanvasOffset({
-      x: dragState.originX + (event.clientX - dragState.startX),
-      y: dragState.originY + (event.clientY - dragState.startY),
-    });
-  };
-  const handleCanvasPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) return;
-    dragStateRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  return (
-    <div
-      ref={stageRef}
-      className="relative h-full w-full overflow-hidden cursor-grab active:cursor-grabbing"
-      onWheel={handleCanvasWheel}
-      onPointerDown={handleCanvasPointerDown}
-      onPointerMove={handleCanvasPointerMove}
-      onPointerUp={handleCanvasPointerEnd}
-      onPointerCancel={handleCanvasPointerEnd}
-    >
-      <StageBackground accent="blue" />
-      <button
-        type="button"
-        onClick={onBack}
-        className="absolute left-8 top-8 z-[90] inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/90 px-5 py-2.5 text-sm font-semibold text-cyan-600 shadow-[0_0_16px_rgba(8,145,178,0.12)] backdrop-blur-md transition-all hover:-translate-x-1 hover:bg-white dark:!border-slate-700/90 dark:!bg-slate-950 dark:!text-slate-100 dark:hover:!bg-slate-900 lg:left-[312px]"
-      >
-        <ChevronLeft className="h-5 w-5" />
-        {t('careeros.offers_stage.return_to_roles', { defaultValue: 'Return to roles' })}
-      </button>
-
-      <div className="absolute left-1/2 top-8 z-30 -translate-x-1/2 text-center">
-        <h2 className="text-lg font-medium uppercase tracking-[0.22em] text-cyan-600 drop-shadow-[0_0_10px_rgba(8,145,178,0.2)] dark:text-cyan-300">
-          {t('careeros.offers_stage.active_opportunities', { defaultValue: 'Active opportunities' })}: {selectedRole.title}
-        </h2>
-        <div className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{selectedPath.title}</div>
-      </div>
-
-      <div className="absolute inset-0">
-        <div
-          className="absolute inset-0"
-          style={{
-            transform: `translate3d(${canvasOffset.x}px, ${canvasOffset.y}px, 0) scale(${zoom})`,
-            transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-          }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="-900 -560 1800 1120">
-            <defs>
-              <filter id="careeros-offer-line-glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            {offers.map((offer) => {
-              const dist = Math.hypot(offer.x, offer.y) || 1;
-              const dx = offer.x / dist;
-              const dy = offer.y / dist;
-              return (
-                <g key={`offer-line-${offer.challenge.id}`}>
-                  <line x1={dx * 88} y1={dy * 88} x2={dx * (dist - 48)} y2={dy * (dist - 48)} stroke="#60a5fa" strokeWidth="1" opacity="0.22" />
-                  <line
-                    x1={dx * 88}
-                    y1={dy * 88}
-                    x2={dx * (dist - 48)}
-                    y2={dy * (dist - 48)}
-                    stroke="#60a5fa"
-                    strokeWidth="2"
-                    strokeDasharray="6 6"
-                    opacity="0.75"
-                    filter="url(#careeros-offer-line-glow)"
-                    style={{ animation: 'careeros-dash-flow 4s linear infinite' }}
-                  />
-                </g>
-              );
-            })}
-            </svg>
-
-            <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-            <div className="flex flex-col items-center">
-              <div className="relative flex h-[140px] w-[140px] items-center justify-center rounded-full border-2 border-emerald-400 bg-white shadow-[inset_0_0_30px_rgba(16,185,129,0.1),0_0_50px_rgba(16,185,129,0.2)] backdrop-blur-xl dark:border-cyan-500/30 dark:bg-slate-950/90 dark:shadow-[inset_0_0_30px_rgba(8,145,178,0.16),0_0_50px_rgba(8,145,178,0.12)]">
-                <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping opacity-45" />
-                <div className="relative z-10 h-[116px] w-[116px] overflow-hidden rounded-full border-2 border-white shadow-md dark:border-slate-800">
-                  <NodeImage
-                    src={selectedRole.imageUrl || selectedPath.imageUrl}
-                    alt={selectedRole.title}
-                    fallback={initials(selectedRole.title)}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 rounded-full border border-cyan-200 bg-white/90 px-6 py-2 shadow-[0_0_15px_rgba(8,145,178,0.1)] backdrop-blur-md dark:!border-slate-700/90 dark:!bg-slate-950">
-                <div className="text-[16px] font-bold text-cyan-600 dark:!text-slate-100">{selectedRole.title}</div>
-              </div>
-            </div>
-            </div>
-
-            <AnimatePresence>
-            {offers.map((offer) => {
-              const active = selectedChallengeId === offer.challenge.id;
-              return (
-                <div key={offer.challenge.id} className="absolute left-1/2 top-1/2 z-20" style={{ transform: 'translate(-50%, -50%)' }}>
-                  <div style={{ transform: `translate(${offer.x}px, ${offer.y}px)` }}>
-                    <button type="button" onClick={() => onOfferClick(offer.challenge)} className="group relative flex flex-col items-center">
-                      <div
-                        className={cn(
-                          'relative flex h-[74px] w-[74px] items-center justify-center rounded-full border border-blue-200 bg-white/86 shadow-[0_0_16px_rgba(59,130,246,0.1)] backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:border-blue-400 group-hover:shadow-[0_0_26px_rgba(59,130,246,0.2)] dark:border-blue-500/40 dark:bg-slate-950/82',
-                          active ? 'scale-110 border-blue-400 shadow-[0_0_26px_rgba(59,130,246,0.25)]' : '',
-                        )}
-                      >
-                        <div className="absolute inset-1 rounded-full bg-blue-500/10 blur-sm" />
-                        <div className="relative z-10 h-[62px] w-[62px] overflow-hidden rounded-full border border-white/70">
-                          <NodeImage
-                            src={offer.challenge.coverImageUrl || offer.challenge.avatarUrl}
-                            alt={offer.challenge.title}
-                            fallback={initials(offer.challenge.company)}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      </div>
-
-                      <div
-                        className={cn(
-                          'pointer-events-none absolute w-[148px] rounded-[18px] border px-3 py-2 text-center shadow-sm backdrop-blur-md transition-colors',
-                          offer.labelPlacement === 'left' && 'right-full mr-6 top-1/2 -translate-y-1/2',
-                          offer.labelPlacement === 'right' && 'left-full ml-6 top-1/2 -translate-y-1/2',
-                          offer.labelPlacement === 'top' && 'bottom-full mb-4 left-1/2 -translate-x-1/2',
-                          offer.labelPlacement === 'bottom' && 'top-full mt-4 left-1/2 -translate-x-1/2',
-                          active ? 'border-blue-200 bg-white/96 dark:border-blue-500/50 dark:bg-slate-950/90' : 'border-slate-200/80 bg-white/88 dark:border-slate-800 dark:bg-slate-950/78',
-                        )}
-                      >
-                        <div className="text-[11px] font-semibold leading-tight text-slate-800 dark:text-slate-100">{compactText(offer.challenge.company, 24)}</div>
-                        <div className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">{compactText(offer.challenge.title, 34)}</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PathPanel: React.FC<{
-  node: PathNode | null;
-  expanded: boolean;
-  visible: boolean;
-  onClose: () => void;
-  onToggleExpand: () => void;
-  onExploreOffers: () => void;
-}> = ({ node, expanded, visible, onClose, onToggleExpand, onExploreOffers }) => {
-  const { t, i18n } = useTranslation();
-  const insight = useMemo(
-    () => (node ? buildPathInsightPanel(node, String(i18n.resolvedLanguage || i18n.language || 'en')) : null),
-    [i18n.language, i18n.resolvedLanguage, node],
-  );
-  return (
-  <AnimatePresence>
-    {node && visible && insight ? (
-      <motion.aside
-        initial={{ x: 420, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 420, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 24 }}
-        className={cn(shellPanel, 'absolute bottom-6 right-6 top-6 z-[66] hidden w-[350px] overflow-hidden rounded-[28px] xl:block')}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 pb-4 pt-5 dark:border-slate-800/80">
-            <div>
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>{insight.eyebrow}</span>
-              </div>
-              <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-800 dark:text-slate-100">{insight.title}</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{insight.body}</div>
-            </div>
-            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            <div className="rounded-[24px] border border-cyan-100 bg-cyan-50/90 p-5 shadow-[0_18px_38px_-28px_rgba(8,145,178,0.45)] dark:border-cyan-500/20 dark:bg-cyan-950/16">
-              <div className="text-lg font-semibold leading-7 text-slate-900 dark:text-slate-50">{insight.roleStatement}</div>
-              <div className="mt-4 border-t border-cyan-200/70 pt-4 dark:border-cyan-500/20">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
-                  {t('careeros.path_panel.top_role', { defaultValue: 'Concrete role' })}
-                </div>
-                <div className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{insight.roleTitle}</div>
-                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{insight.roleSubtitle}</div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <div className="rounded-[20px] border border-slate-200 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/78">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{insight.entryLabel}</div>
-                <div className="mt-3 space-y-2">
-                  {insight.entryPoints.map((item) => (
-                    <div key={item} className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                      → {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-[20px] border border-slate-200 bg-white/90 p-4 dark:border-slate-800 dark:bg-slate-900/78">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{insight.nextLabel}</div>
-                <div className="mt-3 space-y-2">
-                  {insight.nextSteps.map((item) => (
-                    <div key={item} className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                      → {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">{insight.footer}</p>
-          </div>
-
-          <div className="grid gap-2 border-t border-slate-200/80 px-5 py-4 dark:border-slate-800/80">
-            <button
-              type="button"
-              onClick={onToggleExpand}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
-            >
-              {expanded ? t('careeros.path_panel.collapse', { defaultValue: 'Collapse cluster' }) : t('careeros.path_panel.expand', { defaultValue: 'Expand cluster' })}
-            </button>
-            <button
-              type="button"
-              onClick={onExploreOffers}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              {t('careeros.path_panel.open_offer_layer', { defaultValue: 'Open offer layer' })}
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </motion.aside>
-    ) : null}
-  </AnimatePresence>
-  );
-};
-
-const ChallengePanel: React.FC<{
-  challenge: CareerOSChallenge | null;
-  onClose: () => void;
-  onOpenChallenge: () => void;
-  onToggleSave: () => void;
-  onOpenCompany: (() => void) | null;
-}> = ({ challenge, onClose, onOpenChallenge, onToggleSave, onOpenCompany }) => {
-  const { t } = useTranslation();
-  return (
-  <AnimatePresence>
-    {challenge ? (
-      <motion.aside
-        initial={{ x: 420, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 420, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 24 }}
-        className={cn(shellPanel, 'absolute bottom-6 right-6 top-6 z-[66] hidden w-[350px] overflow-hidden rounded-[28px] xl:block')}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 pb-4 pt-5 dark:border-slate-800/80">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-                {challenge.listingKind === 'imported'
-                  ? t('careeros.challenge_panel.imported', { defaultValue: 'Imported opportunity' })
-                  : t('careeros.challenge_panel.selected', { defaultValue: 'Selected offer' })}
-              </div>
-              <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-800 dark:text-slate-100">{challenge.title}</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {challenge.company} · {challenge.location}
-              </div>
-            </div>
-            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            <div className="flex flex-wrap gap-2">
-              {challenge.topTags.map((tag) => (
-                <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] font-semibold', toneClasses[challengeTone(challenge)].chip)}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <p className="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-300">{challenge.challengeSummary}</p>
-
-            <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/75">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.challenge_panel.handshake_move', { defaultValue: 'First handshake move' })}</div>
-              <div className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{challenge.firstStepPrompt}</div>
-            </div>
-
-            <div className="mt-3 rounded-[20px] border border-slate-200 bg-slate-50/85 p-4 dark:!border-slate-700/90 dark:!bg-slate-950">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:!text-cyan-300">{t('careeros.challenge_panel.reality', { defaultValue: 'Reality' })}</div>
-              <div className="mt-2 text-sm leading-6 text-slate-700 dark:!text-slate-200">{challenge.riskSummary}</div>
-            </div>
-          </div>
-
-          <div className="grid gap-2 border-t border-slate-200/80 px-5 py-4 dark:border-slate-800/80">
-            <button
-              type="button"
-              onClick={onOpenChallenge}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)]"
-            >
-              {t('careeros.challenge_panel.open_full', { defaultValue: 'Open full challenge' })}
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={onToggleSave}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
-            >
-              {challenge.isSaved ? t('careeros.challenge_panel.saved', { defaultValue: 'Saved' }) : t('careeros.challenge_panel.save', { defaultValue: 'Save challenge' })}
-            </button>
-            {onOpenCompany ? (
-              <button
-                type="button"
-                onClick={onOpenCompany}
-                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
-              >
-                {t('careeros.challenge_panel.open_company', { defaultValue: 'Open company' })}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </motion.aside>
-    ) : null}
-  </AnimatePresence>
   );
 };
 
@@ -4209,32 +4422,38 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   goToPage,
   onOpenProfile,
   onOpenAuth,
-  onOpenCompanyPage,
   onOpenCompaniesLanding,
   initialNavigationState,
   onNavigationStateChange,
 }) => {
-  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(min-width: 1024px)').matches;
-  });
-  const initialSelectedPathId = initialNavigationState?.selectedPathId ?? null;
-  const initialExpandedPathId = initialNavigationState?.expandedPathId ?? null;
-  const initialActiveLayer = initialNavigationState?.activeLayer ?? (isDesktopViewport ? 'career_path' : 'marketplace');
+  const initialSelectedPathId = null;
+  const initialExpandedPathId = null;
+  const initialBranchRoleId = null;
+  const initialActiveLayer: CareerOSLayer = 'career_path';
   const initialCanvasZoom = Number.isFinite(initialNavigationState?.canvasZoom)
     ? Math.max(0.72, Math.min(1.4, Number(initialNavigationState?.canvasZoom)))
-    : 0.94;
+    : 1;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationItems, setNotificationItems] = useState<CareerOSNotification[]>([]);
   const [profileMiniChallenges, setProfileMiniChallenges] = useState<Job[]>([]);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [notificationsStorageHydrated, setNotificationsStorageHydrated] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [domainRemapOpen, setDomainRemapOpen] = useState(false);
-  const [manualDomainSelection, setManualDomainSelection] = useState<string[]>([]);
-  const [manualDomainQuery, setManualDomainQuery] = useState('');
+  const [manualDomainSelection] = useState<string[]>([]);
+  const [manualDomainQuery] = useState('');
   const [databaseJobCount, setDatabaseJobCount] = useState<number | null>(null);
+  const [careerMapPoolJobs, setCareerMapPoolJobs] = useState<Job[] | null>(null);
+  const [careerMapPoolMeta, setCareerMapPoolMeta] = useState<{
+    scope: 'domestic' | 'all';
+    country_code?: string | null;
+    base_pool_count: number;
+    filtered_count: number;
+    generated_at?: string | null;
+    cache_age_seconds?: number | null;
+    database_total_count: number;
+  } | null>(null);
   const [liveCandidateDelta, setLiveCandidateDelta] = useState(0);
   const [learningResources, setLearningResources] = useState<LearningResource[]>([]);
   const [learningResourcesLoading, setLearningResourcesLoading] = useState(false);
@@ -4243,12 +4462,32 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [navigationUseMarketPreferences, setNavigationUseMarketPreferences] = useState(true);
   const [navigationRoute, setNavigationRoute] = useState<CareerNavigationRoute | null>(null);
   const [navigationResolving, setNavigationResolving] = useState(false);
+  const [careerMapNodePositions, setCareerMapNodePositions] = useState<Record<string, CareerMapNodeOffset>>(
+    () => sanitizeCareerMapNodeOffsets(userProfile.preferences?.careerMapLayout?.positions),
+  );
+  const [careerMapBranchOverrides, setCareerMapBranchOverrides] = useState<CareerMapBranchOverrides>(
+    () => userProfile.preferences?.careerMapLayout?.branchOverrides || createEmptyBranchOverrides(),
+  );
   const deferredJobs = useDeferredValue(jobs);
+  const { t, i18n } = useTranslation();
+  const activeLocale = String(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
+  const navigationUiCopy = useMemo(() => getNavigationUiCopy(activeLocale), [activeLocale]);
+  const careerMapCountryCode = useMemo(
+    () => resolveCareerMapCountryCode(userProfile, activeLocale),
+    [activeLocale, userProfile],
+  );
+  const careerMapPoolScope: 'domestic' | 'all' = globalSearch || abroadOnly ? 'all' : 'domestic';
+  const careerMapBenefitsKey = useMemo(() => filterBenefits.join('|'), [filterBenefits]);
+  const careerMapContractTypesKey = useMemo(() => filterContractType.join('|'), [filterContractType]);
+  const careerMapCommuteLat = userProfile.coordinates?.lat;
+  const careerMapCommuteLng = userProfile.coordinates?.lon;
+  const effectiveCareerMapJobs = careerMapPoolJobs ?? deferredJobs;
+  const careerMapSourceJobs = useMemo(() => buildCareerMapSourceJobs(effectiveCareerMapJobs), [effectiveCareerMapJobs]);
 
   const workspace = useMemo(
     () =>
       measureSyncPerf('careeros:workspace-map', () => mapJobsToCareerOSCandidateWorkspace({
-        jobs: deferredJobs,
+        jobs: careerMapSourceJobs,
         userProfile,
         savedJobIds,
         selectedJobId,
@@ -4261,7 +4500,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         searchDiagnostics,
       })),
     [
-      deferredJobs,
+      careerMapSourceJobs,
       userProfile,
       savedJobIds,
       selectedJobId,
@@ -4278,7 +4517,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const [activeLayer, setActiveLayer] = useState<CareerOSLayer>(initialActiveLayer);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(initialSelectedPathId);
   const [expandedPathId, setExpandedPathId] = useState<string | null>(initialExpandedPathId);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(initialBranchRoleId);
   const [panelChallenge, setPanelChallenge] = useState<CareerOSChallenge | null>(() => {
     const initialPanelChallengeId = initialNavigationState?.panelChallengeId;
     if (!initialPanelChallengeId) return null;
@@ -4286,9 +4525,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   });
   const [panelDismissed, setPanelDismissed] = useState<boolean>(initialNavigationState?.panelDismissed ?? true);
   const [canvasZoom, setCanvasZoom] = useState(initialCanvasZoom);
-  const { t, i18n } = useTranslation();
-  const activeLocale = String(i18n.resolvedLanguage || i18n.language || userProfile.preferredLocale || 'en');
-  const navigationUiCopy = useMemo(() => getNavigationUiCopy(activeLocale), [activeLocale]);
+  const shouldLoadCareerMapPool = activeLayer === 'career_path' || activeLayer === 'job_offers';
   const dbCountCacheKey = 'jobshaman:workspace:global-job-count';
   const learningPathRequiresSetup = !hasCareerPathProfileSignal(userProfile);
   const isGuestCareerPath = !userProfile.isLoggedIn;
@@ -4296,14 +4533,44 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   const shouldLoadLearningResources = activeLayer === 'learning_path';
   const shouldLoadProfileMiniChallenges = userProfile.isLoggedIn;
   const shouldLoadNotifications = notificationsOpen;
+  const shouldPrefetchMoreCareerMapJobs =
+    activeLayer === 'career_path'
+    && !careerMapPoolJobs
+    && !expandedPathId
+    && jobs.length < 360
+    && hasMore
+    && !loadingMore
+    && !isLoadingJobs;
 
-  const pathNodes = useMemo(
+  const allPathNodes = useMemo(
     () => measureSyncPerf(
       'careeros:path-nodes',
-      () => buildPathNodes(deferredJobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
+      () => buildPathNodes(careerMapSourceJobs, workspace.challenges, userProfile, t, manualDomainSelection, manualDomainQuery),
     ),
-    [deferredJobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
+    [careerMapSourceJobs, manualDomainQuery, manualDomainSelection, t, workspace.challenges, userProfile],
   );
+  const pathNodes = useMemo<PositionedPathNode[]>(() => {
+    const usedIds = new Set<string>();
+    const mapped = TREE_DIRECTION_SLOTS
+      .map((slot) => {
+        const overrideId = careerMapBranchOverrides.directionSlots?.[slot.id];
+        const candidate = allPathNodes.find((node) => node.id === overrideId && !usedIds.has(node.id))
+          || allPathNodes.find((node) => !usedIds.has(node.id));
+        if (!candidate) return null;
+        usedIds.add(candidate.id);
+        return {
+          ...candidate,
+          slotId: slot.id,
+          nodeKey: getDirectionPositionKey(candidate.id),
+          baseX: slot.x,
+          baseY: slot.y,
+          x: slot.x,
+          y: slot.y,
+          distanceRank: slot.distanceRank,
+        };
+      });
+    return mapped.filter((node): node is NonNullable<typeof node> => node !== null);
+  }, [allPathNodes, careerMapBranchOverrides.directionSlots]);
   const challengeGraphSignature = useMemo(
     () => workspace.challenges.map((challenge) => challenge.id).join('|'),
     [workspace.challenges],
@@ -4313,16 +4580,50 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     () => pathNodes.find((node) => node.id === selectedPathId) || pathNodes[0] || null,
     [pathNodes, selectedPathId],
   );
+  const branchPath = useMemo(
+    () => pathNodes.find((node) => node.id === expandedPathId) || null,
+    [expandedPathId, pathNodes],
+  );
+  const branchRoles = useMemo<PositionedRoleNode[]>(() => {
+    if (!branchPath) return [];
+    const overrideSlots = careerMapBranchOverrides.roleSlots?.[branchPath.id] || {};
+    const usedIds = new Set<string>();
+    return TREE_ROLE_SLOT_OFFSETS
+      .map((offset, index) => {
+        const slotId = `role_${index + 1}`;
+        const overrideId = overrideSlots[slotId];
+        const candidate = branchPath.roleNodes.find((role) => role.id === overrideId && !usedIds.has(role.id))
+          || branchPath.roleNodes.find((role) => !usedIds.has(role.id));
+        if (!candidate) return null;
+        usedIds.add(candidate.id);
+        return {
+          ...candidate,
+          slotId,
+          pathId: branchPath.id,
+          directionKey: branchPath.domainKey,
+          nodeKey: getRolePositionKey(branchPath.id, candidate.id),
+          baseX: branchPath.baseX + 340 + index * 24,
+          baseY: branchPath.baseY + offset,
+          offerCount: buildJobOfferLayerJobs(careerMapSourceJobs, branchPath, candidate).length,
+        };
+      })
+      .filter((role): role is PositionedRoleNode => Boolean(role));
+  }, [branchPath, careerMapBranchOverrides.roleSlots, careerMapSourceJobs]);
   const selectedRole = useMemo(
-    () => selectedPath?.roleNodes.find((role) => role.id === selectedRoleId) || selectedPath?.roleNodes[0] || null,
-    [selectedPath, selectedRoleId],
+    () => branchRoles.find((role) => role.id === selectedRoleId) || branchRoles[0] || selectedPath?.roleNodes[0] || null,
+    [branchRoles, selectedPath, selectedRoleId],
   );
 
-  const benefitCandidates = useMemo(() => topFilterCandidates(deferredJobs), [deferredJobs]);
+  const benefitCandidates = useMemo(() => topFilterCandidates(careerMapSourceJobs), [careerMapSourceJobs]);
   const visibleJobsCount = Math.max(0, databaseJobCount ?? 0);
+  const mappedPoolCount = careerMapPoolMeta?.filtered_count ?? careerMapSourceJobs.length;
   const formattedJobsCount = useMemo(
     () => (databaseJobCount === null ? '...' : new Intl.NumberFormat(activeLocale).format(visibleJobsCount)),
     [activeLocale, databaseJobCount, visibleJobsCount],
+  );
+  const formattedMappedPoolCount = useMemo(
+    () => new Intl.NumberFormat(activeLocale).format(mappedPoolCount),
+    [activeLocale, mappedPoolCount],
   );
   const simulatedActiveCandidates = useMemo(() => {
     const now = new Date();
@@ -4351,7 +4652,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
   const availableDomains = useMemo(
     () => {
-      const discovered = deferredJobs
+      const discovered = careerMapSourceJobs
         .map((job) => resolveJobDomain(job))
         .filter(Boolean)
         .map((domain) => String(domain));
@@ -4381,17 +4682,20 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       return [...prioritized, ...remaining];
     },
-    [deferredJobs, t, i18n.language, userProfile.preferences?.searchProfile?.primaryDomain, userProfile.preferences?.searchProfile?.secondaryDomains],
+    [careerMapSourceJobs, t, i18n.language, userProfile.preferences?.searchProfile?.primaryDomain, userProfile.preferences?.searchProfile?.secondaryDomains],
   );
   const scopedMarketJobs = useMemo(() => {
     if (selectedPath?.challenges?.length) {
       const selectedIds = new Set(selectedPath.challenges.map((challenge) => challenge.id));
-      const matching = deferredJobs.filter((job) => selectedIds.has(String(job.id)));
+      const matching = careerMapSourceJobs.filter((job) => selectedIds.has(String(job.id)));
       if (matching.length > 0) return matching;
     }
-    return deferredJobs.slice(0, 12);
-  }, [deferredJobs, selectedPath]);
-
+    return careerMapSourceJobs.slice(0, 12);
+  }, [careerMapSourceJobs, selectedPath]);
+  const jobOfferLayerJobs = useMemo(
+    () => buildJobOfferLayerJobs(careerMapSourceJobs, selectedPath, selectedRole),
+    [careerMapSourceJobs, selectedPath, selectedRole],
+  );
   const learningResourceSearchTerms = useMemo(
     () => {
       const searchProfile = userProfile.preferences?.searchProfile;
@@ -4419,13 +4723,53 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mediaQuery = window.matchMedia('(min-width: 1024px)');
-    const syncViewport = () => setIsDesktopViewport(mediaQuery.matches);
-    syncViewport();
-    mediaQuery.addEventListener('change', syncViewport);
-    return () => mediaQuery.removeEventListener('change', syncViewport);
-  }, []);
+    if (!shouldLoadCareerMapPool) return;
+    let cancelled = false;
+
+    void getCareerMapPool({
+      countryCode: careerMapPoolScope === 'domestic' ? careerMapCountryCode : undefined,
+      scope: careerMapPoolScope,
+      limit: 1400,
+      userLat: enableCommuteFilter ? careerMapCommuteLat : undefined,
+      userLng: enableCommuteFilter ? careerMapCommuteLng : undefined,
+      radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
+      remoteOnly,
+      workArrangement: filterWorkArrangement,
+      contractTypes: filterContractType,
+      benefits: filterBenefits,
+      minSalary: filterMinSalary || undefined,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setCareerMapPoolJobs(result.jobs);
+        setCareerMapPoolMeta(result.meta);
+        if (result.meta.database_total_count > 0) {
+          setDatabaseJobCount((current) => current ?? result.meta.database_total_count);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCareerMapPoolJobs(null);
+        setCareerMapPoolMeta(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    careerMapCommuteLat,
+    careerMapCommuteLng,
+    careerMapCountryCode,
+    careerMapPoolScope,
+    enableCommuteFilter,
+    careerMapBenefitsKey,
+    filterMaxDistance,
+    filterMinSalary,
+    filterWorkArrangement,
+    careerMapContractTypesKey,
+    remoteOnly,
+    shouldLoadCareerMapPool,
+  ]);
 
   useEffect(() => {
     if (!shouldLoadDatabaseCount) return;
@@ -4467,6 +4811,14 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       cancelled = true;
     };
   }, [dbCountCacheKey, shouldLoadDatabaseCount]);
+
+  useEffect(() => {
+    if (!shouldPrefetchMoreCareerMapJobs) return;
+    const timer = window.setTimeout(() => {
+      loadMoreJobs();
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [loadMoreJobs, shouldPrefetchMoreCareerMapJobs]);
 
   useEffect(() => {
     if (activeLayer !== 'career_path') return;
@@ -4637,6 +4989,17 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, [activeLayer]);
 
   useEffect(() => {
+    setActiveLayer('career_path');
+    setExpandedPathId(null);
+    setSelectedRoleId(null);
+  }, [userProfile.id]);
+
+  useEffect(() => {
+    setCareerMapNodePositions(sanitizeCareerMapNodeOffsets(userProfile.preferences?.careerMapLayout?.positions));
+    setCareerMapBranchOverrides(userProfile.preferences?.careerMapLayout?.branchOverrides || createEmptyBranchOverrides());
+  }, [userProfile.id]);
+
+  useEffect(() => {
     if (!selectedPathId && pathNodes[0]) {
       setSelectedPathId(pathNodes[0].id);
       return;
@@ -4650,14 +5013,14 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   }, [expandedPathId, pathNodes, selectedPathId]);
 
   useEffect(() => {
-    if (!selectedPath?.roleNodes?.length) {
+    if (!branchRoles.length) {
       setSelectedRoleId(null);
       return;
     }
-    if (!selectedRoleId || !selectedPath.roleNodes.some((role) => role.id === selectedRoleId)) {
-      setSelectedRoleId(selectedPath.roleNodes[0].id);
+    if (!selectedRoleId || !branchRoles.some((role) => role.id === selectedRoleId)) {
+      setSelectedRoleId(branchRoles[0].id);
     }
-  }, [selectedPath, selectedRoleId]);
+  }, [branchRoles, selectedRoleId]);
 
   useEffect(() => {
     setExpandedPathId(null);
@@ -4672,11 +5035,57 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
       activeLayer,
       selectedPathId,
       expandedPathId,
+      activeBranchRoleId: selectedRoleId,
       panelChallengeId: panelChallenge?.id || null,
       panelDismissed,
       canvasZoom,
     });
-  }, [activeLayer, canvasZoom, expandedPathId, onNavigationStateChange, panelChallenge?.id, panelDismissed, selectedPathId]);
+  }, [activeLayer, canvasZoom, expandedPathId, onNavigationStateChange, panelChallenge?.id, panelDismissed, selectedPathId, selectedRoleId]);
+
+  const careerMapLayoutSnapshot = useMemo(
+    () => JSON.stringify({
+      positions: careerMapNodePositions,
+      branchOverrides: careerMapBranchOverrides,
+    }),
+    [careerMapBranchOverrides, careerMapNodePositions],
+  );
+  const careerMapLayoutPersistedRef = useRef<string>('');
+
+  useEffect(() => {
+    const loadedSnapshot = JSON.stringify({
+      positions: sanitizeCareerMapNodeOffsets(userProfile.preferences?.careerMapLayout?.positions),
+      branchOverrides: userProfile.preferences?.careerMapLayout?.branchOverrides || createEmptyBranchOverrides(),
+    });
+    careerMapLayoutPersistedRef.current = loadedSnapshot;
+  }, [userProfile.id]);
+
+  useEffect(() => {
+    if (!userProfile.isLoggedIn || !userProfile.id) return;
+    if (careerMapLayoutSnapshot === careerMapLayoutPersistedRef.current) return;
+    const timer = window.setTimeout(() => {
+      void persistUserProfile(userProfile.id!, {
+        preferences: {
+          ...userProfile.preferences,
+          careerMapLayout: {
+            positions: careerMapNodePositions,
+            branchOverrides: careerMapBranchOverrides,
+          },
+        },
+      }).then(() => {
+        careerMapLayoutPersistedRef.current = careerMapLayoutSnapshot;
+      }).catch((error) => {
+        console.warn('[CareerOS] Failed to persist career map layout:', error);
+      });
+    }, 550);
+    return () => window.clearTimeout(timer);
+  }, [
+    careerMapBranchOverrides,
+    careerMapLayoutSnapshot,
+    careerMapNodePositions,
+    userProfile.id,
+    userProfile.isLoggedIn,
+    userProfile.preferences,
+  ]);
 
   useEffect(() => {
     if (!panelChallenge) return;
@@ -4808,17 +5217,32 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     performSearch(searchTerm);
   }, [performSearch, searchTerm]);
 
+  const handleCareerMapNodeOffsetChange = useCallback((nodeKey: string, nextOffset: CareerMapNodeOffset) => {
+    setCareerMapNodePositions((current) => ({
+      ...current,
+      [nodeKey]: {
+        x: Math.round(nextOffset.x),
+        y: Math.round(nextOffset.y),
+      },
+    }));
+  }, []);
+
+  const handleResetCareerMapLayout = useCallback(() => {
+    setCanvasZoom(1);
+    setCareerMapNodePositions(createEmptyNodeOffsets());
+    setCareerMapBranchOverrides(createEmptyBranchOverrides());
+    setActiveLayer('career_path');
+    setExpandedPathId(null);
+    setSelectedRoleId(null);
+  }, []);
+
   const handlePathNodeClick = useCallback((node: PathNode) => {
     markPerf('careeros:graph:start');
     setSelectedPathId(node.id);
-    setSelectedRoleId(node.roleNodes[0]?.id || null);
     setPanelDismissed(false);
     setExpandedPathId(node.id);
-  }, []);
-
-  const handleOfferClick = useCallback((challenge: CareerOSChallenge) => {
-    setPanelDismissed(false);
-    setPanelChallenge(challenge);
+    setSelectedRoleId(null);
+    setActiveLayer('career_path');
   }, []);
 
   const handleRoleNodeClick = useCallback((role: RoleNode) => {
@@ -4841,7 +5265,6 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     }
     if (layer === 'career_path') {
       setActiveLayer('career_path');
-      setExpandedPathId(null);
       setPanelDismissed(true);
       setPanelChallenge(null);
       return;
@@ -4943,7 +5366,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         if (!step.ctaTarget.pathId) return;
         setActiveLayer('career_path');
         setSelectedPathId(step.ctaTarget.pathId);
-        setExpandedPathId(step.ctaTarget.pathId);
+        setExpandedPathId(null);
         setPanelDismissed(true);
         return;
       }
@@ -4953,7 +5376,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         const targetRole = targetPath?.roleNodes.find((role) => role.id === step.ctaTarget.roleId) || targetPath?.roleNodes[0] || null;
         setSelectedPathId(step.ctaTarget.pathId);
         setSelectedRoleId(targetRole?.id || null);
-        setExpandedPathId(step.ctaTarget.pathId);
+        setExpandedPathId(null);
         setPanelChallenge(targetRole?.featuredChallenge || targetPath?.featuredChallenge || null);
         setPanelDismissed(false);
         setActiveLayer('job_offers');
@@ -4971,62 +5394,109 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   };
 
   const mainLayerNode = useMemo(() => measureSyncPerf('careeros:main-layer', () => {
-    if (activeLayer === 'career_path' || !selectedPath) {
+    if (activeLayer === 'career_path' || (activeLayer === 'job_offers' && (!selectedPath || !selectedRole)) || !selectedPath) {
       return (
         <CareerPathStage
           userLabel={workspace.userLabel}
           headline={workspace.headline}
-          userProfilePhoto={safeImage(userProfile.photo)}
+          userProfilePhoto={safeImage(userProfile.photo || (userProfile as any).avatarUrl || (userProfile as any).avatar_url || null)}
           isGuest={!userProfile.isLoggedIn}
           formattedJobsCount={formattedJobsCount}
-          formattedActiveCandidates={formattedActiveCandidates}
+          formattedMappedPoolCount={formattedMappedPoolCount}
           nodes={pathNodes}
+          branchRoles={branchRoles}
           selectedPathId={selectedPath?.id || null}
-          expandedPathId={expandedPathId}
-          activeClusterRoleId={selectedRole?.id || null}
+          activeBranchRoleId={selectedRole?.id || null}
           zoom={canvasZoom}
           setZoom={setCanvasZoom}
           onNodeClick={handlePathNodeClick}
           onClusterRoleClick={handleRoleNodeClick}
-          onOpenOfferLayer={(node) => {
-            markPerf('careeros:graph:start');
-            setSelectedPathId(node.id);
-            setSelectedRoleId(node.roleNodes[0]?.id || null);
-            setPanelDismissed(false);
-            setPanelChallenge(node.roleNodes[0]?.featuredChallenge || node.featuredChallenge);
-            setActiveLayer('job_offers');
-          }}
-          onCollapseCluster={() => setExpandedPathId(null)}
-          showDefaultHud={activeLayer === 'career_path' && !expandedPathId}
-          remapOpen={domainRemapOpen}
-          setRemapOpen={setDomainRemapOpen}
-          availableDomains={availableDomains}
-          manualDomainSelection={manualDomainSelection}
-          setManualDomainSelection={setManualDomainSelection}
-          manualDomainQuery={manualDomainQuery}
-          setManualDomainQuery={setManualDomainQuery}
-          navigationRoute={navigationRoute}
           onOpenAuth={onOpenAuth}
+          nodeOffsets={careerMapNodePositions}
+          onNodeOffsetChange={handleCareerMapNodeOffsetChange}
+          onResetLayout={handleResetCareerMapLayout}
         />
       );
     }
 
     if (activeLayer === 'job_offers' && selectedPath && selectedRole) {
       return (
-        <JobOffersStage
-          selectedPath={selectedPath}
-          selectedRole={selectedRole}
-          selectedChallengeId={panelChallenge?.id || null}
-          zoom={canvasZoom}
-          setZoom={setCanvasZoom}
-          onBack={() => {
-            markPerf('careeros:graph:start');
-            setActiveLayer('career_path');
-            setPanelChallenge(null);
-            setExpandedPathId(selectedPath?.id || null);
-          }}
-          onOfferClick={handleOfferClick}
-        />
+        <div className="relative h-full overflow-y-auto px-4 pb-8 pt-6 lg:pl-[320px] lg:pr-6">
+          <NeuralCircuitTexture className="pointer-events-none absolute inset-0 opacity-[0.24]" />
+          <div className="relative z-10 space-y-5">
+            <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/96 sm:px-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      markPerf('careeros:graph:start');
+                      setActiveLayer('career_path');
+                      setPanelChallenge(null);
+                      setExpandedPathId(selectedPath.id);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/30 dark:bg-cyan-950/30 dark:text-cyan-200 dark:hover:bg-cyan-950/40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {t('careeros.offers_stage.return_to_roles', { defaultValue: 'Zpět na role' })}
+                  </button>
+                  <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                    {selectedPath.title}
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 dark:text-slate-100">
+                    {selectedRole.title}
+                  </h2>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                    {t('careeros.offers_stage.offer_count', {
+                      defaultValue: '{{count}} aktivních nabídek',
+                      count: jobOfferLayerJobs.length,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <MarketplacePage
+              hasNativeChallenges={hasNativeChallenges}
+              jobs={jobOfferLayerJobs}
+              selectedJobId={selectedJobId}
+              savedJobIds={savedJobIds}
+              userProfile={userProfile}
+              lane={lane}
+              discoveryMode={discoveryMode}
+              searchDiagnostics={searchDiagnostics}
+              setDiscoveryMode={setDiscoveryMode}
+              setLane={setLane}
+              totalCount={jobOfferLayerJobs.length}
+              isLoadingJobs={isLoadingJobs}
+              loadingMore={false}
+              hasMore={false}
+              currentPage={1}
+              pageSize={Math.max(1, jobOfferLayerJobs.length)}
+              handleJobSelect={handleJobSelect}
+              handleToggleSave={handleToggleSave}
+              loadMoreJobs={() => {}}
+              goToPage={() => {}}
+              onOpenProfile={onOpenProfile}
+              filterMinSalary={filterMinSalary}
+              setFilterMinSalary={setFilterMinSalary}
+              filterBenefits={filterBenefits}
+              setFilterBenefits={setFilterBenefits}
+              remoteOnly={remoteOnly}
+              setRemoteOnly={setRemoteOnly}
+              enableCommuteFilter={enableCommuteFilter}
+              setEnableCommuteFilter={setEnableCommuteFilter}
+              filterMaxDistance={filterMaxDistance}
+              setFilterMaxDistance={setFilterMaxDistance}
+              onOpenAuth={onOpenAuth}
+              showSidebar={false}
+              embeddedInCareerOS
+              embeddedVariant="career_map_offers"
+            />
+          </div>
+        </div>
       );
     }
 
@@ -5116,9 +5586,9 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     filterWorkArrangement,
     formattedActiveCandidates,
     formattedJobsCount,
+    formattedMappedPoolCount,
     globalSearch,
     handleJobSelect,
-    handleOfferClick,
     handlePathNodeClick,
     handleRoleNodeClick,
     hasMore,
@@ -5227,7 +5697,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       {(activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
         <div className="pointer-events-none absolute left-3 right-3 top-[88px] z-[74] lg:hidden">
-          <div className="pointer-events-auto rounded-[26px] border border-white/70 bg-white/92 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+          <div className="pointer-events-auto rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/96 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
@@ -5327,16 +5797,16 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
             onClick: () => handleSidebarNavigate(layer.id),
           }))}
         />
-        {!(activeLayer === 'career_path' && !expandedPathId) && (activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
+        {activeLayer === 'job_offers' ? (
           <GalaxyCanvasControls
             zoom={canvasZoom}
             setZoom={setCanvasZoom}
-            className={cn('self-start', sidebarCollapsed ? 'w-24' : 'w-72')}
+            className={cn('self-start', sidebarCollapsed ? 'w-auto' : 'w-72')}
           />
         ) : null}
         {(activeLayer === 'career_path' || activeLayer === 'job_offers') ? (
-          <div className={cn('self-start', sidebarCollapsed ? 'w-24' : 'w-72')}>
-            <div className="rounded-[26px] border border-white/70 bg-white/92 p-3 shadow-[0_24px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
+          <div className={cn('self-start', sidebarCollapsed ? 'w-auto' : 'w-72')}>
+            <div className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/96 dark:shadow-[0_30px_90px_-40px_rgba(2,6,23,0.82)]">
               {sidebarCollapsed ? (
                 <div className="flex flex-col items-center gap-2">
                   <button
@@ -5458,23 +5928,6 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
       <div className="absolute inset-0">{mainLayerNode}</div>
 
-      <PathPanel
-        node={selectedPath}
-        visible={!navigationRoute && !panelDismissed && activeLayer === 'career_path' && expandedPathId === selectedPath?.id}
-        expanded={expandedPathId === selectedPath?.id}
-        onClose={() => setPanelDismissed(true)}
-        onToggleExpand={() => {
-          if (!selectedPath) return;
-          setExpandedPathId((current) => (current === selectedPath.id ? null : selectedPath.id));
-        }}
-        onExploreOffers={() => {
-          if (!selectedPath || !selectedRole) return;
-          setExpandedPathId(selectedPath.id);
-          setPanelChallenge(selectedRole.featuredChallenge);
-          setActiveLayer('job_offers');
-        }}
-      />
-
       <NavigationPanel
         route={navigationRoute}
         visible={activeLayer === 'career_path'}
@@ -5488,23 +5941,6 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
         onSelectAlternative={handleNavigationAlternativeSelect}
       />
 
-      <ChallengePanel
-        challenge={!panelDismissed && activeLayer === 'job_offers' ? panelChallenge || selectedRole?.featuredChallenge || null : null}
-        onClose={() => setPanelDismissed(true)}
-        onOpenChallenge={() => {
-          const target = panelChallenge || selectedRole?.featuredChallenge;
-          if (target) handleJobSelect(target.id);
-        }}
-        onToggleSave={() => {
-          const target = panelChallenge || selectedRole?.featuredChallenge;
-          if (target) handleToggleSave(target.id);
-        }}
-        onOpenCompany={
-          (panelChallenge || selectedRole?.featuredChallenge)?.companyId
-            ? () => onOpenCompanyPage(String((panelChallenge || selectedRole?.featuredChallenge)?.companyId))
-            : null
-        }
-      />
     </div>
   );
 };
