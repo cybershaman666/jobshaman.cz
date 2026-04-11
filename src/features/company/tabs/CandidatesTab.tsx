@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CheckCircle2,
@@ -23,16 +23,60 @@ const formatDate = (value: unknown) => {
 };
 
 const getAvatarUrl = (candidate: any) =>
-  candidate?.avatar_url ||
-  candidate?.avatarUrl ||
-  candidate?.candidate_avatar_url ||
-  candidate?.photo ||
-  candidate?.photo_url ||
-  candidate?.image_url ||
-  candidate?.profile_photo ||
-  candidate?.profile?.photo ||
-  candidate?.profile?.avatar_url ||
-  null;
+  [
+    candidate?.candidate_avatar_url,
+    candidate?.candidateAvatarUrl,
+    candidate?.avatar_url,
+    candidate?.avatarUrl,
+    candidate?.avatar,
+    candidate?.candidate_avatar_url,
+    candidate?.candidateAvatarUrl,
+    candidate?.photo,
+    candidate?.photo_url,
+    candidate?.image_url,
+    candidate?.profile_photo,
+    candidate?.profilePhoto,
+    candidate?.user_photo,
+    candidate?.userPhoto,
+    candidate?.profile?.photo,
+    candidate?.profile?.avatar,
+    candidate?.profile?.avatar_url,
+    candidate?.profile?.avatarUrl,
+    candidate?.candidate_profile_snapshot?.avatar_url,
+    candidate?.candidate_profile_snapshot?.photo,
+    candidate?.candidateProfileSnapshot?.avatar_url,
+    candidate?.candidateProfileSnapshot?.photo,
+    candidate?.user_metadata?.avatar_url,
+    candidate?.user_metadata?.picture,
+    candidate?.userMetadata?.avatar_url,
+    candidate?.userMetadata?.picture,
+  ]
+    .map((value) => String(value || '').trim())
+    .find(Boolean) || null;
+
+const hasCandidateApplication = (candidate: any): boolean =>
+  Boolean(
+    candidate?.application_id ||
+    candidate?.applicationId ||
+    candidate?.dialogue_id ||
+    candidate?.dialogueId ||
+    candidate?.job_id ||
+    candidate?.jobId ||
+    candidate?.submitted_at ||
+    candidate?.submittedAt ||
+    candidate?.applied_at ||
+    candidate?.appliedAt ||
+    candidate?.status ||
+    candidate?.application_status ||
+    candidate?.applicationStatus ||
+    candidate?.current_stage ||
+    candidate?.currentStage ||
+    candidate?.last_application_at ||
+    candidate?.lastApplicationAt ||
+    (typeof candidate?.open_dialogues_count === 'number' && candidate.open_dialogues_count > 0) ||
+    (typeof candidate?.applications_count === 'number' && candidate.applications_count > 0) ||
+    (Array.isArray(candidate?.applications) && candidate.applications.length > 0),
+  );
 
 const getInitials = (value: string) =>
   String(value || '')
@@ -53,8 +97,47 @@ const getCandidateLinks = (candidate: any) =>
     .map((item) => String(item || '').trim())
     .filter(Boolean);
 
-const getCandidateLocation = (candidate: any) =>
-  String(candidate?.location || candidate?.location_public || '').trim() || 'Lokalita zatím není uvedena';
+const getCandidateEmail = (candidate: any) =>
+  [
+    candidate?.email,
+    candidate?.contact_email,
+    candidate?.candidate_email,
+    candidate?.profile?.email,
+    candidate?.candidate_profile_snapshot?.email,
+    candidate?.user_metadata?.email,
+  ]
+    .map((value) => String(value || '').trim())
+    .find(Boolean) || '';
+
+const getCandidateLocation = (candidate: any) => {
+  const direct = [
+    candidate?.location,
+    candidate?.location_public,
+    candidate?.candidate_location,
+    candidate?.candidateLocation,
+    candidate?.profile?.location,
+    candidate?.profile?.location_public,
+    candidate?.candidate_profile_snapshot?.location,
+    candidate?.candidate_profile_snapshot?.location_public,
+  ]
+    .map((value) => String(value || '').trim())
+    .find(Boolean);
+
+  if (direct) return direct;
+
+  const parts = [
+    candidate?.city,
+    candidate?.region,
+    candidate?.country,
+    candidate?.profile?.city,
+    candidate?.profile?.region,
+    candidate?.profile?.country,
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  return parts.length > 0 ? parts.join(', ') : 'Lokalita zatím není uvedena';
+};
 
 const getCandidateName = (candidate: any) =>
   candidate?.full_name || candidate?.name || candidate?.email || 'Neznámý kandidát';
@@ -62,33 +145,52 @@ const getCandidateName = (candidate: any) =>
 const getCandidateHeadline = (candidate: any) =>
   candidate?.job_title || candidate?.title || candidate?.role || candidate?.headline || 'Kandidát';
 
-const getCandidateExperienceYears = (candidate: any) => {
-  const value = Number(candidate?.experienceYears || 0);
-  return Number.isFinite(value) ? value : 0;
-};
-
 const getCandidateAssessmentScore = (candidate: any) => {
-  const raw = Number(candidate?.assessmentScore ?? candidate?.score ?? candidate?.matchScore ?? candidate?.fitScore ?? 0);
+  const raw = Number(
+    candidate?.assessmentScore ??
+    candidate?.assessment_score ??
+    candidate?.verifiedAssessmentScore ??
+    candidate?.verified_assessment_score ??
+    0,
+  );
   if (!Number.isFinite(raw) || raw <= 0) return null;
   return raw <= 1 ? Math.round(raw * 100) : Math.round(raw);
 };
 
+const extractVerifiedSkillMatrix = (candidate: any): Array<{ label: string; score: number; tags: string[] }> => {
+  const sources = [
+    candidate?.skill_matrix,
+    candidate?.skillMatrix,
+    candidate?.assessment_breakdown,
+    candidate?.assessmentBreakdown,
+    candidate?.verified_skill_scores,
+    candidate?.verifiedSkillScores,
+  ];
+
+  for (const source of sources) {
+    if (!Array.isArray(source)) continue;
+    const normalized = source
+      .map((item: any) => {
+        const label = String(item?.label || item?.skill || item?.name || '').trim();
+        const rawScore = Number(item?.score ?? item?.rating ?? item?.value ?? 0);
+        const tags = Array.isArray(item?.tags)
+          ? item.tags.map((tag: unknown) => String(tag || '').trim()).filter(Boolean).slice(0, 3)
+          : [];
+        if (!label || !Number.isFinite(rawScore) || rawScore <= 0) return null;
+        const score = rawScore <= 1 ? Math.round(rawScore * 100) : Math.round(rawScore);
+        return { label, score: Math.max(1, Math.min(100, score)), tags };
+      })
+      .filter((item): item is { label: string; score: number; tags: string[] } => Boolean(item))
+      .slice(0, 3);
+
+    if (normalized.length > 0) return normalized;
+  }
+
+  return [];
+};
+
 const buildSkillMatrix = (candidate: any) => {
-  const baseScore =
-    getCandidateAssessmentScore(candidate) ??
-    Math.min(94, 62 + getCandidateSkills(candidate).length * 4 + getCandidateExperienceYears(candidate) * 2);
-  return getCandidateSkills(candidate)
-    .slice(0, 3)
-    .map((skill: string, index: number) => {
-      const score = Math.max(52, Math.min(98, baseScore - index * 7));
-      return {
-        label: skill,
-        score,
-        tags: getCandidateSkills(candidate)
-          .filter((entry: string) => entry !== skill)
-          .slice(index, index + 3),
-      };
-    });
+  return extractVerifiedSkillMatrix(candidate);
 };
 
 const buildTimelineEntries = (candidate: any) => {
@@ -135,8 +237,8 @@ const buildInternalNotes = (candidate: any) => {
   }
   if (values.length > 0) {
     notes.push({
-      author: 'Pracovni preference',
-      time: 'Ted',
+      author: 'Pracovní preference',
+      time: 'Teď',
       body: `Kandidát už teď naznačuje pracovní preference kolem témat: ${values.join(', ')}.`,
     });
   }
@@ -210,6 +312,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
 
   const displayName = getCandidateName(selectedCandidate);
   const headline = getCandidateHeadline(selectedCandidate);
+  const candidateEmail = getCandidateEmail(selectedCandidate);
   const avatarUrl = brokenAvatars[String(selectedCandidate.id)] ? null : getAvatarUrl(selectedCandidate);
   const skills = getCandidateSkills(selectedCandidate);
   const links = getCandidateLinks(selectedCandidate);
@@ -217,8 +320,8 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
   const skillMatrix = buildSkillMatrix(selectedCandidate);
   const timelineEntries = buildTimelineEntries(selectedCandidate);
   const internalNotes = buildInternalNotes(selectedCandidate);
-  const assessmentScore =
-    getCandidateAssessmentScore(selectedCandidate) ?? Math.min(96, 64 + skills.length * 4 + getCandidateExperienceYears(selectedCandidate) * 2);
+  const assessmentScore = getCandidateAssessmentScore(selectedCandidate);
+  const hasApplication = hasCandidateApplication(selectedCandidate);
   const nextStep =
     skills.length >= 3
       ? t('company.candidates.next_step_schedule', { defaultValue: 'Naplánovat interview' })
@@ -245,7 +348,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={t('company.candidates.search', { defaultValue: 'Hledat podle jména, e-mailu, skillů nebo role…' })}
+                placeholder={t('company.candidates.search', { defaultValue: 'Hledat podle jména, e-mailu, dovedností nebo role…' })}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm text-slate-900 placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent)] dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
             </div>
@@ -263,7 +366,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[292px_minmax(0,1fr)]">
+      <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="rounded-[28px] border border-slate-200 bg-white p-3.5 shadow-[0_20px_54px_-42px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -307,7 +410,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{getCandidateName(candidate)}</div>
                     <div className="truncate text-xs text-slate-500 dark:text-slate-400">{getCandidateHeadline(candidate)}</div>
-                    <div className="mt-1 truncate text-[11px] text-slate-400 dark:text-slate-500">{candidate.email || getCandidateLocation(candidate)}</div>
+                    <div className="mt-1 truncate text-[11px] text-slate-400 dark:text-slate-500">{getCandidateEmail(candidate) || getCandidateLocation(candidate)}</div>
                   </div>
                 </button>
               );
@@ -316,10 +419,10 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
         </aside>
 
         <div className="space-y-6">
-          <section className="grid gap-6 xl:grid-cols-[1.65fr_0.95fr]">
+          <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.9fr)]">
             <div className="space-y-6">
               <div className="rounded-[28px] border border-slate-200 bg-white px-4 py-4 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-900">
-                <div className="grid gap-4 xl:grid-cols-[144px_minmax(0,1fr)_auto] xl:items-center">
+                <div className="grid gap-5 xl:grid-cols-[144px_minmax(0,1fr)] xl:items-start">
                   <div className="relative h-[140px] w-[120px] overflow-hidden rounded-[24px] border border-slate-200 bg-slate-100 shadow-sm dark:border-slate-800 dark:bg-slate-800">
                     {avatarUrl ? (
                       <img
@@ -338,43 +441,52 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                     </button>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                       {t('company.candidates.active', { defaultValue: 'Aktivní' })}
                     </div>
-                    <h1 className="mt-3 text-[32px] font-semibold leading-[0.92] tracking-[-0.06em] text-slate-950 dark:text-white">{displayName}</h1>
-                    <div className="mt-2.5 max-w-2xl text-[15px] font-medium leading-7 text-[var(--accent)]">{headline}</div>
+                    <h1 className="mt-3 max-w-3xl text-[30px] font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950 dark:text-white">
+                      {displayName}
+                    </h1>
+                    <div className="mt-2.5 max-w-3xl text-[15px] font-medium leading-7 text-[var(--accent)]">{headline}</div>
 
-                    <div className="mt-5 space-y-3 text-[14px] text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center gap-3">
+                    <div className="mt-5 grid gap-3 text-[14px] text-slate-600 sm:grid-cols-2 dark:text-slate-400">
+                      <div className="flex min-w-0 items-start gap-3">
                         <MapPin size={16} />
-                        {getCandidateLocation(selectedCandidate)}
+                        <span className="min-w-0 break-words">{getCandidateLocation(selectedCandidate)}</span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
                         <Mail size={16} />
-                        {selectedCandidate.email || 'E-mail zatím není uvedený'}
+                        <span className="min-w-0 break-all">{candidateEmail || 'E-mail zatím není uvedený'}</span>
                       </div>
                       {links[0] ? (
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 items-start gap-3 sm:col-span-2">
                           <LinkIcon size={16} />
-                          <a href={links[0]} target="_blank" rel="noreferrer" className="truncate text-[var(--accent)] hover:underline">
+                          <a href={links[0]} target="_blank" rel="noreferrer" className="min-w-0 truncate text-[var(--accent)] hover:underline">
                             {links[0]}
                           </a>
                         </div>
                       ) : null}
                     </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2.5 xl:items-end">
-                    <button className="rounded-[18px] bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-300">
-                      {t('company.candidates.reject', { defaultValue: 'Zamitnout' })}
-                    </button>
-                    <button className="rounded-[18px] border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800">
-                      {t('company.candidates.schedule', { defaultValue: 'Naplánovat interview' })}
-                    </button>
-                    <button className="rounded-[18px] bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_42px_-26px_rgba(15,155,184,0.35)] transition hover:bg-[var(--accent-dark)]">
-                      {t('company.candidates.move_next', { defaultValue: 'Posunout do další fáze' })}
-                    </button>
+                    <div className="mt-5">
+                      {hasApplication ? (
+                        <div className="flex flex-wrap gap-2.5">
+                          <button className="rounded-[18px] bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-300">
+                            {t('company.candidates.reject', { defaultValue: 'Zamítnout' })}
+                          </button>
+                          <button className="rounded-[18px] border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800">
+                            {t('company.candidates.schedule', { defaultValue: 'Naplánovat interview' })}
+                          </button>
+                          <button className="rounded-[18px] bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_42px_-26px_rgba(15,155,184,0.35)] transition hover:bg-[var(--accent-dark)]">
+                            {t('company.candidates.move_next', { defaultValue: 'Posunout do další fáze' })}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="max-w-full rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600 break-words dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                          {t('company.candidates.registered_only', { defaultValue: 'Zatím jde jen o registrovaný profil bez přihlášky.' })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -433,7 +545,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
 
               <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-900">
                 <h3 className="text-[18px] font-semibold tracking-[-0.04em] text-slate-950 dark:text-white">
-                  {t('company.candidates.skill_evolution', { defaultValue: 'Vyvoj zkusenosti' })}
+                  {t('company.candidates.skill_evolution', { defaultValue: 'Vývoj zkušeností' })}
                 </h3>
 
                 <div className="mt-8 space-y-8">
@@ -467,22 +579,24 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                 </div>
                 <div className="mt-8 space-y-6">
                   <div className="flex items-center justify-between text-[15px]">
-                    <span className="text-white/76">{t('company.candidates.cognitive_fit', { defaultValue: 'Kognitivni shoda' })}</span>
-                    <span className="text-[18px] font-semibold">{assessmentScore}%</span>
+                    <span className="text-white/76">{t('company.candidates.cognitive_fit', { defaultValue: 'Kognitivní shoda' })}</span>
+                    <span className="text-[18px] font-semibold">{assessmentScore ? `${assessmentScore}%` : '—'}</span>
                   </div>
                   <div className="flex items-center justify-between text-[15px]">
-                    <span className="text-white/76">{t('company.candidates.tech_proficiency', { defaultValue: 'Odborna uroven' })}</span>
+                    <span className="text-white/76">{t('company.candidates.tech_proficiency', { defaultValue: 'Odborná úroveň' })}</span>
                     <span className="text-[18px] font-semibold">
                       {skills.length >= 4
-                        ? t('company.candidates.superior', { defaultValue: 'Silna' })
+                        ? t('company.candidates.superior', { defaultValue: 'Silná' })
                         : skills.length >= 2
-                          ? t('company.candidates.strong', { defaultValue: 'Dobra' })
-                          : t('company.candidates.emerging', { defaultValue: 'Rozviji se' })}
+                          ? t('company.candidates.strong', { defaultValue: 'Dobrá' })
+                          : assessmentScore
+                            ? t('company.candidates.emerging', { defaultValue: 'Rozvíjí se' })
+                            : t('company.candidates.unavailable', { defaultValue: 'Není k dispozici' })}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[15px]">
-                    <span className="text-white/76">{t('company.candidates.growth_mindset', { defaultValue: 'Rustovy potencial' })}</span>
-                    <span className="text-[18px] font-semibold">★★★★★</span>
+                    <span className="text-white/76">{t('company.candidates.growth_mindset', { defaultValue: 'Růstový potenciál' })}</span>
+                    <span className="text-[18px] font-semibold">{assessmentScore ? '★★★★★' : '—'}</span>
                   </div>
                 </div>
 
@@ -491,7 +605,9 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                     {selectedCandidate.bio
                       ? `"${selectedCandidate.bio}"`
                       : t('company.candidates.feedback_placeholder', {
-                           defaultValue: 'Profil je už teď velmi relevantní pro aktuální hiring cíl. Další nejlepší krok je ověřit úsudek a komunikaci v živém setkání.',
+                           defaultValue: assessmentScore
+                             ? 'Profil je už teď velmi relevantní pro aktuální hiring cíl. Další nejlepší krok je ověřit úsudek a komunikaci v živém setkání.'
+                             : 'Jakmile bude k dispozici skutečné hodnocení nebo ověřený signál z procesu, zobrazí se tady přesnější zpětná vazba.',
                         })}
                   </p>
                   <div className="mt-4 text-sm text-white/68">— {t('company.candidates.feedback_source', { defaultValue: 'Souhrn hiring signálů' })}</div>
@@ -501,10 +617,10 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
               <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
-                    {t('company.candidates.internal_notes', { defaultValue: 'Interni poznamky' })}
+                    {t('company.candidates.internal_notes', { defaultValue: 'Interní poznámky' })}
                   </h3>
                   <button className="text-sm font-medium text-[var(--accent)] hover:underline">
-                    {t('company.candidates.add_note', { defaultValue: 'Pridat poznamku' })}
+                    {t('company.candidates.add_note', { defaultValue: 'Přidat poznámku' })}
                   </button>
                 </div>
 
@@ -526,7 +642,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
                     ))
                   ) : (
                     <div className="rounded-[24px] border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                      {t('company.candidates.no_internal_notes', { defaultValue: 'Zatim tu nejsou zadne interni poznamky.' })}
+                      {t('company.candidates.no_internal_notes', { defaultValue: 'Zatím tu nejsou žádné interní poznámky.' })}
                     </div>
                   )}
                 </div>
@@ -552,7 +668,7 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
               {values.length > 0 ? (
                 <div className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-900">
                   <h3 className="text-[18px] font-semibold tracking-[-0.03em] text-slate-950 dark:text-white">
-                    {t('company.candidates.working_values', { defaultValue: 'Pracovni preference' })}
+                    {t('company.candidates.working_values', { defaultValue: 'Pracovní preference' })}
                   </h3>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {values.map((value: string) => (
@@ -570,3 +686,4 @@ export const CandidatesTab: React.FC<CandidatesTabProps> = ({ candidatesData }) 
     </div>
   );
 };
+

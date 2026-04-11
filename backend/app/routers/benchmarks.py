@@ -1305,7 +1305,7 @@ async def get_company_candidates(
     resp = (
         supabase
         .table("profiles")
-        .select("id,full_name,email,role,created_at,candidate_profiles(job_title,skills,work_history,values,cv_text,cv_url,phone)")
+        .select("id,full_name,email,avatar_url,location_public,role,created_at,candidate_profiles(job_title,skills,work_history,values,cv_text,cv_url,phone)")
         .eq("role", "candidate")
         .order("created_at", desc=True)
         .limit(limit)
@@ -1429,6 +1429,9 @@ async def get_company_candidates(
             "id": str(row.get("id") or ""),
             "name": _name_from_row(row),
             "role": str(candidate_profile.get("job_title") or "Uchazeč"),
+            "avatar_url": _trimmed_text(row.get("avatar_url"), 500) or None,
+            "email": _trimmed_text(row.get("email"), 240) or None,
+            "location_public": _trimmed_text(row.get("location_public"), 500) or None,
             "experienceYears": len(work_history) if isinstance(work_history, list) else 0,
             "salaryExpectation": 0,
             "skills": skills if isinstance(skills, list) else [],

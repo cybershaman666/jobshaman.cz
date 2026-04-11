@@ -108,6 +108,7 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
       full_name,
       email,
       avatar_url,
+      location_public,
       role,
       created_at,
       candidate_profiles (
@@ -147,8 +148,13 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
       values,
       createdAt: row.created_at,
       t
-    });
+    }) as Candidate & { location_public?: string | null };
   });
+
+  mapped = mapped.map((candidate, index) => ({
+    ...candidate,
+    location_public: (data?.[index] as any)?.location_public || null,
+  }));
 
   const lowDataCoverage =
     mapped.length > 0 &&
@@ -169,7 +175,7 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
   const ids = cpRows.map((row: any) => row.id).filter(Boolean);
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id,full_name,email,avatar_url,created_at')
+    .select('id,full_name,email,avatar_url,location_public,created_at')
     .in('id', ids)
     .limit(500);
   const profileMap = new Map((profileRows || []).map((row: any) => [String(row.id), row]));
@@ -192,7 +198,15 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
       values: normalizeValues(cp?.values),
       createdAt: (profile as any).created_at,
       t
-    });
+    }) as Candidate & { location_public?: string | null };
+  });
+
+  mapped = mapped.map((candidate) => {
+    const profile = profileMap.get(String(candidate.id)) || {};
+    return {
+      ...candidate,
+      location_public: (profile as any).location_public || null,
+    };
   });
 
   return mapped;
