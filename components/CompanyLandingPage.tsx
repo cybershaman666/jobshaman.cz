@@ -64,46 +64,82 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     isCsLike
       ? {
           kicker: 'JobShaman pro firmy',
-          heroTitle: 'Kandidáta nečtete z CV. Poznáte ho z toho, jak řeší váš reálný problém.',
-          heroBody: 'Firma zadá krátkou výzvu z praxe. Kandidát ukáže první tah. Vy dostanete anonymní hodnoticí přehled, ze kterého je opravdu možné vybrat silné lidi ještě před prvním pohovorem.',
-          primaryCta: 'Vytvořit účet a první výzvu',
-          secondaryCta: 'Ukázat mi to na demu',
+          heroTitle: 'Přestaňte číst 300 životopisů. Začněte 5 kvalitních konverzací.',
+          heroBody: 'JobShaman nahrazuje hromadné aplikace strukturovaným dialogem. Získejte kandidáty, kteří skutečně přemýšlejí o vašem problému, ne jen optimalizují CV pro ATS.',
+          primaryCta: 'Vyzkoušet zdarma na jednu pozici',
+          secondaryCta: 'Ukázat mi demo',
           tertiaryCta: 'Přihlásit se',
           heroProofs: [
-            'Žádné CV-first třídění naslepo',
-            'Krátká praktická reakce místo generických odpovědí',
-            'Anonymní hodnoticí přehled ještě před odhalením identity',
+            'Žádná kreditní karta',
+            'Nastavení do 5 minut',
+            'První odpovědi do 48 hodin',
           ],
-          stepsTitle: 'Jednoduchý princip. Silnější náborová rozhodnutí.',
-          dossierTitle: 'Během pár minut víte, jestli toho člověka chcete opravdu poznat blíž',
+          painTitle: 'Současný nábor je rozbitý. Vy i kandidáti to víte.',
+          stepsTitle: 'Nábor založený na signálu, ne na šumu',
+          dossierTitle: 'Nejdřív vidíte způsob uvažování. Až potom identitu.',
           dossierBody: 'Místo dalšího slepého callu dostanete odpověď, ze které je okamžitě cítit úsudek, priorita a schopnost řešit vaši realitu. Přesně ten typ signálu, kvůli kterému si řeknete: ano, tohle má smysl posunout dál.',
-          compareTitle: 'Konečně nábor, ve kterém už po prvním kontaktu víte, kdo stojí za další krok',
-          pricingTitle: 'Pricing bez chaosu a bez zbytečného překlikávání',
-          pricingBody: 'Všechny plány vidíte najednou. Hned je jasné, co odemknete, kolik výzev můžete vést a pro jak velký náborový tým to dává smysl.',
-          finalTitle: 'Pokud chcete méně slepých telefonátů a víc rozhodnutí z reálného signálu, začíná to první výzvou.',
-          finalBody: 'Stačí vytvořit firemní účet, popsat jednu skutečnou situaci a nechat kandidáty ukázat první tah.',
+          compareTitle: 'JobShaman vs. tradiční nábor',
+          pricingTitle: 'Jednoduché ceny bez skrytých poplatků',
+          pricingBody: 'Vyberete plán podle počtu živých výzev, kandidátů v procesu a lidí v týmu. Žádné překvapení, jen jasná kapacita pro váš nábor.',
+          faqTitle: 'Časté otázky',
+          finalTitle: 'Přestaňte ztrácet čas čtením CV, která nic neříkají.',
+          finalBody: 'Začněte dnes s jednou výzvou zdarma. Rozdíl uvidíte během prvních 48 hodin.',
         }
       : {
           kicker: 'JobShaman for companies',
-          heroTitle: 'Do not read candidates from their CV. Read them from how they solve your real problem.',
-          heroBody: 'Your team frames a short practical challenge. The candidate shows the first move. You get an anonymous skill-first dossier strong enough to shortlist before the interview.',
-          primaryCta: 'Create account and first challenge',
+          heroTitle: 'Stop reading 300 resumes. Start 5 quality conversations.',
+          heroBody: 'JobShaman replaces mass applications with structured dialogue. Meet candidates who think about your real problem instead of optimizing a CV for ATS filters.',
+          primaryCta: 'Try one role for free',
           secondaryCta: 'Show me the demo',
           tertiaryCta: 'Log in',
           heroProofs: [
-            'No more blind CV-first filtering',
-            'Short practical handshake instead of generic answers',
-            'Anonymous recruiter dossier before identity reveal',
+            'No credit card',
+            'Setup in 5 minutes',
+            'First responses within 48 hours',
           ],
-          stepsTitle: 'A simple principle. Stronger hiring decisions.',
-          dossierTitle: 'Within minutes, you know whether this is someone you genuinely want to meet',
+          painTitle: 'Hiring is broken. Both sides feel it.',
+          stepsTitle: 'Hiring based on signal, not noise',
+          dossierTitle: 'See how they think before you see who they are',
           dossierBody: 'Instead of another blind call, you get a response that immediately shows judgment, priorities, and the ability to solve your reality. Exactly the kind of signal that makes a team say: yes, this person is worth moving forward.',
-          compareTitle: 'Finally, a hiring flow where the first contact already tells you who deserves the next step',
-          pricingTitle: 'Pricing without chaos or pointless toggling',
-          pricingBody: 'All plans are visible at once. You immediately see what unlocks, how many challenges you can run, and what team size each plan fits.',
-          finalTitle: 'If you want fewer blind calls and more decisions from real signal, it starts with the first challenge.',
-          finalBody: 'Create the company account, describe one real situation, and let candidates show the first move.',
+          compareTitle: 'JobShaman vs. traditional hiring',
+          pricingTitle: 'Simple pricing with no hidden fees',
+          pricingBody: 'Choose the plan by active roles, live candidate capacity, and team seats. No surprises, just a clear hiring operating model.',
+          faqTitle: 'Frequently asked questions',
+          finalTitle: 'Stop losing time on resumes that do not tell you anything real.',
+          finalBody: 'Start today with one challenge for free and see the difference in the first 48 hours.',
         }
+  ), [isCsLike]);
+
+  const painPoints = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            title: 'Hromadné aplikace zabíjejí signál',
+            body: 'AI generuje stovky perfektně vypadajících CV, která projdou ATS, ale neodpovídají realitě. Trávíte hodiny filtrováním lidí, kteří nikdy neměli aplikovat.',
+          },
+          {
+            title: 'Obě strany ztrácejí čas',
+            body: 'Kandidáti posílají aplikace do černé díry. Firmy slibují zpětnou vazbu, kterou nikdy nedají. Výsledek je ztráta důvěry i dobrých lidí.',
+          },
+          {
+            title: 'Nábor podle dojmu selhává',
+            body: 'Když rozhoduje hlavně CV a vibe, snadno najmete člověka, který vypadá dobře na papíře, ale po pár měsících nesedí do reality role.',
+          },
+        ]
+      : [
+          {
+            title: 'Mass applications kill signal',
+            body: 'AI produces polished resumes that pass ATS filters but do not reflect reality. Your team spends hours sorting people who should never have applied.',
+          },
+          {
+            title: 'Both sides lose time',
+            body: 'Candidates send applications into a black hole. Companies promise feedback they never send. The result is lower trust and weaker hiring energy.',
+          },
+          {
+            title: 'Vibe-based hiring fails',
+            body: 'When resumes and surface impressions dominate, you can easily hire someone who looks strong on paper but does not fit the actual role after a few months.',
+          },
+        ]
   ), [isCsLike]);
 
   const sampleDossier = useMemo<DialogueDossier>(() => ({
@@ -289,72 +325,150 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     isCsLike
       ? [
           {
-            title: '1. Zadáte reálný problém',
-            body: 'Ne další generický inzerát. Jednu konkrétní situaci, kterou nový člověk opravdu převezme.',
+            title: '1. Popište reálný problém',
+            body: 'Místo marketingového inzerátu sdílíte konkrétní výzvu, kterou tým opravdu řeší. AI vám pomůže převést existující job description do strukturované výzvy.',
           },
           {
-            title: '2. Kandidát ukáže první tah',
-            body: 'Krátká praktická reakce odhalí úsudek, priority, práci s rizikem a přenos do reality týmu.',
+            title: '2. Kandidáti odpovídají dřív, než pošlou CV',
+            body: 'Místo dalšího motivačního textu ukážou, jak přemýšlejí nad situací, prioritami a řešením. Žádné šablony, žádné generické AI odpovědi.',
           },
           {
-            title: '3. Dostanete hodnoticí přehled',
-            body: 'Anonymní, srovnatelný a lidský výstup, ze kterého můžete vybrat silné lidi dřív než z CV.',
+            title: '3. Hodnotíte signál, ne identitu',
+            body: 'Nejdřív vidíte odpověď a způsob uvažování. Teprve potom odemykáte dovednosti, kontext a celé CV. Rozhodujete se na základě signálu, ne jména.',
           },
         ]
       : [
           {
-            title: '1. Frame a real problem',
-            body: 'Not another generic listing. One concrete situation the new person will actually take over.',
+            title: '1. Frame the real problem',
+            body: 'Instead of another marketing listing, you share one concrete challenge the team is actually solving. AI helps turn an existing job description into a structured prompt.',
           },
           {
-            title: '2. The candidate shows the first move',
-            body: 'A short practical handshake reveals judgment, priorities, risk, and practical transfer into the team reality.',
+            title: '2. Candidates respond before they send a resume',
+            body: 'Instead of more application fluff, they show how they think about the situation, trade-offs, and first steps. No templates. No generic AI filler.',
           },
           {
-            title: '3. You get a recruiter dossier',
-            body: 'An anonymous, comparable, human output strong enough to shortlist before the CV becomes the center.',
+            title: '3. Evaluate signal before identity',
+            body: 'You see the response and reasoning first. Skills, context, and the full resume unlock later. The first decision is based on substance, not pedigree.',
           },
         ]
+  ), [isCsLike]);
+
+  const benefits = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            title: 'Ušetřete čas se screeningem',
+            body: 'Místo nekonečného čtení CV procházíte omezený počet strukturovaných odpovědí, které dávají rychle smysl nebo nedávají.',
+          },
+          {
+            title: 'Vyšší kvalita shortlistu',
+            body: 'Do pohovoru zvete lidi, u kterých už víte, že umí přemýšlet nad vaší realitou, ne jen napsat správná klíčová slova.',
+          },
+          {
+            title: 'Méně mis-hire rozhodnutí',
+            body: 'Dřív odfiltrujete kandidáty, kteří působí silně na papíře, ale nesedí ve způsobu uvažování, prioritách nebo rytmu práce.',
+          },
+          {
+            title: 'Méně biasu bez dalšího procesu',
+            body: 'Progressive disclosure schová identitu v první vrstvě a nechá vyniknout odpověď, úsudek a přenositelné dovednosti.',
+          },
+          {
+            title: 'Žádné hromadění mrtvých leadů',
+            body: 'Sloty se automaticky uvolňují, takže pipeline nezůstává plná lidí, se kterými se už reálně nic nestane.',
+          },
+          {
+            title: 'Lepší fit do reálného života',
+            body: 'Kandidáti se rozhodují s větším kontextem o roli, odměně i očekáváních, takže do procesu jdou relevantnější lidé.',
+          },
+        ]
+      : [
+          {
+            title: 'Save screening time',
+            body: 'Instead of endless resume reading, you review a limited set of structured responses that quickly prove value or filter out noise.',
+          },
+          {
+            title: 'Better shortlist quality',
+            body: 'You invite people who already show they can think through your real challenge instead of just matching keywords.',
+          },
+          {
+            title: 'Fewer mis-hires',
+            body: 'You catch weak fit much earlier when the reasoning, priorities, or work style do not match the role reality.',
+          },
+          {
+            title: 'Less bias without extra process',
+            body: 'Progressive disclosure hides identity in the first layer and lets the response, judgment, and transferable skill signal lead.',
+          },
+          {
+            title: 'No pipeline full of dead leads',
+            body: 'Slots release automatically, so your funnel does not stay clogged with candidates who are no longer moving anywhere.',
+          },
+          {
+            title: 'Better real-life fit',
+            body: 'Candidates enter with more context about the role, compensation, and expectations, so the process starts with stronger intent.',
+          },
+        ]
+  ), [isCsLike]);
+
+  const slotEconomy = useMemo(() => (
+    isCsLike
+      ? {
+          title: 'Proč omezená kapacita zvyšuje kvalitu',
+          candidateTitle: 'Kandidáti mají omezený počet aktivních slotů',
+          candidateBody: 'Nemohou aplikovat na všechno. Musí si vybrat role, o které mají skutečný zájem. Každý handshake je promyšlenější a dává větší smysl.',
+          companyTitle: 'Firmy mají limitovanou kapacitu na pozici',
+          companyBody: 'Nemůžete hromadit stovky aplikací bez odpovědi. Soustředíte se na kvalitu konverzace a rychlost rozhodnutí místo pasivního sběru.',
+          resultTitle: 'Výsledek: intencionalita na obou stranách',
+          resultBody: 'Tradiční nábor často generuje hromadu práce bez lepšího výsledku. JobShaman tlačí obě strany k jasnější volbě, rychlejším reakcím a lepšímu shortlistu.',
+        }
+      : {
+          title: 'Why limited capacity increases quality',
+          candidateTitle: 'Candidates have a limited number of active slots',
+          candidateBody: 'They cannot apply everywhere. They choose roles they actually care about. Every handshake carries more intent and better signal.',
+          companyTitle: 'Companies have limited capacity per role',
+          companyBody: 'You cannot collect hundreds of applications without action. The system pushes focus toward conversation quality and decision speed.',
+          resultTitle: 'Result: stronger intent on both sides',
+          resultBody: 'Traditional hiring creates a lot of work without a better outcome. JobShaman pushes both sides toward clearer choices, faster action, and a stronger shortlist.',
+        }
   ), [isCsLike]);
 
   const compareItems = useMemo(() => (
     isCsLike
       ? [
           {
-            title: 'Běžný náborový proces',
+            title: 'Tradiční job portály',
             points: [
-              'Nejdřív čtete profil, ale až call ukáže, jestli ten člověk opravdu přemýšlí způsobem, který potřebujete.',
-              'První rozhovory často jen dohánějí to, co mělo být jasné už předem.',
-              'Tým investuje čas do lidí, u kterých se základní jistota objeví až příliš pozdě.',
+              'První kontakt stojí na CV a motivačním dopisu.',
+              'Počet aplikací je neomezený, takže roste šum i spam.',
+              'Bias, ghosting a dlouhé screeningy jsou běžná součást procesu.',
             ],
             tone: 'border-slate-200 bg-white shadow-sm',
           },
           {
             title: 'Nábor přes JobShaman',
             points: [
-              'Už první reakce ukáže, jestli ten člověk umí přemýšlet nad vaším problémem klidně, prakticky a s prioritou.',
-              'Do dalšího kola posouváte lidi, u kterých už teď cítíte reálný přínos pro tým.',
-              'Náborář i vedoucí týmu se opírají o jeden silný signál, ne o pocit z hezky napsaného CV.',
+              'První kontakt je strukturovaná odpověď na reálný problém z role.',
+              'Slotová ekonomika tlačí obě strany ke kvalitě místo kvantity.',
+              'Hodnotíte způsob uvažování dřív, než odemknete identitu a celé CV.',
             ],
             tone: 'border-slate-200 bg-white shadow-sm',
           },
         ]
       : [
           {
-            title: 'Standard hiring flow',
+            title: 'Traditional job boards',
             points: [
-              'You read the profile first, but only the call tells you whether the person actually thinks the way you need.',
-              'Early interviews often exist just to discover what should have been obvious earlier.',
-              'The team spends time on people before there is enough confidence they are truly worth it.',
+              'The first contact is resume-first and motivation-letter-first.',
+              'Applications are unlimited, so noise and spam scale up fast.',
+              'Bias, ghosting, and long screening loops remain normal.',
             ],
             tone: 'border-slate-200 bg-white shadow-sm',
           },
           {
             title: 'Hiring with JobShaman',
             points: [
-              'The first response already shows whether the person thinks about your problem in a calm, practical, high-priority way.',
-              'You move forward with people who already feel capable of helping the team.',
-              'Recruiters and hiring managers align around one strong signal instead of a polished CV impression.',
+              'The first contact is a structured response to a real role problem.',
+              'Slot economy pushes both sides toward quality instead of volume.',
+              'You evaluate reasoning before identity and full resume details.',
             ],
             tone: 'border-slate-200 bg-white shadow-sm',
           },
@@ -366,41 +480,41 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       ? [
           {
             id: 'free',
-            name: 'Free',
+            name: 'Zdarma',
             price: 'Zdarma',
-            bestFor: 'Na první vyzkoušení, jestli vám nábor podle reálného signálu sedí ještě před placeným nasazením.',
-            outcome: 'Jedna živá pozice a první reálný aha moment bez závazku.',
+            bestFor: 'Na první ověření, jestli vám skill-first nábor sedí v praxi.',
+            outcome: 'Jedna aktivní výzva bez rizika a bez vstupní investice.',
             roleOpens: '1 aktivní výzva',
             dialogueSlots: '3 kandidáti v procesu',
             recruiterSeats: '1 člen týmu',
-            features: ['Vyzkoušení na jedné pozici', 'První praktická reakce a hodnoticí přehled', 'Bez rizika, jen ověření, jestli to sedí vašemu týmu'],
+            features: ['Vyzkoušení bez rizika', 'První handshake a recruiter readout', 'Vhodné pro pilot na jedné pozici'],
           },
           {
             id: 'starter',
             name: 'Starter',
             price: '249 EUR / měsíc',
-            bestFor: 'Pro menší tým, který chce začít nabírat podle reálného signálu místo chaosu kolem CV.',
-            outcome: 'První opakovatelný postup pro několik klíčových rolí.',
+            bestFor: 'Pro menší tým, který chce systematicky přejít od CV chaosu k jasnějšímu shortlistu.',
+            outcome: 'První opakovatelný hiring workflow pro klíčové role.',
             roleOpens: '3 aktivní výzvy',
             dialogueSlots: '12 kandidátů v procesu',
             recruiterSeats: '2 členové týmu',
-            features: ['Praktická reakce jako první filtr', 'Hodnoticí přehled u každé reakce', 'Základ pro první výběr bez slepých telefonátů'],
+            features: ['80 AI screeningů měsíčně', 'Praktická reakce jako první filtr', 'Silnější shortlist bez slepých telefonátů'],
           },
           {
             id: 'growth',
-            name: 'Růst',
+            name: 'Growth',
             price: '599 EUR / měsíc',
-            bestFor: 'Pro firmy, které chtějí z náboru udělat jasný systém, ne improvizaci role po roli.',
-            outcome: 'Dost kapacity pro opakovatelný nábor napříč několika rolemi a náboráři.',
+            bestFor: 'Pro firmy, které nabírají opakovaně a chtějí jasný systém místo improvizace role po roli.',
+            outcome: 'Dost kapacity pro průběžný hiring napříč více pozicemi a hiring manažery.',
             roleOpens: '10 aktivních výzev',
             dialogueSlots: '40 kandidátů v procesu',
             recruiterSeats: '5 členů týmu',
-            features: ['Doporučený plán pro většinu týmů', 'Silná kapacita pro další výběr a navazující kroky', 'Jeden konzistentní jazyk náboru napříč týmem'],
+            features: ['250 AI screeningů měsíčně', 'Doporučený plán pro většinu týmů', 'Silná kapacita pro shortlist i follow-up'],
             recommended: true,
           },
           {
             id: 'professional',
-            name: 'Pokročilý',
+            name: 'Professional',
             price: '899 EUR / měsíc',
             bestFor: 'Pro větší náborové organizace, které chtějí sladit náboráře, vedoucí týmů i rychlost rozhodování.',
             outcome: 'Širší náborový provoz bez ztráty přehledu a kvality signálu.',
@@ -415,34 +529,34 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             id: 'free',
             name: 'Free',
             price: 'Free',
-            bestFor: 'To validate whether skill-first hiring fits your team before paying for rollout.',
-            outcome: 'One live role and the first real aha moment without commitment.',
+            bestFor: 'To validate whether skill-first hiring fits your team before rollout.',
+            outcome: 'One active role with low-friction validation.',
             roleOpens: '1 active challenge',
             dialogueSlots: '3 candidates in process',
             recruiterSeats: '1 team member',
-            features: ['Try it on one live role', 'First practical handshake and dossier', 'Low-risk validation for your team'],
+            features: ['Try it without risk', 'First handshake and recruiter readout', 'A clean pilot for one role'],
           },
           {
             id: 'starter',
             name: 'Starter',
             price: '249 EUR / month',
-            bestFor: 'For smaller teams that want to move from CV chaos to real hiring signal.',
-            outcome: 'The first repeatable workflow for a few key roles.',
+            bestFor: 'For smaller teams moving from CV chaos to a clearer shortlist process.',
+            outcome: 'The first repeatable workflow for key roles.',
             roleOpens: '3 active challenges',
             dialogueSlots: '12 candidates in process',
             recruiterSeats: '2 team members',
-            features: ['Skill-first handshake workflow', 'Recruiter dossier on every response', 'A real shortlist workflow before blind calls'],
+            features: ['80 AI screenings per month', 'Recruiter dossier on every response', 'A stronger shortlist before blind calls'],
           },
           {
             id: 'growth',
             name: 'Growth',
             price: '599 EUR / month',
-            bestFor: 'For companies that want a clear hiring system instead of role-by-role improvisation.',
-            outcome: 'Enough capacity for repeatable hiring across multiple roles and recruiters.',
+            bestFor: 'For companies hiring repeatedly and wanting a clear operating system instead of role-by-role improvisation.',
+            outcome: 'Enough capacity for repeatable hiring across multiple roles and decision-makers.',
             roleOpens: '10 active challenges',
             dialogueSlots: '40 candidates in process',
             recruiterSeats: '5 team members',
-            features: ['Recommended for most teams', 'Strong shortlist and follow-up capacity', 'One consistent skill-first hiring language across the team'],
+            features: ['250 AI screenings per month', 'Recommended for most teams', 'Strong shortlist and follow-up capacity'],
             recommended: true,
           },
           {
@@ -455,6 +569,94 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             dialogueSlots: '100 candidates in process',
             recruiterSeats: '12 team members',
             features: ['Higher throughput without pricing chaos', 'Multiple teams in one hiring workspace', 'Capacity for larger pipelines and more stakeholders'],
+          },
+        ]
+  ), [isCsLike]);
+
+  const testimonials = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            quote: 'Dřív jsme strávili skoro dva týdny filtrováním CV. Tady jsme během pár dnů řešili jen odpovědi, které měly skutečný obsah a tah na branku.',
+            author: 'Jan K., CTO, SaaS tým',
+          },
+          {
+            quote: 'Největší rozdíl je v tom, že kandidáti rovnou ukážou, jak přemýšlejí. Nemusíme číst další motivační texty plné frází.',
+            author: 'Petra M., HR Lead, scale-up',
+          },
+          {
+            quote: 'JobShaman nám pomohl dostat se k lidem, kteří by přes ATS nevypadali dokonale, ale v reálném problému byli silní od první odpovědi.',
+            author: 'Tomáš R., Founder, remote-first startup',
+          },
+        ]
+      : [
+          {
+            quote: 'We used to lose weeks filtering resumes. Here, within days, we were only discussing responses with real substance and decision value.',
+            author: 'Jan K., CTO, SaaS team',
+          },
+          {
+            quote: 'The biggest difference is that candidates immediately show how they think. We do not need to read more empty motivation letters.',
+            author: 'Petra M., HR Lead, scale-up',
+          },
+          {
+            quote: 'JobShaman helped us reach people who would never look perfect in ATS, but were clearly strong once they responded to a real problem.',
+            author: 'Tomáš R., Founder, remote-first startup',
+          },
+        ]
+  ), [isCsLike]);
+
+  const faqs = useMemo(() => (
+    isCsLike
+      ? [
+          {
+            question: 'Jak dlouho trvá nastavení první výzvy?',
+            answer: 'Obvykle 10 až 15 minut. Můžete začít z vlastní role nebo použít AI převod z existujícího job description.',
+          },
+          {
+            question: 'Co když nedostanu dost odpovědí?',
+            answer: 'Pomůžeme vám výzvu přeformulovat tak, aby byla konkrétnější, srozumitelnější a lépe mířila na správný typ kandidáta.',
+          },
+          {
+            question: 'Jak se to liší od LinkedIn nebo Jobs.cz?',
+            answer: 'Tyto platformy maximalizují počet aplikací. JobShaman maximalizuje kvalitu prvních konverzací a rychlost shortlistu.',
+          },
+          {
+            question: 'Mohu to používat vedle ATS?',
+            answer: 'Ano. Mnoho týmů používá JobShaman pro strategické, seniorní nebo těžko obsaditelné role a ATS pro objemové hiring flow.',
+          },
+          {
+            question: 'Co se stane, když neodpovíme včas?',
+            answer: 'Systém připomene další krok a poté slot uvolní, aby pipeline nezůstávala blokovaná a kandidát nečekal donekonečna.',
+          },
+          {
+            question: 'Jak funguje AI screening?',
+            answer: 'AI pomáhá strukturovat výzvu, zvýraznit silný signál a podpořit první třídění. Konečné rozhodnutí vždy dělá tým.',
+          },
+        ]
+      : [
+          {
+            question: 'How long does the first challenge take to set up?',
+            answer: 'Usually 10 to 15 minutes. You can start from your own role description or use AI to convert an existing job description.',
+          },
+          {
+            question: 'What if I do not get enough responses?',
+            answer: 'We help reframe the challenge so it becomes more concrete, clearer, and better targeted to the right candidates.',
+          },
+          {
+            question: 'How is this different from LinkedIn or job boards?',
+            answer: 'Those platforms optimize for application volume. JobShaman optimizes for conversation quality and shortlist speed.',
+          },
+          {
+            question: 'Can I use it alongside an ATS?',
+            answer: 'Yes. Many teams use JobShaman for strategic, senior, or harder-to-fill roles while keeping ATS for high-volume hiring.',
+          },
+          {
+            question: 'What happens if we do not respond in time?',
+            answer: 'The system reminds your team and then releases the slot so the pipeline does not stay blocked and candidates are not left waiting forever.',
+          },
+          {
+            question: 'How does AI screening work?',
+            answer: 'AI helps structure the challenge, highlight stronger signal, and support first-pass sorting. The final decision always stays with the team.',
           },
         ]
   ), [isCsLike]);
@@ -515,15 +717,15 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <div className="absolute inset-x-0 bottom-0 p-6">
                   <div className="max-w-sm rounded-[22px] border border-white/15 bg-slate-950/72 p-5">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
-                      {isCsLike ? 'Nábor podle reálného signálu v praxi' : 'Skill-first hiring in practice'}
+                      {isCsLike ? 'Místo 300 CV jen několik silných konverzací' : 'From 300 resumes to a handful of real conversations'}
                     </div>
                     <div className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
-                      {isCsLike ? 'Méně slepých telefonátů. Víc silných výběrů.' : 'Fewer blind calls. More strong shortlists.'}
+                      {isCsLike ? 'Méně screeningu. Víc jistoty v shortlistu.' : 'Less screening. More confidence in the shortlist.'}
                     </div>
                     <div className="mt-3 text-sm leading-7 text-slate-200">
                       {isCsLike
-                        ? 'Landing má teď ukazovat skutečný pocit z lepšího náboru, ne jen seznam funkcí.'
-                        : 'The landing should now feel like better hiring in motion, not a stack of feature boxes.'}
+                        ? 'JobShaman mění první kontakt z pasivního čtení CV na aktivní rozhodnutí podle reálného signálu.'
+                        : 'JobShaman turns the first contact from passive resume reading into an active decision based on real signal.'}
                     </div>
                   </div>
                 </div>
@@ -531,22 +733,22 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
               <div className="absolute -left-3 top-6 hidden max-w-[220px] rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_20px_48px_-32px_rgba(15,23,42,0.35)] md:block">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
-                  {isCsLike ? 'První dojem pro firmu' : 'First company impression'}
+                  {isCsLike ? 'Tradiční hiring' : 'Traditional hiring'}
                 </div>
                 <div className="mt-2 text-sm font-semibold text-slate-950">
-                  {isCsLike ? 'Tým vidí reálnou reakci na problém, ne jen hezky napsanou zkušenost.' : 'The team sees a real response to a problem, not just a polished background.'}
+                  {isCsLike ? 'Hromada CV, hodiny screeningu a nejistota, koho má vůbec smysl oslovit.' : 'A pile of resumes, hours of screening, and no clarity on who is actually worth a call.'}
                 </div>
               </div>
 
               <div className="absolute -right-3 bottom-8 hidden max-w-[240px] rounded-[22px] border border-cyan-200 bg-cyan-50 px-4 py-4 shadow-[0_20px_48px_-32px_rgba(14,116,144,0.35)] md:block">
                 <div className="text-[11px] uppercase tracking-[0.14em] text-cyan-700">
-                  {isCsLike ? 'Aha moment' : 'Aha moment'}
+                  {isCsLike ? 'JobShaman' : 'JobShaman'}
                 </div>
                 <div className="mt-2 text-sm font-semibold text-slate-950">
-                  {isCsLike ? '„Tohle chci zkusit hned teď.“' : '"I want to try this right now."'}
+                  {isCsLike ? 'Jen několik odpovědí, které opravdu ukazují úsudek a způsob práce.' : 'Only a few responses, but each one shows judgment and real working style.'}
                 </div>
                 <div className="mt-2 text-sm leading-6 text-slate-700">
-                  {isCsLike ? 'Přesně ten pocit má nový landing vyvolat během prvních sekund.' : 'That is the exact feeling the new landing should create within seconds.'}
+                  {isCsLike ? 'Méně objemu, víc relevance. Přesně proto se zvedá konverze do dalších kroků.' : 'Less volume, more relevance. That is why conversion into the next step improves.'}
                 </div>
               </div>
             </div>
@@ -555,6 +757,25 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             {copy.heroProofs.map((proof) => (
               <div key={proof} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
                 {proof}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Problém' : 'The pain'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {copy.painTitle}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {painPoints.map((item) => (
+              <div key={item.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{item.title}</div>
+                <p className="mt-3 text-sm leading-7 text-slate-700">{item.body}</p>
               </div>
             ))}
           </div>
@@ -574,6 +795,25 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               <div key={step.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{step.title}</div>
                 <p className="mt-3 text-sm leading-7 text-slate-700">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Benefity' : 'Benefits'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {isCsLike ? 'Proč firmy přecházejí na JobShaman' : 'Why companies switch to JobShaman'}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {benefits.map((item) => (
+              <div key={item.title} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-base font-semibold tracking-[-0.03em] text-slate-950">{item.title}</div>
+                <p className="mt-3 text-sm leading-7 text-slate-700">{item.body}</p>
               </div>
             ))}
           </div>
@@ -787,7 +1027,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         <section className="mt-10">
           <div className="max-w-2xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              {isCsLike ? 'Proč to funguje lépe' : 'Why it works better'}
+              {isCsLike ? 'Srovnání' : 'Comparison'}
             </div>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
               {copy.compareTitle}
@@ -810,10 +1050,35 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
+        <section className="mt-10 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Slot economy' : 'Slot economy'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {slotEconomy.title}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+              <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{slotEconomy.candidateTitle}</div>
+              <p className="mt-3 text-sm leading-7 text-slate-700">{slotEconomy.candidateBody}</p>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+              <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{slotEconomy.companyTitle}</div>
+              <p className="mt-3 text-sm leading-7 text-slate-700">{slotEconomy.companyBody}</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-[24px] border border-cyan-200 bg-cyan-50 p-5">
+            <div className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{slotEconomy.resultTitle}</div>
+            <p className="mt-3 text-sm leading-7 text-slate-700">{slotEconomy.resultBody}</p>
+          </div>
+        </section>
+
         <section className="mt-10 overflow-hidden rounded-[34px] border border-slate-800 bg-[linear-gradient(180deg,#0f172a_0%,#111827_100%)] px-6 py-8 shadow-[0_34px_90px_-46px_rgba(15,23,42,0.58)] sm:px-8">
           <div className="max-w-3xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              {isCsLike ? 'Pricing bez chaosu' : 'Pricing without chaos'}
+              {isCsLike ? 'Ceník' : 'Pricing'}
             </div>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">
               {copy.pricingTitle}
@@ -889,12 +1154,48 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
         </section>
 
+        <section className="mt-10">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'Reference' : 'Social proof'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {isCsLike ? 'Firmy, které už najímají jinak' : 'Teams already hiring differently'}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <div key={item.author} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm leading-7 text-slate-700">“{item.quote}”</p>
+                <div className="mt-4 text-sm font-semibold text-slate-950">{item.author}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              {isCsLike ? 'FAQ' : 'FAQ'}
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+              {copy.faqTitle}
+            </h2>
+          </div>
+          <div className="mt-6 grid gap-4">
+            {faqs.map((item) => (
+              <div key={item.question} className="rounded-[22px] border border-slate-200 bg-slate-50 p-5">
+                <div className="text-base font-semibold text-slate-950">{item.question}</div>
+                <p className="mt-2 text-sm leading-7 text-slate-700">{item.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="mt-10 rounded-[28px] border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                {isCsLike ? 'Začít je jednodušší, než vypadá' : 'Starting is simpler than it looks'}
-              </div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{isCsLike ? 'Poslední krok' : 'Final CTA'}</div>
               <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
                 {copy.finalTitle}
               </h2>
@@ -908,7 +1209,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 onClick={() => callRegister('landing_final_primary')}
                 className="rounded-full bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white"
               >
-                {copy.primaryCta}
+                {isCsLike ? 'Vytvořit první výzvu zdarma' : 'Create the first challenge for free'}
               </button>
               <button
                 type="button"
@@ -918,6 +1219,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 {copy.secondaryCta}
               </button>
             </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
+            <span>GDPR compliant</span>
+            <span>•</span>
+            <span>{isCsLike ? 'Žádná kreditní karta' : 'No credit card'}</span>
+            <span>•</span>
+            <span>{isCsLike ? 'Podpora v CZ/EN' : 'Support in CZ/EN'}</span>
           </div>
         </section>
       </div>
