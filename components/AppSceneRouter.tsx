@@ -121,6 +121,7 @@ type AppSceneRouterProps = {
     sceneActions: SceneActions;
     getLocalePrefix: () => string;
     onboardingDismissedRef: MutableRefObject<boolean>;
+    careerOSHomeResetToken: number;
 };
 
 const AppSceneRouter = memo(function AppSceneRouter({
@@ -130,6 +131,7 @@ const AppSceneRouter = memo(function AppSceneRouter({
     sceneActions,
     getLocalePrefix,
     onboardingDismissedRef,
+    careerOSHomeResetToken,
 }: AppSceneRouterProps) {
     const {
         viewState,
@@ -552,6 +554,7 @@ const AppSceneRouter = memo(function AppSceneRouter({
                     ) : (
                         <div id="challenge-discovery" className="relative h-full min-h-[calc(100vh-var(--app-header-height))]">
                             <CareerOSCandidateWorkspace
+                                homeResetToken={careerOSHomeResetToken}
                                 hasNativeChallenges={hasNativeChallenges}
                                 jobs={jobsForDisplay}
                                 selectedJobId={selectedJobId}

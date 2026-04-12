@@ -69,6 +69,7 @@ const PodminkyUziti = lazy(() => import('./pages/PodminkyUziti'));
 const OchranaSoukromi = lazy(() => import('./pages/OchranaSoukromi'));
 const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
 const SignalBoostPublicPage = lazy(() => import('./pages/SignalBoostPublicPage'));
+const TeamInviteLanding = lazy(() => import('./pages/TeamInviteLanding'));
 
 type CandidateOnboardingStepKey = 'entry' | 'location' | 'preferences' | 'cv' | 'done';
 
@@ -129,6 +130,7 @@ export default function App() {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
+    const [careerOSHomeResetToken, setCareerOSHomeResetToken] = useState(0);
     const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
     const [showScrollToTop, setShowScrollToTop] = useState(false);
     const onboardingDismissedRef = useRef(false);
@@ -1837,6 +1839,9 @@ export default function App() {
             onMarkAllNotificationsRead={() => {
                 setReadNotificationIds((current) => Array.from(new Set([...current, ...headerNotifications.map((item) => item.id)])));
             }}
+            onNavigateShellHome={() => {
+                setCareerOSHomeResetToken((current) => current + 1);
+            }}
             onNotificationAction={(notification) => {
                 setReadNotificationIds((current) => Array.from(new Set([...current, notification.id])));
                 if (notification.challengeId) {
@@ -1889,6 +1894,13 @@ export default function App() {
             return (
                 <Suspense fallback={null}>
                     <SignalBoostPublicPage />
+                </Suspense>
+            );
+        }
+        if (normalizedPath.startsWith('/company/invite/')) {
+            return (
+                <Suspense fallback={null}>
+                    <TeamInviteLanding />
                 </Suspense>
             );
         }
@@ -2124,6 +2136,7 @@ export default function App() {
                 sceneActions={sceneActions}
                 getLocalePrefix={getLocalePrefix}
                 onboardingDismissedRef={onboardingDismissedRef}
+                careerOSHomeResetToken={careerOSHomeResetToken}
             />
         </Suspense>
     );

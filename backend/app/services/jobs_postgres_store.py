@@ -12,6 +12,7 @@ from ..core import config
 
 _conn = None
 _schema_ready = False
+_schema_read_ready = False
 _lock = Lock()
 _search_diag_lock = Lock()
 _search_diag_state: dict[str, Any] = {
@@ -92,6 +93,29 @@ def _load_psycopg():
             ) from exc
         return psycopg, dict_row
     return psycopg, dict_row
+
+
+def _is_nonfatal_schema_bootstrap_error(exc: Exception) -> bool:
+    sqlstate = (
+        getattr(exc, "sqlstate", None)
+        or getattr(exc, "pgcode", None)
+        or getattr(getattr(exc, "__cause__", None), "sqlstate", None)
+        or getattr(getattr(exc, "__cause__", None), "pgcode", None)
+    )
+    if str(sqlstate or "") in {"42501", "25006"}:
+        return True
+
+    message = str(exc or "").lower()
+    return any(fragment in message for fragment in (
+        "permission denied",
+        "insufficient privilege",
+        "must be owner",
+        "read-only transaction",
+        "readonly transaction",
+        "cannot execute create",
+        "cannot execute alter",
+        "cannot create extension",
+    ))
 
 
 def _utcnow() -> datetime:
@@ -476,6 +500,21 @@ def _ensure_schema() -> None:
         _schema_ready = True
 
 
+def _ensure_schema_for_read() -> None:
+    global _schema_read_ready
+    if _schema_ready or _schema_read_ready or not jobs_postgres_enabled():
+        return
+    try:
+        _ensure_schema()
+        _schema_read_ready = True
+    except Exception as exc:
+        if _is_nonfatal_schema_bootstrap_error(exc):
+            print(f"⚠️ [Jobs Postgres] Schema bootstrap skipped for read path: {exc}")
+            _schema_read_ready = True
+            return
+        raise
+
+
 def _json_load(value: Any, fallback: Any) -> Any:
     if value is None:
         return fallback
@@ -607,7 +646,7 @@ def read_external_cache_jobs(
 ) -> list[dict[str, Any]]:
     if not jobs_postgres_enabled() or not config.JOBS_POSTGRES_SERVE_EXTERNAL:
         return []
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(
@@ -759,7 +798,7 @@ def upsert_jobs_documents(documents: list[dict[str, Any]]) -> dict[str, int]:
 def read_recent_jobs(*, limit: int = 500, days: int = 30) -> list[dict[str, Any]]:
     if not jobs_postgres_main_enabled():
         return []
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff = _utcnow() - timedelta(days=max(1, int(days or 30)))
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
@@ -799,7 +838,7 @@ def query_jobs_for_hybrid_search(
 ) -> list[dict[str, Any]]:
     if not jobs_postgres_main_enabled():
         return []
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     where_parts = [
@@ -891,7 +930,7 @@ def query_jobs_for_hybrid_search(
 def count_active_main_jobs() -> int:
     if not jobs_postgres_main_enabled():
         return 0
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
@@ -916,7 +955,7 @@ def get_job_by_id(job_id: Any) -> dict[str, Any] | None:
     normalized_id = str(job_id or "").strip()
     if not normalized_id:
         return None
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
@@ -938,7 +977,7 @@ def get_jobs_by_ids(job_ids: list[Any]) -> list[dict[str, Any]]:
     if not normalized_ids:
         return []
     unique_ids = list(dict.fromkeys(normalized_ids))
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
@@ -967,7 +1006,7 @@ def get_job_by_url(url: Any) -> dict[str, Any] | None:
     normalized_url = str(url or "").strip()
     if not normalized_url:
         return None
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
@@ -988,7 +1027,7 @@ def list_company_jobs(*, company_id: str, limit: int = 200) -> list[dict[str, An
     normalized_company_id = str(company_id or "").strip()
     if not normalized_company_id:
         return []
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     with conn.cursor() as cur:
@@ -1019,7 +1058,7 @@ def list_jobs_by_posted_by(*, posted_by: str, limit: int = 200, challenge_format
     if not normalized_posted_by:
         return []
     normalized_challenge_format = str(challenge_format or "").strip().lower() or None
-    _ensure_schema()
+    _ensure_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     query = f"""
@@ -1125,7 +1164,7 @@ def get_jobs_postgres_health() -> dict[str, Any]:
     if not jobs_postgres_enabled():
         return info
     try:
-        _ensure_schema()
+        _ensure_schema_for_read()
         conn = _connect()
         with conn.cursor() as cur:
             cur.execute("SELECT 1 AS ok")

@@ -1124,7 +1124,12 @@
     "shell": {
       "badge": "Hiring command",
       "workspace_label": "Recruiterský workspace",
-      "workspace_desc": "Jedno místo pro role, aplikace, assessmenty a soustředěnou práci týmu."
+      "workspace_desc": "Jedno místo pro role, aplikace, assessmenty a soustředěnou práci týmu.",
+      "premium": "Náborový workspace",
+      "search": "Hledat kandidáty, role nebo reporty…",
+      "help": "Podpora",
+      "logout": "Odhlásit se",
+      "user_role": "Vedoucí náboru"
     },
     "nav": {
       "primary": "Přehled",
@@ -1145,6 +1150,8 @@
       "talent_kicker": "Talent pool",
       "talent_title": "Přehled kandidátních signálů",
       "talent_copy": "Projděte silné profily, porovnejte signály a posuňte nejslibnější kandidáty rychleji do dalšího kroku.",
+      "download_report": "Stáhnout přehled",
+      "review_tasks": "Projít priority",
       "assessment_kicker": "Centrum hodnocení",
       "assessment_title": "Praktický důkaz před rozhodnutím",
       "assessment_copy": "Vytvářejte, spouštějte a porovnávejte skill-first hodnocení bez ztráty náborového tempa.",
@@ -1171,7 +1178,49 @@
     "calendar": {
       "badge": "Sdílený náborový kalendář",
       "title": "Kalendář",
-      "copy": "Udržte interview, týmové synchronizace i rozhodovací okna v jednom sdíleném přehledu. Každý v týmu hned vidí, co je naplánované a kdo je vlastníkem dalšího kroku."
+      "copy": "Udržte interview, týmové synchronizace i rozhodovací okna v jednom sdíleném přehledu. Každý v týmu hned vidí, co je naplánované a kdo je vlastníkem dalšího kroku.",
+      "share_button": "Sdílet s týmem",
+      "next_milestones": "Další milníky"
+    },
+    "overview": {
+      "hero_title": "{{name}}, vítejte zpět",
+      "hero_copy": "Dnes na vás čeká {{count}} kandidátů s vysokou shodou.",
+      "metric_match": "Průměrná shoda",
+      "metric_match_note": "u nejsilnějších aktuálních kandidátů",
+      "metric_empty_note": "čeká na reálná data",
+      "metric_time": "Time-to-hire",
+      "metric_time_note": "od otevření aktivních rolí",
+      "metric_pipelines": "Aktivní pipeline",
+      "metric_pipelines_note": "role, které dnes opravdu běží",
+      "metric_pool": "Talent pool",
+      "metric_pool_note": "profilů, se kterými lze pracovat",
+      "applied": "Příchozí reakce",
+      "screened": "V otevřeném posouzení",
+      "interview": "Připraveno na další krok",
+      "assessments": "Hodnocení v knihovně",
+      "stable": "Stabilní",
+      "active_roles_title": "Aktivní role",
+      "active_roles_copy": "Pozice, které dnes opravdu drží pohyb v pipeline a stojí za prioritní pozornost.",
+      "view_all_jobs": "Zobrazit všechny role",
+      "untitled_role": "Neoznačená role",
+      "avg_signal": "Průměrná shoda signálu",
+      "applicants": "reakcí",
+      "screening": "V posouzení",
+      "waiting_signal": "Čeká na signál",
+      "no_active_roles": "Zatím tu nejsou žádné aktivní role. Jakmile otevřete první pozici, objeví se tady její signál i pipeline kontext.",
+      "analytics_title": "Přehled pipeline",
+      "analytics_copy": "Kolik kandidátů je dnes v procesu a kde se právě koncentruje největší pozornost týmu.",
+      "weekly": "Tento týden",
+      "monthly": "Tento měsíc",
+      "spotlight_badge": "AI spotlight",
+      "spotlight_title": "Doporučení pro dnešní pozornost",
+      "spotlight_match_copy": "Silný profil pro aktuální hiring prioritu. Dává smysl otevřít detail a potvrdit další krok.",
+      "no_spotlight": "Jakmile budou v talent poolu reálné kandidátní signály, objeví se tady nejsilnější aktuální shoda.",
+      "explore_matches": "Otevřít všechny silné shody",
+      "activity_badge": "Nedávná aktivita",
+      "activity_title": "Poslední pohyb v náboru",
+      "activity_event": "Událost",
+      "no_activity": "Jakmile tým začne pracovat s kandidáty, rolemi a hodnocením, objeví se tady reálná časová osa posledních kroků."
     },
     "dashboard": {
       "title": "Přehled Náboru",
@@ -5051,6 +5100,46 @@
   "summary_fallback": "Malý ohraničený projekt pro otestování reálné spolupráce.",
   "open_challenge": "Otevřít nabídku",
   "open_profile_cta": "Zadat mini výzvu z profilu"
+    },
+    "workflow": {
+      "online_body": "uchazečů v systému",
+      "start_label": "Vaše současná situace",
+      "guest_body": "Uvidíte, který další směr dává smysl právě pro vás, proč a kam se můžete rozvinout dál.",
+      "guest_cta": "Začít mapovat směr",
+      "online_label": "Právě online",
+      "jobs_body": "aktivních nabídek.",
+      "stats_title": "Kariérní mapa",
+      "start_fallback": "Tady právě stojíte. Odtud se mapa rozvíjí do směrů, které dávají smysl pro vaši další kariérní volbu.",
+      "reset": "Reset mapy",
+      "guest_title": "Začněte svou kariérní mapu",
+      "roles_short": "rolí",
+      "jobs_label": "V databázi právě máme",
+      "directions": {
+        "more_time": {
+          "title": "Více času pro život",
+          "description": "Role s udržitelnějším tempem, menším tlakem a větším prostorem mimo práci."
+        },
+        "less_commuting": {
+          "title": "Méně dojíždění",
+          "description": "Směry s větší flexibilitou práce na dálku nebo menším každodenním dojížděním."
+        },
+        "more_people": {
+          "title": "Více mezi lidmi",
+          "description": "Práce blíž lidem, službám, vztahům a viditelnému lidskému dopadu."
+        },
+        "more_field": {
+          "title": "Více v terénu",
+          "description": "Méně práce za obrazovkou, více pohybu, provozu, provozoven nebo terénu."
+        },
+        "higher_income": {
+          "title": "Vyšší příjem",
+          "description": "Směry, kde se výkon a odpovědnost častěji promítají do vyšší odměny."
+        },
+        "faster_growth": {
+          "title": "Rychlejší růst",
+          "description": "Strmější učící křivka, silnější rozvoj a jasnější prostor pro růst."
+        }
+      }
     }
   }
 }

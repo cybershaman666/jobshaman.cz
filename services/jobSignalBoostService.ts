@@ -14,7 +14,7 @@ const parseErrorDetail = async (response: Response, fallback: string): Promise<s
 };
 
 const isOptionalSignalBoostFeedUnavailable = (status: number): boolean => (
-  [401, 403, 404, 409, 501, 503].includes(status)
+  [401, 403, 404, 409, 500, 501, 502, 503].includes(status)
 );
 
 const mapOutput = (payload: any): JobSignalBoostOutput => ({

@@ -1,4 +1,4 @@
-import React, { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -47,9 +47,13 @@ import {
   GalaxyNeuralCircuitTexture as NeuralCircuitTexture,
   GalaxyStageBackground as StageBackground,
   galaxyShellPanelClass as shellPanel,
+  galaxyShellInputClass as shellInput,
+  galaxyShellCtaButtonClass as shellCtaButton,
+  galaxyShellSecondaryButtonClass as shellSecondaryButton,
 } from '../galaxy/GalaxyShellPrimitives';
 import { GalaxyCanvasControls, GalaxyLayerSidebar } from '../galaxy/GalaxyWorkspaceChrome';
 import { resolveJobDomain } from '../../utils/domainAccents';
+import MarketplaceSidebar from './MarketplaceSidebar';
 import {
   buildCareerNavigationGoalFromAlternative,
   buildCareerNavigationRoute,
@@ -80,6 +84,7 @@ const MARKET_TRENDS_ENABLED =
 interface CareerOSCandidateWorkspaceProps extends MarketplacePageProps {
   onOpenCompanyPage: (companyId: string) => void;
   onOpenCompaniesLanding: () => void;
+  homeResetToken?: number;
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   filterCity: string;
@@ -288,8 +293,8 @@ const toneClasses = {
 } as const;
 
 const sidebarLayers: Array<{ id: CareerOSLayer; icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'career_path', icon: TrendingUp },
   { id: 'marketplace', icon: Briefcase },
+  { id: 'career_path', icon: TrendingUp },
   { id: 'mini_challenges', icon: Sparkles },
   { id: 'learning_path', icon: BookOpen },
   ...(MARKET_TRENDS_ENABLED
@@ -501,43 +506,43 @@ const domainLabelMap: Record<string, string> = {
 };
 
 const domainLabelMapCs: Record<string, string> = {
-  agriculture: 'ZemÄ›dÄ›lstvĂ­',
+  agriculture: 'Zemědělství',
   ai_data: 'AI a data',
-  aviation: 'LeteckĂ˝ prĹŻmysl',
+  aviation: 'Letecký průmysl',
   automotive: 'Automotive',
-  construction: 'StavebnictvĂ­',
-  creative_media: 'Kreativa a mĂ©dia',
-  customer_support: 'ZĂˇkaznickĂˇ pĂ©ÄŤe',
+  construction: 'Stavebnictví',
+  creative_media: 'Kreativa a média',
+  customer_support: 'Zákaznická péče',
   ecommerce: 'E-commerce',
-  education: 'VzdÄ›lĂˇvĂˇnĂ­',
+  education: 'Vzdělávání',
   energy_utilities: 'Energetika',
-  engineering: 'InĹľenĂ˝rstvĂ­',
+  engineering: 'Inženýrství',
   finance: 'Finance',
-  government_defense: 'VeĹ™ejnĂˇ sprĂˇva a obrana',
-  healthcare: 'ZdravotnictvĂ­',
-  hospitality: 'Gastro a sluĹľby',
-  insurance: 'PojiĹˇĹĄovnictvĂ­',
+  government_defense: 'Veřejná správa a obrana',
+  healthcare: 'Zdravotnictví',
+  hospitality: 'Gastro a služby',
+  insurance: 'Pojišťovnictví',
   it: 'IT',
   logistics: 'Logistika',
-  manufacturing: 'VĂ˝roba',
-  maritime: 'NĂˇmoĹ™nĂ­ doprava',
+  manufacturing: 'Výroba',
+  maritime: 'Námořní doprava',
   marketing: 'Marketing',
   media_design: 'Design',
-  mining_heavy_industry: 'TÄ›ĹľkĂ˝ prĹŻmysl',
+  mining_heavy_industry: 'Těžký průmysl',
   operations: 'Provoz a operativa',
   pharma_biotech: 'Farmacie a biotech',
-  procurement: 'NĂˇkup',
+  procurement: 'Nákup',
   product_management: 'Produkt',
-  public_services: 'VeĹ™ejnĂ© sluĹľby',
+  public_services: 'Veřejné služby',
   real_estate: 'Reality',
   retail: 'Retail',
   sales: 'Obchod',
-  science_lab: 'VÄ›da a laboratoĹ™',
-  security: 'BezpeÄŤnost',
+  science_lab: 'Věda a laboratoře',
+  security: 'Bezpečnost',
   telecom_network: 'Telekomunikace',
-  hr: 'LidĂ© a HR',
-  people_ops: 'LidĂ© a HR',
-  general: 'ObecnĂ©',
+  hr: 'Lidé a HR',
+  people_ops: 'Lidé a HR',
+  general: 'Obecné',
 };
 
 const REMAP_PRIORITY_DOMAIN_OPTIONS: RemapDomainOption[] = [
@@ -545,7 +550,7 @@ const REMAP_PRIORITY_DOMAIN_OPTIONS: RemapDomainOption[] = [
   { value: 'healthcare' },
   { value: 'retail' },
   { value: 'automotive' },
-  { value: 'education', label: 'UÄŤitelĂ©' },
+  { value: 'education', label: 'Učitelé' },
   { value: 'customer_support', label: 'Customer support' },
 ];
 
@@ -619,6 +624,16 @@ const LIFE_DIRECTIONS: LifeDirection[] = [
   },
 ];
 
+const getLocalizedDirectionLabel = (direction: LifeDirection, t: TFunction): string =>
+  t(`careeros.workflow.directions.${direction.id}.title`, {
+    defaultValue: direction.label,
+  });
+
+const getLocalizedDirectionDescription = (direction: LifeDirection, t: TFunction): string =>
+  t(`careeros.workflow.directions.${direction.id}.description`, {
+    defaultValue: direction.description,
+  });
+
 const directionVisuals: Record<string, { tone: keyof typeof toneClasses; gradient: string; imageUrl: string }> = {
   more_time: {
     tone: 'slate',
@@ -662,7 +677,7 @@ const normalizeLifeDirectionText = (value: string): string =>
     .trim();
 
 const deskBoundRolePattern = /\b(software|engineer|developer|backend|frontend|full stack|fullstack|qa|tester|data|analyst|designer|ux|ui|product manager|scrum|architect)\b/;
-const fieldRolePattern = /\b(field|field service|site|site manager|terrain|ter[eĂ©]n|on site support|onsite support|technician|installer|installation|warehouse|store manager|branch|clinic|maintenance|manufacturing|production|operations on site|supervisor|construction)\b/;
+const fieldRolePattern = /\b(field|field service|site|site manager|terrain|ter[eÄ‚Â©]n|on site support|onsite support|technician|installer|installation|warehouse|store manager|branch|clinic|maintenance|manufacturing|production|operations on site|supervisor|construction)\b/;
 const peopleRolePattern = /\b(customer|support|service|sales|account|success|recruit|talent|hr|people|care|patient|community|hospitality|teacher|education|partner|client)\b/;
 const flexibilityPattern = /\b(remote|hybrid|home office|work from home|flexible|part time|part-time|4 day|4-day|wellbeing|well being|balance|na dalku|z domova|async)\b/;
 const growthPattern = /\b(growth|career|lead|senior|ownership|learning|develop|scale|promotion|mentor|growth path|rust|rozvoj)\b/;
@@ -702,7 +717,7 @@ const scoreLifeDirectionsForJob = (job: Job): Array<{ id: string; score: number 
   const hasFlexSignal = flexibilityPattern.test(combined);
   const hasGrowthSignal = growthPattern.test(combined);
   const hasDeskBoundSignal = deskBoundRolePattern.test(combined);
-  const hasHighTravelSignal = /\b(travel|travelling|traveling|site visits|branch visits|regional|field work|home visits|social services?|community care|home care|domov|ter[eé]nn[ií]|ter[eé]nni|terenn[ií]|servisn[ií] technik|stavbyvedouc[ií]|mont[eé]r)\b/.test(combined);
+  const hasHighTravelSignal = /\b(travel|travelling|traveling|site visits|branch visits|regional|field work|home visits|social services?|community care|home care|domov|ter[eĂ©]nn[iĂ­]|ter[eĂ©]nni|terenn[iĂ­]|servisn[iĂ­] technik|stavbyvedouc[iĂ­]|mont[eĂ©]r)\b/.test(combined);
 
   if (hasFlexSignal) scores.less_commuting += 3;
   if (remoteFriendlyDomains.has(domain)) scores.less_commuting += 1;
@@ -780,7 +795,7 @@ const buildRoleNodes = (domainKey: string, challenges: CareerOSChallenge[], t: T
         preview: topCompanies.length > 0
           ? t('careeros.map.role_preview_companies', {
               defaultValue: 'Companies nearby: {{companies}}',
-              companies: topCompanies.join(' Â· '),
+              companies: topCompanies.join(' • '),
             })
           : t('careeros.map.role_preview_default', {
               defaultValue: 'Open this role lane to see concrete companies and offers.',
@@ -807,40 +822,40 @@ const getNavigationUiCopy = (locale?: string) => {
   const normalized = normalizeNavigationLocale(locale);
   if (normalized === 'cs') {
     return {
-      badge: 'Navigace k cĂ­li',
+      badge: 'Navigace k cíli',
       eta: 'ETA',
       confidence: 'Jistota',
       steps: 'Kroky',
-      resolving: 'UpĹ™esĹujeme trasu pĹ™es AI interpretaci...',
-      alternatives: 'MoĹľnĂ© interpretace',
-      friction: 'MoĹľnĂˇ tĹ™enĂ­',
-      editGoal: 'Upravit cĂ­l',
-      subtitle: 'Zadejte cĂ­l a CareerOS ukĂˇĹľe realistickou trasu z vaĹˇeho aktuĂˇlnĂ­ho profilu.',
-      changeGoal: 'ZmÄ›nit cĂ­l',
-      openCta: 'Navigovat k cĂ­li',
+      resolving: 'Upřesňujeme trasu přes AI interpretaci...',
+      alternatives: 'Možné interpretace',
+      friction: 'Možná tření',
+      editGoal: 'Upravit cíl',
+      subtitle: 'Zadejte cíl a CareerOS ukáže realistickou trasu z vašeho aktuálního profilu.',
+      changeGoal: 'Změnit cíl',
+      openCta: 'Navigovat k cíli',
       clear: 'Vymazat trasu',
-      placeholder: 'NapĹ™Ă­klad Customer Success Manager, operations lead, remote product role...',
-      useMarketPrefs: 'PouĹľĂ­t moje souÄŤasnĂ© preference trhu jako vĂˇhu trasy',
+      placeholder: 'Například Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Použít moje současné preference trhu jako váhu trasy',
       submit: 'Postavit trasu',
     };
   }
   if (normalized === 'sk') {
     return {
-      badge: 'NavigĂˇcia k cieÄľu',
+      badge: 'Navigácia k cieľu',
       eta: 'ETA',
       confidence: 'Istota',
       steps: 'Kroky',
-      resolving: 'SpresĹujeme trasu cez AI interpretĂˇciu...',
-      alternatives: 'MoĹľnĂ© interpretĂˇcie',
-      friction: 'MoĹľnĂ© trenia',
-      editGoal: 'UpraviĹĄ cieÄľ',
-      subtitle: 'Zadajte cieÄľ a CareerOS ukĂˇĹľe realistickĂş trasu z vĂˇĹˇho aktuĂˇlneho profilu.',
-      changeGoal: 'ZmeniĹĄ cieÄľ',
-      openCta: 'NavigovaĹĄ k cieÄľu',
-      clear: 'VymazaĹĄ trasu',
-      placeholder: 'NaprĂ­klad Customer Success Manager, operations lead, remote product role...',
-      useMarketPrefs: 'PouĹľiĹĄ moje sĂşÄŤasnĂ© preferencie trhu ako vĂˇhu trasy',
-      submit: 'PostaviĹĄ trasu',
+      resolving: 'Spresňujeme trasu cez AI interpretáciu...',
+      alternatives: 'Možné interpretácie',
+      friction: 'Možné trenia',
+      editGoal: 'Upraviť cieľ',
+      subtitle: 'Zadajte cieľ a CareerOS ukáže realistickú trasu z vášho aktuálneho profilu.',
+      changeGoal: 'Zmeniť cieľ',
+      openCta: 'Navigovať k cieľu',
+      clear: 'Vymazať trasu',
+      placeholder: 'Napríklad Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Použiť moje súčasné preferencie trhu ako váhu trasy',
+      submit: 'Postaviť trasu',
     };
   }
   if (normalized === 'de') {
@@ -850,15 +865,15 @@ const getNavigationUiCopy = (locale?: string) => {
       confidence: 'Sicherheit',
       steps: 'Schritte',
       resolving: 'Die Route wird mit AI-Interpretation verfeinert...',
-      alternatives: 'MĂ¶gliche Deutungen',
-      friction: 'MĂ¶gliche Reibung',
+      alternatives: 'Mögliche Deutungen',
+      friction: 'Mögliche Reibung',
       editGoal: 'Ziel bearbeiten',
       subtitle: 'Geben Sie ein Ziel ein und CareerOS zeigt eine realistische Route aus Ihrem aktuellen Profil.',
-      changeGoal: 'Ziel Ă¤ndern',
+      changeGoal: 'Ziel ändern',
       openCta: 'Zum Ziel navigieren',
-      clear: 'Route lĂ¶schen',
+      clear: 'Route löschen',
       placeholder: 'Zum Beispiel Customer Success Manager, Operations Lead, Remote-Produktrolle...',
-      useMarketPrefs: 'Meine aktuellen MarktprĂ¤ferenzen als Routen-Gewichtung nutzen',
+      useMarketPrefs: 'Meine aktuellen Marktpräferenzen als Routen-Gewichtung nutzen',
       submit: 'Route bauen',
     };
   }
@@ -866,19 +881,19 @@ const getNavigationUiCopy = (locale?: string) => {
     return {
       badge: 'Nawigacja do celu',
       eta: 'ETA',
-      confidence: 'PewnoĹ›Ä‡',
+      confidence: 'Pewność',
       steps: 'Kroki',
-      resolving: 'Doprecyzowujemy trasÄ™ przez interpretacjÄ™ AI...',
-      alternatives: 'MoĹĽliwe interpretacje',
-      friction: 'MoĹĽliwe tarcia',
+      resolving: 'Doprecyzowujemy trasę przez interpretację AI...',
+      alternatives: 'Możliwe interpretacje',
+      friction: 'Możliwe tarcia',
       editGoal: 'Edytuj cel',
-      subtitle: 'Wpisz cel, a CareerOS pokaĹĽe realistycznÄ… trasÄ™ z Twojego obecnego profilu.',
-      changeGoal: 'ZmieĹ„ cel',
+      subtitle: 'Wpisz cel, a CareerOS pokaże realistyczną trasę z Twojego obecnego profilu.',
+      changeGoal: 'Zmień cel',
       openCta: 'Nawiguj do celu',
-      clear: 'WyczyĹ›Ä‡ trasÄ™',
-      placeholder: 'Na przykĹ‚ad Customer Success Manager, operations lead, remote product role...',
-      useMarketPrefs: 'UĹĽyj moich obecnych preferencji rynkowych jako wagi trasy',
-      submit: 'Zbuduj trasÄ™',
+      clear: 'Wyczyść trasę',
+      placeholder: 'Na przykład Customer Success Manager, operations lead, remote product role...',
+      useMarketPrefs: 'Użyj moich obecnych preferencji rynkowych jako wagi trasy',
+      submit: 'Zbuduj trasę',
     };
   }
   return {
@@ -904,51 +919,51 @@ const getCareerOSSidebarCopy = (locale: string) => {
   const language = String(locale || 'en').split('-')[0].toLowerCase();
   const copy = {
     cs: {
-      title: 'ZpĹŻsob zobrazenĂ­',
-      subtitle: 'PĹ™epĂ­nej mezi mapou, klasickĂ˝m seznamem a vrstvami, kterĂ© ti pomohou se rozhodnout.',
+      title: 'Způsob zobrazení',
+      subtitle: 'Přepínej mezi mapou, klasickým seznamem a vrstvami, které ti pomohou se rozhodnout.',
       layers: {
-        career_path: { label: 'KariĂ©rnĂ­ mapa', hint: 'UvidĂ­Ĺˇ smÄ›ry, pĹ™echody a kam tÄ› kterĂˇ role mĹŻĹľe dovĂ©st.' },
-        marketplace: { label: 'Seznam', hint: 'KlasickĂ˝ seznam nabĂ­dek pro rychlĂ© prochĂˇzenĂ­ a porovnĂˇnĂ­.' },
-        learning_path: { label: 'Learning path', hint: 'Dovednosti, mezery a praktickĂ© dalĹˇĂ­ kroky pro rĹŻst.' },
-        mini_challenges: { label: 'Mini challenges', hint: 'KrĂˇtkĂ© pracovnĂ­ ukĂˇzky, na kterĂ˝ch je vidÄ›t, jak pĹ™emĂ˝ĹˇlĂ­Ĺˇ a pracujeĹˇ.' },
-        market_trends: { label: 'TrĹľnĂ­ signĂˇly', hint: 'PoptĂˇvka, odmÄ›ny a pohyb na trhu kolem tebe.' },
-        job_offers: { label: 'Vrstva nabĂ­dek', hint: 'KonkrĂ©tnĂ­ nabĂ­dky navĂˇzanĂ© na vybranĂ˝ smÄ›r.' },
+        career_path: { label: 'Kariérní mapa', hint: 'Uvidíš směry, přechody a kam tě která role může dovést.' },
+        marketplace: { label: 'Seznam', hint: 'Klasický seznam nabídek pro rychlé procházení a porovnání.' },
+        learning_path: { label: 'Learning path', hint: 'Dovednosti, mezery a praktické další kroky pro růst.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krátké pracovní ukázky, na kterých je vidět, jak přemýšlíš a pracuješ.' },
+        market_trends: { label: 'Tržní signály', hint: 'Poptávka, odměny a pohyb na trhu kolem tebe.' },
+        job_offers: { label: 'Vrstva nabídek', hint: 'Konkrétní nabídky navázané na vybraný směr.' },
       },
     },
     sk: {
-      title: 'SpĂ´sob zobrazenia',
-      subtitle: 'PrepĂ­naj medzi mapou, klasickĂ˝m zoznamom a vrstvami, ktorĂ© ti pomĂ´Ĺľu rozhodnĂşĹĄ sa.',
+      title: 'Spôsob zobrazenia',
+      subtitle: 'Prepínaj medzi mapou, klasickým zoznamom a vrstvami, ktoré ti pomôžu rozhodnúť sa.',
       layers: {
-        career_path: { label: 'KariĂ©rna mapa', hint: 'UvidĂ­Ĺˇ smery, prechody a kam ĹĄa mĂ´Ĺľe ktorĂˇ rola doviesĹĄ.' },
-        marketplace: { label: 'Zoznam', hint: 'KlasickĂ˝ zoznam ponĂşk na rĂ˝chle prehliadanie a porovnanie.' },
-        learning_path: { label: 'Learning path', hint: 'ZruÄŤnosti, medzery a praktickĂ© ÄŹalĹˇie kroky pre rast.' },
-        mini_challenges: { label: 'Mini challenges', hint: 'KrĂˇtke pracovnĂ© ukĂˇĹľky, na ktorĂ˝ch vidno, ako rozmĂ˝ĹˇÄľaĹˇ a pracujeĹˇ.' },
-        market_trends: { label: 'TrhovĂ© signĂˇly', hint: 'Dopyt, odmeny a pohyb na trhu okolo teba.' },
-        job_offers: { label: 'Vrstva ponĂşk', hint: 'KonkrĂ©tne ponuky naviazanĂ© na vybranĂ˝ smer.' },
+        career_path: { label: 'Kariérna mapa', hint: 'Uvidíš smery, prechody a kam ťa môže ktorá rola doviesť.' },
+        marketplace: { label: 'Zoznam', hint: 'Klasický zoznam ponúk na rýchle prehliadanie a porovnanie.' },
+        learning_path: { label: 'Learning path', hint: 'Zručnosti, medzery a praktické ďalšie kroky pre rast.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krátke pracovné ukážky, na ktorých vidno, ako premýšľaš a pracuješ.' },
+        market_trends: { label: 'Trhové signály', hint: 'Dopyt, odmeny a pohyb na trhu okolo teba.' },
+        job_offers: { label: 'Vrstva ponúk', hint: 'Konkrétne ponuky naviazané na vybraný smer.' },
       },
     },
     de: {
-      title: 'Ansicht wĂ¤hlen',
+      title: 'Ansicht wählen',
       subtitle: 'Wechseln Sie zwischen Karte, klassischer Liste und weiter?n Ebenen, die bei der Entscheidung helfen.',
       layers: {
-        career_path: { label: 'Karrierekarte', hint: 'Zeigt Richtungen, ĂśbergĂ¤nge und wohin eine Rolle fĂĽhren kann.' },
+        career_path: { label: 'Karrierekarte', hint: 'Zeigt Richtungen, Übergänge und wohin eine Rolle führen kann.' },
         marketplace: { label: 'Liste', hint: 'Klassische Stellenliste zum schnellen Durchsehen und Vergleichen.' },
-        learning_path: { label: 'Learning Path', hint: 'Kompetenzen, LĂĽcken und praktische nĂ¤chste Schritte fĂĽr Wachstum.' },
+        learning_path: { label: 'Learning Path', hint: 'Kompetenzen, Lücken und praktische nächste Schritte für Wachstum.' },
         mini_challenges: { label: 'Mini-Challenges', hint: 'Kurze Arbeitsproben, die zeigen, wie Sie denken und arbeiten.' },
-        market_trends: { label: 'Marktsignale', hint: 'Nachfrage, VergĂĽtung und Bewegungen im Markt um Sie herum.' },
-        job_offers: { label: 'Angebotsebene', hint: 'Konkrete Angebote entlang des gewĂ¤hlten Pfads.' },
+        market_trends: { label: 'Marktsignale', hint: 'Nachfrage, Vergütung und Bewegungen im Markt um Sie herum.' },
+        job_offers: { label: 'Angebotsebene', hint: 'Konkrete Angebote entlang des gewählten Pfads.' },
       },
     },
     pl: {
-      title: 'SposĂłb widoku',
-      subtitle: 'PrzeĹ‚Ä…czaj siÄ™ miÄ™dzy mapÄ…, klasycznÄ… listÄ… i warstwami, ktĂłre pomagajÄ… podjÄ…Ä‡ decyzjÄ™.',
+      title: 'Sposób widoku',
+      subtitle: 'Przełączaj się między mapą, klasyczną listą i warstwami, które pomagają podjąć decyzję.',
       layers: {
-        career_path: { label: 'Mapa kariery', hint: 'Zobaczysz kierunki, przejĹ›cia i dokÄ…d moĹĽe prowadziÄ‡ dana rola.' },
-        marketplace: { label: 'Lista', hint: 'Klasyczna lista ofert do szybkiego przeglÄ…dania i porĂłwnywania.' },
-        learning_path: { label: 'Learning path', hint: 'UmiejÄ™tnoĹ›ci, luki i praktyczne kolejne kroki rozwoju.' },
-        mini_challenges: { label: 'Mini challenges', hint: 'KrĂłtkie prĂłbki pracy pokazujÄ…ce, jak myĹ›lisz i pracujesz.' },
-        market_trends: { label: 'SygnaĹ‚y rynkowe', hint: 'Popyt, wynagrodzenia i ruchy na rynku wokĂłĹ‚ ciebie.' },
-        job_offers: { label: 'Warstwa ofert', hint: 'Konkretne oferty powiÄ…zane z wybranym kierunkiem.' },
+        career_path: { label: 'Mapa kariery', hint: 'Zobaczysz kierunki, przejścia i dokąd może prowadzić dana rola.' },
+        marketplace: { label: 'Lista', hint: 'Klasyczna lista ofert do szybkiego przeglądania i porównywania.' },
+        learning_path: { label: 'Learning path', hint: 'Umiejętności, luki i praktyczne kolejne kroki rozwoju.' },
+        mini_challenges: { label: 'Mini challenges', hint: 'Krótkie próbki pracy pokazujące, jak myślisz i pracujesz.' },
+        market_trends: { label: 'Sygnały rynkowe', hint: 'Popyt, wynagrodzenia i ruchy na rynku wokół ciebie.' },
+        job_offers: { label: 'Warstwa ofert', hint: 'Konkretne oferty powiązane z wybranym kierunkiem.' },
       },
     },
     en: {
@@ -1301,17 +1316,26 @@ const buildPathNodes = (
     const gravity: PathNode['gravity'] = index < 2 ? 'strong' : 'soft';
     const topRoleLabels = cluster.roleNodes.slice(0, 2).map((role) => role.title);
     const visual = directionVisuals[cluster.direction.id] || directionVisuals.less_commuting;
+    const localizedTitle = getLocalizedDirectionLabel(cluster.direction, t);
+    const localizedDescription = getLocalizedDirectionDescription(cluster.direction, t);
 
     return {
       id: 'direction:' + cluster.direction.id,
       domainKey: cluster.direction.id,
       directionIcon: cluster.direction.icon,
-      title: cluster.direction.labelCS,
-      subtitle: cluster.roleNodes.length + ' rol\u00ed \u00b7 ' + cluster.items.length + ' nab\u00eddek',
-      summary: cluster.direction.descriptionCS,
+      title: localizedTitle,
+      subtitle: t('careeros.workflow.direction_meta', {
+        defaultValue: '{{roles}} roles • {{offers}} offers',
+        roles: cluster.roleNodes.length,
+        offers: cluster.items.length,
+      }),
+      summary: localizedDescription,
       preview: topRoleLabels.length > 0
-        ? 'Typick\u00e9 role: ' + topRoleLabels.join(' \u2022 ')
-        : cluster.direction.descriptionCS,
+        ? t('careeros.workflow.typical_roles', {
+            defaultValue: 'Typical roles: {{roles}}',
+            roles: topRoleLabels.join(' • '),
+          })
+        : localizedDescription,
       tags: topRoleLabels.length > 0 ? topRoleLabels : Array.from(new Set(cluster.items.flatMap((item) => item.topTags))).slice(0, 2),
       tone: visual.tone,
       challengeCount: cluster.items.length,
@@ -1621,7 +1645,7 @@ const buildMiniChallengeCards = (jobs: Job[], profileChallenges: Job[], userProf
         .map((value) => t(`company.job_editor.micro_job_collaboration_options.${value}`, {
           defaultValue: value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase()),
         }))
-        .join(' â€˘ ');
+        .join(' • ');
     }
 
     if (job.micro_job_kind === 'one_off_task') {
@@ -1729,10 +1753,10 @@ const DirectionNodeMedia: React.FC<{
   const visual = directionVisuals[directionKey] || directionVisuals.less_commuting;
 
   return (
-    <div className={cn('relative h-full w-full overflow-hidden rounded-[28px]', className)}>
+    <div className={cn('relative h-full w-full overflow-hidden rounded-[30px] [clip-path:polygon(16%_0,84%_0,100%_16%,100%_84%,84%_100%,16%_100%,0_84%,0_16%)]', className)}>
       <img src={visual.imageUrl} alt={title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
       <div className={cn('absolute inset-0 bg-gradient-to-br opacity-88', visual.gradient)} />
-      <div className="absolute inset-[7px] rounded-[22px] border border-white/30 bg-slate-950/8" />
+      <div className="absolute inset-[7px] [clip-path:polygon(16%_0,84%_0,100%_16%,100%_84%,84%_100%,16%_100%,0_84%,0_16%)] border border-white/30 bg-slate-950/8" />
       <div className="absolute inset-x-0 top-[12px] flex justify-center">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/28 text-[20px] text-white shadow-sm backdrop-blur-md">
           {icon}
@@ -1744,8 +1768,8 @@ const DirectionNodeMedia: React.FC<{
       <div className="absolute right-[10px] top-[10px] h-2.5 w-2.5 rounded-full bg-white/55" />
       <div className="absolute left-[10px] bottom-[10px] h-1.5 w-1.5 rounded-full bg-white/45" />
       <div className="absolute left-1/2 top-1/2 h-[56px] w-[56px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-white/6 blur-[0.5px]" />
-      <div className="absolute inset-0 rounded-[28px] ring-1 ring-inset ring-white/12" />
-      <div className="absolute inset-0 rounded-[28px] shadow-[inset_0_1px_0_rgba(255,255,255,0.36)]" />
+      <div className="absolute inset-0 [clip-path:polygon(16%_0,84%_0,100%_16%,100%_84%,84%_100%,16%_100%,0_84%,0_16%)] ring-1 ring-inset ring-white/12" />
+      <div className="absolute inset-0 [clip-path:polygon(16%_0,84%_0,100%_16%,100%_84%,84%_100%,16%_100%,0_84%,0_16%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.36)]" />
       <div className="sr-only">
         {title}
       </div>
@@ -1946,7 +1970,7 @@ export const SearchCockpit: React.FC<{
         onClick={onClose}
       />
       <div
-        className="absolute left-1/2 top-[calc(100%+12px)] z-[80] flex max-h-[min(78vh,820px)] w-[min(94vw,980px)] -translate-x-1/2 flex-col overflow-hidden rounded-[28px] border border-white/55 bg-white/68 p-4 shadow-[0_28px_90px_-30px_rgba(15,23,42,0.45)] backdrop-blur-2xl dark:border-slate-700/80 dark:bg-slate-950/86 dark:shadow-[0_28px_90px_-30px_rgba(2,6,23,0.82)] sm:p-5"
+        className="absolute left-1/2 top-[calc(100%+12px)] z-[80] flex max-h-[min(78vh,820px)] w-[min(94vw,980px)] -translate-x-1/2 flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/96 p-4 shadow-[0_28px_90px_-30px_rgba(15,23,42,0.45)] backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/94 dark:shadow-[0_28px_90px_-30px_rgba(2,6,23,0.82)] sm:p-5"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
@@ -1974,7 +1998,7 @@ export const SearchCockpit: React.FC<{
                 className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/55 px-3 py-2 text-xs font-semibold text-slate-700 backdrop-blur-xl transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                {t('careeros.filters.reset', { defaultValue: 'VyÄŤistit' })}
+                {t('careeros.filters.reset', { defaultValue: 'Vyčistit' })}
               </button>
             ) : null}
             <button
@@ -1992,7 +2016,7 @@ export const SearchCockpit: React.FC<{
             <div className="space-y-3 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.26))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Co hledĂˇte' })}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Co hledáte' })}</span>
                   <input
                     value={searchTerm}
                     onChange={(event) => {
@@ -2000,7 +2024,7 @@ export const SearchCockpit: React.FC<{
                       setSearchTerm(nextValue);
                       activateLiveDiscovery();
                     }}
-                    placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, firma nebo klĂ­ÄŤovĂ© slovo' })}
+                    placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, firma nebo klíčové slovo' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </label>
@@ -2012,7 +2036,7 @@ export const SearchCockpit: React.FC<{
                       setFilterCity(event.target.value);
                       activateLiveDiscovery();
                     }}
-                    placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'MÄ›sto, region nebo prĂˇce na dĂˇlku' })}
+                    placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'Město, region nebo práce na dálku' })}
                     className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </label>
@@ -2111,7 +2135,7 @@ export const SearchCockpit: React.FC<{
               </div>
 
               <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Jak dojĂ­ĹľdĂ­te' })}</div>
+                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Jak dojíždíte' })}</div>
                 <TransportModeSelector
                   selectedMode={transportMode}
                   onModeChange={(value) => {
@@ -2123,7 +2147,7 @@ export const SearchCockpit: React.FC<{
               </div>
 
               <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.comp_floor', { defaultValue: 'MinimĂˇlnĂ­ odmÄ›na' })}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.comp_floor', { defaultValue: 'Minimální odměna' })}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[0, 40000, 60000, 90000].map((value) => (
                     <button
@@ -2250,14 +2274,14 @@ export const NotificationInbox: React.FC<{
   const locale = (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0].toLowerCase();
   const copy = {
     markAllRead:
-      locale === 'cs' ? 'OznaÄŤit vĹˇe jako pĹ™eÄŤtenĂ©'
-      : locale === 'sk' ? 'OznaÄŤiĹĄ vĹˇetko ako preÄŤĂ­tanĂ©'
+      locale === 'cs' ? 'Označit vše jako přečtené'
+      : locale === 'sk' ? 'Označiť všetko ako prečítané'
       : locale === 'de' ? 'Alles als gelesen markieren'
       : locale === 'pl' ? 'Oznacz wszystko jako przeczytane'
       : 'Mark all as read',
     markRead:
-      locale === 'cs' ? 'OznaÄŤit jako pĹ™eÄŤtenĂ©'
-      : locale === 'sk' ? 'OznaÄŤiĹĄ ako preÄŤĂ­tanĂ©'
+      locale === 'cs' ? 'Označit jako přečtené'
+      : locale === 'sk' ? 'Označiť ako prečítané'
       : locale === 'de' ? 'Als gelesen markieren'
       : locale === 'pl' ? 'Oznacz jako przeczytane'
       : 'Mark as read',
@@ -2413,11 +2437,11 @@ const DomainRemapPanel: React.FC<{
               type="text"
               value={manualDomainQuery}
               onChange={(event) => setManualDomainQuery(event.target.value)}
-              placeholder={t('careeros.map.custom_domain_placeholder', { defaultValue: 'NapĹ™. HR, prĂˇvo, farmacie, uÄŤitelĂ©...' })}
+              placeholder={t('careeros.map.custom_domain_placeholder', { defaultValue: 'Např. HR, právo, farmacie, učitelé...' })}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-cyan-500/60 dark:focus:ring-cyan-900/40"
             />
             <div className="mt-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-              {t('careeros.map.custom_domain_hint', { defaultValue: 'VĂˇĹˇ vlastnĂ­ obor prohledĂˇ nĂˇzvy rolĂ­, shrnutĂ­, firmy i skill tagy a podle toho mapu pĹ™esmÄ›ruje.' })}
+              {t('careeros.map.custom_domain_hint', { defaultValue: 'Váš vlastní obor prohledá názvy rolí, shrnutí, firmy i skill tagy a podle toho mapu přesměruje.' })}
             </div>
           </div>
           <div className="mt-4 flex max-h-[220px] flex-wrap gap-2 overflow-y-auto pr-1">
@@ -2540,35 +2564,28 @@ const CareerPathStage: React.FC<{
     originY: number;
   } | null>(null);
 
-  const stageCopy = locale === 'cs'
-    ? {
-        guestTitle: 'Začněte svou kariérní mapu',
-        guestBody: 'Uvidíte, který další směr dává smysl právě pro vás, proč a kam se můžete rozvinout dál.',
-        guestCta: 'Začít mapovat směr',
-        startLabel: 'Vaše současná situace',
-        startFallback: 'Tady právě stojíte. Odtud se mapa rozvíjí do směrů, které dávají smysl pro vaši další kariérní volbu.',
-        rolesShort: 'rolí',
-        statsTitle: 'Kariérní mapa',
-        jobsLabel: 'V databázi právě máme',
-        jobsBody: 'aktivních nabídek.',
-        onlineLabel: 'Právě online',
-        onlineBody: 'uchazečů v systému',
-        reset: 'Reset mapy',
-      }
-    : {
-        guestTitle: 'Start your career map',
-        guestBody: 'See which direction makes the most sense for you now, why, and how the path can unfold next.',
-        guestCta: 'Start mapping',
-        startLabel: 'Your current situation',
-        startFallback: 'Find the next move before you send another resume.',
-        rolesShort: 'roles',
-        statsTitle: 'Career map',
-        jobsLabel: 'We currently have',
-        jobsBody: 'active jobs in the database.',
-        onlineLabel: 'Online now',
-        onlineBody: 'candidates in the system',
-        reset: 'Reset map',
-      };
+  const stageCopy = {
+    guestTitle: t('careeros.workflow.guest_title', { defaultValue: locale === 'cs' ? 'Začněte svou kariérní mapu' : 'Start your career map' }),
+    guestBody: t('careeros.workflow.guest_body', {
+      defaultValue: locale === 'cs'
+        ? 'Uvidíte, který další směr dává smysl právě pro vás, proč a kam se můžete rozvinout dál.'
+        : 'See which direction makes the most sense for you now, why, and how the path can unfold next.',
+    }),
+    guestCta: t('careeros.workflow.guest_cta', { defaultValue: locale === 'cs' ? 'Začít mapovat směr' : 'Start mapping' }),
+    startLabel: t('careeros.workflow.start_label', { defaultValue: locale === 'cs' ? 'Vaše současná situace' : 'Your current situation' }),
+    startFallback: t('careeros.workflow.start_fallback', {
+      defaultValue: locale === 'cs'
+        ? 'Tady právě stojíte. Odtud se mapa rozvíjí do směrů, které dávají smysl pro vaši další kariérní volbu.'
+        : 'This is where you stand now. From here, the map unfolds into directions worth exploring next.',
+    }),
+    rolesShort: t('careeros.workflow.roles_short', { defaultValue: locale === 'cs' ? 'rolí' : 'roles' }),
+    statsTitle: t('careeros.workflow.stats_title', { defaultValue: locale === 'cs' ? 'Kariérní mapa' : 'Career map' }),
+    jobsLabel: t('careeros.workflow.jobs_label', { defaultValue: locale === 'cs' ? 'V databázi právě máme' : 'We currently have' }),
+    jobsBody: t('careeros.workflow.jobs_body', { defaultValue: locale === 'cs' ? 'aktivních nabídek.' : 'active jobs in the database.' }),
+    onlineLabel: t('careeros.workflow.online_label', { defaultValue: locale === 'cs' ? 'Právě online' : 'Online now' }),
+    onlineBody: t('careeros.workflow.online_body', { defaultValue: locale === 'cs' ? 'uchazečů v systému' : 'candidates in the system' }),
+    reset: t('careeros.workflow.reset', { defaultValue: locale === 'cs' ? 'Reset mapy' : 'Reset map' }),
+  };
 
   const onRemapDirection = (_slotId?: string, _nodeId?: string) => {};
   const onRemapRole = (_slotId?: string, _roleId?: string) => {};
@@ -2921,7 +2938,7 @@ const CareerPathStage: React.FC<{
                       disabled={!interactive}
                     >
                       <div className={cn(
-                        'relative h-[84px] w-[84px] rounded-[32px] border border-white/80 bg-white/96 p-[5px] shadow-[0_22px_42px_-20px_rgba(15,23,42,0.34)] backdrop-blur-xl transition-transform duration-200 dark:border-slate-700/80 dark:bg-slate-950/92',
+                        'relative h-[88px] w-[88px] rounded-[34px] border border-white/85 bg-white/98 p-[6px] shadow-[0_24px_44px_-20px_rgba(15,23,42,0.34)] backdrop-blur-xl transition-transform duration-200 dark:border-slate-700/80 dark:bg-slate-950/92',
                         active ? 'scale-[1.04] ring-2 ring-cyan-300 shadow-[0_24px_44px_-22px_rgba(8,145,178,0.34)] dark:ring-cyan-400/60' : 'group-hover:scale-[1.03] group-hover:shadow-[0_22px_40px_-22px_rgba(15,23,42,0.26)]',
                       )}>
                         <DirectionNodeMedia
@@ -2930,9 +2947,6 @@ const CareerPathStage: React.FC<{
                           title={node.title}
                           className="h-full w-full"
                         />
-                        <div className="absolute -right-1 -top-1 rounded-full border border-white bg-slate-950 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm dark:border-slate-800">
-                          {node.roleNodes.length}
-                        </div>
                       </div>
                       <div className="mt-2.5 max-w-[196px] rounded-[18px] border border-white/60 bg-white/68 px-3 py-2 text-center shadow-[0_12px_28px_-24px_rgba(15,23,42,0.24)] backdrop-blur-md dark:border-slate-700/70 dark:bg-slate-950/72">
                         <div className="text-[14px] font-semibold leading-[1.15] text-slate-900 dark:text-slate-100">{node.title}</div>
@@ -2952,7 +2966,7 @@ const CareerPathStage: React.FC<{
                         onRemapDirection(node.slotId, node.id);
                       }}
                       className="hidden"
-                      title={t('careeros.map.remap_direction_node', { defaultValue: 'PĹ™emapovat smÄ›r' })}
+                      title={t('careeros.map.remap_direction_node', { defaultValue: 'Přemapovat směr' })}
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                     </button>
@@ -2987,7 +3001,7 @@ const CareerPathStage: React.FC<{
                     onRemapRole(role.slotId, role.id);
                   }}
                   className="hidden"
-                  title={t('careeros.map.remap_role_node', { defaultValue: 'PĹ™emapovat roli' })}
+                  title={t('careeros.map.remap_role_node', { defaultValue: 'Přemapovat roli' })}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>
@@ -3062,17 +3076,17 @@ const CareerPathSetupState: React.FC<{
             <Bot className="h-7 w-7" />
           </div>
           <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">
-            {t('careeros.map.setup_badge', { defaultValue: 'RozvojovĂˇ cesta' })}
+            {t('careeros.map.setup_badge', { defaultValue: 'Rozvojová cesta' })}
           </div>
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
             {isGuest
-              ? t('careeros.map.guest_locked_title', { defaultValue: 'Aby rozvojovĂˇ cesta dĂˇvala smysl, potĹ™ebujeme nejdĹ™Ă­v vĂˇĹˇ profil' })
-              : t('careeros.map.profile_locked_title', { defaultValue: 'DoplĹte profil a my pak pĹ™ipravĂ­me smysluplnou rozvojovou cestu' })}
+              ? t('careeros.map.guest_locked_title', { defaultValue: 'Aby rozvojová cesta dávala smysl, potřebujeme nejdřív váš profil' })
+              : t('careeros.map.profile_locked_title', { defaultValue: 'Doplňte profil a my pak připravíme smysluplnou rozvojovou cestu' })}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-[15px]">
             {isGuest
-              ? t('careeros.map.guest_locked_body', { defaultValue: 'Bez pĹ™ihlĂˇĹˇenĂ­ a vyplnÄ›nĂ©ho profilu bychom jen hĂˇdali podle obecnĂ˝ch nabĂ­dek. PĹ™ihlaste se, doplĹte pĂˇr informacĂ­ o sobÄ› a pak vĂˇm ukĂˇĹľeme smÄ›ry, kterĂ© budou vychĂˇzet z vaĹˇich zkuĹˇenostĂ­, preferencĂ­ a cĂ­lĹŻ.' })
-              : t('careeros.map.profile_locked_body', { defaultValue: 'ZatĂ­m nemĂˇme dost podkladĹŻ, abychom vĂˇm ukĂˇzali relevantnĂ­ smÄ›ry. StaÄŤĂ­ doplnit cĂ­lovou roli, obor nebo pĂˇr zkuĹˇenostĂ­ a systĂ©m bude mĂ­t z ÄŤeho vychĂˇzet.' })}
+              ? t('careeros.map.guest_locked_body', { defaultValue: 'Bez přihlášení a vyplněného profilu bychom jen hádali podle obecných nabídek. Přihlaste se, doplňte pár informací o sobě a pak vám ukážeme směry, které budou vycházet z vašich zkušeností, preferencí a cílů.' })
+              : t('careeros.map.profile_locked_body', { defaultValue: 'Zatím nemáme dost podkladů, abychom vám ukázali relevantní směry. Stačí doplnit cílovou roli, obor nebo pár zkušeností a systém bude mít z čeho vycházet.' })}
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <button
@@ -3081,7 +3095,7 @@ const CareerPathSetupState: React.FC<{
               className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-500"
             >
               {isGuest
-                ? t('careeros.map.guest_locked_cta', { defaultValue: 'PĹ™ihlĂˇsit se a zaÄŤĂ­t' })
+                ? t('careeros.map.guest_locked_cta', { defaultValue: 'Přihlásit se a začít' })
                 : t('careeros.map.profile_locked_cta', { defaultValue: 'Doplnit profil' })}
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -3225,7 +3239,7 @@ const NavigationPanel: React.FC<{
                           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{step.body}</p>
                           <div className="mt-3 flex items-center justify-between gap-3">
                             <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              {step.etaLabel} Â· {step.confidence}%
+                              {step.etaLabel} • {step.confidence}%
                             </div>
                             <button
                               type="button"
@@ -3585,7 +3599,7 @@ const MiniChallengesView: React.FC<{
             }}
             className="mt-5 inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white"
           >
-            {t('careeros.mini.open_profile_cta', { defaultValue: 'Zadat mini vĂ˝zvu z profilu' })}
+            {t('careeros.mini.open_profile_cta', { defaultValue: 'Zadat mini výzvu z profilu' })}
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -3691,13 +3705,14 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
   onOpenProfile,
   onOpenAuth,
   onOpenCompaniesLanding,
+  homeResetToken = 0,
   initialNavigationState,
   onNavigationStateChange,
 }) => {
   const initialSelectedPathId = null;
   const initialExpandedPathId = null;
   const initialBranchRoleId = null;
-  const initialActiveLayer: CareerOSLayer = 'career_path';
+  const initialActiveLayer: CareerOSLayer = 'marketplace';
   const initialCanvasZoom = Number.isFinite(initialNavigationState?.canvasZoom)
     ? Math.max(0.72, Math.min(1.4, Number(initialNavigationState?.canvasZoom)))
     : 1;
@@ -4252,15 +4267,24 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
   useEffect(() => {
     if (activeLayer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
-      setActiveLayer('career_path');
+      setActiveLayer('marketplace');
     }
   }, [activeLayer]);
 
   useEffect(() => {
-    setActiveLayer('career_path');
+    setActiveLayer('marketplace');
     setExpandedPathId(null);
     setSelectedRoleId(null);
   }, [userProfile.id]);
+
+  useEffect(() => {
+    if (!homeResetToken) return;
+    setActiveLayer('marketplace');
+    setExpandedPathId(null);
+    setSelectedRoleId(null);
+    setPanelChallenge(null);
+    setPanelDismissed(true);
+  }, [homeResetToken]);
 
   useEffect(() => {
     setCareerMapNodePositions(sanitizeCareerMapNodeOffsets(userProfile.preferences?.careerMapLayout?.positions));
@@ -4480,7 +4504,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
   const submitSearch = useCallback(() => {
     setFiltersOpen(false);
-    setActiveLayer('career_path');
+    setActiveLayer('marketplace');
     setPanelChallenge(null);
     performSearch(searchTerm);
   }, [performSearch, searchTerm]);
@@ -4525,7 +4549,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
     markPerf('careeros:graph:start');
     setPanelDismissed(false);
     if (layer === 'market_trends' && !MARKET_TRENDS_ENABLED) {
-      setActiveLayer('career_path');
+      setActiveLayer('marketplace');
       setExpandedPathId(null);
       setPanelDismissed(true);
       setPanelChallenge(null);
@@ -4706,7 +4730,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                     className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-500/30 dark:bg-cyan-950/30 dark:text-cyan-200 dark:hover:bg-cyan-950/40"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    {t('careeros.offers_stage.return_to_roles', { defaultValue: 'ZpÄ›t na role' })}
+                    {t('careeros.offers_stage.return_to_roles', { defaultValue: 'Zpět na role' })}
                   </button>
                   <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
                     {selectedPath.title}
@@ -4718,7 +4742,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
                     {t('careeros.offers_stage.offer_count', {
-                      defaultValue: '{{count}} aktivnĂ­ch nabĂ­dek',
+                      defaultValue: '{{count}} aktivních nabídek',
                       count: jobOfferLayerJobs.length,
                     })}
                   </span>
@@ -4783,11 +4807,16 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 
     if (activeLayer === 'marketplace') {
       return (
-        <div className="relative h-full overflow-y-auto px-4 pb-8 pt-6 lg:pl-[320px] lg:pr-6">
+        <div
+          className={cn(
+            'relative flex h-full overflow-y-auto px-4 pb-8 pt-6 lg:pr-6',
+            sidebarCollapsed ? 'lg:pl-[104px]' : 'lg:pl-[320px]'
+          )}
+        >
           <NeuralCircuitTexture className="pointer-events-none absolute inset-0 opacity-[0.34]" />
           <div className="pointer-events-none absolute left-[14%] top-[12%] h-[320px] w-[320px] rounded-full bg-emerald-300/10 blur-[120px]" />
           <div className="pointer-events-none absolute bottom-[10%] right-[12%] h-[420px] w-[420px] rounded-full bg-sky-300/10 blur-[140px]" />
-          <div className="relative z-10">
+          <div className="relative z-10 min-w-0 flex-1">
             <MarketplacePage
               hasNativeChallenges={hasNativeChallenges}
               jobs={jobs}
@@ -4988,7 +5017,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                     }
                     setNavigationComposerOpen((current) => !current);
                   }}
-                  className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)]"
+                  className={cn(shellCtaButton, 'pointer-events-auto')}
                 >
                   {navigationRoute
                     ? navigationUiCopy.changeGoal
@@ -5002,7 +5031,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                       setNavigationRoute(null);
                       setNavigationResolving(false);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                    className={shellSecondaryButton}
                   >
                     {navigationUiCopy.clear}
                   </button>
@@ -5017,7 +5046,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                     value={navigationGoalInput}
                     onChange={(event) => setNavigationGoalInput(event.target.value)}
                     placeholder={navigationUiCopy.placeholder}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-slate-100 dark:focus:border-cyan-400 dark:focus:ring-cyan-950/40"
+                    className={shellInput}
                   />
                   <label className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <input
@@ -5033,7 +5062,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                   <button
                     type="submit"
                     disabled={!navigationGoalInput.trim() || navigationResolving}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={cn(shellCtaButton, '!disabled:cursor-not-allowed !disabled:opacity-60')}
                   >
                     {navigationResolving ? <Bot className="h-4 w-4 animate-pulse" /> : <TrendingUp className="h-4 w-4" />}
                     {navigationUiCopy.submit}
@@ -5041,7 +5070,7 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
                   <button
                     type="button"
                     onClick={() => setNavigationComposerOpen(false)}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200"
+                    className={shellSecondaryButton}
                   >
                     {t('common.close', { defaultValue: 'Close' })}
                   </button>
@@ -5065,6 +5094,26 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
             onClick: () => handleSidebarNavigate(layer.id),
           }))}
         />
+        {activeLayer === 'marketplace' ? (
+          <div className={cn('self-start', sidebarCollapsed ? 'w-16' : 'w-72')}>
+            <MarketplaceSidebar
+              jobCount={totalCount}
+              savedCount={savedJobIds.length}
+              remoteOnly={remoteOnly}
+              filterMinSalary={filterMinSalary}
+              filterBenefits={filterBenefits}
+              enableCommuteFilter={enableCommuteFilter}
+              filterMaxDistance={filterMaxDistance}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              hasMore={hasMore}
+              discoveryMode={discoveryMode}
+              lane={lane}
+              onOpenProfile={onOpenProfile}
+              collapsed={sidebarCollapsed}
+            />
+          </div>
+        ) : null}
         {activeLayer === 'job_offers' ? (
           <GalaxyCanvasControls
             zoom={canvasZoom}
@@ -5214,4 +5263,3 @@ const CareerOSCandidateWorkspace: React.FC<CareerOSCandidateWorkspaceProps> = ({
 };
 
 export default React.memo(CareerOSCandidateWorkspace);
-

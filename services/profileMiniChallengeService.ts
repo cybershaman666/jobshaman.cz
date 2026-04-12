@@ -154,7 +154,7 @@ const mergePublisherJobMeta = (jobs: Job[], rawJobs: any[]): Job[] => {
 
 export const listProfileMiniChallenges = async (): Promise<Job[]> => {
   if (publisherMiniChallengesApiUnavailable) {
-    throw new Error('Publisher mini challenge API is unavailable.');
+    return [];
   }
 
   try {
@@ -165,7 +165,7 @@ export const listProfileMiniChallenges = async (): Promise<Job[]> => {
     if (!response.ok) {
       if (shouldDisablePublisherMiniChallengesApi(response.status)) {
         publisherMiniChallengesApiUnavailable = true;
-        throw new Error('Publisher mini challenge API is unavailable.');
+        return [];
       }
       throw new Error(await parseError(response, 'Failed to load mini challenges.'));
     }
@@ -173,8 +173,8 @@ export const listProfileMiniChallenges = async (): Promise<Job[]> => {
     const rawJobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
     return mapPublisherListJobs(rawJobs);
   } catch (error) {
-    if (publisherMiniChallengesApiUnavailable && !String((error as Error)?.message || '').trim()) {
-      throw new Error('Publisher mini challenge API is unavailable.');
+    if (publisherMiniChallengesApiUnavailable) {
+      return [];
     }
     throw error;
   }

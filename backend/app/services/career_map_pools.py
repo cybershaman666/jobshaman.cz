@@ -6,10 +6,10 @@ from threading import Lock
 from typing import Any, Optional
 
 from ..core import config
-from .job_intelligence import _ensure_job_intelligence_schema
+from .job_intelligence import _ensure_job_intelligence_schema_for_read
 from .jobs_postgres_store import (
     _connect,
-    _ensure_schema,
+    _ensure_schema_for_read,
     _jobs_main_cutoff_sql,
     _json_load,
     count_active_main_jobs,
@@ -174,8 +174,8 @@ def _read_pool_rows(country_code: Optional[str], *, limit: int) -> list[dict[str
     if not jobs_postgres_main_enabled():
         return []
 
-    _ensure_schema()
-    _ensure_job_intelligence_schema()
+    _ensure_schema_for_read()
+    _ensure_job_intelligence_schema_for_read()
     conn = _connect()
     cutoff_sql, cutoff_params = _jobs_main_cutoff_sql()
     params: list[Any] = [*cutoff_params]

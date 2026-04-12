@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mail, MoreVertical, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import type { CompanyProfile, RecruiterMember } from '../../../../types';
+import { useCompanyTeamInvite } from '../../../../hooks/useCompanyTeamInvite';
 
 interface TeamTabProps {
   companyProfile?: CompanyProfile | null;
@@ -15,24 +16,30 @@ export const TeamTab: React.FC<TeamTabProps> = ({ companyProfile, onProfileUpdat
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<'recruiter' | 'admin'>('recruiter');
+  const [inviteSent, setInviteSent] = useState(false);
+  const { invite, loading, error } = useCompanyTeamInvite();
 
-  const handleInvite = () => {
-    if (!inviteEmail || !inviteName || !onProfileUpdate || !companyProfile) return;
-
-    const newMember: RecruiterMember = {
-      id: `member-${Date.now()}`,
-      email: inviteEmail,
-      name: inviteName,
-      role: inviteRole,
-      joinedAt: new Date().toISOString(),
-      status: 'invited',
-      source: 'member',
-    };
-
-    onProfileUpdate({ ...companyProfile, members: [...members, newMember] });
-    setInviteEmail('');
-    setInviteName('');
-    setShowInviteForm(false);
+  const handleInvite = async () => {
+    if (!inviteEmail || !inviteName || !companyProfile?.id) return;
+    const result = await invite(companyProfile.id, inviteEmail, inviteName, inviteRole);
+    if (result) {
+      // Refresh local state with pending status
+      const newMember: RecruiterMember = {
+        id: result.invitation_id,
+        email: inviteEmail,
+        name: inviteName,
+        role: inviteRole,
+        joinedAt: new Date().toISOString(),
+        status: 'invited',
+        source: 'member',
+      };
+      onProfileUpdate?.({ ...companyProfile, members: [...members, newMember] });
+      setInviteEmail('');
+      setInviteName('');
+      setShowInviteForm(false);
+      setInviteSent(true);
+      setTimeout(() => setInviteSent(false), 4000);
+    }
   };
 
   const adminCount = members.filter((member) => member.role === 'admin').length;
@@ -66,6 +73,17 @@ export const TeamTab: React.FC<TeamTabProps> = ({ companyProfile, onProfileUpdat
           <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
             {t('company.team.invite_title', { defaultValue: 'Pozvat nového člena' })}
           </h3>
+
+          {inviteSent && (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+              {t('company.team.invite_sent_success', { defaultValue: '✅ Pozvánka byla odeslána na {email}', email: inviteEmail || '...' })}
+            </div>
+          )}
+          {error && (
+            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">
+              {error}
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -108,10 +126,12 @@ export const TeamTab: React.FC<TeamTabProps> = ({ companyProfile, onProfileUpdat
           <div className="mt-4 flex items-center gap-2">
             <button
               onClick={handleInvite}
-              disabled={!inviteEmail || !inviteName}
+              disabled={!inviteEmail || !inviteName || loading}
               className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t('company.team.send_invite', { defaultValue: 'Odeslat pozvánku' })}
+              {loading
+                ? t('company.team.sending', { defaultValue: 'Odesílám...' })
+                : t('company.team.send_invite', { defaultValue: 'Odeslat pozvánku' })}
             </button>
             <button
               onClick={() => setShowInviteForm(false)}

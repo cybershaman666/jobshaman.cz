@@ -1,12 +1,15 @@
 from typing import Any
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 
 from ..core.database import supabase
 from ..core.limiter import limiter
-from ..core.security import require_company_access, verify_csrf_token_header, verify_subscription
+from ..core.security import get_current_user, require_company_access, verify_csrf_token_header, verify_subscription
 from ..models.requests import JobDraftPublishRequest, JobDraftUpsertRequest, JobLifecycleUpdateRequest
 from ..services.jobs_postgres_store import list_company_jobs, update_job_fields
+from ..services.email import send_email
 from ..utils.helpers import now_iso
 from .jobs import (
     _build_job_human_context_editor_state,
@@ -43,6 +46,14 @@ from .jobs import (
     _trimmed_text,
     _write_company_activity_log,
 )
+
+
+class TeamInvitationRequest(BaseModel):
+    company_id: str
+    email: str
+    name: str
+    role: str  # 'recruiter' | 'admin'
+
 
 router = APIRouter()
 
@@ -837,3 +848,192 @@ async def update_company_job_lifecycle(
     )
     _sync_company_active_jobs_usage(str(job_row.get("company_id") or ""))
     return {"status": "success", "job_id": normalized_job_id, "next_status": payload.status}
+
+
+@router.post("/companies/team/invite")
+@limiter.limit("30/minute")
+async def create_team_invitation(
+    invitation_req: TeamInvitationRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    company_id = require_company_access(user, invitation_req.company_id)
+    if not company_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    # Verify user is admin of the company
+    user_id = user.get("id") or user.get("auth_id")
+    try:
+        admin_check = (
+            supabase
+            .table("company_members")
+            .select("id, role")
+            .eq("company_id", company_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        is_admin = any(
+            (m.get("role") == "admin")
+            for m in (admin_check.data or [])
+        )
+        # Also allow company owners (they own the company row)
+        if not is_admin:
+            company_resp = supabase.table("companies").select("id").eq("id", company_id).eq("owner_id", user_id).maybe_single().execute()
+            if company_resp.data:
+                is_admin = True
+    except Exception:
+        # Fallback: if company_members table is not ready, check if user is in authorized_ids
+        # and treat company owners as admins
+        company_resp = supabase.table("companies").select("id").eq("id", company_id).eq("owner_id", user_id).maybe_single().execute()
+        is_admin = bool(company_resp.data) if company_resp else False
+
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only company admins can send team invitations")
+
+    # Validate role
+    role = invitation_req.role
+    if role not in ("recruiter", "admin"):
+        raise HTTPException(status_code=400, detail="Role must be 'recruiter' or 'admin'")
+
+    # Generate invitation token
+    invitation_token = secrets.token_urlsafe(32)
+
+    # Check if an active invitation for this email already exists
+    try:
+        existing = (
+            supabase
+            .table("company_members")
+            .select("id")
+            .eq("company_id", company_id)
+            .eq("invited_email", invitation_req.email)
+            .eq("status", "invited")
+            .execute()
+        )
+        if existing.data:
+            raise HTTPException(status_code=409, detail="An invitation for this email already exists")
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Table or column might not exist yet, proceed anyway
+
+    # Insert invitation into company_members
+    insert_payload = {
+        "company_id": company_id,
+        "invited_email": invitation_req.email,
+        "invited_name": invitation_req.name,
+        "role": role,
+        "invitation_token": invitation_token,
+        "invited_at": now_iso(),
+        "invited_by": user.get("id") or user.get("auth_id"),
+        "status": "invited",
+    }
+
+    try:
+        member_response = supabase.table("company_members").insert(insert_payload).execute()
+    except Exception as exc:
+        # Fallback if invited_email/invited_name/invitation_token/status columns don't exist yet
+        if _is_missing_column_error(exc, "invited_email") or _is_missing_column_error(exc, "invitation_token"):
+            fallback_payload = {
+                "company_id": company_id,
+                "role": role,
+                "invited_at": now_iso(),
+                "invited_by": user.get("id") or user.get("auth_id"),
+            }
+            member_response = supabase.table("company_members").insert(fallback_payload).execute()
+        else:
+            raise
+
+    if not member_response.data:
+        raise HTTPException(status_code=500, detail="Failed to create team invitation")
+
+    invitation_id = member_response.data[0]["id"]
+
+    # Get company name for the email
+    company_name = "Company"
+    try:
+        company_resp = supabase.table("companies").select("name").eq("id", company_id).maybe_single().execute()
+        company_name = str((company_resp.data or {}).get("name") or company_name)
+    except Exception:
+        pass
+
+    # Send invitation email
+    try:
+        invite_link = f"https://jobshaman.cz/company/invite/{invitation_token}"
+        send_email(
+            to_email=invitation_req.email,
+            subject=f"Team Invitation: Join {company_name} on JobShaman",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+                <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                    <h2 style="color: #0f172a; margin-bottom: 12px;">You've been invited to join {company_name}</h2>
+                    <p style="color: #475569; line-height: 1.6;">
+                        Hello <strong>{invitation_req.name}</strong>,<br><br>
+                        You've been invited to join the <strong>{company_name}</strong> team on JobShaman 
+                        as a <strong>{role}</strong>.<br><br>
+                        Click the button below to accept the invitation:
+                    </p>
+                    <div style="margin: 24px 0;">
+                        <a href="{invite_link}" style="display: inline-block; padding: 12px 20px; background-color: #0ea5e9; color: #ffffff; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                            Accept Invitation
+                        </a>
+                    </div>
+                    <p style="color: #64748b; font-size: 14px;">
+                        If you did not expect this invitation, you can safely ignore this email.
+                    </p>
+                </div>
+                <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">&copy; 2024 JobShaman</div>
+            </div>
+            """,
+        )
+    except Exception:
+        pass  # Don't fail the request if email sending fails
+
+    return {"status": "success", "invitation_id": invitation_id, "token": invitation_token}
+
+
+@router.get("/companies/team/invite/{token}")
+async def get_team_invitation_details(token: str):
+    """Verify an invitation token and return invitation details."""
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database not available")
+
+    # Look up the invitation by token
+    try:
+        inv_resp = (
+            supabase
+            .table("company_members")
+            .select("id,company_id,invited_email,invited_name,role,status,invited_at")
+            .eq("invitation_token", token)
+            .single()
+            .execute()
+        )
+    except Exception:
+        # Try fallback if invitation_token column doesn't exist
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    if not inv_resp.data:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    invitation = inv_resp.data
+
+    # Get company name
+    company_name = "Company"
+    try:
+        company_resp = supabase.table("companies").select("name").eq("id", invitation["company_id"]).maybe_single().execute()
+        company_name = str((company_resp.data or {}).get("name") or company_name)
+    except Exception:
+        pass
+
+    return {
+        "invitation_id": invitation["id"],
+        "company_id": invitation["company_id"],
+        "company_name": company_name,
+        "invited_email": invitation.get("invited_email", ""),
+        "invited_name": invitation.get("invited_name", ""),
+        "role": invitation.get("role", "recruiter"),
+        "status": invitation.get("status", "invited"),
+        "invited_at": invitation.get("invited_at"),
+    }

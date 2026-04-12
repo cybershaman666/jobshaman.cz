@@ -18,7 +18,7 @@ from ..ai_orchestration.client import (
 from ..core import config
 from ..matching_engine.role_taxonomy import DOMAIN_KEYWORDS, ROLE_FAMILY_KEYWORDS
 from ..services.candidate_intent import resolve_candidate_intent_profile
-from ..services.jobs_postgres_store import _connect, _ensure_schema, _json_dumps, jobs_postgres_enabled
+from ..services.jobs_postgres_store import _connect, _ensure_schema, _ensure_schema_for_read, _json_dumps, jobs_postgres_enabled
 
 _MODULE_DIR = Path(__file__).resolve().parent
 _TAXONOMY_PATH = _MODULE_DIR / "job_intelligence_taxonomy.json"
@@ -645,6 +645,38 @@ def _ensure_job_intelligence_schema() -> None:
         )
 
 
+def _is_nonfatal_job_intelligence_schema_error(exc: Exception) -> bool:
+    pgcode = str(getattr(exc, "pgcode", "") or "").strip()
+    message = str(exc or "").lower()
+    if pgcode in {"42501", "25006"}:
+        return True
+    return any(
+        token in message
+        for token in (
+            "permission denied",
+            "insufficient privilege",
+            "must be owner",
+            "read-only transaction",
+            "cannot execute create",
+            "cannot execute alter",
+            "cannot create extension",
+        )
+    )
+
+
+def _ensure_job_intelligence_schema_for_read() -> None:
+    if not jobs_postgres_enabled():
+        return
+    _ensure_schema_for_read()
+    try:
+        _ensure_job_intelligence_schema()
+    except Exception as exc:
+        if _is_nonfatal_job_intelligence_schema_error(exc):
+            print(f"[Job Intelligence] Schema bootstrap skipped for read path: {exc}")
+            return
+        raise
+
+
 def _seed_taxonomy_tables() -> None:
     if not jobs_postgres_enabled():
         return
@@ -860,7 +892,7 @@ def get_job_intelligence(job_ids: list[str]) -> dict[str, dict[str, Any]]:
     normalized_ids = [str(item).strip() for item in (job_ids or []) if str(item).strip()]
     if not normalized_ids or not jobs_postgres_enabled():
         return {}
-    _ensure_job_intelligence_schema()
+    _ensure_job_intelligence_schema_for_read()
     conn = _connect()
     with conn.cursor() as cur:
         cur.execute(

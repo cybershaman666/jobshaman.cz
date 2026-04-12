@@ -341,7 +341,7 @@ export const mapCompanyProfileToCareerOSCompanyWorkspace = (input: {
       { label: 'Assessments', value: String(assessmentLibrary) },
       { label: 'Candidates', value: String(candidates) },
     ],
-    statusLine: `${compact(companyProfile.industry, 'Hiring workspace')} · ${compact(companyProfile.tone, 'Tón není nastavený')}`,
+    statusLine: `${compact(companyProfile.industry, 'Hiring workspace')} · ${compact(companyProfile.tone, 'Tone is not set yet')}`,
   };
 };
 

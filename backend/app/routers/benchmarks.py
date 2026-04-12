@@ -24,6 +24,12 @@ CONFIDENCE_MEDIUM_THRESHOLD = 70
 MIN_PEER_COMPANIES = 8
 
 
+def _is_missing_location_public_column(error: Exception) -> bool:
+    code = getattr(error, "code", "") or ""
+    message = str(getattr(error, "message", "") or error)
+    return str(code) == "42703" and "location_public" in message.lower()
+
+
 @router.post("/audit/happiness/simulate")
 async def simulate_happiness_audit(payload: HappinessAuditSimulateRequest):
     # Time ring penalizes long commute and low home-office flexibility.
@@ -1302,15 +1308,34 @@ async def get_company_candidates(
 
     require_company_access(user, company_id)
 
-    resp = (
-        supabase
-        .table("profiles")
-        .select("id,full_name,email,avatar_url,location_public,role,created_at,candidate_profiles(job_title,skills,work_history,values,cv_text,cv_url,phone)")
-        .eq("role", "candidate")
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
-    )
+    def _load_candidates(include_location_public: bool = True):
+        select_fields = [
+            "id",
+            "full_name",
+            "email",
+            "avatar_url",
+            "location_public" if include_location_public else None,
+            "role",
+            "created_at",
+            "candidate_profiles(job_title,skills,work_history,values,cv_text,cv_url,phone)",
+        ]
+        return (
+            supabase
+            .table("profiles")
+            .select(",".join([field for field in select_fields if field]))
+            .eq("role", "candidate")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+    try:
+        resp = _load_candidates(include_location_public=True)
+    except Exception as exc:
+        if _is_missing_location_public_column(exc):
+            resp = _load_candidates(include_location_public=False)
+        else:
+            raise
     rows = resp.data or []
     candidate_ids = [str(r.get("id")) for r in rows if r.get("id")]
 

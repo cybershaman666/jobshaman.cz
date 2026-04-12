@@ -1048,7 +1048,7 @@
     "step1_title": "Erstellen Sie Ihr Unternehmenskonto",
     "step2_title": "Unternehmensdaten ergänzen",
     "step3_title": "Letzter Schritt",
-    "success_title": "Willkommen bei JobShaman! 🎉",
+    "success_title": "Willkommen bei JobShaman! đźŽ‰",
     "subtitle_default": "Treten Sie Unternehmen bei, die effektiv rekrutieren.",
     "subtitle_success": "Ihr Konto wurde erfolgreich erstellt. Bitte überprüfen Sie Ihre E-Mail zur Bestätigung.",
     "email_label": "Unternehmens-E-Mail",
@@ -1140,7 +1140,91 @@
     "shell": {
       "badge": "Hiring Command",
       "workspace_label": "Recruiter-Workspace",
-      "workspace_desc": "Ein Ort fuer Rollen, Bewerber, Assessments und fokussierte Teamarbeit."
+      "workspace_desc": "Ein Ort fuer Rollen, Bewerber, Assessments und fokussierte Teamarbeit.",
+      "premium": "Hiring-Workspace",
+      "search": "Kandidaten, Rollen oder Reports suchen…",
+      "help": "Hilfe",
+      "logout": "Abmelden",
+      "user_role": "Hiring-Leiter"
+    },
+    "header": {
+      "pricing": "Tarife",
+      "settings": "Einstellungen",
+      "kicker": "Skill-first Hiring Workspace",
+      "no_name": "Firma"
+    },
+    "nav": {
+      "primary": "Übersicht",
+      "ops": "Hiring"
+    },
+    "tabs": {
+      "overview": "Übersicht",
+      "talent_pool": "Talent-Pool",
+      "assessment": "Assessments",
+      "calendar": "Kalender",
+      "challenges": "Offene Rollen",
+      "reactions": "Reaktionen",
+      "team": "Team",
+      "settings": "Einstellungen"
+    },
+    "hero": {
+      "dashboard_kicker": "Hiring-Kontrollzentrum",
+      "talent_kicker": "Talent-Pool",
+      "talent_title": "Überblick über Kandidatensignale",
+      "talent_copy": "Prüfen Sie starke Profile, vergleichen Sie Signale und bringen Sie die vielversprechendsten Kandidaten schneller weiter.",
+      "assessment_kicker": "Assessment-Center",
+      "assessment_title": "Praktischer Nachweis vor der Entscheidung",
+      "assessment_copy": "Erstellen, durchführen und vergleichen Sie skill-first Assessments ohne Verlangsamung des Hiring-Tempos.",
+      "calendar_kicker": "Hiring-Kalender",
+      "calendar_title": "Gemeinsame Übersicht für Interviews und Team-Blöcke",
+      "calendar_copy": "Halten Sie Interviews, Syncs und Entscheidungsfenster in einem gemeinsamen Kalender für das gesamte Hiring-Team.",
+      "jobs_kicker": "Aktives Hiring",
+      "jobs_title": "Verwaltung offener Rollen",
+      "jobs_copy": "Behalten Sie den Überblick, welche Rollen offen sind, wo das Signal am stärksten ist und wo die Pipeline mehr Aufmerksamkeit braucht.",
+      "applications_kicker": "Pipeline-Fluss",
+      "applications_title": "Antwortauswertung im Kontext",
+      "applications_copy": "Halten Sie das Team in Bewegung bei neuen Antworten, offenen Schleifen und ausstehenden Entscheidungen ohne Kontextverlust.",
+      "team_kicker": "Team und Rollen",
+      "team_title": "Recruiter- und Hiring-Rollenverwaltung",
+      "team_copy": "Laden Sie Kollegen ein, legen Sie Verantwortlichkeiten fest und halten Sie das gesamte Team in einem gemeinsamen Workflow.",
+      "settings_kicker": "Firmeneinstellungen",
+      "settings_title": "Firmenidentität und Betriebseinstellungen",
+      "settings_copy": "Halten Sie Firmendarstellung, rechtliche Angaben und Hiring-Standards an einem übersichtlichen Ort."
+    },
+    "actions": {
+      "nova_vyzva": "Neue Rolle hinzufügen",
+      "mini_vyzva": "Mini-Challenge"
+    },
+    "calendar": {
+      "badge": "Gemeinsamer Hiring-Kalender",
+      "title": "Kalender",
+      "copy": "Halten Sie Interviews, Team-Syncs und Entscheidungsfenster in einer gemeinsamen Übersicht. Jeder im Team sieht sofort, was geplant ist und wer den nächsten Schritt verantwortet.",
+      "milestone_share": "Kalender mit dem Hiring-Team teilen",
+      "milestone_focus_copy": "Reservieren Sie kurze Entscheidungsslots nach finalen Interviews, damit Feedback nicht stockt.",
+      "roles_in_motion": "Rollen in Bewegung",
+      "upcoming": "Nächste Blöcke",
+      "team_sync": "Team-Modus",
+      "share_button": "Mit Team teilen",
+      "create_event": "Event erstellen",
+      "milestone_focus": "Entscheidungsfenster schützen",
+      "timeline_copy": "Interviews, Syncs und Entscheidungsfenster, die als Nächstes Aufmerksamkeit brauchen.",
+      "visible": "Für das Team sichtbar",
+      "milestone_sync": "Team-Hiring-Sync",
+      "live_sync": "Bereit zum Teilen im Team",
+      "shared_calendars": "Gemeinsame Team-Kalender",
+      "shared_status": "Geteilt",
+      "team_sync_copy": "Interview-Blöcke, Syncs und Entscheidungsfenster können über Recruiter hinweg geteilt werden, damit immer klar ist, wer den nächsten Schritt verantwortet.",
+      "milestone_sync_copy": "Interviews, nächste Verantwortliche und Engpässe über aktive Rollen hinweg abstimmen.",
+      "milestone_share_copy": "Geben Sie Recruitern und Hiring-Managern ein gemeinsames Übersicht der Interview-Blöcke und Verfügbarkeit.",
+      "timeline": "Nächster Hiring-Plan",
+      "team_sync_title": "Ein Kalender für das gesamte Hiring-Team",
+      "shared": "Gemeinsame Kalender",
+      "empty_timeline": "Noch keine gemeinsamen Blöcke hier. Sobald das Team Interviews oder Syncs plant, erscheinen sie hier.",
+      "empty_shared": "Noch keine gemeinsamen Team-Kalender konfiguriert."
+    },
+    "overview": {
+      "hero_title": "{{name}}, willkommen zurück",
+      "hero_copy": "Heute warten {{count}} Kandidaten mit hoher Übereinstimmung auf Sie."
     },
     "dashboard": {
       "title": "Recruiting-Übersicht",
@@ -2670,7 +2754,7 @@
       "expert": "Expert (Edge Cases)"
     },
     "structure_title": "Assessment-Struktur",
-    "structure_heading": "🏗️ Komplexes digitales AC",
+    "structure_heading": "đźŹ—ď¸Ź Komplexes digitales AC",
     "structure_items": {
       "1": "Fachlicher \"Quick-fire\" (5-8 Aufgaben) - Wissen zu Prozessen, Tools und Standards.",
       "2": "Situative Aufgaben (SJT) (2-3 Szenarien) - Verhalten in realen Situationen.",
@@ -3646,7 +3730,7 @@
   },
   "filter_suggestions": {
     "title_personal": "🔥 Häufig gesucht für Sie",
-    "title_popular": "🔥 Beliebteste Suchanfragen"
+    "title_popular": "đź”Ą Beliebteste Suchanfragen"
   },
   "subscription_page": {
     "title": "Abo und Abrechnung",
@@ -4474,6 +4558,28 @@
       "custom_domain_label": "Eigenes Feld",
       "custom_domain_placeholder": "Zum Beispiel HR, Recht, Pharma, Lehrkräfte...",
       "custom_domain_hint": "Dein eigenes Feld durchsucht Rollentitel, Zusammenfassungen, Firmen und Skill-Tags und richtet die Karte danach neu aus."
+    },
+    "workflow": {
+      "online_body": "Kandidaten im System",
+      "start_label": "Ihre aktuelle Situation",
+      "guest_body": "Sehen Sie, welche Richtung jetzt am meisten Sinn ergibt, warum und wie sich der Pfad als Nächstes entfalten kann.",
+      "guest_cta": "Mapping starten",
+      "online_label": "Jetzt online",
+      "jobs_body": "aktive Jobs in der Datenbank.",
+      "stats_title": "Karriere-Karte",
+      "start_fallback": "Hier stehen Sie jetzt. Von hier aus entfaltet sich die Karte in Richtungen, die es wert sind, als Nächstes erkundet zu werden.",
+      "reset": "Karte zurücksetzen",
+      "guest_title": "Starten Sie Ihre Karriere-Karte",
+      "roles_short": "Rollen",
+      "jobs_label": "Wir haben derzeit",
+      "directions": {
+        "more_time": { "title": "Mehr Zeit", "description": "Rollen mit gesünderem Tempo, weniger unnötigem Druck und mehr Raum außerhalb der Arbeit." },
+        "less_commuting": { "title": "Weniger Pendeln", "description": "Richtungen mit mehr Remote-Flexibilität oder besserer praktischer Passung zu Ihrem Alltag." },
+        "more_people": { "title": "Mehr Menschenkontakt", "description": "Arbeit, die nah an Menschen, Service, Beziehungen und sichtbarer menschlicher Wirkung bleibt." },
+        "more_field": { "title": "Mehr Außendienst", "description": "Weniger Bildschirmarbeit, mehr Bewegung, Operationen, Standorte oder reale Umgebungen." },
+        "higher_income": { "title": "Höheres Einkommen", "description": "Richtungen, in denen stärkere Leistung und Verantwortung sich häufiger finanziell auszahlen." },
+        "faster_growth": { "title": "Schnelleres Wachstum", "description": "Steilere Lernkurven, stärkere Entwicklung und klarerer Raum für Aufstieg." }
+      }
     }
   }
 }

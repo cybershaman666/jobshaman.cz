@@ -3,7 +3,49 @@ import React from 'react';
 import { cn } from '../ui/primitives';
 
 export const galaxyShellPanelClass =
-  'border border-slate-200 bg-white/96 shadow-sm dark:border-slate-800 dark:bg-slate-950/94 dark:shadow-[0_18px_42px_-28px_rgba(2,6,23,0.62)]';
+  'border border-slate-200/80 bg-white/98 shadow-sm dark:border-slate-800 dark:bg-slate-950/97 dark:shadow-[0_18px_42px_-28px_rgba(2,6,23,0.62)]';
+
+// Smaller panel variant for compact UI elements
+export const galaxyShellPanelSmClass =
+  'rounded-2xl border border-slate-200/80 bg-white/98 shadow-sm dark:border-slate-800 dark:bg-slate-950/97 dark:shadow-[0_18px_42px_-28px_rgba(2,6,23,0.62)]';
+
+// Rounded panel for map nodes and overlays
+export const galaxyShellPanelRoundedClass =
+  'rounded-[28px] border border-slate-200/80 bg-white/96 shadow-sm dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-[0_18px_42px_-28px_rgba(2,6,23,0.62)]';
+
+// Shared input field class
+export const galaxyShellInputClass =
+  'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700/80 dark:bg-slate-950/80 dark:text-slate-100 dark:focus:border-cyan-400 dark:focus:ring-cyan-950/40';
+
+// Shared CTA button class (primary action)
+export const galaxyShellCtaButtonClass =
+  'inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_38px_rgba(8,145,178,0.22)] transition hover:bg-cyan-700 dark:shadow-[0_18px_38px_rgba(8,145,178,0.3)]';
+
+// Shared secondary button class
+export const galaxyShellSecondaryButtonClass =
+  'inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800';
+
+// Shared background blur decorations for stage layers
+export const GalaxyShellBackgroundDecorations: React.FC = () => (
+  <>
+    <div className="pointer-events-none absolute left-[14%] top-[8%] h-[520px] w-[520px] rounded-full bg-emerald-400/5 blur-[150px]" />
+    <div className="pointer-events-none absolute bottom-[4%] right-[8%] h-[620px] w-[620px] rounded-full bg-blue-400/5 blur-[170px]" />
+    <div className="pointer-events-none absolute right-[24%] top-[34%] h-[420px] w-[420px] rounded-full bg-orange-400/4 blur-[130px]" />
+  </>
+);
+
+// Combined background: stage + texture + decorations (replaces repeated 5-line patterns)
+export const GalaxyShellBackground: React.FC<{
+  accent?: 'emerald' | 'blue';
+  textureAccent?: 'emerald' | 'blue';
+  className?: string;
+}> = ({ accent: _accent = 'emerald', textureAccent = 'emerald', className }) => (
+  <>
+    <div className={cn('pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_52%,#eef2f7_100%)] dark:bg-[linear-gradient(180deg,#020617_0%,#020817_52%,#030712_100%)]', className)} />
+    <GalaxyNeuralCircuitTexture accent={textureAccent} masked className="opacity-[0.38]" />
+    <GalaxyShellBackgroundDecorations />
+  </>
+);
 
 export const GalaxyNeuralCircuitTexture: React.FC<{
   accent?: 'emerald' | 'blue';

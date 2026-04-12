@@ -5,6 +5,13 @@ import { supabase } from '../services/supabaseService';
 
 type TranslateFn = (key: string, options?: any) => string;
 
+const isMissingLocationPublicColumn = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const code = 'code' in error ? String((error as { code?: unknown }).code || '') : '';
+  const message = 'message' in error ? String((error as { message?: unknown }).message || '') : String(error);
+  return code === '42703' && /location_public/i.test(message);
+};
+
 const parseDateSafe = (value: unknown): Date | null => {
   if (!value) return null;
   const dt = new Date(String(value));
@@ -96,31 +103,56 @@ const mapFallbackCandidate = ({
   };
 };
 
+const fetchCandidateProfilesWithProfiles = async (includeLocationPublic: boolean) => {
+  if (!supabase) return { data: null, error: null };
+
+  const profileFields = [
+    'id',
+    'full_name',
+    'email',
+    'avatar_url',
+    includeLocationPublic ? 'location_public' : null,
+    'role',
+    'created_at',
+    'candidate_profiles ( job_title, skills, work_history, values )',
+  ].filter(Boolean).join(',');
+
+  return supabase
+    .from('profiles')
+    .select(profileFields)
+    .eq('role', 'candidate')
+    .order('created_at', { ascending: false })
+    .limit(500);
+};
+
+const fetchProfilesByIds = async (ids: string[], includeLocationPublic: boolean) => {
+  if (!supabase) return { data: null, error: null };
+
+  const profileFields = [
+    'id',
+    'full_name',
+    'email',
+    'avatar_url',
+    includeLocationPublic ? 'location_public' : null,
+    'created_at',
+  ].filter(Boolean).join(',');
+
+  return supabase
+    .from('profiles')
+    .select(profileFields)
+    .in('id', ids)
+    .limit(500);
+};
+
 const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate[]> => {
   if (!supabase) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(`
-      id,
-      full_name,
-      email,
-      avatar_url,
-      location_public,
-      role,
-      created_at,
-      candidate_profiles (
-        job_title,
-        skills,
-        work_history,
-        values
-      )
-    `)
-    .eq('role', 'candidate')
-    .order('created_at', { ascending: false })
-    .limit(500);
+  let { data, error } = await fetchCandidateProfilesWithProfiles(true);
+  if (error && isMissingLocationPublicColumn(error)) {
+    ({ data, error } = await fetchCandidateProfilesWithProfiles(false));
+  }
 
   if (error) {
     throw error;
@@ -173,11 +205,10 @@ const fetchCompanyCandidatesFallback = async (t: TranslateFn): Promise<Candidate
   }
 
   const ids = cpRows.map((row: any) => row.id).filter(Boolean);
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id,full_name,email,avatar_url,location_public,created_at')
-    .in('id', ids)
-    .limit(500);
+  let { data: profileRows, error: profileRowsError } = await fetchProfilesByIds(ids, true);
+  if (profileRowsError && isMissingLocationPublicColumn(profileRowsError)) {
+    ({ data: profileRows, error: profileRowsError } = await fetchProfilesByIds(ids, false));
+  }
   const profileMap = new Map((profileRows || []).map((row: any) => [String(row.id), row]));
 
   mapped = cpRows.map((cp: any) => {
@@ -219,6 +250,7 @@ export const useCompanyCandidatesData = (
   t: TranslateFn
 ) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
   const [candidateBenchmarks, setCandidateBenchmarks] = useState<CandidateBenchmarkMetrics | null>(null);
   const [isLoadingCandidateBenchmarks, setIsLoadingCandidateBenchmarks] = useState(false);
   const [lastCandidatesSyncAt, setLastCandidatesSyncAt] = useState<string | null>(null);
@@ -240,6 +272,7 @@ export const useCompanyCandidatesData = (
 
   const refreshCandidates = async () => {
     if (!companyId || (activeTab !== 'candidates' && activeTab !== 'overview' && activeTab !== 'problem_map')) return;
+    setIsLoadingCandidates(true);
     try {
       const backendCandidates = await fetchCompanyCandidates(companyId, 500);
       setCandidates(backendCandidates);
@@ -267,6 +300,8 @@ export const useCompanyCandidatesData = (
         console.error('Candidate fallback loading failed:', fallbackError);
         setCandidates([]);
       }
+    } finally {
+      setIsLoadingCandidates(false);
     }
   };
 
@@ -280,6 +315,7 @@ export const useCompanyCandidatesData = (
 
   return {
     candidates,
+    isLoading: isLoadingCandidates,
     candidateBenchmarks,
     isLoadingCandidateBenchmarks,
     lastCandidatesSyncAt,

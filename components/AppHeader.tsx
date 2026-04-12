@@ -85,6 +85,7 @@ interface AppHeaderProps {
   onNotificationAction?: (notification: CareerOSNotification) => void;
   onMarkNotificationRead?: (notificationId: string) => void;
   onMarkAllNotificationsRead?: () => void;
+  onNavigateShellHome?: () => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -147,6 +148,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   onNotificationAction,
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
+  onNavigateShellHome,
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -173,6 +175,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const openHomeOverview = () => {
     if (leaveStandaloneRoute()) return;
+    onNavigateShellHome?.();
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -188,6 +191,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const openMicroJobs = () => {
     if (leaveStandaloneRoute('')) return;
+    onNavigateShellHome?.();
     onIntentionalListClick?.();
     setIsBlogOpen?.(false);
     setSelectedBlogPostSlug?.(null);
@@ -281,6 +285,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     if (window.location.pathname !== homePath) {
       window.history.replaceState({}, '', homePath);
     }
+    onNavigateShellHome?.();
     onIntentionalListClick?.();
     setDiscoveryLane?.('challenges');
     setDiscoveryMode?.('all');
