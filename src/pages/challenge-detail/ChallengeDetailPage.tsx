@@ -566,28 +566,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   ]
     .filter((item) => Number.isFinite(item.value) && item.value > 0)
     .sort((left, right) => right.value - left.value);
-  const aiRealitySummary = useMemo(() => {
-    const takeHome = commuteAnalysis
-      ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`
-      : displayedSalary;
-    const time = remoteRole
-      ? '0 min'
-      : commuteAnalysis
-        ? `${commuteAnalysis.timeMinutes * 2} min`
-        : copy.unknownTime;
-    const cost = remoteRole
-      ? copy.zeroCost
-      : commuteAnalysis
-        ? `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`
-        : copy.unknownCost;
-    const score = Math.round(job.jhi?.score || 0);
-    const jhiLabel = score >= 72 ? copy.jhiGood : score >= 55 ? copy.jhiMixed : copy.jhiLow;
-    return copy.aiWandSummary
-      .replace('{{takeHome}}', takeHome)
-      .replace('{{time}}', time)
-      .replace('{{cost}}', cost)
-      .replace('{{jhi}}', `${jhiLabel} (${score}/100)`);
-  }, [commuteAnalysis, copy, displayedSalary, job.jhi?.score, locale, remoteRole]);
   const decisionVerdict = useMemo(() => {
     const jhiScore = Math.round(job.jhi?.score || 0);
     const travelMinutes = remoteRole ? 0 : (commuteAnalysis?.timeMinutes || 0) * 2;
@@ -703,13 +681,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
       ? `${salarySignalValue} vs. ${desiredSalaryMin.toLocaleString(locale)} ${salaryCurrency}`
       : `${salarySignalCopy.missing} vs. ${desiredSalaryMin.toLocaleString(locale)} ${salaryCurrency}`
     : salarySignalValue;
-  const takeHomeToneClass = !commuteAnalysis
-    ? realityToneClasses.neutral
-    : Number(commuteAnalysis.financialReality.finalRealMonthlyValue || 0) > 0
-      ? realityToneClasses.success
-      : Number(commuteAnalysis.financialReality.finalRealMonthlyValue || 0) < 0
-        ? realityToneClasses.danger
-        : realityToneClasses.warning;
   const commuteMinutesRoundTrip = remoteRole ? 0 : (commuteAnalysis?.timeMinutes || 0) * 2;
   const commuteTimeToneClass = remoteRole || commuteMinutesRoundTrip <= 90
     ? realityToneClasses.success
@@ -722,14 +693,161 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
     : commuteCostValue >= 10000
       ? realityToneClasses.danger
       : realityToneClasses.warning;
-  const realValueToneClass = takeHomeToneClass;
-  const dimensionToneClass = (value: number): string => (
-    value >= 72
-      ? realityToneClasses.success
-      : value < 45
-        ? realityToneClasses.danger
-        : realityToneClasses.warning
-  );
+  const benefitsValue = Number(commuteAnalysis?.financialReality.benefitsValue || 0);
+  const finalRealValue = Number(commuteAnalysis?.financialReality.finalRealMonthlyValue || 0);
+  const monthlyCommuteMinutes = remoteRole ? 0 : commuteMinutesRoundTrip * 22;
+  const monthlyCommuteHours = remoteRole ? 0 : Math.round(monthlyCommuteMinutes / 60);
+  const monthlyCommuteDays = remoteRole ? 0 : Number((monthlyCommuteHours / 24).toFixed(1));
+  const monthlyBenefitShare = finalRealValue > 0
+    ? Math.max(0, Math.round((benefitsValue / finalRealValue) * 100))
+    : 0;
+  const realityNarrative = language === 'cs'
+    ? {
+        monthlyTime: remoteRole
+          ? 'Bez dojíždění. Tenhle čas ti zůstává.'
+          : monthlyCommuteHours >= 1
+            ? `Tohle je zhruba ${monthlyCommuteHours} hodin měsíčně na cestě${monthlyCommuteDays >= 1 ? `, tedy asi ${monthlyCommuteDays.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} dne` : ''}.`
+            : 'Dojíždění je zatím nízké a nemělo by ti rozbít týden.',
+        benefits: benefitsValue > 0
+          ? `Benefity tu přidávají asi ${benefitsValue.toLocaleString(locale)} ${salaryCurrency} měsíčně${monthlyBenefitShare > 0 ? `, zhruba ${monthlyBenefitShare} % výsledné hodnoty` : ''}.`
+          : 'Tady benefity skoro nic nepřidávají, rozhoduje hlavně čistá mzda a cesta.',
+        takeHome: finalRealValue > 0
+          ? `Po započtení cesty ti z role zbývá reálná hodnota kolem ${finalRealValue.toLocaleString(locale)} ${salaryCurrency} měsíčně.`
+          : 'Po započtení cesty a reality role tahle nabídka moc nedává ekonomický smysl.',
+        monthlyTimeLabel: 'Čas ztracený cestou',
+        benefitLabel: 'Co opravdu přidají benefity',
+        impactLabel: 'Skutečný měsíční dopad',
+        decisionDrivers: 'Z čeho se skládá rozhodnutí',
+        decisionScale: 'čím delší bar, tím větší vliv',
+        monthlyRoad: 'Měsíčně na cestě',
+        benefitValue: 'Hodnota benefitů',
+      }
+    : {
+        monthlyTime: remoteRole
+          ? 'No commute here. You keep that time.'
+          : monthlyCommuteHours >= 1
+            ? `This means about ${monthlyCommuteHours} hours a month on the road${monthlyCommuteDays >= 1 ? `, roughly ${monthlyCommuteDays.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} day${monthlyCommuteDays === 1 ? '' : 's'}` : ''}.`
+            : 'Commute impact is low so far.',
+        benefits: benefitsValue > 0
+          ? `Benefits add about ${benefitsValue.toLocaleString(locale)} ${salaryCurrency} monthly${monthlyBenefitShare > 0 ? `, roughly ${monthlyBenefitShare}% of the resulting value` : ''}.`
+          : 'Benefits barely move the needle here.',
+        takeHome: finalRealValue > 0
+          ? `After commute is counted in, the role lands around ${finalRealValue.toLocaleString(locale)} ${salaryCurrency} per month in real value.`
+          : 'After commute and reality costs, this role looks economically weak.',
+        monthlyTimeLabel: 'Time lost to commute',
+        benefitLabel: 'What benefits really add',
+        impactLabel: 'Real monthly impact',
+        decisionDrivers: 'What drives the decision',
+        decisionScale: 'longer bar = bigger impact',
+        monthlyRoad: 'Monthly on the road',
+        benefitValue: 'Benefit value',
+      };
+  const salaryBaselineExplanation = useMemo(() => {
+    const financialReality = commuteAnalysis?.financialReality;
+    if (!financialReality) return '';
+
+    const currencyCode = financialReality.currency || salaryCurrency;
+    const formatMoney = (value: number) => `${Math.round(value).toLocaleString(locale)} ${currencyCode}`;
+    const hasUserTaxProfile = Boolean(userProfile.taxProfile);
+    const taxSource = hasUserTaxProfile
+      ? (language === 'cs' ? 'tvého uloženého daňového profilu' : 'your saved tax profile')
+      : (language === 'cs' ? 'výchozího daňového profilu pro danou zemi' : 'the default tax profile for this country');
+
+    if (language === 'cs') {
+      if (financialReality.salarySelectionMode === 'ai_estimate') {
+        return `Daň i čistá mzda jsou spočtené z ${taxSource}. Odhad je jen vstupní hrubá mzda kolem ${formatMoney(financialReality.grossMonthlySalary)}, protože ji inzerát přesně neuvádí.`;
+      }
+
+      if (financialReality.salarySelectionMode === 'lower_bound' && (financialReality.salaryRangeMin || 0) > 0) {
+        return `Daň i čistá mzda jsou spočtené z ${taxSource}. Nejistý není výpočet, ale vstupní hrubá mzda: u rozpětí bereme konzervativně spodní hranici ${formatMoney(financialReality.salaryRangeMin || 0)}, ne střed.`;
+      }
+
+      if (financialReality.grossMonthlySalary > 0) {
+        return `Daň i čistá mzda jsou spočtené z hrubé mzdy ${formatMoney(financialReality.grossMonthlySalary)} podle ${taxSource}.`;
+      }
+
+      return 'Tady zatím nemáme dost spolehlivý mzdový vstup pro přesnější vysvětlení.';
+    }
+
+    if (financialReality.salarySelectionMode === 'ai_estimate') {
+      return `Tax and net pay are calculated from ${taxSource}. The estimate is only the gross-pay input around ${formatMoney(financialReality.grossMonthlySalary)}, because the listing does not state it precisely.`;
+    }
+
+    if (financialReality.salarySelectionMode === 'lower_bound' && (financialReality.salaryRangeMin || 0) > 0) {
+      return `Tax and net pay are calculated from ${taxSource}. What is uncertain is the gross-pay input: for ranges we use the lower bound ${formatMoney(financialReality.salaryRangeMin || 0)} conservatively, not the midpoint.`;
+    }
+
+    if (financialReality.grossMonthlySalary > 0) {
+      return `Tax and net pay are calculated from gross pay ${formatMoney(financialReality.grossMonthlySalary)} using ${taxSource}.`;
+    }
+
+    return 'There is not enough reliable salary input here for a clearer explanation yet.';
+  }, [commuteAnalysis, language, locale, salaryCurrency, userProfile.taxProfile]);
+  const jhiImpactExplanation = language === 'cs'
+    ? 'Dopad do JHI je teď rozdíl vůči neutrálnímu baseline 50, ne změna proti jiné konkrétní nabídce.'
+    : 'JHI impact here is the delta against a neutral baseline of 50, not a change against another specific role.';
+  const salaryMathRows = [
+    {
+      key: 'gross',
+      label: language === 'cs' ? 'Hrubá mzda pro výpočet' : 'Gross pay input',
+      prefix: '',
+      value: commuteAnalysis ? `${commuteAnalysis.financialReality.grossMonthlySalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary,
+      tone: 'bg-[rgba(9,28,39,0.78)] ring-1 ring-inset ring-cyan-300/12',
+    },
+    {
+      key: 'tax',
+      label: language === 'cs' ? 'Daň a odvody' : 'Tax and contributions',
+      prefix: '−',
+      value: commuteAnalysis ? `${commuteAnalysis.financialReality.estimatedTaxAndInsurance.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : '—',
+      tone: 'bg-[rgba(15,23,33,0.72)] ring-1 ring-inset ring-white/6',
+    },
+    {
+      key: 'net',
+      label: language === 'cs' ? 'Čistá mzda' : 'Net pay',
+      prefix: '=',
+      value: commuteAnalysis ? `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : '—',
+      tone: 'bg-[rgba(10,34,30,0.76)] ring-1 ring-inset ring-emerald-300/12',
+    },
+    {
+      key: 'benefits',
+      label: language === 'cs' ? 'Benefity' : 'Benefits',
+      prefix: '+',
+      value: commuteAnalysis ? `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : '—',
+      tone: 'bg-[rgba(43,33,15,0.72)] ring-1 ring-inset ring-amber-200/10',
+    },
+    {
+      key: 'commute',
+      label: language === 'cs' ? 'Dojíždění' : 'Commute',
+      prefix: '−',
+      value: remoteRole
+        ? copy.zeroCost
+        : commuteAnalysis
+          ? `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`
+          : '—',
+      tone: 'bg-[rgba(40,19,31,0.74)] ring-1 ring-inset ring-fuchsia-300/10',
+    },
+    {
+      key: 'total',
+      label: language === 'cs' ? 'Skutečná měsíční hodnota' : 'Real monthly value',
+      prefix: '=',
+      value: commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary,
+      tone: 'bg-[rgba(8,34,46,0.9)] ring-1 ring-inset ring-cyan-200/14',
+    },
+  ];
+  const jhiHeroMetrics = [
+    {
+      key: 'score',
+      label: copy.compatibility,
+      value: `${Math.round(job.jhi?.score || 0)}`,
+      tone: 'bg-[rgba(9,28,39,0.78)] ring-1 ring-inset ring-cyan-300/12',
+    },
+    {
+      key: 'impact',
+      label: copy.jhiImpact,
+      value: commuteAnalysis ? `${commuteAnalysis.jhiImpact > 0 ? '+' : ''}${commuteAnalysis.jhiImpact}` : '—',
+      tone: 'bg-[rgba(10,34,30,0.76)] ring-1 ring-inset ring-emerald-300/12',
+    },
+  ];
   const dimensionBarToneClass = (value: number): string => (
     value >= 72
       ? 'bg-emerald-400/85'
@@ -740,13 +858,168 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
   const commuteTrackPercent = remoteRole
     ? 12
     : Math.max(14, Math.min(92, Math.round((commuteMinutesRoundTrip / 220) * 100)));
-  const dashboardPanelClass = 'rounded-[30px] border border-[rgba(15,23,42,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(246,249,252,0.98)_100%)] text-[var(--text-strong)] shadow-[0_28px_72px_-44px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-[rgba(148,163,184,0.14)] dark:bg-[linear-gradient(180deg,rgba(10,16,24,0.98)_0%,rgba(8,13,20,0.98)_100%)] dark:shadow-[0_28px_72px_-44px_rgba(0,0,0,0.5)]';
+  const dashboardPanelClass = 'rounded-[30px] border border-[rgba(15,23,42,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(246,249,252,0.98)_100%)] text-[var(--text-strong)] shadow-[0_28px_72px_-44px_rgba(15,23,42,0.18)] backdrop-blur-2xl dark:border-[rgba(125,211,252,0.08)] dark:bg-[linear-gradient(180deg,rgba(7,12,20,0.98)_0%,rgba(9,13,21,0.99)_100%)] dark:shadow-[0_24px_56px_-42px_rgba(0,0,0,0.52)]';
   const decisionBandToneClass = decisionVerdict.tone === 'success'
-    ? 'border-emerald-400/24 shadow-[0_0_0_1px_rgba(52,211,153,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]'
+    ? 'border-emerald-300/12 shadow-[0_18px_36px_-30px_rgba(0,0,0,0.34)]'
     : decisionVerdict.tone === 'warning'
-      ? 'border-rose-400/24 shadow-[0_0_0_1px_rgba(251,113,133,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]'
-      : 'border-cyan-400/24 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_24px_48px_-32px_rgba(2,8,23,0.42)]';
-  const dashboardCardClass = 'rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_18px_36px_-30px_rgba(15,23,42,0.16)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(15,23,42,0.78)]';
+      ? 'border-fuchsia-300/12 shadow-[0_18px_36px_-30px_rgba(0,0,0,0.34)]'
+      : 'border-cyan-300/12 shadow-[0_18px_36px_-30px_rgba(0,0,0,0.34)]';
+  const dashboardCardClass = 'rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.9)] shadow-[0_18px_36px_-30px_rgba(15,23,42,0.16)] dark:border-[rgba(255,255,255,0.05)] dark:bg-[rgba(15,21,31,0.82)] dark:shadow-[0_16px_32px_-28px_rgba(0,0,0,0.42)]';
+  const cyberPanelClass = 'dark:border-[rgba(255,255,255,0.05)] dark:bg-[rgba(15,22,34,0.74)] dark:shadow-[0_16px_32px_-28px_rgba(0,0,0,0.32)]';
+  const cyberPanelStrongClass = 'dark:border-[rgba(255,255,255,0.06)] dark:bg-[rgba(14,23,35,0.88)] dark:shadow-[0_18px_36px_-30px_rgba(0,0,0,0.38)]';
+  const cyberInfoClass = 'dark:border-[rgba(255,255,255,0.06)] dark:bg-[rgba(14,22,34,0.82)]';
+  const cyberChartShellClass = 'dark:border-[rgba(255,255,255,0.05)] dark:bg-[rgba(10,16,26,0.78)]';
+  const importedHeroGlassClass = 'dark:border-[rgba(34,211,238,0.12)] dark:bg-[linear-gradient(180deg,rgba(16,25,40,0.56)_0%,rgba(9,16,28,0.42)_100%)] dark:shadow-[0_22px_50px_-36px_rgba(34,211,238,0.16)]';
+  const importedChipClass = 'dark:border-[rgba(34,211,238,0.14)] dark:bg-[rgba(34,211,238,0.08)] dark:text-cyan-50';
+  const importedAccentCardClass = 'dark:border-[rgba(34,211,238,0.14)] dark:bg-[linear-gradient(180deg,rgba(17,31,48,0.82)_0%,rgba(10,18,30,0.78)_100%)] dark:shadow-[0_22px_48px_-36px_rgba(34,211,238,0.18)]';
+  const importedTextPanelClass = 'dark:border-[rgba(244,114,182,0.12)] dark:bg-[radial-gradient(circle_at_top_right,rgba(244,114,182,0.08),transparent_28%),linear-gradient(180deg,rgba(14,21,34,0.88)_0%,rgba(9,14,24,0.82)_100%)] dark:shadow-[0_24px_54px_-40px_rgba(236,72,153,0.18)]';
+  const renderSharedRealityBand = ({
+    headline,
+    subheadline,
+    body,
+    showChips = false,
+    showCommuteTrack = false,
+  }: {
+    headline: string;
+    subheadline: string;
+    body: string;
+    showChips?: boolean;
+    showCommuteTrack?: boolean;
+  }) => (
+    <div className={cn('rounded-[24px] border bg-[linear-gradient(180deg,#0a1320_0%,#0d1724_100%)] p-5 text-slate-50', decisionBandToneClass)}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-[38rem]">
+          <div className="text-[11px] font-medium tracking-[0.08em] text-cyan-200/88">
+            {language === 'cs' ? 'Skutečná měsíční hodnota role' : 'Real monthly role value'}
+          </div>
+          <div className={cn('mt-2 font-semibold tracking-[-0.03em]', isImported ? 'text-3xl sm:text-4xl tracking-[-0.05em] text-white' : 'text-base')}>
+            {headline}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-200/92">{subheadline}</p>
+          <p className="mt-3 text-sm leading-6 text-slate-300/84">{body}</p>
+          {commuteAnalysis ? (
+            <div className={cn('mt-3 rounded-[16px] border px-4 py-3 text-sm leading-6 text-slate-100', cyberInfoClass)}>
+              <div>{salaryBaselineExplanation}</div>
+              <div className="mt-2 text-[12px] leading-5 text-slate-300/76">{jhiImpactExplanation}</div>
+            </div>
+          ) : null}
+        </div>
+
+        {showChips ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {matchScore > 0 ? (
+              <div className={cn('rounded-[999px] px-3.5 py-2 text-xs font-black uppercase tracking-[0.14em] ring-1 ring-inset', aiToneStyles.chip)}>
+                {matchScore}% {copy.match}
+              </div>
+            ) : null}
+            <div className="rounded-[999px] border border-[rgba(15,23,42,0.08)] bg-white px-3.5 py-2 text-xs font-bold text-[var(--text-strong)] shadow-[0_12px_24px_-18px_rgba(15,23,42,0.16)] dark:border-[rgba(148,163,184,0.12)] dark:bg-[rgba(15,23,42,0.82)]">
+              {decisionVerdict.title}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {commuteAnalysis ? (
+        <div className="mt-5">
+          <div className="mb-4 h-px w-full bg-gradient-to-r from-cyan-200/18 to-transparent" />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+            <div className={cn('rounded-[20px] p-4', cyberPanelStrongClass)}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs font-medium tracking-[0.06em] text-cyan-100/82">
+                  {language === 'cs' ? 'Výpočet hodnoty role' : 'Role value calculation'}
+                </div>
+                <div className="text-xs text-slate-400/72">
+                  {language === 'cs' ? 'krok po kroku' : 'step by step'}
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {salaryMathRows.map((row) => (
+                  <div key={`salary-${row.key}`} className={cn('rounded-[16px] px-4 py-3', row.tone)}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 text-lg font-black leading-none text-white/90">{row.prefix || '·'}</span>
+                        <div className="text-sm font-medium text-slate-100">{row.label}</div>
+                      </div>
+                      <div className="text-right text-lg font-semibold tracking-[-0.03em] text-white">{row.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[rgba(18,22,37,0.88)] p-4 shadow-[0_18px_36px_-30px_rgba(0,0,0,0.34)]">
+              <div className="text-xs font-medium tracking-[0.06em] text-fuchsia-100/82">{language === 'cs' ? 'Job Happiness Index' : 'Job Happiness Index'}</div>
+              <div className="mt-1.5 max-w-[28rem] text-sm leading-6 text-slate-300/78">{jhiImpactExplanation}</div>
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                {jhiHeroMetrics.map((metric) => (
+                  <div key={`jhi-${metric.key}`} className={cn('rounded-[16px] px-3.5 py-3', metric.tone)}>
+                    <div className="text-xs font-medium tracking-[0.04em] text-slate-200/82">{metric.label}</div>
+                    <div className="mt-1.5 text-[1.7rem] font-semibold tracking-[-0.05em] text-white">{metric.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div className={cn('mt-3 rounded-[16px] p-2.5', cyberChartShellClass)}>
+                <div className="mx-auto max-w-[240px] opacity-90">
+                  <JHIChart jhi={job.jhi} theme="light" accent={aiToneStyles.chartAccent} compact />
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2.5">
+                {jhiDimensions.map((dimension) => (
+                  <div key={`dimension-${dimension.key}`} className="rounded-[16px] bg-[rgba(255,255,255,0.02)] px-3.5 py-2.5 ring-1 ring-inset ring-white/6">
+                    <div className="text-[12px] text-slate-200/84">{dimension.label}</div>
+                    <div className="mt-2 flex items-end justify-between gap-3">
+                      <span className="text-sm font-semibold text-white">{Math.round(dimension.value)}/100</span>
+                      <span className="h-2 w-20 overflow-hidden rounded-full bg-white/10">
+                        <span
+                          className={cn('block h-full rounded-full', dimensionBarToneClass(dimension.value))}
+                          style={{ width: `${Math.max(8, Math.min(100, Math.round(dimension.value)))}%` }}
+                        />
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {showCommuteTrack ? (
+            <>
+              <div className="mt-5 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300/82">
+                <span>{copy.currentLocation}</span>
+                <span>{remoteRole ? copy.remoteReality : `${remoteRole ? 0 : commuteAnalysis?.distanceKm || 0} km`}</span>
+                <span>{job.company}</span>
+              </div>
+              <div className="relative mt-3 h-2 rounded-full bg-slate-800/90">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-rose-400"
+                  style={{ width: `${commuteTrackPercent}%` }}
+                />
+                <div
+                  className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/70 bg-white shadow-[0_8px_18px_-10px_rgba(255,255,255,0.5)]"
+                  style={{ left: `calc(${commuteTrackPercent}% - 8px)` }}
+                />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[20px] border border-cyan-400/10 bg-cyan-400/[0.04] px-4 py-4 shadow-[0_18px_40px_-34px_rgba(34,211,238,0.18)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100/82">{copy.commuteTime}</div>
+                  <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? '0 min' : `${commuteAnalysis.timeMinutes * 2} min`}</div>
+                </div>
+                <div className="rounded-[20px] border border-fuchsia-400/10 bg-fuchsia-400/[0.04] px-4 py-4 shadow-[0_18px_40px_-34px_rgba(244,114,182,0.18)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-100/82">{copy.oneWay}</div>
+                  <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? '0 km' : `${commuteAnalysis.distanceKm} km`}</div>
+                </div>
+                <div className="rounded-[20px] border border-emerald-400/10 bg-emerald-400/[0.04] px-4 py-4 shadow-[0_18px_40px_-34px_rgba(16,185,129,0.18)]">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-100/82">{copy.commuteCost}</div>
+                  <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? copy.zeroCost : `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}</div>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
   const aiToneStyles = decisionVerdict.tone === 'success'
       ? {
         panel: 'border-emerald-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(244,251,248,0.82)_100%)] shadow-[0_24px_56px_-36px_rgba(16,32,51,0.14)] dark:border-cyan-400/14 dark:bg-[linear-gradient(180deg,#131d29_0%,#0d1520_100%)] dark:shadow-[0_28px_60px_-36px_rgba(34,211,238,0.14)]',
@@ -773,153 +1046,36 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
           chartAccent: 'cyan' as const,
           bar: 'bg-cyan-400/80 dark:bg-cyan-300/80',
         };
-  const importedRealityPanel = (
+  const sharedRealityHeadline = isImported
+    ? commuteAnalysis
+      ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`
+      : displayedSalary
+    : decisionVerdict.title;
+  const sharedRealitySubheadline = isImported ? importedRealityLead : decisionVerdict.body;
+  const sharedRealityBody = commuteAnalysis
+    ? copy.financialFormula
+        .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+        .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+        .replace('{{commute}}', `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+        .replace('{{total}}', `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
+    : isImported
+      ? copy.financialBody
+      : decisionVerdict.body;
+  const canShowSharedCommuteTrack = Boolean(!isImported && !isMicroJobRole && userProfile.isLoggedIn && (userProfile.address || userProfile.coordinates || remoteRole));
+  const realityPanel = (
     <SurfaceCard className={cn('border-transparent p-5 text-[var(--text-strong)] sm:p-6', dashboardPanelClass)} variant="dock">
       <div className="space-y-5">
         <SectionTitle title={copy.financialTitle} />
 
-        <div className="rounded-[28px] border border-slate-900/6 bg-[linear-gradient(180deg,#0b1322_0%,#111a2b_100%)] p-6 text-slate-50 shadow-[0_28px_72px_-40px_rgba(2,6,23,0.56)]">
-          <div className="max-w-3xl">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/76">{copy.financialTitle}</div>
-            <div className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">
-              {commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary}
-            </div>
-            <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-cyan-50">{importedRealityLead}</div>
-            <p className="mt-3 text-sm leading-6 text-slate-200/86">
-              {commuteAnalysis
-                ? copy.financialFormula
-                    .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                    .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                    .replace('{{commute}}', `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                    .replace('{{total}}', `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                : copy.financialBody}
-            </p>
-          </div>
-
-          {commuteAnalysis ? (
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.net}</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
-                  {`${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
-                </div>
-              </div>
-              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.benefits}</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
-                  {`${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
-                </div>
-              </div>
-              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.commute}</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
-                  {remoteRole ? copy.zeroCost : `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`}
-                </div>
-              </div>
-              <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.dailyTime}</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">
-                  {remoteRole ? '0 min' : `${commuteMinutesRoundTrip} min`}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {!userProfile.isLoggedIn ? (
-          <div className={cn('px-4 py-4', dashboardCardClass)}>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.loginPrompt}</p>
-            <button
-              type="button"
-              onClick={onRequireAuth}
-              className="app-button-primary mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
-            >
-              {copy.signInCreate}
-            </button>
-          </div>
-        ) : (!userProfile.address && !userProfile.coordinates && !remoteRole) ? (
-          <div className={cn('px-4 py-4', dashboardCardClass)}>
-            <p className="text-sm leading-6 text-[var(--text-muted)]">{copy.addressPrompt}</p>
-            <button
-              type="button"
-              onClick={onOpenProfile}
-              className="app-button-dock mt-4 inline-flex items-center gap-2 rounded-[14px] px-4 py-2.5 text-sm font-semibold"
-            >
-              {copy.openProfile}
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </SurfaceCard>
-  );
-  const realityPanel = isImported ? importedRealityPanel : (
-    <SurfaceCard className={cn('border-transparent p-5 text-[var(--text-strong)] sm:p-6', dashboardPanelClass)} variant="dock">
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionTitle title={copy.aiWandTitle} />
-          <div className="flex flex-wrap items-center gap-2">
-            {matchScore > 0 ? (
-              <div className={cn('rounded-[999px] px-3.5 py-2 text-xs font-black uppercase tracking-[0.14em] ring-1 ring-inset', aiToneStyles.chip)}>
-                {matchScore}% {copy.match}
-              </div>
-            ) : null}
-            <div className="rounded-[999px] border border-[rgba(15,23,42,0.08)] bg-white px-3.5 py-2 text-xs font-bold text-[var(--text-strong)] shadow-[0_12px_24px_-18px_rgba(15,23,42,0.16)] dark:border-[rgba(148,163,184,0.12)] dark:bg-[rgba(15,23,42,0.82)]">
-              {decisionVerdict.title}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)]">
+        <div className="grid gap-4">
           <div className="space-y-4">
-            <div className={cn('rounded-[24px] border bg-[linear-gradient(180deg,#0b1322_0%,#111a2b_100%)] p-5 text-slate-50', decisionBandToneClass)}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="max-w-[38rem]">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/76">{copy.financialTitle}</div>
-                  <div className="mt-2 text-base font-semibold tracking-[-0.03em]">{decisionVerdict.title}</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-200/88">{decisionVerdict.body}</p>
-                </div>
-                <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-3 text-right">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.jhiImpact}</div>
-                  <div className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-cyan-100">
-                    {commuteAnalysis ? `${commuteAnalysis.jhiImpact > 0 ? '+' : ''}${commuteAnalysis.jhiImpact}` : '—'}
-                  </div>
-                </div>
-              </div>
-
-              {!isMicroJobRole && userProfile.isLoggedIn && (userProfile.address || userProfile.coordinates || remoteRole) ? (
-                <div className="mt-5">
-                  <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">
-                    <span>{copy.currentLocation}</span>
-                    <span>{remoteRole ? copy.remoteReality : `${remoteRole ? 0 : commuteAnalysis?.distanceKm || 0} km`}</span>
-                    <span>{job.company}</span>
-                  </div>
-                  <div className="relative mt-3 h-2 rounded-full bg-white/12">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-rose-400"
-                      style={{ width: `${commuteTrackPercent}%` }}
-                    />
-                    <div
-                      className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/70 bg-white shadow-[0_8px_18px_-10px_rgba(255,255,255,0.5)]"
-                      style={{ left: `calc(${commuteTrackPercent}% - 8px)` }}
-                    />
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-3">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.commuteTime}</div>
-                      <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? '0 min' : commuteAnalysis ? `${commuteAnalysis.timeMinutes * 2} min` : '—'}</div>
-                    </div>
-                    <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-3">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.oneWay}</div>
-                      <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? '0 km' : commuteAnalysis ? `${commuteAnalysis.distanceKm} km` : '—'}</div>
-                    </div>
-                    <div className="rounded-[18px] border border-white/10 bg-white/6 px-4 py-3">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300/72">{copy.commuteCost}</div>
-                      <div className="mt-2 text-xl font-semibold tracking-[-0.04em]">{remoteRole ? copy.zeroCost : commuteAnalysis ? `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : '—'}</div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            {renderSharedRealityBand({
+              headline: sharedRealityHeadline,
+              subheadline: sharedRealitySubheadline,
+              body: sharedRealityBody,
+              showChips: !isImported,
+              showCommuteTrack: canShowSharedCommuteTrack,
+            })}
 
             {isMicroJobRole ? (
               <div className={cn('px-4 py-4 text-sm leading-6', dashboardCardClass)}>
@@ -949,49 +1105,42 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
             ) : (
               <>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className={cn('rounded-[18px] border px-4 py-4', dashboardCardClass, salarySignalToneClass)}>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{salarySignalCopy.label}</div>
-                    <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{salarySignalStatus}</div>
-                    <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{salarySignalBody}</div>
-                  </div>
-                  <div className={cn('rounded-[18px] border px-4 py-4', dashboardCardClass, commuteTimeToneClass)}>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.commuteTime}</div>
-                    <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{remoteRole ? '0 min' : commuteAnalysis ? `${commuteAnalysis.timeMinutes * 2} min` : '—'}</div>
-                  </div>
-                  <div className={cn('rounded-[18px] border px-4 py-4', dashboardCardClass, commuteCostToneClass)}>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.commuteCost}</div>
-                    <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{remoteRole ? copy.zeroCost : commuteAnalysis ? `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : '—'}</div>
-                  </div>
-                  <div className={cn('rounded-[18px] border px-4 py-4', dashboardCardClass, realValueToneClass)}>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.realValue}</div>
-                    <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
-                      {commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary}
-                    </div>
-                  </div>
-                </div>
-
                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-                  <div className={cn('px-4 py-4', dashboardCardClass)}>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.realValue}</div>
-                    <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                      {commuteAnalysis ? `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}` : displayedSalary}
+                  <div className={cn('rounded-[20px] border px-4 py-4', dashboardCardClass, cyberPanelClass)}>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                      {language === 'cs' ? 'Rychlý reality check' : 'Quick reality check'}
                     </div>
-                    <div className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                      {commuteAnalysis
-                        ? copy.financialFormula
-                            .replace('{{net}}', `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                            .replace('{{benefits}}', `${commuteAnalysis.financialReality.benefitsValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                            .replace('{{commute}}', `${commuteAnalysis.financialReality.commuteCost.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                            .replace('{{total}}', `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString(locale)} ${commuteAnalysis.financialReality.currency}`)
-                        : aiRealitySummary}
+                    <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                      {language === 'cs'
+                        ? 'Tady už nejsou další výpočty. Jen tři stručné signály, které pomáhají rychle rozhodnout, jestli se rolí dál zabývat.'
+                        : 'No more repeated math here. Just three short signals that help you decide whether this role is worth more attention.'}
                     </div>
-                    <div className="mt-2 text-[11px] leading-5 text-[var(--text-faint)]">{copy.benefitsReserve}</div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className={cn('rounded-[16px] border px-3.5 py-3', salarySignalToneClass)}>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{salarySignalCopy.label}</div>
+                        <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{salarySignalStatus}</div>
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{salarySignalBody}</div>
+                      </div>
+                      <div className={cn('rounded-[16px] border px-3.5 py-3', commuteTimeToneClass)}>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{realityNarrative.monthlyRoad}</div>
+                        <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                          {remoteRole ? (language === 'cs' ? '0 hodin' : '0 hours') : `${monthlyCommuteHours} h`}
+                        </div>
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{realityNarrative.monthlyTime}</div>
+                      </div>
+                      <div className={cn('rounded-[16px] border px-3.5 py-3', commuteCostToneClass)}>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{realityNarrative.benefitValue}</div>
+                        <div className="mt-2 text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">
+                          {benefitsValue > 0 ? `${benefitsValue.toLocaleString(locale)} ${salaryCurrency}` : '—'}
+                        </div>
+                        <div className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{realityNarrative.benefits}</div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid gap-3">
                     {bullshitAnalysis.signals.length > 0 ? (
-                      <div className="rounded-[18px] border border-rose-200 bg-rose-50/88 px-4 py-4 dark:border-rose-900/60 dark:bg-rose-950/20">
+                      <div className="rounded-[20px] border border-rose-200 bg-rose-50/88 px-4 py-4 dark:border-rose-900/60 dark:bg-rose-950/20">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">{copy.bullshitTitle}</div>
                         <div className="mt-2 text-sm font-semibold text-rose-900 dark:text-rose-100">
                           {bullshitAnalysis.tone === 'bullshit'
@@ -1003,7 +1152,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     ) : null}
 
                     {bullshitAnalysis.greenFlags.length > 0 ? (
-                      <div className="rounded-[18px] border border-emerald-200 bg-emerald-50/88 px-4 py-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                      <div className="rounded-[20px] border border-emerald-200 bg-emerald-50/88 px-4 py-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">{copy.greenTitle}</div>
                         <div className="mt-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100">{copy.greenSubtitle}</div>
                         <div className="mt-2 text-sm leading-6 text-emerald-800 dark:text-emerald-100/90">{bullshitAnalysis.greenSummary}</div>
@@ -1015,43 +1164,6 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
             )}
           </div>
 
-          <div className={cn('p-4 sm:p-5', dashboardCardClass)}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', aiToneStyles.label)}>{copy.compatibility}</div>
-                <div className="mt-1.5 text-4xl font-semibold tracking-[-0.05em] text-[var(--text-strong)]">
-                  {Math.round(job.jhi?.score || 0)}
-                </div>
-              </div>
-              <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-3 text-right dark:border-[rgba(var(--accent-rgb),0.22)] dark:bg-[rgba(var(--accent-rgb),0.12)]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">{copy.jhiImpact}</div>
-                <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
-                  {commuteAnalysis ? `${commuteAnalysis.jhiImpact > 0 ? '+' : ''}${commuteAnalysis.jhiImpact}` : '—'}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-[rgba(248,250,252,0.92)] p-3 dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(8,13,20,0.72)]">
-              <JHIChart jhi={job.jhi} theme="light" accent={aiToneStyles.chartAccent} compact />
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {jhiDimensions.map((dimension) => (
-                <div key={dimension.key} className={cn('rounded-[18px] border px-4 py-4', dashboardCardClass, dimensionToneClass(dimension.value))}>
-                  <div className="text-xs font-medium text-[var(--text-muted)]">{dimension.label}</div>
-                  <div className="mt-2 flex items-end justify-between gap-3">
-                    <span className="text-base font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{Math.round(dimension.value)}/100</span>
-                    <span className="h-2.5 w-20 overflow-hidden rounded-[999px] bg-[rgba(148,163,184,0.18)] dark:bg-[rgba(255,255,255,0.12)]">
-                      <span
-                        className={cn('block h-full rounded-[999px]', dimensionBarToneClass(dimension.value))}
-                        style={{ width: `${Math.max(8, Math.min(100, Math.round(dimension.value)))}%` }}
-                      />
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </SurfaceCard>
@@ -1105,7 +1217,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className="space-y-4 rounded-[24px] bg-[rgba(255,255,255,0.56)] p-4 backdrop-blur-xl dark:bg-[rgba(9,16,24,0.34)] sm:p-5">
+                <div className={cn('space-y-4 rounded-[24px] bg-[rgba(255,255,255,0.56)] p-4 backdrop-blur-xl dark:bg-[rgba(9,16,24,0.34)] sm:p-5', isImported && importedHeroGlassClass)}>
                   <div className="inline-flex max-w-full items-center gap-3 px-0.5 py-0.5">
                     {usePublisherMonogram ? (
                       <div className={cn(
@@ -1140,7 +1252,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                    <div className={cn('min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]', isImported && importedChipClass)}>
                       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <MapPin size={13} />
                         {copy.location}
@@ -1149,7 +1261,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         {locationValue}
                       </div>
                     </div>
-                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                    <div className={cn('min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]', isImported && importedChipClass)}>
                       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <Compass size={13} />
                         {copy.workModel}
@@ -1158,7 +1270,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         {workModelValue}
                       </div>
                     </div>
-                    <div className="min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]">
+                    <div className={cn('min-w-0 rounded-[16px] bg-[rgba(255,255,255,0.68)] px-3.5 py-3 dark:bg-[rgba(255,255,255,0.05)]', isImported && importedChipClass)}>
                       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
                         <Wallet size={13} />
                         {copy.salary}
@@ -1346,7 +1458,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--text-strong)]">{importedOriginalListingTitle}</h2>
                 </div>
-                <div className="rounded-[16px] border border-[rgba(191,161,106,0.12)] bg-white/4 p-6 dark:bg-slate-950/40">
+                <div className={cn('rounded-[16px] border border-[rgba(191,161,106,0.12)] bg-white/4 p-6 dark:bg-slate-950/40', importedTextPanelClass)}>
                   <p className="whitespace-pre-wrap text-base leading-8 text-[var(--text-base)]">{importedOriginalDescription}</p>
                 </div>
               </div>
@@ -1375,7 +1487,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                     {isImported ? (
                       <>
                         {importedStory.companyContext ? (
-                          <div className={cn('p-5', dashboardCardClass)}>
+                          <div className={cn('p-5', dashboardCardClass, importedAccentCardClass)}>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
                               {importedSummaryLabels.companyContext}
                             </div>
@@ -1384,12 +1496,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         ) : null}
 
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div className={cn('p-4', dashboardCardClass)}>
+                          <div className={cn('p-4', dashboardCardClass, cyberPanelClass)}>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedSnapshot}</div>
                             <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{importedRoleSnapshot}</div>
                           </div>
                           {importedQuickFacts.length ? (
-                            <div className={cn('p-4', dashboardCardClass)}>
+                            <div className={cn('p-4', dashboardCardClass, cyberPanelClass)}>
                               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.quickFacts}</div>
                               <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
                                 {importedQuickFacts.map((fact) => (
@@ -1401,12 +1513,12 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         </div>
 
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div className="rounded-[18px] border border-[rgba(var(--accent-rgb),0.16)] bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[rgba(var(--accent-rgb),0.12)]">
+                          <div className="rounded-[18px] border border-cyan-400/16 bg-[rgba(var(--accent-rgb),0.06)] px-4 py-4 dark:bg-[linear-gradient(180deg,rgba(12,31,43,0.8)_0%,rgba(7,21,34,0.76)_100%)] dark:shadow-[0_20px_44px_-34px_rgba(34,211,238,0.16)]">
                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.decision}</div>
                             <div className="mt-2 text-sm leading-6 text-[var(--text)]">{importedFirstStep}</div>
                           </div>
                           {importedRisk ? (
-                            <div className={cn('rounded-[18px] px-4 py-4', dashboardCardClass)}>
+                            <div className={cn('rounded-[18px] px-4 py-4', dashboardCardClass, importedTextPanelClass)}>
                               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.risk}</div>
                               <div className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{importedRisk}</div>
                             </div>
@@ -1414,7 +1526,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                         </div>
 
                         {importedStory.benefits.length ? (
-                          <div className={cn('p-4', dashboardCardClass)}>
+                          <div className={cn('p-4', dashboardCardClass, importedAccentCardClass)}>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{importedSummaryLabels.benefits}</div>
                             <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--text)]">
                               {importedStory.benefits.map((benefit) => (
@@ -1492,7 +1604,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <div className={cn('p-4', dashboardCardClass)}>
+                    <div className={cn('p-4', dashboardCardClass, cyberPanelClass)}>
                       <div className="flex items-center gap-3">
                         {usePublisherMonogram ? (
                           <div className="flex h-14 w-14 items-center justify-center rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.82)] text-sm font-bold text-[var(--text-strong)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(255,255,255,0.06)]">
@@ -1513,7 +1625,7 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
                       )}
                     </div>
 
-                    <div className={cn('p-4', dashboardCardClass)}>
+                    <div className={cn('p-4', dashboardCardClass, isImported ? importedTextPanelClass : cyberPanelClass)}>
                       {isImported ? (
                         <>
                           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">{copy.importedDetail}</div>
@@ -1572,3 +1684,4 @@ const ChallengeDetailPage: React.FC<ChallengeDetailPageProps> = ({
 };
 
 export default ChallengeDetailPage;
+

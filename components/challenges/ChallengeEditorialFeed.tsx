@@ -243,6 +243,11 @@ const getExternalSourceLabel = (job: Job, language: string): string | null => {
 
 type CardVerdictTone = 'good' | 'neutral' | 'bad';
 
+const getCardVerdictRank = (job: Job): number => {
+  const tone = getCardVerdictTone(job);
+  return tone === 'good' ? 2 : tone === 'neutral' ? 1 : 0;
+};
+
 const getCardVerdictTone = (job: Job): CardVerdictTone => {
   const jhiScore = clamp(Math.round(Number(job.jhi?.score || 0)), 0, 100);
   const distance = Number(job.distanceKm || 0);
@@ -442,6 +447,24 @@ const getFeatureScore = (job: Job): number => {
     + responseBonus;
 };
 
+const compareJobsByEditorialPriority = (left: Job, right: Job): number => {
+  const verdictDelta = getCardVerdictRank(right) - getCardVerdictRank(left);
+  if (verdictDelta !== 0) return verdictDelta;
+
+  const featureDelta = getFeatureScore(right) - getFeatureScore(left);
+  if (featureDelta !== 0) return featureDelta;
+
+  const rightMatchScore = clamp(Math.round(Number(right.aiMatchScore || 0)), 0, 100);
+  const leftMatchScore = clamp(Math.round(Number(left.aiMatchScore || 0)), 0, 100);
+  if (rightMatchScore !== leftMatchScore) return rightMatchScore - leftMatchScore;
+
+  const rightJhiScore = clamp(Math.round(Number(right.jhi?.score || 0)), 0, 100);
+  const leftJhiScore = clamp(Math.round(Number(left.jhi?.score || 0)), 0, 100);
+  if (rightJhiScore !== leftJhiScore) return rightJhiScore - leftJhiScore;
+
+  return salaryAnchor(right) - salaryAnchor(left);
+};
+
 const isFeatureEligible = (job: Job): boolean => {
   const priorityScore = Number(job.priorityScore ?? job.searchScore ?? 0);
   const matchScore = clamp(Math.round(Number(job.aiMatchScore || 0)), 0, 100);
@@ -456,18 +479,7 @@ const isFeatureEligible = (job: Job): boolean => {
 };
 
 const placeBadVerdictsLater = (jobs: Job[]): Job[] => {
-  const keepUpFront: Job[] = [];
-  const badLater: Job[] = [];
-
-  jobs.forEach((job) => {
-    if (getCardVerdictTone(job) === 'bad') {
-      badLater.push(job);
-      return;
-    }
-    keepUpFront.push(job);
-  });
-
-  return [...keepUpFront, ...badLater];
+  return [...jobs].sort(compareJobsByEditorialPriority);
 };
 
 const pickHighlightIndex = (
@@ -1097,7 +1109,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
     const heroCandidate = prioritisedCandidates.length
       ? prioritisedCandidates
         .slice()
-        .sort((left, right) => getFeatureScore(right) - getFeatureScore(left))[0]
+        .sort(compareJobsByEditorialPriority)[0]
       : null;
 
     if (heroCandidate?.id) {
@@ -1115,11 +1127,7 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
 
     const recommendationCandidates = prioritisedCandidates
       .slice()
-      .sort((a: any, b: any) => {
-        const scoreA = Number(a.priorityScore || 0) + Number(a.jhi?.score || 0) + salaryAnchor(a) / 1000 - Number(a.distanceKm || 0) / 8;
-        const scoreB = Number(b.priorityScore || 0) + Number(b.jhi?.score || 0) + salaryAnchor(b) / 1000 - Number(b.distanceKm || 0) / 8;
-        return scoreB - scoreA;
-      });
+      .sort(compareJobsByEditorialPriority);
     const recommendation: Job[] = [];
     const hasImportedCandidates = recommendationCandidates.some((job) => isImportedListing(job));
     recommendation.push(...take(recommendationCandidates.filter((job) => !isImportedListing(job)), hasImportedCandidates ? 2 : 3));
@@ -1137,26 +1145,30 @@ const ChallengeEditorialFeed: React.FC<ChallengeEditorialFeedProps> = ({
         return job.matchBucket === 'adjacent' || isImportedListing(job) || (matchScore < 62 && jhiScore >= 58);
       })
       .slice()
-      .sort((a: any, b: any) => getFeatureScore(b) - getFeatureScore(a));
+      .sort(compareJobsByEditorialPriority);
     const surprise = take(surpriseCandidates, 3);
 
     const guidanceCandidates = prioritisedCandidates
       .slice()
       .sort((left, right) => {
+        const verdictDelta = getCardVerdictRank(right) - getCardVerdictRank(left);
+        if (verdictDelta !== 0) return verdictDelta;
         const leftContext = (left.firstStepPrompt ? 2 : 0) + (left.companyGoal ? 2 : 0) + (reactionWindowHours(left) !== null ? 1 : 0);
         const rightContext = (right.firstStepPrompt ? 2 : 0) + (right.companyGoal ? 2 : 0) + (reactionWindowHours(right) !== null ? 1 : 0);
         if (rightContext !== leftContext) return rightContext - leftContext;
-        return getFeatureScore(right) - getFeatureScore(left);
+        return compareJobsByEditorialPriority(left, right);
       });
     const guidance = take(guidanceCandidates, 3);
 
     const classicCandidates = prioritisedCandidates
       .slice()
       .sort((left, right) => {
+        const verdictDelta = getCardVerdictRank(right) - getCardVerdictRank(left);
+        if (verdictDelta !== 0) return verdictDelta;
         const leftScore = Math.abs(clamp(Math.round(Number(left.aiMatchScore || left.jhi?.score || 0)), 0, 100) - 62);
         const rightScore = Math.abs(clamp(Math.round(Number(right.aiMatchScore || right.jhi?.score || 0)), 0, 100) - 62);
         if (leftScore !== rightScore) return leftScore - rightScore;
-        return getFeatureScore(right) - getFeatureScore(left);
+        return compareJobsByEditorialPriority(left, right);
       });
     const classic = take(classicCandidates, 4);
 

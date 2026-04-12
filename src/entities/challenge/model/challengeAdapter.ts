@@ -1,3 +1,4 @@
+import { isRemoteJob } from '../../../../services/commuteService';
 import type { Job } from '../../../../types';
 
 export type ChallengeSourceType = 'imported' | 'native' | 'micro';
@@ -40,8 +41,7 @@ const shorten = (value: string | null | undefined, maxLength = 160): string => {
 };
 
 const isRemoteFriendly = (job: Job): boolean => {
-  const model = String(job.work_model || job.type || '').toLowerCase();
-  return model.includes('remote');
+  return isRemoteJob(job);
 };
 
 export const resolveChallengeSourceType = (job: Job): ChallengeSourceType => {

@@ -34,4 +34,25 @@ describe('isRemoteJob', () => {
 
     expect(isRemoteJob(job)).toBe(true);
   });
+
+  test('does not mark hybrid roles as fully remote', () => {
+    const job = makeJob({
+      title: 'Account Manager',
+      work_model: 'Hybrid',
+      description: '3 dny home office, zbytek v kancelari v Praze.',
+      tags: ['home office'],
+    });
+
+    expect(isRemoteJob(job)).toBe(false);
+  });
+
+  test('does not mark onsite jobs as remote from description only', () => {
+    const job = makeJob({
+      title: 'Operations Coordinator',
+      location: 'Praha',
+      description: 'Modern office, moznost home office po zapracovani, kazdodenni spoluprace na miste.',
+    });
+
+    expect(isRemoteJob(job)).toBe(false);
+  });
 });

@@ -2190,6 +2190,11 @@ export interface BenefitValuation {
 export interface FinancialReality {
   currency: string;
   grossMonthlySalary: number;
+  salaryRangeMin?: number;
+  salaryRangeMax?: number;
+  salarySelectionMode?: 'single_value' | 'lower_bound' | 'midpoint' | 'ai_estimate';
+  salarySelectionExplanation?: string;
+  salarySourceLabel?: string;
   estimatedTaxAndInsurance: number;
   netBaseSalary: number; // Gross - Tax
   benefitsValue: number;

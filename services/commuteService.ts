@@ -1,6 +1,7 @@
-import { Job, UserProfile, CommuteAnalysis } from '../types';
+import { Job, UserProfile, CommuteAnalysis, WorkMode } from '../types';
 import {
     parseMonthlySalary,
+    analyzeMonthlySalaryRange,
     calculateBenefitsValue,
     detectCurrency,
     calculateFinancialScoreAdjustment,
@@ -125,17 +126,39 @@ const COMMUTE_CORRIDORS: CommuteCorridor[] = [
     }
 ];
 
-export const isRemoteJob = (job: Pick<Job, 'title' | 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
-    const remoteSignals = `${job.title || ''} ${job.type || ''} ${job.work_model || ''} ${job.location || ''} ${(job.tags || []).join(' ')} ${job.description || ''}`.toLowerCase();
-    const explicitRemoteSignals = `${job.type || ''} ${job.work_model || ''}`.toLowerCase();
-    const hasRemoteLanguage = /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|anywhere|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce z domu|prace z domu|práce na dálku|prace na dalku|na dálku|na dalku|z domova|z domu|praca zdalna|zdalnie|homeoffice möglich|von zuhause|mobiles arbeiten|telecommut(?:e|ing))\b/.test(remoteSignals);
-    if (!hasRemoteLanguage) return false;
+type WorkArrangement = WorkMode | 'unknown';
 
-    const strongRemoteSignal = /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce na dálku|prace na dalku|praca zdalna|zdalnie|telecommut(?:e|ing))\b/.test(explicitRemoteSignals);
-    const onsiteContradiction = /\b(stavbyvedouci|stavbyvedouc[ií]|stavba|construction|site manager|site supervisor|superintendent|foreman|technik na stavbe|mont[eé]r|installer|field service|servisni technik|servisn[ií] technik|kuryr|kurier|ridic|řidič|delivery driver|courier|warehouse|skladnik|skladn[ií]k|cesnik|číšník|servirka|servírka|kuchar|kuchař|obsluha|recepcni|recepčni|ostraha|security guard)\b/.test(remoteSignals);
+const REMOTE_SIGNAL_REGEX = /(^|\b)(remote|remote[-\s]?first|full[-\s]?remote|fully remote|anywhere|work from home|wfh|distributed|home office|homeoffice|práce z domova|prace z domova|práce z domu|prace z domu|práce na dálku|prace na dalku|na dálku|na dalku|z domova|z domu|praca zdalna|zdalnie|homeoffice möglich|von zuhause|mobiles arbeiten|telecommut(?:e|ing))\b/;
+const HYBRID_SIGNAL_REGEX = /(^|\b)(hybrid|hybridn[ií]|hybridná|kombinovan[ýá]|office\/home office|2 dny home office|3 dny home office|partly remote|partially remote)\b/;
+const ONSITE_MODE_REGEX = /(^|\b)(onsite|on[-\s]?site|office[-\s]?based|office[-\s]?first|in office|na m[ií]st[eě]|presen(?:ce|cial)|workplace only|on location|on premise)\b/;
+const FIELD_ROLE_REGEX = /\b(stavbyvedouci|stavbyvedouc[ií]|stavba|construction|site manager|site supervisor|superintendent|foreman|technik na stavbe|mont[eé]r|installer|field service|servisni technik|servisn[ií] technik|kuryr|kurier|ridic|řidič|delivery driver|courier|warehouse|skladnik|skladn[ií]k|cesnik|číšník|servirka|servírka|kuchar|kuchař|obsluha|recepcni|recepční|ostraha|security guard|sales representative|obchodni zastupce|obchodní zástupce|technician in field|terénní|terenni|v terenu|v teréne)\b/;
+const FIELD_MODE_REGEX = /(^|\b)(field|field[-\s]?based|field service|mobile role|mobile team|ter[eé]n|ter[eé]nn[ií]|travelling role|travel required)\b/;
 
-    if (onsiteContradiction && !strongRemoteSignal) return false;
-    return true;
+export const resolveJobWorkArrangement = (
+    job: Pick<Job, 'title' | 'type' | 'work_model' | 'location' | 'description' | 'tags'>
+): WorkArrangement => {
+    const explicitSignals = `${job.title || ''} ${job.type || ''} ${job.work_model || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
+    const contextualSignals = `${job.location || ''} ${job.description || ''}`.toLowerCase();
+    const allSignals = `${explicitSignals} ${contextualSignals}`;
+
+    const hasRemoteSignal = REMOTE_SIGNAL_REGEX.test(explicitSignals);
+    const hasHybridSignal = HYBRID_SIGNAL_REGEX.test(explicitSignals) || (HYBRID_SIGNAL_REGEX.test(allSignals) && !hasRemoteSignal);
+    const hasOnsiteModeSignal = ONSITE_MODE_REGEX.test(explicitSignals);
+    const hasFieldModeSignal = FIELD_MODE_REGEX.test(allSignals) || FIELD_ROLE_REGEX.test(allSignals);
+
+    if (hasFieldModeSignal && !hasRemoteSignal) return 'field';
+    if (hasHybridSignal) return 'hybrid';
+    if (hasRemoteSignal && !FIELD_ROLE_REGEX.test(allSignals)) return 'remote';
+    if (hasOnsiteModeSignal || FIELD_ROLE_REGEX.test(allSignals)) return hasFieldModeSignal ? 'field' : 'onsite';
+    return 'unknown';
+};
+
+export const isRemoteJob = (job: Pick<Job, 'title' | 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean =>
+    resolveJobWorkArrangement(job) === 'remote';
+
+export const isRemoteFriendlyJob = (job: Pick<Job, 'title' | 'type' | 'work_model' | 'location' | 'description' | 'tags'>): boolean => {
+    const arrangement = resolveJobWorkArrangement(job);
+    return arrangement === 'remote' || arrangement === 'hybrid';
 };
 
 const containsAny = (text: string, aliases: string[]): boolean => aliases.some(alias => text.includes(alias));
@@ -663,17 +686,39 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
     // 2. Determine Financial Baseline (Gross & Currency)
     let grossMonthlySalary = 0;
+    let salaryRangeMin = 0;
+    let salaryRangeMax = 0;
+    let salarySelectionMode: 'single_value' | 'lower_bound' | 'midpoint' | 'ai_estimate' = 'single_value';
+    let salarySelectionExplanation = '';
+    let salarySourceLabel = '';
     let currency = '€';
 
     // Priority 1: Real Salary Range
     if (job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") {
         currency = detectCurrency(job.salaryRange);
-        grossMonthlySalary = parseMonthlySalary(job.salaryRange);
+        const salaryAnalysis = analyzeMonthlySalaryRange(job.salaryRange, {
+            preferLowerBound: true,
+            title: job.title,
+            description: job.description,
+        });
+        grossMonthlySalary = salaryAnalysis.selected || parseMonthlySalary(job.salaryRange);
+        salaryRangeMin = salaryAnalysis.min;
+        salaryRangeMax = salaryAnalysis.max;
+        salarySelectionMode = salaryAnalysis.selectionMode;
+        salarySelectionExplanation = salaryAnalysis.explanation;
+        salarySourceLabel = salaryAnalysis.selectionMode === 'single_value'
+            ? 'stated_gross_salary'
+            : 'lower_bound_of_stated_salary_range';
     }
     // Priority 2: AI Estimate
     else if (job.aiEstimatedSalary) {
         currency = job.aiEstimatedSalary.currency;
         grossMonthlySalary = Math.round((job.aiEstimatedSalary.min + job.aiEstimatedSalary.max) / 2);
+        salaryRangeMin = Math.round(job.aiEstimatedSalary.min);
+        salaryRangeMax = Math.round(job.aiEstimatedSalary.max);
+        salarySelectionMode = 'ai_estimate';
+        salarySelectionExplanation = 'Vypocet vychazi z AI odhadu hrube mzdy, protoze inzerat neobsahuje pouzitelnou castku.';
+        salarySourceLabel = 'ai_salary_estimate';
     }
     // Priority 3: Fallback Location Detection
     else {
@@ -807,6 +852,11 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
         financialReality: {
             currency,
             grossMonthlySalary,
+            salaryRangeMin,
+            salaryRangeMax,
+            salarySelectionMode,
+            salarySelectionExplanation,
+            salarySourceLabel,
             estimatedTaxAndInsurance: tax,
             netBaseSalary: net,
             benefitsValue,

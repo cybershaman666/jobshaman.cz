@@ -267,6 +267,76 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   return value;
 };
 
+export const analyzeMonthlySalaryRange = (
+  salaryRange: string | undefined,
+  options?: {
+    preferLowerBound?: boolean;
+    title?: string;
+    description?: string;
+  }
+): {
+  min: number;
+  max: number;
+  selected: number;
+  selectionMode: 'single_value' | 'lower_bound' | 'midpoint';
+  explanation: string;
+} => {
+  if (!salaryRange) {
+    return {
+      min: 0,
+      max: 0,
+      selected: 0,
+      selectionMode: 'single_value',
+      explanation: '',
+    };
+  }
+
+  const cleanString = salaryRange.replace(/,/g, '').replace(/\s/g, '');
+  const lower = salaryRange.toLowerCase();
+  const numberMatches = cleanString.match(/\d+/g);
+  if (!numberMatches || numberMatches.length === 0) {
+    return {
+      min: 0,
+      max: 0,
+      selected: 0,
+      selectionMode: 'single_value',
+      explanation: '',
+    };
+  }
+
+  const values = numberMatches.slice(0, 2).map((value) => parseInt(value, 10));
+  const currency = detectCurrency(salaryRange);
+  const hasRangeSeparator = /(?:-|â€“|â€”| aĹľ | to | od .* do )/i.test(lower);
+  const hasThousandSuffix = /\d+\s*k(?!\s*(ÄŤ|c|czk))\b/.test(lower);
+
+  const normalizedValues = hasThousandSuffix
+    ? values.map((value) => (value < 1000 ? value * 1000 : value))
+    : values;
+
+  const monthlyValues = normalizedValues.map((value) => normalizeSalaryToMonthly(value, currency, salaryRange));
+  const min = monthlyValues[0] || 0;
+  const max = monthlyValues[1] || monthlyValues[0] || 0;
+  const hasRange = monthlyValues.length > 1 && hasRangeSeparator;
+  const selected = hasRange
+    ? (options?.preferLowerBound ? min : Math.round((min + max) / 2))
+    : min;
+  const selectionMode = hasRange
+    ? (options?.preferLowerBound ? 'lower_bound' : 'midpoint')
+    : 'single_value';
+
+  const variablePayContext = `${options?.title || ''} ${options?.description || ''} ${salaryRange}`.toLowerCase();
+  const variablePaySignal = /(provizn[ií]|provize|commission|bonus|otevrene rozp[eě]t[ií]|uncapped|otevren[eé]|podle v[ýy]konu|based on performance|performance[-\s]?based)/i.test(variablePayContext);
+  const explanation = !hasRange
+    ? 'Vypocet vychazi z jedne uvedene hrube mesicni mzdy.'
+    : options?.preferLowerBound
+      ? variablePaySignal
+        ? 'Vypocet konzervativne vychazi ze spodní hranice uvedeneho rozpeti, protoze role pusobi vykonove nebo provizne.'
+        : 'Vypocet konzervativne vychazi ze spodni hranice uvedeneho platoveho rozpeti.'
+      : 'Vypocet vychazi ze stredu uvedeneho platoveho rozpeti.';
+
+  return { min, max, selected, selectionMode, explanation };
+};
+
 export const calculateBenefitsValue = (benefits: string[], currency: string, _grossMonthlySalary?: number): number => {
   const currencyCode = normalizeCurrencyCode(currency);
   const multiplier = convertCurrency(1, 'EUR', currencyCode);
