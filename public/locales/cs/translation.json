@@ -4688,8 +4688,8 @@
   "workspace": {
     "feed": {
       "post_lead": "Chcete zadat vlastní výzvu? Otevřete",
-      "profile": "profilu",
-      "post_tail": "a pokračujte v profilu nebo firemním dashboardu.",
+      "profile": "profil",
+      "post_tail": "a pokračujte v něm nebo ve firemním dashboardu.",
       "swipe": "Swipe",
       "feed": "Nabídky",
       "swipe_title": "Nejrychlejší způsob, jak tu procházet nabídky",

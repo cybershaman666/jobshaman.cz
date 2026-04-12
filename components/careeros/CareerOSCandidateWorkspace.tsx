@@ -247,7 +247,16 @@ interface MarketTrendAnalysis {
 }
 
 const filterChipInactiveClass =
-  'border border-slate-200 bg-white text-slate-700 hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900 dark:hover:text-cyan-200';
+  'border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,251,0.94))] text-slate-700 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)] hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,20,32,0.96))] dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:bg-slate-900 dark:hover:text-cyan-200';
+
+const searchCockpitPanelClass =
+  'rounded-[28px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(253,254,255,0.985),rgba(242,246,251,0.97))] p-4 shadow-[0_28px_90px_-34px_rgba(15,23,42,0.28)] dark:border-slate-700/85 dark:bg-[linear-gradient(180deg,rgba(12,20,31,0.985),rgba(9,16,26,0.975))]';
+
+const searchCockpitSectionClass =
+  'rounded-[22px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(245,248,252,0.94))] p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(16,24,36,0.96),rgba(12,20,31,0.94))]';
+
+const searchCockpitInputClass =
+  'w-full rounded-[18px] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,251,0.96))] px-4 py-3 text-sm text-slate-700 outline-none shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)] focus:border-cyan-400 dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,20,32,0.96))] dark:text-slate-100 dark:placeholder:text-slate-500';
 
 const clampZoom = (value: number): number => Math.max(0.72, Math.min(1.6, Number(value.toFixed(2))));
 const CAREER_MAP_CAMERA_DURATION_MS = 560;
@@ -1970,7 +1979,10 @@ export const SearchCockpit: React.FC<{
         onClick={onClose}
       />
       <div
-        className="absolute left-1/2 top-[calc(100%+12px)] z-[80] flex max-h-[min(78vh,820px)] w-[min(94vw,980px)] -translate-x-1/2 flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/96 p-4 shadow-[0_28px_90px_-30px_rgba(15,23,42,0.45)] backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/94 dark:shadow-[0_28px_90px_-30px_rgba(2,6,23,0.82)] sm:p-5"
+        className={cn(
+          'absolute left-1/2 top-[calc(100%+12px)] z-[80] flex max-h-[min(78vh,820px)] w-[min(94vw,980px)] -translate-x-1/2 flex-col overflow-hidden sm:p-5',
+          searchCockpitPanelClass
+        )}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
@@ -1995,7 +2007,7 @@ export const SearchCockpit: React.FC<{
                   setTransportMode('car');
                   activateLiveDiscovery();
                 }}
-                className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/55 px-3 py-2 text-xs font-semibold text-slate-700 backdrop-blur-xl transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,251,0.94))] px-3 py-2 text-xs font-semibold text-slate-700 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)] transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,20,32,0.96))] dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 {t('careeros.filters.reset', { defaultValue: 'Vyčistit' })}
@@ -2004,7 +2016,7 @@ export const SearchCockpit: React.FC<{
             <button
               type="button"
               onClick={onClose}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-white/55 text-slate-700 backdrop-blur-xl transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,251,0.94))] text-slate-700 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.18)] transition hover:border-cyan-200/80 hover:text-cyan-700 dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(12,20,32,0.96))] dark:text-slate-200 dark:hover:border-cyan-500/50 dark:hover:text-cyan-200"
             >
               <X className="h-4 w-4" />
             </button>
@@ -2013,7 +2025,7 @@ export const SearchCockpit: React.FC<{
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="space-y-3 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.26))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
+            <div className={cn('space-y-3', searchCockpitPanelClass)}>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-2">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search', { defaultValue: 'Co hledáte' })}</span>
@@ -2025,7 +2037,7 @@ export const SearchCockpit: React.FC<{
                       activateLiveDiscovery();
                     }}
                     placeholder={t('careeros.filters.search_placeholder', { defaultValue: 'Role, firma nebo klíčové slovo' })}
-                    className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className={searchCockpitInputClass}
                   />
                 </label>
                 <label className="space-y-2">
@@ -2037,13 +2049,13 @@ export const SearchCockpit: React.FC<{
                       activateLiveDiscovery();
                     }}
                     placeholder={t('careeros.filters.city_placeholder', { defaultValue: 'Město, region nebo práce na dálku' })}
-                    className="w-full rounded-[18px] border border-white/70 bg-white/72 px-4 py-3 text-sm text-slate-700 outline-none backdrop-blur-xl focus:border-cyan-400 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className={searchCockpitInputClass}
                   />
                 </label>
               </div>
 
               <div className="grid gap-3 md:grid-cols-[1.15fr_0.85fr]">
-                <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+                <div className={searchCockpitSectionClass}>
                   <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     <span>{t('careeros.filters.commute_distance', { defaultValue: 'Dojezdova vzdalenost' })}</span>
                     <span className="text-cyan-600">{filterMaxDistance} km</span>
@@ -2087,7 +2099,7 @@ export const SearchCockpit: React.FC<{
                   </div>
                 </div>
 
-                <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+                <div className={searchCockpitSectionClass}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope', { defaultValue: 'Kde hledat' })}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.search_scope_desc', { defaultValue: 'Zaklad je vzdy domaci trh. Prihranici a zahranici se zapina jen kdyz to opravdu chcete.' })}</div>
                   <div className="mt-3 grid gap-2">
@@ -2134,7 +2146,7 @@ export const SearchCockpit: React.FC<{
                 </div>
               </div>
 
-              <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+              <div className={searchCockpitSectionClass}>
                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.transport_mode', { defaultValue: 'Jak dojíždíte' })}</div>
                 <TransportModeSelector
                   selectedMode={transportMode}
@@ -2146,7 +2158,7 @@ export const SearchCockpit: React.FC<{
                 />
               </div>
 
-              <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+              <div className={searchCockpitSectionClass}>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.comp_floor', { defaultValue: 'Minimální odměna' })}</div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[0, 40000, 60000, 90000].map((value) => (
@@ -2169,8 +2181,8 @@ export const SearchCockpit: React.FC<{
               </div>
             </div>
 
-            <div className="space-y-3 rounded-[24px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.26))] p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.72),rgba(15,23,42,0.46))]">
-              <div className="rounded-[20px] border border-white/60 bg-white/52 p-4 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/60">
+            <div className={cn('space-y-3', searchCockpitPanelClass)}>
+              <div className={searchCockpitSectionClass}>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement', { defaultValue: 'Jak chcete pracovat' })}</div>
                 <div className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{t('careeros.filters.work_arrangement_desc', { defaultValue: 'Jen to, co opravdu chcete videt: remote, onsite nebo neco mezi tim.' })}</div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -2247,7 +2259,7 @@ export const SearchCockpit: React.FC<{
                 })}
               </div>
 
-              <div className="rounded-[18px] border border-cyan-100/80 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-800 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-200">
+              <div className="rounded-[18px] border border-cyan-200/80 bg-[linear-gradient(180deg,rgba(236,254,255,0.95),rgba(236,253,245,0.9))] px-4 py-3 text-sm text-cyan-900 shadow-[0_16px_32px_-28px_rgba(8,145,178,0.32)] dark:border-cyan-900/40 dark:bg-[linear-gradient(180deg,rgba(8,51,68,0.34),rgba(12,36,49,0.28))] dark:text-cyan-200">
                 {t('careeros.filters.live_apply', { defaultValue: 'Vysledky se meni hned podle toho, co si opravdu zvolite. Zadna skryta logika navic.' })}
               </div>
             </div>
