@@ -5,6 +5,7 @@ from datetime import datetime
 
 class RecommendationLog(SQLModel, table=True):
     __tablename__ = "recommendation_logs"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(index=True)

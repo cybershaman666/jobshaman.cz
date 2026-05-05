@@ -6,6 +6,7 @@ from sqlalchemy import Column, JSON
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     supabase_id: UUID = Field(unique=True, index=True)
@@ -18,6 +19,7 @@ class User(SQLModel, table=True):
 
 class CandidateProfile(SQLModel, table=True):
     __tablename__ = "candidate_profiles_v2"
+    __table_args__ = {"extend_existing": True}
 
     user_id: UUID = Field(primary_key=True, foreign_key="users.id")
     full_name: Optional[str] = None
@@ -32,6 +34,7 @@ class CandidateProfile(SQLModel, table=True):
 
 class CandidateIdentitySignal(SQLModel, table=True):
     __tablename__ = "candidate_identity_signals"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
@@ -55,6 +58,7 @@ class CandidateIdentitySignal(SQLModel, table=True):
 
 class CandidateCompanyShare(SQLModel, table=True):
     __tablename__ = "candidate_company_shares"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
@@ -70,6 +74,7 @@ class CandidateCompanyShare(SQLModel, table=True):
 
 class SensitiveAccessLog(SQLModel, table=True):
     __tablename__ = "sensitive_access_logs"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     actor_user_id: Optional[UUID] = Field(default=None, foreign_key="users.id", index=True)
@@ -82,6 +87,7 @@ class SensitiveAccessLog(SQLModel, table=True):
 
 class CandidateCVDocument(SQLModel, table=True):
     __tablename__ = "candidate_cv_documents"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
@@ -101,6 +107,7 @@ class CandidateCVDocument(SQLModel, table=True):
 
 class CandidateJcfpmSnapshot(SQLModel, table=True):
     __tablename__ = "candidate_jcfpm_snapshots"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
@@ -117,6 +124,7 @@ class CandidateJcfpmSnapshot(SQLModel, table=True):
 
 class Notification(SQLModel, table=True):
     __tablename__ = "notifications"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)

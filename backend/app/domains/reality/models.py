@@ -6,6 +6,7 @@ from sqlalchemy import Column, JSON
 
 class Company(SQLModel, table=True):
     __tablename__ = "companies"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str
@@ -27,6 +28,7 @@ class Company(SQLModel, table=True):
 
 class Job(SQLModel, table=True):
     __tablename__ = "opportunities"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     company_id: UUID = Field(foreign_key="companies.id")
@@ -57,6 +59,7 @@ class Job(SQLModel, table=True):
 
 class CompanyUser(SQLModel, table=True):
     __tablename__ = "company_users"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)

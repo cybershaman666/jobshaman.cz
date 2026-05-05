@@ -10,21 +10,21 @@ load_dotenv(os.path.join(_here, "../../.env"))     # repo root .env (shared Supa
 
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.core.database import init_db, is_db_ready
+from .core.database import init_db, is_db_ready
 
-from app.api.v2.endpoints import assets, candidate, jobs, recommendation, handshake, company, notifications, mentor, admin, billing, stripe, scraper
-from app.domains.recommendation.service import RecommendationDomainService
-from app.domains.identity.service import IdentityDomainService
-from app.domains.identity.models import User
+from .api.v2.endpoints import assets, candidate, jobs, recommendation, handshake, company, notifications, mentor, admin, billing, stripe, scraper
+from .domains.recommendation.service import RecommendationDomainService
+from .domains.identity.service import IdentityDomainService
+from .domains.identity.models import User
 from sqlmodel import select
-from app.core.database import engine
+from .core.database import engine
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domains.identity import models as identity_models
-from app.domains.reality import models as reality_models
-from app.domains.ai_governance import models as ai_models
-from app.domains.handshake import models as handshake_models
-from app.domains.media import models as media_models
-from app.core.runtime import get_cors_origins, validate_runtime_config
+from .domains.identity import models as identity_models
+from .domains.reality import models as reality_models
+from .domains.ai_governance import models as ai_models
+from .domains.handshake import models as handshake_models
+from .domains.media import models as media_models
+from .core.runtime import get_cors_origins, validate_runtime_config
 
 async def background_matching_task():
     """

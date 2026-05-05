@@ -6,6 +6,7 @@ from sqlalchemy import Column, JSON
 
 class PersonalizedWeights(SQLModel, table=True):
     __tablename__ = "recommendation_personalized_weights"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True, unique=True)

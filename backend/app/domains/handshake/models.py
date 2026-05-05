@@ -6,6 +6,7 @@ from sqlalchemy import Column, JSON
 
 class Handshake(SQLModel, table=True):
     __tablename__ = "handshakes"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
@@ -26,6 +27,7 @@ class Handshake(SQLModel, table=True):
 
 class HandshakeEvent(SQLModel, table=True):
     __tablename__ = "handshake_events"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     handshake_id: UUID = Field(foreign_key="handshakes.id", index=True)
@@ -39,6 +41,7 @@ class HandshakeEvent(SQLModel, table=True):
 
 class HandshakeMessage(SQLModel, table=True):
     __tablename__ = "handshake_messages"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     handshake_id: UUID = Field(foreign_key="handshakes.id", index=True)
@@ -50,6 +53,7 @@ class HandshakeMessage(SQLModel, table=True):
 
 class SandboxSession(SQLModel, table=True):
     __tablename__ = "sandbox_sessions"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     handshake_id: UUID = Field(foreign_key="handshakes.id", index=True)
@@ -62,6 +66,7 @@ class SandboxSession(SQLModel, table=True):
 
 class SandboxEvaluation(SQLModel, table=True):
     __tablename__ = "sandbox_evaluations"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     sandbox_session_id: UUID = Field(foreign_key="sandbox_sessions.id", index=True)
@@ -72,6 +77,7 @@ class SandboxEvaluation(SQLModel, table=True):
 
 class SlotReservation(SQLModel, table=True):
     __tablename__ = "slot_reservations"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     scope: str = Field(index=True)  # candidate, company_challenge

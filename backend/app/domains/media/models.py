@@ -7,6 +7,7 @@ from sqlmodel import Field, SQLModel
 
 class MediaAsset(SQLModel, table=True):
     __tablename__ = "media_assets"
+    __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     owner_user_id: Optional[UUID] = Field(default=None, foreign_key="users.id", index=True)
