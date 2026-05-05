@@ -272,55 +272,8 @@ export const RecruiterShell: React.FC<{
     },
   ], [draftRoleFirstStep, draftRoleSummary, draftRoleTitle, t]);
 
-  const _applyDraftPreset = (preset: 'support' | 'growth' | 'ops') => {
-    const companyName = selectedCompany?.name || recruiterCompany?.name || t('rebuild.recruiter.our_company', { defaultValue: 'our company' });
-    const presets = {
-      support: {
-        title: t('rebuild.recruiter.preset_support_title', { defaultValue: 'Speed up customer support without losing quality' }),
-        family: 'care' as Role['roleFamily'],
-        summary: t('rebuild.recruiter.preset_support_summary', { defaultValue: '{{company}} is looking for someone to design a practical way to shorten support response times while maintaining personal, accurate communication with customers. We are interested in judgment, prioritization skills, and the ability to propose a measurable procedure.', company: companyName }),
-        firstStep: t('rebuild.recruiter.preset_support_task', { defaultValue: 'Describe how you would map the current support flow during the first 14 days, find the biggest delays, and propose the first experiment. Include metrics, risks, and what you would automate as a last resort.' }),
-        skills: t('rebuild.recruiter.preset_support_skills', { defaultValue: 'Customer support, processes, AI automation, communication, metrics' }),
-      },
-      growth: {
-        title: t('rebuild.recruiter.preset_growth_title', { defaultValue: 'Find a new channel for qualified leads' }),
-        family: 'marketing' as Role['roleFamily'],
-        summary: t('rebuild.recruiter.preset_growth_summary', { defaultValue: '{{company}} needs to verify a new acquisition channel without a large budget. The challenge tests the ability to formulate hypotheses, design an experiment, and distinguish vanity metrics from real business signals.', company: companyName }),
-        firstStep: t('rebuild.recruiter.preset_growth_task', { defaultValue: 'Propose a 30-day experiment for one new acquisition channel. State the target group, offer content, measurement, stop rules, and how you would evaluate lead quality.' }),
-        skills: t('rebuild.recruiter.preset_growth_skills', { defaultValue: 'Growth, experiments, content, analytics, B2B' }),
-      },
-      ops: {
-        title: t('rebuild.recruiter.preset_ops_title', { defaultValue: 'Clarify internal task handovers between teams' }),
-        family: 'operations' as Role['roleFamily'],
-        summary: t('rebuild.recruiter.preset_ops_summary', { defaultValue: '{{company}} is dealing with context loss between teams. We are looking for a proposal for a simple work system that will reduce repetitive questions, make responsibility visible, and not create another administrative layer.', company: companyName }),
-        firstStep: t('rebuild.recruiter.preset_ops_task', { defaultValue: 'Propose a task handover structure between two teams. Describe a minimal workflow, tools, decision rules, a sample task entry, and how you will know the system works.' }),
-        skills: t('rebuild.recruiter.preset_ops_skills', { defaultValue: 'Operations, Notion, process design, coordination, documentation' }),
-      },
-    }[preset];
-    setDraftRoleTitle(presets.title);
-    setDraftRoleFamily(presets.family);
-    setDraftRoleSummary(presets.summary);
-    setDraftRoleFirstStep(presets.firstStep);
-    setDraftRoleSkills(presets.skills);
-    setChallengeError('');
-    setChallengeNotice(t('rebuild.recruiter.preset_applied', { defaultValue: 'AI proposal is filled in as a working draft. Edit it and then save the challenge.' }));
-  };
 
-  const _handleAssistDraft = () => {
-    const title = draftRoleTitle.trim() || t('rebuild.recruiter.new_challenge_placeholder', { defaultValue: 'New candidate challenge' });
-    const companyName = selectedCompany?.name || recruiterCompany?.name || t('rebuild.recruiter.company_placeholder', { defaultValue: 'company' });
-    if (!draftRoleSummary.trim()) {
-      setDraftRoleSummary(t('rebuild.recruiter.assist_summary', { defaultValue: '{{company}} needs to solve a specific challenge in the field of {{family}}. The goal is to find out how the candidate thinks, how they structure their assignment, how they work with uncertainty, and how they propose the first measurable step.', company: companyName, family: roleFamilyLabel[draftRoleFamily].toLowerCase() }));
-    }
-    if (!draftRoleFirstStep.trim()) {
-      setDraftRoleFirstStep(t('rebuild.recruiter.assist_task', { defaultValue: 'Propose the first practical procedure for the challenge "{{title}}". Describe context, key questions, proposed steps, risks, success metrics, and where you would use an external tool such as Notion, Canva, Figma, Google Docs, or Miro.', title }));
-    }
-    if (!draftRoleSkills.trim()) {
-      setDraftRoleSkills(t('rebuild.recruiter.assist_skills', { defaultValue: 'Analytical thinking, communication, prioritization, working with tools, independence' }));
-    }
-    setChallengeError('');
-    setChallengeNotice(t('rebuild.recruiter.assist_completed', { defaultValue: 'I have supplemented the proposal for the assignment and the first assessment step. Now just fine-tune the specific company context.' }));
-  };
+
 
   const applyAiDraftOutput = (output: Record<string, unknown>) => {
     const title = String(output.title || '').trim();
@@ -606,23 +559,6 @@ export const RecruiterShell: React.FC<{
     [dashboardMetrics, normalizedRecruiterSearch, visibleCalendarEvents, visibleCandidateInsights.length, visibleRoles],
   );
 
-  const _handleRecruiterAttachmentInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      setRecruiterThreadError('');
-      setRecruiterThreadNotice('');
-      setRecruiterAttachmentBusy(true);
-      const attachment = await uploadApplicationMessageAttachment(userProfile.id, file);
-      setRecruiterMessageAttachments((current) => [...current, attachment]);
-      setRecruiterThreadNotice(`${file.name} attached to the outgoing recruiter message.`);
-    } catch (error) {
-      setRecruiterThreadError(error instanceof Error ? error.message : 'Failed to upload recruiter attachment.');
-    } finally {
-      setRecruiterAttachmentBusy(false);
-      event.target.value = '';
-    }
-  };
 
   const handleRecruiterSendMessage = async () => {
     if (!selectedRecruiterDialogueId || (!recruiterMessageDraft.trim() && recruiterMessageAttachments.length === 0)) return;
@@ -646,23 +582,6 @@ export const RecruiterShell: React.FC<{
     }
   };
 
-  const _handleRecruiterStatusChange = async (status: 'reviewed' | 'shortlisted' | 'rejected') => {
-    if (!selectedRecruiterDialogueId) return;
-    setRecruiterStatusBusy(true);
-    try {
-      setRecruiterThreadError('');
-      setRecruiterThreadNotice('');
-      const result = await updateCompanyApplicationStatus(selectedRecruiterDialogueId, status);
-      if (!result.ok) throw new Error('Failed to update candidate lane status.');
-      setSelectedRecruiterDialogueDetail((current) => current ? { ...current, status } : current);
-      setRecruiterStatusOverrides((current) => ({ ...current, [selectedRecruiterDialogueId]: status }));
-      setRecruiterThreadNotice(`Application moved to ${getApplicationStatusCopy(status).label.toLowerCase()}.`);
-    } catch (error) {
-      setRecruiterThreadError(error instanceof Error ? error.message : 'Failed to update recruiter status.');
-    } finally {
-      setRecruiterStatusBusy(false);
-    }
-  };
 
   const navItems: Array<{ id: RecruiterTab; label: string; icon: React.ComponentType<{ size?: string | number; className?: string }>; path: string }> = [
     { id: 'dashboard', label: t('rebuild.recruiter.nav_dashboard', { defaultValue: 'Overview' }), icon: LayoutDashboard, path: '/recruiter' },
@@ -1106,7 +1025,6 @@ export const RecruiterShell: React.FC<{
                       ) : (
                         visibleCandidateInsights.map((candidate) => {
                           const candidateStatus = getRecruiterCandidateStatus(candidate.id);
-                          const _statusCopy = candidateStatus ? getApplicationStatusCopy(candidateStatus) : null;
                           const isActive = candidate.id === selectedCandidate?.id;
                           const isLegacy = candidate.id.startsWith('legacy-');
 

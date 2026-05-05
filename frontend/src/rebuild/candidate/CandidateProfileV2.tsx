@@ -37,7 +37,7 @@ import { validateCvFile } from '../../services/v2CvService';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 
-type TFunction = (key: string, options?: { defaultValue?: string }) => string;
+
 
 const formatVisibility = (value?: string) => {
   if (value === 'public') return 'Veřejný profil';

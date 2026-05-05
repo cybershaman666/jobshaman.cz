@@ -16,7 +16,7 @@ import { cn } from '../cn';
 import { buildRecruiterDashboardViewModel } from '../dashboard/viewModels';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { fetchV2CompanyDashboard, type V2CompanyDashboardPayload } from '../../services/companyDashboardService';
-import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
+
 
 type TFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
 

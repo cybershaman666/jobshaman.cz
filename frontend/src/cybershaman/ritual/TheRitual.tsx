@@ -92,10 +92,6 @@ export const TheRitual: React.FC<{ onComplete: () => void }> = ({ onComplete }) 
       ...updates,
       story: updates.story || userProfile.story || 'Tvůj příběh byl úspěšně zmapován.',
       preferences: {
-        workLifeBalance: userProfile.preferences?.workLifeBalance ?? 50,
-        financialGoals: userProfile.preferences?.financialGoals ?? 50,
-        commuteTolerance: userProfile.preferences?.commuteTolerance ?? 50,
-        priorities: userProfile.preferences?.priorities ?? [],
         ...(userProfile.preferences || {}),
         ...(updates.preferences || {}),
         candidate_onboarding_v2: {

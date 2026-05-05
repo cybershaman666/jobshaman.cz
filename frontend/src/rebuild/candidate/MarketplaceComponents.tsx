@@ -9,10 +9,7 @@ import {
   TrendingUp,
   Sparkles,
   Info,
-  ChevronRight,
-  Eye,
   CheckCircle2,
-  Bookmark,
   Handshake,
   UserCircle2
 } from 'lucide-react';

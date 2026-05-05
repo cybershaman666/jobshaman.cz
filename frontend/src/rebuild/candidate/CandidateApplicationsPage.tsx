@@ -4,9 +4,9 @@ import { Bookmark, ChevronRight, MessageSquare, ShieldCheck, Zap } from 'lucide-
 import { cn } from '../cn';
 import type { DialogueSummary } from '../../types';
 import type { Role } from '../models';
-import { resolveCompany } from '../shellDomain';
-import { CandidateShellSurface, ShellCard } from './CandidateShellSurface';
-import { primaryButtonClass } from '../ui/shellStyles';
+
+import { ShellCard } from './CandidateShellSurface';
+
 
 const getApplicationScore = (application: DialogueSummary) => {
   // Try to parse candidate_score if it exists, otherwise return a default or random for demo

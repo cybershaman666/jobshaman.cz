@@ -3,7 +3,6 @@ import { cn } from '../cn';
 import { NavItem, SidebarV2 } from './SidebarV2';
 import { TopBarV2 } from './TopBarV2';
 import { UserProfile } from '../../types';
-import { useRebuildTheme } from './rebuildTheme';
 
 export const DashboardLayoutV2: React.FC<{
   userRole: 'candidate' | 'recruiter';
@@ -46,7 +45,7 @@ export const DashboardLayoutV2: React.FC<{
   onLanguageChange = () => {},
   t
 }) => {
-  const { resolvedMode } = useRebuildTheme();
+
 
   return (
     <div className={cn(

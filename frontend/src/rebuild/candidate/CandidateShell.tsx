@@ -524,34 +524,7 @@ const RoleCard: React.FC<{
   );
 };
 
-const IntelligencePanel: React.FC<{
-  role: Role;
-  preferences: CandidatePreferenceProfile;
-  t?: (key: string, opts: { defaultValue: string }) => string;
-}> = ({ role, preferences, t }) => {
-  const { i18n } = useTranslation();
-  const evaluation = React.useMemo(() => evaluateRole(role, preferences, t), [role, preferences, t]);
-  return (
-    <div className={cn(panelClass, 'space-y-5 p-5')}>
-      <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">
-        <Gauge size={14} />
-        {t?.('rebuild.intelligence.title', { defaultValue: 'Candidate Intelligence' })}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <InsightBadge label={t?.('rebuild.intelligence.jhi_index', { defaultValue: 'JHI index' }) || 'JHI index'} value={`${Math.round(evaluation.jhi.personalizedScore)}/100`} />
-        <InsightBadge label={t?.('rebuild.intelligence.real_value', { defaultValue: 'Real value' }) || 'Real value'} value={`${evaluation.totalRealMonthlyValue.toLocaleString(i18n?.language === 'cs' ? 'cs-CZ' : 'en-GB')} ${role.currency}`} />
-        <InsightBadge label={t?.('rebuild.intelligence.tax_regime', { defaultValue: 'Tax regime' }) || 'Tax regime'} value={evaluation.taxRuleLabel} />
-        <InsightBadge label={t?.('rebuild.intelligence.commute', { defaultValue: 'Commute' }) || 'Commute'} value={`${evaluation.commuteMinutesOneWay} min / ${evaluation.commuteMonthlyCost.toLocaleString(i18n?.language === 'cs' ? 'cs-CZ' : 'en-GB')} ${role.currency}`} />
-      </div>
-      <div className="rounded-[24px] border border-[#12AFCB]/10 bg-[#12AFCB]/5 p-4 text-sm leading-7 text-slate-700">{evaluation.summary}</div>
-      <div className="flex flex-wrap gap-2">
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{evaluation.borderFitLabel}</span>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{t?.('rebuild.intelligence.tax_salary_reality', { defaultValue: 'Tax-aware salary reality' })}</span>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{t?.('rebuild.intelligence.commute_signal', { defaultValue: 'Commute-adjusted signal' })}</span>
-      </div>
-    </div>
-  );
-};
+
 
 const RecommendationFitPanel: React.FC<{
   role: Role;
@@ -1563,7 +1536,7 @@ export const CandidateRoleBriefingPage: React.FC<{
     ...getStockCoverCandidatesForDomain('operations', `${role.companyName}:${role.title}`),
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
-  const reviewerFallbacks = buildImageCandidates([
+  const _reviewerFallbacks = buildImageCandidates([
     company.reviewer.avatarUrl,
     company.logo,
     MARKETPLACE_LOGO_FALLBACK,
@@ -1713,7 +1686,7 @@ export const ImportedPrepPage: React.FC<{
     ...getStockCoverCandidatesForDomain('operations', `${role.companyName}:${role.title}:${role.location}`),
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
-  const compensation = formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Neuvedeno' }));
+  const _compensation = formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Neuvedeno' }));
 
   return (
     <CandidateShellSurface

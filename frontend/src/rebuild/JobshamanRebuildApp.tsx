@@ -1,29 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowRight,
   BarChart3,
   Briefcase,
-  Building2,
-  Check,
   CircleUserRound,
-  Eye,
   GraduationCap,
-  Info,
   LayoutDashboard,
   Loader2,
-  LockKeyhole,
-  Mail,
   MessageSquare,
-  ShieldCheck,
-  UserRound,
-  X,
   BrainCircuit,
 } from 'lucide-react';
 
 import { cn } from './cn';
 import { fetchJobByIdV2, fetchJobsWithFiltersV2 } from '../services/jobServiceV2';
-import { signInWithEmail, signInWithOAuthProvider, signUpWithEmail, createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, savePendingAuthConsent, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
+import { createCompany, deleteCVDocument, getRecruiterCompany, getUserCVDocuments, updateCVDocumentParsedData, updateCompanyProfile, updateUserCVSelection, updateUserProfile, uploadApplicationMessageAttachment, uploadUserProfilePhoto } from '../services/v2UserService';
 import {
   fetchCandidateApplicationDetail,
   fetchCandidateApplicationMessages,
@@ -38,7 +28,6 @@ import {
   createCompanyChallenge,
   listCompanyChallenges,
   publishCompanyChallenge,
-  type ChallengeDraft,
 } from '../services/v2ChallengeService';
 import { supabase } from '../services/supabaseClient';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -118,7 +107,7 @@ import { RebuildThemeProvider } from './ui/rebuildTheme';
 import './ui/rebuildTheme.css';
 import AdminDashboard from '../pages/AdminDashboard';
 import { initializeAnalytics } from '../services/cookieConsentService';
-import { AuthPanel, buildDefaultAuthForm } from './auth/AuthPanel';
+import { AuthPanel } from './auth/AuthPanel';
 
 
 
