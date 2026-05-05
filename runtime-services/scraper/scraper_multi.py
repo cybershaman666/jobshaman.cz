@@ -1302,6 +1302,8 @@ def run_all_scrapers():
     if not supabase and jobs_postgres_write_available():
         print("ℹ️ Supabase není dostupné, pokračuji v postgres-only režimu.")
 
+def run_czech_scrapers():
+    """Runs only Czech-specific website scrapers (jobs.cz, prace.cz, jenprace.cz)"""
     websites = [
         {
             "name": "jobs.cz",
@@ -1319,21 +1321,33 @@ def run_all_scrapers():
             "max_pages": 10,
         },
     ]
-
-    grand_total = 0
-    print(f"🚀 Spouštím hromadné scrapování: {now_iso()}")
+    total = 0
     for site in websites:
         try:
-            grand_total += scrape_website(
+            total += scrape_website(
                 site["name"], site["base_url"], site["max_pages"]
             )
         except Exception as e:
             print(f"❌ Chyba při scrapování {site['name']}: {e}")
+    return total
 
+
+def run_all_api_sources():
+    """Runs external API sources (WWR, Jooble, etc.)"""
     try:
-        grand_total += run_external_api_sources(supabase)
+        return run_external_api_sources(supabase)
     except Exception as e:
         print(f"❌ Chyba při ingestu API zdrojů: {e}")
+        return 0
+
+
+def run_all_scrapers():
+
+    grand_total = 0
+    print(f"🚀 Spouštím hromadné scrapování (Sequential): {now_iso()}")
+    
+    grand_total += run_czech_scrapers()
+    grand_total += run_all_api_sources()
 
     try:
         print("🌍 Spouštím Nordic scraper (TheHub + Jooble)...")

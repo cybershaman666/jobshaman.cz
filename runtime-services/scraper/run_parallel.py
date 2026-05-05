@@ -16,7 +16,7 @@ try:
 except Exception:
     # Handle if run as script from parent or elsewhere
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from scraper_multi import run_all_scrapers as run_cz
+    from scraper_multi import run_czech_scrapers as run_cz, run_all_api_sources as run_api
     from scraper_sk import run_slovakia_scraper as run_sk
     from scraper_pl import run_poland_scraper as run_pl
     from scraper_de import run_germany_scraper as run_de
@@ -46,11 +46,12 @@ def run_all_parallel():
     results = manager.dict()
     
     scrapers = [
-        ('Czech Republic (CZ)', run_cz),
+        ('Czech Republic (Jobs.cz/Prace)', run_cz),
         ('Slovakia (SK)', run_sk),
         ('Poland (PL)', run_pl),
         ('Germany + Austria (DE/AT)', run_de),
         ('Nordic Countries (DK/SE/NO/FI)', run_nordic),
+        ('External API Sources (Jooble/WWR)', run_api),
     ]
     
     processes = []

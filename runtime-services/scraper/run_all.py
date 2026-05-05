@@ -13,7 +13,7 @@ try:
     from .scraper_nordic import run_nordic_scraper as run_nordic
 except ImportError:
     # Fallback to direct imports
-    from scraper_multi import run_all_scrapers as run_cz
+    from scraper_multi import run_czech_scrapers as run_cz, run_all_api_sources as run_api
     from scraper_sk import run_slovakia_scraper as run_sk
     from scraper_pl import run_poland_scraper as run_pl
     from scraper_de import run_germany_scraper as run_de
@@ -53,11 +53,11 @@ def run_all_scrapers(countries=None):
         dict: Results per country
     """
     if countries is None:
-        countries = ['CZ', 'SK', 'PL', 'DE', 'DK', 'SE', 'NO', 'FI']
+        countries = ['CZ', 'SK', 'PL', 'DE', 'DK', 'SE', 'NO', 'FI', 'API']
     
     # Map country codes to scraper functions
     scrapers = {
-        'CZ': ('Czech Republic', run_cz),
+        'CZ': ('Czech Republic (Jobs.cz/Prace)', run_cz),
         'SK': ('Slovakia', run_sk),
         'PL': ('Poland', run_pl),
         'DE': ('Germany + Austria', run_de),
@@ -65,6 +65,7 @@ def run_all_scrapers(countries=None):
         'SE': ('Sweden', lambda: run_nordic('se')),
         'NO': ('Norway', lambda: run_nordic('no')),
         'FI': ('Finland', lambda: run_nordic('fi')),
+        'API': ('External API Sources (Jooble/WWR)', run_api),
     }
     
     results = {}

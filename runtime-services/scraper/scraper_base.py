@@ -1042,6 +1042,14 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
             job_data["country_code"] = "de"
         elif '.at' in domain:
             job_data["country_code"] = "at" # Correctly map .at to AT
+        elif '.dk' in domain:
+            job_data["country_code"] = "dk"
+        elif '.se' in domain:
+            job_data["country_code"] = "se"
+        elif '.no' in domain:
+            job_data["country_code"] = "no"
+        elif '.fi' in domain:
+            job_data["country_code"] = "fi"
     elif not job_data.get("country_code"):
         job_data.pop("country_code", None)
     normalized_country_code = normalize_jobs_country_code(job_data.get("country_code"))

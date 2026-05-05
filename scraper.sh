@@ -14,11 +14,11 @@ echo "🚀 Spouštím JobShaman Scraper (V2-ready)..."
 echo "   Path: $ROOT_DIR/runtime-services/scraper"
 
 # Export PYTHONPATH to include scraper directory
-export PYTHONPATH="$ROOT_DIR/runtime-services/scraper:$ROOT_DIR/runtime-services:$PYTHONPATH"
+export PYTHONPATH="$ROOT_DIR/runtime-services/scraper:$ROOT_DIR/runtime-services:${PYTHONPATH:-}"
 
-# Runs CZ, SK, PL, DE/AT and now Nordic (DK, SE, NO, FI) via scraper_multi.py
+# Runs all regions (CZ, SK, PL, DE/AT, Nordic) and API sources in PARALLEL
 cd "$ROOT_DIR/runtime-services/scraper"
-"$PYTHON_BIN" scraper_multi.py "$@"
+"$PYTHON_BIN" run_parallel.py "$@"
 
 echo "🔄 Aktualizuji sitemapy (SEO)..."
 cd "$ROOT_DIR/backend"
