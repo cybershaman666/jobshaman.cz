@@ -2,20 +2,12 @@ import { getSupabaseClient } from './supabaseClient';
 
 const normalizeApiBaseUrl = (): string => {
   const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    if (!explicit || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api\/v2\/?$/i.test(explicit)) {
-      return '/api/v2';
-    }
-  }
   if (explicit) return explicit.replace(/\/$/, '');
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return '/api/v2';
-  }
-  if (import.meta.env.DEV) return 'http://localhost:8000/api/v2';
+  if (import.meta.env.DEV) return 'http://localhost:8000';
 
   const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (!backend) return 'https://api.jobshaman.cz/api/v2';
-  return backend.endsWith('/api/v2') ? backend : `${backend}/api/v2`;
+  if (!backend) return 'https://api.jobshaman.cz';
+  return backend;
 };
 
 const API_BASE_URL = normalizeApiBaseUrl();
