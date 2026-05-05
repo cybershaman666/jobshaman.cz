@@ -501,6 +501,7 @@ const GrowthAnalysisCard: React.FC<{
   onOpenDetail: () => void;
 }> = ({ vm, onOpenDetail }) => {
   const { t } = useTranslation();
+  return (
     <ShellCard tone="default" className="flex flex-col overflow-hidden h-full">
       {/* Growth Section */}
       <div className="relative p-5 xl:p-6 border-b border-[color:var(--dashboard-soft-border)] bg-[linear-gradient(180deg,rgba(var(--accent-green-rgb),0.03),transparent)]">
