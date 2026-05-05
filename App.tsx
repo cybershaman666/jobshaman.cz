@@ -643,7 +643,7 @@ export default function App() {
     const jobsForDisplay = useMemo(() => measureSyncPerf('app:jobs-for-display', () => {
         const prevCache = jhiCacheRef.current;
         const nextCache = new Map<string, { key: string; jhi: any }>();
-        const personalized = filteredJobs.map((job) => {
+        const personalized = filteredJobs.map((job: Job) => {
             const cacheKey = buildJhiCacheKey(job);
             const cached = prevCache.get(job.id);
             const jhi = cached && cached.key === cacheKey
@@ -666,7 +666,7 @@ export default function App() {
         jhiCacheRef.current = nextCache;
 
         const scopedJobs = discoveryMode === 'micro_jobs'
-            ? personalized.filter((job) => job.challenge_format === 'micro_job')
+            ? personalized.filter((job: Job) => job.challenge_format === 'micro_job')
             : personalized;
 
         if (sortBy === 'distance') {
@@ -702,8 +702,8 @@ export default function App() {
             Array.from(
                 new Set(
                     deferredJobsForDisplay
-                        .flatMap((job) => [...(Array.isArray(job.benefits) ? job.benefits : []), ...(Array.isArray(job.tags) ? job.tags : [])])
-                        .map((item) => String(item || '').trim())
+                        .flatMap((job: Job) => [...(Array.isArray(job.benefits) ? job.benefits : []), ...(Array.isArray(job.tags) ? job.tags : [])])
+                        .map((item: any) => String(item || '').trim())
                         .filter(Boolean)
                 )
             ).slice(0, 6),
@@ -718,7 +718,7 @@ export default function App() {
     const [notificationsStorageHydrated, setNotificationsStorageHydrated] = useState(false);
     const notificationMatchCandidates = useMemo(
         () =>
-            deferredJobsForDisplay.slice(0, 24).map((job) => {
+            deferredJobsForDisplay.slice(0, 24).map((job: Job) => {
                 const aliases = getSavedJobIdAliases(job.id);
                 return {
                     id: job.id,
@@ -781,7 +781,7 @@ export default function App() {
         userProfile.preferredLocale,
     ]);
     const unreadHeaderNotificationCount = useMemo(
-        () => headerNotifications.filter((notification) => !readNotificationIds.includes(notification.id)).length,
+        () => headerNotifications.filter((notification: CareerOSNotification) => !readNotificationIds.includes(notification.id)).length,
         [headerNotifications, readNotificationIds]
     );
 
@@ -842,10 +842,10 @@ export default function App() {
     }, [savedJobsCache, savedJobsCacheKey]);
 
     useEffect(() => {
-        setSavedJobsCache((prev) => {
+        setSavedJobsCache((prev: Record<string, Job>) => {
             const next: Record<string, Job> = {};
             for (const savedId of savedJobIds) {
-                const fresh = jobsForDisplay.find((job) => job.id === savedId);
+                const fresh = jobsForDisplay.find((job: Job) => job.id === savedId);
                 if (fresh) {
                     next[savedId] = fresh;
                     continue;
@@ -865,8 +865,8 @@ export default function App() {
 
     useEffect(() => {
         let cancelled = false;
-        const jobsById = new Set(jobsForDisplay.map((job) => job.id));
-        const missingIds = savedJobIds.filter((id) => !jobsById.has(id) && savedJobsCache[id] === undefined);
+        const jobsById = new Set(jobsForDisplay.map((job: Job) => job.id));
+        const missingIds = savedJobIds.filter((id: string) => !jobsById.has(id) && savedJobsCache[id] === undefined);
         if (!missingIds.length) return;
 
         (async () => {
@@ -880,11 +880,11 @@ export default function App() {
                         fetchedIds.add(job.id.substring(3));
                     }
                 }
-                const notFoundIds = missingIds.slice(0, 120).filter((id) => !fetchedIds.has(id));
+                const notFoundIds = missingIds.slice(0, 120).filter((id: string) => !fetchedIds.has(id));
                 if (notFoundIds.length > 0) {
-                    setSavedJobIds((current) => current.filter((id) => !notFoundIds.includes(id)));
+                    setSavedJobIds((current: string[]) => current.filter((id: string) => !notFoundIds.includes(id)));
                 }
-                setSavedJobsCache((prev) => {
+                setSavedJobsCache((prev: Record<string, Job>) => {
                     const next = { ...prev };
                     for (const missingId of missingIds.slice(0, 120)) {
                         next[missingId] = null as any;
@@ -892,7 +892,7 @@ export default function App() {
                     for (const job of fetched) {
                         next[job.id] = job;
                     }
-                    notFoundIds.forEach((id) => {
+                    notFoundIds.forEach((id: string) => {
                         delete next[id];
                     });
                     return next;
@@ -910,7 +910,7 @@ export default function App() {
     }, [savedJobIds, jobsForDisplay, savedJobsCache, setSavedJobIds]);
 
     const resolvedSavedJobs = useMemo(() => {
-        const jobsById = new Map(jobsForDisplay.map((job) => [job.id, job]));
+        const jobsById = new Map(jobsForDisplay.map((job: Job) => [job.id, job]));
         const out: Job[] = [];
         for (const id of savedJobIds) {
             const live = jobsById.get(id);
@@ -927,7 +927,7 @@ export default function App() {
     }, [jobsForDisplay, savedJobIds, savedJobsCache]);
     const deferredResolvedSavedJobs = useDeferredValue(resolvedSavedJobs);
 
-    const selectedJob = jobsForDisplay.find(j => j.id === selectedJobId) || directlyFetchedJob;
+    const selectedJob = jobsForDisplay.find((j: Job) => j.id === selectedJobId) || directlyFetchedJob;
 
     // --- EFFECTS ---
 

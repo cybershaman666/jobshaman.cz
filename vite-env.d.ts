@@ -10,7 +10,11 @@ interface ImportMetaEnv {
   readonly VITE_SEARCH_BACKEND_URL?: string
   readonly VITE_SEARCH_V2_ENABLED?: string
   readonly VITE_ENABLE_VERCEL_ANALYTICS?: string
+  readonly VITE_API_URL?: string
+  readonly VITE_TEST_PREMIUM_EMAILS?: string
   readonly GEMINI_API_KEY: string
+  readonly MODE: string
+  readonly DEV: boolean
 }
 
 interface ImportMeta {

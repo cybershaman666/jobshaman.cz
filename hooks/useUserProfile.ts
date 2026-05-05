@@ -219,7 +219,7 @@ export const useUserProfile = () => {
 
             if (profile) {
                 console.log('Setting user profile with id:', profile.id);
-                setUserProfile(prev => {
+                setUserProfile((prev: UserProfile) => {
                     const updated = {
                         ...prev,
                         ...profile,
@@ -306,7 +306,7 @@ export const useUserProfile = () => {
                         if (Object.keys(updates).length > 0) {
                             await updateUserProfileService(userId, updates);
                             profile = { ...profile, ...updates };
-                            setUserProfile(prev => ({ ...prev, ...updates }));
+                            setUserProfile((prev: UserProfile) => ({ ...prev, ...updates }));
                             console.log('✅ LinkedIn metadata applied to profile.');
                         }
                     }
@@ -321,7 +321,7 @@ export const useUserProfile = () => {
                         try {
                             await updateUserProfileService(userId, { photo: importedUrl });
                             profile = { ...profile, photo: importedUrl };
-                            setUserProfile(prev => ({ ...prev, photo: importedUrl }));
+                            setUserProfile((prev: UserProfile) => ({ ...prev, photo: importedUrl }));
                             console.log('✅ External profile photo imported.');
                         } catch (err) {
                             console.warn('⚠️ Failed to persist imported profile photo:', err);
@@ -430,7 +430,7 @@ export const useUserProfile = () => {
     };
 
     const updateUserProfileState = (updates: Partial<UserProfile>) => {
-        setUserProfile(prev => ({ ...prev, ...updates }));
+        setUserProfile((prev: UserProfile) => ({ ...prev, ...updates }));
     };
 
     const signOutUser = async () => {
