@@ -213,7 +213,7 @@ export const RecruiterShell: React.FC<{
   const [recruiterMessageBusy, setRecruiterMessageBusy] = React.useState(false);
   const [recruiterMessageDraft, setRecruiterMessageDraft] = React.useState('');
   const [recruiterMessageAttachments, setRecruiterMessageAttachments] = React.useState<ApplicationMessageAttachment[]>([]);
-  const [recruiterStatusOverrides, setRecruiterStatusOverrides] = React.useState<Record<string, DialogueDetail['status']>>({});
+
   const [_recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
   const [_recruiterThreadError, setRecruiterThreadError] = React.useState('');
   const [brandAssetBusy, setBrandAssetBusy] = React.useState<string | null>(null);
@@ -510,9 +510,7 @@ export const RecruiterShell: React.FC<{
         if (!active) return;
         setSelectedRecruiterDialogueDetail(detail);
         setSelectedRecruiterDialogueMessages(messages);
-        if (detail?.id && detail.status) {
-          setRecruiterStatusOverrides((current) => ({ ...current, [detail.id]: detail.status }));
-        }
+
       })
       .catch((error) => {
         console.error('Failed to load recruiter dialogue thread in rebuild shell', error);
