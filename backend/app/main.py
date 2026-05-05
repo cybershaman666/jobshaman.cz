@@ -1,6 +1,6 @@
 import asyncio
-from fastapi import FastAPI, BackgroundTasks, HTTPException
 import os
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from dotenv import load_dotenv
 
 # Load .env from backend/ and from repo root (whichever exists)
@@ -66,9 +66,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+_ALLOWED_ORIGIN_REGEX = (
+    r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$|"
+    r"^https?://jobshaman(-[a-z0-9-]+)?\.vercel\.app(:\d+)?$|"
+    r"^https?://[a-z0-9-]+\.northflank\.app(:\d+)?$|"
+    r"^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=_ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
