@@ -95,6 +95,14 @@ app.include_router(billing.router, prefix="/billing", tags=["billing"])
 app.include_router(stripe.router, prefix="/stripe", tags=["stripe"])
 app.include_router(scraper.router, prefix="/scraper", tags=["scraper"])
 
+@app.get("/csrf-token")
+def get_csrf_token():
+    """
+    Generate CSRF token for frontend.
+    """
+    # For now, return a dummy token since CSRF is disabled
+    return {"csrf_token": "dummy-token-for-v2"}
+
 @app.get("/health")
 def health_check():
     database_status = "ready" if is_db_ready() else "degraded"
