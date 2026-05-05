@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell, Check, X, ArrowRight, Zap, Handshake, Info, Sparkles } from 'lucide-react';
+import { Bell, ArrowRight, Handshake, Info, Sparkles } from 'lucide-react';
 import { cn } from '../cn';
 import { notificationService, Notification } from '../../services/notificationService';
 import { useRebuildTheme } from './rebuildTheme';
@@ -17,7 +17,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   onClose,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const { resolvedMode } = useRebuildTheme();
   const isDark = resolvedMode === 'dark';

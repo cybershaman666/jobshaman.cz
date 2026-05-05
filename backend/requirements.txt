@@ -1,5 +1,4 @@
 fastapi
-<<<<<<< HEAD
 uvicorn[standard]
 gunicorn
 resend
@@ -10,6 +9,7 @@ python-dotenv
 beautifulsoup4
 requests
 pydantic
+pydantic-settings
 email-validator
 itsdangerous
 apscheduler
@@ -23,23 +23,10 @@ user-agents
 sentry-sdk[fastapi]
 certifi
 psycopg[binary]
-=======
-uvicorn
-pydantic
-pydantic-settings
-supabase
 pyjwt
-python-dotenv
 sqlmodel
 asyncpg
 sqlalchemy[asyncio]
-bleach
-stripe
-requests
-beautifulsoup4
-langdetect
 ftfy
 unstructured
-gunicorn
 httpx
->>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)

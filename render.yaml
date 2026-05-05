@@ -2,35 +2,10 @@ services:
   - type: web
     name: jobshaman-backend
     env: python
-<<<<<<< HEAD
-    healthCheckPath: /healthz
-    buildCommand: >
-      sh -c '
-      if [ -f backend/requirements.txt ]; then
-        pip install -r backend/requirements.txt;
-      elif [ -f requirements.txt ]; then
-        pip install -r requirements.txt;
-      else
-        echo "Cannot find requirements.txt." &&
-        exit 1;
-      fi'
-    startCommand: >
-      sh -c '
-      if [ -f backend/app/main.py ]; then
-        cd backend &&
-        exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
-      elif [ -f app/main.py ]; then
-        exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
-      else
-        echo "Cannot find FastAPI entrypoint (app/main.py)." &&
-        exit 1;
-      fi'
-=======
     healthCheckPath: /health
     buildCommand: pip install -r backend/requirements.txt
     startCommand: >
       sh -c 'cd backend && exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120'
->>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
     envVars:
       - key: SUPABASE_URL
         sync: false
@@ -38,27 +13,6 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
-<<<<<<< HEAD
-      - key: AI_PROVIDER
-        value: openai
-      - key: OPENAI_ENDPOINT
-        value: https://openrouter.ai/api/v1/chat/completions
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENROUTER_HTTP_REFERER
-        value: https://jobshaman.com
-      - key: OPENROUTER_APP_TITLE
-        value: JobShaman
-      - key: OPENAI_MODEL
-        value: openai/gpt-4.1-mini
-      - key: OPENAI_FALLBACK_MODEL
-        value: openai/gpt-4.1-nano
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: SECRET_KEY
-=======
       - key: SUPABASE_JWT_SECRET
         sync: false
       - key: STRIPE_SECRET_KEY
@@ -84,7 +38,6 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: SCRAPER_TOKEN
->>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
         sync: false
       - key: API_BASE_URL
         sync: false

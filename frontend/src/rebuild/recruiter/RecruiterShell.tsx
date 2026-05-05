@@ -223,8 +223,8 @@ export const RecruiterShell: React.FC<{
   const [recruiterAttachmentBusy, setRecruiterAttachmentBusy] = React.useState(false);
   const [recruiterStatusBusy, setRecruiterStatusBusy] = React.useState(false);
   const [recruiterStatusOverrides, setRecruiterStatusOverrides] = React.useState<Record<string, DialogueDetail['status']>>({});
-  const [recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
-  const [recruiterThreadError, setRecruiterThreadError] = React.useState('');
+  const [_recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
+  const [_recruiterThreadError, setRecruiterThreadError] = React.useState('');
   const [brandAssetBusy, setBrandAssetBusy] = React.useState<string | null>(null);
   const recruiterAttachmentInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -277,7 +277,7 @@ export const RecruiterShell: React.FC<{
     },
   ], [draftRoleFirstStep, draftRoleSummary, draftRoleTitle, t]);
 
-  const applyDraftPreset = (preset: 'support' | 'growth' | 'ops') => {
+  const _applyDraftPreset = (preset: 'support' | 'growth' | 'ops') => {
     const companyName = selectedCompany?.name || recruiterCompany?.name || t('rebuild.recruiter.our_company', { defaultValue: 'our company' });
     const presets = {
       support: {
@@ -311,7 +311,7 @@ export const RecruiterShell: React.FC<{
     setChallengeNotice(t('rebuild.recruiter.preset_applied', { defaultValue: 'AI proposal is filled in as a working draft. Edit it and then save the challenge.' }));
   };
 
-  const handleAssistDraft = () => {
+  const _handleAssistDraft = () => {
     const title = draftRoleTitle.trim() || t('rebuild.recruiter.new_challenge_placeholder', { defaultValue: 'New candidate challenge' });
     const companyName = selectedCompany?.name || recruiterCompany?.name || t('rebuild.recruiter.company_placeholder', { defaultValue: 'company' });
     if (!draftRoleSummary.trim()) {
@@ -611,7 +611,7 @@ export const RecruiterShell: React.FC<{
     [dashboardMetrics, normalizedRecruiterSearch, visibleCalendarEvents, visibleCandidateInsights.length, visibleRoles],
   );
 
-  const handleRecruiterAttachmentInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleRecruiterAttachmentInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -651,7 +651,7 @@ export const RecruiterShell: React.FC<{
     }
   };
 
-  const handleRecruiterStatusChange = async (status: 'reviewed' | 'shortlisted' | 'rejected') => {
+  const _handleRecruiterStatusChange = async (status: 'reviewed' | 'shortlisted' | 'rejected') => {
     if (!selectedRecruiterDialogueId) return;
     setRecruiterStatusBusy(true);
     try {
@@ -1111,7 +1111,7 @@ export const RecruiterShell: React.FC<{
                       ) : (
                         visibleCandidateInsights.map((candidate) => {
                           const candidateStatus = getRecruiterCandidateStatus(candidate.id);
-                          const statusCopy = candidateStatus ? getApplicationStatusCopy(candidateStatus) : null;
+                          const _statusCopy = candidateStatus ? getApplicationStatusCopy(candidateStatus) : null;
                           const isActive = candidate.id === selectedCandidate?.id;
                           const isLegacy = candidate.id.startsWith('legacy-');
 

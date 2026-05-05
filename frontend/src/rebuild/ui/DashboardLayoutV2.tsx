@@ -47,7 +47,7 @@ export const DashboardLayoutV2: React.FC<{
   t
 }) => {
   const { resolvedMode } = useRebuildTheme();
-  const candidateLight = resolvedMode === 'light';
+  const _candidateLight = resolvedMode === 'light';
 
   return (
     <div className={cn(

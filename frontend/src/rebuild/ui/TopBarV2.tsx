@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '../cn';
-import { Bell, Plus, Search, UserCircle2, ChevronDown, LogOut, Building2, Globe } from 'lucide-react';
+import { Bell, Plus, Search, UserCircle2, ChevronDown, LogOut, Building2 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useRebuildTheme } from './rebuildTheme';
 import { NotificationDropdown } from './NotificationDropdown';
-import { notificationService, Notification } from '../../services/notificationService';
+import { notificationService } from '../../services/notificationService';
 
 export const TopBarV2: React.FC<{
   userRole: 'candidate' | 'recruiter';
@@ -131,7 +131,7 @@ export const TopBarV2: React.FC<{
                   )}
                 </button>
                 <NotificationDropdown 
-                  userId={userProfile.id} 
+                  userId={userProfile.id ?? ''} 
                   isOpen={isNotifOpen} 
                   onClose={() => setIsNotifOpen(false)} 
                 />
@@ -236,7 +236,7 @@ export const TopBarV2: React.FC<{
                   )}
                 </button>
                 <NotificationDropdown 
-                  userId={userProfile.id} 
+                  userId={userProfile.id ?? ''} 
                   isOpen={isNotifOpen} 
                   onClose={() => setIsNotifOpen(false)} 
                 />
