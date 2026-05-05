@@ -23,9 +23,7 @@ import {
   fetchCompanyApplicationDetail,
   fetchCompanyApplicationMessages,
   sendCompanyApplicationMessage,
-  updateCompanyApplicationStatus,
 } from '../../services/v2DialogueService';
-import { uploadApplicationMessageAttachment } from '../../services/v2UserService';
 
 import { InsightBadge } from '../candidate/CandidateShell';
 import { cn } from '../cn';
@@ -215,8 +213,6 @@ export const RecruiterShell: React.FC<{
   const [recruiterMessageBusy, setRecruiterMessageBusy] = React.useState(false);
   const [recruiterMessageDraft, setRecruiterMessageDraft] = React.useState('');
   const [recruiterMessageAttachments, setRecruiterMessageAttachments] = React.useState<ApplicationMessageAttachment[]>([]);
-  const [_recruiterAttachmentBusy, setRecruiterAttachmentBusy] = React.useState(false);
-  const [_recruiterStatusBusy, setRecruiterStatusBusy] = React.useState(false);
   const [recruiterStatusOverrides, setRecruiterStatusOverrides] = React.useState<Record<string, DialogueDetail['status']>>({});
   const [_recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
   const [_recruiterThreadError, setRecruiterThreadError] = React.useState('');
@@ -1024,7 +1020,6 @@ export const RecruiterShell: React.FC<{
                         </div>
                       ) : (
                         visibleCandidateInsights.map((candidate) => {
-                          const candidateStatus = getRecruiterCandidateStatus(candidate.id);
                           const isActive = candidate.id === selectedCandidate?.id;
                           const isLegacy = candidate.id.startsWith('legacy-');
 

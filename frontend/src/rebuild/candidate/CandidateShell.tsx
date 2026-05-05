@@ -1536,11 +1536,6 @@ export const CandidateRoleBriefingPage: React.FC<{
     ...getStockCoverCandidatesForDomain('operations', `${role.companyName}:${role.title}`),
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
-  const _reviewerFallbacks = buildImageCandidates([
-    company.reviewer.avatarUrl,
-    company.logo,
-    MARKETPLACE_LOGO_FALLBACK,
-    '/logo.png',
   ]);
   const compensation = formatRoleCompensation(role, t('rebuild.briefing.compensation_unknown', { defaultValue: 'Compensation not specified' }));
   return (
@@ -1686,7 +1681,6 @@ export const ImportedPrepPage: React.FC<{
     ...getStockCoverCandidatesForDomain('operations', `${role.companyName}:${role.title}:${role.location}`),
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
-  const _compensation = formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Neuvedeno' }));
 
   return (
     <CandidateShellSurface

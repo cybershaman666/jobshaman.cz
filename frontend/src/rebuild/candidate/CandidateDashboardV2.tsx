@@ -498,9 +498,7 @@ const ArchetypeHeroCard: React.FC<{
 
 const GrowthAnalysisCard: React.FC<{
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
-  brainAsset: string;
   onOpenDetail: () => void;
-}> = ({ vm, brainAsset, onOpenDetail }) => {
   const { t } = useTranslation();
   return (
     <ShellCard tone="default" className="flex flex-col overflow-hidden h-full">
@@ -1054,7 +1052,6 @@ export const CandidateDashboardV2: React.FC<{
       navigate('/candidate/applications');
     }, [candidateApplications, navigate, roles]);
 
-    const brainAsset = resolvedMode === 'dark'
       ? '/cybershaman-brain-growth-dark.svg'
       : '/cybershaman-brain-growth-light.svg';
 
@@ -1182,7 +1179,6 @@ export const CandidateDashboardV2: React.FC<{
 
                 <GrowthAnalysisCard
                   vm={vm}
-                  brainAsset={brainAsset}
                   onOpenDetail={() => navigate('/candidate/jcfpm')}
                 />
               </div>
