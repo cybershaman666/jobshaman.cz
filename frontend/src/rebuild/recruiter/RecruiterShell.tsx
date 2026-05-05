@@ -528,11 +528,6 @@ export const RecruiterShell: React.FC<{
     };
   }, [selectedRecruiterDialogueId]);
 
-  const getRecruiterCandidateStatus = React.useCallback((candidateId: string) => {
-    const dialogueId = candidateId.startsWith('application-') ? candidateId.replace('application-', '') : '';
-    if (!dialogueId) return null;
-    return recruiterStatusOverrides[dialogueId] || null;
-  }, [recruiterStatusOverrides]);
 
   const visibleCalendarEvents = React.useMemo(
     () => calendarEvents.filter((event) => {
