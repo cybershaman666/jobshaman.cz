@@ -253,6 +253,10 @@ def normalize_jobs_country_code(country_code: Any) -> Optional[str]:
         "PL": "pl",
         "DE": "de",
         "AT": "at",
+        "DK": "dk",
+        "SE": "se",
+        "NO": "no",
+        "FI": "fi",
     }
     return allowed.get(normalized)
 
@@ -263,6 +267,10 @@ _COUNTRY_CENTROIDS: Dict[str, Dict[str, Any]] = {
     "pl": {"lat": 51.9194, "lon": 19.1451, "country": "PL", "source": "country_centroid"},
     "de": {"lat": 51.1657, "lon": 10.4515, "country": "DE", "source": "country_centroid"},
     "at": {"lat": 47.5162, "lon": 14.5501, "country": "AT", "source": "country_centroid"},
+    "dk": {"lat": 56.2639, "lon": 9.5018, "country": "DK", "source": "country_centroid"},
+    "se": {"lat": 60.1282, "lon": 18.6435, "country": "SE", "source": "country_centroid"},
+    "no": {"lat": 60.4720, "lon": 8.4689, "country": "NO", "source": "country_centroid"},
+    "fi": {"lat": 61.9241, "lon": 25.7482, "country": "FI", "source": "country_centroid"},
 }
 
 _COUNTRY_LOCATION_ALIASES: Dict[str, str] = {
@@ -283,6 +291,18 @@ _COUNTRY_LOCATION_ALIASES: Dict[str, str] = {
     "osterreich": "at",
     "österreich": "at",
     "at": "at",
+    "denmark": "dk",
+    "danmark": "dk",
+    "dk": "dk",
+    "sweden": "se",
+    "sverige": "se",
+    "se": "se",
+    "norway": "no",
+    "norge": "no",
+    "no": "no",
+    "finland": "fi",
+    "suomi": "fi",
+    "fi": "fi",
 }
 
 

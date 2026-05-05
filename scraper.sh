@@ -16,6 +16,7 @@ echo "   Path: $ROOT_DIR/runtime-services/scraper"
 # Export PYTHONPATH to include scraper directory
 export PYTHONPATH="$ROOT_DIR/runtime-services/scraper:$ROOT_DIR/runtime-services:$PYTHONPATH"
 
+# Runs CZ, SK, PL, DE/AT and now Nordic (DK, SE, NO, FI) via scraper_multi.py
 cd "$ROOT_DIR/runtime-services/scraper"
 "$PYTHON_BIN" scraper_multi.py "$@"
 

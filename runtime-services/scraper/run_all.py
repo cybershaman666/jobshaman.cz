@@ -9,17 +9,15 @@ from datetime import datetime
 
 # Import country scrapers with fallback
 try:
-    # Try module imports first
-    from .scraper_multi import run_all_scrapers as run_cz
-    from .scraper_sk import run_slovakia_scraper as run_sk
-    from .scraper_pl import run_poland_scraper as run_pl
     from .scraper_de import run_germany_scraper as run_de
+    from .scraper_nordic import run_nordic_scraper as run_nordic
 except ImportError:
     # Fallback to direct imports
     from scraper_multi import run_all_scrapers as run_cz
     from scraper_sk import run_slovakia_scraper as run_sk
     from scraper_pl import run_poland_scraper as run_pl
     from scraper_de import run_germany_scraper as run_de
+    from scraper_nordic import run_nordic_scraper as run_nordic
 
 
 def print_header(title):
@@ -55,7 +53,7 @@ def run_all_scrapers(countries=None):
         dict: Results per country
     """
     if countries is None:
-        countries = ['CZ', 'SK', 'PL', 'DE']
+        countries = ['CZ', 'SK', 'PL', 'DE', 'DK', 'SE', 'NO', 'FI']
     
     # Map country codes to scraper functions
     scrapers = {
@@ -63,6 +61,10 @@ def run_all_scrapers(countries=None):
         'SK': ('Slovakia', run_sk),
         'PL': ('Poland', run_pl),
         'DE': ('Germany + Austria', run_de),
+        'DK': ('Denmark', lambda: run_nordic('dk')),
+        'SE': ('Sweden', lambda: run_nordic('se')),
+        'NO': ('Norway', lambda: run_nordic('no')),
+        'FI': ('Finland', lambda: run_nordic('fi')),
     }
     
     results = {}

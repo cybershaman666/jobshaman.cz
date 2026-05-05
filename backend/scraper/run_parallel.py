@@ -15,6 +15,7 @@ try:
     from .scraper_sk import run_slovakia_scraper as run_sk  # type: ignore
     from .scraper_pl import run_poland_scraper as run_pl  # type: ignore
     from .scraper_de import run_germany_scraper as run_de  # type: ignore
+    from .scraper_nordic import run_nordic_scraper as run_nordic  # type: ignore
 except Exception:
     # Handle if run as script from parent or elsewhere
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +23,7 @@ except Exception:
     from scraper_sk import run_slovakia_scraper as run_sk
     from scraper_pl import run_poland_scraper as run_pl
     from scraper_de import run_germany_scraper as run_de
+    from scraper_nordic import run_nordic_scraper as run_nordic
 
 def run_scraper_process(name, func, results_dict):
     """Wrapper to run a scraper in a separate process"""
@@ -51,6 +53,10 @@ def run_all_parallel():
         ('Slovakia (SK)', run_sk),
         ('Poland (PL)', run_pl),
         ('Germany + Austria (DE/AT)', run_de),
+        ('Denmark (DK)', lambda: run_nordic(['DK'])),
+        ('Sweden (SE)', lambda: run_nordic(['SE'])),
+        ('Norway (NO)', lambda: run_nordic(['NO'])),
+        ('Finland (FI)', lambda: run_nordic(['FI'])),
     ]
     
     processes = []

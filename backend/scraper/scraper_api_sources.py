@@ -55,6 +55,10 @@ DEFAULT_JOOBLE_API_HOSTS = {
     "DE": "de.jooble.org",
     "AT": "at.jooble.org",
     "PL": "pl.jooble.org",
+    "DK": "dk.jooble.org",
+    "SE": "se.jooble.org",
+    "NO": "no.jooble.org",
+    "FI": "fi.jooble.org",
 }
 DEFAULT_JOOBLE_LANGUAGE_CODES = {
     "CZ": "cs",
@@ -62,6 +66,10 @@ DEFAULT_JOOBLE_LANGUAGE_CODES = {
     "DE": "de",
     "AT": "de",
     "PL": "pl",
+    "DK": "da",
+    "SE": "sv",
+    "NO": "no",
+    "FI": "fi",
 }
 DEFAULT_WWR_RSS_URLS = [
     "https://weworkremotely.com/categories/remote-programming-jobs.rss",

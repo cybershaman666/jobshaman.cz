@@ -59,6 +59,11 @@ except ImportError:
     except ImportError:
         backfill_remote_import_metadata = None  # type: ignore
 
+try:
+    from scraper_nordic import run_nordic_scraper
+except ImportError:
+    from .scraper_nordic import run_nordic_scraper
+
 def load_environment():
     """Robust environment variable loading matching scraper_base.py"""
     current_dir = Path.cwd()
@@ -1329,6 +1334,12 @@ def run_all_scrapers():
         grand_total += run_external_api_sources(supabase)
     except Exception as e:
         print(f"❌ Chyba při ingestu API zdrojů: {e}")
+
+    try:
+        print("🌍 Spouštím Nordic scraper (TheHub + Jooble)...")
+        grand_total += run_nordic_scraper()
+    except Exception as e:
+        print(f"❌ Chyba při scrapování Nordic regionu: {e}")
 
     should_backfill_remote_metadata = os.getenv("SCRAPER_REMOTE_METADATA_BACKFILL", "true").strip().lower() not in {"0", "false", "no", "off"}
     if should_backfill_remote_metadata and backfill_remote_import_metadata:
