@@ -499,8 +499,8 @@ const ArchetypeHeroCard: React.FC<{
 const GrowthAnalysisCard: React.FC<{
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
   onOpenDetail: () => void;
+}> = ({ vm, onOpenDetail }) => {
   const { t } = useTranslation();
-  return (
     <ShellCard tone="default" className="flex flex-col overflow-hidden h-full">
       {/* Growth Section */}
       <div className="relative p-5 xl:p-6 border-b border-[color:var(--dashboard-soft-border)] bg-[linear-gradient(180deg,rgba(var(--accent-green-rgb),0.03),transparent)]">
@@ -1052,8 +1052,6 @@ export const CandidateDashboardV2: React.FC<{
       navigate('/candidate/applications');
     }, [candidateApplications, navigate, roles]);
 
-      ? '/cybershaman-brain-growth-dark.svg'
-      : '/cybershaman-brain-growth-light.svg';
 
     const portalAsset = resolvedMode === 'dark'
       ? 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop'

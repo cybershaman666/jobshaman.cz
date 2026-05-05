@@ -1536,7 +1536,6 @@ export const CandidateRoleBriefingPage: React.FC<{
     ...getStockCoverCandidatesForDomain('operations', `${role.companyName}:${role.title}`),
     MARKETPLACE_IMAGE_FALLBACK,
   ]);
-  ]);
   const compensation = formatRoleCompensation(role, t('rebuild.briefing.compensation_unknown', { defaultValue: 'Compensation not specified' }));
   return (
     <CandidateShellSurface
