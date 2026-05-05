@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Briefcase,
   ChevronRight,
-  Plus,
+  LayoutDashboard,
   Settings2,
   Sparkles,
   TrendingUp,
@@ -12,9 +12,7 @@ import {
 import type { UserProfile } from '../../types';
 import type { CandidateInsight, HandshakeBlueprint, Role } from '../models';
 import { cn } from '../cn';
-import {
-  dashboardCardClass,
-} from '../dashboard/DashboardShell';
+
 import { buildRecruiterDashboardViewModel } from '../dashboard/viewModels';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { fetchV2CompanyDashboard, type V2CompanyDashboardPayload } from '../../services/companyDashboardService';

@@ -279,7 +279,7 @@ export const MiniSandboxCard: React.FC<{
 export const CandidateKompas: React.FC<{
   score: number;
   metrics: Array<{ label: string; value: number }>;
-}> = ({ score, metrics }) => {
+}> = ({ score: _score, metrics }) => {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col">

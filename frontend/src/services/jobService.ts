@@ -1,4 +1,4 @@
-import { noteSupabaseNetworkFailure } from './supabaseService';
+
 import {
     Job,
     JobChallengeFormat,
@@ -22,7 +22,7 @@ import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, m
 import { detectCurrency, detectCurrencyFromLocation, estimateNetSalaryByCountry } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 import { isRemoteJob } from './commuteService';
-import i18n from '../src/i18n';
+import i18n from '../i18n';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
@@ -2903,7 +2903,7 @@ export const fetchJobsWithFilters = async (
         if (isAbortFetchError(e)) {
             throw e;
         }
-        noteSupabaseNetworkFailure('fetchJobsWithFilters.catch', e);
+        console.warn('[jobService] fetchJobsWithFilters error:', e);
         console.error("Error in fetchJobsWithFilters:", e);
         return {
             jobs: [],

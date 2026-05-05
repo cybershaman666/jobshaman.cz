@@ -85,7 +85,7 @@ export const submitJcfpm = async (
     traits: [],
     fit_scores: [],
     ai_report: null,
-    percentile_summary: Object.fromEntries(dimensionScores.map((score) => [score.dimension, score.percentile])),
+    percentile_summary: Object.fromEntries(dimensionScores.map((score: { dimension: string; percentile: number }) => [score.dimension, score.percentile])),
     confidence: Math.round((Object.keys(responses).length / Math.max(1, items.length)) * 100),
     archetype,
   };

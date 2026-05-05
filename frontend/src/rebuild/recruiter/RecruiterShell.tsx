@@ -3,7 +3,6 @@ import {
   BookOpen,
   Building2,
   Check,
-  ChevronRight,
   LayoutDashboard,
   Loader2,
   Paperclip,
@@ -46,10 +45,6 @@ import {
 } from '../ui/shellStyles';
 import {
   AttachmentChip,
-  AttachmentPreview,
-  formatAttachmentType,
-  SharedJcfpmCard,
-  ThreadMetaStrip,
 } from '../shared/dialogueUi';
 import { RecruiterDashboardV2 } from './RecruiterDashboardV2';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
@@ -220,8 +215,8 @@ export const RecruiterShell: React.FC<{
   const [recruiterMessageBusy, setRecruiterMessageBusy] = React.useState(false);
   const [recruiterMessageDraft, setRecruiterMessageDraft] = React.useState('');
   const [recruiterMessageAttachments, setRecruiterMessageAttachments] = React.useState<ApplicationMessageAttachment[]>([]);
-  const [recruiterAttachmentBusy, setRecruiterAttachmentBusy] = React.useState(false);
-  const [recruiterStatusBusy, setRecruiterStatusBusy] = React.useState(false);
+  const [_recruiterAttachmentBusy, setRecruiterAttachmentBusy] = React.useState(false);
+  const [_recruiterStatusBusy, setRecruiterStatusBusy] = React.useState(false);
   const [recruiterStatusOverrides, setRecruiterStatusOverrides] = React.useState<Record<string, DialogueDetail['status']>>({});
   const [_recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
   const [_recruiterThreadError, setRecruiterThreadError] = React.useState('');
