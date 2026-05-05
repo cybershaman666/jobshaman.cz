@@ -89,7 +89,7 @@ const computeProfileCompletion = (userProfile: UserProfile, preferences: Candida
 
 const deriveStrengthMetrics = (userProfile: UserProfile, completion: number) => {
   const snapshot = userProfile.preferences?.jcfpm_v1;
-  const isJcfpmComplete = !!snapshot;
+  const isJcfpmComplete = !!snapshot || !!userProfile.hasAssessment;
   
   if (!isJcfpmComplete) {
     return [
@@ -186,7 +186,7 @@ const deriveIdentityNarrative = (userProfile: UserProfile) => {
     .map((domain) => getCandidateIntentDomainLabel(domain, locale))
     .filter(Boolean);
 
-  const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1;
+  const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1 || !!userProfile.hasAssessment;
 
   const feedPriorities = [
     builderSignals ? 'Projektová a návrhová práce' : '',
@@ -411,7 +411,7 @@ export const CandidateProfileV2: React.FC<{
       { id: 'signals', label: 'Odpověz na otázky', copy: 'Pomůže nám to lépe tě poznat' },
     ], []);
 
-    const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1;
+    const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1 || !!userProfile.hasAssessment;
     const archetypeTitle = userProfile.preferences?.jcfpm_v1?.archetype?.title || userProfile.jobTitle || 'Profil se teprve skládá';
     const archetypeCopy = userProfile.preferences?.jcfpm_v1?.archetype?.description || userProfile.story || 'Doplň pár klíčových signálů a Cybershaman ti zpřesní pracovní identitu i doporučené role.';
     const jhiIndex = Math.max(520, Math.min(980, Math.round(completion * 8.7)));

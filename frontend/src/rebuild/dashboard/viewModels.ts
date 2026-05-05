@@ -124,8 +124,11 @@ export const buildCandidateDashboardViewModel = (
   const confidenceBoost = snapshot?.confidence ? Math.round(snapshot.confidence * 10) : 0;
   const storyBoost = (userProfile.story || preferences.story || '').length > 160 ? 5 : 0;
   const resonanceScore = clamp(scoreBase + confidenceBoost + storyBoost - Math.max(0, applications.length - 2), 58, 97);
-  const isJcfpmComplete = !!snapshot;
-  const isOnboardingComplete = !!userProfile.preferences?.candidate_onboarding_v2?.completed_at;
+  const isJcfpmComplete = !!snapshot || !!userProfile.hasAssessment;
+  const isOnboardingComplete = 
+    !!userProfile.preferences?.candidate_onboarding_v2?.completed_at || 
+    !!userProfile.preferences?.activation_v1?.onboarding_completed_at ||
+    (!!userProfile.story && userProfile.story.length > 20);
 
   const archetype = snapshot?.archetype;
   const archetypeTitle = archetype?.title || archetype?.title_en || userProfile.jobTitle || (isJcfpmComplete ? t('rebuild.dashboard.default_archetype', { defaultValue: 'Visionary Architect' }) : '');
