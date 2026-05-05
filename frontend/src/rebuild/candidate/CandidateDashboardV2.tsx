@@ -14,6 +14,7 @@ import {
   Network,
   ShieldAlert,
   Target,
+  ArrowRight,
   Users,
   Zap,
   Brain,
@@ -412,11 +413,88 @@ const SurfaceButton: React.FC<{
   </button>
 );
 
+const MissingDataPrompt: React.FC<{
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+  tone?: 'gold' | 'green' | 'teal';
+}> = ({ title, description, actionLabel, onAction, tone = 'gold' }) => {
+  const accentClass = tone === 'gold' ? 'text-[color:var(--accent-gold)]' : tone === 'green' ? 'text-[color:var(--accent-green)]' : 'text-[color:var(--accent)]';
+  const borderClass = tone === 'gold' ? 'border-[color:var(--accent-gold)]/30' : tone === 'green' ? 'border-[color:var(--accent-green)]/30' : 'border-[color:var(--accent)]/30';
+  const bgClass = tone === 'gold' ? 'bg-[color:var(--accent-gold)]/5' : tone === 'green' ? 'bg-[color:var(--accent-green)]/5' : 'bg-[color:var(--accent)]/5';
+
+  return (
+    <div className={cn('flex flex-col items-center justify-center p-8 text-center h-full rounded-[24px] border border-dashed', borderClass, bgClass)}>
+      <Sparkles className={cn('mb-4 h-10 w-10', accentClass)} />
+      <h3 className={cn('text-lg font-bold mb-2', accentClass)}>{title}</h3>
+      <p className="text-sm text-[color:var(--dashboard-text-muted)] max-w-[32ch] mb-6 leading-relaxed">
+        {description}
+      </p>
+      <button
+        type="button"
+        onClick={onAction}
+        className={cn(
+          'rounded-full px-6 py-2.5 text-[13px] font-semibold transition shadow-lg',
+          tone === 'gold' ? 'bg-[color:var(--accent-gold)] text-black' : tone === 'green' ? 'bg-[color:var(--accent-green)] text-white' : 'bg-[color:var(--accent)] text-white'
+        )}
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+};
+
+const OnboardingAlert: React.FC<{ onStart: () => void }> = ({ onStart }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="mb-6 overflow-hidden rounded-[24px] border border-amber-200 bg-amber-50 shadow-sm transition hover:shadow-md">
+      <div className="flex flex-col items-center gap-4 p-5 md:flex-row md:justify-between md:p-6">
+        <div className="flex items-center gap-4 text-center md:text-left">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div className="text-lg font-bold text-amber-900">{t('rebuild.dashboard.onboarding_pending_title', { defaultValue: 'Průvodce Cybershamanem není dokončen' })}</div>
+            <p className="mt-1 text-sm leading-6 text-amber-800/80">
+              {t('rebuild.dashboard.onboarding_pending_desc', { defaultValue: 'Projděte rituálem probuzení, abychom mohli přesněji namířit váš pracovní kompas.' })}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-amber-600 px-6 text-sm font-bold text-white shadow-lg shadow-amber-600/20 transition hover:bg-amber-700 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          {t('rebuild.dashboard.start_ritual', { defaultValue: 'Spustit rituál' })}
+          <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ArchetypeHeroCard: React.FC<{
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
   onOpenDetail: () => void;
-}> = ({ vm, onOpenDetail }) => {
+  onStartJcfpm: () => void;
+}> = ({ vm, onOpenDetail, onStartJcfpm }) => {
   const { t } = useTranslation();
+
+  if (!vm.isJcfpmComplete) {
+    return (
+      <ShellCard tone="default" className="xl:min-h-[514px] flex items-center justify-center">
+        <MissingDataPrompt
+          title={t('rebuild.dashboard.unlock_archetype', { defaultValue: 'Unlock your archetype' })}
+          description={t('rebuild.dashboard.unlock_archetype_desc', { defaultValue: 'Complete the JCFPM test to reveal your deep career identity and resonance score.' })}
+          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
+          onAction={onStartJcfpm}
+          tone="gold"
+        />
+      </ShellCard>
+    );
+  }
+
   const copy = formatArchetypeCopy(vm.archetypeDescription, t);
   const [activeTab, setActiveTab] = React.useState('skills');
   const tabCopy: Record<string, string> = {
@@ -499,8 +577,24 @@ const ArchetypeHeroCard: React.FC<{
 const GrowthAnalysisCard: React.FC<{
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
   onOpenDetail: () => void;
-}> = ({ vm, onOpenDetail }) => {
+  onStartJcfpm: () => void;
+}> = ({ vm, onOpenDetail, onStartJcfpm }) => {
   const { t } = useTranslation();
+
+  if (!vm.isJcfpmComplete) {
+    return (
+      <ShellCard tone="default" className="h-full flex items-center justify-center p-6">
+        <MissingDataPrompt
+          title={t('rebuild.dashboard.unlock_growth', { defaultValue: 'Unlock growth map' })}
+          description={t('rebuild.dashboard.unlock_growth_desc', { defaultValue: 'We need your JCFPM data to identify blind spots and recommend precise growth training.' })}
+          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
+          onAction={onStartJcfpm}
+          tone="green"
+        />
+      </ShellCard>
+    );
+  }
+
   return (
     <ShellCard tone="default" className="flex flex-col overflow-hidden h-full">
       {/* Growth Section */}
@@ -703,8 +797,24 @@ const HandshakeCard: React.FC<{
 const GrowthMapCard: React.FC<{
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
   onOpenMap: () => void;
-}> = ({ vm, onOpenMap }) => {
+  onStartJcfpm: () => void;
+}> = ({ vm, onOpenMap, onStartJcfpm }) => {
   const { t } = useTranslation();
+
+  if (!vm.isJcfpmComplete) {
+    return (
+      <ShellCard className="xl:min-h-[252px] border-[#e9e1d6] bg-white flex items-center justify-center p-6">
+        <MissingDataPrompt
+          title={t('rebuild.dashboard.unlock_map', { defaultValue: 'Map your future' })}
+          description={t('rebuild.dashboard.unlock_map_desc', { defaultValue: 'Unlock your personalized growth map by completing the JCFPM assessment.' })}
+          actionLabel={t('rebuild.dashboard.start_test', { defaultValue: 'Start JCFPM Test' })}
+          onAction={onStartJcfpm}
+          tone="teal"
+        />
+      </ShellCard>
+    );
+  }
+
   const currentNode = vm.growthMapNodes[0];
   const focusNode = vm.growthMapNodes[1];
   const futureNode = vm.growthMapNodes[2];
@@ -1169,16 +1279,21 @@ export const CandidateDashboardV2: React.FC<{
           <CandidateMentorChat userProfile={userProfile} vm={vm} />
         ) : (
           <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-6 pt-1">
+            {!vm.isOnboardingComplete && (
+              <OnboardingAlert onStart={() => navigate('/ritual')} />
+            )}
             <div className="flex flex-col gap-5 xl:gap-6">
               <div className="grid gap-5 xl:grid-cols-[minmax(0,2.1fr)_minmax(360px,0.9fr)]">
                 <ArchetypeHeroCard
                   vm={vm}
                   onOpenDetail={() => navigate('/candidate/jcfpm')}
+                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
                 />
 
                 <GrowthAnalysisCard
                   vm={vm}
                   onOpenDetail={() => navigate('/candidate/jcfpm')}
+                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
                 />
               </div>
 
@@ -1195,7 +1310,11 @@ export const CandidateDashboardV2: React.FC<{
                   onOpenHandshake={openHandshakeOrRole}
                   onOpenAll={() => navigate('/candidate/applications')}
                 />
-                <GrowthMapCard vm={vm} onOpenMap={() => navigate('/candidate/jcfpm')} />
+                <GrowthMapCard
+                  vm={vm}
+                  onOpenMap={() => navigate('/candidate/jcfpm')}
+                  onStartJcfpm={() => navigate('/candidate/jcfpm')}
+                />
               </div>
             </div>
           </CandidateShellSurface>

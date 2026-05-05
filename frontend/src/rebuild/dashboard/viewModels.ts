@@ -38,6 +38,8 @@ export interface CandidateDashboardViewModel {
   quickActions: Array<{ id: string; label: string; tone: 'primary' | 'secondary' }>;
   mentorAdvice: string;
   challengeTags: string[];
+  isJcfpmComplete: boolean;
+  isOnboardingComplete: boolean;
 }
 
 export interface RecruiterDashboardMetricCard {
@@ -122,12 +124,15 @@ export const buildCandidateDashboardViewModel = (
   const confidenceBoost = snapshot?.confidence ? Math.round(snapshot.confidence * 10) : 0;
   const storyBoost = (userProfile.story || preferences.story || '').length > 160 ? 5 : 0;
   const resonanceScore = clamp(scoreBase + confidenceBoost + storyBoost - Math.max(0, applications.length - 2), 58, 97);
+  const isJcfpmComplete = !!snapshot;
+  const isOnboardingComplete = !!userProfile.preferences?.candidate_onboarding_v2?.completed_at;
+
   const archetype = snapshot?.archetype;
-  const archetypeTitle = archetype?.title || archetype?.title_en || userProfile.jobTitle || t('rebuild.dashboard.default_archetype', { defaultValue: 'Visionary Architect' });
+  const archetypeTitle = archetype?.title || archetype?.title_en || userProfile.jobTitle || (isJcfpmComplete ? t('rebuild.dashboard.default_archetype', { defaultValue: 'Visionary Architect' }) : '');
   const archetypeDescription =
     archetype?.description
     || snapshot?.ai_report?.strengths?.[0]
-    || t('rebuild.dashboard.default_archetype_desc', { defaultValue: 'You see connections where others are not looking yet. You build systems that make sense.' });
+    || (isJcfpmComplete ? t('rebuild.dashboard.default_archetype_desc', { defaultValue: 'You see connections where others are not looking yet. You build systems that make sense.' }) : '');
 
   const sortedScores = [...(snapshot?.dimension_scores || [])]
     .sort((left, right) => (right.percentile || 0) - (left.percentile || 0));
@@ -139,13 +144,9 @@ export const buildCandidateDashboardViewModel = (
     ? t('rebuild.dashboard.growth_copy_ready', { defaultValue: 'Training focused on deeper analysis, working with assumptions and more precise decision making.' })
     : t('rebuild.dashboard.growth_copy_pending', { defaultValue: 'Complete your JCFPM profile and Cybershaman will recommend a precise growth training.' });
 
-  const blindSeeds = lowScores.length > 0
+  const blindSeeds = isJcfpmComplete && lowScores.length > 0
     ? lowScores.slice(0, 3)
-    : [
-        { dimension: 'd7_cognitive_reflection', percentile: 58, label: getDimensionLabel('d7_cognitive_reflection', t) },
-        { dimension: 'd2_social', percentile: 66, label: t('rebuild.dashboard.delegation', { defaultValue: 'Delegation' }) },
-        { dimension: 'd11_problem_decomposition', percentile: 72, label: t('rebuild.dashboard.patience', { defaultValue: 'Patience' }) },
-      ];
+    : [];
 
   return {
     archetypeTitle,
@@ -166,14 +167,7 @@ export const buildCandidateDashboardViewModel = (
         delta: reality - self,
       };
     }),
-    heroMetrics: (sortedScores.length > 0 ? sortedScores.slice(0, 6) : [
-      { dimension: 'd9_systems_thinking', percentile: 87, label: getDimensionLabel('d9_systems_thinking', t) },
-      { dimension: 'd6_ai_readiness', percentile: 81, label: getDimensionLabel('d6_ai_readiness', t) },
-      { dimension: 'd11_problem_decomposition', percentile: 84, label: getDimensionLabel('d11_problem_decomposition', t) },
-      { dimension: 'd4_energy', percentile: 80, label: getDimensionLabel('d4_energy', t) },
-      { dimension: 'd2_social', percentile: 79, label: getDimensionLabel('d2_social', t) },
-      { dimension: 'd7_cognitive_reflection', percentile: 76, label: getDimensionLabel('d7_cognitive_reflection', t) },
-    ]).map((score, index) => ({
+    heroMetrics: (isJcfpmComplete && sortedScores.length > 0 ? sortedScores.slice(0, 6) : []).map((score, index) => ({
       id: String(score.dimension || index),
       label: score.label || getDimensionLabel(String(score.dimension), t) || t('rebuild.dashboard.signal', { defaultValue: 'Signal' }),
       value: Number(((score.percentile || 70) / 10).toFixed(1)),
@@ -196,9 +190,10 @@ export const buildCandidateDashboardViewModel = (
       { id: 'profile', label: t('rebuild.dashboard.save_profile', { defaultValue: 'Save profile' }), tone: 'secondary' },
       { id: 'save-role', label: t('rebuild.dashboard.save_top_role', { defaultValue: 'Save top role' }), tone: 'secondary' },
     ],
-    mentorAdvice: snapshot?.ai_report?.next_steps?.[0]
-      || t('rebuild.dashboard.default_mentor_advice', { defaultValue: 'You have strong potential in systems thinking. Try to focus more on cognitive reflection, it will help you make even better decisions in complex situations.' }),
-    challengeTags: roles[0]?.skills.slice(0, 3) || [t('rebuild.dashboard.tag_strategy', { defaultValue: 'Strategy' }), t('rebuild.dashboard.tag_processes', { defaultValue: 'Processes' }), 'AI'],
+    mentorAdvice: snapshot?.ai_report?.next_steps?.[0] || '',
+    challengeTags: roles[0]?.skills.slice(0, 3) || [],
+    isJcfpmComplete,
+    isOnboardingComplete,
   };
 };
 

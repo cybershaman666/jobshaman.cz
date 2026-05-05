@@ -89,6 +89,18 @@ const computeProfileCompletion = (userProfile: UserProfile, preferences: Candida
 
 const deriveStrengthMetrics = (userProfile: UserProfile, completion: number) => {
   const snapshot = userProfile.preferences?.jcfpm_v1;
+  const isJcfpmComplete = !!snapshot;
+  
+  if (!isJcfpmComplete) {
+    return [
+      { label: 'Spolehlivost', value: 0 },
+      { label: 'Praktické myšlení', value: 0 },
+      { label: 'Týmovost', value: 0 },
+      { label: 'Odolnost ve stresu', value: 0 },
+      { label: 'Učení se', value: 0 },
+    ];
+  }
+
   const scores = snapshot?.dimension_scores || [];
   const find = (dimension: string, fallback: number) => {
     const item = scores.find((entry) => String(entry.dimension) === dimension);
@@ -174,25 +186,7 @@ const deriveIdentityNarrative = (userProfile: UserProfile) => {
     .map((domain) => getCandidateIntentDomainLabel(domain, locale))
     .filter(Boolean);
 
-  const identityTitle = builderSignals
-    ? 'Vizionářský architekt systémů'
-    : humanSignals && aiSignals
-      ? 'Tvůrce human-centric technologií'
-      : capitalizeLabel(targetRole);
-
-  const identitySummary = builderSignals
-    ? 'Tvoje energie patří do tvorby systémů, které propojují lidi, technologie a prostředí. Rutina tě oslabuje, komplexita tě nabíjí.'
-    : humanSignals
-      ? 'Silný signál směřuje k rolím, kde se propojuje dopad na lidi, změna systému a práce s nejasností.'
-      : 'AI z tvého onboardingu čte směr, ve kterém máš tvořit, né jen vykonávat.';
-
-  const directions = [
-    { label: primaryDomainLabel || 'System architecture', tone: 'primary' as const },
-    ...(aiSignals ? [{ label: 'AI + human interface systems', tone: 'secondary' as const }] : []),
-    ...(sustainabilitySignals ? [{ label: 'Sustainable infrastructure', tone: 'secondary' as const }] : []),
-    ...(mobilitySignals ? [{ label: 'Mobility platforms', tone: 'explore' as const }] : []),
-    ...secondaryLabels.slice(0, 2).map((label, index) => ({ label, tone: index === 0 ? 'secondary' as const : 'explore' as const })),
-  ].filter((item, index, list) => list.findIndex((candidate) => candidate.label === item.label) === index).slice(0, 4);
+  const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1;
 
   const feedPriorities = [
     builderSignals ? 'Projektová a návrhová práce' : '',
@@ -239,6 +233,24 @@ const deriveIdentityNarrative = (userProfile: UserProfile) => {
       { label: 'Stability', value: 0.12 },
     ];
 
+  const identityTitle = isJcfpmComplete
+    ? (builderSignals ? 'Vizionářský architekt systémů' : humanSignals && aiSignals ? 'Tvůrce human-centric technologií' : capitalizeLabel(targetRole))
+    : (userProfile.jobTitle || 'Profil se skládá...');
+
+  const identitySummary = isJcfpmComplete
+    ? (builderSignals ? 'Tvoje energie patří do tvorby systémů, které propojují lidi, technologie a prostředí. Rutina tě oslabuje, komplexita tě nabíjí.' : humanSignals ? 'Silný signál směřuje k rolím, kde se propojuje dopad na lidi, změna systému a práce s nejasností.' : 'AI z tvého onboardingu čte směr, ve kterém máš tvořit, né jen vykonávat.')
+    : 'Dokonči JCFPM test a Cybershaman ti vytvoří přesnou pracovní identitu.';
+
+  const directions = isJcfpmComplete
+    ? [
+        { label: primaryDomainLabel || 'System architecture', tone: 'primary' as const },
+        ...(aiSignals ? [{ label: 'AI + human interface systems', tone: 'secondary' as const }] : []),
+        ...(sustainabilitySignals ? [{ label: 'Sustainable infrastructure', tone: 'secondary' as const }] : []),
+        ...(mobilitySignals ? [{ label: 'Mobility platforms', tone: 'explore' as const }] : []),
+        ...secondaryLabels.slice(0, 2).map((label, index) => ({ label, tone: index === 0 ? 'secondary' as const : 'explore' as const })),
+      ].filter((item, index, list) => list.findIndex((candidate) => candidate.label === item.label) === index).slice(0, 4)
+    : [];
+
   return {
     intent,
     identityTitle,
@@ -246,13 +258,13 @@ const deriveIdentityNarrative = (userProfile: UserProfile) => {
     targetRole,
     primaryDomainLabel,
     directions,
-    feedPriorities,
-    feedAvoid,
-    feedMode,
+    feedPriorities: isJcfpmComplete ? feedPriorities : [],
+    feedAvoid: isJcfpmComplete ? feedAvoid : [],
+    feedMode: isJcfpmComplete ? feedMode : 'Standard matching',
     coreSignalEvent,
-    jhiWeights,
-    burnoutRisk: routineAversion ? 'Rutinní administrativní role' : 'Role bez autonomie a dlouhodobého smyslu',
-    strongZone: builderSignals ? 'Komplexní návrh systémů bez existující šablony' : 'Tvorba nových struktur a orientace v nejasnosti',
+    jhiWeights: isJcfpmComplete ? jhiWeights : [],
+    burnoutRisk: isJcfpmComplete ? (routineAversion ? 'Rutinní administrativní role' : 'Role bez autonomie a dlouhodobého smyslu') : 'Bude upřesněno po JCFPM',
+    strongZone: isJcfpmComplete ? (builderSignals ? 'Komplexní návrh systémů bez existující šablony' : 'Tvorba nových struktur a orientace v nejasnosti') : 'Bude upřesněno po JCFPM',
   };
 };
 
@@ -399,6 +411,7 @@ export const CandidateProfileV2: React.FC<{
       { id: 'signals', label: 'Odpověz na otázky', copy: 'Pomůže nám to lépe tě poznat' },
     ], []);
 
+    const isJcfpmComplete = !!userProfile.preferences?.jcfpm_v1;
     const archetypeTitle = userProfile.preferences?.jcfpm_v1?.archetype?.title || userProfile.jobTitle || 'Profil se teprve skládá';
     const archetypeCopy = userProfile.preferences?.jcfpm_v1?.archetype?.description || userProfile.story || 'Doplň pár klíčových signálů a Cybershaman ti zpřesní pracovní identitu i doporučené role.';
     const jhiIndex = Math.max(520, Math.min(980, Math.round(completion * 8.7)));
@@ -594,16 +607,28 @@ export const CandidateProfileV2: React.FC<{
                     <BadgeCheck size={28} />
                   </div>
                   <div>
-                    <div className="text-[1.35rem] font-semibold tracking-[-0.04em] text-[color:var(--dashboard-text-strong)]">{identityModel.identityTitle || archetypeTitle}</div>
-                    <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{identityModel.identitySummary || archetypeCopy}</p>
-                    <div className="mt-4 grid gap-2 text-[12px] text-[color:var(--dashboard-text-body)]">
-                      <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Pracovní směr:</span> {identityModel.primaryDomainLabel || archetypeTitle}</div>
-                      <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Riziko vyhoření:</span> {identityModel.burnoutRisk}</div>
-                      <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Silná zóna:</span> {identityModel.strongZone}</div>
-                    </div>
-                    <button type="button" onClick={() => navigate('/candidate/jcfpm')} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#2563eb]">
-                      Zobrazit detail <ChevronRight size={15} />
-                    </button>
+                    <div className="text-[1.35rem] font-semibold tracking-[-0.04em] text-[color:var(--dashboard-text-strong)]">{identityModel.identityTitle}</div>
+                    <p className="mt-2 text-sm leading-7 text-[color:var(--dashboard-text-body)]">{identityModel.identitySummary}</p>
+                    {isJcfpmComplete ? (
+                      <div className="mt-4 grid gap-2 text-[12px] text-[color:var(--dashboard-text-body)]">
+                        <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Pracovní směr:</span> {identityModel.primaryDomainLabel}</div>
+                        <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Riziko vyhoření:</span> {identityModel.burnoutRisk}</div>
+                        <div><span className="font-semibold text-[color:var(--dashboard-text-strong)]">Silná zóna:</span> {identityModel.strongZone}</div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-100">
+                        <div className="text-[13px] text-amber-900 font-medium">Tvůj pracovní profil je zatím prázdný</div>
+                        <p className="mt-1 text-[12px] text-amber-800/80 leading-relaxed">Pro aktivaci AI analýzy tvé identity a silných stránek je potřeba dokončit test.</p>
+                        <button type="button" onClick={() => navigate('/candidate/jcfpm')} className="mt-3 text-[13px] font-bold text-amber-900 flex items-center gap-1">
+                          Spustit JCFPM test <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
+                    {isJcfpmComplete && (
+                      <button type="button" onClick={() => navigate('/candidate/jcfpm')} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#2563eb]">
+                        Zobrazit detail <ChevronRight size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -630,8 +655,8 @@ export const CandidateProfileV2: React.FC<{
                         const y = 110 + Math.sin(angle) * 82;
                         return <line key={index} x1="110" y1="110" x2={x} y2={y} stroke="rgba(148,163,184,0.16)" />;
                       })}
-                      <polygon points={buildRadarPoints(strengthMetrics.map((item) => item.value), 76, 110)} fill="rgba(36,150,171,0.12)" stroke="#2496ab" strokeWidth="2.2" />
-                      {strengthMetrics.map((item, index) => {
+                      <polygon points={buildRadarPoints(strengthMetrics.map((item) => item.value), 76, 110)} fill={isJcfpmComplete ? "rgba(36,150,171,0.12)" : "rgba(148,163,184,0.05)"} stroke={isJcfpmComplete ? "#2496ab" : "#e2e8f0"} strokeWidth="2.2" />
+                      {isJcfpmComplete && strengthMetrics.map((item, index) => {
                         const angle = (-Math.PI / 2) + ((Math.PI * 2) / strengthMetrics.length) * index;
                         const pointRadius = (76 * item.value) / 100;
                         const x = 110 + Math.cos(angle) * pointRadius;
@@ -641,6 +666,11 @@ export const CandidateProfileV2: React.FC<{
                     </svg>
                   </div>
                 </div>
+                {!isJcfpmComplete && (
+                   <div className="mb-4 p-3 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-center">
+                     <p className="text-[12px] text-slate-500">Dovednosti se zobrazí po JCFPM</p>
+                   </div>
+                )}
                 <div className="grid grid-cols-2 gap-3 text-[12px]">
                   {strengthMetrics.map((item, index) => (
                     <div key={`strength-${item.label}-${index}`} className="rounded-[16px] bg-[color:color-mix(in_srgb,var(--dashboard-soft-bg)_96%,white)] px-3 py-2.5">
@@ -670,14 +700,17 @@ export const CandidateProfileV2: React.FC<{
                     />
                   </svg>
                   <div className="text-center">
-                    <div className="text-[2rem] font-semibold text-[#2496ab]">{jhiIndex}</div>
+                    <div className="text-[2rem] font-semibold text-[#2496ab]">{isJcfpmComplete ? jhiIndex : '---'}</div>
                     <div className="text-[11px] text-[color:var(--dashboard-text-muted)]">z 1000</div>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1 text-sm leading-7 text-[color:var(--dashboard-text-body)]">
-                  Tvůj Job Human Index ukazuje tvůj potenciál, adaptabilitu a připravenost na nové výzvy.
+                  {isJcfpmComplete 
+                    ? 'Tvůj Job Human Index ukazuje tvůj potenciál, adaptabilitu a připravenost na nové výzvy.'
+                    : 'Tvůj JHI index se vypočítá na základě výsledků testu a tvého profilu.'
+                  }
                   <button type="button" onClick={() => navigate('/candidate/jcfpm')} className="mt-2 block font-medium text-[#2563eb]">
-                    Jak JHI funguje?
+                    {isJcfpmComplete ? 'Jak JHI funguje?' : 'Spustit výpočet'}
                   </button>
                 </div>
               </div>
