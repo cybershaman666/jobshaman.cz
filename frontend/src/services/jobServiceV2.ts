@@ -395,7 +395,7 @@ export const fetchJobsWithFiltersV2 = async (
         if (hasAuthSession) {
           const feed = await ApiService.get<any>('/recommendation/feed?limit=360');
           const recommendationItems = Array.isArray(feed?.data?.items) ? feed.data.items : [];
-          jobs.push(...recommendationItems.map((item) => mapJobToRole({
+          jobs.push(...recommendationItems.map((item: any) => mapJobToRole({
             ...(item.job || {}),
             recommendation_fit_score: item.fit_score,
             recommendation_reasons: item.reasons,
@@ -439,7 +439,7 @@ export const fetchJobsWithFiltersV2 = async (
       : Array.isArray(catalogResponse?.items)
         ? catalogResponse.items
         : [];
-    jobs.push(...rawCatalogJobs.map((job) => mapJobToRole(job, 'imported')));
+    jobs.push(...rawCatalogJobs.map((job: any) => mapJobToRole(job, 'imported')));
     totalCount = Number(catalogResponse?.total_count || rawCatalogJobs.length || jobs.length);
     hasMore = Boolean(catalogResponse?.has_more) || offset + rawCatalogJobs.length < totalCount;
 

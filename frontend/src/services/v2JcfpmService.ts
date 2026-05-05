@@ -63,7 +63,7 @@ export const submitJcfpm = async (
   variantSeed: string,
 ) => {
   const items = await fetchJcfpmItems();
-  const dimensionScores = items.map((item) => {
+  const dimensionScores = items.map((item: any) => {
     const value = Number(responses[item.id] || 0);
     return {
       dimension: item.dimension,

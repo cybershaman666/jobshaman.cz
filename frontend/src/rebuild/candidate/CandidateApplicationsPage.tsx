@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, ChevronRight, MessageSquare, Info, ShieldCheck, Zap } from 'lucide-react';
+import { Bookmark, ChevronRight, MessageSquare, ShieldCheck, Zap } from 'lucide-react';
 import { cn } from '../cn';
 import type { DialogueSummary } from '../../types';
 import type { Role } from '../models';
@@ -10,7 +10,7 @@ import { primaryButtonClass } from '../ui/shellStyles';
 
 const getApplicationScore = (application: DialogueSummary) => {
   // Try to parse candidate_score if it exists, otherwise return a default or random for demo
-  const scoreStr = application.status_metadata?.candidate_score;
+  const scoreStr = (application as any).status_metadata?.candidate_score;
   if (scoreStr && !isNaN(Number(scoreStr))) return Number(scoreStr);
   return 85; // Fallback
 };

@@ -100,7 +100,7 @@ export const TheRitual: React.FC<{ onComplete: () => void }> = ({ onComplete }) 
         ...(updates.preferences || {}),
         candidate_onboarding_v2: {
           ...(userProfile.preferences?.candidate_onboarding_v2 || {}),
-          ...(updates.preferences?.candidate_onboarding_v2 || {}),
+          ...((updates.preferences as any)?.candidate_onboarding_v2 || {}),
           completed_at: new Date().toISOString(),
           last_step: 'profile_nudge' as const,
         },

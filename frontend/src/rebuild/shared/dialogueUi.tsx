@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ApplicationMessageAttachment, DialogueDetail } from '../../types';
 
@@ -45,6 +46,7 @@ export const SharedJcfpmCard: React.FC<{
   payload: DialogueDetail['shared_jcfpm_payload'];
   className?: string;
 }> = ({ payload, className }) => {
+  const { t } = useTranslation();
   if (!payload) return null;
 
   return (

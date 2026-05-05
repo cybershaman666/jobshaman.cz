@@ -60,7 +60,7 @@ export const TopBarV2: React.FC<{
     if (userProfile.isLoggedIn && userProfile.id) {
       const checkNotifications = async () => {
         try {
-          const data = await notificationService.listNotifications(userProfile.id);
+          const data = await notificationService.listNotifications(userProfile.id as string);
           setUnreadCount(data.filter(n => !n.isRead).length);
         } catch (err) {
           console.warn('Failed to fetch notifications', err);

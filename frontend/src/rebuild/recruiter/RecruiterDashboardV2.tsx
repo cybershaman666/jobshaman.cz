@@ -2,9 +2,7 @@ import React from 'react';
 import {
   Briefcase,
   ChevronRight,
-  LayoutDashboard,
   Plus,
-  Search,
   Settings2,
   Sparkles,
   TrendingUp,
@@ -22,7 +20,7 @@ import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { fetchV2CompanyDashboard, type V2CompanyDashboardPayload } from '../../services/companyDashboardService';
 import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 
-type TFunction = (key: string, options?: { defaultValue?: string }) => string;
+type TFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
 
 interface RecruiterMetrics {
   curatedRoles: number;
@@ -356,7 +354,7 @@ export const RecruiterDashboardV2: React.FC<{
       { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
     ];
     const vm = React.useMemo(
-      () => buildRecruiterDashboardViewModel(roles, candidateInsights, blueprintLibrary, dashboardMetrics),
+      () => buildRecruiterDashboardViewModel(roles, candidateInsights, blueprintLibrary, dashboardMetrics, t),
       [blueprintLibrary, candidateInsights, dashboardMetrics, roles],
     );
     const [v2Dashboard, setV2Dashboard] = React.useState<V2CompanyDashboardPayload | null>(null);
