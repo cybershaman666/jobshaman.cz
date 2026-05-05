@@ -44,7 +44,8 @@ def get_cors_origins() -> List[str]:
     if origins:
         return origins
     if strict_production_mode():
-        raise RuntimeError("V2_CORS_ORIGINS must be set in production mode.")
+        # Allow regex to handle it if no explicit origins set
+        return []
     return [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
