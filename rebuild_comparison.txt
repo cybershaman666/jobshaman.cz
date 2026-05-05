@@ -1,0 +1,403 @@
+Key | EN Value | CS Value
+---|---|---
+rebuild.actions.send_message | Send message | Send message
+rebuild.actions.try_again | Try again | Try again
+rebuild.adapters.app_completed | Candidate completed the response via Jobshaman. Check the materials and decide on the next step. | Candidate completed the response via Jobshaman. Check the materials and decide on the next step.
+rebuild.adapters.app_under_review | Candidate response is already under active review. Check the materials and plan the next human step. | Candidate response is already under active review. Check the materials and plan the next human step.
+rebuild.adapters.assessment_center | Assessment center | Assessment center
+rebuild.adapters.candidate | Candidate | Candidate
+rebuild.adapters.candidate_profile | Candidate profile | Candidate profile
+rebuild.adapters.challenge_summary_empty | Challenge waiting for context addition. | Challenge waiting for context addition.
+rebuild.adapters.company_fallback | Company | Company
+rebuild.adapters.cv_attached | CV attached. | CV attached.
+rebuild.adapters.cv_not_attached | CV not attached yet. | CV not attached yet.
+rebuild.adapters.experience | Experience | Experience
+rebuild.adapters.first_step_default | Respond to the first practical step and name the trade-off. | Respond to the first practical step and name the trade-off.
+rebuild.adapters.handshake_desc | Practical handshake over a real task. | Practical handshake over a real task.
+rebuild.adapters.jcfpm_not_shared | JCFPM not shared yet. | JCFPM not shared yet.
+rebuild.adapters.jcfpm_shared | JCFPM shared ({{level}}). | JCFPM shared ({{level}}).
+rebuild.adapters.location_tbd | Location to be specified | Location to be specified
+rebuild.adapters.no_public_signals | No public profile signals yet. | No public profile signals yet.
+rebuild.adapters.public_signals | Public profile signals: {{skills}}. | Public profile signals: {{skills}}.
+rebuild.adapters.role_fit | Role fit | Role fit
+rebuild.adapters.signal_clarity | Signal clarity | Signal clarity
+rebuild.adapters.status_label | Status: {{status}}. | Status: {{status}}.
+rebuild.adapters.talent_pool_rec | Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake. | Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.
+rebuild.adapters.verify_mission | Verify work signal on real context. | Verify work signal on real context.
+rebuild.admin.subtitle | CRM, statistics, and internal operations | CRM, statistics, and internal operations
+rebuild.applications.fallback_role | Role | Role
+rebuild.applications.handshake_badge | Skill-first Handshake | Skill-first Handshake
+rebuild.assessment.group_progress | Blok {{current}} z {{total}} | Blok {{current}} z {{total}}
+rebuild.auth.account_created | Account created. Confirm your email and then sign in. | Account created. Confirm your email and then sign in.
+rebuild.auth.agree_prefix | I agree with | I agree with
+rebuild.auth.auth_failed | Authentication failed. | Authentication failed.
+rebuild.auth.bullshit_free | No CV. No bullshit filters. | No CV. No bullshit filters.
+rebuild.auth.candidate_role | Candidate | Candidate
+rebuild.auth.company_name_placeholder | Company name | Company name
+rebuild.auth.company_role | Company | Company
+rebuild.auth.consent_required | To create an account, you need to agree to the terms and conditions and privacy policy. | To create an account, you need to agree to the terms and conditions and privacy policy.
+rebuild.auth.contact_support | Contact support | Contact support
+rebuild.auth.email_placeholder | Enter your email | Enter your email
+rebuild.auth.forgot_password | Forgot password? | Forgot password?
+rebuild.auth.free_plan | Free: 5 active slots | Free: 5 active slots
+rebuild.auth.full_name_placeholder | Enter your name | Enter your name
+rebuild.auth.google_signin | Continue with Google | Continue with Google
+rebuild.auth.hero_title | Enter a system that understands work differently. | Enter a system that understands work differently.
+rebuild.auth.linkedin_signin | Continue with LinkedIn | Continue with LinkedIn
+rebuild.auth.need_help | Need help? | Need help?
+rebuild.auth.oauth_failed | OAuth sign-in failed. | OAuth sign-in failed.
+rebuild.auth.or_email | or continue with email | or continue with email
+rebuild.auth.password_placeholder | Enter your password | Enter your password
+rebuild.auth.premium_plan | Premium: 25 active slots | Premium: 25 active slots
+rebuild.auth.privacy | privacy policy | privacy policy
+rebuild.auth.security_header | Your data is safe with us. | Your data is safe with us.
+rebuild.auth.signin_action | Enter JobShaman | Enter JobShaman
+rebuild.auth.signin_tab | Sign in | Sign in
+rebuild.auth.signup_action | Create account | Create account
+rebuild.auth.signup_tab | Create account | Create account
+rebuild.auth.step1 | Entry | Entry
+rebuild.auth.step2 | Sign in | Sign in
+rebuild.auth.terms | terms and conditions | terms and conditions
+rebuild.auth.why_data | Why do we need your data? | Why do we need your data?
+rebuild.badge.candidates | Candidates | Candidates
+rebuild.badge.interviews_booked | Interviews booked | Interviews booked
+rebuild.briefing.next_step | Next step | Next step
+rebuild.candidate.apps_desc | Active processes, saved roles, and your connections with companies. | Active processes, saved roles, and your connections with companies.
+rebuild.candidate.apps_handshake | Applications and Handshake | Applications and Handshake
+rebuild.candidate.greeting | Hello, {{name}} 👋 | Hello, {{name}} 👋
+rebuild.candidate.journey_desc | Skill-first handshake is based on real work, not a generic form. | Skill-first handshake is based on real work, not a generic form.
+rebuild.candidate.learning_desc | Skills, courses, and specific outcomes you can use in your profile and handshake. | Skills, courses, and specific outcomes you can use in your profile and handshake.
+rebuild.candidate.learning_next_steps | Courses and Next Steps | Courses and Next Steps
+rebuild.candidate.mission | Everyone has potential. Our mission is to reveal it. — Cybershaman | Everyone has potential. Our mission is to reveal it. — Cybershaman
+rebuild.candidate.role_analysis_desc | Detailed role analysis and your personalized match. | Detailed role analysis and your personalized match.
+rebuild.candidate.selected_challenge | Selected Challenge | Selected Challenge
+rebuild.candidate.self_knowledge | Self-knowledge | Self-knowledge
+rebuild.candidate.self_knowledge_desc | Short profile of strengths, working style, and direction for further growth. | Short profile of strengths, working style, and direction for further growth.
+rebuild.candidate.skill_handshake | Skill-first handshake | Skill-first handshake
+rebuild.candidate.tagline | Let\ | Let\
+rebuild.companies.sections.dashboard.title | Dashboard | Dashboard
+rebuild.company_landing.demo_role_title | Product Operations Lead | Product Operations Lead
+rebuild.company_landing.demo_role_workspace | Role workspace | Role workspace
+rebuild.company_landing.demo_stat_role | Role | Role
+rebuild.company_landing.feat1_desc | First response has context. | First response has context.
+rebuild.company_landing.feat1_title | No CV drops | No CV drops
+rebuild.company_landing.feat2_desc | Roles, candidates, and steps together. | Roles, candidates, and steps together.
+rebuild.company_landing.feat2_title | No chaos | No chaos
+rebuild.company_landing.feat3_desc | Start with a single role. | Start with a single role.
+rebuild.company_landing.feat3_title | No lock-in | No lock-in
+rebuild.company_landing.mock_active | Active | Active
+rebuild.company_landing.mock_assignment | Assignment | Assignment
+rebuild.company_landing.mock_assignment_desc | Candidate solves a real-team situation | Candidate solves a real-team situation
+rebuild.company_landing.mock_nav_candidates | Candidates | Candidates
+rebuild.company_landing.mock_nav_decisions | Decisions | Decisions
+rebuild.company_landing.mock_nav_roles | Roles | Roles
+rebuild.company_landing.mock_next_step | Next step | Next step
+rebuild.company_landing.mock_next_step_desc | 2 candidates ready for interview | 2 candidates ready for interview
+rebuild.company_landing.mock_role_workspace | Role workspace | Role workspace
+rebuild.company_landing.mock_signals | Signals | Signals
+rebuild.company_landing.mock_signals_desc | 5 responses waiting for team review | 5 responses waiting for team review
+rebuild.company_landing.nav_faq | FAQ | FAQ
+rebuild.company_landing.plan_growth_name | Growth | Growth
+rebuild.company_landing.plan_growth_price | 599 EUR | 599 EUR
+rebuild.company_landing.plan_pro_name | Professional | Professional
+rebuild.company_landing.plan_pro_price | 899 EUR | 899 EUR
+rebuild.company_landing.plan_starter_name | Starter | Starter
+rebuild.company_landing.plan_starter_price | 249 EUR | 249 EUR
+rebuild.company_landing.signed_in_as | Signed in as {{name}}. | Signed in as {{name}}.
+rebuild.company_landing.signup_hint | You can create a new company account via the same button. After signing in, you will proceed to create your company profile. | You can create a new company account via the same button. After signing in, you will proceed to create your company profile.
+rebuild.company_landing.workflow_eyebrow | Workflow | Workflow
+rebuild.company_landing.workflow_label | Workflow | Workflow
+rebuild.country.at | Austria | Austria
+rebuild.country.cz | Czechia | Czechia
+rebuild.country.de | Germany | Germany
+rebuild.country.pl | Poland | Poland
+rebuild.country.sk | Slovakia | Slovakia
+rebuild.dashboard.active_handshake | Active handshake | Active handshake
+rebuild.dashboard.auth_required_desc | Profile, archetype, JHI, and recommendations are personal. In logged-out mode, we do not share or display them from local cache. | Profile, archetype, JHI, and recommendations are personal. In logged-out mode, we do not share or display them from local cache.
+rebuild.dashboard.auth_required_title | Your data will appear after signing in. | Your data will appear after signing in.
+rebuild.dashboard.company_n | Company {{n}} | Company {{n}}
+rebuild.dashboard.compass | Compass | Compass
+rebuild.dashboard.default_copy_1 | You see connections where others are not looking yet. | You see connections where others are not looking yet.
+rebuild.dashboard.default_copy_2 | You build systems that make sense. | You build systems that make sense.
+rebuild.dashboard.logged_out_subtitle | Sign in and open your personal work compass. | Sign in and open your personal work compass.
+rebuild.dashboard.mentor_chat_desc | Answers go through Mistral and follow the manual of shamanic honesty. If data is missing, it should say so out loud. | Answers go through Mistral and follow the manual of shamanic honesty. If data is missing, it should say so out loud.
+rebuild.dashboard.mentor_chat_title | Career conversation without the fluff | Career conversation without the fluff
+rebuild.dashboard.mentor_placeholder | Write what you want to unravel... | Write what you want to unravel...
+rebuild.dashboard.mentor_title | Cybershaman AI | Cybershaman AI
+rebuild.dashboard.mistral_thinking | Mistral is composing a reply | Mistral is composing a reply
+rebuild.dashboard.next_step | Next step | Next step
+rebuild.dashboard.onboarding_pending_desc | Projděte rituálem probuzení, abychom mohli přesněji namířit váš pracovní kompas. | Projděte rituálem probuzení, abychom mohli přesněji namířit váš pracovní kompas.
+rebuild.dashboard.onboarding_pending_title | Průvodce Cybershamanem není dokončen | Průvodce Cybershamanem není dokončen
+rebuild.dashboard.private_compass | Private work compass | Private work compass
+rebuild.dashboard.quick_inputs | Quick inputs | Quick inputs
+rebuild.dashboard.risks_refining | Risks will be refined after completing JCFPM. | Risks will be refined after completing JCFPM.
+rebuild.dashboard.risks_warning | Watch out for: {{risks}}. | Watch out for: {{risks}}.
+rebuild.dashboard.selected_company | Selected company | Selected company
+rebuild.dashboard.start_ritual | Spustit rituál | Spustit rituál
+rebuild.dashboard.start_test | Start JCFPM Test | Start JCFPM Test
+rebuild.dashboard.tone_source | Tone source | Tone source
+rebuild.dashboard.top_signals | Top signals: {{signals}}. | Top signals: {{signals}}.
+rebuild.dashboard.unlock_archetype | Unlock your archetype | Unlock your archetype
+rebuild.dashboard.unlock_archetype_desc | Complete the JCFPM test to reveal your deep career identity and resonance score. | Complete the JCFPM test to reveal your deep career identity and resonance score.
+rebuild.dashboard.unlock_growth | Unlock growth map | Unlock growth map
+rebuild.dashboard.unlock_growth_desc | We need your JCFPM data to identify blind spots and recommend precise growth training. | We need your JCFPM data to identify blind spots and recommend precise growth training.
+rebuild.dashboard.unlock_map | Map your future | Map your future
+rebuild.dashboard.unlock_map_desc | Unlock your personalized growth map by completing the JCFPM assessment. | Unlock your personalized growth map by completing the JCFPM assessment.
+rebuild.dashboard.value_fit | Topics that currently fit you best value-wise: {{tags}}. | Topics that currently fit you best value-wise: {{tags}}.
+rebuild.dashboard.you | you | you
+rebuild.day.fri | Fri | Fri
+rebuild.day.mon | Mon | Mon
+rebuild.day.sat | Sat | Sat
+rebuild.day.sun | Sun | Sun
+rebuild.day.thu | Thu | Thu
+rebuild.day.tue | Tue | Tue
+rebuild.day.wed | Wed | Wed
+rebuild.derivations.note_promising | Promising candidate with enough structured evidence to justify a live follow-up. | Promising candidate with enough structured evidence to justify a live follow-up.
+rebuild.derivations.note_strong | Strong submission with clear signal, thoughtful tradeoffs and fast next-step readiness. | Strong submission with clear signal, thoughtful tradeoffs and fast next-step readiness.
+rebuild.derivations.rec_handshake | Candidate completed the handshake for {{title}}. Review and decide whether to invite them into the next live step. | Candidate completed the handshake for {{title}}. Review and decide whether to invite them into the next live step.
+rebuild.derivations.rec_interview | Interview already requested for {{slot}}. Use the live review to validate the strongest signal areas. | Interview already requested for {{slot}}. Use the live review to validate the strongest signal areas.
+rebuild.detail.benefits_value | Benefits value | Benefits value
+rebuild.detail.commute_unknown | No commute / unknown | No commute / unknown
+rebuild.detail.contract | Contract | Contract
+rebuild.detail.distance | Distance | Distance
+rebuild.detail.effective_rate | Effective rate | Effective rate
+rebuild.detail.external_import | External import | External import
+rebuild.detail.financial_reality | Financial reality | Financial reality
+rebuild.detail.jhi_impact | Impact of benefits and commute on JHI finance | Impact of benefits and commute on JHI finance
+rebuild.detail.monthly_costs | Monthly costs | Monthly costs
+rebuild.detail.one_way_time | One-way time | One-way time
+rebuild.detail.points | points | points
+rebuild.detail.relocation_warning | This offer looks more like a relocation decision than a standard commute. | This offer looks more like a relocation decision than a standard commute.
+rebuild.detail.saved_commute | Saved commute | Saved commute
+rebuild.detail.source_native | Jobshaman native | Jobshaman native
+rebuild.detail.take_home | Take-home pay | Take-home pay
+rebuild.detail.taxes_deductions | Taxes and deductions | Taxes and deductions
+rebuild.detail.your_tolerance | Your tolerance | Your tolerance
+rebuild.error.active_company_required | An active company profile is required first. | An active company profile is required first.
+rebuild.experience.linkedin_label | LinkedIn | LinkedIn
+rebuild.fit.title | Skill-first fit | Skill-first fit
+rebuild.insights.active_badge | Active | Active
+rebuild.insights.active_cv | Active CV on profile | Active CV on profile
+rebuild.insights.active_submissions | Active submissions | Active submissions
+rebuild.insights.ai_story_guide | AI Story Guide | AI Story Guide
+rebuild.insights.back_marketplace | Back to marketplace | Back to marketplace
+rebuild.insights.border_search | Border search | Border search
+rebuild.insights.commute_reality | Commute reality | Commute reality
+rebuild.insights.delete | Delete | Delete
+rebuild.insights.disabled | Disabled | Disabled
+rebuild.insights.enabled | Enabled | Enabled
+rebuild.insights.loading_cv_documents | Loading CV documents... | Loading CV documents...
+rebuild.insights.loading_submissions | Loading submissions... | Loading submissions...
+rebuild.insights.open_current_cv | Open current CV | Open current CV
+rebuild.insights.parsed_cv_review | Parsed CV review | Parsed CV review
+rebuild.insights.save_cv | Save CV review | Save CV review
+rebuild.insights.saved_roles | Saved roles | Saved roles
+rebuild.insights.saved_roles_nearby | Saved roles nearby | Saved roles nearby
+rebuild.insights.sign_in_upload_cv | Sign in to upload CV | Sign in to upload CV
+rebuild.insights.tax_profile | Tax profile | Tax profile
+rebuild.insights.upload_cv | Upload CV | Upload CV
+rebuild.insights.use_this_cv | Use this CV | Use this CV
+rebuild.intelligence.border_active | {{country}} active | {{country}} active
+rebuild.intelligence.border_disabled | {{country}} disabled | {{country}} disabled
+rebuild.intelligence.domestic | domestic | domestic
+rebuild.intelligence.jhi_index | JHI index | JHI index
+rebuild.intelligence.summary_curated | JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry. | JHI {{score}}/100, estimated net value {{value}} {{currency}} monthly and direct branded journey entry.
+rebuild.intelligence.summary_imported | JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs. | JHI {{score}}/100, realistic outbound preparation considering {{fit}} fit and real costs.
+rebuild.jcfpm.abort | Interrupt and start again | Interrupt and start again
+rebuild.jcfpm.answer_all | Odpověz na všechny výroky a odemkne se archetyp i doporučení rolí. | Odpověz na všechny výroky a odemkne se archetyp i doporučení rolí.
+rebuild.jcfpm.big5.agreeableness | Agreeableness | Agreeableness
+rebuild.jcfpm.big5.conscientiousness | Conscientiousness | Conscientiousness
+rebuild.jcfpm.big5.extraversion | Extraversion | Extraversion
+rebuild.jcfpm.big5.neuroticism | Emotional reactivity | Emotional reactivity
+rebuild.jcfpm.big5.openness | Openness | Openness
+rebuild.jcfpm.confidence | Estimation confidence | Estimation confidence
+rebuild.jcfpm.decisions | Decisions in uncertainty | Decisions in uncertainty
+rebuild.jcfpm.dominance | Dominance | Dominance
+rebuild.jcfpm.finish | Finish and show results | Finish and show results
+rebuild.jcfpm.handshake_rule_desc | A finished JCFPM is simply used. An unfinished JCFPM is part of the handshake and, once completed, is saved to the profile for further challenges. | A finished JCFPM is simply used. An unfinished JCFPM is part of the handshake and, once completed, is saved to the profile for further challenges.
+rebuild.jcfpm.handshake_rule_title | Handshake rule | Handshake rule
+rebuild.jcfpm.loading_questions | Načítám otázky JCFPM ze Supabase... | Načítám otázky JCFPM ze Supabase...
+rebuild.jcfpm.motivation | Motivation | Motivation
+rebuild.jcfpm.no_questions | V databázi zatím nejsou dostupné žádné JCFPM otázky. | V databázi zatím nejsou dostupné žádné JCFPM otázky.
+rebuild.jcfpm.open_profile | Open JCFPM profile | Open JCFPM profile
+rebuild.jcfpm.psych_report_desc | This report compares your internal setting with cognitive prerequisites. | This report compares your internal setting with cognitive prerequisites.
+rebuild.jcfpm.psych_report_title | Psychometric report (Big 5) | Psychometric report (Big 5)
+rebuild.jcfpm.skill_profile | Cognitive and skill prerequisites | Cognitive and skill prerequisites
+rebuild.jcfpm.start_test | Start JCFPM test | Start JCFPM test
+rebuild.jcfpm.step_required_desc | JCFPM is not restarted in the handshake if you have already completed it. Since we don\ | JCFPM is not restarted in the handshake if you have already completed it. Since we don\
+rebuild.jcfpm.step_required_title | Complete your work profile for assessment results. | Complete your work profile for assessment results.
+rebuild.jcfpm.step_title | JCFPM | JCFPM
+rebuild.jcfpm.style | Work style | Work style
+rebuild.jcfpm.values | Value setting | Value setting
+rebuild.jcfpm.welcome_desc | 12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result is saved to your profile and helps us with more accurate recommendations for positions and courses. | 12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result is saved to your profile and helps us with more accurate recommendations for positions and courses.
+rebuild.jcfpm.what_will_be_used | What will be used in results | What will be used in results
+rebuild.jhi.financial | Finance | Finance
+rebuild.journey.assessment_center | Assessment Center | Assessment Center
+rebuild.journey.min_tolerance | min tolerance | min tolerance
+rebuild.journey.recently_submitted | Recently submitted | Recently submitted
+rebuild.landing.enter_as_candidate | Enter as a candidate | Enter as a candidate
+rebuild.landing.enter_as_company | Enter as a company | Enter as a company
+rebuild.landing.verified_hiring | Verified hiring without ghosting | Verified hiring without ghosting
+rebuild.learning.fit.ai_workflow | AI workflow | AI workflow
+rebuild.learning.fit.qa | QA | QA
+rebuild.learning.fit.reporting | business reporting | business reporting
+rebuild.learning.tracks.python.title | Python | Python
+rebuild.level.lead | Lead | Lead
+rebuild.level.principal | Principal | Principal
+rebuild.level.senior | Senior | Senior
+rebuild.locale | en-GB | en-GB
+rebuild.marketplace.benefit_dog_friendly | Dog-friendly office | Dog-friendly office
+rebuild.marketplace.benefit_home_office | Home office | Home office
+rebuild.marketplace.benefit_multisport | Multisport | Multisport
+rebuild.marketplace.current_radius | Radius | Radius
+rebuild.marketplace.match | Match | Match
+rebuild.marketplace.no_more_roles | Tohle je pro teď všechno. | Tohle je pro teď všechno.
+rebuild.marketplace.no_more_roles_copy | Zkus upravit filtry nebo se vrať později pro další nabídky. | Zkus upravit filtry nebo se vrať později pro další nabídky.
+rebuild.marketplace.role | Role | Role
+rebuild.marketplace.role_family_design | Design | Design
+rebuild.marketplace.role_family_engineering | Engineering | Engineering
+rebuild.marketplace.role_family_frontline | Frontline | Frontline
+rebuild.marketplace.sandbox_title | Marketplace Sandbox | Marketplace Sandbox
+rebuild.marketplace.swipe_mode | Swipe mode | Swipe mode
+rebuild.marketplace.work_arrangement_hybrid | Hybrid | Hybrid
+rebuild.nav.self_knowledge | Self-knowledge | Self-knowledge
+rebuild.profile.ai_signal_marker | AI Signal Marker | AI Signal Marker
+rebuild.profile.cv_format_unsupported | Only PDF or Word documents are supported. | Only PDF or Word documents are supported.
+rebuild.profile.cv_too_large | Document exceeds 10 MB limit. | Document exceeds 10 MB limit.
+rebuild.profile.feed_mode_label | Feed mode | Feed mode
+rebuild.profile.modes.consulting | Micro-projects · challenge contracts · sandbox consulting | Micro-projects · challenge contracts · sandbox consulting
+rebuild.profile.modes.design | System design · innovation tracks · architecture challenges | System design · innovation tracks · architecture challenges
+rebuild.profile.no_education | Education not added yet. | Education not added yet.
+rebuild.profile.only_images_supported | Only images are supported. | Only images are supported.
+rebuild.profile.photo_too_large | Photo exceeds 5 MB limit. | Photo exceeds 5 MB limit.
+rebuild.profile.profile_status | Profile status | Profile status
+rebuild.profile.signals.default_title | Core Signal Event | Core Signal Event
+rebuild.profile.signals.earthship_title | Core Signal Event: Earthship moment | Core Signal Event: Earthship moment
+rebuild.recruiter.accent_color | Accent | Accent
+rebuild.recruiter.active_count | ▲ {{count}} active | ▲ {{count}} active
+rebuild.recruiter.add_gallery | Add photo | Add photo
+rebuild.recruiter.add_material | Add material | Add material
+rebuild.recruiter.ai_draft_error | Failed to create AI proposal. | Failed to create AI proposal.
+rebuild.recruiter.ai_draft_ready | Mistral has prepared a draft of the challenge and assessment. Review it and confirm by saving. | Mistral has prepared a draft of the challenge and assessment. Review it and confirm by saving.
+rebuild.recruiter.ai_tasks_ready | AI task proposal is ready. Please confirm it before publication. | AI task proposal is ready. Please confirm it before publication.
+rebuild.recruiter.apply_filters | Apply filters | Apply filters
+rebuild.recruiter.avg_rating | ▲ {{rating}} avg rating | ▲ {{rating}} avg rating
+rebuild.recruiter.axis_agility | Agility | Agility
+rebuild.recruiter.axis_creativity | Creativity | Creativity
+rebuild.recruiter.axis_leadership | Leadership | Leadership
+rebuild.recruiter.axis_logic | Logic | Logic
+rebuild.recruiter.axis_soft_skills | Soft Skills | Soft Skills
+rebuild.recruiter.axis_technical_depth | Technical Depth | Technical Depth
+rebuild.recruiter.back_to_company_entry | Back to company entry | Back to company entry
+rebuild.recruiter.brand_editor | Brand editor | Brand editor
+rebuild.recruiter.candidate_metadata | Candidate metadata | Candidate metadata
+rebuild.recruiter.candidate_n | Candidate {{n}} | Candidate {{n}}
+rebuild.recruiter.candidates_in_play | Candidates in play | Candidates in play
+rebuild.recruiter.challenge_published | Challenge is published in the marketplace and ready for handshake. | Challenge is published in the marketplace and ready for handshake.
+rebuild.recruiter.challenge_save_error | Failed to save the challenge. | Failed to save the challenge.
+rebuild.recruiter.challenge_saved | Challenge is saved and ready for candidate handshake. | Challenge is saved and ready for candidate handshake.
+rebuild.recruiter.changes_marketplace_cards | Marketplace cards use the updated company name and logo immediately. | Marketplace cards use the updated company name and logo immediately.
+rebuild.recruiter.changes_role_briefing | Role briefing and journey screens pull the latest cover, narrative and reviewer identity. | Role briefing and journey screens pull the latest cover, narrative and reviewer identity.
+rebuild.recruiter.check_clear_impact | Clear impact | Clear impact
+rebuild.recruiter.check_context_hint | Add background and expectations. | Add background and expectations.
+rebuild.recruiter.check_context_ok | Candidate will understand the broader situation. | Candidate will understand the broader situation.
+rebuild.recruiter.check_goal_hint | Name the outcome, not just the position. | Name the outcome, not just the position.
+rebuild.recruiter.check_goal_ok | Challenge is specific and understandable. | Challenge is specific and understandable.
+rebuild.recruiter.check_impact_hint | Explain why the challenge matters. | Explain why the challenge matters.
+rebuild.recruiter.check_impact_ok | Impact on team or business is described. | Impact on team or business is described.
+rebuild.recruiter.check_motivating_context | Motivating context | Motivating context
+rebuild.recruiter.check_realistic_scope | Realistic scope | Realistic scope
+rebuild.recruiter.check_scope_hint | Describe specific deliverables. | Describe specific deliverables.
+rebuild.recruiter.check_scope_ok | Assessment task is feasible. | Assessment task is feasible.
+rebuild.recruiter.check_well_defined_goal | Well-defined goal | Well-defined goal
+rebuild.recruiter.comp_analysts | Analysts | Analysts
+rebuild.recruiter.comp_architects | Architects | Architects
+rebuild.recruiter.comp_innovators | Innovators | Innovators
+rebuild.recruiter.comp_realizers | Realizers | Realizers
+rebuild.recruiter.comp_visionaries | Visionaries | Visionaries
+rebuild.recruiter.company_load_failed | Company account failed to load. | Company account failed to load.
+rebuild.recruiter.company_load_failed_desc | Check your server connection and try loading again. If you filled in the company before, there should be no need to create it again. | Check your server connection and try loading again. If you filled in the company before, there should be no need to create it again.
+rebuild.recruiter.company_name | Company name | Company name
+rebuild.recruiter.company_profile | Company Profile | Company Profile
+rebuild.recruiter.competencies | Core competencies | Core competencies
+rebuild.recruiter.competency_matrix | Aggregated competency matrix | Aggregated competency matrix
+rebuild.recruiter.competency_matrix_copy | Performance across the current selection pool. | Performance across the current selection pool.
+rebuild.recruiter.completed_count | ▲ {{count}} completed | ▲ {{count}} completed
+rebuild.recruiter.cover_image_url | Cover image URL | Cover image URL
+rebuild.recruiter.created_at | Created at | Created at
+rebuild.recruiter.dashboard | Dashboard | Dashboard
+rebuild.recruiter.dashboard_tip | You have the highest resonance in the communication style area. Consider strengthening strategic thinking in the product team. | You have the highest resonance in the communication style area. Consider strengthening strategic thinking in the product team.
+rebuild.recruiter.elite_tier | Elite talent tier | Elite talent tier
+rebuild.recruiter.exp_level | Experience level | Experience level
+rebuild.recruiter.first_step_label | First step | First step
+rebuild.recruiter.gallery | Company gallery | Company gallery
+rebuild.recruiter.gallery_empty | Add office, production or team photos that candidates should see before the handshake. | Add office, production or team photos that candidates should see before the handshake.
+rebuild.recruiter.handshake_in_progress | Handshake in progress | Handshake in progress
+rebuild.recruiter.handshake_materials | Handshake materials | Handshake materials
+rebuild.recruiter.high_signal | High signal | High signal
+rebuild.recruiter.hire_flow | Hire Flow | Hire Flow
+rebuild.recruiter.hire_success_rate | Hire success rate | Hire success rate
+rebuild.recruiter.in_progress_count | ▲ {{count}} in progress | ▲ {{count}} in progress
+rebuild.recruiter.incomplete_challenge_error | Please fill in the title, challenge context, and first step for the candidate. | Please fill in the title, challenge context, and first step for the candidate.
+rebuild.recruiter.industry | Industry | Industry
+rebuild.recruiter.just_a_moment | Just a moment | Just a moment
+rebuild.recruiter.kicker_pipeline | Pipeline | Pipeline
+rebuild.recruiter.live_preview | Live recruiter preview | Live recruiter preview
+rebuild.recruiter.loading_company_account | Loading company account. | Loading company account.
+rebuild.recruiter.location_label | Location | Location
+rebuild.recruiter.logo_url | Logo URL | Logo URL
+rebuild.recruiter.materials_empty | Upload decks, process docs, videos or briefs that should be visible before or during the handshake. | Upload decks, process docs, videos or briefs that should be visible before or during the handshake.
+rebuild.recruiter.narrative | Narrative | Narrative
+rebuild.recruiter.new_this_week | ▲ {{n}} new this week | ▲ {{n}} new this week
+rebuild.recruiter.overall | Overall | Overall
+rebuild.recruiter.preparing_workspace | Preparing your company workspace. | Preparing your company workspace.
+rebuild.recruiter.primary_color | Primary | Primary
+rebuild.recruiter.profile_source | Profile source | Profile source
+rebuild.recruiter.publish_error | Failed to publish the challenge. | Failed to publish the challenge.
+rebuild.recruiter.published_surface | Published Surface | Published Surface
+rebuild.recruiter.rank | Rank | Rank
+rebuild.recruiter.remove_material | Remove | Remove
+rebuild.recruiter.remove_media | Remove | Remove
+rebuild.recruiter.res_cognitive | Cognitive style | Cognitive style
+rebuild.recruiter.res_comm | Communication style | Communication style
+rebuild.recruiter.res_culture | Culture and values | Culture and values
+rebuild.recruiter.res_motivation | Motivation | Motivation
+rebuild.recruiter.res_pace | Work pace | Work pace
+rebuild.recruiter.reviewer_avatar | Reviewer photo | Reviewer photo
+rebuild.recruiter.reviewer_intro | Reviewer intro | Reviewer intro
+rebuild.recruiter.reviewer_name | Reviewer name | Reviewer name
+rebuild.recruiter.reviewer_role | Reviewer role | Reviewer role
+rebuild.recruiter.role_label | Role | Role
+rebuild.recruiter.save_brand | Save brand to company profile | Save brand to company profile
+rebuild.recruiter.select_candidate_desc | Here you will see a detailed analysis of skills, histories, and common communication with the selected talent. | Here you will see a detailed analysis of skills, histories, and common communication with the selected talent.
+rebuild.recruiter.select_candidate_detail | Select a candidate for a detailed cognitive map | Select a candidate for a detailed cognitive map
+rebuild.recruiter.status_assigned | Assigned | Assigned
+rebuild.recruiter.status_drafts | Drafts | Drafts
+rebuild.recruiter.status_handshake | Handshake | Handshake
+rebuild.recruiter.status_hired | Hired | Hired
+rebuild.recruiter.status_sandbox | In sandbox | In sandbox
+rebuild.recruiter.submitted_count | ▲ {{count}} submitted | ▲ {{count}} submitted
+rebuild.recruiter.tagline | Tagline | Tagline
+rebuild.recruiter.talent_insights | Talent Insights | Talent Insights
+rebuild.recruiter.talent_intelligence | Talent Intelligence | Talent Intelligence
+rebuild.recruiter.technical_match | technical match | technical match
+rebuild.recruiter.this_week | ▲ {{n}} this week | ▲ {{n}} this week
+rebuild.recruiter.unknown | Unknown | Unknown
+rebuild.recruiter.upload_cover | Upload cover image | Upload cover image
+rebuild.recruiter.upload_logo | Upload logo | Upload logo
+rebuild.recruiter.uploading_media | Uploading media... | Uploading media...
+rebuild.recruiter.vs_last_quarter | ▲ {{n}} % vs. last quarter | ▲ {{n}} % vs. last quarter
+rebuild.recruiter.website | Website | Website
+rebuild.recruiter.work_remote | Remote | Remote
+rebuild.recruiter.your_account | Your account | Your account
+rebuild.save | Save | Save
+rebuild.tax.children | Children count | Children count
+rebuild.tax.country | Country | Country
+rebuild.tax.employee | Employee | Employee
+rebuild.tax.employment_type | Employment type | Employment type
+rebuild.tax.marital_status | Marital status | Marital status
+rebuild.tax.married | Married | Married
+rebuild.tax.single | Single | Single
+rebuild.tax.single_parent | Single parent relief | Single parent relief
+rebuild.tax.spouse_income | Spouse annual income | Spouse annual income
+rebuild.tax.tax_year | Tax year | Tax year
