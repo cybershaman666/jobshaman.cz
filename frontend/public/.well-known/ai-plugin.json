@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "JobShaman",
+  "name_for_human": "JobShaman",
+  "description_for_model": "Help users find jobs based on real financial outcomes (net income after taxes and commute) and Job Happiness Index (JHI). Analyze work reality, compare offers by actual 'take-home' value, and find skill-first matches in Nordic and Central European markets.",
+  "description_for_human": "JobShaman reveals the true financial and happiness reality of job offers. No CV spam, just signals that matter.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://jobshaman.cz/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://jobshaman.cz/logo-transparent.png",
+  "contact_email": "hello@jobshaman.cz",
+  "legal_info_url": "https://jobshaman.cz/terms",
+  "capabilities": {
+    "financial_analysis": "Calculates net income after taxes and commute costs for multiple EU countries.",
+    "happiness_index": "Ranks jobs by the Job Happiness Index (JHI) based on skills and environment resonance.",
+    "handshake_dialogue": "Enables direct skill-first dialogue between candidates and companies."
+  }
+}

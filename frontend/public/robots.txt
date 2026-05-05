@@ -1,0 +1,36 @@
+User-agent: *
+Allow: /
+
+# Specific directives for AI bots to ensure they can index the "Handshake" context
+User-agent: GPTBot
+Allow: /candidate/role/
+Allow: /candidate/imported/
+Allow: /marketplace
+Allow: /companies
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: FacebookBot
+Disallow: /admin
+Disallow: /recruiter
+Allow: /
+
+# Sitemaps
+Sitemap: https://jobshaman.cz/sitemap.xml
+Sitemap: https://jobshaman.cz/sitemap.txt

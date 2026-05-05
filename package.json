@@ -1,12 +1,17 @@
 {
   "name": "jobshaman",
   "private": true,
+<<<<<<< HEAD
   "version": "0.0.0",
+=======
+  "version": "2.0.0",
+>>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
+<<<<<<< HEAD
     "dev": "vite --host 0.0.0.0 --port 3000",
     "dev:backend": "python3 -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000",
     "dev:full": "node ./scripts/dev-full.mjs",
@@ -60,5 +65,13 @@
     "ts-jest": "^29.4.6",
     "typescript": "^5.3.3",
     "vite": "^7.3.1"
+=======
+    "dev": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:full": "node ./scripts/dev-v2.mjs",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "typecheck": "npm --prefix frontend run typecheck 2>/dev/null || tsc --noEmit --project frontend/tsconfig.app.json"
+>>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
   }
 }

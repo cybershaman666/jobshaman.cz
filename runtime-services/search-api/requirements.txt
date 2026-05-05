@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 fastapi
 uvicorn[standard]
 gunicorn
@@ -7,3 +8,14 @@ pydantic
 slowapi
 requests
 user-agents
+=======
+fastapi
+uvicorn[standard]
+gunicorn
+supabase
+python-dotenv
+pydantic
+slowapi
+requests
+user-agents
+>>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)

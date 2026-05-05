@@ -1,0 +1,80 @@
+{
+  "version": "candidate-intent-v1",
+  "domains": {
+    "product_management": {
+      "labels": { "cs": "Product management", "sk": "Product management", "en": "Product management", "de": "Produktmanagement", "pl": "Product management" },
+      "keywords": ["product manager", "product owner", "produktovy manager", "produkt manager", "produkt owner", "roadmap", "discovery", "go to market", "backlog", "product strategy", "pricing strategy", "ux research", "prototype", "prototyping", "prototyp", "systems design", "system design"],
+      "related": ["operations", "marketing", "customer_support", "sales"]
+    },
+    "hospitality": {
+      "labels": { "cs": "Gastro a hospitality", "sk": "Gastro a hospitality", "en": "Hospitality", "de": "Hotellerie & Gastro", "pl": "Hospitality i gastro" },
+      "keywords": ["hotel", "reception", "housekeeping", "front office", "concierge", "restaurant", "barista", "chef", "waiter", "cisnik", "kuchar", "recepcni", "gast", "hospitality", "guest experience", "ubytovani"],
+      "related": ["operations", "customer_support", "retail"]
+    },
+    "customer_support": {
+      "labels": { "cs": "Zákaznická péče", "sk": "Zákaznícka podpora", "en": "Customer support", "de": "Kundenservice", "pl": "Obsługa klienta" },
+      "keywords": ["customer support", "customer success", "support specialist", "helpdesk", "service desk", "care specialist", "technical support", "podpora zakazniku", "zakaznicka pece", "klientsky servis", "call center"],
+      "related": ["sales", "operations", "hospitality", "retail"]
+    },
+    "operations": {
+      "labels": { "cs": "Provoz a operations", "sk": "Prevádzka a operations", "en": "Operations", "de": "Operations", "pl": "Operacje" },
+      "keywords": ["operations", "office manager", "project coordinator", "project manager", "projektovy manazer", "projektovy manager", "manazer projektu", "stavbyvedouci", "delivery lead", "process manager", "business operations", "provoz", "koordinator", "back office", "administrative support", "chief of staff"],
+      "related": ["product_management", "logistics", "customer_support", "sales"]
+    },
+    "sales": {
+      "labels": { "cs": "Obchod", "sk": "Obchod", "en": "Sales", "de": "Vertrieb", "pl": "Sprzedaż" },
+      "keywords": ["sales", "account executive", "business development", "key account", "obchodnik", "obchodni zastupce", "sales manager", "partner manager", "inside sales", "field sales", "revenue"],
+      "related": ["marketing", "customer_support", "operations", "retail"]
+    },
+    "marketing": {
+      "labels": { "cs": "Marketing", "sk": "Marketing", "en": "Marketing", "de": "Marketing", "pl": "Marketing" },
+      "keywords": ["marketing", "content", "copywriter", "seo", "performance marketing", "brand manager", "social media", "crm", "campaign", "growth marketing", "community manager"],
+      "related": ["sales", "product_management", "customer_support"]
+    },
+    "finance": {
+      "labels": { "cs": "Finance a účetnictví", "sk": "Financie a účtovníctvo", "en": "Finance & accounting", "de": "Finanzen & Buchhaltung", "pl": "Finanse i księgowość" },
+      "keywords": ["finance", "accountant", "controller", "controlling", "bookkeeper", "ucetni", "faktury", "ap ar", "financial analyst", "audit", "tax", "payroll"],
+      "related": ["operations", "sales"]
+    },
+    "it": {
+      "labels": { "cs": "IT a software", "sk": "IT a software", "en": "IT & software", "de": "IT & Software", "pl": "IT i software" },
+      "keywords": ["developer", "engineer", "software", "backend", "frontend", "fullstack", "python", "java", "react", "devops", "qa", "tester", "it support", "data engineer", "prototype", "prototyp", "maker", "electronics", "hardware", "automation"],
+      "related": ["engineering", "product_management", "customer_support"]
+    },
+    "engineering": {
+      "labels": { "cs": "Technika a inženýring", "sk": "Technika a inžiniering", "en": "Engineering", "de": "Ingenieurwesen", "pl": "Inżynieria" },
+      "keywords": ["engineer", "mechanical", "electrical", "projektant", "technik", "automechanik", "auto mechanik", "mechanik", "mechanik vozidel", "servisni technik", "technik udrzby", "udrzbar", "udrzba", "maintenance", "maintenance technician", "field service", "automation", "plc", "cad", "quality engineer", "process engineer", "industrial engineer", "prototype", "prototyp", "invention", "vynalez", "electronics", "hardware", "maker"],
+      "related": ["manufacturing", "it", "operations"]
+    },
+    "automotive": {
+      "labels": { "cs": "Automotive", "sk": "Automotive", "en": "Automotive", "de": "Automotive", "pl": "Automotive" },
+      "keywords": ["automotive", "automechanik", "auto mechanik", "autoservis", "servis vozidel", "mechanik vozidel", "autotechnik", "car service", "vehicle service", "fleet service", "kfz", "dealership", "car dealer"],
+      "related": ["engineering", "manufacturing", "logistics", "retail"]
+    },
+    "healthcare": {
+      "labels": { "cs": "Zdravotnictví a péče", "sk": "Zdravotníctvo a starostlivosť", "en": "Healthcare & care", "de": "Gesundheit & Pflege", "pl": "Zdrowie i opieka" },
+      "keywords": ["nurse", "nursing", "medical", "clinic", "doctor", "healthcare", "caregiver", "social care", "sestra", "prakticka sestra", "zdravotni sestra", "zdravotni bratr", "pecovatel", "terapeut", "ambulance", "sanitar", "zachranar", "paramedik"],
+      "related": ["education", "hospitality"]
+    },
+    "education": {
+      "labels": { "cs": "Vzdělávání", "sk": "Vzdelávanie", "en": "Education", "de": "Bildung", "pl": "Edukacja" },
+      "keywords": ["teacher", "lecturer", "trainer", "school", "education", "ucitel", "lektor", "pedagog", "instruktor", "coach", "learning specialist"],
+      "related": ["healthcare", "operations", "customer_support"]
+    },
+    "logistics": {
+      "labels": { "cs": "Logistika a doprava", "sk": "Logistika a doprava", "en": "Logistics", "de": "Logistik", "pl": "Logistyka" },
+      "keywords": ["logistics", "warehouse", "supply chain", "dispatch", "fleet", "driver", "ridic", "sklad", "inventory", "planner", "procurement logistics"],
+      "related": ["operations", "manufacturing", "retail"]
+    },
+    "manufacturing": {
+      "labels": { "cs": "Výroba", "sk": "Výroba", "en": "Manufacturing", "de": "Produktion", "pl": "Produkcja" },
+      "keywords": ["production", "operator", "assembly", "manufacturing", "vyroba", "line operator", "machine operator", "quality control", "plant", "factory", "shift production"],
+      "related": ["engineering", "logistics", "operations"]
+    },
+    "retail": {
+      "labels": { "cs": "Retail a provoz prodeje", "sk": "Retail a prevádzka predaja", "en": "Retail", "de": "Einzelhandel", "pl": "Retail" },
+      "keywords": ["retail", "store", "cashier", "shop assistant", "prodejna", "pokladni", "visual merchandiser", "branch manager", "sales floor", "customer advisor"],
+      "related": ["sales", "hospitality", "customer_support", "logistics"]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+  "rebuild": {
+    "nav": {
+      "marketplace": "Katalog",
+      "profile_insights": "Můj přehled",
+      "candidate_area": "Pro uchazeče",
+      "work_profile": "Pracovní profil",
+      "recruiter_os": "Pro firmy",
+      "recruiter": "Pro firmy",
+      "home": "Domů",
+      "profile": "Profil",
+      "jcfpm": "Sebepoznání",
+      "work": "Práce",
+      "applications": "Žádosti",
+      "learning": "Učení",
+      "sign_out": "Odhlásit se",
+      "ai_guide_subtitle": "Váš AI průvodce náborem",
+      "help": "Nápověda",
+      "sign_in": "Přihlásit se",
+      "chat_with_shaman": "Popovídej si se Shamanem",
+      "company": "Firma",
+      "company_profile": "Firemní profil"
+    },

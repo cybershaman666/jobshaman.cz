@@ -2,6 +2,7 @@ services:
   - type: web
     name: jobshaman-backend
     env: python
+<<<<<<< HEAD
     healthCheckPath: /healthz
     buildCommand: >
       sh -c '
@@ -24,6 +25,12 @@ services:
         echo "Cannot find FastAPI entrypoint (app/main.py)." &&
         exit 1;
       fi'
+=======
+    healthCheckPath: /health
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: >
+      sh -c 'cd backend && exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120'
+>>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
     envVars:
       - key: SUPABASE_URL
         sync: false
@@ -31,6 +38,7 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+<<<<<<< HEAD
       - key: AI_PROVIDER
         value: openai
       - key: OPENAI_ENDPOINT
@@ -50,6 +58,33 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: SECRET_KEY
+=======
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM
+        sync: false
+      - key: STRIPE_PRICE_STARTER
+        sync: false
+      - key: STRIPE_PRICE_GROWTH
+        sync: false
+      - key: STRIPE_PRICE_PROFESSIONAL
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: MISTRAL_ENDPOINT
+        value: https://api.mistral.ai/v1/chat/completions
+      - key: MISTRAL_MODEL
+        value: mistral-small-latest
+      - key: AI_RESCUE_MODELS
+        value: mistral-small-latest
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SCRAPER_TOKEN
+>>>>>>> 4c20d82 (Jobshaman MVP 2.0: Clean repo, i18n Nordic expansion & engine optimization)
         sync: false
       - key: API_BASE_URL
         sync: false

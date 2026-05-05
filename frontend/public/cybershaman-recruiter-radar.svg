@@ -1,0 +1,14 @@
+<svg width="420" height="320" viewBox="0 0 420 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M210 36L303 90V198L210 252L117 198V90L210 36Z" stroke="#E9E2D7"/>
+  <path d="M210 62L281 104V184L210 226L139 184V104L210 62Z" stroke="#E9E2D7"/>
+  <path d="M210 88L259 118V170L210 200L161 170V118L210 88Z" stroke="#E9E2D7"/>
+  <path d="M210 114L237 132V156L210 174L183 156V132L210 114Z" stroke="#E9E2D7"/>
+  <path d="M210 72L268 112L250 186L196 206L151 166L159 106L210 72Z" fill="#DCEBFB" fill-opacity=".7" stroke="#74A2F5" stroke-width="2"/>
+  <path d="M210 48L292 94L284 204L210 242L126 194L129 94L210 48Z" stroke="#FF9F40" stroke-width="2" stroke-dasharray="4 6"/>
+  <circle cx="210" cy="72" r="4" fill="#74A2F5"/>
+  <circle cx="268" cy="112" r="4" fill="#74A2F5"/>
+  <circle cx="250" cy="186" r="4" fill="#74A2F5"/>
+  <circle cx="196" cy="206" r="4" fill="#74A2F5"/>
+  <circle cx="151" cy="166" r="4" fill="#74A2F5"/>
+  <circle cx="159" cy="106" r="4" fill="#74A2F5"/>
+</svg>

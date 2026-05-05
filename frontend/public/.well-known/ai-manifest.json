@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "jobshaman",
+  "name_for_human": "JobShaman",
+  "description_for_model": "JobShaman is an AI-powered job marketplace that matches candidates with roles using psychometric data and skill-based handshakes. It allows users to browse jobs, analyze their fit (JHI index), and manage their career journey.",
+  "description_for_human": "The AI-powered job marketplace for the next generation of talent.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://api.jobshaman.cz/openapi.json"
+  },
+  "logo_url": "https://jobshaman.cz/logo.png",
+  "contact_email": "hello@jobshaman.cz",
+  "legal_info_url": "https://jobshaman.cz/terms"
+}
