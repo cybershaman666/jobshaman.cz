@@ -1,4 +1,4 @@
-import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
+import { BACKEND_URL, FEATURE_JOB_INTERACTION_SYNC, SEARCH_BACKEND_URL } from '../constants';
 import { authenticatedFetch, getCurrentAuthTokenSilently } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 
@@ -158,12 +158,12 @@ const scheduleInteractionStateSyncRetry = () => {
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
-    if (isV2ApiOnly()) {
+    if (!FEATURE_JOB_INTERACTION_SYNC || isV2ApiOnly()) {
         recordRuntimeSignal('interaction_tracking_skipped', {
-            reason: 'v2_endpoint_not_ready',
+            reason: !FEATURE_JOB_INTERACTION_SYNC ? 'interaction_sync_disabled' : 'v2_endpoint_not_ready',
             event_type: payload.eventType
         }, {
-            dedupeKey: 'v2_endpoint_not_ready',
+            dedupeKey: !FEATURE_JOB_INTERACTION_SYNC ? 'interaction_sync_disabled' : 'v2_endpoint_not_ready',
             throttleMs: 60_000,
             sendAnalytics: false
         });
@@ -294,7 +294,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
 export const syncJobInteractionState = async (
     payload: JobInteractionStateSyncPayload
 ): Promise<JobInteractionStateSyncResponse | null> => {
-    if (isV2ApiOnly()) {
+    if (!FEATURE_JOB_INTERACTION_SYNC || isV2ApiOnly()) {
         const result: JobInteractionStateSyncResponse = {
             savedJobIds: Array.from(new Set((payload.savedJobIds || []).map((id) => String(id)))),
             dismissedJobIds: Array.from(new Set((payload.dismissedJobIds || []).map((id) => String(id)))),
@@ -365,7 +365,7 @@ const enqueueInteractionStateSync = (payload: JobInteractionStateSyncPayload) =>
 };
 
 export const flushInteractionStateSyncQueue = async (): Promise<void> => {
-    if (isV2ApiOnly()) {
+    if (!FEATURE_JOB_INTERACTION_SYNC || isV2ApiOnly()) {
         writeInteractionSyncQueue(null);
         return;
     }
@@ -404,7 +404,7 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
             dismissedJobIds: Array.from(new Set(cached.dismissedJobIds))
         };
     }
-    if (isV2ApiOnly()) {
+    if (!FEATURE_JOB_INTERACTION_SYNC || isV2ApiOnly()) {
         return { savedJobIds: [], dismissedJobIds: [] };
     }
     const authToken = await getCurrentAuthTokenSilently();

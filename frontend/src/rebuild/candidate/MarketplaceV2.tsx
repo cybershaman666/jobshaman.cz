@@ -135,8 +135,8 @@ const SearchFiltersModal: React.FC<{
   const labelClass = 'block text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate-500';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-white/80 p-3 backdrop-blur-sm dark:bg-slate-950/80 md:p-6">
-      <div className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-[64rem] overflow-hidden rounded-[1.15rem] border border-white/60 bg-[#ffffff] shadow-[0_30px_90px_-36px_rgba(8,16,22,0.72)] dark:border-white/10 dark:bg-slate-900 md:max-h-[calc(100dvh-3rem)] md:grid-cols-[20rem_minmax(0,1fr)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-white/80 p-3 backdrop-blur-sm dark:bg-slate-950/80 md:p-6">
+      <div className="grid h-[calc(100dvh-1.5rem)] w-full max-w-[64rem] overflow-hidden rounded-[1.15rem] border border-white/60 bg-[#ffffff] shadow-[0_30px_90px_-36px_rgba(8,16,22,0.72)] dark:border-white/10 dark:bg-slate-900 md:h-[calc(100dvh-3rem)] md:grid-cols-[20rem_minmax(0,1fr)]">
         <aside className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#fbfdff_0%,#f5f8f9_48%,#eef5f5_100%)] px-9 py-10 dark:bg-[linear-gradient(160deg,#0f172a_0%,#1e293b_48%,#0f172a_100%)] md:flex md:min-h-0 md:flex-col">
           <img src="/logo-transparent.png" alt="Jobshaman" className="dark:hidden h-12 w-12 rounded-full object-contain" loading="eager" />
           <img src="/logodark.png" alt="Jobshaman" className="hidden dark:block h-12 w-12 rounded-full object-contain" loading="eager" />
@@ -156,12 +156,12 @@ const SearchFiltersModal: React.FC<{
           </div>
         </aside>
 
-        <section key="filters-main" className="relative min-h-0 overflow-y-auto bg-[#ffffff] px-5 py-6 pb-0 dark:bg-slate-900 md:px-8 md:py-8 md:pb-0">
+        <section key="filters-main" className="relative min-h-0 overflow-y-auto overscroll-contain bg-[#ffffff] px-5 py-6 pb-0 dark:bg-slate-900 md:px-8 md:py-8 md:pb-0">
           <button
             type="button"
             onClick={onClose}
             className="absolute right-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-            aria-label="Zavřít"
+            aria-label={t('rebuild.marketplace.close_search', { defaultValue: 'Zavřít' })}
           >
             <X size={18} />
           </button>

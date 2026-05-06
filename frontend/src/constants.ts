@@ -17,12 +17,26 @@ const getRuntimeBackendHint = (): string => {
 
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
+  const isCodeRunPreviewApi = (candidate: string) => {
+    try {
+      const parsed = new URL(candidate);
+      return parsed.hostname.endsWith('.code.run') && parsed.hostname.startsWith('site--jobshaman--');
+    } catch {
+      return false;
+    }
+  };
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api\/v2\/?$/i.test(value)) {
       return '/api/v2';
     }
   }
-  if (value) return value.replace(/\/$/, '');
+  if (value) {
+    const normalizedValue = value.replace(/\/$/, '');
+    if (!import.meta.env.DEV && isCodeRunPreviewApi(normalizedValue)) {
+      return 'https://api.jobshaman.cz';
+    }
+    return normalizedValue;
+  }
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     return '/api/v2';
   }
@@ -68,6 +82,9 @@ export const SEARCH_BACKEND_URL =
   import.meta.env.VITE_SEARCH_API_URL ||
   import.meta.env.VITE_SEARCH_BACKEND_URL ||
   BACKEND_URL;
+
+export const FEATURE_JOB_INTERACTION_SYNC =
+  String(import.meta.env.VITE_ENABLE_JOB_INTERACTION_SYNC || 'false').toLowerCase() === 'true';
 
 // Assessment system flags (stable features, no longer experimental)
 export const FEATURE_ASSESSMENT_THREE = true;
