@@ -145,6 +145,11 @@ SUPABASE_SERVICE_KEY, SUPABASE_SERVICE_KEY_SOURCE = _resolve_supabase_service_ke
 SUPABASE_SERVICE_KEY_ROLE = _infer_supabase_key_role(SUPABASE_SERVICE_KEY)
 SCRAPER_HTTP_PROXY = os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("SCRAPER_PROXY")
 SCRAPER_HTTPS_PROXY = os.getenv("SCRAPER_HTTPS_PROXY") or os.getenv("SCRAPER_PROXY")
+SCRAPER_SUPABASE_FALLBACK_ENABLED = os.getenv("SCRAPER_SUPABASE_FALLBACK_ENABLED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 # Debug output
 if SUPABASE_URL:
@@ -184,6 +189,8 @@ def _get_page_cap(default: int = 10) -> Optional[int]:
 
 def get_supabase_client() -> Optional[Client]:
     """Initialize Supabase client with service role key"""
+    if not SCRAPER_SUPABASE_FALLBACK_ENABLED:
+        return None
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print(
             "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_SERVICE_KEY chybí. "
@@ -869,7 +876,10 @@ def detect_work_type(title: str, description: str, location: str) -> str:
 
 def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: Optional[set] = None) -> bool:
     """
-    Save job to Supabase with duplicate detection and geocoding
+    Save job to the Northflank Jobs Postgres store.
+
+    The historical name is kept because all scrapers call this function. Supabase
+    is now only an explicit legacy fallback when SCRAPER_SUPABASE_FALLBACK_ENABLED=true.
     
     Args:
         supabase: Supabase client instance
@@ -958,7 +968,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
     already_pre_checked = seen_urls is not None and f"__new__{url}" in seen_urls
     
     response = None
-    if not already_pre_checked:
+    if SCRAPER_SUPABASE_FALLBACK_ENABLED and supabase and not already_pre_checked:
         # Check for duplicates (with transient DB retry)
         for attempt in range(2):
             try:
@@ -1128,8 +1138,16 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: 
         if postgres_enabled and not jobs_postgres_write_available():
             print(
                 "    ⚠️ Jobs Postgres je nakonfigurovaný, ale zapis do main tabulky není aktivní. "
-                "Nastav `JOBS_POSTGRES_WRITE_MAIN=true`, jinak scraper spadne do Supabase fallbacku."
+                "Nastav `JOBS_POSTGRES_WRITE_MAIN=true`; Supabase fallback je vypnutý."
             )
+
+    if not SCRAPER_SUPABASE_FALLBACK_ENABLED:
+        print(
+            "    ❌ Jobs Postgres zápis selhal nebo není aktivní; Supabase fallback je vypnutý. "
+            "Zkontroluj `JOBS_POSTGRES_URL`/`NORTHFLANK_POSTGRES_URL`, "
+            "`JOBS_POSTGRES_ENABLED=true` a `JOBS_POSTGRES_WRITE_MAIN=true`."
+        )
+        return False
 
     if not supabase:
         print("Chyba: Supabase klient není inicializován, data nebudou uložena.")

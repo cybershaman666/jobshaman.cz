@@ -14,7 +14,7 @@ try:
     from scraper_base import (
         now_iso,
         norm_text,
-        save_job_to_supabase,
+        save_job_to_supabase as shared_save_job_to_supabase,
         geocode_location,
         normalize_jobs_country_code,
         get_country_centroid,
@@ -26,7 +26,7 @@ except ImportError:
     from .scraper_base import (
         now_iso,
         norm_text,
-        save_job_to_supabase,
+        save_job_to_supabase as shared_save_job_to_supabase,
         geocode_location,
         normalize_jobs_country_code,
         get_country_centroid,
@@ -34,6 +34,11 @@ except ImportError:
         guess_currency
     )
     from .scraper_api_sources import run_external_api_sources
+
+
+def save_job_to_supabase(job_data):
+    """Compatibility wrapper; shared saver writes to Jobs Postgres."""
+    return shared_save_job_to_supabase(None, job_data)
 
 class NordicScraper:
     """
@@ -204,9 +209,12 @@ class NordicScraper:
             print(f"   ❌ Error scraping Jooble API: {e}")
             return 0
 
-def run_nordic_scraper(country_code: str = None):
+def run_nordic_scraper(country_code: str | list[str] | tuple[str, ...] | None = None):
     """Entry point for Nordic scraper expansion"""
-    countries = [country_code] if country_code else ["dk", "se", "no", "fi"]
+    if isinstance(country_code, (list, tuple)):
+        countries = [str(code).lower() for code in country_code]
+    else:
+        countries = [str(country_code).lower()] if country_code else ["dk", "se", "no", "fi"]
     
     total = 0
     for code in countries:

@@ -35,27 +35,9 @@ except ImportError:
     )
     from .scraper_api_sources import run_external_api_sources
 
-# Initialize Supabase client
-_supabase_client = None
-
-def _get_supabase_client():
-    """Get or initialize Supabase client"""
-    global _supabase_client
-    if _supabase_client is None:
-        try:
-            from supabase import create_client
-            url = os.getenv("SUPABASE_URL", "")
-            key = os.getenv("SUPABASE_KEY", "")
-            if url and key:
-                _supabase_client = create_client(url, key)
-        except Exception as e:
-            print(f"⚠️ Failed to initialize Supabase: {e}")
-    return _supabase_client
-
 def save_job_to_supabase(job_data):
-    """Wrapper for save_job_to_supabase with client initialization"""
-    client = _get_supabase_client()
-    return shared_save_job_to_supabase(client, job_data)
+    """Compatibility wrapper; shared saver writes to Jobs Postgres."""
+    return shared_save_job_to_supabase(None, job_data)
 
 class NordicScraper:
     """
@@ -629,9 +611,12 @@ class NordicScraper:
             print(f"   ⚠️ Stack Overflow scraping not available: {e}")
             return 0
 
-def run_nordic_scraper(country_code: str = None):
+def run_nordic_scraper(country_code: str | list[str] | tuple[str, ...] | None = None):
     """Entry point for Nordic scraper expansion"""
-    countries = [country_code] if country_code else ["dk", "se", "no", "fi"]
+    if isinstance(country_code, (list, tuple)):
+        countries = [str(code).lower() for code in country_code]
+    else:
+        countries = [str(country_code).lower()] if country_code else ["dk", "se", "no", "fi"]
     
     total = 0
     for code in countries:

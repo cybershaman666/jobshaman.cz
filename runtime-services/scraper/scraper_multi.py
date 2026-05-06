@@ -128,6 +128,11 @@ def _infer_supabase_key_role(key):
 
 SUPABASE_SERVICE_KEY, SUPABASE_SERVICE_KEY_SOURCE = _resolve_supabase_service_key()
 SUPABASE_SERVICE_KEY_ROLE = _infer_supabase_key_role(SUPABASE_SERVICE_KEY)
+SCRAPER_SUPABASE_FALLBACK_ENABLED = os.getenv("SCRAPER_SUPABASE_FALLBACK_ENABLED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 # Debug output
 if SUPABASE_URL:
@@ -156,6 +161,8 @@ def _get_page_cap(default: int = 10):
 
 
 def get_supabase_client():
+    if not SCRAPER_SUPABASE_FALLBACK_ENABLED:
+        return None
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print(
             "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_SERVICE_KEY chybí. Scrapování bude fungovat, ale data se neuloží."

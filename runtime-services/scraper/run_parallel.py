@@ -11,6 +11,9 @@ import os
 
 # Import country scrapers (supports running as module or script)
 try:
+    from .scraper_multi import run_czech_scrapers as run_cz, run_all_api_sources as run_api  # type: ignore
+    from .scraper_sk import run_slovakia_scraper as run_sk  # type: ignore
+    from .scraper_pl import run_poland_scraper as run_pl  # type: ignore
     from .scraper_de import run_germany_scraper as run_de  # type: ignore
     from .scraper_nordic import run_nordic_scraper as run_nordic  # type: ignore
 except Exception:
