@@ -1,6 +1,8 @@
 import type { StoredAsset, UploadSession } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
+const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+
 const normalizeApiBaseUrl = (): string => {
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     return 'http://localhost:8000/api/v2';
@@ -11,8 +13,8 @@ const normalizeApiBaseUrl = (): string => {
   if (import.meta.env.DEV) return 'http://localhost:8000/api/v2';
 
   const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (!backend) return 'https://api.jobshaman.cz/api/v2';
-  return backend.endsWith('/api/v2') ? backend : `${backend}/api/v2`;
+  if (!backend) return DEFAULT_PRODUCTION_API_URL;
+  return backend;
 };
 
 const API_BASE_URL = normalizeApiBaseUrl();

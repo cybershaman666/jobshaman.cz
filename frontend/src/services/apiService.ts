@@ -1,26 +1,15 @@
 import { getSupabaseClient } from './supabaseClient';
 
-const normalizeApiBaseUrl = (): string => {
-  const rejectPreviewApiHost = (candidate: string): string => {
-    if (import.meta.env.DEV) return candidate;
-    try {
-      const parsed = new URL(candidate);
-      if (parsed.hostname.endsWith('.code.run') && parsed.hostname.startsWith('site--jobshaman--')) {
-        return 'https://api.jobshaman.cz';
-      }
-    } catch {
-      // Leave relative or malformed values to the existing fallback rules.
-    }
-    return candidate;
-  };
+const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
 
+const normalizeApiBaseUrl = (): string => {
   const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
-  if (explicit) return rejectPreviewApiHost(explicit.replace(/\/$/, ''));
+  if (explicit) return explicit.replace(/\/$/, '');
   if (import.meta.env.DEV) return 'http://localhost:8000';
 
   const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (!backend) return 'https://api.jobshaman.cz';
-  return rejectPreviewApiHost(backend);
+  if (!backend) return DEFAULT_PRODUCTION_API_URL;
+  return backend;
 };
 
 const API_BASE_URL = normalizeApiBaseUrl();

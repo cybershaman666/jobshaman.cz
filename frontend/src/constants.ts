@@ -3,6 +3,8 @@ import { UserProfile } from './types';
 import { createDefaultCandidateSearchProfile } from './services/profileDefaults';
 
 // Backend API Configuration
+const DEFAULT_PRODUCTION_BACKEND_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+
 const getRuntimeBackendHint = (): string => {
   if (typeof document !== 'undefined') {
     const metaValue = document.querySelector('meta[name="backend-url"]')?.getAttribute('content')?.trim() || '';
@@ -17,25 +19,13 @@ const getRuntimeBackendHint = (): string => {
 
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
-  const isCodeRunPreviewApi = (candidate: string) => {
-    try {
-      const parsed = new URL(candidate);
-      return parsed.hostname.endsWith('.code.run') && parsed.hostname.startsWith('site--jobshaman--');
-    } catch {
-      return false;
-    }
-  };
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api\/v2\/?$/i.test(value)) {
       return '/api/v2';
     }
   }
   if (value) {
-    const normalizedValue = value.replace(/\/$/, '');
-    if (!import.meta.env.DEV && isCodeRunPreviewApi(normalizedValue)) {
-      return 'https://api.jobshaman.cz';
-    }
-    return normalizedValue;
+    return value.replace(/\/$/, '');
   }
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     return '/api/v2';
@@ -51,7 +41,7 @@ const normalizeBackendHost = (raw?: string): string => {
     if (runtimeHint) return runtimeHint.replace(/\/$/, '');
     const legacyFallback =
       (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-      (import.meta.env.DEV ? 'http://localhost:8000' : 'https://api.jobshaman.cz');
+      (import.meta.env.DEV ? 'http://localhost:8000' : DEFAULT_PRODUCTION_BACKEND_URL);
     if (legacyFallback) return legacyFallback.replace(/\/$/, '');
     if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
     return 'http://localhost:8000';
@@ -64,7 +54,7 @@ const normalizeBackendHost = (raw?: string): string => {
     const runtimeHint = getRuntimeBackendHint();
     if (runtimeHint) return runtimeHint.replace(/\/$/, '');
     if (import.meta.env.DEV) return 'http://localhost:8000';
-    return 'https://api.jobshaman.cz';
+    return DEFAULT_PRODUCTION_BACKEND_URL;
   }
 };
 
