@@ -100,7 +100,12 @@ export const TopBarV2: React.FC<{
              </div>
           ) : (
             <div className="flex flex-col">
-              {title && <h1 className={cn('text-[18px] font-black leading-tight', candidateLight ? 'text-slate-800' : 'text-white')}>{title}</h1>}
+              {title && <div className="flex items-center gap-2">
+                <h1 className={cn('text-[18px] font-black leading-tight', candidateLight ? 'text-slate-800' : 'text-white')}>{title}</h1>
+                <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide', candidateLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-900/30 text-amber-300')}>
+                  BETA
+                </span>
+              </div>}
               {subtitle && <p className={cn('text-[12px] font-medium opacity-60', candidateLight ? 'text-slate-500' : 'text-white/60')}>{subtitle}</p>}
             </div>
           )}
