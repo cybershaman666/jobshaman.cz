@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type RecruiterTab = 'dashboard' | 'roles' | 'talent-pool' | 'settings';
+export type RecruiterTab = 'dashboard' | 'roles' | 'talent-pool' | 'integrations' | 'settings';
 export type PublicPage = 'home' | 'companies' | 'terms' | 'privacy' | 'contact';
 
 export type AppRoute =
@@ -39,6 +39,7 @@ export const routeFromPath = (pathname: string): AppRoute => {
     if (!rawTab) return { kind: 'recruiter', tab: 'dashboard' };
     if (rawTab === 'roles') return { kind: 'recruiter', tab: 'roles' };
     if (rawTab === 'talent-pool') return { kind: 'recruiter', tab: 'talent-pool' };
+    if (rawTab === 'integrations') return { kind: 'recruiter', tab: 'integrations' };
     if (rawTab === 'settings') return { kind: 'recruiter', tab: 'settings' };
     return { kind: 'recruiter', tab: 'dashboard' };
   }

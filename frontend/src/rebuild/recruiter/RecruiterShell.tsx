@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Loader2,
   Paperclip,
+  PlugZap,
   Settings2,
   Sparkles,
   Users,
@@ -45,6 +46,7 @@ import {
   AttachmentChip,
 } from '../shared/dialogueUi';
 import { RecruiterDashboardV2 } from './RecruiterDashboardV2';
+import { RecruiterIntegrationsPage } from './RecruiterIntegrationsPage';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 
 export const RecruiterActivationPage: React.FC<{
@@ -576,18 +578,23 @@ export const RecruiterShell: React.FC<{
     { id: 'dashboard', label: t('rebuild.recruiter.nav_dashboard', { defaultValue: 'Overview' }), icon: LayoutDashboard, path: '/recruiter' },
     { id: 'roles', label: t('rebuild.recruiter.nav_roles', { defaultValue: 'Roles' }), icon: BookOpen, path: '/recruiter/roles' },
     { id: 'talent-pool', label: t('rebuild.recruiter.nav_candidates', { defaultValue: 'Candidates' }), icon: Users, path: '/recruiter/talent-pool' },
+    { id: 'integrations', label: t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' }), icon: PlugZap, path: '/recruiter/integrations' },
     { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
   ];
   const workspaceTitle = tab === 'roles'
     ? t('rebuild.recruiter.nav_roles', { defaultValue: 'Role' })
     : tab === 'talent-pool'
       ? t('rebuild.recruiter.nav_candidates', { defaultValue: 'Kandidáti' })
-      : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
+      : tab === 'integrations'
+        ? t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' })
+        : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
   const workspaceSubtitle = tab === 'roles'
     ? t('rebuild.recruiter.subtitle_roles', { defaultValue: 'Role assignments, evidence of ability, and skill-first selection management.' })
     : tab === 'talent-pool'
       ? t('rebuild.recruiter.subtitle_candidates', { defaultValue: 'Candidate profiles, recruiter readout, and shared threads in one decision space.' })
-      : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
+      : tab === 'integrations'
+        ? t('rebuild.recruiter.subtitle_integrations', { defaultValue: 'API klíče, webhooky, ATS návody a audit doručení.' })
+        : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
 
   const shouldRenderDashboardV2 = tab === 'dashboard';
   if (shouldRenderDashboardV2) {
@@ -1285,6 +1292,10 @@ export const RecruiterShell: React.FC<{
                 )}
               </div>
             </div>
+          ) : null}
+
+          {tab === 'integrations' ? (
+            <RecruiterIntegrationsPage t={t} />
           ) : null}
 
           {tab === 'settings' ? (

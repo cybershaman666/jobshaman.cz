@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .core.database import init_db, is_db_ready
 
-from .api.v2.endpoints import assets, candidate, jobs, recommendation, handshake, company, notifications, mentor, admin, billing, stripe, scraper
+from .api.v2.endpoints import assets, candidate, jobs, recommendation, handshake, company, notifications, mentor, admin, billing, stripe, scraper, integrations
 from .domains.recommendation.service import RecommendationDomainService
 from .domains.identity.service import IdentityDomainService
 from .domains.identity.models import User
@@ -26,6 +26,7 @@ from .domains.identity import models as identity_models
 from .domains.reality import models as reality_models
 from .domains.ai_governance import models as ai_models
 from .domains.handshake import models as handshake_models
+from .domains.integrations import models as integration_models
 from .domains.media import models as media_models
 from .core.runtime import get_cors_origins, validate_runtime_config
 
@@ -117,6 +118,7 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(billing.router, prefix="/billing", tags=["billing"])
 app.include_router(stripe.router, prefix="/stripe", tags=["stripe"])
 app.include_router(scraper.router, prefix="/scraper", tags=["scraper"])
+app.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 
 @app.get("/csrf-token")
 def get_csrf_token():
