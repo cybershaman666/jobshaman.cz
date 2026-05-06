@@ -5720,7 +5720,8 @@
       "work_arrangement_onsite": "On-site",
       "work_arrangement_remote": "Remote only",
       "your_kompas": "Your Kompas",
-      "close_search": "Schließen"
+      "close_search": "Schließen",
+      "open_search": "Suche öffnen"
     },
     "status": {
       "in_review": "In Prüfung",

@@ -5340,7 +5340,8 @@
     "work_arrangement_onsite": "On-site",
     "work_arrangement_remote": "Remote only",
     "your_kompas": "Your Kompas",
-    "close_search": "Zamknij"
+    "close_search": "Zamknij",
+    "open_search": "Otwórz wyszukiwanie"
   },
   "status": {
     "in_review": "W przeglądzie",

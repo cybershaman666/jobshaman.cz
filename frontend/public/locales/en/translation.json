@@ -5765,6 +5765,7 @@
       },
       "fallback_no_company": "no company specified",
       "close_search": "Close",
+      "open_search": "Open search",
       "swipe_ready": "More offers are waiting.",
       "swipe_end": "That's all for now.",
       "swipe_load_more": "Load the next batch and continue in swipe mode.",

@@ -547,19 +547,31 @@ export const MarketplaceV2: React.FC<{
   }, [filters, focusMode, localRadiusKm, preferences.address, roles.length]);
 
   const kompasMetrics = React.useMemo(() => buildKompasMetrics(userProfile), [userProfile]);
+  const scrollToMarketplaceSection = React.useCallback((sectionId: string) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
   const handleQuickAction = React.useCallback((actionId: string) => {
     if (actionId === 'immediate') {
-      setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate');
+      setFocusMode('immediate');
+      scrollToMarketplaceSection('marketplace-local-jobs');
       return;
     }
     if (actionId === 'pivot') {
-      setFocusMode((current) => current === 'curated' ? 'all' : 'curated');
+      setFocusMode('curated');
+      scrollToMarketplaceSection(trainingRoles.length > 0 ? 'marketplace-training' : 'marketplace-recommended');
       return;
     }
-    if (actionId === 'unsure' || actionId === 'improve') {
-      navigate('/candidate/jcfpm');
+    if (actionId === 'unsure') {
+      navigate('/candidate/insights#mentor');
+      return;
     }
-  }, [navigate]);
+    if (actionId === 'improve') {
+      navigate('/candidate/learning');
+    }
+  }, [navigate, scrollToMarketplaceSection, trainingRoles.length]);
 
   // Smarter city extraction from address
   const locationLabel = React.useMemo(() => {
@@ -644,12 +656,24 @@ export const MarketplaceV2: React.FC<{
         t={t}
         actionRegion={
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setFiltersOpen(true)} className="hidden min-w-[18rem] items-center gap-3 rounded-full border border-[#f0e8d8] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-left text-[13px] font-bold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 sm:flex">
-              <Search size={16} className="text-[#12afcb]" />
-              <span className="min-w-0 flex-1 truncate">{searchValue || filters.city || t('rebuild.marketplace.marketplace_placeholder')}</span>
-              {activeFilterCount ? <span className="rounded-full bg-[#fff6e4] dark:bg-amber-950/40 px-2 py-0.5 text-[11px] text-[#9f762d] dark:text-amber-500">{activeFilterCount}</span> : null}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="hidden min-w-[22rem] max-w-[28rem] items-center gap-3 rounded-full border border-[#9edfea] bg-[linear-gradient(180deg,#ffffff_0%,#f0fbfd_100%)] px-3 py-2 text-left text-[13px] font-bold text-slate-800 shadow-[0_12px_28px_-18px_rgba(18,175,203,0.72),0_0_0_4px_rgba(18,175,203,0.08)] transition hover:border-[#12afcb] hover:bg-[#f3fcfe] hover:shadow-[0_16px_34px_-20px_rgba(18,175,203,0.82),0_0_0_5px_rgba(18,175,203,0.12)] dark:border-cyan-800 dark:bg-[linear-gradient(180deg,#172033_0%,#0f1d2b_100%)] dark:text-slate-100 dark:shadow-[0_0_0_4px_rgba(34,211,238,0.08)] dark:hover:border-cyan-600 md:flex"
+              aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#12afcb] text-white shadow-[0_10px_20px_-12px_rgba(18,175,203,0.8)]">
+                <Search size={16} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#08788a] dark:text-cyan-300">
+                  {t('rebuild.marketplace.search_label', { defaultValue: 'Hledat na marketplace' })}
+                </span>
+                <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{searchValue || filters.city || t('rebuild.marketplace.marketplace_placeholder')}</span>
+              </span>
+              {activeFilterCount ? <span className="rounded-full bg-[#fff6e4] px-2 py-0.5 text-[11px] font-black text-[#9f762d] ring-1 ring-[#efd39a] dark:bg-amber-950/40 dark:text-amber-500 dark:ring-amber-900">{activeFilterCount}</span> : null}
             </button>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-full border border-[#f0e8d8] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 sm:hidden" aria-label="Otevřít vyhledávání">
+            <button type="button" onClick={() => setFiltersOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-full border border-[#9edfea] bg-[#effbfe] text-[#08788a] shadow-[0_0_0_4px_rgba(18,175,203,0.08)] transition hover:bg-[#e5f8fc] dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300 md:hidden" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
               <SlidersHorizontal size={16} />
             </button>
             <button type="button" onClick={() => navigate('/candidate/insights#mentor')} className="hidden items-center gap-2 rounded-full border border-[#f0e8d8] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-[13px] font-bold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 lg:flex">
@@ -670,7 +694,7 @@ export const MarketplaceV2: React.FC<{
             />
 
             {/* Featured Section */}
-            <section key="featured">
+            <section key="featured" id="marketplace-local-jobs" className="scroll-mt-24">
               <div className={sectionTitleClass}>
                 <h3 className={h3Class + ' dark:text-slate-100'}>
                   {t('rebuild.marketplace.local_jobs')}
@@ -697,8 +721,8 @@ export const MarketplaceV2: React.FC<{
 
             {/* Recommended Sections (New Hybrid Engine) */}
             {sections.length > 0 ? (
-              sections.map((section) => (
-                <section key={section.id || section.title}>
+              sections.map((section, index) => (
+                <section key={section.id || section.title} id={index === 0 ? 'marketplace-recommended' : undefined} className={index === 0 ? 'scroll-mt-24' : undefined}>
                   <div className={sectionTitleClass}>
                     <h3 className={h3Class + ' dark:text-slate-100'}>
                       {section.title}
@@ -719,7 +743,7 @@ export const MarketplaceV2: React.FC<{
               ))
             ) : (
               /* Legacy Recommended Section fallback */
-              <section key="legacy-recommended">
+              <section key="legacy-recommended" id="marketplace-recommended" className="scroll-mt-24">
                 <div className={sectionTitleClass}>
                   <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.recommended_for_you')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.based_on_profile')}</span></h3>
                   <div className="text-[12px] font-bold text-slate-400">
@@ -779,7 +803,7 @@ export const MarketplaceV2: React.FC<{
 
             {/* Training Section */}
             {trainingRoles.length > 0 && (
-              <section key="training">
+              <section key="training" id="marketplace-training" className="scroll-mt-24">
                 <div className={sectionTitleClass}>
                   <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.try_something_new')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.with_shaman_support')}</span></h3>
                   <button type="button" onClick={() => setFocusMode('curated')} className={viewAllClass}>{t('rebuild.marketplace.show_all')}</button>
