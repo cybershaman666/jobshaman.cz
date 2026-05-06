@@ -19,6 +19,7 @@ const toProfile = (payload: any): UserProfile | null => {
     }
   }
   const migrated = preferences?.v2_migration?.legacy_profile || {};
+  const profileFields = preferences?.v2_profile || {};
 
   return {
     id: user.supabase_id || user.id,
@@ -32,19 +33,19 @@ const toProfile = (payload: any): UserProfile | null => {
     address: profile?.location || '',
     bio: profile?.bio || '',
     story: profile?.bio || '',
-    jobTitle: migrated.job_title || '',
-    phone: migrated.phone || '',
-    cvText: migrated.cv_text || '',
-    cvAiText: migrated.cv_ai_text || '',
-    cvUrl: migrated.cv_url || '',
+    jobTitle: profileFields.jobTitle || migrated.job_title || '',
+    phone: profileFields.phone || migrated.phone || '',
+    cvText: profileFields.cvText || migrated.cv_text || '',
+    cvAiText: profileFields.cvAiText || migrated.cv_ai_text || '',
+    cvUrl: profileFields.cvUrl || migrated.cv_url || '',
     skills: Array.isArray(profile?.skills) ? profile.skills : tryParseJsonArray(profile?.skills),
-    workHistory: Array.isArray(migrated.work_history) ? migrated.work_history : [],
-    education: Array.isArray(migrated.education) ? migrated.education : [],
-    strengths: Array.isArray(migrated.strengths) ? migrated.strengths : [],
-    values: Array.isArray(migrated.values) ? migrated.values : [],
-    motivations: Array.isArray(migrated.motivations) ? migrated.motivations : [],
-    workPreferences: Array.isArray(migrated.work_preferences) ? migrated.work_preferences : [],
-    inferredSkills: Array.isArray(migrated.inferred_skills) ? migrated.inferred_skills : [],
+    workHistory: Array.isArray(profileFields.workHistory) ? profileFields.workHistory : Array.isArray(migrated.work_history) ? migrated.work_history : [],
+    education: Array.isArray(profileFields.education) ? profileFields.education : Array.isArray(migrated.education) ? migrated.education : [],
+    strengths: Array.isArray(profileFields.strengths) ? profileFields.strengths : Array.isArray(migrated.strengths) ? migrated.strengths : [],
+    values: Array.isArray(profileFields.values) ? profileFields.values : Array.isArray(migrated.values) ? migrated.values : [],
+    motivations: Array.isArray(profileFields.motivations) ? profileFields.motivations : Array.isArray(migrated.motivations) ? migrated.motivations : [],
+    workPreferences: Array.isArray(profileFields.workPreferences) ? profileFields.workPreferences : Array.isArray(migrated.work_preferences) ? migrated.work_preferences : [],
+    inferredSkills: Array.isArray(profileFields.inferredSkills) ? profileFields.inferredSkills : Array.isArray(migrated.inferred_skills) ? migrated.inferred_skills : [],
     photo: profile?.avatar_url || '',
     preferences: preferences || {},
     taxProfile: preferences?.taxProfile,

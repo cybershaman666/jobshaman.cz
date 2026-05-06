@@ -305,7 +305,7 @@ export const CandidateProfileV2: React.FC<{
   cvLoading?: boolean;
   cvBusy?: boolean;
   isSavingProfile?: boolean;
-  onSaveProfile?: () => void;
+  onSaveProfile?: (updates?: Partial<UserProfile>) => void | Promise<void>;
   onUploadCv?: (file: File) => Promise<void>;
   onSelectCv?: (cvId: string) => Promise<void>;
   onDeleteCv?: (cvId: string) => Promise<void>;
@@ -360,20 +360,22 @@ export const CandidateProfileV2: React.FC<{
       return null;
     };
 
-    const handleSaveEdit = () => {
+    const handleSaveEdit = async () => {
       const detectedCountry = resolveCountryFromAddress(editForm.address);
-      setUserProfile?.({
+      const updates = {
         name: editForm.name,
         jobTitle: editForm.jobTitle,
         phone: editForm.phone,
         address: editForm.address,
-      });
+      };
+      setUserProfile?.(updates);
 
       if (detectedCountry && (detectedCountry as any) !== preferences.taxProfile.countryCode) {
         // We can't call handleTaxCountryChange here easily if it's not passed, 
         // but we can update preferences directly if we have setPreferences
         // CandidateProfileV2 doesn't have setPreferences in its props based on CandidateDashboardV2
       }
+      await onSaveProfile?.(updates);
       setIsEditingProfile(false);
     };
 
@@ -484,7 +486,7 @@ export const CandidateProfileV2: React.FC<{
                 <button type="button" onClick={() => setIsEditingProfile(true)} className={cn(secondaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm')}>
                   Upravit profil
                 </button>
-                <button type="button" onClick={onSaveProfile} disabled={isSavingProfile} className={cn(primaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm disabled:opacity-60')}>
+                <button type="button" onClick={() => void onSaveProfile?.()} disabled={isSavingProfile} className={cn(primaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm disabled:opacity-60')}>
                   {isSavingProfile ? 'Ukládám…' : 'Uložit na server'}
                 </button>
               </div>
@@ -538,8 +540,8 @@ export const CandidateProfileV2: React.FC<{
                 <button type="button" onClick={() => setIsEditingProfile(false)} className={secondaryButtonClass}>
                   Zrušit
                 </button>
-                <button type="button" onClick={handleSaveEdit} className={primaryButtonClass}>
-                  Uložit
+                <button type="button" onClick={() => void handleSaveEdit()} disabled={isSavingProfile} className={cn(primaryButtonClass, 'disabled:opacity-60')}>
+                  {isSavingProfile ? 'Ukládám…' : 'Uložit'}
                 </button>
               </div>
             </div>
@@ -888,7 +890,7 @@ export const CandidateProfileV2: React.FC<{
                 {[
                   { label: 'Daňová kalkulačka', copy: 'Spočítej si čistou mzdu', action: () => navigate('/candidate/insights') },
                   { label: 'Nastavení filtrů hledání', copy: 'Uprav, co chceš ve výzvách vidět', action: () => navigate('/candidate/marketplace') },
-                  { label: 'Email a notifikace', copy: 'Spravuj upozornění a souhrny', action: onSaveProfile },
+                  { label: 'Email a notifikace', copy: 'Spravuj upozornění a souhrny', action: () => void onSaveProfile?.() },
                   ...searchPresets.map((preset) => ({
                     label: preset.name,
                     copy: preset.description,

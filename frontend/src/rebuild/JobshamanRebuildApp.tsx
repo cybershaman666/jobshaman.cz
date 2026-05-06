@@ -46,6 +46,7 @@ import type {
   DialogueDetail,
   DialogueMessage,
   DialogueSummary,
+  UserProfile,
 } from '../types';
 import type {
   Company,
@@ -92,7 +93,7 @@ import {
   usePersistentState,
 } from './state';
 import { generateAiBlueprint } from './shellDomain';
-import { AppBackdrop } from './ui/ShellChrome';
+import { AppBackdrop } from './ui/RebuildChrome';
 import { DashboardLayoutV2 } from './ui/DashboardLayoutV2';
 import { CompanyEntryPage, LandingChoicePage, LegalPublicPage } from './public/PublicPages';
 import { CookieBanner } from './ui/CookieBanner';
@@ -950,20 +951,24 @@ const JobshamanRebuildApp: React.FC = () => {
     navigate(intent === 'recruiter' ? '/recruiter' : '/candidate/insights');
   }, [handleSessionRestoration, navigate]);
 
-  const handleSaveProfile = React.useCallback(async () => {
+  const handleSaveProfile = React.useCallback(async (profileOverrides: Partial<UserProfile> = {}) => {
     if (!userProfile.id) {
       openAuth('candidate');
       return;
     }
     setProfileSaving(true);
     try {
-      const updates = candidatePreferencesToUserProfileUpdates(preferences, userProfile);
+      const nextProfile = { ...userProfile, ...profileOverrides };
+      const updates = {
+        ...candidatePreferencesToUserProfileUpdates(preferences, nextProfile),
+        ...profileOverrides,
+      };
       await updateUserProfile(userProfile.id, updates);
       setUserProfile(updates);
     } finally {
       setProfileSaving(false);
     }
-  }, [openAuth, preferences, setUserProfile, userProfile.id]);
+  }, [openAuth, preferences, setUserProfile, userProfile]);
 
   const refreshCvDocuments = React.useCallback(async () => {
     if (!userProfile.id) return;

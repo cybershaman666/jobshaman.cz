@@ -41,7 +41,7 @@ import type {
 } from '../models';
 import { resolveCompany } from '../shellDomain';
 import { getApplicationStatusCopy } from '../status';
-import { BrandMark, LanguageSwitcher, ThemeToggle } from '../ui/ShellChrome';
+import { BrandMark, LanguageSwitcher, ThemeToggle } from '../ui/RebuildChrome';
 import {
   appHeaderChromeClass,
   appHeaderShellClass,

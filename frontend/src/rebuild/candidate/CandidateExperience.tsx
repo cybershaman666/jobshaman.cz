@@ -928,7 +928,7 @@ export const CandidateInsightsPage: React.FC<{
   applicationWithdrawBusy: boolean;
   savedRoleIds: string[];
   isSavingProfile: boolean;
-  onSaveProfile: () => void;
+  onSaveProfile: (updates?: Partial<UserProfile>) => void | Promise<void>;
   onOpenAuth: () => void;
   onUploadCv: (file: File) => Promise<void>;
   onSelectCv: (cvId: string) => Promise<void>;
@@ -1208,7 +1208,7 @@ export const CandidateInsightsPage: React.FC<{
           <div className="flex flex-wrap gap-3 pt-2">
             <button type="button" onClick={() => navigate('/candidate/jcfpm')} className={primaryButtonClass}>{t('rebuild.insights.open_jcfpm', { defaultValue: 'Open JCFPM' })}</button>
             {userProfile.isLoggedIn ? (
-              <button type="button" onClick={onSaveProfile} disabled={isSavingProfile} className={cn(secondaryButtonClass, 'disabled:opacity-60')}>
+              <button type="button" onClick={() => void onSaveProfile()} disabled={isSavingProfile} className={cn(secondaryButtonClass, 'disabled:opacity-60')}>
                 {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : null}
                 {t('rebuild.save', { defaultValue: 'Save' })}
               </button>

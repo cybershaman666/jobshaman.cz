@@ -183,8 +183,8 @@ export const TopBarV2: React.FC<{
                 </button>
                 {isLangOpen && (
                   <div className={cn(
-                    "absolute right-0 mt-2 w-32 overflow-hidden rounded-2xl border shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-50",
-                    candidateLight ? "bg-white border-slate-200" : "bg-[#0d1117] border-slate-800"
+                    "absolute right-0 mt-2 w-32 overflow-hidden rounded-2xl border shadow-[0_24px_60px_-24px_rgba(15,23,42,0.45)] animate-in fade-in zoom-in-95 duration-200 z-50",
+                    candidateLight ? "border-slate-200 bg-[#ffffff] text-slate-900" : "border-slate-700 bg-[#101722] text-white"
                   )}>
                     {languages.map((lang) => (
                       <button
@@ -195,9 +195,11 @@ export const TopBarV2: React.FC<{
                         }}
                         className={cn(
                           'flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition',
-                          baseLang === lang.code 
-                            ? 'text-[#12afcb] bg-[#12afcb]/5' 
-                            : candidateLight ? 'text-slate-600 hover:bg-slate-50' : 'text-white/60 hover:bg-white/5'
+                          baseLang === lang.code
+                            ? candidateLight
+                              ? 'bg-[#e8f8fb] text-[#087f97]'
+                              : 'bg-[#12313a] text-[#68e4f6]'
+                            : candidateLight ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-100 hover:bg-slate-800'
                         )}
                       >
                         <span className="text-[16px]">{lang.flag}</span>

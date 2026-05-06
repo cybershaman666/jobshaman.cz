@@ -18,7 +18,7 @@ import type { AuthIntent } from '../authTypes';
 import { cn } from '../cn';
 import type { PublicPage } from '../routing';
 import { useTranslation } from 'react-i18next';
-import { BrandMark, LanguageSwitcher, ThemeToggle } from '../ui/ShellChrome';
+import { BrandMark, LanguageSwitcher, ThemeToggle } from '../ui/RebuildChrome';
 import i18n from '../../i18n';
 import {
   panelClass,
@@ -590,4 +590,3 @@ export const LegalPublicPage: React.FC<{ page: PublicPage }> = ({ page }) => {
     </LegalShell>
   );
 };
-

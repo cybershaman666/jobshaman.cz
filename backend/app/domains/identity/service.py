@@ -385,10 +385,33 @@ class IdentityDomainService:
                 profile.bio = updates.get("bio") or updates.get("story")
             if "photo" in updates or "avatar_url" in updates:
                 profile.avatar_url = updates.get("photo") or updates.get("avatar_url")
+            if isinstance(updates.get("skills"), list):
+                profile.skills = json.dumps(updates.get("skills") or [], ensure_ascii=False)
             try:
                 preferences = json.loads(profile.preferences or "{}")
             except json.JSONDecodeError:
                 preferences = {}
+            profile_fields = preferences.get("v2_profile") if isinstance(preferences.get("v2_profile"), dict) else {}
+            profile_field_keys = {
+                "jobTitle",
+                "phone",
+                "cvText",
+                "cvAiText",
+                "cvUrl",
+                "workHistory",
+                "education",
+                "strengths",
+                "values",
+                "motivations",
+                "workPreferences",
+                "inferredSkills",
+                "certifications",
+            }
+            for key in profile_field_keys:
+                if key in updates:
+                    profile_fields[key] = updates.get(key)
+            if profile_fields:
+                preferences["v2_profile"] = profile_fields
             if "preferences" in updates and isinstance(updates.get("preferences"), dict):
                 preferences = {
                     **preferences,
@@ -413,6 +436,7 @@ class IdentityDomainService:
                     **updates.get("authConsent"),
                 }
             profile.preferences = json.dumps(preferences, ensure_ascii=False)
+            profile.updated_at = datetime.utcnow()
 
             await session.commit()
             await session.refresh(profile)

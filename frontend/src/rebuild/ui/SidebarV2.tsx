@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../cn';
-import { BrandMark, ThemeToggle } from './ShellChrome';
+import { BrandMark, ThemeToggle } from './RebuildChrome';
 import { LogOut, HelpCircle, Sparkles, LogIn, ArrowUpRight } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useRebuildTheme } from './rebuildTheme';

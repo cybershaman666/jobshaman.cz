@@ -4,7 +4,7 @@ import { Monitor, Moon, Sun } from 'lucide-react';
 import { cn } from '../cn';
 import { useRebuildTheme } from './rebuildTheme';
 
-export const LANG_OPTIONS = [
+const LANG_OPTIONS = [
   { code: 'cs', label: 'Čeština', flag: '🇨🇿' },
   { code: 'sk', label: 'Slovenčina', flag: '🇸🇰' },
   { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
@@ -110,7 +110,7 @@ export const LanguageSwitcher: React.FC<{
       {open ? (
         <>
           <div className="fixed inset-0 z-[70]" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-[80] mt-2 w-40 rounded-xl border border-[color:var(--shell-button-secondary-border)] bg-white dark:bg-[#0a0d12] py-1.5 shadow-[var(--shell-panel-shadow)]">
+          <div className="absolute right-0 z-[80] mt-2 w-40 rounded-xl border border-slate-200 bg-[#ffffff] py-1.5 text-slate-900 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-[#101722] dark:text-white">
             {LANG_OPTIONS.map((option) => (
               <button
                 key={option.code}
@@ -122,8 +122,8 @@ export const LanguageSwitcher: React.FC<{
                 className={cn(
                   'flex w-full items-center gap-2 px-3 py-2 text-sm transition',
                   baseLang === option.code
-                    ? 'bg-[color:color-mix(in_srgb,var(--shell-accent-cyan)_16%,transparent)] font-semibold text-[color:var(--shell-accent-cyan)]'
-                    : 'text-[color:var(--shell-text-secondary)] hover:bg-white/10',
+                    ? 'bg-[#e8f8fb] font-semibold text-[#087f97] dark:bg-[#12313a] dark:text-[#68e4f6]'
+                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800',
                 )}
               >
                 <span>{option.flag}</span>

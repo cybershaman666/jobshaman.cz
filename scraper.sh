@@ -22,9 +22,11 @@ cd "$ROOT_DIR/runtime-services/scraper"
 
 echo "🔄 Aktualizuji sitemapy (SEO)..."
 cd "$ROOT_DIR/backend"
-# Load DATABASE_URL from .env if it exists
+# Load .env file safely (handles values with commas/spaces)
 if [ -f "$ROOT_DIR/.env" ]; then
-  export $(grep -v '^#' "$ROOT_DIR/.env" | xargs)
+  set -a
+  source "$ROOT_DIR/.env"
+  set +a
 fi
 export PYTHONPATH="$ROOT_DIR/backend"
 "$PYTHON_BIN" scripts/generate_sitemap.py

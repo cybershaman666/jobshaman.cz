@@ -1047,7 +1047,7 @@ export const CandidateDashboardV2: React.FC<{
   selectedApplicationId?: string | null;
   savedRoleIds?: string[];
   isSavingProfile?: boolean;
-  onSaveProfile?: () => void;
+  onSaveProfile?: (updates?: Partial<UserProfile>) => void | Promise<void>;
   onOpenAuth?: (intent: 'candidate' | 'recruiter') => void;
   onSelectApplication?: (id: string) => void;
   onToggleSavedRole?: (roleId: string) => void;

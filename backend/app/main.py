@@ -1,6 +1,9 @@
 import asyncio
 import os
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+import logging
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from dotenv import load_dotenv
 
 # Load .env from backend/ and from repo root (whichever exists)
@@ -25,6 +28,9 @@ from .domains.ai_governance import models as ai_models
 from .domains.handshake import models as handshake_models
 from .domains.media import models as media_models
 from .core.runtime import get_cors_origins, validate_runtime_config
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 async def background_matching_task():
     """
@@ -73,6 +79,23 @@ _ALLOWED_ORIGIN_REGEX = (
     r"^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$"
 )
 
+# Custom exception handler middleware for better error responses
+@app.middleware("http")
+async def exception_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        logger.error(f"Unhandled exception: {e}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "detail": "Internal server error",
+                "type": type(e).__name__
+            }
+        )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
@@ -113,3 +136,29 @@ def readiness_check():
     if not is_db_ready():
         raise HTTPException(status_code=503, detail={"status": "not_ready", "version": "v2", "database": "degraded"})
     return {"status": "ready", "version": "v2", "database": "ready"}
+
+# Global exception handlers to ensure CORS headers are sent
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions with CORS headers"""
+    logger.warning(f"HTTP Exception: {exc.status_code} {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "detail": exc.detail if isinstance(exc.detail, (str, dict, list)) else str(exc.detail),
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Handle all unhandled exceptions"""
+    logger.error(f"Unhandled exception in {request.url}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "detail": "Internal server error",
+            "type": type(exc).__name__
+        }
+    )
