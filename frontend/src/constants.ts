@@ -2,8 +2,9 @@
 import { UserProfile } from './types';
 import { createDefaultCandidateSearchProfile } from './services/profileDefaults';
 
-// Backend API Configuration
-const DEFAULT_PRODUCTION_BACKEND_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+// Backend API Configuration — production calls go through Vercel's /api/v2 proxy
+// to eliminate CORS issues (Northflank 503 cold-starts strip CORS headers).
+const DEFAULT_PRODUCTION_BACKEND_URL = '/api/v2';
 
 const getRuntimeBackendHint = (): string => {
   if (typeof document !== 'undefined') {

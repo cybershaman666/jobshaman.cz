@@ -50,7 +50,7 @@ const cardClass = 'rounded-[8px] border border-slate-200 bg-white p-5 shadow-[0_
 const chipClass = 'inline-flex items-center gap-2 rounded-[6px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300';
 
 const sampleCurl = `curl -H "Authorization: Bearer jsh_live_..." \\
-  https://site--jobshaman--rb4dlj74d5kc.code.run/integrations/v1/handshakes/{id}/packet`;
+  https://jobshaman.com/api/v2/integrations/v1/handshakes/{id}/packet`;
 
 const statusTone = (status: string) => {
   if (status === 'delivered') return 'border-emerald-200 bg-emerald-50 text-emerald-700';

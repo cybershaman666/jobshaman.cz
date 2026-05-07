@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabaseClient';
 
-const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+// Production calls go through Vercel's /api/v2 proxy to eliminate CORS issues.
+const DEFAULT_PRODUCTION_API_URL = '/api/v2';
 
 const normalizeApiBaseUrl = (): string => {
   const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();

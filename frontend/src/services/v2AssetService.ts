@@ -1,7 +1,8 @@
 import type { StoredAsset, UploadSession } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
-const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+// Production calls go through Vercel's /api/v2 proxy to eliminate CORS issues.
+const DEFAULT_PRODUCTION_API_URL = '/api/v2';
 
 const normalizeApiBaseUrl = (): string => {
   if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
