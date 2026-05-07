@@ -13,6 +13,20 @@
     "rewrites": [
         {
             "source": "/api/v2/:path*",
+            "has": [
+                { "type": "host", "value": "jobshaman.com" }
+            ],
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
+        },
+        {
+            "source": "/api/v2/:path*",
+            "has": [
+                { "type": "host", "value": "www.jobshaman.com" }
+            ],
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
+        },
+        {
+            "source": "/api/v2/:path*",
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
         },
         {
@@ -20,41 +34,29 @@
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/health"
         },
         {
-            "source": "/sitemap.xml",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap.xml"
+            "source": "/sitemap:suffix*",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap:suffix*"
         },
         {
-            "source": "/sitemap-pages.xml",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-pages.xml"
+            "source": "/seo/:path*",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/seo/:path*"
         },
         {
-            "source": "/sitemap-clusters.xml",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-clusters.xml"
-        },
-        {
-            "source": "/sitemap-jobs.xml",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-jobs.xml"
-        },
-        {
-            "source": "/seo/(.*)",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/seo/$1"
-        },
-        {
-            "source": "/(.*)",
+            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
             "has": [
                 { "type": "host", "value": "jobshaman.com" }
             ],
             "destination": "/index.html"
         },
         {
-            "source": "/(.*)",
+            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
             "has": [
                 { "type": "host", "value": "www.jobshaman.com" }
             ],
             "destination": "/index.html"
         },
         {
-            "source": "/(.*)",
+            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
             "destination": "/index.html"
         }
     ]

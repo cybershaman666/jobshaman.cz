@@ -53,14 +53,22 @@ engine = create_async_engine(
     connect_args=CONNECT_ARGS,
     echo=os.environ.get("SQL_ECHO") == "1",
     pool_pre_ping=True,
+    pool_size=int(os.environ.get("V2_DB_POOL_SIZE", "20")),
+    max_overflow=int(os.environ.get("V2_DB_MAX_OVERFLOW", "15")),
     pool_recycle=int(os.environ.get("V2_DB_POOL_RECYCLE_SECONDS", "180")),
+    pool_timeout=int(os.environ.get("V2_DB_POOL_TIMEOUT", "30")),
 )
 db_ready = False
+
+# Global session factory
+async_session_factory = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
 async def init_db():
     global db_ready
     required = require_database_url()
-    timeout_seconds = float(os.environ.get("V2_DB_INIT_TIMEOUT_SECONDS", "5"))
+    timeout_seconds = float(os.environ.get("V2_DB_INIT_TIMEOUT_SECONDS", "15"))
 
     async def connect_and_prepare():
         async with engine.begin() as conn:
@@ -150,14 +158,9 @@ async def init_db():
     try:
         await asyncio.wait_for(connect_and_prepare(), timeout=timeout_seconds)
         db_ready = True
-        # Uvicorn reload/dev setups can bootstrap with a different event loop than
-        # the one that later serves requests. Drop any startup-opened pooled
-        # connections so request handlers create fresh connections on their own loop.
-        await engine.dispose()
     except BaseException as exc:
         db_ready = False
         logger.warning("V2 database startup check failed: %r", exc)
-        await engine.dispose()
         if required:
             raise
 
@@ -165,8 +168,5 @@ def is_db_ready() -> bool:
     return db_ready
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-    async with async_session() as session:
+    async with async_session_factory() as session:
         yield session
