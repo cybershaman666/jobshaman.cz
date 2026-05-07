@@ -3,13 +3,19 @@ import sys
 import time
 from typing import Optional
 
-# Allow importing from backend/scraper
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-scraper_dir = os.path.join(backend_dir, "scraper")
-sys.path.insert(0, backend_dir)
-sys.path.insert(0, scraper_dir)
+# Allow importing from backend/scraper when run as a script
+if __name__ == "__main__":
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    scraper_dir = os.path.join(backend_dir, "scraper")
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    if scraper_dir not in sys.path:
+        sys.path.insert(0, scraper_dir)
 
-from scraper_base import get_supabase_client, detect_language_code  # type: ignore
+try:
+    from scraper.scraper_base import get_supabase_client, detect_language_code # type: ignore
+except (ImportError, ModuleNotFoundError):
+    from scraper_base import get_supabase_client, detect_language_code # type: ignore
 
 
 BATCH_SIZE = int(os.getenv("BACKFILL_BATCH_SIZE", "200"))

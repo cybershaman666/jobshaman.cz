@@ -13,8 +13,8 @@ fi
 echo "🚀 Spouštím JobShaman Scraper (V2-ready)..."
 echo "   Path: $ROOT_DIR/runtime-services/scraper"
 
-# Export PYTHONPATH to include scraper directory
-export PYTHONPATH="$ROOT_DIR/runtime-services/scraper:$ROOT_DIR/runtime-services:${PYTHONPATH:-}"
+# Export PYTHONPATH to include scraper directory and backend (at the end)
+export PYTHONPATH="$ROOT_DIR/runtime-services/scraper:$ROOT_DIR/runtime-services:${PYTHONPATH:-}:$ROOT_DIR/backend"
 
 # Runs all regions (CZ, SK, PL, DE/AT, Nordic) and API sources in PARALLEL
 cd "$ROOT_DIR/runtime-services/scraper"

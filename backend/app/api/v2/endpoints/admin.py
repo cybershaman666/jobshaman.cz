@@ -358,7 +358,7 @@ def _ensure_active_subscription_fields(
 
     return payload
 
-@router.get("/admin/me")
+@router.get("/me")
 async def admin_me(user: dict = Depends(get_current_user)):
     admin = require_admin_user(user)
     return {
@@ -369,7 +369,7 @@ async def admin_me(user: dict = Depends(get_current_user)):
         "is_active": admin.get("is_active"),
     }
 
-@router.get("/admin/subscriptions")
+@router.get("/subscriptions")
 async def list_subscriptions(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -512,7 +512,7 @@ async def list_subscriptions(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal admin error: {str(e)}")
 
-@router.get("/admin/search")
+@router.get("/search")
 async def admin_search(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -643,7 +643,7 @@ async def admin_search(
         return {"items": []}
 
 
-@router.get("/admin/crm/entities")
+@router.get("/crm/entities")
 async def admin_crm_entities(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -764,7 +764,7 @@ async def admin_crm_entities(
     return {"items": items, "count": len(items)}
 
 
-@router.get("/admin/crm/entity-detail")
+@router.get("/crm/entity-detail")
 async def admin_crm_entity_detail(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1564,7 +1564,7 @@ async def admin_crm_entity_detail(
     }
 
 
-@router.get("/admin/crm/job-reactions-summary")
+@router.get("/crm/job-reactions-summary")
 async def admin_crm_job_reactions_summary(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1717,7 +1717,7 @@ async def admin_crm_job_reactions_summary(
     }
 
 
-@router.get("/admin/crm/leads")
+@router.get("/crm/leads")
 async def admin_crm_leads(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1745,7 +1745,7 @@ async def admin_crm_leads(
         raise HTTPException(status_code=500, detail="Failed to load CRM leads")
 
 
-@router.post("/admin/crm/leads")
+@router.post("/crm/leads")
 async def admin_crm_lead_create(
     payload: AdminCrmLeadCreateRequest,
     request: Request,
@@ -1771,7 +1771,7 @@ async def admin_crm_lead_create(
         raise HTTPException(status_code=500, detail="Failed to create CRM lead")
 
 
-@router.patch("/admin/crm/leads/{lead_id}")
+@router.patch("/crm/leads/{lead_id}")
 async def admin_crm_lead_update(
     lead_id: str,
     payload: AdminCrmLeadUpdateRequest,
@@ -1803,7 +1803,7 @@ async def admin_crm_lead_update(
         raise HTTPException(status_code=500, detail="Failed to update CRM lead")
 
 
-@router.get("/admin/founder-board")
+@router.get("/founder-board")
 async def admin_founder_board(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -1876,7 +1876,7 @@ async def admin_founder_board(
         raise HTTPException(status_code=500, detail="Failed to load founder board")
 
 
-@router.post("/admin/founder-board")
+@router.post("/founder-board")
 async def admin_founder_board_create(
     payload: AdminFounderBoardCardCreateRequest,
     request: Request,
@@ -1903,7 +1903,7 @@ async def admin_founder_board_create(
         raise HTTPException(status_code=500, detail="Failed to create founder board card")
 
 
-@router.patch("/admin/founder-board/{card_id}")
+@router.patch("/founder-board/{card_id}")
 async def admin_founder_board_update(
     card_id: str,
     payload: AdminFounderBoardCardUpdateRequest,
@@ -1934,7 +1934,7 @@ async def admin_founder_board_update(
         raise HTTPException(status_code=500, detail="Failed to update founder board card")
 
 
-@router.post("/admin/founder-board/{card_id}/comments")
+@router.post("/founder-board/{card_id}/comments")
 async def admin_founder_board_comment_create(
     card_id: str,
     payload: AdminFounderBoardCommentCreateRequest,
@@ -1985,7 +1985,7 @@ async def admin_founder_board_comment_create(
         raise HTTPException(status_code=500, detail=f"Failed to create founder board comment: {str(exc)[:240]}")
 
 
-@router.get("/admin/jcfpm/job-roles")
+@router.get("/jcfpm/job-roles")
 async def list_job_role_profiles(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2011,7 +2011,7 @@ async def list_job_role_profiles(
     }
 
 
-@router.post("/admin/jcfpm/job-roles")
+@router.post("/jcfpm/job-roles")
 async def create_job_role_profile(
     payload: AdminJobRoleCreateRequest,
     user: dict = Depends(get_current_user),
@@ -2025,7 +2025,7 @@ async def create_job_role_profile(
     return {"item": (resp.data or [None])[0]}
 
 
-@router.patch("/admin/jcfpm/job-roles/{role_id}")
+@router.patch("/jcfpm/job-roles/{role_id}")
 async def update_job_role_profile(
     role_id: str,
     payload: AdminJobRoleUpdateRequest,
@@ -2043,7 +2043,7 @@ async def update_job_role_profile(
     return {"item": (resp.data or [None])[0]}
 
 
-@router.delete("/admin/jcfpm/job-roles/{role_id}")
+@router.delete("/jcfpm/job-roles/{role_id}")
 async def delete_job_role_profile(
     role_id: str,
     user: dict = Depends(get_current_user),
@@ -2055,7 +2055,7 @@ async def delete_job_role_profile(
     return {"ok": True}
 
 
-@router.get("/admin/push-subscriptions")
+@router.get("/push-subscriptions")
 async def admin_push_subscriptions(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2093,7 +2093,7 @@ async def admin_push_subscriptions(
     }
 
 
-@router.get("/admin/users/{user_id}/digest")
+@router.get("/users/{user_id}/digest")
 async def admin_user_digest(
     user_id: str,
     request: Request,
@@ -2113,7 +2113,7 @@ async def admin_user_digest(
     return profile
 
 
-@router.post("/admin/users/{user_id}/digest")
+@router.post("/users/{user_id}/digest")
 async def admin_user_digest_update(
     user_id: str,
     payload: AdminUserDigestUpdateRequest,
@@ -2153,7 +2153,7 @@ async def admin_user_digest_update(
 
     return profile
 
-@router.get("/admin/stats")
+@router.get("/stats")
 async def admin_stats(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2283,7 +2283,7 @@ async def admin_stats(
     }, _ADMIN_STATS_TTL_SECONDS)
 
 
-@router.get("/admin/ai-quality")
+@router.get("/ai-quality")
 async def admin_ai_quality(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2646,7 +2646,7 @@ async def admin_ai_quality(
     }, _ADMIN_AI_QUALITY_TTL_SECONDS)
 
 
-@router.post("/admin/ai-quality/evaluate")
+@router.post("/ai-quality/evaluate")
 async def admin_ai_quality_evaluate(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2657,7 +2657,7 @@ async def admin_ai_quality_evaluate(
     # Legacy matching engine has been removed; return a stub until V2 evaluation endpoint is wired.
     return {"status": "ok", "window_days": days, "result": {"sample_size": 0, "note": "V2 evaluation available via /api/v2/recommendation endpoint"}}
 
-@router.get("/admin/notifications")
+@router.get("/notifications")
 async def admin_notifications(
     request: Request,
     user: dict = Depends(get_current_user),
@@ -2739,7 +2739,7 @@ async def admin_notifications(
     items.sort(key=lambda x: x.get("current_period_end") or "")
     return _admin_cache_set(cache_key, {"items": items, "count": len(items)}, _ADMIN_NOTIFICATIONS_TTL_SECONDS)
 
-@router.get("/admin/subscriptions/{subscription_id}/audit")
+@router.get("/subscriptions/{subscription_id}/audit")
 async def admin_subscription_audit(
     subscription_id: str,
     request: Request,
@@ -2758,7 +2758,7 @@ async def admin_subscription_audit(
             return {"items": [], "audit_available": False}
         raise
 
-@router.post("/admin/subscriptions/update")
+@router.post("/subscriptions/update")
 async def update_subscription(
     payload: AdminSubscriptionUpdateRequest,
     request: Request,

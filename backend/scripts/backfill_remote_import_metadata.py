@@ -4,13 +4,22 @@ import sys
 import time
 from typing import Iterable, Optional
 
-# Allow importing from backend root and scraper helpers.
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, backend_dir)
-sys.path.insert(0, os.path.join(backend_dir, "scraper"))
+# Allow importing from backend root and scraper helpers when run as a script.
+if __name__ == "__main__":
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    scraper_dir = os.path.join(backend_dir, "scraper")
+    if scraper_dir not in sys.path:
+        sys.path.insert(0, scraper_dir)
 
-from scraper_base import get_supabase_client, norm_text, normalize_jobs_country_code  # type: ignore
-from scraper_api_sources import _infer_country_code  # type: ignore
+# Imports that work whether run as script or imported as module
+try:
+    from scraper.scraper_base import get_supabase_client, norm_text, normalize_jobs_country_code # type: ignore
+    from scraper.scraper_api_sources import _infer_country_code # type: ignore
+except (ImportError, ModuleNotFoundError):
+    from scraper_base import get_supabase_client, norm_text, normalize_jobs_country_code # type: ignore
+    from scraper_api_sources import _infer_country_code # type: ignore
 
 
 DEFAULT_BATCH_SIZE = int(os.getenv("BACKFILL_REMOTE_BATCH_SIZE", "200"))

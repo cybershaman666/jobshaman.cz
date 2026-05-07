@@ -41,13 +41,20 @@ except Exception:
     unstructured_partition_text = None  # type: ignore
     _UNSTRUCTURED_AVAILABLE = False
 
-# Add current and parent directory to path to import geocoding module
+# Add current, parent and backend directory to path to import geocoding module and backend services
 _here = os.path.dirname(os.path.abspath(__file__))
 if _here not in sys.path:
     sys.path.insert(0, _here)
 _parent = os.path.dirname(_here)
 if _parent not in sys.path:
     sys.path.insert(0, _parent)
+
+# The 'app' package is in the backend directory
+_repo_root = os.path.dirname(_parent)
+_backend = os.path.join(_repo_root, "backend")
+if os.path.exists(_backend) and _backend not in sys.path:
+    # Use append instead of insert(0, ...) to avoid overriding local modules
+    sys.path.append(_backend)
 
 try:
     from geocoding import geocode_location

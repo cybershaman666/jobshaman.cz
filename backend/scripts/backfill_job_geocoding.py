@@ -5,17 +5,28 @@ import sys
 import time
 from typing import Dict, Optional, Tuple
 
-# Allow importing from backend root and scraper helpers.
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, backend_dir)
-sys.path.insert(0, os.path.join(backend_dir, "scraper"))
+# Allow importing from backend root and scraper helpers when run as a script.
+if __name__ == "__main__":
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    if os.path.join(backend_dir, "scraper") not in sys.path:
+        sys.path.insert(0, os.path.join(backend_dir, "scraper"))
 
-from geocoding import (  # type: ignore
-    MAJOR_CITIES_CACHE,
-    geocode_location,
-    normalize_address,
-)
-from scraper_base import get_supabase_client  # type: ignore
+try:
+    from scraper.geocoding import ( # type: ignore
+        MAJOR_CITIES_CACHE,
+        geocode_location,
+        normalize_address,
+    )
+    from scraper.scraper_base import get_supabase_client # type: ignore
+except (ImportError, ModuleNotFoundError):
+    from geocoding import ( # type: ignore
+        MAJOR_CITIES_CACHE,
+        geocode_location,
+        normalize_address,
+    )
+    from scraper_base import get_supabase_client # type: ignore
 
 
 DEFAULT_BATCH_SIZE = int(os.getenv("BACKFILL_GEO_BATCH_SIZE", "300"))

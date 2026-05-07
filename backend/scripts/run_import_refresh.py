@@ -2,11 +2,18 @@ import argparse
 import os
 import sys
 
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, backend_dir)
-sys.path.insert(0, os.path.join(backend_dir, "scraper"))
+# Allow importing from backend/scraper when run as a script
+if __name__ == "__main__":
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    if os.path.join(backend_dir, "scraper") not in sys.path:
+        sys.path.insert(0, os.path.join(backend_dir, "scraper"))
 
-from scraper.scraper_multi import run_all_scrapers  # type: ignore
+try:
+    from scraper.scraper_multi import run_all_scrapers # type: ignore
+except (ImportError, ModuleNotFoundError):
+    from scraper_multi import run_all_scrapers # type: ignore
 
 
 def parse_args() -> argparse.Namespace:

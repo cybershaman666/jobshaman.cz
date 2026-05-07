@@ -21,6 +21,17 @@ _DEFAULT_TZ = "Europe/Prague"
 _DIGEST_RADIUS_KM = 50.0
 _DIGEST_MAX_JOBS = 10
 _APP_URL = "https://jobshaman.cz"
+
+def _build_job_detail_url(job: Dict) -> str:
+    job_id = job.get("id")
+    # Heuristic: curated jobs have 'native', 'challenge', or 'jobshaman' in source/kind
+    source_kind = str(job.get("source_kind") or "").lower()
+    source = str(job.get("source") or "").lower()
+    is_curated = any(kw in source_kind for kw in ["native", "challenge", "jobshaman"]) or "jobshaman" in source
+    
+    prefix = "/candidate/role" if is_curated else "/candidate/imported"
+    return f"{_APP_URL}{prefix}/{job_id}"
+
 _DIGEST_WINDOW_MINUTES = 20
 _DIGEST_LOOKBACK_HOURS = 36
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
@@ -654,7 +665,7 @@ def _pick_personalized_digest_jobs(
             "location": job.get("location") or "",
             "match_score": match_score,
             "distance_km": round(float(distance), 2) if distance is not None else None,
-            "detail_url": f"{_APP_URL}/jobs/{job_id}",
+            "detail_url": _build_job_detail_url(job),
             "role_focus_match": role_focus_match,
         }
         picks.append(packed)
@@ -952,7 +963,7 @@ def _fetch_newest_local_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(250)
@@ -1000,7 +1011,7 @@ def _fetch_newest_local_jobs(
                 "location": job.get("location") or "",
                 "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
-                "detail_url": f"{_APP_URL}/jobs/{job.get('id')}",
+                "detail_url": _build_job_detail_url(job),
             }
         )
     picks = sorted(picks, key=_digest_job_sort_key)
@@ -1047,7 +1058,7 @@ def _fetch_role_focused_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
@@ -1107,7 +1118,7 @@ def _fetch_role_focused_jobs(
                 "country_code": job.get("country_code") or "",
                 "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
-                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+                "detail_url": _build_job_detail_url(job),
             }
         )
     picks = sorted(picks, key=_digest_job_sort_key)
@@ -1155,7 +1166,7 @@ def _fetch_domain_focused_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
@@ -1215,7 +1226,7 @@ def _fetch_domain_focused_jobs(
                 "country_code": job.get("country_code") or "",
                 "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
-                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+                "detail_url": _build_job_detail_url(job),
             }
         )
     picks = sorted(picks, key=_digest_job_sort_key)
@@ -1276,7 +1287,7 @@ def _fetch_newest_jobs_relaxed(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(100)
@@ -1322,7 +1333,7 @@ def _fetch_newest_jobs_relaxed(
                 "location": job.get("location") or "",
                 "distance_km": round(float(distance), 2) if distance is not None else None,
                 "match_score": None,
-                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+                "detail_url": _build_job_detail_url(job),
             }
         )
     picks = sorted(picks, key=_digest_job_sort_key)
