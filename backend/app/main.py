@@ -75,7 +75,7 @@ app = FastAPI(
 
 _ALLOWED_ORIGIN_REGEX = (
     r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$|"
-    r"^https?://jobshaman(-[a-z0-9-]+)?\.vercel\.app(:\d+)?$|"
+    r"^https?://([a-z0-9-]+\.)+vercel\.app(:\d+)?$|"
     r"^https?://[a-z0-9-]+\.northflank\.app(:\d+)?$|"
     r"^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$"
 )

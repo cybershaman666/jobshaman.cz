@@ -5,34 +5,12 @@
             "headers": [
                 {
                     "key": "Content-Security-Policy",
-                    "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://site--jobshaman--rb4dlj74d5kc.code.run https://nominatim.openstreetmap.org https://ipapi.co; worker-src 'self' blob:; manifest-src 'self';"
+                    "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://*.unsplash.com https://images.unsplash.com; connect-src 'self' https://*.supabase.co https://site--jobshaman--rb4dlj74d5kc.code.run https://nominatim.openstreetmap.org https://ipapi.co; worker-src 'self' blob:; manifest-src 'self';"
                 }
             ]
         }
     ],
     "rewrites": [
-        {
-            "source": "/api/v2/:path*",
-            "has": [
-                { "type": "host", "value": "jobshaman.com" }
-            ],
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
-        },
-        {
-            "source": "/api/v2/:path*",
-            "has": [
-                { "type": "host", "value": "www.jobshaman.com" }
-            ],
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
-        },
-        {
-            "source": "/api/v2/:path*",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
-        },
-        {
-            "source": "/health",
-            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/health"
-        },
         {
             "source": "/sitemap:suffix*",
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap:suffix*"
@@ -42,21 +20,25 @@
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/seo/:path*"
         },
         {
-            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
+            "source": "/health",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/health"
+        },
+        {
+            "source": "/(.*)",
             "has": [
                 { "type": "host", "value": "jobshaman.com" }
             ],
             "destination": "/index.html"
         },
         {
-            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
+            "source": "/(.*)",
             "has": [
                 { "type": "host", "value": "www.jobshaman.com" }
             ],
             "destination": "/index.html"
         },
         {
-            "source": "/:path((?!api/v2|sitemap|seo|health).*)",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]

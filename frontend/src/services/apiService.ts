@@ -1,17 +1,17 @@
 import { getSupabaseClient } from './supabaseClient';
 
-// Production calls go through Vercel's /api/v2 proxy to eliminate CORS issues.
-const DEFAULT_PRODUCTION_API_URL = '/api/v2';
+const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
 
 const normalizeApiBaseUrl = (): string => {
-  // In dev mode, respect env vars
   if (import.meta.env.DEV) {
     const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
     if (explicit) return explicit.replace(/\/$/, '');
     return 'http://localhost:8000';
   }
 
-  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS
+  const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
+  if (backend) return backend;
+
   return DEFAULT_PRODUCTION_API_URL;
 };
 
