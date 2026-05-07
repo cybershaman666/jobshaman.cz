@@ -13,6 +13,7 @@ export interface Notification {
 
 export const notificationService = {
   async listNotifications(userId: string): Promise<Notification[]> {
+    if (!userId) return [];
     const data = await ApiService.get<any[]>(`/notifications/?user_id=${encodeURIComponent(userId)}`);
     return data.map((n: any) => ({
       id: n.id,

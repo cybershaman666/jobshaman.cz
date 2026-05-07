@@ -16,6 +16,10 @@
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
         },
         {
+            "source": "/health",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/health"
+        },
+        {
             "source": "/sitemap.xml",
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap.xml"
         },
@@ -40,14 +44,14 @@
             "has": [
                 { "type": "host", "value": "jobshaman.com" }
             ],
-            "destination": "/index.en.html"
+            "destination": "/index.html"
         },
         {
             "source": "/(.*)",
             "has": [
                 { "type": "host", "value": "www.jobshaman.com" }
             ],
-            "destination": "/index.en.html"
+            "destination": "/index.html"
         },
         {
             "source": "/(.*)",
