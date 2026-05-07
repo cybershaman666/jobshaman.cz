@@ -19,8 +19,7 @@ JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET") or os.environ.get("JWT_SECRET
 
 class AccessControlService:
     @staticmethod
-    def verify_supabase_jwt(credentials: HTTPAuthorizationCredentials = Security(security)):
-        token = credentials.credentials
+    def verify_supabase_jwt_raw(token: str):
         if not JWT_SECRET:
             use_legacy_fallback = allow_legacy_auth_fallback() or not strict_production_mode()
             if strict_production_mode() or not use_legacy_fallback:
@@ -36,6 +35,7 @@ class AccessControlService:
                 metadata = getattr(user, "user_metadata", None) or {}
                 app_metadata = getattr(user, "app_metadata", None) or {}
                 return {
+                    "id": str(getattr(user, "id", "")),
                     "sub": str(getattr(user, "id", "")),
                     "email": getattr(user, "email", None),
                     "role": app_metadata.get("role") or metadata.get("role") or "authenticated",
@@ -46,13 +46,14 @@ class AccessControlService:
                 raise HTTPException(status_code=401, detail=f"Invalid token: {str(exc)}") from exc
 
         try:
-            # We don't verify audience because Supabase default tokens use "authenticated"
             payload = jwt.decode(
                 token,
                 JWT_SECRET,
                 algorithms=["HS256"],
                 options={"verify_aud": False}
             )
+            if "id" not in payload and "sub" in payload:
+                payload["id"] = payload["sub"]
             return payload
         except jwt.ExpiredSignatureError:
             raise HTTPException(status_code=401, detail="Token has expired")
@@ -60,19 +61,23 @@ class AccessControlService:
             raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
     @staticmethod
+    def verify_supabase_jwt(credentials: HTTPAuthorizationCredentials = Security(security)):
+        return AccessControlService.verify_supabase_jwt_raw(credentials.credentials)
+
+    @staticmethod
     def get_current_user(payload: dict = Security(verify_supabase_jwt)):
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: missing subject")
-        
-        # Here we would normally implement "Northflank Users Mirror" (Lazy Provisioning)
-        # e.g., if user_id not in northflank_db: create_user(user_id)
         
         return {
             "id": user_id,
             "email": payload.get("email"),
             "role": payload.get("role", "authenticated")
         }
+
+def verify_supabase_token(token: str):
+    return AccessControlService.verify_supabase_jwt_raw(token)
 
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)

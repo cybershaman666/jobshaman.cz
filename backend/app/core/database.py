@@ -29,8 +29,10 @@ def get_database_url():
             raise RuntimeError("DATABASE_URL or EXTERNAL_POSTGRES_URI is required for V2 backend startup.")
         return "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres", {}
     
-    # Convert postgresql:// to postgresql+asyncpg://
-    if url.startswith("postgresql://"):
+    # Convert postgres:// or postgresql:// to postgresql+asyncpg://
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     
     connect_args = {}
