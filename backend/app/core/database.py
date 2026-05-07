@@ -8,6 +8,9 @@ from sqlmodel import SQLModel
 from typing import AsyncGenerator
 from dotenv import load_dotenv
 from app.core.runtime import require_database_url
+from .legacy_supabase import get_legacy_supabase_client
+
+supabase = get_legacy_supabase_client()
 
 # Load .env from root directory
 root_env = os.path.join(os.path.dirname(__file__), "../../../../.env")

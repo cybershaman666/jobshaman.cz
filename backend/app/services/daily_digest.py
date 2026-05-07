@@ -963,7 +963,7 @@ def _fetch_newest_local_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(250)
@@ -1058,7 +1058,7 @@ def _fetch_role_focused_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
@@ -1166,7 +1166,7 @@ def _fetch_domain_focused_jobs(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(300)
@@ -1287,7 +1287,7 @@ def _fetch_newest_jobs_relaxed(
         country_scope = _normalize_country_scope(filters.get("country_scope") or country_code)
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,source_kind,company_id")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code,benefits,contract_type,source,company_id")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(100)

@@ -92,3 +92,7 @@ async def add_security_headers(request: Request, call_next):
         "interest-cohort=()"
     )
     return response
+
+async def cleanup_csrf_sessions():
+    """Stub for legacy compatibility since CSRF is currently disabled in V2."""
+    pass
