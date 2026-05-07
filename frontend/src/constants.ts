@@ -20,43 +20,19 @@ const getRuntimeBackendHint = (): string => {
 
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api\/v2\/?$/i.test(value)) {
+  const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+  // Local development: use Vite proxy
+  if (isLocalhost || import.meta.env.DEV) {
+    if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/api\/v2)?\/?$/i.test(value)) {
       return '/api/v2';
     }
-  }
-  if (value) {
     return value.replace(/\/$/, '');
   }
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return '/api/v2';
-  }
-  if (import.meta.env.DEV) {
-    const localApi =
-      (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-      (import.meta.env.VITE_V2_API_URL as string | undefined)?.trim();
-    return (localApi || 'http://localhost:8000/api/v2').replace(/\/$/, '');
-  }
-  if (!value) {
-    const runtimeHint = getRuntimeBackendHint();
-    if (runtimeHint) return runtimeHint.replace(/\/$/, '');
-    const legacyFallback =
-      (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-      (import.meta.env.DEV ? 'http://localhost:8000' : DEFAULT_PRODUCTION_BACKEND_URL);
-    if (legacyFallback) return legacyFallback.replace(/\/$/, '');
-    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
-    return 'http://localhost:8000';
-  }
-  try {
-    const parsed = new URL(value);
-    return parsed.toString().replace(/\/$/, '');
-  } catch {
-    // If env contains malformed value, fall back safely.
-    const runtimeHint = getRuntimeBackendHint();
-    if (runtimeHint) return runtimeHint.replace(/\/$/, '');
-    if (import.meta.env.DEV) return 'http://localhost:8000';
-    return DEFAULT_PRODUCTION_BACKEND_URL;
-  }
+
+  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS.
+  // Ignore VITE_API_URL env vars that point to external backends.
+  return DEFAULT_PRODUCTION_BACKEND_URL;
 };
 
 export const BACKEND_URL = normalizeBackendHost(

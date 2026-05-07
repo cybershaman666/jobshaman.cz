@@ -5,17 +5,15 @@ import { getSupabaseClient } from './supabaseClient';
 const DEFAULT_PRODUCTION_API_URL = '/api/v2';
 
 const normalizeApiBaseUrl = (): string => {
-  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+  // In dev mode, respect env vars and use Vite proxy
+  if (import.meta.env.DEV || (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname))) {
+    const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
+    if (explicit) return explicit.replace(/\/$/, '');
     return 'http://localhost:8000/api/v2';
   }
 
-  const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
-  if (explicit) return explicit.replace(/\/$/, '');
-  if (import.meta.env.DEV) return 'http://localhost:8000/api/v2';
-
-  const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (!backend) return DEFAULT_PRODUCTION_API_URL;
-  return backend;
+  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS
+  return DEFAULT_PRODUCTION_API_URL;
 };
 
 const API_BASE_URL = normalizeApiBaseUrl();

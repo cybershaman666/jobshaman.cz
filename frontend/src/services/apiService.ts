@@ -4,13 +4,15 @@ import { getSupabaseClient } from './supabaseClient';
 const DEFAULT_PRODUCTION_API_URL = '/api/v2';
 
 const normalizeApiBaseUrl = (): string => {
-  const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
-  if (explicit) return explicit.replace(/\/$/, '');
-  if (import.meta.env.DEV) return 'http://localhost:8000';
+  // In dev mode, respect env vars
+  if (import.meta.env.DEV) {
+    const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
+    if (explicit) return explicit.replace(/\/$/, '');
+    return 'http://localhost:8000';
+  }
 
-  const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (!backend) return DEFAULT_PRODUCTION_API_URL;
-  return backend;
+  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS
+  return DEFAULT_PRODUCTION_API_URL;
 };
 
 const API_BASE_URL = normalizeApiBaseUrl();
