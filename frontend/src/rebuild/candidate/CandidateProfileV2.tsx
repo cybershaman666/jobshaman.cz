@@ -36,6 +36,7 @@ import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 import { validateCvFile } from '../../services/v2CvService';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
 import { getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
+import { getStaticCoordinates } from '../../services/geocodingService';
 
 
 
@@ -342,6 +343,18 @@ export const CandidateProfileV2: React.FC<{
       address: userProfile.address || preferences.address || '',
     });
 
+    const currentProfileForm = React.useMemo(() => ({
+      name: userProfile.name || '',
+      jobTitle: userProfile.jobTitle || '',
+      phone: userProfile.phone || '',
+      address: userProfile.address || preferences.address || '',
+    }), [preferences.address, userProfile.address, userProfile.jobTitle, userProfile.name, userProfile.phone]);
+
+    React.useEffect(() => {
+      if (isEditingProfile) return;
+      setEditForm(currentProfileForm);
+    }, [currentProfileForm, isEditingProfile]);
+
     const resolveCountryFromAddress = (address: string): string | null => {
       const normalized = address.toLowerCase();
       if (normalized.includes('česká republika') || normalized.includes('czech republic') || normalized.includes('česko') || normalized.includes(' czechia')) return 'CZ';
@@ -362,11 +375,13 @@ export const CandidateProfileV2: React.FC<{
 
     const handleSaveEdit = async () => {
       const detectedCountry = resolveCountryFromAddress(editForm.address);
+      const staticCoordinates = getStaticCoordinates(editForm.address);
       const updates = {
-        name: editForm.name,
-        jobTitle: editForm.jobTitle,
-        phone: editForm.phone,
-        address: editForm.address,
+        name: editForm.name.trim(),
+        jobTitle: editForm.jobTitle.trim(),
+        phone: editForm.phone.trim(),
+        address: editForm.address.trim(),
+        ...(staticCoordinates ? { coordinates: staticCoordinates } : {}),
       };
       setUserProfile?.(updates);
 
@@ -483,7 +498,7 @@ export const CandidateProfileV2: React.FC<{
             </CompactActionButton>
             {userProfile.isLoggedIn ? (
               <div className="flex gap-2">
-                <button type="button" onClick={() => setIsEditingProfile(true)} className={cn(secondaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm')}>
+                <button type="button" onClick={() => { setEditForm(currentProfileForm); setIsEditingProfile(true); }} className={cn(secondaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm')}>
                   Upravit profil
                 </button>
                 <button type="button" onClick={() => void onSaveProfile?.()} disabled={isSavingProfile} className={cn(primaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm disabled:opacity-60')}>

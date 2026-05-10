@@ -1,6 +1,7 @@
 import type { JHI, JHIPreferences, JobWorkArrangementFilter, StoredAsset, TaxProfile, TransportMode } from '../types';
 
 export type RoleSource = 'curated' | 'imported';
+export type MarketplaceCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' | 'FI' | 'SE' | 'NO' | 'DK' | string;
 export type RoleFamily =
   | 'engineering'
   | 'design'
@@ -98,7 +99,7 @@ export interface Role {
   title: string;
   team: string;
   location: string;
-  countryCode: 'CZ' | 'SK' | 'PL' | 'DE' | 'AT';
+  countryCode: MarketplaceCountryCode;
   workModel: 'Remote' | 'Hybrid' | 'On-site';
   source: RoleSource;
   roleFamily: RoleFamily;
@@ -189,6 +190,7 @@ export interface MarketplaceFilters {
   workArrangement: JobWorkArrangementFilter;
   remoteOnly: boolean;
   crossBorder: boolean;
+  enableCommuteFilter: boolean;
   radiusKm: number;
   minSalary: number;
   transportMode: TransportMode;

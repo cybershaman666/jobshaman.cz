@@ -253,6 +253,7 @@ const JobshamanRebuildApp: React.FC = () => {
     targetRole: marketplaceFilters.targetRole.trim(),
     roleFamily: marketplaceFilters.roleFamily,
     crossBorder: marketplaceFilters.crossBorder,
+    enableCommuteFilter: marketplaceFilters.enableCommuteFilter,
     benefits: [...marketplaceFilters.benefits].sort(),
     minSalary: marketplaceFilters.minSalary,
     radiusKm: marketplaceFilters.radiusKm,
@@ -270,6 +271,7 @@ const JobshamanRebuildApp: React.FC = () => {
     marketplaceFilters.targetRole,
     marketplaceFilters.roleFamily,
     marketplaceFilters.crossBorder,
+    marketplaceFilters.enableCommuteFilter,
     marketplaceFilters.benefits,
     marketplaceFilters.minSalary,
     marketplaceFilters.radiusKm,
@@ -395,7 +397,7 @@ const JobshamanRebuildApp: React.FC = () => {
     if (typeof preferences.commuteFilterEnabled === 'boolean') return;
     setPreferences((current) => ({
       ...current,
-      commuteFilterEnabled: true,
+      commuteFilterEnabled: false,
     }));
   }, [preferences.commuteFilterEnabled, setPreferences]);
 
@@ -530,10 +532,10 @@ const JobshamanRebuildApp: React.FC = () => {
       try {
         const result = await fetchJobsWithFiltersV2(
           marketplacePage,
-          500,
+          60,
           {
-            countryCode: marketplaceFilters.crossBorder ? undefined : preferences.taxProfile.countryCode,
-            includeRecommendations: marketplacePage === 0,
+            countryCode: marketplaceFilters.crossBorder || marketplaceFilters.city.trim() ? undefined : preferences.taxProfile.countryCode,
+            includeRecommendations: false,
             searchTerm: deferredMarketplaceQuery,
             filters: marketplaceFilters,
           },
@@ -580,6 +582,7 @@ const JobshamanRebuildApp: React.FC = () => {
     marketplaceFilters.targetRole,
     marketplaceFilters.roleFamily,
     marketplaceFilters.crossBorder,
+    marketplaceFilters.enableCommuteFilter,
     marketplaceFilters.benefits,
     marketplaceFilters.minSalary,
     marketplaceFilters.radiusKm,
@@ -959,16 +962,28 @@ const JobshamanRebuildApp: React.FC = () => {
     setProfileSaving(true);
     try {
       const nextProfile = { ...userProfile, ...profileOverrides };
+      const nextPreferences: CandidatePreferenceProfile = {
+        ...preferences,
+        name: profileOverrides.name ?? preferences.name,
+        legalName: profileOverrides.name ?? preferences.legalName,
+        address: profileOverrides.address ?? preferences.address,
+        coordinates: profileOverrides.coordinates ?? preferences.coordinates,
+        transportMode: profileOverrides.transportMode ?? preferences.transportMode,
+        story: profileOverrides.story ?? preferences.story,
+        taxProfile: profileOverrides.taxProfile ?? preferences.taxProfile,
+        jhiPreferences: profileOverrides.jhiPreferences ?? preferences.jhiPreferences,
+      };
       const updates = {
-        ...candidatePreferencesToUserProfileUpdates(preferences, nextProfile),
+        ...candidatePreferencesToUserProfileUpdates(nextPreferences, nextProfile),
         ...profileOverrides,
       };
       await updateUserProfile(userProfile.id, updates);
       setUserProfile(updates);
+      setPreferences(nextPreferences);
     } finally {
       setProfileSaving(false);
     }
-  }, [openAuth, preferences, setUserProfile, userProfile]);
+  }, [openAuth, preferences, setPreferences, setUserProfile, userProfile]);
 
   const refreshCvDocuments = React.useCallback(async () => {
     if (!userProfile.id) return;
@@ -1591,7 +1606,7 @@ const JobshamanRebuildApp: React.FC = () => {
             applicationWithdrawBusy={candidateApplicationWithdrawBusy}
             savedRoleIds={savedJobIds}
             isSavingProfile={profileSaving}
-            onSaveProfile={() => void handleSaveProfile()}
+            onSaveProfile={(updates) => void handleSaveProfile(updates)}
             onOpenAuth={() => openAuth('candidate')}
             onUploadCv={handleUploadCv}
             onSelectCv={handleSelectCv}

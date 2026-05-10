@@ -147,7 +147,7 @@ const normalizeWorkModel = (job: Job): Role['workModel'] => {
 
 const normalizeCountryCode = (job: Job): Role['countryCode'] => {
   const raw = String(job.country_code || '').toUpperCase();
-  if (raw === 'SK' || raw === 'PL' || raw === 'DE' || raw === 'AT') return raw;
+  if (raw) return raw;
   return 'CZ';
 };
 
@@ -509,6 +509,7 @@ export const buildDefaultMarketplaceFilters = (preferences: CandidatePreferenceP
   workArrangement: 'all',
   remoteOnly: false,
   crossBorder: preferences.borderSearchEnabled,
+  enableCommuteFilter: preferences.commuteFilterEnabled,
   radiusKm: preferences.searchRadiusKm,
   minSalary: 0,
   transportMode: preferences.transportMode,

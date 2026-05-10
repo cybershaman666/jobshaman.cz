@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { createDefaultTaxProfileByCountry } from '../../services/profileDefaults';
+import { getStaticCoordinates } from '../../services/geocodingService';
 import { validateCvFile } from '../../services/v2CvService';
 import { completeProfileOnboardingFromStory } from '../../services/aiProfileService';
 import type {
@@ -62,6 +63,8 @@ const getCandidateDialogueSlotsLimit = (tier?: string) =>
   tier === 'premium' ? 25 : 5;
 
 const resolveDemoCoordinates = (address: string): { lat: number; lon: number } | null => {
+  const staticCoordinates = getStaticCoordinates(address);
+  if (staticCoordinates) return staticCoordinates;
   const normalized = address.trim().toLowerCase();
   if (normalized.includes('prague') || normalized.includes('praha')) return { lat: 50.0755, lon: 14.4378 };
   if (normalized.includes('brno')) return { lat: 49.1951, lon: 16.6068 };

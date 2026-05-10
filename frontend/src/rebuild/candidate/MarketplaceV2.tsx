@@ -245,9 +245,20 @@ const SearchFiltersModal: React.FC<{
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{t('rebuild.marketplace.commute_label', { defaultValue: '02 Dojíždění' })}</div>
-                <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">{t('rebuild.marketplace.up_to_radius', { defaultValue: 'Do {{radius}} km', radius: filters.radiusKm })}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {filters.enableCommuteFilter !== false
+                    ? t('rebuild.marketplace.up_to_radius', { defaultValue: 'Do {{radius}} km', radius: filters.radiusKm })
+                    : t('rebuild.marketplace.commute_disabled', { defaultValue: 'Dojezd neomezuje výsledky' })}
+                </div>
               </div>
-              <span className="rounded-full bg-white dark:bg-slate-800 px-3 py-1 text-xs font-bold text-[#1f6c80] dark:text-cyan-400 shadow-sm">{getTransportOptions(t).find((item) => item.value === filters.transportMode)?.label}</span>
+              <label className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={filters.enableCommuteFilter !== false}
+                  onChange={(event) => onFiltersChange((current) => ({ ...current, enableCommuteFilter: event.target.checked }))}
+                />
+                {t('rebuild.marketplace.commute_toggle', { defaultValue: 'Filtrovat dojezd' })}
+              </label>
             </div>
             <input
               type="range"
@@ -255,8 +266,9 @@ const SearchFiltersModal: React.FC<{
               max={180}
               step={5}
               value={filters.radiusKm}
+              disabled={filters.enableCommuteFilter === false}
               onChange={(event) => onFiltersChange((current) => ({ ...current, radiusKm: Number(event.target.value) }))}
-              className="mt-4 w-full accent-[#b98331]"
+              className="mt-4 w-full accent-[#b98331] disabled:opacity-40"
             />
           </div>
 
@@ -455,7 +467,8 @@ export const MarketplaceV2: React.FC<{
   const visibleRoles = React.useMemo(() => {
     const query = [searchValue, filters.targetRole].join(' ').trim().toLowerCase();
     const benefitNeedles = filters.benefits.map((item) => item.toLowerCase());
-    const scoped = (filters.crossBorder ? roles : roles.filter((role) => role.countryCode === domesticCountryCode))
+    const manualCity = filters.city.trim().length > 0;
+    const scoped = (filters.crossBorder || manualCity ? roles : roles.filter((role) => role.countryCode === domesticCountryCode))
       .filter((role) => filters.roleFamily === 'all' || role.roleFamily === filters.roleFamily)
       .filter((role) => !filters.curatedOnly || role.source === 'curated')
       .filter((role) => !filters.remoteOnly || isRemoteRole(role))
@@ -502,22 +515,25 @@ export const MarketplaceV2: React.FC<{
   }, [visibleRoles, effectiveCoordinates]);
 
   const localRadiusKm = Math.max(1, Number(filters.radiusKm || preferences.searchRadiusKm || 45));
+  const commuteFilterActive = filters.enableCommuteFilter !== false;
   const nearbyRoles = React.useMemo(() => (
-    rolesWithDistance.filter(({ role, distanceKm }) => (
+    commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
       Number.isFinite(distanceKm)
       && distanceKm <= localRadiusKm
       && !isRemoteRole(role)
-    ))
-  ), [localRadiusKm, rolesWithDistance]);
+    )) : []
+  ), [commuteFilterActive, localRadiusKm, rolesWithDistance]);
 
   const featuredCandidate = nearbyRoles[0] || null;
   const featuredRole = featuredCandidate?.role || null;
   const scopedRecommendationCandidates = React.useMemo(() => {
     const localRoleIds = new Set(nearbyRoles.map(({ role }) => role.id));
-    return rolesWithDistance
+    const base = rolesWithDistance
       .filter(({ role }) => !featuredRole || role.id !== featuredRole.id)
       .filter(({ role, distanceKm }) => (
-        isRemoteRole(role)
+        !commuteFilterActive
+        || filters.city.trim().length > 0
+        || isRemoteRole(role)
         || (Number.isFinite(distanceKm) && distanceKm <= localRadiusKm)
       ))
       .sort((a, b) => {
@@ -530,16 +546,17 @@ export const MarketplaceV2: React.FC<{
         if (scoreA !== scoreB) return scoreA - scoreB;
         return a.distanceKm - b.distanceKm;
       });
-  }, [featuredRole, localRadiusKm, nearbyRoles, rolesWithDistance]);
+    return base;
+  }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
   const hasMoreRecommendations = visibleRecommendationCount < scopedRecommendationCandidates.length;
   const outOfRadiusCount = React.useMemo(() => (
-    rolesWithDistance.filter(({ role, distanceKm }) => (
+    commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
       !isRemoteRole(role)
       && Number.isFinite(distanceKm)
       && distanceKm > localRadiusKm
-    )).length
-  ), [localRadiusKm, rolesWithDistance]);
+    )).length : 0
+  ), [commuteFilterActive, localRadiusKm, rolesWithDistance]);
   const trainingRoles = rolesWithDistance.filter(({ role }) => role.source === 'curated').slice(0, 6).map(({ role }) => role);
 
   React.useEffect(() => {
@@ -594,7 +611,8 @@ export const MarketplaceV2: React.FC<{
     filters.roleFamily !== 'all',
     filters.remoteOnly || filters.workArrangement !== 'all',
     filters.crossBorder !== preferences.borderSearchEnabled,
-    filters.radiusKm !== preferences.searchRadiusKm,
+    (filters.enableCommuteFilter !== false) !== preferences.commuteFilterEnabled,
+    filters.enableCommuteFilter && filters.radiusKm !== preferences.searchRadiusKm,
     filters.minSalary > 0,
     filters.curatedOnly,
     ...filters.benefits,
@@ -684,25 +702,22 @@ export const MarketplaceV2: React.FC<{
         }
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px] xl:gap-8">
+        <div className="grid gap-6 xl:gap-8">
           {/* Main Column - min-w-0 is crucial to prevent content from stretching the grid */}
           <div className="min-w-0 space-y-10 pb-12">
-            {/* Quick Actions */}
-            <QuickActionButtons
-              activeAction={focusMode === 'immediate' ? 'immediate' : focusMode === 'curated' ? 'pivot' : undefined}
-              onAction={handleQuickAction}
-            />
-
             {/* Featured Section */}
+            {commuteFilterActive ? (
             <section key="featured" id="marketplace-local-jobs" className="scroll-mt-24">
               <div className={sectionTitleClass}>
                 <h3 className={h3Class + ' dark:text-slate-100'}>
                   {t('rebuild.marketplace.local_jobs')}
                   <span className="ml-2 text-sm font-medium text-slate-400">
-                    {locationLabel} {t('rebuild.marketplace.radius_label', { radius: localRadiusKm })}
+                    {commuteFilterActive
+                      ? `${locationLabel} ${t('rebuild.marketplace.radius_label', { radius: localRadiusKm })}`
+                      : t('rebuild.marketplace.commute_disabled_short', { defaultValue: 'dojezd vypnutý' })}
                   </span>
                 </h3>
-                <button type="button" onClick={() => setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate')} className={viewAllClass}>
+                <button type="button" onClick={() => setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate')} disabled={!commuteFilterActive} className={viewAllClass + (!commuteFilterActive ? ' opacity-40' : '')}>
                   {focusMode === 'immediate' ? t('rebuild.marketplace.show_all') : t('rebuild.marketplace.only_local')}
                 </button>
               </div>
@@ -714,10 +729,13 @@ export const MarketplaceV2: React.FC<{
                 />
               ) : (
                 <div className="rounded-[28px] border border-dashed border-[#eadfc9] dark:border-slate-700 bg-white/55 dark:bg-slate-900/55 p-7 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 shadow-[0_18px_40px_-34px_rgba(72,55,24,0.18)] dark:shadow-none">
-                  {t('rebuild.marketplace.no_local_jobs', { defaultValue: 'V okolí {{location}} aktuálně nejsou žádné aktivní výzvy v okruhu {{radius}} km.', radius: localRadiusKm, location: locationLabel })}
+                  {commuteFilterActive
+                    ? t('rebuild.marketplace.no_local_jobs', { defaultValue: 'V okolí {{location}} aktuálně nejsou žádné aktivní výzvy v okruhu {{radius}} km.', radius: localRadiusKm, location: locationLabel })
+                    : t('rebuild.marketplace.no_commute_filter', { defaultValue: 'Dojezdový filtr je vypnutý. Hlavní seznam níže ukazuje všechny nabídky odpovídající hledání.' })}
                 </div>
               )}
             </section>
+            ) : null}
 
             {/* Recommended Sections (New Hybrid Engine) */}
             {sections.length > 0 ? (
@@ -749,9 +767,6 @@ export const MarketplaceV2: React.FC<{
                   <div className="text-[12px] font-bold text-slate-400">
                     {t('rebuild.marketplace.relevant_count', { relevant: scopedRecommendationCandidates.length, total: visibleRoles.length })}
                   </div>
-                </div>
-                <div className="mb-4 rounded-[22px] border border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 px-5 py-3 text-[12px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                  {t('rebuild.marketplace.summary_hint', { radius: localRadiusKm, outCount: outOfRadiusCount, totalCount: totalCount })}
                 </div>
                 {visibleRecommendedCandidates.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -802,7 +817,7 @@ export const MarketplaceV2: React.FC<{
             )}
 
             {/* Training Section */}
-            {trainingRoles.length > 0 && (
+            {false && trainingRoles.length > 0 && (
               <section key="training" id="marketplace-training" className="scroll-mt-24">
                 <div className={sectionTitleClass}>
                   <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.try_something_new')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.with_shaman_support')}</span></h3>
@@ -821,7 +836,7 @@ export const MarketplaceV2: React.FC<{
             )}
 
             {/* Sandbox Section */}
-            <section key="sandbox">
+            {false && <section key="sandbox">
               <div className={sectionTitleClass}>
                 <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.sandbox_title')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.sandbox_subtitle')}</span></h3>
               </div>
@@ -830,11 +845,11 @@ export const MarketplaceV2: React.FC<{
                 <MiniSandboxCard title={t('rebuild.marketplace.sandbox_vzv')} sub={t('rebuild.marketplace.sandbox_vzv_sub')} onOpen={() => setFocusMode('immediate')} />
                 <MiniSandboxCard title={t('rebuild.marketplace.sandbox_production')} sub={t('rebuild.marketplace.sandbox_production_sub')} onOpen={() => setFocusMode('immediate')} />
               </div>
-            </section>
+            </section>}
           </div>
 
           {/* Right Sidebar */}
-          <aside className="space-y-8 lg:pt-2">
+          {false ? <aside className="space-y-8 lg:pt-2">
             {/* Kompas */}
             <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 p-6 shadow-sm backdrop-blur-sm">
               <h3 className="mb-6 text-[18px] font-black text-slate-900 dark:text-slate-100">{t('rebuild.marketplace.your_kompas')}</h3>
@@ -884,7 +899,7 @@ export const MarketplaceV2: React.FC<{
                 ))}
               </div>
             </div>
-          </aside>
+          </aside> : null}
         </div>
       </DashboardLayoutV2>
     </>

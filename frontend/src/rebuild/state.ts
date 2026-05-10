@@ -54,7 +54,7 @@ export const getDefaultCandidatePreferences = (): CandidatePreferenceProfile => 
   address: '',
   coordinates: { lat: 50.0755, lon: 14.4378 },
   transportMode: 'public',
-  commuteFilterEnabled: true,
+  commuteFilterEnabled: false,
   commuteToleranceMinutes: 80,
   borderSearchEnabled: false,
   searchRadiusKm: 35,

@@ -41,6 +41,12 @@ const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'trebic': { lat: 49.2162, lon: 15.8717 },
     'telc': { lat: 49.1918, lon: 15.4539 },
     'dolni vltavice': { lat: 48.8978, lon: 14.2458 },
+    'helsinki': { lat: 60.1699, lon: 24.9384 },
+    'espoo': { lat: 60.2055, lon: 24.6559 },
+    'vantaa': { lat: 60.2934, lon: 25.0378 },
+    'tampere': { lat: 61.4978, lon: 23.7610 },
+    'turku': { lat: 60.4518, lon: 22.2666 },
+    'oulu': { lat: 65.0121, lon: 25.4651 },
 };
 
 const COUNTRY_CENTROIDS: Record<string, { lat: number, lon: number }> = {
@@ -61,6 +67,9 @@ const COUNTRY_CENTROIDS: Record<string, { lat: number, lon: number }> = {
     'poland': { lat: 51.9194, lon: 19.1451 },
     'polska': { lat: 51.9194, lon: 19.1451 },
     'pl': { lat: 51.9194, lon: 19.1451 },
+    'finland': { lat: 61.9241, lon: 25.7482 },
+    'suomi': { lat: 61.9241, lon: 25.7482 },
+    'fi': { lat: 61.9241, lon: 25.7482 },
 };
 
 const CITY_COUNTRY_SUFFIXES = new Set([
@@ -69,6 +78,7 @@ const CITY_COUNTRY_SUFFIXES = new Set([
     'de', 'germany', 'deutschland',
     'at', 'austria', 'osterreich',
     'pl', 'poland', 'polsko',
+    'fi', 'finland', 'suomi',
 ]);
 
 const isCityOnlyAddress = (address: string): boolean => {
@@ -256,7 +266,7 @@ const callGeocodingAPI = async (address: string): Promise<{ lat: number, lon: nu
         const response = await fetch(
             `https://nominatim.openstreetmap.org/search?` +
             `format=json&q=${query}&` +
-            `countrycodes=cz,pl,de,at,sk&` + // EU countries only focus
+            `countrycodes=cz,pl,de,at,sk,fi&` + // EU countries only focus
             `limit=1&` +
             `addressdetails=1`,
             {
