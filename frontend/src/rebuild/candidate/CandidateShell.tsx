@@ -27,8 +27,9 @@ import {
 } from 'lucide-react';
 
 import type { CompanyProfile, DialogueSummary, UserProfile } from '../../types';
-import { computeArchetype, fetchJcfpmItems, submitJcfpm } from '../../services/v2JcfpmService';
+import { computeArchetype, fetchJcfpmItems, hasJcfpmAnswer, scoreJcfpmAnswer, submitJcfpm } from '../../services/v2JcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
+import { fetchHandshakeAvailability } from '../../services/v2HandshakeService';
 import { evaluateRole, roleMatchesDiscovery } from '../intelligence';
 import type {
   CandidatePreferenceProfile,
@@ -886,6 +887,18 @@ const DetailActionPanel: React.FC<{
   t: (key: string, opts: { defaultValue: string }) => string;
 }> = ({ role, sourceLink, existingApplication, isSaved, onToggleSaved, navigate, t }) => {
   const { i18n } = useTranslation();
+  const [availability, setAvailability] = React.useState(role.slotAvailability || null);
+  React.useEffect(() => {
+    let cancelled = false;
+    if (role.source !== 'curated') return;
+    void fetchHandshakeAvailability(role.id).then((next) => {
+      if (!cancelled && next) setAvailability(next);
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [role.id, role.source]);
+  const blocked = Boolean(availability && !availability.available && !availability.existingHandshakeId && !existingApplication);
   return (
     <ShellCard className="p-6">
       <SectionEyebrow>{role.source === 'curated' ? t('rebuild.briefing.next_step', { defaultValue: 'Next step' }) : t('rebuild.detail.external_source_title', { defaultValue: 'External source' })}</SectionEyebrow>
@@ -915,10 +928,22 @@ const DetailActionPanel: React.FC<{
           <span className="font-medium">{formatRoleCompensation(role, t('rebuild.prep.compensation_unknown', { defaultValue: 'Not specified' }), i18n?.language)}</span>
         </div>
       </div>
+      {availability?.companyChallenge ? (
+        <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          {t('rebuild.briefing.slots_available', { defaultValue: 'Handshake slots' })}: <strong>{availability.companyChallenge.remaining}</strong> / {availability.companyChallenge.limit}
+        </div>
+      ) : null}
+      {blocked ? (
+        <div className="mt-4 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          {availability?.reason === 'candidate_slots_full'
+            ? t('rebuild.briefing.candidate_slots_full', { defaultValue: 'Your active handshake slots are full.' })
+            : t('rebuild.briefing.company_slots_full', { defaultValue: 'This challenge is currently full.' })}
+        </div>
+      ) : null}
       <div className="mt-5 flex flex-col gap-3">
         {role.source === 'curated' ? (
-          <button type="button" onClick={() => navigate(`/candidate/journey/${role.id}`)} className={primaryButtonClass}>
-            {existingApplication ? t('rebuild.briefing.open_journey', { defaultValue: 'Open submitted journey' }) : t('rebuild.briefing.start_journey', { defaultValue: 'Start branded journey' })} <ArrowRight size={16} />
+          <button type="button" disabled={blocked} onClick={() => navigate(`/candidate/journey/${role.id}`)} className={cn(primaryButtonClass, blocked ? 'cursor-not-allowed opacity-60' : '')}>
+            {existingApplication || availability?.existingHandshakeId ? t('rebuild.briefing.open_journey', { defaultValue: 'Open submitted journey' }) : t('rebuild.briefing.start_journey', { defaultValue: 'Start branded journey' })} <ArrowRight size={16} />
           </button>
         ) : sourceLink ? (
           <a href={sourceLink} target="_blank" rel="noreferrer" className={primaryButtonClass}>{t('rebuild.prep.open_listing', { defaultValue: 'Open source listing' })} <ExternalLink size={16} /></a>
@@ -1764,7 +1789,7 @@ export const CandidateJcfpmPage: React.FC<{
   const [submitState, setSubmitState] = React.useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const submittedSignatureRef = React.useRef('');
   const [session, setSession] = React.useState<JCFPMSession>(() => ({
-    answers: Object.fromEntries(Object.entries(draft?.responses || {}).map(([key, value]) => [key, Number(value)])),
+    answers: draft?.responses || {},
   }));
   const [currentGroupIndex, setCurrentGroupIndex] = React.useState(0);
   const [wizardStep, setWizardStep] = React.useState<'welcome' | 'questions' | 'results'>('welcome');
@@ -1785,6 +1810,10 @@ export const CandidateJcfpmPage: React.FC<{
         'd10_ambiguity_interpretation',
         'd11_problem_decomposition',
         'd12_moral_compass',
+        'i1_love',
+        'i2_good_at',
+        'i3_world_needs',
+        'i4_paid_for',
       ] as const,
     [],
   );
@@ -1796,7 +1825,7 @@ export const CandidateJcfpmPage: React.FC<{
       setQuestionsLoading(true);
       setQuestionsError('');
       try {
-        const items = await fetchJcfpmItems();
+        const items = await fetchJcfpmItems(locale);
         if (!active) return;
 
         const localeChain = [locale.toLowerCase(), locale.toLowerCase().split('-')[0], 'cs', 'en'];
@@ -1829,6 +1858,12 @@ export const CandidateJcfpmPage: React.FC<{
                 prompt: localizedPrompt || String(item?.prompt || ''),
                 item_type: item?.item_type || 'likert',
                 payload: localizedPayload || item?.payload || {},
+                section: item?.section || 'psychometric',
+                scale_min: item?.scale_min ?? 1,
+                scale_max: item?.scale_max ?? 7,
+                reverse_scoring: Boolean(item?.reverse_scoring),
+                locale_used: item?.locale_used,
+                translation_status: item?.translation_status,
               } satisfies JcfpmQuestion;
             });
           })
@@ -1849,7 +1884,7 @@ export const CandidateJcfpmPage: React.FC<{
     return () => {
       active = false;
     };
-  }, [locale, t]);
+  }, [dimensionOrder, locale, t]);
 
   React.useEffect(() => {
     writeJcfpmDraft({ stepIndex: 0, responses: session.answers, updatedAt: new Date().toISOString() }, JCFPM_DRAFT_SCOPE);
@@ -1862,25 +1897,33 @@ export const CandidateJcfpmPage: React.FC<{
         questions: questions.filter((q) => q.dimension === dim),
       }))
       .filter((group) => group.questions.length > 0);
-  }, [questions]);
+  }, [dimensionOrder, questions]);
 
   const dimensionScores = React.useMemo(() => {
     const grouped = new Map<string, number[]>();
     questions.forEach((question) => {
       const current = grouped.get(question.dimension) || [];
-      const val = Number(session.answers[question.id] || 0);
-      if (val > 0) current.push(val);
+      const val = scoreJcfpmAnswer(question, session.answers[question.id]);
+      if (val !== null) current.push(val);
       grouped.set(question.dimension, current);
     });
     return Array.from(grouped.entries()).map(([dimension, values]) => ({
       dimension,
-      raw_score: values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1),
-      percentile: Math.round((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)) * 14), // Approx for 1-7 scale
+      raw_score: Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)),
+      percentile: Math.max(0, Math.min(100, Math.round((((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)) - 1) / 6) * 100))),
     }));
   }, [questions, session.answers]);
 
   const archetype = React.useMemo(() => computeArchetype(dimensionScores as never), [dimensionScores]);
-  const completed = questions.length > 0 && questions.every((question) => Number(session.answers[question.id] || 0) > 0);
+  const isQuestionComplete = React.useCallback((question: JcfpmQuestion) => {
+    const answer = session.answers[question.id];
+    if (question.item_type === 'ordering' || question.item_type === 'drag_drop') {
+      const optionCount = ((question.payload?.options as any[]) || (question.payload?.sources as any[]) || []).length;
+      return Array.isArray(answer) && answer.length >= Math.max(1, optionCount);
+    }
+    return hasJcfpmAnswer(answer);
+  }, [session.answers]);
+  const completed = questions.length > 0 && questions.every((question) => isQuestionComplete(question));
   const dimensionLabels = React.useMemo<Record<string, string>>(() => ({
     d1_cognitive: t('rebuild.jcfpm.dimensions.d1_cognitive', { defaultValue: 'Analytical thinking' }),
     d2_social: t('rebuild.jcfpm.dimensions.d2_social', { defaultValue: 'People collaboration' }),
@@ -1894,6 +1937,10 @@ export const CandidateJcfpmPage: React.FC<{
     d10_ambiguity_interpretation: t('rebuild.jcfpm.dimensions.d10_ambiguity_interpretation', { defaultValue: 'Ambiguity navigation' }),
     d11_problem_decomposition: t('rebuild.jcfpm.dimensions.d11_problem_decomposition', { defaultValue: 'Problem decomposition' }),
     d12_moral_compass: t('rebuild.jcfpm.dimensions.d12_moral_compass', { defaultValue: 'Ethical judgment' }),
+    i1_love: t('rebuild.jcfpm.dimensions.i1_love', { defaultValue: 'What you love' }),
+    i2_good_at: t('rebuild.jcfpm.dimensions.i2_good_at', { defaultValue: 'What you are good at' }),
+    i3_world_needs: t('rebuild.jcfpm.dimensions.i3_world_needs', { defaultValue: 'What the world needs' }),
+    i4_paid_for: t('rebuild.jcfpm.dimensions.i4_paid_for', { defaultValue: 'What the market values' }),
   }), [t]);
 
   React.useEffect(() => {
@@ -1913,7 +1960,7 @@ export const CandidateJcfpmPage: React.FC<{
     submittedSignatureRef.current = signature;
     setSubmitState('saving');
 
-    void submitJcfpm(session.answers, itemIds, `rebuild-${locale}`)
+    void submitJcfpm(session.answers, itemIds, `rebuild-${locale}`, locale, questions)
       .then((res) => {
         if (!res) {
           setSubmitState('failed');
@@ -1935,15 +1982,15 @@ export const CandidateJcfpmPage: React.FC<{
         setWizardStep('results');
       } else {
         const currentGroup = dimensionGroups[currentGroupIndex];
-        const groupComplete = currentGroup?.questions.every((q) => Number(session.answers[q.id] || 0) > 0);
+        const groupComplete = currentGroup?.questions.every((q) => isQuestionComplete(q));
         if (groupComplete && currentGroupIndex < dimensionGroups.length - 1) {
           // Auto advance group? Or let user click? Let's auto advance for now but maybe better with button
         }
       }
     }
-  }, [questionsLoading, dimensionGroups, completed, session.answers, currentGroupIndex]);
+  }, [questionsLoading, dimensionGroups, completed, isQuestionComplete, currentGroupIndex]);
 
-  const handleAnswer = (questionId: string, value: number) => {
+  const handleAnswer = (questionId: string, value: number | string | string[]) => {
     setSession((current) => ({ ...current, answers: { ...current.answers, [questionId]: value } }));
   };
 
@@ -1989,7 +2036,7 @@ export const CandidateJcfpmPage: React.FC<{
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">{t('rebuild.jcfpm.welcome_title', { defaultValue: 'Psychometric and skill profile' })}</h2>
           <p className="mt-4 text-lg leading-8 text-slate-600">
-            {t('rebuild.jcfpm.welcome_desc', { defaultValue: '12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result is saved to your profile and helps us with more accurate recommendations for positions and courses.' })}
+            {t('rebuild.jcfpm.welcome_desc', { defaultValue: '16 blocks await you: psychometric work profile, cognitive and skill tasks, and a basic Ikigai layer. The result is saved to your profile and helps us recommend roles and handshakes that fit you better than a traditional CV.' })}
           </p>
           <button
             type="button"
@@ -2016,12 +2063,17 @@ export const CandidateJcfpmPage: React.FC<{
 
           <div className="space-y-6">
             <div className="mb-6 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              {currentGroupIndex < 6 ? t('rebuild.jcfpm.psych_profile', { defaultValue: 'Psychological profile' }) : t('rebuild.jcfpm.skill_profile', { defaultValue: 'Cognitive and skill prerequisites' })} • {dimensionLabels[dimensionGroups[currentGroupIndex].dimension]}
+              {currentGroupIndex < 6
+                ? t('rebuild.jcfpm.psych_profile', { defaultValue: 'Psychological profile' })
+                : currentGroupIndex < 12
+                  ? t('rebuild.jcfpm.skill_profile', { defaultValue: 'Cognitive and skill prerequisites' })
+                  : t('rebuild.jcfpm.ikigai_profile', { defaultValue: 'Ikigai profile' })} • {dimensionLabels[dimensionGroups[currentGroupIndex].dimension]}
             </div>
 
             {dimensionGroups[currentGroupIndex].questions.map((question) => {
               const isLikert = !question.item_type || question.item_type === 'likert';
-              const options = (question.payload?.options as any[]) || [];
+              const options = (question.payload?.options as any[]) || (question.payload?.sources as any[]) || [];
+              const isSequence = question.item_type === 'ordering' || question.item_type === 'drag_drop';
 
               return (
                 <ShellCard key={question.id} className="p-6 md:p-8">
@@ -2055,21 +2107,37 @@ export const CandidateJcfpmPage: React.FC<{
                   ) : (
                     <div className="mt-6 grid gap-3">
                       {options.map((opt) => {
-                        const active = session.answers[question.id] === opt.id || session.answers[question.id] === opt.value;
+                        const optionId = String(opt.id || opt.value || opt);
+                        const answer = session.answers[question.id];
+                        const active = Array.isArray(answer) ? answer.includes(optionId) : answer === optionId;
                         return (
                           <button
-                            key={opt.id}
+                            key={optionId}
                             type="button"
-                            onClick={() => handleAnswer(question.id, opt.id || opt.value)}
+                            onClick={() => {
+                              if (!isSequence) {
+                                handleAnswer(question.id, optionId);
+                                return;
+                              }
+                              const current = Array.isArray(answer) ? answer : [];
+                              handleAnswer(
+                                question.id,
+                                current.includes(optionId) ? current.filter((item) => item !== optionId) : [...current, optionId],
+                              );
+                            }}
                             className={cn(
                               'flex w-full items-center rounded-[16px] border-2 p-4 text-left transition-all',
                               active ? 'border-[#255DAB] bg-[#255DAB]/5 text-[#255DAB]' : 'border-slate-100 bg-white text-slate-600 hover:border-[#255DAB]/30'
                             )}
-                          >
-                            <div className={cn('mr-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
-                              {active && <div className="h-2 w-2 rounded-full bg-white" />}
+                            >
+                              <div className={cn('mr-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
+                              {active ? (
+                                isSequence && Array.isArray(answer)
+                                  ? <span className="text-[10px] font-bold text-white">{answer.indexOf(optionId) + 1}</span>
+                                  : <div className="h-2 w-2 rounded-full bg-white" />
+                              ) : null}
                             </div>
-                            <span className="text-sm font-medium">{opt.label || opt.text}</span>
+                            <span className="text-sm font-medium">{opt.label || opt.text || opt}</span>
                           </button>
                         );
                       })}
@@ -2083,7 +2151,7 @@ export const CandidateJcfpmPage: React.FC<{
           <div className="mt-10 flex flex-col items-center gap-6">
             <button
               type="button"
-              disabled={!dimensionGroups[currentGroupIndex].questions.every((q) => Number(session.answers[q.id] || 0) > 0)}
+              disabled={!dimensionGroups[currentGroupIndex].questions.every((q) => isQuestionComplete(q))}
               onClick={handleNextGroup}
               className={cn(primaryButtonClass, 'w-full max-w-sm rounded-[16px] py-4 text-lg disabled:opacity-50 disabled:grayscale')}
             >

@@ -5,11 +5,7 @@ import {
   Briefcase,
   CircleUserRound,
   MessageSquare,
-  Bookmark,
-  MessageCircle,
-  Eye,
   CheckCircle2,
-  Handshake,
   GraduationCap,
   Loader2,
   Search,
@@ -30,11 +26,8 @@ import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { Role, CandidatePreferenceProfile, MarketplaceFilters, MarketplaceSection } from '../models';
 import { DialogueSummary, UserProfile } from '../../types';
 import {
-  QuickActionButtons,
   FeaturedRoleCard,
   DiscoveryRoleCard,
-  MiniSandboxCard,
-  CandidateKompas
 } from './MarketplaceComponents';
 import { getStaticCoordinates } from '../../services/geocodingService';
 
@@ -66,6 +59,8 @@ const isDefaultPragueCoordinates = (coordinates?: { lat: number; lon: number } |
 const isRemoteRole = (role: Role): boolean => String(role.workModel || '').toLowerCase().includes('remote');
 const RECOMMENDATION_PAGE_SIZE = 24;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
+type RoleCandidate = { role: Role; distanceKm: number };
+type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
 
 const getBenefitOptions = (t: (key: string, opts?: { defaultValue: string }) => string) => [
   t('rebuild.marketplace.benefit_dog_friendly', { defaultValue: 'Dog-friendly office' }),
@@ -115,6 +110,57 @@ const benefitIconFor = (benefit: string) => {
   if (normalized.includes('auto')) return Car;
   if (normalized.includes('ubyt') || normalized.includes('home')) return Home;
   return CheckCircle2;
+};
+
+const normalizeProfileText = (value: unknown) => String(value || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+const hasAnyTerm = (value: string, terms: string[]) => terms.some((term) => value.includes(term));
+
+const roleSearchText = (role: Role) => normalizeProfileText([
+  role.title,
+  role.companyName,
+  role.location,
+  role.summary,
+  role.description,
+  role.roleFamily,
+  role.skills.join(' '),
+].join(' '));
+
+const getRoleClusterId = (role: Role): RoleClusterId => {
+  const text = roleSearchText(role);
+  if (hasAnyTerm(text, ['project manager', 'projektov', 'operations manager', 'provozni manager', 'provozni manazer', 'provozní manager', 'provozní manažer', 'program manager', 'delivery manager', 'vedouci', 'vedoucí', 'manager', 'manažer', 'manazer', 'koordinator', 'koordinátor'])) return 'management';
+  if (['frontline', 'logistics', 'construction', 'operations'].includes(role.roleFamily)) return 'operations';
+  if (['sales', 'finance', 'people', 'legal', 'marketing'].includes(role.roleFamily)) return 'business';
+  if (['engineering', 'product', 'design'].includes(role.roleFamily)) return 'digital';
+  if (['care', 'education', 'health'].includes(role.roleFamily)) return 'services';
+  return 'other';
+};
+
+const getProfileClusterPreference = (profileText: string, clusterId: RoleClusterId): number => {
+  const signals: Record<RoleClusterId, string[]> = {
+    management: ['project manager', 'projektov', 'operations manager', 'provozni manager', 'provozni manazer', 'provozní manager', 'provozní manažer', 'program manager', 'delivery manager', 'scrum master', 'product owner', 'manager', 'manažer', 'manazer', 'vedouci', 'vedoucí', 'koordinator', 'koordinátor'],
+    operations: ['vyroba', 'výroba', 'manufacturing', 'operator', 'sklad', 'warehouse', 'logistika', 'logistics', 'stavba', 'construction', 'technik', 'provoz'],
+    business: ['sales', 'obchod', 'account', 'administrativa', 'finance', 'ucet', 'účet', 'hr', 'marketing', 'recruit', 'legal'],
+    digital: ['developer', 'software', 'data', 'it', 'product', 'designer', 'ux', 'ui', 'digital', 'ai'],
+    services: ['care', 'pece', 'péče', 'health', 'zdrav', 'education', 'vzdel', 'vzděl', 'teacher', 'lektor', 'support'],
+    other: [],
+  };
+  return hasAnyTerm(profileText, signals[clusterId]) ? 100 : 0;
+};
+
+const getRoleProfileScore = (candidate: RoleCandidate, profileText: string, clusterId: RoleClusterId): number => {
+  const text = roleSearchText(candidate.role);
+  let score = getProfileClusterPreference(profileText, clusterId);
+  const profileTokens = profileText.split(/\s+/).filter((token) => token.length >= 4);
+  const uniqueTokens = Array.from(new Set(profileTokens)).slice(0, 24);
+  score += uniqueTokens.reduce((sum, token) => sum + (text.includes(token) ? 6 : 0), 0);
+  if (candidate.role.matchScore) score += candidate.role.matchScore / 4;
+  if (Number.isFinite(candidate.distanceKm)) score += Math.max(0, 12 - Math.min(candidate.distanceKm, 120) / 10);
+  if (hasAnyTerm(text, ['manager', 'manažer', 'manazer', 'vedouci', 'vedoucí']) && hasAnyTerm(profileText, ['manager', 'manažer', 'manazer', 'operations', 'project', 'projekt'])) score += 30;
+  return score;
 };
 
 const SearchFiltersModal: React.FC<{
@@ -334,29 +380,6 @@ const SearchFiltersModal: React.FC<{
   );
 };
 
-const jcfpmMetricFallback = [
-  { label: 'Práce rukama', value: 85 },
-  { label: 'Stabilita', value: 80 },
-  { label: 'Týmovost', value: 75 },
-  { label: 'Učení se', value: 70 },
-  { label: 'Fyzická zátěž', value: 65 },
-];
-
-const buildKompasMetrics = (userProfile: UserProfile) => {
-  const scores = Array.isArray(userProfile.preferences?.jcfpm_v1?.dimension_scores)
-    ? userProfile.preferences.jcfpm_v1.dimension_scores
-    : [];
-  const mapped = scores
-    .map((score: any) => ({
-      label: String(score.label || score.dimension || '').replace(/^d\d+_/, '').replace(/_/g, ' '),
-      value: Math.max(0, Math.min(100, Math.round(Number(score.percentile || score.raw_score || 0)))),
-    }))
-    .filter((item) => item.label && item.value > 0)
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 5);
-  return mapped.length >= 3 ? mapped : jcfpmMetricFallback;
-};
-
 const MarketplaceSchema: React.FC<{ roles: Role[]; t: any }> = ({ roles, t }) => {
   const itemListSchema = {
     "@context": "https://schema.org",
@@ -425,7 +448,7 @@ export const MarketplaceV2: React.FC<{
   onLanguageChange?: (lang: string) => void;
   navigate: (path: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, sections = [], savedRoleIds = [], candidateApplications = [], onSignOut, onCompanySwitch, onLoadMore, currentLanguage, onLanguageChange, navigate, t }) => {
+}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, sections = [], onSignOut, onCompanySwitch, onLoadMore, currentLanguage, onLanguageChange, navigate, t }) => {
   const [visibleRecommendationCount, setVisibleRecommendationCount] = React.useState(RECOMMENDATION_PAGE_SIZE);
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -550,45 +573,93 @@ export const MarketplaceV2: React.FC<{
   }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
   const hasMoreRecommendations = visibleRecommendationCount < scopedRecommendationCandidates.length;
-  const outOfRadiusCount = React.useMemo(() => (
-    commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
-      !isRemoteRole(role)
-      && Number.isFinite(distanceKm)
-      && distanceKm > localRadiusKm
-    )).length : 0
-  ), [commuteFilterActive, localRadiusKm, rolesWithDistance]);
-  const trainingRoles = rolesWithDistance.filter(({ role }) => role.source === 'curated').slice(0, 6).map(({ role }) => role);
+  const spotlightCandidate = commuteFilterActive ? null : visibleRecommendedCandidates[0] || null;
+  const gridCandidates = commuteFilterActive ? visibleRecommendedCandidates : visibleRecommendedCandidates.slice(1);
+  const profileRelevanceText = React.useMemo(() => normalizeProfileText([
+    searchValue,
+    filters.targetRole,
+    userProfile.jobTitle,
+    userProfile.preferences?.desired_role,
+    userProfile.preferences?.searchProfile?.targetRole,
+    userProfile.preferences?.searchProfile?.inferredTargetRole,
+    userProfile.cvAiText,
+    userProfile.cvText,
+    preferences.story,
+  ].join(' ')), [filters.targetRole, preferences.story, searchValue, userProfile.cvAiText, userProfile.cvText, userProfile.jobTitle, userProfile.preferences]);
+  const catalogSections = React.useMemo(() => {
+    const buckets: Record<RoleClusterId, RoleCandidate[]> = {
+      management: [],
+      operations: [],
+      business: [],
+      digital: [],
+      services: [],
+      other: [],
+    };
 
+    gridCandidates.forEach((candidate) => {
+      buckets[getRoleClusterId(candidate.role)].push(candidate);
+    });
+
+    const definitions: Array<{
+      id: keyof typeof buckets;
+      title: string;
+      description: string;
+    }> = [
+      {
+        id: 'management',
+        title: t('rebuild.marketplace.cluster_management', { defaultValue: 'Projektové a provozní řízení' }),
+        description: t('rebuild.marketplace.cluster_management_desc', { defaultValue: 'Manažerské, koordinační a projektové role, kde se řeší lidé, procesy a dodání výsledku.' }),
+      },
+      {
+        id: 'operations',
+        title: t('rebuild.marketplace.cluster_operations', { defaultValue: 'Výroba, provoz a logistika' }),
+        description: t('rebuild.marketplace.cluster_operations_desc', { defaultValue: 'Role v terénu, provozu, skladech, stavbě a každodenním řízení práce.' }),
+      },
+      {
+        id: 'business',
+        title: t('rebuild.marketplace.cluster_business', { defaultValue: 'Obchod, administrativa a finance' }),
+        description: t('rebuild.marketplace.cluster_business_desc', { defaultValue: 'Pozice pro práci s klienty, čísly, procesy, lidmi a podporou firmy.' }),
+      },
+      {
+        id: 'digital',
+        title: t('rebuild.marketplace.cluster_digital', { defaultValue: 'Technologie, produkt a design' }),
+        description: t('rebuild.marketplace.cluster_digital_desc', { defaultValue: 'Digitální a produktové role od vývoje po UX, data a systémovou práci.' }),
+      },
+      {
+        id: 'services',
+        title: t('rebuild.marketplace.cluster_services', { defaultValue: 'Služby, péče a vzdělávání' }),
+        description: t('rebuild.marketplace.cluster_services_desc', { defaultValue: 'Práce s lidmi, péče, zákaznický kontext, školení a veřejně prospěšné role.' }),
+      },
+      {
+        id: 'other',
+        title: t('rebuild.marketplace.cluster_other', { defaultValue: 'Další příbuzné možnosti' }),
+        description: t('rebuild.marketplace.cluster_other_desc', { defaultValue: 'Nabídky, které se nevešly do hlavních bloků, ale pořád stojí za rychlé projití.' }),
+      },
+    ];
+
+    return definitions
+      .map((definition) => ({
+        ...definition,
+        relevance: getProfileClusterPreference(profileRelevanceText, definition.id),
+        candidates: buckets[definition.id]
+          .map((candidate) => ({
+            ...candidate,
+            profileScore: getRoleProfileScore(candidate, profileRelevanceText, definition.id),
+          }))
+          .sort((left, right) => right.profileScore - left.profileScore),
+      }))
+      .filter((section) => section.candidates.length > 0)
+      .sort((left, right) => {
+        if (right.relevance !== left.relevance) return right.relevance - left.relevance;
+        const rightTop = right.candidates[0]?.profileScore || 0;
+        const leftTop = left.candidates[0]?.profileScore || 0;
+        if (rightTop !== leftTop) return rightTop - leftTop;
+        return right.candidates.length - left.candidates.length;
+      });
+  }, [gridCandidates, profileRelevanceText, t]);
   React.useEffect(() => {
     setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
   }, [filters, focusMode, localRadiusKm, preferences.address, roles.length]);
-
-  const kompasMetrics = React.useMemo(() => buildKompasMetrics(userProfile), [userProfile]);
-  const scrollToMarketplaceSection = React.useCallback((sectionId: string) => {
-    window.requestAnimationFrame(() => {
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, []);
-
-  const handleQuickAction = React.useCallback((actionId: string) => {
-    if (actionId === 'immediate') {
-      setFocusMode('immediate');
-      scrollToMarketplaceSection('marketplace-local-jobs');
-      return;
-    }
-    if (actionId === 'pivot') {
-      setFocusMode('curated');
-      scrollToMarketplaceSection(trainingRoles.length > 0 ? 'marketplace-training' : 'marketplace-recommended');
-      return;
-    }
-    if (actionId === 'unsure') {
-      navigate('/candidate/insights#mentor');
-      return;
-    }
-    if (actionId === 'improve') {
-      navigate('/candidate/learning');
-    }
-  }, [navigate, scrollToMarketplaceSection, trainingRoles.length]);
 
   // Smarter city extraction from address
   const locationLabel = React.useMemo(() => {
@@ -604,7 +675,6 @@ export const MarketplaceV2: React.FC<{
   const sectionTitleClass = "flex items-center justify-between mb-5 px-1";
   const h3Class = "text-[18px] font-black text-slate-900";
   const viewAllClass = "text-[12px] font-bold text-[#12afcb] hover:underline";
-  const firstName = userProfile.isLoggedIn ? userProfile.name?.split(' ')[0] : '';
   const activeFilterCount = [
     searchValue.trim(),
     filters.city.trim(),
@@ -617,35 +687,18 @@ export const MarketplaceV2: React.FC<{
     filters.curatedOnly,
     ...filters.benefits,
   ].filter(Boolean).length;
-  const openDialogueCount = React.useMemo(() => (
-    candidateApplications.filter((item) => !['withdrawn', 'closed', 'rejected', 'hired'].includes(String(item.status || '').toLowerCase())).length
-  ), [candidateApplications]);
-  const activityStats = React.useMemo(() => [
-    { id: 'loaded', label: t('rebuild.marketplace.activity_loaded', { defaultValue: 'Načtené nabídky' }), value: roles.length, icon: <Eye size={14} /> },
-    { id: 'recommended', label: t('rebuild.marketplace.activity_recommended', { defaultValue: 'V aktuálním výběru' }), value: scopedRecommendationCandidates.length, icon: <CheckCircle2 size={14} /> },
-    { id: 'saved', label: t('rebuild.marketplace.activity_saved', { defaultValue: 'Uložené role' }), value: savedRoleIds.length, icon: <Bookmark size={14} /> },
-    { id: 'dialogues', label: t('rebuild.marketplace.activity_dialogues', { defaultValue: 'Otevřené dialogy' }), value: openDialogueCount, icon: <Handshake size={14} /> },
-  ], [openDialogueCount, roles.length, savedRoleIds.length, scopedRecommendationCandidates.length, t]);
-  const shamanTip = React.useMemo(() => {
-    if (featuredRole) {
-      return t('rebuild.marketplace.tip_featured', {
-        defaultValue: 'Nejbližší konkrétní tah je {{title}} ve firmě {{company}}. Otevři detail a ověř hlavně mzdu, dojezd a první krok handshaku.',
-        title: featuredRole.title,
-        company: featuredRole.companyName || 'bez uvedené firmy'
-      });
-    }
-    if (filters.benefits.length > 2) {
-      return t('rebuild.marketplace.tip_too_many_benefits', { defaultValue: 'Benefitů máš vybraných hodně. Nech si ty, které opravdu mění tvůj den, jinak si filtruješ trh do slepé uličky.' });
-    }
-    if (outOfRadiusCount > 0) {
-      return t('rebuild.marketplace.tip_out_of_radius', {
-        defaultValue: '{{count}} nabídek je mimo tvůj dojezd. Buď zvedni radius, nebo přestaň dělat kompromis, který tě bude štvát každý den.',
-        count: outOfRadiusCount
-      });
-    }
-    return t('rebuild.marketplace.tip_fill_filters', { defaultValue: 'Doplň cílovou roli, místo a minimální mzdu. Bez těchto tří údajů doporučení spíš hádá, než čte tvoji realitu.' });
-  }, [featuredRole, filters.benefits.length, outOfRadiusCount]);
-
+  const searchTriggerLabel = React.useMemo(() => {
+    const parts = [
+      searchValue.trim(),
+      filters.city.trim(),
+      filters.roleFamily !== 'all' ? getRoleFamilyOptions(t).find((option) => option.value === filters.roleFamily)?.label : '',
+      filters.remoteOnly ? t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Pouze remote' }) : '',
+      filters.workArrangement !== 'all' && !filters.remoteOnly ? filters.workArrangement : '',
+    ].filter(Boolean);
+    return parts.length > 0
+      ? parts.join(' · ')
+      : t('rebuild.marketplace.search_cta', { defaultValue: 'Hledat pozici, firmu nebo město' });
+  }, [filters.city, filters.remoteOnly, filters.roleFamily, filters.workArrangement, searchValue, t]);
   return (
     <>
       <SearchFiltersModal
@@ -669,34 +722,30 @@ export const MarketplaceV2: React.FC<{
         onCompanySwitch={onCompanySwitch}
         currentLanguage={currentLanguage}
         onLanguageChange={onLanguageChange}
-        title={firstName ? t('rebuild.marketplace.greeting', { name: firstName }) : t('rebuild.marketplace.welcome_title')}
-        subtitle={firstName ? t('rebuild.marketplace.welcome_title') : t('rebuild.marketplace.welcome_subtitle')}
+        title={t('rebuild.marketplace.header_title', { defaultValue: 'Marketplace práce' })}
+        subtitle={t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' })}
         t={t}
         actionRegion={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <button
               type="button"
               onClick={() => setFiltersOpen(true)}
-              className="hidden min-w-[22rem] max-w-[28rem] items-center gap-3 rounded-full border border-[#9edfea] bg-[linear-gradient(180deg,#ffffff_0%,#f0fbfd_100%)] px-3 py-2 text-left text-[13px] font-bold text-slate-800 shadow-[0_12px_28px_-18px_rgba(18,175,203,0.72),0_0_0_4px_rgba(18,175,203,0.08)] transition hover:border-[#12afcb] hover:bg-[#f3fcfe] hover:shadow-[0_16px_34px_-20px_rgba(18,175,203,0.82),0_0_0_5px_rgba(18,175,203,0.12)] dark:border-cyan-800 dark:bg-[linear-gradient(180deg,#172033_0%,#0f1d2b_100%)] dark:text-slate-100 dark:shadow-[0_0_0_4px_rgba(34,211,238,0.08)] dark:hover:border-cyan-600 md:flex"
+              className="hidden h-11 min-w-[24rem] max-w-[34rem] items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 text-left text-[13px] font-semibold text-slate-800 shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-600 md:flex"
               aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#12afcb] text-white shadow-[0_10px_20px_-12px_rgba(18,175,203,0.8)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#e8f8fb] text-[#08788a] dark:bg-cyan-950/60 dark:text-cyan-300">
                 <Search size={16} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#08788a] dark:text-cyan-300">
-                  {t('rebuild.marketplace.search_label', { defaultValue: 'Hledat na marketplace' })}
+                <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{searchTriggerLabel}</span>
+                <span className="block truncate text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                  {t('rebuild.marketplace.search_hint', { defaultValue: 'Vyhledávání, lokalita, forma práce a další filtry' })}
                 </span>
-                <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{searchValue || filters.city || t('rebuild.marketplace.marketplace_placeholder')}</span>
               </span>
-              {activeFilterCount ? <span className="rounded-full bg-[#fff6e4] px-2 py-0.5 text-[11px] font-black text-[#9f762d] ring-1 ring-[#efd39a] dark:bg-amber-950/40 dark:text-amber-500 dark:ring-amber-900">{activeFilterCount}</span> : null}
+              {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-2.5 py-1 text-[11px] font-black text-white">{activeFilterCount}</span> : null}
             </button>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-full border border-[#9edfea] bg-[#effbfe] text-[#08788a] shadow-[0_0_0_4px_rgba(18,175,203,0.08)] transition hover:bg-[#e5f8fc] dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300 md:hidden" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
+            <button type="button" onClick={() => setFiltersOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-[#08788a] shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-900 dark:text-cyan-300 md:hidden" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
               <SlidersHorizontal size={16} />
-            </button>
-            <button type="button" onClick={() => navigate('/candidate/insights#mentor')} className="hidden items-center gap-2 rounded-full border border-[#f0e8d8] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-[13px] font-bold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 lg:flex">
-              <MessageCircle size={16} className="text-amber-500" />
-              {t('rebuild.marketplace.cybershaman_mentor')}
             </button>
           </div>
         }
@@ -769,16 +818,41 @@ export const MarketplaceV2: React.FC<{
                   </div>
                 </div>
                 {visibleRecommendedCandidates.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {visibleRecommendedCandidates.map(({ role, distanceKm }) => (
-                      <DiscoveryRoleCard
-                        key={role.id}
-                        role={role}
-                        distanceKm={distanceKm}
-                        onOpen={() => navigate(getRolePath(role))}
-                      />
+                  <>
+                  {spotlightCandidate ? (
+                    <FeaturedRoleCard
+                      role={spotlightCandidate.role}
+                      distanceKm={spotlightCandidate.distanceKm}
+                      onOpen={() => navigate(getRolePath(spotlightCandidate.role))}
+                    />
+                  ) : null}
+                  <div className="space-y-9">
+                    {catalogSections.map((section) => (
+                      <section key={section.id} className="scroll-mt-24">
+                        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
+                          <div>
+                            <h4 className="text-[17px] font-black text-slate-900 dark:text-slate-100">{section.title}</h4>
+                            <p className="mt-1 max-w-2xl text-[12px] font-medium leading-5 text-slate-500 dark:text-slate-400">{section.description}</p>
+                          </div>
+                          <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            {section.candidates.length}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                          {section.candidates.map(({ role, distanceKm }, index) => (
+                            <DiscoveryRoleCard
+                              key={role.id}
+                              role={role}
+                              distanceKm={distanceKm}
+                              variant={index === 0 && section.candidates.length >= 4 ? 'wide' : index % 7 === 0 ? 'accent' : index % 5 === 0 ? 'compact' : 'standard'}
+                              onOpen={() => navigate(getRolePath(role))}
+                            />
+                          ))}
+                        </div>
+                      </section>
                     ))}
                   </div>
+                  </>
                 ) : (
                   <div className="rounded-[28px] border border-dashed border-[#eadfc9] dark:border-slate-700 bg-white/55 dark:bg-slate-900/55 p-7 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
                     {t('rebuild.marketplace.no_more_recommendations', { defaultValue: 'V aktuálním radiusu nemám další vhodné nabídky. Zkus zvětšit dojezd v profilu nebo zapnout širší hledání.' })}
@@ -815,91 +889,7 @@ export const MarketplaceV2: React.FC<{
                 ) : null}
               </section>
             )}
-
-            {/* Training Section */}
-            {false && trainingRoles.length > 0 && (
-              <section key="training" id="marketplace-training" className="scroll-mt-24">
-                <div className={sectionTitleClass}>
-                  <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.try_something_new')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.with_shaman_support')}</span></h3>
-                  <button type="button" onClick={() => setFocusMode('curated')} className={viewAllClass}>{t('rebuild.marketplace.show_all')}</button>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {trainingRoles.map((role) => (
-                    <DiscoveryRoleCard
-                      key={role.id}
-                      role={role}
-                      onOpen={() => navigate(getRolePath(role))}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Sandbox Section */}
-            {false && <section key="sandbox">
-              <div className={sectionTitleClass}>
-                <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.sandbox_title')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.sandbox_subtitle')}</span></h3>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <MiniSandboxCard title={t('rebuild.marketplace.sandbox_warehouse')} sub={t('rebuild.marketplace.sandbox_warehouse_sub')} onOpen={() => setFocusMode('immediate')} />
-                <MiniSandboxCard title={t('rebuild.marketplace.sandbox_vzv')} sub={t('rebuild.marketplace.sandbox_vzv_sub')} onOpen={() => setFocusMode('immediate')} />
-                <MiniSandboxCard title={t('rebuild.marketplace.sandbox_production')} sub={t('rebuild.marketplace.sandbox_production_sub')} onOpen={() => setFocusMode('immediate')} />
-              </div>
-            </section>}
           </div>
-
-          {/* Right Sidebar */}
-          {false ? <aside className="space-y-8 lg:pt-2">
-            {/* Kompas */}
-            <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 p-6 shadow-sm backdrop-blur-sm">
-              <h3 className="mb-6 text-[18px] font-black text-slate-900 dark:text-slate-100">{t('rebuild.marketplace.your_kompas')}</h3>
-              <CandidateKompas score={85} metrics={kompasMetrics} />
-            </div>
-
-            {/* Tip */}
-            <div className="relative overflow-hidden rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 p-6 shadow-sm backdrop-blur-sm">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-[16px] font-black text-slate-900 dark:text-slate-100">{t('rebuild.marketplace.shaman_tip')}</h3>
-                  <p className="mt-2 text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
-                    {shamanTip}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <button type="button" onClick={() => navigate('/candidate/insights#mentor')} className="flex items-center gap-2 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-[12px] font-bold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700">
-                  <MessageCircle size={14} className="text-[#12afcb]" />
-                  {t('rebuild.marketplace.talk_to_shaman')}
-                </button>
-              </div>
-              {/* Abstract background image/graphic could go here */}
-              <div className="absolute -bottom-4 -right-4 h-24 w-24 opacity-10">
-                <img src="/logo-transparent.png" alt="" className="dark:hidden h-full w-full object-contain" />
-                <img src="/logodark.png" alt="" className="hidden dark:block h-full w-full object-contain" />
-              </div>
-            </div>
-
-            {/* Activity */}
-            <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 p-6 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[16px] font-black text-slate-900 dark:text-slate-100">{t('rebuild.marketplace.activity_title', { defaultValue: 'Aktivita' })}</h3>
-                <button type="button" onClick={() => navigate('/candidate/insights')} className="text-[11px] font-bold text-[#12afcb] hover:underline">{t('rebuild.marketplace.activity_view_all', { defaultValue: 'Zobrazit vše' })}</button>
-              </div>
-              <div className="space-y-4">
-                {activityStats.map((stat) => (
-                  <div key={stat.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
-                        {stat.icon}
-                      </div>
-                      <span className="text-[13px] font-medium">{stat.label}</span>
-                    </div>
-                    <span className="text-[15px] font-black text-slate-900 dark:text-slate-100">{stat.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside> : null}
         </div>
       </DashboardLayoutV2>
     </>

@@ -21,7 +21,7 @@ import {
   sendCandidateApplicationMessage,
   withdrawCandidateApplication,
 } from '../services/v2DialogueService';
-import { addExternalHandshakeSubmission, finalizeHandshake, patchHandshakeAnswer, startHandshake } from '../services/v2HandshakeService';
+import { addExternalHandshakeSubmission, fetchHandshakeAvailability, finalizeHandshake, patchHandshakeAnswer, startHandshake } from '../services/v2HandshakeService';
 import {
   aiAssistCompanyChallenge,
   aiDraftCompanyChallenge,
@@ -652,6 +652,43 @@ const JobshamanRebuildApp: React.FC = () => {
     if (!activeRole || !activeBlueprint) return null;
     return journeySessions[activeRole.id] || buildInitialJourneySession(activeRole.id, activeBlueprint);
   }, [activeBlueprint, activeRole, journeySessions]);
+
+  React.useEffect(() => {
+    if (route.kind !== 'candidate-journey' || !activeRole || activeRole.source !== 'curated' || !userProfile.id) return;
+    const current = journeySessions[activeRole.id];
+    if (current?.applicationId) return;
+    let cancelled = false;
+    void (async () => {
+      const availability = await fetchHandshakeAvailability(activeRole.id).catch(() => null);
+      if (cancelled) return;
+      if (availability && !availability.available && !availability.existingHandshakeId) {
+        setSessionForRole(activeRole.id, (session) => ({ ...session, slotAvailability: availability }));
+        return;
+      }
+      const handshake = await startHandshake(activeRole.id);
+      if (cancelled) return;
+      const backendAnswers = Object.fromEntries(
+        Object.entries(handshake.session?.answers || {}).map(([key, value]: [string, any]) => [
+          key,
+          value && typeof value === 'object' && 'answer' in value ? value.answer : value,
+        ]),
+      ) as CandidateJourneySession['answers'];
+      setSessionForRole(activeRole.id, (session) => ({
+        ...session,
+        applicationId: handshake.handshake_id,
+        applicationStatus: handshake.status || handshake.session?.status || session.applicationStatus,
+        answers: { ...backendAnswers, ...session.answers },
+        backendSession: handshake.session as any,
+        slotAvailability: availability || session.slotAvailability,
+        liveHydratedAt: new Date().toISOString(),
+      }));
+    })().catch((error) => {
+      console.error('Failed to start or hydrate live handshake', error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRole, journeySessions, route.kind, setSessionForRole, userProfile.id]);
   const candidateApplicationsByRoleId = React.useMemo(
     () => Object.fromEntries(
       candidateApplications

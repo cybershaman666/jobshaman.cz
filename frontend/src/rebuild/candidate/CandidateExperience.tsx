@@ -21,6 +21,7 @@ import { createDefaultTaxProfileByCountry } from '../../services/profileDefaults
 import { getStaticCoordinates } from '../../services/geocodingService';
 import { validateCvFile } from '../../services/v2CvService';
 import { completeProfileOnboardingFromStory } from '../../services/aiProfileService';
+import { patchHandshakeAnswer } from '../../services/v2HandshakeService';
 import type {
   ApplicationMessageAttachment,
   CandidateDialogueCapacity,
@@ -367,6 +368,24 @@ export const CandidateJourneyPage: React.FC<{
   }), [activeCvDocument, evaluation, packetSkills, packetSummary, preferences, role.title, userProfile.cvUrl, userProfile.jobTitle]);
   const effectivePacket = session.submissionSnapshot || candidatePacket;
   const [submitError, setSubmitError] = React.useState('');
+  const lastSavedAnswersRef = React.useRef('');
+
+  React.useEffect(() => {
+    if (!session.applicationId) return;
+    const serialized = JSON.stringify(session.answers || {});
+    if (serialized === lastSavedAnswersRef.current) return;
+    const previous = lastSavedAnswersRef.current ? JSON.parse(lastSavedAnswersRef.current) as Record<string, unknown> : {};
+    const changedEntries = Object.entries(session.answers || {}).filter(([key, value]) => JSON.stringify(previous[key]) !== JSON.stringify(value));
+    if (!changedEntries.length) return;
+    const timer = window.setTimeout(() => {
+      lastSavedAnswersRef.current = serialized;
+      void Promise.all(changedEntries.map(([stepId, answer]) => patchHandshakeAnswer(session.applicationId as string, stepId, answer, stepId))).catch((error) => {
+        console.error('Failed to autosave handshake answers', error);
+        lastSavedAnswersRef.current = '';
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [session.answers, session.applicationId]);
 
   return (
     <CandidateShellSurface
@@ -408,6 +427,14 @@ export const CandidateJourneyPage: React.FC<{
           </div>
         </div>
       </div>
+
+      {session.slotAvailability && !session.slotAvailability.available ? (
+        <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          {session.slotAvailability.reason === 'candidate_slots_full'
+            ? t('rebuild.journey.candidate_slots_full', { defaultValue: 'All your active handshake slots are currently occupied. Close or finish another handshake before starting this one.' })
+            : t('rebuild.journey.company_slots_full', { defaultValue: 'This company challenge is currently full. Try again after the company frees a handshake slot.' })}
+        </div>
+      ) : null}
 
       <div className="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
         <StepRail steps={journeyBlueprint.steps} currentStepId={currentStep.id} onSelect={goToStep} />
@@ -647,8 +674,8 @@ export const CandidateJourneyPage: React.FC<{
                   <div className="space-y-4">
                     <div className="rounded-[8px] border border-slate-200 bg-white p-5">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.journey.requirements')}</div>
-                      <h1 className="mt-3 text-[2.5rem] font-semibold leading-[0.96] tracking-[-0.06em] text-slate-900">{role.challenge}</h1>
-                      <p className="mt-4 text-sm leading-7 text-slate-600">{role.summary}</p>
+                      <h1 className="mt-3 text-[2.5rem] font-semibold leading-[0.96] tracking-[-0.06em] text-slate-900">{currentStep.prompt || role.challenge}</h1>
+                      <p className="mt-4 text-sm leading-7 text-slate-600">{currentStep.helper || role.summary}</p>
                     </div>
                     <div className="rounded-[8px] border border-slate-200 bg-white p-5">
                       <div className="text-sm font-semibold text-slate-900">{t('rebuild.journey.security_constraints')}</div>
@@ -671,8 +698,9 @@ export const CandidateJourneyPage: React.FC<{
                       </div>
                     </div>
                     <textarea
-                      value={String(session.answers.workspace || 'use orbit_core::{Protocol, Node};\nuse crypto::quantum::PQCSignature;\n\npub struct MeshArchitect {\n    nodes: Vec<Node>,\n    signature_engine: PQCSignature,\n}\n\nimpl Protocol for MeshArchitect {\n    fn sync_state(&self) -> Result<(), SyncError> {\n        // TODO: show your architecture logic here\n        Ok(())\n    }\n}')}
-                      onChange={(event) => updateAnswer('workspace', event.target.value)}
+                      value={String(session.answers[currentStep.id] || '')}
+                      onChange={(event) => updateAnswer(currentStep.id, event.target.value)}
+                      placeholder={currentStep.prompt}
                       className="h-[36rem] w-full resize-none bg-transparent px-5 py-5 font-mono text-[14px] leading-7 text-slate-200 outline-none"
                     />
                   </div>
@@ -877,6 +905,15 @@ export const CandidateJourneyPage: React.FC<{
                 type="button"
                 disabled={finalizeBusy}
                 onClick={() => {
+                  if (session.slotAvailability && !session.slotAvailability.available && !session.applicationId) {
+                    setSubmitError(t('rebuild.journey.no_slots_error', { defaultValue: 'This handshake cannot be submitted because no active slot is available.' }));
+                    return;
+                  }
+                  if (!hasJcfpm && journeyBlueprint.steps.some((step) => step.type === 'jcfpm_profile')) {
+                    setSubmitError(t('rebuild.journey.jcfpm_required_error', { defaultValue: 'Complete JCFPM first. We will bring you back to this handshake afterwards.' }));
+                    navigate('/candidate/jcfpm');
+                    return;
+                  }
                   const candidateName = String(session.answers.preferred_alias || session.answers.legal_name || preferences.name);
                   const reviewerSummary =
                     candidateScore >= 90

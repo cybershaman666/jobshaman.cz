@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import engine
 from app.domains.handshake.models import Handshake, HandshakeEvent, SandboxEvaluation, SandboxSession, SlotReservation
 from app.domains.identity.models import CandidateJcfpmSnapshot, CandidateProfile, User
-from app.domains.reality.models import CompanyUser
+from app.domains.reality.models import CompanyUser, Job
 from app.domains.reality.service import RealityDomainService
 from app.domains.identity.service import IdentityDomainService
 from app.domains.recommendation.learning import LifecycleBackprop
@@ -218,7 +218,6 @@ class HandshakeDomainService:
                 to_status=handshake.status,
                 payload={"note_present": bool(note), "answer_count": len(_safe_dict(submission.get("answers")))},
             ))
-            await HandshakeDomainService._mark_slots(session, handshake.id, "consumed")
             await session.commit()
             await session.refresh(handshake)
             
@@ -340,6 +339,129 @@ class HandshakeDomainService:
                 
                 return True
             return False
+
+    @staticmethod
+    async def decide_company_handshake(
+        user_id: str,
+        company_id: str,
+        handshake_id: str,
+        action: str,
+        note: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        status_by_action = {
+            "invite": "mutual_handshake",
+            "reject": "rejected",
+            "close": "closed",
+        }
+        next_status = status_by_action.get(str(action or "").strip().lower())
+        if not next_status:
+            raise ValueError("Unsupported handshake decision.")
+        async with AsyncSession(engine) as session:
+            if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
+                return None
+            result = await session.execute(
+                select(Handshake).where(
+                    Handshake.id == uuid.UUID(handshake_id),
+                    Handshake.company_id == uuid.UUID(company_id),
+                )
+            )
+            handshake = result.scalar_one_or_none()
+            if not handshake:
+                return None
+            previous_status = handshake.status
+            handshake.status = next_status
+            handshake.state_version += 1
+            handshake.updated_at = datetime.utcnow()
+            if next_status in TERMINAL_STATUSES or next_status == "mutual_handshake":
+                handshake.closed_at = datetime.utcnow()
+            if next_status == "mutual_handshake":
+                await HandshakeDomainService._mark_slots(session, handshake.id, "consumed")
+            elif next_status in {"rejected", "closed"}:
+                await HandshakeDomainService._mark_slots(session, handshake.id, "released")
+            session.add(HandshakeEvent(
+                handshake_id=handshake.id,
+                actor_user_id=uuid.UUID(user_id),
+                actor_type="company",
+                event_type="company_handshake_decision",
+                from_status=previous_status,
+                to_status=next_status,
+                payload={"action": action, "note": _clean_text(note, 2000)},
+            ))
+            await session.commit()
+            await session.refresh(handshake)
+        await IdentityDomainService.create_notification(str(handshake.user_id), {
+            "title": "Firma rozhodla o handshaku",
+            "content": "Firma posunula tvůj handshake do dalšího stavu.",
+            "type": "handshake",
+            "link": f"/candidate/handshake/{handshake.id}",
+        })
+        return await HandshakeDomainService.get_company_handshake_readout(user_id, company_id, handshake_id)
+
+    @staticmethod
+    async def get_handshake_availability(user_id: str, job_id: str) -> Dict[str, Any]:
+        async with AsyncSession(engine) as session:
+            job = await RealityDomainService.get_job_details(str(job_id)) or {}
+            company_id = _uuid_or_none(job.get("company_id"))
+            opportunity_id = _uuid_or_none(job.get("id"))
+            if not company_id or not opportunity_id:
+                return {
+                    "job_id": str(job_id),
+                    "native": False,
+                    "available": False,
+                    "reason": "native_challenge_required",
+                }
+            capacity = _safe_dict(job.get("capacity_policy")) or _safe_dict(_safe_dict(job.get("payload_json")).get("capacity_policy"))
+            candidate_limit = int(capacity.get("candidate_active_limit") or 5)
+            company_limit = int(capacity.get("max_active_handshakes") or capacity.get("company_slots_total") or 25)
+            candidate_result = await session.execute(
+                select(SlotReservation).where(
+                    SlotReservation.scope == "candidate",
+                    SlotReservation.owner_id == uuid.UUID(user_id),
+                    SlotReservation.status == "reserved",
+                )
+            )
+            company_result = await session.execute(
+                select(SlotReservation).where(
+                    SlotReservation.scope == "company_challenge",
+                    SlotReservation.owner_id == company_id,
+                    SlotReservation.opportunity_id == opportunity_id,
+                    SlotReservation.status == "reserved",
+                )
+            )
+            existing_result = await session.execute(
+                select(Handshake).where(
+                    Handshake.user_id == uuid.UUID(user_id),
+                    Handshake.job_id == str(job_id),
+                    Handshake.status.in_(list(OPEN_STATUSES)),
+                ).order_by(Handshake.created_at.desc())
+            )
+            existing = existing_result.scalars().first()
+            candidate_used = len(candidate_result.scalars().all())
+            company_used = len(company_result.scalars().all())
+            candidate_remaining = max(0, candidate_limit - candidate_used)
+            company_remaining = max(0, company_limit - company_used)
+            reason = None
+            if not existing and candidate_remaining <= 0:
+                reason = "candidate_slots_full"
+            elif not existing and company_remaining <= 0:
+                reason = "company_slots_full"
+            return {
+                "job_id": str(job_id),
+                "native": True,
+                "available": bool(existing or (candidate_remaining > 0 and company_remaining > 0)),
+                "reason": reason,
+                "existing_handshake_id": str(existing.id) if existing else None,
+                "candidate": {
+                    "active": candidate_used,
+                    "limit": candidate_limit,
+                    "remaining": candidate_remaining,
+                },
+                "company_challenge": {
+                    "active": company_used,
+                    "limit": company_limit,
+                    "remaining": company_remaining,
+                },
+            }
 
     @staticmethod
     async def get_handshake_events(user_id: str, handshake_id: str) -> List[Dict[str, Any]]:
@@ -856,6 +978,32 @@ class HandshakeDomainService:
 
     @staticmethod
     async def _company_roles(session: AsyncSession, company_id: str) -> List[Dict[str, Any]]:
+        roles: List[Dict[str, Any]] = []
+        try:
+            native_result = await session.execute(
+                select(Job).where(
+                    Job.company_id == uuid.UUID(company_id),
+                    Job.source_kind == "native_challenge",
+                    Job.status == "published",
+                    Job.is_active == True,
+                ).order_by(Job.published_at.desc().nullslast(), Job.updated_at.desc())
+            )
+            for job in native_result.scalars().all():
+                capacity = _safe_dict(job.capacity_policy)
+                roles.append({
+                    "id": str(job.id),
+                    "title": job.title,
+                    "company": "Native challenge",
+                    "company_id": str(job.company_id),
+                    "status": job.status,
+                    "is_active": job.is_active,
+                    "role_summary": job.summary,
+                    "challenge_format": job.challenge_format,
+                    "capacity_policy": capacity,
+                    "created_at": job.created_at,
+                })
+        except Exception:
+            roles = []
         try:
             result = await session.execute(
                 text(
@@ -871,22 +1019,27 @@ class HandshakeDomainService:
                 ),
                 {"company_id": company_id},
             )
-            return [dict(row._mapping) for row in result.fetchall()]
+            roles.extend(dict(row._mapping) for row in result.fetchall())
+            return roles
         except Exception:
-            return []
+            return roles
 
     @staticmethod
     def _active_roles_from_data(roles: List[Dict[str, Any]], handshakes: List[Handshake]) -> List[Dict[str, Any]]:
         counts: Dict[str, int] = {}
         for item in handshakes:
-            counts[item.job_id] = counts.get(item.job_id, 0) + 1
+            if item.status not in TERMINAL_STATUSES:
+                counts[item.job_id] = counts.get(item.job_id, 0) + 1
         return [
             {
                 "id": str(role.get("id")),
                 "title": role.get("challenge_format") or role.get("title") or "Výzva",
                 "team": role.get("company") or "Tým",
                 "candidates": counts.get(str(role.get("id")), 0),
-                "status": "Handshake" if counts.get(str(role.get("id")), 0) else "Zadáno",
+                "status": "Plno" if counts.get(str(role.get("id")), 0) >= int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25) else ("Handshake" if counts.get(str(role.get("id")), 0) else "Zadáno"),
+                "slots_active": counts.get(str(role.get("id")), 0),
+                "slots_limit": int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25),
+                "slots_remaining": max(0, int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25) - counts.get(str(role.get("id")), 0)),
                 "accent": ["#dceafe", "#fff0da", "#def7ea", "#f3e8ff", "#dbeafe"][index % 5],
             }
             for index, role in enumerate(roles[:6])
@@ -920,12 +1073,19 @@ class HandshakeDomainService:
         profile = profile_result.scalar_one_or_none()
         answers = _safe_dict(session_payload.get("answers"))
         evidence = []
+        blueprint_steps = {
+            str(_safe_dict(step).get("id")): _safe_dict(step)
+            for step in _safe_list(_safe_dict(session_payload.get("blueprint")).get("steps"))
+            if _safe_dict(step).get("id")
+        }
         for step_id, entry in answers.items():
             data = _safe_dict(entry)
             answer = data.get("answer", entry)
+            step = blueprint_steps.get(str(step_id), {})
             evidence.append({
                 "id": step_id,
-                "title": " ".join(part.capitalize() for part in str(step_id).replace("-", "_").split("_")),
+                "title": _clean_text(step.get("title"), 160) or " ".join(part.capitalize() for part in str(step_id).replace("-", "_").split("_")),
+                "prompt": _clean_text(step.get("prompt"), 600),
                 "body": _clean_text(answer, 1800),
                 "source": "handshake_answer",
                 "updated_at": data.get("updated_at"),
@@ -933,6 +1093,14 @@ class HandshakeDomainService:
             })
         score = min(100, 55 + len(evidence) * 10)
         alias = f"Signal {str(handshake.user_id).replace('-', '')[-4:].upper()}"
+        external_runs = _safe_list(session_payload.get("external_runs"))
+        schedule_slot = _safe_dict(answers.get("schedule_slot")).get("answer") if isinstance(answers.get("schedule_slot"), dict) else answers.get("schedule_slot")
+        slot_state = _safe_list(session_payload.get("slot_reservations"))
+        next_step = "Pozvat kandidáta do mutual handshake, zamítnout, nebo uzavřít proces."
+        if handshake.status in {"mutual_handshake", "completed"}:
+            next_step = "Navázat živým rozhovorem podle domluveného slotu."
+        elif handshake.status in {"rejected", "closed", "withdrawn"}:
+            next_step = "Proces je uzavřený."
         return {
             "schema_version": "recruiter-readout-v1",
             "handshake_id": str(handshake.id),
@@ -958,7 +1126,11 @@ class HandshakeDomainService:
             "risks": [] if evidence else ["Zatím chybí dokončené odpovědi"],
             "jcfpm_summary": _safe_dict(_safe_dict(session_payload.get("candidate_context")).get("jcfpm")),
             "evidence_sections": evidence,
-            "recommended_next_step": "Projít výstup s hiring manažerem a rozhodnout, zda kandidáta posunout do mutual handshake.",
+            "external_runs": external_runs,
+            "requested_schedule_slot": schedule_slot,
+            "slot_state": slot_state,
+            "decision_actions": ["invite", "reject", "close"] if handshake.status in {"submitted", "company_reviewing"} else [],
+            "recommended_next_step": next_step,
         }
 
     @staticmethod

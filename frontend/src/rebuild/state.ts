@@ -72,6 +72,9 @@ export const resolveBlueprintForRole = (
   blueprintLibrary: HandshakeBlueprint[],
   roleAssignments: Record<string, string>,
 ) => {
+  if (role.handshakeBlueprint && Array.isArray((role.handshakeBlueprint as HandshakeBlueprint).steps)) {
+    return role.handshakeBlueprint as HandshakeBlueprint;
+  }
   const assigned = roleAssignments[role.id] || role.blueprintId;
   return blueprintLibrary.find((item) => item.id === assigned) || blueprintLibrary[0] || null;
 };

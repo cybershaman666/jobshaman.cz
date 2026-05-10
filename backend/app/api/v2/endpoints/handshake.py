@@ -60,6 +60,21 @@ async def get_my_handshakes(
         "data": handshakes
     }
 
+@router.get("/availability/{job_id}")
+async def get_handshake_availability(
+    job_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user)
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    return {
+        "status": "success",
+        "data": await HandshakeDomainService.get_handshake_availability(domain_user["id"], job_id),
+    }
+
 @router.get("/{handshake_id}")
 async def get_my_handshake(
     handshake_id: str,

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
@@ -155,19 +155,56 @@ async def delete_my_cv_document(
     return {"status": "success", "data": {"ok": True}}
 
 @router.get("/jcfpm/items")
-async def get_jcfpm_items():
+async def get_jcfpm_items(
+    locale: str = Query("cs", min_length=2, max_length=12),
+    form: str = Query("jcfpm-v3-ikigai", min_length=3, max_length=80),
+):
+    live_items = await IdentityDomainService.list_jcfpm_items(locale=locale, form_key=form)
+    if live_items:
+        return {
+            "status": "success",
+            "data": live_items,
+            "meta": {
+                "source": "postgres",
+                "form": form,
+                "locale": locale,
+                "item_count": len(live_items),
+            },
+        }
+
     return {
         "status": "success",
         "data": [
             {
                 "id": f"v2-{dimension}",
+                "pool_key": f"v2-{dimension}",
+                "variant_index": 1,
                 "dimension": dimension,
+                "section": "legacy_lite",
                 "prompt": prompt,
                 "prompt_i18n": {"cs": prompt, "en": prompt},
                 "sort_order": index + 1,
+                "item_type": "likert",
+                "payload": {},
+                "payload_i18n": {"cs": {}, "en": {}},
+                "assets": {},
+                "status": "active",
+                "version": "jcfpm-v1-lite",
+                "scale_min": 1,
+                "scale_max": 7,
+                "reverse_scoring": False,
+                "locale_used": "cs",
+                "translation_status": "fallback",
+                "form_key": "jcfpm-v1-lite",
             }
             for index, (dimension, prompt) in enumerate(JCFPM_ITEMS)
         ],
+        "meta": {
+            "source": "fallback",
+            "form": "jcfpm-v1-lite",
+            "locale": locale,
+            "item_count": len(JCFPM_ITEMS),
+        },
     }
 
 @router.get("/jcfpm/latest")

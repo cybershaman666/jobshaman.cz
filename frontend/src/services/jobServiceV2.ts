@@ -2,7 +2,7 @@ import ApiService from './apiService';
 import { getStaticCoordinates } from './geocodingService';
 import { getStockCoverForDomain } from '../utils/domainCoverImages';
 import type { CandidateDomainKey } from '../types';
-import type { MarketplaceFilters, MarketplaceSection, Role, RoleFamily, RoleRecommendationFitComponent } from '../rebuild/models';
+import type { HandshakeBlueprint, MarketplaceFilters, MarketplaceSection, Role, RoleFamily, RoleRecommendationFitComponent } from '../rebuild/models';
 
 const COUNTRY_LABELS: Record<Role['countryCode'], string> = {
   CZ: 'Česká republika',
@@ -269,6 +269,78 @@ const inferHeroImage = (job: any, roleFamily: RoleFamily, companyName: string, t
   );
 };
 
+const mapTaskTypeToStepType = (type: string): HandshakeBlueprint['steps'][number]['type'] => {
+  const normalized = normalizeText(type).toLowerCase();
+  if (normalized === 'workspace') return 'task_workspace';
+  if (normalized === 'text_response') return 'scenario_response';
+  if (normalized === 'external_link' || normalized === 'file_upload') return 'portfolio_or_proof';
+  if (normalized === 'scheduler') return 'schedule_request';
+  if (normalized === 'jcfpm_profile') return 'jcfpm_profile';
+  if (normalized === 'results_summary') return 'results_summary';
+  if (['identity', 'motivation', 'reflection', 'skill_alignment'].includes(normalized)) return normalized as HandshakeBlueprint['steps'][number]['type'];
+  return 'scenario_response';
+};
+
+const mapStepTypeToUiVariant = (type: HandshakeBlueprint['steps'][number]['type']): HandshakeBlueprint['steps'][number]['uiVariant'] => {
+  if (type === 'identity') return 'split_form';
+  if (type === 'skill_alignment') return 'signal_matrix';
+  if (type === 'task_workspace') return 'workspace';
+  if (type === 'results_summary') return 'result_panel';
+  if (type === 'schedule_request') return 'scheduler';
+  return 'story_field';
+};
+
+const normalizeHandshakeBlueprint = (job: any, roleFamily: RoleFamily, title: string, firstStep: string): HandshakeBlueprint | undefined => {
+  const raw = job.handshake_blueprint_v1 || job.payload_json?.handshake_blueprint_v1;
+  const taskSteps = Array.isArray(job.assessment_tasks || job.payload_json?.assessment_tasks)
+    ? (job.assessment_tasks || job.payload_json?.assessment_tasks)
+    : [];
+  const sourceSteps = Array.isArray(raw?.steps) && raw.steps.length
+    ? raw.steps
+    : [
+      { id: 'identity', type: 'identity', title: 'Identity', prompt: 'Kdo jste a proč vás výzva zajímá?', required: true },
+      { id: 'motivation', type: 'motivation', title: 'Motivation', prompt: `Co vás táhne k výzvě ${title}?`, required: true },
+      ...taskSteps,
+      { id: 'results', type: 'results_summary', title: 'Výsledky', prompt: 'Souhrn signálu pro firmu.', required: true },
+    ];
+  if (!sourceSteps.length) return undefined;
+  const steps = sourceSteps.map((step: any, index: number) => {
+    const type = mapTaskTypeToStepType(step.type || step.uiVariant);
+    const id = normalizeText(step.id) || `step_${index + 1}`;
+    return {
+      id,
+      type,
+      title: normalizeText(step.title) || `Krok ${index + 1}`,
+      prompt: normalizeText(step.prompt) || (id === 'first_step' ? firstStep : 'Odpovězte konkrétně na zadání.'),
+      helper: normalizeText(step.helper || step.instructions) || 'Konkrétnost a úsudek jsou důležitější než uhlazený text.',
+      required: step.required !== false,
+      uiVariant: mapStepTypeToUiVariant(type),
+    };
+  });
+  if (!steps.some((step) => step.type === 'schedule_request')) {
+    steps.push({
+      id: 'schedule',
+      type: 'schedule_request',
+      title: 'Navázání dialogu',
+      prompt: 'Vyberte preferovaný čas pro další lidský krok.',
+      helper: 'Termín je žádost, firma jej potvrdí po review.',
+      required: false,
+      uiVariant: 'scheduler',
+    });
+  }
+  return {
+    id: normalizeText(raw?.id) || `bp-live-${normalizeText(job.id) || title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    name: normalizeText(raw?.name) || `${title} handshake`,
+    roleFamily,
+    tone: raw?.tone || 'precision',
+    overview: normalizeText(raw?.overview || raw?.company_goal) || 'Praktický handshake navázaný na reálnou výzvu firmy.',
+    benchmarkLabels: Array.isArray(raw?.benchmarkLabels) ? raw.benchmarkLabels : ['Porozumění', 'Úsudek', 'Praktičnost'],
+    aiGeneratorNote: normalizeText(raw?.aiGeneratorNote) || 'Živý V2 handshake kontrakt.',
+    scheduleEnabled: true,
+    steps,
+  };
+};
+
 const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
   const resolvedSource = normalizeRoleSource(job, source);
   const countryCode = normalizeCountryCode(job);
@@ -283,6 +355,9 @@ const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
   const summary = normalizeText(job.summary || job.role_summary || job.ai_analysis?.summary);
   const description = normalizeText(job.description || job.role_summary || summary);
   const title = normalizeText(job.title) || 'Untitled role';
+  const firstStep = normalizeText(job.payload_json?.first_reply_prompt || job.editor_state?.first_reply_prompt)
+    || (job.url ? 'Otevři původní nabídku a ověř aktuální podmínky.' : 'Ulož si nabídku a ověř podmínky před odpovědí.');
+  const liveBlueprint = normalizeHandshakeBlueprint(job, roleFamily, title, firstStep);
 
   return {
     id: String(job.id),
@@ -304,8 +379,7 @@ const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
     summary: summary || description.slice(0, 240),
     challenge: summary || 'Tahle importovaná nabídka čeká na ověření detailů.',
     mission: description || summary || 'Detail nabídky je převzatý z externího zdroje.',
-    firstStep: normalizeText(job.payload_json?.first_reply_prompt || job.editor_state?.first_reply_prompt)
-      || (job.url ? 'Otevři původní nabídku a ověř aktuální podmínky.' : 'Ulož si nabídku a ověř podmínky před odpovědí.'),
+    firstStep,
     description,
     roleSummary: job.role_summary || summary || null,
     sourceUrl: job.url,
@@ -324,6 +398,12 @@ const mapJobToRole = (job: any, source: Role['source'] = 'imported'): Role => {
     coordinates: {
       ...buildCoordinates(job, location),
     },
+    blueprintId: liveBlueprint?.id,
+    assessmentTasks: Array.isArray(job.assessment_tasks || job.payload_json?.assessment_tasks)
+      ? (job.assessment_tasks || job.payload_json?.assessment_tasks)
+      : [],
+    handshakeBlueprint: liveBlueprint || job.handshake_blueprint_v1 || job.payload_json?.handshake_blueprint_v1,
+    capacityPolicy: job.capacity_policy || job.payload_json?.capacity_policy || {},
     featuredInsights: [
       ...(Array.isArray(job.recommendation_reasons) ? job.recommendation_reasons : []),
       workModel,

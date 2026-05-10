@@ -1,4 +1,5 @@
 from sqlmodel import select
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from app.core.database import engine
@@ -26,6 +27,31 @@ from app.services.embedding_service import EmbeddingService
 
 def _as_uuid(value: Any) -> uuid.UUID:
     return value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
+
+
+def _json_value(value: Any, fallback: Any) -> Any:
+    if value is None:
+        return fallback
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return fallback
+    return value
+
+
+def _jcfpm_locale(locale: str | None) -> str:
+    raw = (locale or "cs").strip().lower().replace("_", "-")
+    base = raw.split("-")[0]
+    aliases = {
+        "at": "de",
+        "de-at": "de",
+        "nb": "no",
+        "nn": "no",
+        "no": "no",
+        "dk": "da",
+    }
+    return aliases.get(raw) or aliases.get(base) or base or "cs"
 
 class IdentityDomainService:
     SIGNAL_SOURCE_TYPES = {
@@ -113,6 +139,108 @@ class IdentityDomainService:
             if profile:
                 await IdentityDomainService._ensure_legacy_jcfpm_preferences(session, profile)
             return profile.model_dump() if profile else None
+
+    @staticmethod
+    async def list_jcfpm_items(
+        locale: str = "cs",
+        form_key: str = "jcfpm-v3-ikigai",
+    ) -> list[Dict[str, Any]]:
+        normalized_locale = _jcfpm_locale(locale)
+        async with AsyncSession(engine) as session:
+            try:
+                result = await session.execute(
+                    text(
+                        """
+                        SELECT
+                          i.item_id,
+                          i.pool_key,
+                          i.variant_index,
+                          i.dimension,
+                          i.section,
+                          i.subdimension,
+                          i.item_type,
+                          i.scale_min,
+                          i.scale_max,
+                          i.reverse_scoring,
+                          COALESCE(fi.sort_order, i.sort_order, 0) AS sort_order,
+                          COALESCE(i.payload_json, '{}'::jsonb) AS item_payload,
+                          COALESCE(i.assets_json, '{}'::jsonb) AS assets_json,
+                          i.status,
+                          i.version,
+                          COALESCE(tr.prompt, en.prompt, cs.prompt, '') AS prompt,
+                          COALESCE(tr.payload_json, en.payload_json, cs.payload_json, i.payload_json, '{}'::jsonb) AS payload_json,
+                          COALESCE(tr.locale, en.locale, cs.locale, 'cs') AS locale_used,
+                          COALESCE(tr.translation_status, en.translation_status, cs.translation_status, 'needs_review') AS translation_status,
+                          tr.prompt AS prompt_requested,
+                          en.prompt AS prompt_en,
+                          cs.prompt AS prompt_cs,
+                          tr.payload_json AS payload_requested,
+                          en.payload_json AS payload_en,
+                          cs.payload_json AS payload_cs
+                        FROM jcfpm_form_items fi
+                        JOIN jcfpm_forms f ON f.form_key = fi.form_key AND f.is_active = true
+                        JOIN jcfpm_items i ON i.item_id = fi.item_id AND i.status = 'active'
+                        LEFT JOIN jcfpm_item_translations tr ON tr.item_id = i.item_id AND tr.locale = :locale
+                        LEFT JOIN jcfpm_item_translations en ON en.item_id = i.item_id AND en.locale = 'en'
+                        LEFT JOIN jcfpm_item_translations cs ON cs.item_id = i.item_id AND cs.locale = 'cs'
+                        WHERE fi.form_key = :form_key
+                        ORDER BY COALESCE(fi.sort_order, i.sort_order, 0), i.item_id
+                        """
+                    ),
+                    {"locale": normalized_locale, "form_key": form_key or "jcfpm-v3-ikigai"},
+                )
+            except Exception:
+                return []
+
+            items: list[Dict[str, Any]] = []
+            for row in result.mappings().all():
+                payload = _json_value(row.get("payload_json"), {})
+                item_payload = _json_value(row.get("item_payload"), {})
+                assets = _json_value(row.get("assets_json"), {})
+                payload_requested = _json_value(row.get("payload_requested"), {})
+                payload_en = _json_value(row.get("payload_en"), {})
+                payload_cs = _json_value(row.get("payload_cs"), {})
+                if not payload and item_payload:
+                    payload = item_payload
+
+                prompt_i18n = {
+                    "cs": row.get("prompt_cs") or row.get("prompt") or "",
+                    "en": row.get("prompt_en") or row.get("prompt") or "",
+                }
+                if row.get("prompt_requested"):
+                    prompt_i18n[normalized_locale] = row.get("prompt_requested")
+
+                payload_i18n = {
+                    "cs": payload_cs or payload,
+                    "en": payload_en or payload,
+                }
+                if payload_requested:
+                    payload_i18n[normalized_locale] = payload_requested
+
+                items.append({
+                    "id": row.get("item_id"),
+                    "pool_key": row.get("pool_key"),
+                    "variant_index": row.get("variant_index"),
+                    "dimension": row.get("dimension"),
+                    "section": row.get("section"),
+                    "subdimension": row.get("subdimension"),
+                    "prompt": row.get("prompt") or "",
+                    "prompt_i18n": prompt_i18n,
+                    "sort_order": row.get("sort_order") or 0,
+                    "item_type": row.get("item_type") or "likert",
+                    "payload": payload or {},
+                    "payload_i18n": payload_i18n,
+                    "assets": assets or {},
+                    "status": row.get("status") or "active",
+                    "version": row.get("version") or "jcfpm-v3",
+                    "scale_min": row.get("scale_min"),
+                    "scale_max": row.get("scale_max"),
+                    "reverse_scoring": bool(row.get("reverse_scoring")),
+                    "locale_used": row.get("locale_used") or normalized_locale,
+                    "translation_status": row.get("translation_status") or "needs_review",
+                    "form_key": form_key or "jcfpm-v3-ikigai",
+                })
+            return items
 
     @staticmethod
     async def list_registered_candidates(

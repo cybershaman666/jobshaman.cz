@@ -139,12 +139,16 @@ export const FeaturedRoleCard: React.FC<{
 export const DiscoveryRoleCard: React.FC<{
   role: Role;
   distanceKm?: number | null;
+  variant?: 'standard' | 'wide' | 'compact' | 'accent';
   onOpen: () => void;
-}> = ({ role, distanceKm, onOpen }) => {
+}> = ({ role, distanceKm, variant = 'standard', onOpen }) => {
   const { t } = useTranslation();
   const matchScore = typeof role.matchScore === 'number' ? role.matchScore : null;
   const fit = role.recommendationFit;
   const hasHeaderImage = Boolean(role.heroImage);
+  const isWide = variant === 'wide';
+  const isCompact = variant === 'compact';
+  const isAccent = variant === 'accent';
   const topFit = fit
     ? [
       { label: t('rebuild.marketplace.fit_skill', { defaultValue: 'Schopnost' }), score: fit.components.skillMatch.score },
@@ -161,10 +165,15 @@ export const DiscoveryRoleCard: React.FC<{
   return (
     <button
       onClick={onOpen}
-      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 text-left shadow-[0_16px_32px_-24px_rgba(0,0,0,0.08)] transition hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:shadow-[0_24px_48px_-28px_rgba(0,0,0,0.12)]"
+      className={cn(
+        'group relative flex h-full min-w-0 flex-col overflow-hidden rounded-[20px] border text-left transition hover:bg-white dark:hover:bg-slate-800 hover:shadow-[0_24px_48px_-28px_rgba(0,0,0,0.16)]',
+        isWide ? 'sm:col-span-2 xl:col-span-2 border-[#d7edf2] bg-[#f6fbfc] shadow-[0_22px_46px_-34px_rgba(18,175,203,0.38)]' : '',
+        isAccent ? 'border-[#f0dcc2] bg-[#fffaf1] shadow-[0_18px_38px_-32px_rgba(185,131,49,0.34)]' : '',
+        !isWide && !isAccent ? 'border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-[0_16px_32px_-24px_rgba(0,0,0,0.08)] hover:border-slate-200 dark:hover:border-slate-700' : '',
+      )}
     >
       {hasHeaderImage ? (
-        <div className="relative h-20 w-full overflow-hidden">
+        <div className={cn('relative w-full overflow-hidden', isCompact ? 'h-12' : isWide ? 'h-32' : 'h-20')}>
           <img
             src={role.heroImage}
             alt=""
@@ -174,16 +183,16 @@ export const DiscoveryRoleCard: React.FC<{
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className={cn('flex flex-1 flex-col', isCompact ? 'p-4' : isWide ? 'p-6' : 'p-5')}>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef6f8] dark:bg-cyan-950 p-2 transition group-hover:bg-[#e2f0f3] dark:group-hover:bg-cyan-900">
+          <div className={cn('flex items-center justify-center bg-[#eef6f8] dark:bg-cyan-950 p-2 transition group-hover:bg-[#e2f0f3] dark:group-hover:bg-cyan-900', isCompact ? 'h-10 w-10 rounded-xl' : 'h-14 w-14 rounded-2xl')}>
             {role.companyLogo ? (
               <img src={role.companyLogo} alt="" className="h-full w-full object-contain" />
             ) : (
               <UserCircle2 size={24} className="text-teal-600/40" />
             )}
           </div>
-          <div className="relative flex h-12 w-12 items-center justify-center">
+          <div className={cn('relative flex items-center justify-center', isCompact ? 'h-10 w-10' : 'h-12 w-12')}>
             <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 32 32">
               <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="3" fill="none" className="text-slate-100 dark:text-slate-800" />
               {matchScore !== null ? (
@@ -202,20 +211,31 @@ export const DiscoveryRoleCard: React.FC<{
           </div>
         </div>
 
-        <div className="mt-5">
-          <h4 className="text-[16px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-teal-600 transition-colors line-clamp-1">{role.title}</h4>
+        <div className={cn(isCompact ? 'mt-3' : 'mt-5')}>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {role.source === 'curated' ? (
+              <span className="rounded-full bg-[#12313a] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100">Jobshaman</span>
+            ) : null}
+            {role.workModel === 'Remote' ? (
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">Remote</span>
+            ) : null}
+            {role.salaryTo > 0 ? (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">Mzda uvedena</span>
+            ) : null}
+          </div>
+          <h4 className={cn('font-bold text-slate-900 dark:text-slate-100 group-hover:text-teal-600 transition-colors', isWide ? 'text-[20px] leading-tight line-clamp-2' : 'text-[16px] line-clamp-1')}>{role.title}</h4>
           <p className="text-[12px] font-medium text-slate-400">{role.companyName}</p>
         </div>
 
-        <div className="mt-5 flex flex-col gap-1.5">
-          <div className="text-[15px] font-black text-slate-900 dark:text-slate-100">{formatRoleSalary(role, t)}</div>
+        <div className={cn('flex flex-col gap-1.5', isCompact ? 'mt-3' : 'mt-5')}>
+          <div className={cn('font-black text-slate-900 dark:text-slate-100', isWide ? 'text-[20px]' : 'text-[15px]')}>{formatRoleSalary(role, t)}</div>
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
             <span className="flex min-w-0 items-center gap-1"><MapPin size={10} className="shrink-0" /> <span className="truncate">{distanceLabel ? `${distanceLabel} · ${role.location || t('rebuild.marketplace.role', { defaultValue: 'Role' })}` : role.location || t('rebuild.marketplace.role', { defaultValue: 'Role' })}</span></span>
             <span className="flex items-center gap-1"><Clock3 size={10} /> {role.workModel || t('rebuild.marketplace.default_shifts', { defaultValue: '2 směny' })}</span>
           </div>
         </div>
 
-        {fit ? (
+        {fit && !isCompact ? (
           <div className="mt-5 space-y-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-800/70 p-3">
             <div className="grid grid-cols-3 gap-2">
               {topFit.map((item) => (
@@ -242,7 +262,7 @@ export const DiscoveryRoleCard: React.FC<{
           </div>
         ) : null}
 
-        <div className="mt-6 flex items-center justify-center rounded-xl bg-[#eef6f8] dark:bg-cyan-950/50 py-2 text-[12px] font-bold text-teal-700 dark:text-teal-400 transition group-hover:bg-[#12afcb] group-hover:text-white">
+        <div className={cn('flex items-center justify-center rounded-xl bg-[#eef6f8] dark:bg-cyan-950/50 py-2 text-[12px] font-bold text-teal-700 dark:text-teal-400 transition group-hover:bg-[#12afcb] group-hover:text-white', isCompact ? 'mt-4' : 'mt-6')}>
           {t('rebuild.marketplace.view')}
           <ArrowRight size={14} className="ml-1" />
         </div>

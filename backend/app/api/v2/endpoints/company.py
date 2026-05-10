@@ -45,6 +45,10 @@ class ChallengePublishRequest(BaseModel):
     human_confirmed: bool = False
     change_summary: Optional[str] = None
 
+class HandshakeDecisionRequest(BaseModel):
+    action: str
+    note: Optional[str] = None
+
 @router.get("/me")
 async def get_my_company(current_user: dict = Depends(AccessControlService.get_current_user)):
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
@@ -350,3 +354,29 @@ async def get_company_handshake_readout(
     if readout is None:
         raise HTTPException(status_code=404, detail="Handshake not found")
     return {"status": "success", "data": readout}
+
+@router.post("/{company_id}/handshakes/{handshake_id}/decision")
+async def decide_company_handshake(
+    company_id: str,
+    handshake_id: str,
+    payload: HandshakeDecisionRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    try:
+        result = await HandshakeDomainService.decide_company_handshake(
+            domain_user["id"],
+            company_id,
+            handshake_id,
+            payload.action,
+            payload.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return {"status": "success", "data": result}

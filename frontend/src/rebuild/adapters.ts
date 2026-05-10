@@ -8,6 +8,7 @@ import type {
   CandidatePreferenceProfile,
   Company,
   CompanyBrandTheme,
+  HandshakeBlueprint,
   MarketplaceFilters,
   Role,
   RoleFamily,
@@ -16,6 +17,74 @@ import type { ChallengeDraft } from '../services/v2ChallengeService';
 
 const fallbackLogo =
   'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?q=80&w=200&auto=format&fit=crop';
+
+const normalizeStepType = (type: unknown): HandshakeBlueprint['steps'][number]['type'] => {
+  const value = String(type || '').toLowerCase();
+  if (value === 'workspace') return 'task_workspace';
+  if (value === 'text_response') return 'scenario_response';
+  if (value === 'external_link' || value === 'file_upload') return 'portfolio_or_proof';
+  if (value === 'scheduler') return 'schedule_request';
+  if (value === 'jcfpm_profile') return 'jcfpm_profile';
+  if (value === 'results_summary') return 'results_summary';
+  if (['identity', 'motivation', 'reflection', 'skill_alignment', 'scenario_response', 'portfolio_or_proof', 'task_workspace', 'schedule_request'].includes(value)) {
+    return value as HandshakeBlueprint['steps'][number]['type'];
+  }
+  return 'scenario_response';
+};
+
+const uiVariantForStepType = (type: HandshakeBlueprint['steps'][number]['type']): HandshakeBlueprint['steps'][number]['uiVariant'] => {
+  if (type === 'identity') return 'split_form';
+  if (type === 'skill_alignment') return 'signal_matrix';
+  if (type === 'task_workspace') return 'workspace';
+  if (type === 'results_summary') return 'result_panel';
+  if (type === 'schedule_request') return 'scheduler';
+  return 'story_field';
+};
+
+const normalizeLiveBlueprint = (
+  rawBlueprint: any,
+  tasks: any[],
+  roleFamily: RoleFamily,
+  title: string,
+): HandshakeBlueprint | undefined => {
+  const rawSteps = Array.isArray(rawBlueprint?.steps) ? rawBlueprint.steps : [];
+  const sourceSteps = rawSteps.length ? rawSteps : tasks;
+  if (!sourceSteps.length) return undefined;
+  const steps = sourceSteps.map((step: any, index: number) => {
+    const type = normalizeStepType(step?.type);
+    return {
+      id: String(step?.id || `step_${index + 1}`),
+      type,
+      title: String(step?.title || `Krok ${index + 1}`),
+      prompt: String(step?.prompt || ''),
+      helper: String(step?.helper || step?.instructions || ''),
+      required: step?.required !== false,
+      uiVariant: uiVariantForStepType(type),
+    };
+  });
+  if (!steps.some((step) => step.type === 'schedule_request')) {
+    steps.push({
+      id: 'schedule',
+      type: 'schedule_request',
+      title: 'Navázání dialogu',
+      prompt: 'Vyberte preferovaný čas pro další lidský krok.',
+      helper: 'Termín je žádost, firma jej potvrdí po review.',
+      required: false,
+      uiVariant: 'scheduler',
+    });
+  }
+  return {
+    id: String(rawBlueprint?.id || `bp-live-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'challenge'}`),
+    name: String(rawBlueprint?.name || `${title} handshake`),
+    roleFamily,
+    tone: rawBlueprint?.tone || 'precision',
+    overview: String(rawBlueprint?.overview || 'Praktický handshake navázaný na reálnou výzvu firmy.'),
+    benchmarkLabels: Array.isArray(rawBlueprint?.benchmarkLabels) ? rawBlueprint.benchmarkLabels : ['Porozumění', 'Úsudek', 'Praktičnost'],
+    aiGeneratorNote: String(rawBlueprint?.aiGeneratorNote || 'Živý V2 handshake kontrakt.'),
+    scheduleEnabled: true,
+    steps,
+  };
+};
 
 const paletteFromSeed = (seed: string): CompanyBrandTheme => {
   let hash = 0;
@@ -272,6 +341,16 @@ export const mapJobToRole = (job: Job): Role => {
   const salary = inferSalary(job);
   const source = normalizeRoleSource(job);
   const companyId = String(job.company_id || slugify(job.company || 'company'));
+  const rawJob = job as any;
+  const assessmentTasks = Array.isArray(rawJob.assessment_tasks || rawJob.payload_json?.assessment_tasks)
+    ? (rawJob.assessment_tasks || rawJob.payload_json?.assessment_tasks)
+    : [];
+  const handshakeBlueprint = normalizeLiveBlueprint(
+    rawJob.handshake_blueprint_v1 || rawJob.payload_json?.handshake_blueprint_v1,
+    assessmentTasks,
+    roleFamily,
+    job.title,
+  );
   return {
     id: String(job.id),
     companyId,
@@ -307,7 +386,10 @@ export const mapJobToRole = (job: Job): Role => {
     skills: Array.from(new Set([...(job.required_skills || []), ...(job.tags || [])])).slice(0, 6),
     benefits: job.benefits || [],
     coordinates: inferRoleCoordinates(job),
-    blueprintId: source === 'curated' ? undefined : undefined,
+    blueprintId: handshakeBlueprint?.id,
+    assessmentTasks,
+    handshakeBlueprint,
+    capacityPolicy: rawJob.capacity_policy || rawJob.payload_json?.capacity_policy || {},
     featuredInsights: normalizeFeaturedInsights(job, roleFamily),
   };
 };
@@ -465,6 +547,17 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
       ? challenge.tags
       : [];
   const firstStep = String(challenge.editor_state?.first_reply_prompt || challenge.payload_json?.first_reply_prompt || '').trim();
+  const assessmentTasks = Array.isArray(challenge.assessment_tasks)
+    ? challenge.assessment_tasks
+    : Array.isArray(challenge.payload_json?.assessment_tasks)
+      ? challenge.payload_json.assessment_tasks as any[]
+      : [];
+  const handshakeBlueprint = normalizeLiveBlueprint(
+    challenge.handshake_blueprint_v1 || challenge.payload_json?.handshake_blueprint_v1,
+    assessmentTasks,
+    roleFamily,
+    challenge.title,
+  );
   return {
     id: String(challenge.id),
     companyId: String(challenge.company_id),
@@ -497,7 +590,10 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
     skills,
     benefits: [],
     coordinates: { lat: 0, lng: 0 },
-    blueprintId: String((challenge.handshake_blueprint_v1 as any)?.id || ''),
+    blueprintId: handshakeBlueprint?.id || String((challenge.handshake_blueprint_v1 as any)?.id || ''),
+    assessmentTasks,
+    handshakeBlueprint,
+    capacityPolicy: challenge.capacity_policy || {},
     featuredInsights: [challenge.status, workModel, roleFamily].filter(Boolean),
   };
 };

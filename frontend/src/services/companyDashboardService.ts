@@ -126,3 +126,21 @@ export const fetchV2CompanyHandshakeReadout = async (
         return null;
     }
 };
+
+export const decideV2CompanyHandshake = async (
+    companyId: string,
+    handshakeId: string,
+    action: 'invite' | 'reject' | 'close',
+    note?: string,
+): Promise<Record<string, any> | null> => {
+    if (!companyId || !handshakeId) return null;
+    try {
+        const response = await ApiService.post<{ status?: string; data?: Record<string, any> }>(
+            `/company/${encodeURIComponent(companyId)}/handshakes/${encodeURIComponent(handshakeId)}/decision`,
+            { action, note: note || null },
+        );
+        return response.data || null;
+    } catch {
+        return null;
+    }
+};

@@ -1,5 +1,6 @@
 import ApiService from './apiService';
 import type { HandshakeResponse } from './handshakeService';
+import type { RoleSlotAvailability } from '../rebuild/models';
 
 const unwrapHandshake = (response: any): HandshakeResponse => {
   const payload = response?.data?.handshake_id ? response.data : response;
@@ -14,6 +15,19 @@ const unwrapHandshake = (response: any): HandshakeResponse => {
 export const startHandshake = async (jobId: string | number): Promise<HandshakeResponse> => {
   const response = await ApiService.post<any>(`/handshake/initiate/${encodeURIComponent(String(jobId))}`, {});
   return unwrapHandshake(response);
+};
+
+export const fetchHandshakeAvailability = async (jobId: string | number): Promise<RoleSlotAvailability | null> => {
+  const response = await ApiService.get<any>(`/handshake/availability/${encodeURIComponent(String(jobId))}`);
+  const data = response?.data || response;
+  if (!data || typeof data !== 'object') return null;
+  return {
+    available: Boolean(data.available),
+    reason: data.reason || null,
+    existingHandshakeId: data.existing_handshake_id || data.existingHandshakeId || null,
+    candidate: data.candidate,
+    companyChallenge: data.company_challenge || data.companyChallenge,
+  };
 };
 
 export const patchHandshakeAnswer = async (

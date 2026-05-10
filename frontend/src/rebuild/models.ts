@@ -89,6 +89,14 @@ export interface HandshakeBlueprint {
   steps: HandshakeBlueprintStep[];
 }
 
+export interface RoleSlotAvailability {
+  available: boolean;
+  reason?: string | null;
+  existingHandshakeId?: string | null;
+  candidate?: { active: number; limit: number; remaining: number };
+  companyChallenge?: { active: number; limit: number; remaining: number };
+}
+
 export interface Role {
   id: string;
   companyId: string;
@@ -125,6 +133,10 @@ export interface Role {
   benefits: string[];
   coordinates: { lat: number; lng: number };
   blueprintId?: string;
+  assessmentTasks?: Array<Record<string, any>>;
+  handshakeBlueprint?: Record<string, any> | HandshakeBlueprint;
+  capacityPolicy?: Record<string, any>;
+  slotAvailability?: RoleSlotAvailability | null;
   featuredInsights: string[];
   matchScore?: number | null;
   recommendationFit?: RoleRecommendationFit | null;
@@ -244,6 +256,9 @@ export interface CandidateJourneySession {
   answers: Record<string, string | string[]>;
   applicationId?: string;
   applicationStatus?: string;
+  backendSession?: Record<string, any>;
+  slotAvailability?: RoleSlotAvailability | null;
+  liveHydratedAt?: string;
   submittedAt?: string;
   scheduledSlot?: string;
   candidateName?: string;
@@ -292,14 +307,24 @@ export interface JcfpmQuestion {
     | 'd9_systems_thinking'
     | 'd10_ambiguity_interpretation'
     | 'd11_problem_decomposition'
-    | 'd12_moral_compass';
+    | 'd12_moral_compass'
+    | 'i1_love'
+    | 'i2_good_at'
+    | 'i3_world_needs'
+    | 'i4_paid_for';
   prompt: string;
   item_type?: string;
+  section?: string;
+  scale_min?: number | null;
+  scale_max?: number | null;
+  reverse_scoring?: boolean;
+  locale_used?: string;
+  translation_status?: string;
   payload?: any;
 }
 
 export interface JCFPMSession {
-  answers: Record<string, number>;
+  answers: Record<string, number | string | string[]>;
   completedAt?: string;
   archetypeTitle?: string;
   summary?: string;
