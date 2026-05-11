@@ -65,7 +65,7 @@ export const SearchFiltersModal: React.FC<{
 }> = ({ open, filters, searchValue, onClose, onApply, onReset, onSearchChange, onFiltersChange, t }) => {
   if (!open) return null;
 
-  const fieldShell = 'mt-2 flex h-12 items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-slate-500 dark:text-slate-400 shadow-sm focus-within:border-[#d4ad70] dark:focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-[#f7ead5] dark:focus-within:ring-amber-500/20';
+  const fieldShell = 'mt-2 flex h-12 items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-slate-500 dark:text-slate-400 shadow-sm focus-within:border-[#12afcb] dark:focus-within:border-cyan-500 focus-within:ring-4 focus-within:ring-[#eefaff] dark:focus-within:ring-cyan-500/20';
   const inputClass = 'h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400';
   const labelClass = 'block text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate-500';
 
@@ -83,8 +83,8 @@ export const SearchFiltersModal: React.FC<{
               {t('rebuild.marketplace.filter_desc', { defaultValue: 'Role, obor, místo, dojíždění, peníze a benefity se posílají do V2 katalogu jako jeden záměr.' })}
             </p>
           </div>
-          <div className="relative mt-10 flex flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-100 dark:border-slate-800 bg-[radial-gradient(circle_at_center,#f3d691_0%,#f8f4e8_34%,#eef7f6_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(243,214,145,0.1)_0%,rgba(248,244,232,0.05)_34%,rgba(238,247,246,0.02)_70%)]">
-            <SlidersHorizontal size={92} className="relative z-10 text-[#1f6c80] drop-shadow-[0_24px_40px_rgba(31,108,128,0.16)]" />
+          <div className="relative mt-10 flex flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-100 dark:border-slate-800 bg-[radial-gradient(circle_at_center,#12afcb_0%,#f0fcfd_34%,#fdfdfd_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(18,175,203,0.1)_0%,rgba(18,175,203,0.05)_34%,rgba(18,175,203,0.02)_70%)]">
+            <SlidersHorizontal size={92} className="relative z-10 text-[#0f95ac] drop-shadow-[0_24px_40px_rgba(15,149,172,0.16)]" />
           </div>
           <div className="mt-auto text-[0.72rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
             {t('rebuild.marketplace.filter_hint', { defaultValue: 'Dojezd a benefity jsou preference uchazeče, ne tvrdý HR filtr.' })}
@@ -103,7 +103,7 @@ export const SearchFiltersModal: React.FC<{
 
           <div className="pr-10">
             <div className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{t('rebuild.marketplace.step_search', { defaultValue: '01 Vyhledávání' })}</div>
-            <div className="mt-4 rounded-xl border border-[#c18a2d] bg-[#fff9ef] dark:bg-amber-950/20 px-4 py-4 shadow-[0_18px_38px_-32px_rgba(159,118,45,0.7)] dark:shadow-none">
+            <div className="mt-4 rounded-xl border border-[#12afcb]/40 bg-[#f0fcfd] dark:bg-cyan-950/20 px-4 py-4 shadow-[0_18px_38px_-32px_rgba(18,175,203,0.3)] dark:shadow-none">
               <label className={labelClass}>
                 {t('rebuild.marketplace.position_label', { defaultValue: 'Název pozice nebo klíčový záměr' })}
                 <span className={fieldShell + ' dark:bg-slate-800 dark:border-slate-700 dark:focus-within:ring-amber-500/20'}>
@@ -203,7 +203,7 @@ export const SearchFiltersModal: React.FC<{
               value={filters.radiusKm}
               disabled={filters.enableCommuteFilter === false}
               onChange={(event) => onFiltersChange((current) => ({ ...current, radiusKm: Number(event.target.value) }))}
-              className="mt-4 w-full accent-[#b98331] disabled:opacity-40"
+              className="mt-4 w-full accent-[#12afcb] disabled:opacity-40"
             />
           </div>
 
@@ -244,7 +244,7 @@ export const SearchFiltersModal: React.FC<{
                         ? current.benefits.filter((item) => item !== benefit)
                         : [...current.benefits, benefit],
                     }))}
-                    className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition ${active ? 'border-[#c18a2d] bg-[#fff9ef] text-[#9f762d] dark:bg-amber-950/40 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-[#d4ad70]'}`}
+                    className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition ${active ? 'border-[#12afcb] bg-[#f0fcfd] text-[#0f95ac] dark:bg-cyan-950/40 dark:text-cyan-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-[#12afcb]'}`}
                   >
                     <Icon size={14} />
                     <span className="truncate">{benefit}</span>
@@ -258,7 +258,7 @@ export const SearchFiltersModal: React.FC<{
             <button type="button" onClick={onReset} className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 text-sm font-bold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700">
               {t('rebuild.marketplace.reset_filters', { defaultValue: 'Resetovat' })}
             </button>
-            <button type="button" onClick={onApply} className="inline-flex h-12 flex-1 items-center justify-center gap-3 rounded-xl bg-[#b98331] px-5 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(159,118,45,0.88)] transition hover:bg-[#a57124]">
+            <button type="button" onClick={onApply} className="inline-flex h-12 flex-1 items-center justify-center gap-3 rounded-xl bg-[#12afcb] px-5 text-sm font-bold text-white shadow-[0_18px_34px_-24px_rgba(18,175,203,0.5)] transition hover:bg-[#0f95ac]">
               {t('rebuild.marketplace.apply_filters', { defaultValue: 'Použít filtry' })}
               <ArrowRight size={17} />
             </button>

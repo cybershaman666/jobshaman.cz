@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 import { PRODUCTION_LOCALE_CODES } from './i18nLocales';
 
-const I18N_VERSION = '20260506-ats-integrations';
+const I18N_VERSION = '20260512-multilingual-fix';
 
 i18n
     // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)
@@ -18,12 +18,12 @@ i18n
     // init i18next
     // for all options read: https://www.i18next.com/overview/configuration-options
     .init({
-        fallbackLng: {
-            default: ['en', 'cs']
-        },
+        fallbackLng: ['en', 'cs'],
         debug: true,
         load: 'languageOnly',
         supportedLngs: [...PRODUCTION_LOCALE_CODES],
+        nonExplicitSupportedLngs: true,
+        lowerCaseLng: true,
 
         // Improve caching
         backend: {

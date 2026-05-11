@@ -51,14 +51,36 @@ async def migrate():
         print("Starting V2 migrations...")
         await conn.execute("SELECT pg_advisory_lock($1)", MIGRATION_LOCK_ID)
 
+        # Ensure migration tracking table exists
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS _v2_migrations (
+                filename TEXT PRIMARY KEY,
+                applied_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+
+        # Get list of applied migrations
+        applied_rows = await conn.fetch("SELECT filename FROM _v2_migrations")
+        applied_migrations = {row['filename'] for row in applied_rows}
+
         migrations_dir = Path(__file__).resolve().parent.parent / "migrations"
         migration_paths = sorted(migrations_dir.glob("*.sql"), key=migration_sort_key)
+        
         if not migration_paths:
             print(f"Warning: no SQL migrations found in {migrations_dir}")
 
         for migration_path in migration_paths:
-            print(f"Applying migration: {migration_path.name}")
-            await conn.execute(migration_path.read_text())
+            filename = migration_path.name
+            if filename in applied_migrations:
+                # Still print but indicate it's skipped
+                print(f"Skipping already applied migration: {filename}")
+                continue
+
+            print(f"Applying migration: {filename}")
+            # Use a transaction for each migration to ensure consistency
+            async with conn.transaction():
+                await conn.execute(migration_path.read_text())
+                await conn.execute("INSERT INTO _v2_migrations (filename) VALUES ($1)", filename)
         
         print("Migrations completed successfully.")
     finally:

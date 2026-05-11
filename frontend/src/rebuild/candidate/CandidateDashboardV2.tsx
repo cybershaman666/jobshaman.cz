@@ -955,9 +955,9 @@ const CandidateMentorChat: React.FC<{
                   {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Answers go through Mistral and follow the manual of shamanic honesty. If data is missing, it should say so out loud.' })}
                 </p>
               </div>
-              <div className="hidden rounded-2xl border border-[#efe4ce] bg-[#fff9ef] px-4 py-3 text-right sm:block">
-                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#9f762d]">{t('rebuild.dashboard.compass', { defaultValue: 'Compass' })}</div>
-                <div className="mt-1 text-lg font-black text-[#4a3515]">{vm.resonanceScore}%</div>
+              <div className="hidden rounded-2xl border-[#c7e9f0] bg-[#f0fcfd] px-4 py-3 text-right sm:block">
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.dashboard.compass', { defaultValue: 'Compass' })}</div>
+                <div className="mt-1 text-lg font-black text-slate-900">{vm.resonanceScore}%</div>
               </div>
             </div>
 
@@ -1002,12 +1002,12 @@ const CandidateMentorChat: React.FC<{
                   onChange={(event) => setDraft(event.target.value)}
                   rows={2}
                   placeholder={t('rebuild.dashboard.mentor_placeholder', { defaultValue: 'Write what you want to unravel...' })}
-                  className="min-h-[3.5rem] flex-1 resize-none rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#d4ad70] focus:ring-4 focus:ring-[#f7ead5]"
+                  className="min-h-[3.5rem] flex-1 resize-none rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#12afcb] focus:ring-4 focus:ring-[#f0fcfd]"
                 />
                 <button
                   type="submit"
                   disabled={busy || !draft.trim()}
-                  className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#b98331] text-white shadow-[0_18px_34px_-24px_rgba(159,118,45,0.88)] transition hover:bg-[#a57124] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#12afcb] text-white shadow-[0_18px_34px_-24px_rgba(18,175,203,0.5)] transition hover:bg-[#0f95ac] disabled:cursor-not-allowed disabled:opacity-60"
                   aria-label={t('rebuild.actions.send_message', { defaultValue: 'Send message' })}
                 >
                   {busy ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -1016,10 +1016,10 @@ const CandidateMentorChat: React.FC<{
             </form>
           </section>
 
-          <aside className="border-t border-[color:var(--dashboard-soft-border)] bg-[#fbfaf7]/80 p-5 lg:border-l lg:border-t-0">
-            <div className="rounded-[24px] border border-[#efe4ce] bg-white p-5">
+          <aside className="border-t border-[color:var(--dashboard-soft-border)] bg-[#f7fcfd]/80 p-5 lg:border-l lg:border-t-0">
+            <div className="rounded-[24px] border-[#c7e9f0] bg-white p-5">
               <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                <Sparkles size={16} className="text-[#b98331]" />
+                <Sparkles size={16} className="text-[#12afcb]" />
                 {t('rebuild.dashboard.quick_inputs', { defaultValue: 'Quick inputs' })}
               </div>
               <div className="mt-4 space-y-2">
@@ -1029,7 +1029,7 @@ const CandidateMentorChat: React.FC<{
                     type="button"
                     onClick={() => void submitMessage(suggestion)}
                     disabled={busy}
-                    className="w-full rounded-[16px] border border-slate-100 bg-slate-50 px-3 py-3 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-[#d4ad70] hover:bg-[#fff9ef] disabled:opacity-60"
+                    className="w-full rounded-[16px] border border-slate-100 bg-slate-50 px-3 py-3 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-[#12afcb] hover:bg-[#f0fcfd] disabled:opacity-60"
                   >
                     {suggestion}
                   </button>

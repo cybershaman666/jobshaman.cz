@@ -274,6 +274,7 @@ const JobshamanRebuildApp: React.FC = () => {
       sv: 'SE',
       no: 'NO',
       fi: 'FI',
+      en: 'GB', // Default to GB for English if needed for mapping, though usually global
     };
     const baseLang = i18n.language.split('-')[0].toLowerCase();
     const targetCountry = langToCountry[baseLang] as SupportedCountryCode | undefined;

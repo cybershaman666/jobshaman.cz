@@ -7,6 +7,66 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { notificationService } from '../../services/notificationService';
 import { PRODUCTION_LOCALES } from '../../i18nLocales';
 
+const LanguageSwitcher: React.FC<{
+  currentLanguage: string;
+  onLanguageChange: (lang: string) => void;
+  candidateLight: boolean;
+}> = ({ currentLanguage, onLanguageChange, candidateLight }) => {
+  const [isLangOpen, setIsLangOpen] = React.useState(false);
+  const baseLang = currentLanguage?.split('-')[0].toLowerCase() || 'cs';
+  const currentLangOption = PRODUCTION_LOCALES.find(l => l.code === baseLang) || PRODUCTION_LOCALES[0];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsLangOpen(!isLangOpen)}
+        className={cn(
+          'flex h-9 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition shadow-sm',
+          candidateLight
+            ? 'bg-white/78 text-[color:var(--shell-text-muted)] hover:bg-white'
+            : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10',
+        )}
+      >
+        <span className="text-[15px]">{currentLangOption.flag}</span>
+        {currentLangOption.shortLabel}
+      </button>
+      {isLangOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsLangOpen(false)}
+          />
+          <div className={cn(
+            "absolute right-0 mt-2 w-32 overflow-hidden rounded-2xl border shadow-[0_24px_60px_-24px_rgba(15,23,42,0.45)] animate-in fade-in zoom-in-95 duration-200 z-50",
+            candidateLight ? "border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-card-bg)] text-[color:var(--dashboard-text-strong)]" : "border-slate-700 bg-[#101722] text-white"
+          )}>
+            {PRODUCTION_LOCALES.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  onLanguageChange(lang.code);
+                  setIsLangOpen(false);
+                }}
+                className={cn(
+                  'flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition',
+                  baseLang === lang.code
+                    ? candidateLight
+                      ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent)]'
+                      : 'bg-[#12313a] text-[#68e4f6]'
+                    : candidateLight ? 'text-[color:var(--dashboard-text-body)] hover:bg-[color:var(--dashboard-soft-bg)]' : 'text-slate-100 hover:bg-slate-800'
+                )}
+              >
+                <span className="text-[16px]">{lang.flag}</span>
+                {lang.shortLabel}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const TopBarV2: React.FC<{
   userRole: 'candidate' | 'recruiter';
   title?: string;
@@ -45,9 +105,6 @@ export const TopBarV2: React.FC<{
   
   const [isNotifOpen, setIsNotifOpen] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
-  const [isLangOpen, setIsLangOpen] = React.useState(false);
-
-  const languages = PRODUCTION_LOCALES;
 
   React.useEffect(() => {
     if (userProfile.isLoggedIn && userProfile.id) {
@@ -129,6 +186,13 @@ export const TopBarV2: React.FC<{
                 <Plus size={16} />
                 {t('rebuild.recruiter.new_problem', { defaultValue: 'New problem' })}
               </button>
+              
+              <LanguageSwitcher 
+                currentLanguage={currentLanguage} 
+                onLanguageChange={onLanguageChange} 
+                candidateLight={true} // Recruiter theme is light-ish in dashboard
+              />
+
               <div className="relative">
                 <button 
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -169,52 +233,13 @@ export const TopBarV2: React.FC<{
                 </button>
               ) : null}
             </>
-          ) : (() => {
-            const baseLang = currentLanguage?.substring(0, 2).toLowerCase() || 'cs';
-            const currentLangOption = languages.find(l => l.code === baseLang) || languages[0];
-            return (
+          ) : (
             <>
-              <div className="relative">
-                <button
-                  onClick={() => setIsLangOpen(!isLangOpen)}
-                  className={cn(
-                    'flex h-9 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition shadow-sm',
-                    candidateLight
-                      ? 'bg-white/78 text-[color:var(--shell-text-muted)] hover:bg-white'
-                      : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10',
-                  )}
-                >
-                  <span className="text-[15px]">{currentLangOption.flag}</span>
-                  {currentLangOption.shortLabel}
-                </button>
-                {isLangOpen && (
-                  <div className={cn(
-                    "absolute right-0 mt-2 w-32 overflow-hidden rounded-2xl border shadow-[0_24px_60px_-24px_rgba(15,23,42,0.45)] animate-in fade-in zoom-in-95 duration-200 z-50",
-                    candidateLight ? "border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-card-bg)] text-[color:var(--dashboard-text-strong)]" : "border-slate-700 bg-[#101722] text-white"
-                  )}>
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => {
-                          onLanguageChange(lang.code);
-                          setIsLangOpen(false);
-                        }}
-                        className={cn(
-                          'flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition',
-                          baseLang === lang.code
-                            ? candidateLight
-                              ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent)]'
-                              : 'bg-[#12313a] text-[#68e4f6]'
-                            : candidateLight ? 'text-[color:var(--dashboard-text-body)] hover:bg-[color:var(--dashboard-soft-bg)]' : 'text-slate-100 hover:bg-slate-800'
-                        )}
-                      >
-                        <span className="text-[16px]">{lang.flag}</span>
-                        {lang.shortLabel}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <LanguageSwitcher 
+                currentLanguage={currentLanguage} 
+                onLanguageChange={onLanguageChange} 
+                candidateLight={candidateLight} 
+              />
               {actionRegion}
               {userProfile.isLoggedIn && onCompanySwitch ? (
                 <button
@@ -299,7 +324,7 @@ export const TopBarV2: React.FC<{
                 </button>
               ) : null}
             </>
-          ); })()}
+          )}
         </div>
       </div>
     </header>
