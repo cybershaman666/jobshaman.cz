@@ -25,6 +25,7 @@ export const routeFromPath = (pathname: string): AppRoute => {
   if (parts[0] === 'obchodni-podminky' || parts[0] === 'terms' || parts[0] === 'podminky-uziti') return { kind: 'public', page: 'terms' };
   if (parts[0] === 'ochrana-osobnich-udaju' || parts[0] === 'privacy' || parts[0] === 'privacy-policy') return { kind: 'public', page: 'privacy' };
   if (parts[0] === 'kontakt' || parts[0] === 'contact') return { kind: 'public', page: 'contact' };
+  if (parts[0] === 'jobs' && parts[1]) return { kind: 'candidate-imported', roleId: parts[1] };
   if (parts[0] === 'candidate' && parts[1] === 'role' && parts[2]) return { kind: 'candidate-role', roleId: parts[2] };
   if (parts[0] === 'candidate' && parts[1] === 'imported' && parts[2]) return { kind: 'candidate-imported', roleId: parts[2] };
   if (parts[0] === 'candidate' && parts[1] === 'journey' && parts[2]) return { kind: 'candidate-journey', roleId: parts[2], stepId: parts[3] };

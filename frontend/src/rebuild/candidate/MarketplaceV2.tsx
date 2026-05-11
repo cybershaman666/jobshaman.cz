@@ -62,6 +62,27 @@ type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
 export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
 
+const diversifyCandidatesByLocation = (candidates: RoleCandidate[]): RoleCandidate[] => {
+  const buckets = new Map<string, RoleCandidate[]>();
+  candidates.forEach((candidate) => {
+    const locationKey = String(candidate.role.location || 'unknown')
+      .toLowerCase()
+      .split(/[,\-/|]/, 1)[0]
+      .trim() || 'unknown';
+    buckets.set(locationKey, [...(buckets.get(locationKey) || []), candidate]);
+  });
+
+  const mixed: RoleCandidate[] = [];
+  while (buckets.size > 0) {
+    Array.from(buckets.entries()).forEach(([key, bucket]) => {
+      const next = bucket.shift();
+      if (next) mixed.push(next);
+      if (bucket.length === 0) buckets.delete(key);
+    });
+  }
+  return mixed;
+};
+
 const getBenefitOptions = (t: (key: string, opts?: { defaultValue: string }) => string) => [
   t('rebuild.marketplace.benefit_dog_friendly', { defaultValue: 'Dog-friendly office' }),
   t('rebuild.marketplace.benefit_child_friendly', { defaultValue: 'Child friendly office' }),
@@ -151,14 +172,14 @@ const getProfileClusterPreference = (profileText: string, clusterId: RoleCluster
   return hasAnyTerm(profileText, signals[clusterId]) ? 100 : 0;
 };
 
-const getRoleProfileScore = (candidate: RoleCandidate, profileText: string, clusterId: RoleClusterId): number => {
+const getRoleProfileScore = (candidate: RoleCandidate, profileText: string, clusterId: RoleClusterId, includeDistanceScore = true): number => {
   const text = roleSearchText(candidate.role);
   let score = getProfileClusterPreference(profileText, clusterId);
   const profileTokens = profileText.split(/\s+/).filter((token) => token.length >= 4);
   const uniqueTokens = Array.from(new Set(profileTokens)).slice(0, 24);
   score += uniqueTokens.reduce((sum, token) => sum + (text.includes(token) ? 6 : 0), 0);
   if (candidate.role.matchScore) score += candidate.role.matchScore / 4;
-  if (Number.isFinite(candidate.distanceKm)) score += Math.max(0, 12 - Math.min(candidate.distanceKm, 120) / 10);
+  if (includeDistanceScore && Number.isFinite(candidate.distanceKm)) score += Math.max(0, 12 - Math.min(candidate.distanceKm, 120) / 10);
   if (hasAnyTerm(text, ['manager', 'manažer', 'manazer', 'vedouci', 'vedoucí']) && hasAnyTerm(profileText, ['manager', 'manažer', 'manazer', 'operations', 'project', 'projekt'])) score += 30;
   return score;
 };
@@ -515,6 +536,9 @@ export const MarketplaceV2: React.FC<{
     return scoped;
   }, [domesticCountryCode, filters, focusMode, roles, searchValue]);
 
+  const localRadiusKm = Math.max(1, Number(filters.radiusKm || preferences.searchRadiusKm || 45));
+  const commuteFilterActive = filters.enableCommuteFilter !== false;
+
   const rolesWithDistance = React.useMemo(() => {
     if (!effectiveCoordinates) {
       return visibleRoles.map((role) => ({ role, distanceKm: Infinity }));
@@ -523,24 +547,25 @@ export const MarketplaceV2: React.FC<{
     const userLat = effectiveCoordinates.lat;
     const userLon = effectiveCoordinates.lon;
 
-    return visibleRoles
-      .map((role) => ({
-        role,
-        distanceKm: getDistance(userLat, userLon, role.coordinates.lat, role.coordinates.lng),
-      }))
-      .sort((a, b) => {
-        // Secondary sort by curated vs imported
-        if (Math.abs(a.distanceKm - b.distanceKm) < 1) {
-          if (a.role.source === 'curated' && b.role.source === 'imported') return -1;
-          if (a.role.source === 'imported' && b.role.source === 'curated') return 1;
-        }
+    const withDistance = visibleRoles.map((role) => ({
+      role,
+      distanceKm: getDistance(userLat, userLon, role.coordinates.lat, role.coordinates.lng),
+    }));
 
-        return a.distanceKm - b.distanceKm;
-      });
-  }, [visibleRoles, effectiveCoordinates]);
+    if (!commuteFilterActive && !filters.city.trim()) {
+      return withDistance;
+    }
 
-  const localRadiusKm = Math.max(1, Number(filters.radiusKm || preferences.searchRadiusKm || 45));
-  const commuteFilterActive = filters.enableCommuteFilter !== false;
+    return withDistance.sort((a, b) => {
+      // Secondary sort by curated vs imported
+      if (Math.abs(a.distanceKm - b.distanceKm) < 1) {
+        if (a.role.source === 'curated' && b.role.source === 'imported') return -1;
+        if (a.role.source === 'imported' && b.role.source === 'curated') return 1;
+      }
+
+      return a.distanceKm - b.distanceKm;
+    });
+  }, [commuteFilterActive, filters.city, visibleRoles, effectiveCoordinates]);
   const nearbyRoles = React.useMemo(() => (
     commuteFilterActive ? rolesWithDistance.filter(({ role, distanceKm }) => (
       Number.isFinite(distanceKm)
@@ -560,18 +585,22 @@ export const MarketplaceV2: React.FC<{
         || filters.city.trim().length > 0
         || isRemoteRole(role)
         || (Number.isFinite(distanceKm) && distanceKm <= localRadiusKm)
-      ))
-      .sort((a, b) => {
-        const aLocalBoost = localRoleIds.has(a.role.id) ? -2 : 0;
-        const bLocalBoost = localRoleIds.has(b.role.id) ? -2 : 0;
-        const aRemoteBoost = isRemoteRole(a.role) ? 0 : -1;
-        const bRemoteBoost = isRemoteRole(b.role) ? 0 : -1;
-        const scoreA = aLocalBoost + aRemoteBoost;
-        const scoreB = bLocalBoost + bRemoteBoost;
-        if (scoreA !== scoreB) return scoreA - scoreB;
-        return a.distanceKm - b.distanceKm;
-      });
-    return base;
+      ));
+
+    if (!commuteFilterActive && !filters.city.trim()) {
+      return diversifyCandidatesByLocation(base);
+    }
+
+    return base.sort((a, b) => {
+      const aLocalBoost = localRoleIds.has(a.role.id) ? -2 : 0;
+      const bLocalBoost = localRoleIds.has(b.role.id) ? -2 : 0;
+      const aRemoteBoost = isRemoteRole(a.role) ? 0 : -1;
+      const bRemoteBoost = isRemoteRole(b.role) ? 0 : -1;
+      const scoreA = aLocalBoost + aRemoteBoost;
+      const scoreB = bLocalBoost + bRemoteBoost;
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      return a.distanceKm - b.distanceKm;
+    });
   }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
   const hasMoreRecommendations = visibleRecommendationCount < scopedRecommendationCandidates.length;
@@ -646,7 +675,7 @@ export const MarketplaceV2: React.FC<{
         candidates: buckets[definition.id]
           .map((candidate) => ({
             ...candidate,
-            profileScore: getRoleProfileScore(candidate, profileRelevanceText, definition.id),
+            profileScore: getRoleProfileScore(candidate, profileRelevanceText, definition.id, commuteFilterActive),
           }))
           .sort((left, right) => right.profileScore - left.profileScore),
       }))
@@ -658,7 +687,7 @@ export const MarketplaceV2: React.FC<{
         if (rightTop !== leftTop) return rightTop - leftTop;
         return right.candidates.length - left.candidates.length;
       });
-  }, [gridCandidates, profileRelevanceText, t]);
+  }, [commuteFilterActive, gridCandidates, profileRelevanceText, t]);
   React.useEffect(() => {
     setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
   }, [filters, focusMode, localRadiusKm, preferences.address, roles.length]);

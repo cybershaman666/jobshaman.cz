@@ -2,6 +2,7 @@ import json
 import uuid
 import asyncio
 import hashlib
+from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -44,6 +45,36 @@ def _clean_text(value: Any, limit: int = 3000) -> str:
 
 def _slug_key(value: str) -> str:
     return "".join(ch.lower() if ch.isalnum() else "_" for ch in value).strip("_") or "task"
+
+
+def _marketplace_location_bucket(item: Dict[str, Any]) -> str:
+    location = _clean_text(item.get("location") or item.get("location_public") or "", 160).lower()
+    if not location:
+        return "unknown"
+    primary = location.split(",", 1)[0].split("-", 1)[0].split("/", 1)[0].strip()
+    normalized = " ".join(primary.split())
+    return normalized or "unknown"
+
+
+def _interleave_marketplace_locations(items: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    safe_limit = max(1, int(limit or len(items) or 1))
+    buckets: "OrderedDict[str, List[Dict[str, Any]]]" = OrderedDict()
+    for item in items:
+        buckets.setdefault(_marketplace_location_bucket(item), []).append(item)
+
+    mixed: List[Dict[str, Any]] = []
+    while buckets and len(mixed) < safe_limit:
+        empty_keys: List[str] = []
+        for key, bucket in buckets.items():
+            if bucket:
+                mixed.append(bucket.pop(0))
+                if len(mixed) >= safe_limit:
+                    break
+            if not bucket:
+                empty_keys.append(key)
+        for key in empty_keys:
+            buckets.pop(key, None)
+    return mixed
 
 
 def _string_list(value: Any, limit: int = 20) -> List[str]:
@@ -405,6 +436,15 @@ class RealityDomainService:
         work_filter = str(work_arrangement or "").strip().lower()
         category_filter = _clean_text(category, 40).lower()
         role_family_filter = _clean_text(role_family, 40).lower()
+        broad_marketplace_listing = not any([
+            query_filter,
+            city_filter,
+            benefit_filters,
+            min_salary_filter > 0,
+            work_filter,
+            category_filter,
+            role_family_filter,
+        ])
         country_condition = ""
         params: Dict[str, Any] = {"limit": clamped_limit, "offset": clamped_offset}
         if country_filter:
@@ -579,6 +619,10 @@ class RealityDomainService:
             count_result = await session.execute(count_statement, params)
             total_count = int(count_result.scalar_one() or 0)
 
+            query_limit = clamped_limit
+            if broad_marketplace_listing:
+                query_limit = min(max(clamped_limit * 4, clamped_limit), 1000)
+
             statement = text(
                 f"""
                 SELECT {columns}
@@ -588,7 +632,8 @@ class RealityDomainService:
                 LIMIT :limit OFFSET :offset
                 """
             )
-            result = await session.execute(statement, params)
+            query_params = {**params, "limit": query_limit}
+            result = await session.execute(statement, query_params)
             rows = result.fetchall()
             
             seen_content = set()
@@ -600,6 +645,9 @@ class RealityDomainService:
                     continue
                 seen_content.add(content_key)
                 items.append(item)
+
+            if broad_marketplace_listing:
+                items = _interleave_marketplace_locations(items, clamped_limit)
             
             merged_items = [*native_items, *items]
             return {

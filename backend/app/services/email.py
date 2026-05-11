@@ -29,6 +29,20 @@ _CZ_VOCATIVE_OVERRIDES = {
 }
 
 
+def _build_candidate_imported_url(app_url: str, job_id) -> str:
+    base = str(app_url or "https://jobshaman.cz").rstrip("/")
+    normalized_id = str(job_id or "").strip()
+    return f"{base}/candidate/imported/{normalized_id}" if normalized_id else base
+
+
+def _resolve_daily_digest_job_url(job: dict, app_url: str) -> str:
+    job_id = job.get("id")
+    detail_url = str(job.get("detail_url") or "").strip()
+    if detail_url and not (job_id and detail_url.rstrip("/").endswith(f"/jobs/{job_id}")):
+        return detail_url
+    return _build_candidate_imported_url(app_url, job_id)
+
+
 def _extract_first_name(full_name: str) -> str:
     value = str(full_name or "").strip()
     if not value:
@@ -381,8 +395,7 @@ def send_daily_digest_email(
                 "sk": "Najnovšia lokálna ponuka",
             }[lang]
         )
-        job_id = job.get("id")
-        job_url = job.get("detail_url") or (f"{app_url}/jobs/{job_id}" if job_id else app_url)
+        job_url = _resolve_daily_digest_job_url(job, app_url)
 
         job_cards += f"""
         <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;background:#ffffff;">

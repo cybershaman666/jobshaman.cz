@@ -322,7 +322,9 @@ const JobshamanRebuildApp: React.FC = () => {
     if (pathname !== '/' || !userProfile.isLoggedIn) return;
     if (userProfile.role === 'recruiter') {
       navigate('/recruiter');
+      return;
     }
+    navigate('/candidate/insights');
   }, [navigate, pathname, userProfile]);
 
   const handleSignOutToCompanyEntry = React.useCallback(() => {
