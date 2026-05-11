@@ -212,3 +212,18 @@ export const uploadUserProfilePhoto = async (_userId?: string, _file?: File) => 
   });
   return asset.url;
 };
+
+export const fetchCompanyMembers = async (companyId: string): Promise<any[]> => {
+  const response = await ApiService.get<any>(`/company/${encodeURIComponent(companyId)}/members`);
+  return Array.isArray(response?.data) ? response.data : [];
+};
+
+export const inviteTeammate = async (companyId: string, email: string, name?: string): Promise<any> => {
+  const response = await ApiService.post<any>(`/company/${encodeURIComponent(companyId)}/invite`, { email, name });
+  return response?.data || null;
+};
+
+export const acceptInvitation = async (token: string): Promise<any> => {
+  const response = await ApiService.post<any>(`/company/accept-invitation`, { token });
+  return response?.data || null;
+};

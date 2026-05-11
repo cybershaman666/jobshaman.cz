@@ -53,6 +53,13 @@ class HandshakeMessageRequest(BaseModel):
     body: str = ""
     attachments: list[Any] = []
 
+class CompanyInviteRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+
+class InvitationAcceptRequest(BaseModel):
+    token: str
+
 @router.get("/me")
 async def get_my_company(current_user: dict = Depends(AccessControlService.get_current_user)):
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
@@ -425,3 +432,53 @@ async def send_company_handshake_message(
     if not message:
         raise HTTPException(status_code=404, detail="Handshake not found")
     return {"status": "success", "data": message}
+
+@router.get("/{company_id}/members")
+async def list_company_members(
+    company_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    members = await RealityDomainService.list_company_members(domain_user["id"], company_id)
+    if members is None:
+        raise HTTPException(status_code=403, detail="Access denied or company not found")
+    return {"status": "success", "data": members}
+
+@router.post("/{company_id}/invite")
+async def invite_company_member(
+    company_id: str,
+    payload: CompanyInviteRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    result = await RealityDomainService.invite_company_member(
+        domain_user["id"],
+        company_id,
+        payload.model_dump()
+    )
+    if result is None:
+        raise HTTPException(status_code=403, detail="Access denied or company not found")
+    return {"status": "success", "data": result}
+
+@router.post("/accept-invitation")
+async def accept_company_invitation(
+    payload: InvitationAcceptRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    result = await RealityDomainService.accept_company_invitation(payload.token, domain_user["id"])
+    if not result:
+        raise HTTPException(status_code=400, detail="Invalid or expired invitation token")
+    return {"status": "success", "data": result}

@@ -13,9 +13,12 @@ from sqlmodel import select
 
 from app.core.database import engine
 from app.core.legacy_supabase import fetch_legacy_company_for_user
+import secrets
 from app.domains.identity.models import User
+from app.domains.identity.service import IdentityDomainService
 from app.domains.reality.models import Company, CompanyUser, Job
 from app.services.mistral_client import MistralClientError, call_mistral_json
+from app.services.email import send_teammate_invitation_email
 
 
 def _safe_json_loads(value: Optional[str], fallback: Any) -> Any:
@@ -939,8 +942,13 @@ class RealityDomainService:
             "address": company.address,
             "legal_address": company.legal_address,
             "website": company.website_url,
+            "website_url": company.website_url,
             "description": company.narrative,
+            "narrative": company.narrative,
             "logo_url": company.logo_url,
+            "cover_url": company.cover_url,
+            "brand_color": company.brand_color,
+            "accent_color": company.accent_color,
             "members": members if isinstance(members, list) else [],
             "team_member_profiles": profile_data.get("team_member_profiles"),
             "brand_assets": brand_assets if isinstance(brand_assets, dict) else {},
@@ -993,6 +1001,9 @@ class RealityDomainService:
             "address": ["address"],
             "legal_address": ["legal_address", "legalAddress"],
             "logo_url": ["logo_url", "logoUrl"],
+            "cover_url": ["cover_url", "coverUrl"],
+            "brand_color": ["brand_color", "brandColor"],
+            "accent_color": ["accent_color", "accentColor"],
             "hero_image": ["hero_image", "heroImage"],
             "narrative": ["description", "narrative"],
             "website_url": ["website", "website_url"],
@@ -1472,3 +1483,129 @@ class RealityDomainService:
             await session.commit()
             await session.refresh(company)
             return RealityDomainService._serialize_company(company)
+    @staticmethod
+    async def list_company_members(user_id: str, company_id: str) -> Optional[List[Dict[str, Any]]]:
+        async with AsyncSession(engine) as session:
+            actor_uuid = uuid.UUID(user_id)
+            company_uuid = uuid.UUID(company_id)
+            
+            # Verify access
+            if not await RealityDomainService._has_company_access(session, user_id, company_uuid):
+                return None
+
+            statement = select(CompanyUser).where(CompanyUser.company_id == company_uuid)
+            result = await session.execute(statement)
+            memberships = result.scalars().all()
+            
+            output = []
+            for m in memberships:
+                member_data = {
+                    "id": str(m.id),
+                    "role": m.role,
+                    "status": m.status,
+                    "created_at": m.created_at.isoformat(),
+                    "invited_email": m.invited_email,
+                    "invited_name": m.invited_name,
+                }
+                
+                if m.user_id:
+                    user_stmt = select(User).where(User.id == m.user_id)
+                    user_res = await session.execute(user_stmt)
+                    user = user_res.scalar_one_or_none()
+                    if user:
+                        member_data["user_id"] = str(user.id)
+                        member_data["email"] = user.email
+                        member_data["name"] = m.invited_name or user.email.split("@")[0]
+                
+                output.append(member_data)
+            
+            return output
+
+    @staticmethod
+    async def invite_company_member(user_id: str, company_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            actor_uuid = uuid.UUID(user_id)
+            company_uuid = uuid.UUID(company_id)
+            
+            # Verify access
+            if not await RealityDomainService._has_company_access(session, user_id, company_uuid):
+                return None
+
+            email = str(payload.get("email") or "").strip().lower()
+            name = str(payload.get("name") or "").strip()
+            if not email:
+                return None
+
+            # Check if already a member or invited
+            existing_stmt = select(CompanyUser).where(
+                CompanyUser.company_id == company_uuid,
+                (CompanyUser.invited_email == email) | 
+                (CompanyUser.user_id.in_(select(User.id).where(User.email == email)))
+            )
+            existing_res = await session.execute(existing_stmt)
+            if existing_res.scalar_one_or_none():
+                # Already invited or a member
+                return {"status": "already_invited"}
+
+            # Find inviter name
+            inviter_stmt = select(User).where(User.id == actor_uuid)
+            inviter_res = await session.execute(inviter_stmt)
+            inviter = inviter_res.scalar_one_or_none()
+            inviter_name = inviter.email if inviter else "Kolega"
+
+            # Get company name
+            company_stmt = select(Company).where(Company.id == company_uuid)
+            company_res = await session.execute(company_stmt)
+            company = company_res.scalar_one_or_none()
+            company_name = company.name if company else "Firma"
+
+            # Create invitation
+            token = secrets.token_urlsafe(32)
+            invitation = CompanyUser(
+                company_id=company_uuid,
+                invited_email=email,
+                invited_name=name,
+                invitation_token=token,
+                status="invited",
+                role="recruiter"
+            )
+            session.add(invitation)
+            await session.commit()
+            
+            # Send email
+            send_teammate_invitation_email(
+                to_email=email,
+                invited_name=name,
+                company_name=company_name,
+                inviter_name=inviter_name,
+                invitation_token=token
+            )
+            
+            return {"status": "invited", "email": email}
+
+    @staticmethod
+    async def accept_company_invitation(token: str, user_id: str) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            user_uuid = uuid.UUID(user_id)
+            
+            # Find invitation
+            stmt = select(CompanyUser).where(CompanyUser.invitation_token == token, CompanyUser.status == "invited")
+            result = await session.execute(stmt)
+            invitation = result.scalar_one_or_none()
+            if not invitation:
+                return None
+
+            # Accept invitation
+            invitation.user_id = user_uuid
+            invitation.status = "active"
+            invitation.invitation_token = None # Clear token
+            
+            # Also ensure user has recruiter role
+            user_stmt = select(User).where(User.id == user_uuid)
+            user_res = await session.execute(user_stmt)
+            user = user_res.scalar_one_or_none()
+            if user:
+                user.role = "recruiter"
+
+            await session.commit()
+            return {"status": "success", "company_id": str(invitation.company_id)}

@@ -19,6 +19,9 @@ class Company(SQLModel, table=True):
     values_json: str = Field(default="[]")
     profile_data: str = Field(default="{}")
     logo_url: Optional[str] = None
+    cover_url: Optional[str] = None
+    brand_color: Optional[str] = Field(default="#2563eb")
+    accent_color: Optional[str] = Field(default="#0ea5e9")
     hero_image: Optional[str] = None
     narrative: Optional[str] = None
     website_url: Optional[str] = None
@@ -62,7 +65,11 @@ class CompanyUser(SQLModel, table=True):
     __table_args__ = {"extend_existing": True}
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="users.id", index=True)
+    user_id: Optional[UUID] = Field(default=None, foreign_key="users.id", index=True)
     company_id: UUID = Field(foreign_key="companies.id", index=True)
     role: str = Field(default="owner")
+    invited_email: Optional[str] = Field(default=None)
+    invited_name: Optional[str] = Field(default=None)
+    invitation_token: Optional[str] = Field(default=None, index=True)
+    status: str = Field(default="active")
     created_at: datetime = Field(default_factory=datetime.utcnow)

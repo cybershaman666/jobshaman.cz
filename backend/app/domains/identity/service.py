@@ -131,6 +131,14 @@ class IdentityDomainService:
         }
 
     @staticmethod
+    async def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            statement = select(User).where(User.email == email.strip().lower()).limit(1)
+            result = await session.execute(statement)
+            user = result.scalar_one_or_none()
+            return IdentityDomainService._user_to_dict(user) if user else None
+
+    @staticmethod
     async def get_candidate_profile(user_id: str) -> Optional[Dict[str, Any]]:
         async with AsyncSession(engine) as session:
             statement = select(CandidateProfile).where(CandidateProfile.user_id == _as_uuid(user_id))

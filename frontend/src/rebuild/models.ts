@@ -54,6 +54,10 @@ export interface Company {
   name: string;
   tagline: string;
   domain: string;
+  industry?: string;
+  tone?: string;
+  values?: string[];
+  philosophy?: string;
   headquarters: string;
   narrative: string;
   coverImage: string;

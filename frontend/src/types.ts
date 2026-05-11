@@ -524,10 +524,10 @@ export interface CandidateBenchmarkMetrics {
 export interface CompanyProfile {
   id?: string;
   name: string;
-  industry: string;
-  tone: string; // e.g., "Professional but friendly", "Technical and dry"
-  values: string[]; // e.g., ["Transparency", "Async-first"]
-  philosophy: string; // Short mission statement
+  industry?: string;
+  tone?: string; // e.g., "Professional but friendly", "Technical and dry"
+  values?: string[]; // e.g., ["Transparency", "Async-first"]
+  philosophy?: string; // Short mission statement
   gallery_urls?: string[];
   marketplace_media?: {
     cover_url?: string | null;
@@ -543,8 +543,13 @@ export interface CompanyProfile {
   legal_address?: string;
   registry_info?: string;
   website?: string;
+  website_url?: string;
   description?: string;
+  narrative?: string;
   logo_url?: string;
+  cover_url?: string;
+  brand_color?: string;
+  accent_color?: string;
   brand_assets?: {
     logo?: StoredAsset | null;
     cover?: StoredAsset | null;

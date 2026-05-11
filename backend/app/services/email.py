@@ -536,3 +536,35 @@ def send_signal_boost_interest_email(
     </div>
     """
     return send_email(to_email, copy["subject"], html)
+
+
+def send_teammate_invitation_email(
+    to_email: str,
+    invited_name: str,
+    company_name: str,
+    inviter_name: str,
+    invitation_token: str,
+    app_url: str = "https://jobshaman.cz",
+) -> bool:
+    subject = f"Pozvánka do týmu {company_name} v JobShaman"
+    accept_url = f"{app_url.rstrip('/')}/accept-invitation?token={invitation_token}"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+        <h2 style="color: #0f172a; margin-bottom: 12px;">Ahoj {invited_name or 'kolego'}!</h2>
+        <p style="color: #475569; line-height: 1.6;">
+          <b>{inviter_name}</b> vás zve ke spolupráci v týmu <b>{company_name}</b> na platformě JobShaman.
+        </p>
+        <p style="color: #475569; line-height: 1.6;">
+          Společně můžete spravovat inzeráty, hodnotit kandidáty a budovat brand vaší společnosti.
+        </p>
+        <div style="margin: 24px 0;">
+          <a href="{accept_url}" style="display: inline-block; padding: 12px 20px; background-color: #2563eb; color: #ffffff; border-radius: 8px; text-decoration: none; font-weight: 600;">Přijmout pozvánku</a>
+        </div>
+        <p style="color: #64748b; font-size: 14px;">Tato pozvánka je určena pro {to_email}. Pokud ji nechcete využít, můžete tento e-mail ignorovat.</p>
+      </div>
+      <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">© 2024 JobShaman</div>
+    </div>
+    """
+    return send_email(to_email, subject, html)
