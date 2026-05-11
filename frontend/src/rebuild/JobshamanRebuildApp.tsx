@@ -802,14 +802,16 @@ const JobshamanRebuildApp: React.FC = () => {
     () => recruiterDialogues.map((dialogue) => mapApplicationToInsight(dialogue, recruiterRoleLibrary, t)),
     [recruiterDialogues, recruiterRoleLibrary, t],
   );
-  const candidateInsights = dialogueCandidateInsights.length > 0
-    ? dialogueCandidateInsights
-    : liveCandidateInsights.length > 0
-      ? liveCandidateInsights
-      : derivedCandidateInsights;
+  const candidateInsights = companyProfile?.id
+    ? (dialogueCandidateInsights.length > 0 ? dialogueCandidateInsights : liveCandidateInsights)
+    : dialogueCandidateInsights.length > 0
+      ? dialogueCandidateInsights
+      : liveCandidateInsights.length > 0
+        ? liveCandidateInsights
+        : derivedCandidateInsights;
   const derivedCalendarEvents = React.useMemo(() => deriveRecruiterCalendar(journeySessions, roleLibrary), [journeySessions, roleLibrary]);
   const liveCalendarEvents = React.useMemo(() => mapDialoguesToCalendarEvents(recruiterDialogues), [recruiterDialogues]);
-  const calendarEvents = liveCalendarEvents.length > 0 ? liveCalendarEvents : derivedCalendarEvents;
+  const calendarEvents = companyProfile?.id ? liveCalendarEvents : (liveCalendarEvents.length > 0 ? liveCalendarEvents : derivedCalendarEvents);
   const dashboardMetrics = React.useMemo(
     () => companyProfile?.id
       ? {

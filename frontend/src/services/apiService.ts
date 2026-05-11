@@ -1,19 +1,7 @@
 import { getSupabaseClient } from './supabaseClient';
+import { BACKEND_URL } from '../constants';
 
-const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
-
-const normalizeApiBaseUrl = (): string => {
-  if (import.meta.env.DEV) {
-    const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
-    if (explicit) return explicit.replace(/\/$/, '');
-    return 'http://localhost:8000';
-  }
-
-  const backend = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
-  if (backend) return backend;
-
-  return DEFAULT_PRODUCTION_API_URL;
-};
+const normalizeApiBaseUrl = (): string => (BACKEND_URL || '/api/v2').replace(/\/$/, '');
 
 const API_BASE_URL = normalizeApiBaseUrl();
 

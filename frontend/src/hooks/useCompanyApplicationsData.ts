@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CompanyApplicationRow, DialogueDossier } from '../types';
+import { fetchCompanyDialogueDetail, fetchCompanyDialogues } from '../services/v2DialogueService';
 
 interface UseCompanyApplicationsDataArgs {
   companyId?: string;
@@ -20,19 +21,22 @@ export const useCompanyDialoguesData = ({
   const [dialogueDetailLoading, setDialogueDetailLoading] = useState(false);
   const [lastDialoguesSyncAt, setLastDialoguesSyncAt] = useState<string | null>(null);
 
-  const refreshDialogues = async () => {
+  const refreshDialogues = async (options?: { jobId?: string; silent?: boolean }) => {
     if (!companyId || (activeTab !== 'applications' && activeTab !== 'overview' && activeTab !== 'problem_map')) {
       setDialogues([]);
       return;
     }
 
-    setDialoguesLoading(true);
+    if (!options?.silent) setDialoguesLoading(true);
     try {
-      void selectedJobId;
-      setDialogues([]);
+      const rows = await fetchCompanyDialogues(companyId, options?.jobId ?? selectedJobId, 200);
+      setDialogues(rows);
       setLastDialoguesSyncAt(new Date().toISOString());
+    } catch (error) {
+      console.warn('Failed to load company handshakes', error);
+      setDialogues([]);
     } finally {
-      setDialoguesLoading(false);
+      if (!options?.silent) setDialoguesLoading(false);
     }
   };
 
@@ -41,6 +45,9 @@ export const useCompanyDialoguesData = ({
     setSelectedDialogueId(dialogueId);
     setDialogueDetailLoading(true);
     try {
+      setSelectedDialogueDetail(await fetchCompanyDialogueDetail(dialogueId));
+    } catch (error) {
+      console.warn('Failed to load company handshake detail', error);
       setSelectedDialogueDetail(null);
     } finally {
       setDialogueDetailLoading(false);

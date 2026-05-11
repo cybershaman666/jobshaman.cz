@@ -87,9 +87,9 @@ window.onerror = function (message) {
   try {
     var meta = document.querySelector('meta[name="backend-url"]');
     var metaValue = meta && meta.getAttribute('content');
-    var backend = (metaValue && metaValue !== '%VITE_BACKEND_URL%') ? metaValue : (window.__BACKEND_URL__ || 'https://site--jobshaman--rb4dlj74d5kc.code.run');
+    var backend = (metaValue && metaValue !== '%VITE_BACKEND_URL%') ? metaValue : (window.__BACKEND_URL__ || '/api/v2');
     window.__BACKEND_URL__ = backend;
-    var url = backend.replace(/\/+$/, '') + '/healthz';
+    var url = backend.replace(/\/+$/, '') + '/health';
     fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
   } catch (e) {
     console.warn('Backend wake failed (boot):', e);

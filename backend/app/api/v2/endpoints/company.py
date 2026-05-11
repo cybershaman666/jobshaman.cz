@@ -49,6 +49,10 @@ class HandshakeDecisionRequest(BaseModel):
     action: str
     note: Optional[str] = None
 
+class HandshakeMessageRequest(BaseModel):
+    body: str = ""
+    attachments: list[Any] = []
+
 @router.get("/me")
 async def get_my_company(current_user: dict = Depends(AccessControlService.get_current_user)):
     domain_user = await IdentityDomainService.get_or_create_user_mirror(
@@ -380,3 +384,44 @@ async def decide_company_handshake(
     if result is None:
         raise HTTPException(status_code=404, detail="Handshake not found")
     return {"status": "success", "data": result}
+
+@router.get("/{company_id}/handshakes/{handshake_id}/messages")
+async def list_company_handshake_messages(
+    company_id: str,
+    handshake_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    messages = await HandshakeDomainService.get_company_handshake_messages(domain_user["id"], company_id, handshake_id)
+    if messages is None:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return {"status": "success", "data": messages}
+
+@router.post("/{company_id}/handshakes/{handshake_id}/messages")
+async def send_company_handshake_message(
+    company_id: str,
+    handshake_id: str,
+    payload: HandshakeMessageRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    if not payload.body.strip() and not payload.attachments:
+        raise HTTPException(status_code=400, detail="Message body or attachment is required")
+    message = await HandshakeDomainService.send_company_handshake_message(
+        domain_user["id"],
+        company_id,
+        handshake_id,
+        payload.body,
+        payload.attachments,
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return {"status": "success", "data": message}

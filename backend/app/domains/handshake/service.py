@@ -2,7 +2,7 @@ from sqlmodel import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import engine
-from app.domains.handshake.models import Handshake, HandshakeEvent, SandboxEvaluation, SandboxSession, SlotReservation
+from app.domains.handshake.models import Handshake, HandshakeEvent, HandshakeMessage, SandboxEvaluation, SandboxSession, SlotReservation
 from app.domains.identity.models import CandidateJcfpmSnapshot, CandidateProfile, User
 from app.domains.reality.models import CompanyUser, Job
 from app.domains.reality.service import RealityDomainService
@@ -483,6 +483,65 @@ class HandshakeDomainService:
             return [HandshakeDomainService._event_to_dict(event) for event in result.scalars().all()]
 
     @staticmethod
+    async def withdraw_user_handshake(user_id: str, handshake_id: str) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
+            if not handshake:
+                return None
+            previous_status = handshake.status
+            if handshake.status not in TERMINAL_STATUSES:
+                handshake.status = "withdrawn"
+                handshake.closed_at = datetime.utcnow()
+                handshake.updated_at = datetime.utcnow()
+                handshake.state_version += 1
+                await HandshakeDomainService._mark_slots(session, handshake.id, "released")
+                session.add(HandshakeEvent(
+                    handshake_id=handshake.id,
+                    actor_user_id=uuid.UUID(user_id),
+                    actor_type="candidate",
+                    event_type="handshake_withdrawn",
+                    from_status=previous_status,
+                    to_status="withdrawn",
+                    payload={},
+                ))
+                await session.commit()
+                await session.refresh(handshake)
+            return await HandshakeDomainService._hydrate_handshake_response(session, handshake)
+
+    @staticmethod
+    async def get_user_handshake_messages(user_id: str, handshake_id: str) -> Optional[List[Dict[str, Any]]]:
+        async with AsyncSession(engine) as session:
+            handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
+            if not handshake:
+                return None
+            return await HandshakeDomainService._messages_for_handshake(session, handshake)
+
+    @staticmethod
+    async def send_user_handshake_message(user_id: str, handshake_id: str, body: str, attachments: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
+            if not handshake:
+                return None
+            message = HandshakeMessage(
+                handshake_id=handshake.id,
+                sender_user_id=uuid.UUID(user_id),
+                body=_clean_text(body, 4000),
+                attachments=attachments if isinstance(attachments, list) else [],
+            )
+            session.add(message)
+            session.add(HandshakeEvent(
+                handshake_id=handshake.id,
+                actor_user_id=uuid.UUID(user_id),
+                actor_type="candidate",
+                event_type="handshake_message_sent",
+                payload={"attachments_count": len(message.attachments or [])},
+            ))
+            handshake.updated_at = datetime.utcnow()
+            await session.commit()
+            await session.refresh(message)
+            return HandshakeDomainService._message_to_dict(message, handshake)
+
+    @staticmethod
     async def user_has_company_access(user_id: str, company_id: str) -> bool:
         async with AsyncSession(engine) as session:
             result = await session.execute(
@@ -532,6 +591,57 @@ class HandshakeDomainService:
             ))
             await session.commit()
             return {"handshake_id": str(handshake.id), "readout": readout, "session": session_payload}
+
+    @staticmethod
+    async def get_company_handshake_messages(user_id: str, company_id: str, handshake_id: str) -> Optional[List[Dict[str, Any]]]:
+        async with AsyncSession(engine) as session:
+            if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
+                return None
+            result = await session.execute(
+                select(Handshake).where(
+                    Handshake.id == uuid.UUID(handshake_id),
+                    Handshake.company_id == uuid.UUID(company_id),
+                )
+            )
+            handshake = result.scalar_one_or_none()
+            if not handshake:
+                return None
+            return await HandshakeDomainService._messages_for_handshake(session, handshake)
+
+    @staticmethod
+    async def send_company_handshake_message(user_id: str, company_id: str, handshake_id: str, body: str, attachments: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
+                return None
+            result = await session.execute(
+                select(Handshake).where(
+                    Handshake.id == uuid.UUID(handshake_id),
+                    Handshake.company_id == uuid.UUID(company_id),
+                )
+            )
+            handshake = result.scalar_one_or_none()
+            if not handshake:
+                return None
+            message = HandshakeMessage(
+                handshake_id=handshake.id,
+                sender_user_id=uuid.UUID(user_id),
+                body=_clean_text(body, 4000),
+                attachments=attachments if isinstance(attachments, list) else [],
+            )
+            session.add(message)
+            session.add(HandshakeEvent(
+                handshake_id=handshake.id,
+                actor_user_id=uuid.UUID(user_id),
+                actor_type="company",
+                event_type="handshake_message_sent",
+                payload={"attachments_count": len(message.attachments or [])},
+            ))
+            if handshake.status == "submitted":
+                handshake.status = "company_reviewing"
+            handshake.updated_at = datetime.utcnow()
+            await session.commit()
+            await session.refresh(message)
+            return HandshakeDomainService._message_to_dict(message, handshake)
 
     @staticmethod
     async def get_company_dashboard(user_id: str, company_id: str) -> Optional[Dict[str, Any]]:
@@ -1166,6 +1276,39 @@ class HandshakeDomainService:
             {"label": "Strategické uvažování", "teamValue": 64 + bump, "benchmarkValue": 81},
             {"label": "Odolnost ve stresu", "teamValue": 61 + bump, "benchmarkValue": 76},
         ]
+
+    @staticmethod
+    async def _messages_for_handshake(session: AsyncSession, handshake: Handshake) -> List[Dict[str, Any]]:
+        result = await session.execute(
+            select(HandshakeMessage)
+            .where(
+                HandshakeMessage.handshake_id == handshake.id,
+                HandshakeMessage.deleted_at.is_(None),
+            )
+            .order_by(HandshakeMessage.created_at.asc())
+        )
+        return [
+            HandshakeDomainService._message_to_dict(message, handshake)
+            for message in result.scalars().all()
+        ]
+
+    @staticmethod
+    def _message_to_dict(message: HandshakeMessage, handshake: Handshake) -> Dict[str, Any]:
+        sender_role = "candidate" if message.sender_user_id and message.sender_user_id == handshake.user_id else "recruiter"
+        return {
+            "id": str(message.id),
+            "application_id": str(handshake.id),
+            "handshake_id": str(handshake.id),
+            "company_id": str(handshake.company_id) if handshake.company_id else None,
+            "candidate_id": str(handshake.user_id),
+            "sender_user_id": str(message.sender_user_id) if message.sender_user_id else None,
+            "sender_role": sender_role,
+            "body": message.body,
+            "attachments": message.attachments if isinstance(message.attachments, list) else [],
+            "created_at": message.created_at.isoformat(),
+            "read_by_candidate_at": None,
+            "read_by_company_at": None,
+        }
 
     @staticmethod
     def _event_to_dict(event: HandshakeEvent) -> Dict[str, Any]:

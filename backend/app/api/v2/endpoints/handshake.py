@@ -16,6 +16,10 @@ class HandshakeAnswerRequest(BaseModel):
 class HandshakeFinalizeRequest(BaseModel):
     note: Optional[str] = None
 
+class HandshakeMessageRequest(BaseModel):
+    body: str = ""
+    attachments: list[Any] = []
+
 class ExternalSubmissionRequest(BaseModel):
     provider: str
     external_url: str
@@ -168,3 +172,56 @@ async def get_my_handshake_events(
         "status": "success",
         "data": await HandshakeDomainService.get_handshake_events(domain_user["id"], handshake_id),
     }
+
+@router.post("/{handshake_id}/withdraw")
+async def withdraw_my_handshake(
+    handshake_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user)
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    handshake = await HandshakeDomainService.withdraw_user_handshake(domain_user["id"], handshake_id)
+    if not handshake:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return handshake
+
+@router.get("/{handshake_id}/messages")
+async def get_my_handshake_messages(
+    handshake_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user)
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    messages = await HandshakeDomainService.get_user_handshake_messages(domain_user["id"], handshake_id)
+    if messages is None:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return {"status": "success", "data": messages}
+
+@router.post("/{handshake_id}/messages")
+async def send_my_handshake_message(
+    handshake_id: str,
+    payload: HandshakeMessageRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user)
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    if not payload.body.strip() and not payload.attachments:
+        raise HTTPException(status_code=400, detail="Message body or attachment is required")
+    message = await HandshakeDomainService.send_user_handshake_message(
+        domain_user["id"],
+        handshake_id,
+        payload.body,
+        payload.attachments,
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="Handshake not found")
+    return {"status": "success", "data": message}

@@ -466,7 +466,7 @@ class IntegrationDomainService:
 
     @staticmethod
     def _api_base_url() -> str:
-        return os.environ.get("JOBSHAMAN_API_URL") or os.environ.get("VITE_API_URL") or "https://site--jobshaman--rb4dlj74d5kc.code.run"
+        return (os.environ.get("JOBSHAMAN_API_URL") or os.environ.get("VITE_API_URL") or "https://jobshaman.cz/api/v2").rstrip("/")
 
     @staticmethod
     async def list_applications(key: IntegrationApiKey, limit: int = 100) -> Dict[str, Any]:

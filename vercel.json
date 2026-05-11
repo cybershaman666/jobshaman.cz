@@ -24,6 +24,10 @@
             "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/health"
         },
         {
+            "source": "/api/v2/:path*",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/:path*"
+        },
+        {
             "source": "/(.*)",
             "has": [
                 { "type": "host", "value": "jobshaman.com" }

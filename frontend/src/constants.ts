@@ -6,18 +6,6 @@ import { createDefaultCandidateSearchProfile } from './services/profileDefaults'
 // to eliminate CORS issues (Northflank 503 cold-starts strip CORS headers).
 const DEFAULT_PRODUCTION_BACKEND_URL = '/api/v2';
 
-const getRuntimeBackendHint = (): string => {
-  if (typeof document !== 'undefined') {
-    const metaValue = document.querySelector('meta[name="backend-url"]')?.getAttribute('content')?.trim() || '';
-    if (metaValue && metaValue !== '%VITE_BACKEND_URL%') return metaValue;
-  }
-  if (typeof window !== 'undefined') {
-    const runtimeValue = (window as Window & { __BACKEND_URL__?: string }).__BACKEND_URL__?.trim() || '';
-    if (runtimeValue) return runtimeValue;
-  }
-  return '';
-};
-
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
   const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
