@@ -4,6 +4,18 @@ import { BACKEND_URL } from '../constants';
 const normalizeApiBaseUrl = (): string => (BACKEND_URL || '/api/v2').replace(/\/$/, '');
 
 const API_BASE_URL = normalizeApiBaseUrl();
+const DIRECT_API_BASE_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+
+const isHtmlResponse = (response: Response): boolean => {
+  const contentType = response.headers.get('Content-Type') || '';
+  return contentType.includes('text/html');
+};
+
+const shouldRetryViaDirectBackend = (response: Response): boolean => (
+  API_BASE_URL === '/api/v2' &&
+  response.ok &&
+  isHtmlResponse(response)
+);
 
 const parseErrorResponse = async (response: Response): Promise<string> => {
   const fallback = `Request failed with status ${response.status}`;
@@ -92,58 +104,43 @@ class ApiService {
     return headers;
   }
 
-  static async get<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers: await this.getHeaders(),
-    });
+  private static async request<T>(method: string, endpoint: string, body?: any): Promise<T> {
+    const headers = await this.getHeaders();
+    const init: RequestInit = { method, headers };
+    if (body !== undefined) init.body = JSON.stringify(body);
+
+    let response = await fetch(`${API_BASE_URL}${endpoint}`, init);
+
+    if (shouldRetryViaDirectBackend(response)) {
+      console.warn('API proxy returned HTML; retrying direct backend', {
+        status: response.status,
+        url: response.url,
+        endpoint,
+      });
+      response = await fetch(`${DIRECT_API_BASE_URL}${endpoint}`, init);
+    }
 
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response));
     }
 
     return parseSuccessResponse<T>(response);
+  }
+
+  static async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>('GET', endpoint);
   }
 
   static async post<T>(endpoint: string, body: any): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: await this.getHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response));
-    }
-
-    return parseSuccessResponse<T>(response);
+    return this.request<T>('POST', endpoint, body);
   }
 
   static async patch<T>(endpoint: string, body: any): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'PATCH',
-      headers: await this.getHeaders(),
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response));
-    }
-
-    return parseSuccessResponse<T>(response);
+    return this.request<T>('PATCH', endpoint, body);
   }
 
   static async delete<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'DELETE',
-      headers: await this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response));
-    }
-
-    return parseSuccessResponse<T>(response);
+    return this.request<T>('DELETE', endpoint);
   }
 }
 
