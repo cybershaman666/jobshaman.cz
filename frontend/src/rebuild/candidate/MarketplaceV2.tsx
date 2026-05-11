@@ -331,10 +331,11 @@ export const MarketplaceV2: React.FC<{
   onLanguageChange?: (lang: string) => void;
   navigate: (path: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, savedRoleIds = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, onToggleSavedRole, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
+}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, savedRoleIds = [], onSignOut, onCompanySwitch, onLoadMore, onToggleSavedRole, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
   const [visibleRecommendationCount, setVisibleRecommendationCount] = React.useState(RECOMMENDATION_PAGE_SIZE);
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [activeCategoryId, setActiveCategoryId] = React.useState<RoleClusterId | null>(null);
 
   const navItems = [
     { id: 'home', label: t('rebuild.nav.home', { defaultValue: 'Domů' }), icon: LayoutDashboard, path: '/candidate/insights' },
@@ -463,7 +464,6 @@ export const MarketplaceV2: React.FC<{
     });
   }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
-  const hasMoreRecommendations = visibleRecommendationCount < scopedRecommendationCandidates.length;
   const gridCandidates = commuteFilterActive ? visibleRecommendedCandidates : visibleRecommendedCandidates.slice(1);
   const profileRelevanceText = React.useMemo(() => normalizeProfileText([
     searchValue,
@@ -547,9 +547,14 @@ export const MarketplaceV2: React.FC<{
         return right.candidates.length - left.candidates.length;
       });
   }, [commuteFilterActive, gridCandidates, profileRelevanceText, t]);
+  const activeCategorySection = React.useMemo(
+    () => catalogSections.find((section) => section.id === activeCategoryId) || null,
+    [activeCategoryId, catalogSections],
+  );
   React.useEffect(() => {
     setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
-  }, [filters, focusMode, localRadiusKm, preferences.address, roles.length]);
+    setActiveCategoryId(null);
+  }, [filters, focusMode, localRadiusKm, preferences.address, roles.length, searchValue]);
 
   // Smarter city extraction from address
   const locationLabel = React.useMemo(() => {
@@ -586,9 +591,15 @@ export const MarketplaceV2: React.FC<{
       ? parts.join(' · ')
       : t('rebuild.marketplace.search_cta', { defaultValue: 'Hledat pozici, firmu nebo město' });
   }, [filters.city, filters.remoteOnly, filters.roleFamily, filters.workArrangement, searchValue, t]);
-  const feedCandidates = commuteFilterActive ? scopedRecommendationCandidates : visibleRecommendedCandidates;
+  const baseFeedCandidates = activeCategorySection
+    ? activeCategorySection.candidates
+    : commuteFilterActive
+      ? scopedRecommendationCandidates
+      : visibleRecommendedCandidates;
+  const feedCandidates = baseFeedCandidates.slice(0, visibleRecommendationCount);
+  const hasMoreFeedCandidates = visibleRecommendationCount < baseFeedCandidates.length;
   const recommendedFeed = feedCandidates.slice(0, 2);
-  const latestFeed = feedCandidates.slice(2, 8);
+  const latestFeed = feedCandidates.slice(2);
   const categoryCards = catalogSections.slice(0, 4).map((section) => ({
     id: section.id,
     title: section.title,
@@ -699,8 +710,8 @@ export const MarketplaceV2: React.FC<{
                 </div>
               </div>
               <div className="relative hidden overflow-hidden md:block">
-                <img src="/marketplace-hero.svg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.88)_0%,rgba(255,255,255,0.42)_34%,rgba(255,255,255,0)_100%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.92)_0%,rgba(15,23,42,0.46)_34%,rgba(15,23,42,0)_100%)]" />
+                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop" alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.52)_38%,rgba(255,255,255,0.04)_100%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.94)_0%,rgba(15,23,42,0.56)_38%,rgba(15,23,42,0.08)_100%)]" />
               </div>
             </div>
             <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
@@ -708,8 +719,15 @@ export const MarketplaceV2: React.FC<{
                 <button
                   key={id}
                   type="button"
-                  onClick={() => onLoadMoreCategory?.(id)}
-                  className="flex items-center gap-3 rounded-2xl bg-white/86 px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72"
+                  onClick={() => {
+                    setActiveCategoryId(id);
+                    setVisibleRecommendationCount(RECOMMENDATION_PAGE_SIZE);
+                  }}
+                  aria-pressed={activeCategoryId === id}
+                  className={cn(
+                    'flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72',
+                    activeCategoryId === id ? 'bg-[#eef8fb] ring-2 ring-[#12afcb]/25 dark:bg-cyan-950/35' : 'bg-white/86',
+                  )}
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50 dark:text-cyan-300">
                     {loadingCategoryId === id ? <Loader2 size={18} className="animate-spin" /> : <Icon size={18} />}
@@ -720,7 +738,7 @@ export const MarketplaceV2: React.FC<{
                   </span>
                 </button>
               ))}
-              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center gap-3 rounded-2xl bg-white/86 px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72">
+              <button type="button" onClick={() => setActiveCategoryId(null)} className={cn('flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72', activeCategoryId ? 'bg-white/86' : 'bg-slate-50 ring-2 ring-slate-200/70 dark:bg-slate-900')}>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"><Grid2X2 size={18} /></span>
                 <span className="min-w-0">
                   <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' })}</span>
@@ -734,7 +752,11 @@ export const MarketplaceV2: React.FC<{
             <div className="flex items-end justify-between gap-4 px-1">
               <div>
                 <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.recommended_for_you', { defaultValue: 'Doporučené pro vás' })} <span className="text-[#d58a22]">✦</span></h2>
-                <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě profilu a aktivity' })}</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  {activeCategorySection
+                    ? activeCategorySection.title
+                    : t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě profilu a aktivity' })}
+                </p>
               </div>
               <button type="button" onClick={() => setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate')} className="text-[13px] font-black text-[#0f95ac] hover:underline">
                 {focusMode === 'immediate' ? t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' }) : t('rebuild.marketplace.only_local', { defaultValue: 'Jen lokální' })}
@@ -793,7 +815,7 @@ export const MarketplaceV2: React.FC<{
               ))}
             </div>
             <div className="flex flex-col items-center gap-3">
-              {hasMoreRecommendations ? (
+              {hasMoreFeedCandidates ? (
                 <button type="button" onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/82 px-6 text-[13px] font-black text-[#0f95ac] shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300">
                   {t('rebuild.marketplace.load_more', { defaultValue: 'Zobrazit další nabídky' })}
                   <ChevronDown size={15} />

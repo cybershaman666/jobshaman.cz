@@ -99,7 +99,7 @@ export const LandingChoicePage: React.FC<{
               {landingCopy.eyebrow}
             </div>
           </header>
-          <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-[#d7c7a8] bg-white px-3 py-1 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#8c6727] shadow-sm dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-500">
+          <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-[#d7c7a8] bg-[#fbfaf7] px-3 py-1 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[#8c6727] dark:border-amber-900/30 dark:bg-slate-950 dark:text-amber-500">
             <Sparkles size={13} />
             {t('rebuild.landing.verified_hiring', { defaultValue: 'Verified hiring without ghosting' })}
           </div>
@@ -121,7 +121,7 @@ export const LandingChoicePage: React.FC<{
               type="button"
               aria-label={t('rebuild.landing.enter_as_company', { defaultValue: 'Enter as a company' })}
               onClick={() => navigate('/firmy')}
-              className="inline-flex h-12 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-800 transition hover:border-[#c99a4a] hover:bg-[#fffbf5]"
+              className="inline-flex h-12 items-center justify-center gap-3 rounded-xl border border-slate-300 bg-[#fbfaf7] px-6 text-sm font-bold text-slate-800 transition hover:border-[#c99a4a] hover:bg-[#fffbf5] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900"
             >
               <Building2 size={18} />
               {landingCopy.companyCta}
@@ -133,7 +133,7 @@ export const LandingChoicePage: React.FC<{
           </div>
           <div className="mt-4 grid max-w-3xl gap-3 md:grid-cols-3">
             {landingCopy.pillars.map(({ title, copy, meta, icon: Icon }) => (
-              <article key={title} className="rounded-lg border border-slate-200 bg-white/78 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+              <article key={title} className="border-t border-slate-200 py-4 dark:border-slate-800">
                 <Icon size={18} className="text-[#8c6727] dark:text-amber-500" />
                 <h2 className="mt-3 text-sm font-bold text-slate-950 dark:text-white">{title}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{copy}</p>
@@ -143,13 +143,13 @@ export const LandingChoicePage: React.FC<{
           </div>
         </div>
 
-        <aside className="hidden rounded-lg border border-slate-200 bg-white p-5 shadow-[0_28px_80px_-58px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900 md:block">
-          <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-[radial-gradient(circle_at_center,#f3d691_0%,#f8f4e8_34%,#eef7f6_70%)] dark:bg-[radial-gradient(circle_at_center,#451a03_0%,#0f172a_70%)]">
+        <aside className="hidden md:block">
+          <div className="relative flex aspect-square items-center justify-center overflow-hidden">
             <img src="/logo-transparent.png" alt="JobShaman Logo" className="h-[82%] w-[82%] object-contain drop-shadow-[0_24px_40px_rgba(121,86,32,0.16)] dark:brightness-110 dark:filter" loading="eager" />
           </div>
           <div className="mt-5 grid gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
             {landingCopy.pillars.map(({ title, icon: Icon }) => (
-              <div key={`visual-${title}`} className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+              <div key={`visual-${title}`} className="flex items-center gap-3 border-t border-slate-200 py-3 dark:border-slate-800">
                 <Icon size={17} className="text-[#8c6727] dark:text-amber-500" />
                 {title}
               </div>
