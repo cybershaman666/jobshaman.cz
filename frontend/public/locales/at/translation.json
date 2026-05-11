@@ -5322,7 +5322,7 @@
       "activation_label": "Company account",
       "activation_title": "Add your company details.",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Material hinzufügen",
       "assessment_center_label": "Assessment center",
       "assessment_center_title": "Blueprint creator for the multi-modal handshake engine.",
       "assign_blueprint": "Assign blueprint",
@@ -5360,7 +5360,7 @@
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
       "generate_blueprint": "Generate AI blueprint",
       "generator_controls": "Generator controls",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Handshake-Materialien",
       "high_signal": "High signal",
       "industry": "Branche",
       "internal_notes": "Internal notes",
@@ -5644,7 +5644,10 @@
       "preview": "Vorschau",
       "invite_email": "E-Mail-Adresse",
       "invite_name": "Vollständiger Name (optional)",
-      "send_invitation": "Einladung senden"
+      "send_invitation": "Einladung senden",
+      "materials_desc": "Laden Sie Decks, Briefings oder Videos hoch, die Kandidaten sehen sollten.",
+      "no_materials": "Noch keine zusätzlichen Materialien hochgeladen.",
+      "upload_error": "Upload fehlgeschlagen"
     },
     "editor": {
       "step_essence": "Kern der Rolle",

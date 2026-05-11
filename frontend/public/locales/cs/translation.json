@@ -5378,8 +5378,8 @@
       "remove_media": "Remove",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
       "reviewer_avatar": "Reviewer photo",
-      "handshake_materials": "Handshake materials",
-      "add_material": "Add material",
+      "handshake_materials": "Podklady pro handshake",
+      "add_material": "Přidat podklad",
       "remove_material": "Remove",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "uploading_media": "Uploading media...",
@@ -5604,7 +5604,10 @@
       "preview": "Náhled",
       "invite_email": "E-mailová adresa",
       "invite_name": "Celé jméno (volitelné)",
-      "send_invitation": "Odeslat pozvánku"
+      "send_invitation": "Odeslat pozvánku",
+      "materials_desc": "Nahrajte prezentace, dokumenty nebo videa, které by měli kandidáti vidět.",
+      "no_materials": "Zatím nebyly nahrány žádné další podklady.",
+      "upload_error": "Nahrávání selhalo"
     },
     "editor": {
       "step_essence": "Podstata role",

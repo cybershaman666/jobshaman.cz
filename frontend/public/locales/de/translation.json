@@ -5550,11 +5550,11 @@
       "changes_source_of_truth": "Dies hält Recruiter OS und Candidate OS visuell an die gleiche Quelle der Wahrheit gebunden.",
       "activation_copy": "{{account}} is signed in. Add the company you hire for.",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Material hinzufügen",
       "calendar_stats": "{{interviews}} interviews booked, {{journeys}} submitted journeys in the current operating lane",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Handshake-Materialien",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -5661,7 +5661,10 @@
       "preview": "Vorschau",
       "invite_email": "E-Mail-Adresse",
       "invite_name": "Vollständiger Name (optional)",
-      "send_invitation": "Einladung senden"
+      "send_invitation": "Einladung senden",
+      "materials_desc": "Laden Sie Decks, Briefings oder Videos hoch, die Kandidaten sehen sollten.",
+      "no_materials": "Noch keine zusätzlichen Materialien hochgeladen.",
+      "upload_error": "Upload fehlgeschlagen"
     },
     "editor": {
       "step_essence": "Rollen-Kern",

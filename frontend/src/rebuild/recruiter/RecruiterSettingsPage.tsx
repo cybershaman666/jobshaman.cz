@@ -15,7 +15,9 @@ import {
   Layout,
   RefreshCw,
   Loader2,
-  Sparkles
+  Sparkles,
+  FileText,
+  Paperclip
 } from 'lucide-react';
 import { cn } from '../cn';
 import { 
@@ -31,7 +33,8 @@ import {
   inviteTeammate, 
   updateCompanyProfile 
 } from '../../services/v2UserService';
-import type { CompanyProfile, UserProfile } from '../../types';
+import { uploadV2Asset, API_BASE_URL } from '../../services/v2AssetService';
+import type { CompanyProfile, UserProfile, StoredAsset } from '../../types';
 
 interface RecruiterSettingsPageProps {
   company: CompanyProfile;
@@ -70,12 +73,41 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const [inviteName, setInviteName] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  
+  // Assets State
+  const [assets, setAssets] = useState<StoredAsset[]>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'team') {
       loadMembers();
     }
+    if (activeTab === 'brand') {
+      loadAssets();
+    }
   }, [activeTab]);
+
+  const loadAssets = async () => {
+    setIsLoadingAssets(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/${company.id}/assets`, {
+        headers: {
+          'Authorization': `Bearer ${(await (await import('../../services/supabaseClient')).getSupabaseClient()?.auth.getSession())?.data.session?.access_token}`
+        }
+      });
+      const payload = await response.json();
+      if (payload.status === 'success') {
+        setAssets(payload.data);
+      }
+    } catch (err) {
+      console.error('Failed to load assets', err);
+    } finally {
+      setIsLoadingAssets(false);
+    }
+  };
 
   const loadMembers = async () => {
     setIsLoadingMembers(true);
@@ -103,6 +135,62 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
       console.error('Save failed', err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const asset = await uploadV2Asset(file, {
+        kind: 'company_branding',
+        usage: 'logo',
+        companyId: company.id
+      });
+      setLogoUrl(asset.url);
+    } catch (err) {
+      console.error('Logo upload failed', err);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleUploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    try {
+      const asset = await uploadV2Asset(file, {
+        kind: 'company_branding',
+        usage: 'cover',
+        companyId: company.id
+      });
+      setCoverUrl(asset.url);
+    } catch (err) {
+      console.error('Cover upload failed', err);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  const handleUploadMaterial = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingMaterial(true);
+    try {
+      await uploadV2Asset(file, {
+        kind: 'handshake_material',
+        companyId: company.id
+      });
+      await loadAssets();
+    } catch (err) {
+      console.error('Material upload failed', err);
+    } finally {
+      setIsUploadingMaterial(false);
     }
   };
 
@@ -395,12 +483,18 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                             )}
                           </div>
                           <div className="flex-1 space-y-2">
-                            <input 
-                              className={cn(fieldClass, 'text-xs')} 
-                              placeholder="https://...logo.png"
-                              value={logoUrl}
-                              onChange={(e) => setLogoUrl(e.target.value)}
-                            />
+                            <div className="flex gap-2">
+                              <input 
+                                className={cn(fieldClass, 'text-xs')} 
+                                placeholder="https://...logo.png"
+                                value={logoUrl}
+                                onChange={(e) => setLogoUrl(e.target.value)}
+                              />
+                              <label className={cn(secondaryButtonClass, 'cursor-pointer px-3')}>
+                                {isUploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                <input type="file" className="hidden" accept="image/*" onChange={handleUploadLogo} disabled={isUploadingLogo} />
+                              </label>
+                            </div>
                             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('rebuild.recruiter.logo_hint', { defaultValue: 'Square SVG or PNG is recommended' })}</p>
                           </div>
                         </div>
@@ -416,15 +510,74 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                               <Layout className="h-8 w-8 text-slate-300" />
                             )}
                           </div>
-                          <input 
-                            className={cn(fieldClass, 'text-xs')} 
-                            placeholder="https://...cover.jpg"
-                            value={coverUrl}
-                            onChange={(e) => setCoverUrl(e.target.value)}
-                          />
+                          <div className="flex gap-2">
+                            <input 
+                              className={cn(fieldClass, 'text-xs')} 
+                              placeholder="https://...cover.jpg"
+                              value={coverUrl}
+                              onChange={(e) => setCoverUrl(e.target.value)}
+                            />
+                            <label className={cn(secondaryButtonClass, 'cursor-pointer px-3')}>
+                              {isUploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                              <input type="file" className="hidden" accept="image/*" onChange={handleUploadCover} disabled={isUploadingCover} />
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Additional Materials Section */}
+                <div className="pt-8 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Paperclip className="h-5 w-5 text-amber-500" />
+                        {t('rebuild.recruiter.handshake_materials', { defaultValue: 'Handshake Materials' })}
+                      </h3>
+                      <p className="text-sm text-slate-500">{t('rebuild.recruiter.materials_desc', { defaultValue: 'Upload decks, briefs or videos that candidates should see.' })}</p>
+                    </div>
+                    <label className={cn(secondaryButtonClass, 'cursor-pointer gap-2')}>
+                      {isUploadingMaterial ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {t('rebuild.recruiter.add_material', { defaultValue: 'Add Material' })}
+                      <input type="file" className="hidden" onChange={handleUploadMaterial} disabled={isUploadingMaterial} />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {isLoadingAssets ? (
+                      <div className="col-span-full py-12 flex justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+                      </div>
+                    ) : assets.filter(a => a.kind === 'handshake_material').length === 0 ? (
+                      <div className="col-span-full py-12 text-center rounded-xl border-2 border-dashed border-slate-100 text-slate-400">
+                        <FileText className="mx-auto h-10 w-10 opacity-20 mb-2" />
+                        <p className="text-sm">{t('rebuild.recruiter.no_materials', { defaultValue: 'No additional materials uploaded yet.' })}</p>
+                      </div>
+                    ) : (
+                      assets.filter(a => a.kind === 'handshake_material').map((asset) => (
+                        <div key={asset.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="text-sm font-bold text-slate-900 truncate">{asset.name || asset.original_name}</div>
+                              <div className="text-[10px] text-slate-500 uppercase tracking-tighter">{(asset.size_bytes / 1024 / 1024).toFixed(2)} MB • {asset.mime_type?.split('/')[1] || 'FILE'}</div>
+                            </div>
+                          </div>
+                          <a 
+                            href={asset.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          >
+                            <Globe className="h-4 w-4" />
+                          </a>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

@@ -5399,10 +5399,10 @@
       "no_candidate_submissions": "There are no new candidate answers here yet.",
       "back_marketplace": "Back to marketplace",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Tilføj materiale",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Handshake-materialer",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -5632,7 +5632,10 @@
       "preview": "Forhåndsvisning",
       "invite_email": "E-mailadresse",
       "invite_name": "Fulde navn (valgfrit)",
-      "send_invitation": "Send invitation"
+      "send_invitation": "Send invitation",
+      "materials_desc": "Upload præsentationer, briefs eller videoer, som kandidater skal se.",
+      "no_materials": "Ingen yderligere materialer uploadet endnu.",
+      "upload_error": "Upload mislykkedes"
     },
     "editor": {
       "step_essence": "Rollens kerne",

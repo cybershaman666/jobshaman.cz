@@ -5371,10 +5371,10 @@
       "no_candidate_submissions": "There are no new candidate answers here yet.",
       "back_marketplace": "Back to marketplace",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Add Material",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Handshake Materials",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -5604,7 +5604,10 @@
       "preview": "Preview",
       "invite_email": "Email Address",
       "invite_name": "Full Name (Optional)",
-      "send_invitation": "Send Invitation"
+      "send_invitation": "Send Invitation",
+      "materials_desc": "Upload decks, briefs or videos that candidates should see.",
+      "no_materials": "No additional materials uploaded yet.",
+      "upload_error": "Upload failed"
     },
     "editor": {
       "step_essence": "Role Essence",

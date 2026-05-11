@@ -5412,10 +5412,10 @@
       "no_candidate_submissions": "There are no new candidate answers here yet.",
       "back_marketplace": "Back to marketplace",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Lisää materiaali",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Handshake-materiaalit",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -5645,7 +5645,10 @@
       "preview": "Esikatselu",
       "invite_email": "Sähköpostiosoite",
       "invite_name": "Koko nimi (valinnainen)",
-      "send_invitation": "Lähetä kutsu"
+      "send_invitation": "Lähetä kutsu",
+      "materials_desc": "Lataa esityksiä, ohjeistuksia tai videoita, jotka ehdokkaiden tulisi nähdä.",
+      "no_materials": "Lisämateriaaleja ei ole vielä ladattu.",
+      "upload_error": "Lataus epäonnistui"
     },
     "editor": {
       "step_essence": "Roolin ydin",

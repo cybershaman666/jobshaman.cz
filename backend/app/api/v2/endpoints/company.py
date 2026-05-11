@@ -70,6 +70,28 @@ async def get_my_company(current_user: dict = Depends(AccessControlService.get_c
     company = await RealityDomainService.get_company_for_user(domain_user["id"])
     return {"status": "success", "data": company}
 
+@router.get("/{company_id}/assets")
+async def list_company_assets(
+    company_id: str,
+    request: Request,
+    current_user: dict = Depends(AccessControlService.get_current_user)
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    
+    from app.domains.reality.service import RealityDomainService
+    from app.domains.media.service import MediaDomainService
+    
+    request_base_url = str(request.base_url).rstrip("/")
+    assets = await RealityDomainService.list_company_assets(domain_user["id"], company_id, request_base_url=request_base_url)
+    if assets is None:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    return {"status": "success", "data": assets}
+
 @router.post("")
 async def create_my_company(payload: dict, current_user: dict = Depends(AccessControlService.get_current_user)):
     domain_user = await IdentityDomainService.get_or_create_user_mirror(

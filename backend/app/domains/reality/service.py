@@ -1609,3 +1609,19 @@ class RealityDomainService:
 
             await session.commit()
             return {"status": "success", "company_id": str(invitation.company_id)}
+
+    @staticmethod
+    async def list_company_assets(user_id: str, company_id: str, request_base_url: str = "") -> Optional[List[Dict[str, Any]]]:
+        from app.domains.media.models import MediaAsset
+        from app.domains.media.service import MediaDomainService
+        
+        async with AsyncSession(engine) as session:
+            company_uuid = uuid.UUID(company_id)
+            if not await RealityDomainService._has_company_access(session, user_id, company_uuid):
+                return None
+            
+            stmt = select(MediaAsset).where(MediaAsset.company_id == company_uuid, MediaAsset.upload_status == "ready")
+            result = await session.execute(stmt)
+            assets = result.scalars().all()
+            
+            return [MediaDomainService.serialize_asset(a, request_base_url=request_base_url) for a in assets]

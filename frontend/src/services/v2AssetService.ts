@@ -17,7 +17,7 @@ const normalizeApiBaseUrl = (): string => {
   return DEFAULT_PRODUCTION_API_URL;
 };
 
-const API_BASE_URL = normalizeApiBaseUrl();
+export const API_BASE_URL = normalizeApiBaseUrl();
 
 export type V2AssetKind =
   | 'candidate_document'

@@ -5511,11 +5511,11 @@
       "changes_source_of_truth": "To udržiava Recruiter OS a Candidate OS vizuálne uzamknuté k rovnakému zdroju pravdy.",
       "activation_copy": "{{account}} is signed in. Add the company you hire for.",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Pridať podklad",
       "calendar_stats": "{{interviews}} interviews booked, {{journeys}} submitted journeys in the current operating lane",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Podklady pre handshake",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -5637,7 +5637,10 @@
       "preview": "Náhľad",
       "invite_email": "E-mailová adresa",
       "invite_name": "Celé meno (voliteľné)",
-      "send_invitation": "Odoslať pozvánku"
+      "send_invitation": "Odoslať pozvánku",
+      "materials_desc": "Nahrajte prezentácie, dokumenty alebo videá, ktoré by mali kandidáti vidieť.",
+      "no_materials": "Zatiaľ neboli nahrané žiadne ďalšie podklady.",
+      "upload_error": "Nahrávanie zlyhalo"
     },
     "editor": {
       "step_essence": "Podstata roly",

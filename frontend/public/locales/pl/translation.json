@@ -6636,10 +6636,10 @@
       "no_candidate_submissions": "There are no new candidate answers here yet.",
       "back_marketplace": "Back to marketplace",
       "add_gallery": "Add photo",
-      "add_material": "Add material",
+      "add_material": "Dodaj materiał",
       "gallery": "Company gallery",
       "gallery_empty": "Add office, production or team photos that candidates should see before the handshake.",
-      "handshake_materials": "Handshake materials",
+      "handshake_materials": "Materiały do handshake",
       "materials_empty": "Upload decks, process docs, videos or briefs that should be visible before or during the handshake.",
       "new_problem": "New problem",
       "remove_material": "Remove",
@@ -6869,7 +6869,10 @@
       "preview": "Podgląd",
       "invite_email": "Adres e-mail",
       "invite_name": "Imię i nazwisko (opcjonalnie)",
-      "send_invitation": "Wyślij zaproszenie"
+      "send_invitation": "Wyślij zaproszenie",
+      "materials_desc": "Prześlij prezentacje, dokumenty lub filmy, które powinni zobaczyć kandydaci.",
+      "no_materials": "Nie przesłano jeszcze żadnych dodatkowych materiałów.",
+      "upload_error": "Przesyłanie nie powiodło się"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
