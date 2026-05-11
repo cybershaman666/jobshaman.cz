@@ -260,14 +260,14 @@ class RecommendationDomainService:
         # Build candidate text for both token matching and embedding
         candidate_text = " ".join(
             [
-                profile.get("full_name") if profile else "",
-                profile.get("bio") if profile else "",
-                profile.get("location") if profile else "",
+                str(profile.get("full_name") or ""),
+                str(profile.get("bio") or ""),
+                str(profile.get("location") or ""),
                 " ".join(_list_from_json(profile.get("skills") if profile else None)),
                 json.dumps(preferences, ensure_ascii=False),
                 " ".join(
                     [
-                        signal.get("signalKey", "")
+                        str(signal.get("signalKey") or "")
                         + " "
                         + json.dumps(signal.get("signalValue") or {}, ensure_ascii=False)
                         for signal in signals

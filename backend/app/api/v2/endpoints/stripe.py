@@ -13,6 +13,9 @@ from app.core.legacy_compat import (
     limiter, get_current_user, verify_csrf_token_header,
     supabase, now_iso, invalidate_subscription_cache
 )
+from app.core.database import engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.requests import CheckoutRequest
 from datetime import datetime, timezone, timedelta
 
@@ -48,6 +51,51 @@ def invalidate_subscription_record_cache(subscription_row: dict | None) -> None:
         invalidate_subscription_cache("user_id", user_id)
     if company_id:
         invalidate_subscription_cache("company_id", company_id)
+
+
+async def ensure_company_exists_in_supabase(company_id: str):
+    """
+    Ensures that a company record exists in the legacy Supabase database.
+    This is necessary because the subscriptions table has a foreign key constraint
+    pointing to the companies table, but V2 companies are only stored in Postgres.
+    """
+    if not supabase:
+        return
+    
+    try:
+        # 1. Check if it already exists in Supabase
+        resp = supabase.table("companies").select("id").eq("id", company_id).limit(1).execute()
+        if resp.data:
+            return # Already exists
+    except Exception:
+        pass # Fall through to creation attempt
+        
+    try:
+        # 2. Fetch company details from V2 Postgres
+        async with AsyncSession(engine) as session:
+            # We also try to find the owner's supabase_id to maintain the relationship
+            res = await session.execute(
+                text("""
+                    SELECT c.name, u.supabase_id 
+                    FROM companies c
+                    LEFT JOIN company_users cu ON cu.company_id = c.id AND cu.role = 'owner'
+                    LEFT JOIN users u ON u.id = cu.user_id
+                    WHERE c.id = :cid
+                """),
+                {"cid": company_id}
+            )
+            row = res.mappings().first()
+            if row:
+                # 3. Create a shell record in Supabase
+                supabase.table("companies").insert({
+                    "id": company_id,
+                    "name": row["name"],
+                    "owner_id": str(row["supabase_id"]) if row.get("supabase_id") else None,
+                    "created_at": now_iso()
+                }).execute()
+                print(f"✅ [STRIPE] Mirrored company {company_id} to Supabase")
+    except Exception as e:
+        print(f"⚠️ [STRIPE] Failed to mirror company to Supabase: {e}")
 
 @router.post("/create-checkout-session")
 @limiter.limit("10/minute")
@@ -146,6 +194,10 @@ async def stripe_webhook(request: Request):
                 invalidate_subscription_cache("user_id", user_id)
             
             elif tier in ["starter", "growth", "professional"]:
+                # Ensure the company exists in Supabase before creating the subscription
+                # to avoid foreign key constraint violations (fk_company)
+                await ensure_company_exists_in_supabase(user_id)
+                
                 data = {
                     "company_id": user_id,
                     "tier": tier,
