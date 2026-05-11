@@ -5,7 +5,19 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
-const LOCALES_DIR = path.join(ROOT, 'public', 'locales');
+const resolveExistingPath = (...candidates) => {
+  const existingPath = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!existingPath) {
+    console.error(`None of the expected paths exist:\n${candidates.map((candidate) => `- ${candidate}`).join('\n')}`);
+    process.exit(1);
+  }
+  return existingPath;
+};
+
+const LOCALES_DIR = resolveExistingPath(
+  path.join(ROOT, 'frontend', 'public', 'locales'),
+  path.join(ROOT, 'public', 'locales'),
+);
 const CANONICAL_LOCALE = 'cs';
 const strictMode = process.argv.includes('--strict');
 

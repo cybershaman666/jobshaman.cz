@@ -10,21 +10,13 @@ import {
   CheckCircle2, 
   AlertTriangle 
 } from 'lucide-react';
-import { cn } from '../cn';
 import { evaluateRole } from '../intelligence';
 import type { Role, CandidatePreferenceProfile } from '../models';
 import { ShellCard } from './CandidateShellSurface';
+import { formatRoleCompensation } from './roleFormatting';
 
 const formatMoney = (value: number, currency: string, language?: string) => 
   `${Math.round(value).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-GB')} ${currency}`;
-
-const formatRoleCompensation = (role: Role, fallback: string, language?: string) => {
-  if (role.salaryFrom <= 0 && role.salaryTo <= 0) return fallback;
-  const locale = language === 'cs' ? 'cs-CZ' : 'en-GB';
-  const from = role.salaryFrom > 0 ? role.salaryFrom.toLocaleString(locale) : role.salaryTo.toLocaleString(locale);
-  const to = role.salaryTo > 0 && role.salaryTo !== role.salaryFrom ? ` - ${role.salaryTo.toLocaleString(locale)}` : '';
-  return `${from}${to} ${role.currency}${role.salaryTimeframe ? ` / ${role.salaryTimeframe}` : ''}`;
-};
 
 export const JhiNetGraph: React.FC<{
   jhi: ReturnType<typeof evaluateRole>['jhi'];

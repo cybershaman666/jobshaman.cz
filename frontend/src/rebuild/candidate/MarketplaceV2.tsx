@@ -1,25 +1,13 @@
 import React from 'react';
 import {
   LayoutDashboard,
-  ArrowRight,
   Briefcase,
   CircleUserRound,
   MessageSquare,
-  CheckCircle2,
   GraduationCap,
   Loader2,
   Search,
   SlidersHorizontal,
-  X,
-  MapPin,
-  Car,
-  Bus,
-  Bike,
-  Footprints,
-  Dog,
-  Baby,
-  Home,
-  Banknote,
   BrainCircuit,
   ChevronDown,
 } from 'lucide-react';
@@ -66,6 +54,75 @@ const RECOMMENDATION_PAGE_SIZE = 24;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
 export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
+
+const normalizeProfileText = (value: string): string =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const roleSearchText = (role: Role): string => normalizeProfileText([
+  role.title,
+  role.companyName,
+  role.location,
+  role.summary,
+  role.description,
+  role.roleFamily,
+  role.skills.join(' '),
+  role.benefits.join(' '),
+].join(' '));
+
+const CLUSTER_KEYWORDS: Record<RoleClusterId, string[]> = {
+  management: ['manager', 'manazer', 'management', 'project', 'projekt', 'operations manager', 'provozni', 'program', 'delivery', 'vedouci', 'lead', 'koordinator'],
+  operations: ['operations', 'provoz', 'frontline', 'logistics', 'logistika', 'warehouse', 'sklad', 'construction', 'stavba', 'vyroba', 'operator'],
+  business: ['sales', 'obchod', 'business', 'finance', 'financ', 'account', 'administrativa', 'office', 'people', 'hr', 'legal', 'marketing'],
+  digital: ['engineering', 'developer', 'vyvojar', 'software', 'product', 'design', 'data', 'analyst', 'ux', 'ui', 'digital', 'it'],
+  services: ['care', 'pece', 'education', 'vzdelav', 'health', 'zdrav', 'customer', 'zakaznick', 'service', 'sluzby', 'support'],
+  other: [],
+};
+
+const getRoleClusterId = (role: Role): RoleClusterId => {
+  const text = roleSearchText(role);
+  if (CLUSTER_KEYWORDS.management.some((keyword) => text.includes(keyword))) return 'management';
+  if (['frontline', 'logistics', 'construction', 'operations'].includes(role.roleFamily)) return 'operations';
+  if (['sales', 'finance', 'people', 'legal', 'marketing'].includes(role.roleFamily)) return 'business';
+  if (['engineering', 'product', 'design'].includes(role.roleFamily)) return 'digital';
+  if (['care', 'education', 'health'].includes(role.roleFamily)) return 'services';
+  if (CLUSTER_KEYWORDS.operations.some((keyword) => text.includes(keyword))) return 'operations';
+  if (CLUSTER_KEYWORDS.business.some((keyword) => text.includes(keyword))) return 'business';
+  if (CLUSTER_KEYWORDS.digital.some((keyword) => text.includes(keyword))) return 'digital';
+  if (CLUSTER_KEYWORDS.services.some((keyword) => text.includes(keyword))) return 'services';
+  return 'other';
+};
+
+const getProfileClusterPreference = (profileText: string, clusterId: RoleClusterId): number => {
+  const keywords = CLUSTER_KEYWORDS[clusterId];
+  if (!keywords.length || !profileText) return clusterId === 'other' ? 1 : 0;
+  return keywords.reduce((score, keyword) => score + (profileText.includes(keyword) ? 1 : 0), 0);
+};
+
+const getRoleProfileScore = (
+  candidate: RoleCandidate,
+  profileText: string,
+  clusterId: RoleClusterId,
+  commuteFilterActive: boolean,
+): number => {
+  const role = candidate.role;
+  const text = roleSearchText(role);
+  const profileTerms = profileText.split(' ').filter((term) => term.length >= 3);
+  const directMatches = profileTerms.reduce((score, term) => score + (text.includes(term) ? 1 : 0), 0);
+  const clusterMatches = CLUSTER_KEYWORDS[clusterId].reduce((score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0);
+  const distanceBoost = commuteFilterActive && Number.isFinite(candidate.distanceKm)
+    ? Math.max(0, 20 - Math.min(candidate.distanceKm, 20))
+    : 0;
+  const curatedBoost = role.source === 'curated' ? 8 : 0;
+  const matchScore = typeof role.matchScore === 'number' ? role.matchScore / 10 : 0;
+
+  return directMatches * 3 + clusterMatches * 2 + distanceBoost + curatedBoost + matchScore;
+};
 
 const diversifyCandidatesByLocation = (candidates: RoleCandidate[]): RoleCandidate[] => {
   const buckets = new Map<string, RoleCandidate[]>();
@@ -391,7 +448,7 @@ export const MarketplaceV2: React.FC<{
     // Try to find a part that doesn't look like a street or zip
     const cityPart = parts.find(p => !/\d/.test(p)) || parts[0];
     return cityPart;
-  }, [preferences.address]);
+  }, [preferences.address, t]);
 
   const sectionShellClass = "scroll-mt-24 border-t border-slate-200/80 pt-9 dark:border-slate-800/80 md:pt-11";
   const firstSectionShellClass = "scroll-mt-24";

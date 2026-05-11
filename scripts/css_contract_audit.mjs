@@ -6,7 +6,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
-const SCAN_ROOTS = ['components', 'src', 'pages', 'index.css'];
+const SCAN_ROOTS = [
+  'frontend/src',
+  'frontend/src/pages',
+  'frontend/src/rebuild',
+  'frontend/src/index.css',
+  'src',
+  'pages',
+  'components',
+  'index.css',
+];
 const ALLOWED_EXTENSIONS = new Set(['.css', '.ts', '.tsx', '.js', '.jsx', '.mjs']);
 
 const LEGACY_CLASS_PATTERN = /\b(?:game-menu-[A-Za-z0-9_-]+|solarpunk-[A-Za-z0-9_-]+|glass-panel|(?<!app-)input-field)\b/;
@@ -18,6 +27,7 @@ const shouldScanFile = (relativePath) => ALLOWED_EXTENSIONS.has(path.extname(rel
 
 const walk = (entryPath) => {
   const fullPath = path.join(ROOT, entryPath);
+  if (!fs.existsSync(fullPath)) return [];
   const stats = fs.statSync(fullPath);
 
   if (stats.isFile()) {
@@ -38,7 +48,7 @@ const walk = (entryPath) => {
   return files;
 };
 
-const collectFiles = () => SCAN_ROOTS.flatMap((entry) => walk(entry));
+const collectFiles = () => Array.from(new Set(SCAN_ROOTS.flatMap((entry) => walk(entry))));
 
 const violations = [];
 

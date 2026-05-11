@@ -36,7 +36,7 @@ export default defineConfig({
         manualChunks: {
           'vendor-ui': ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge'],
           'vendor-charts': ['recharts'],
-          'vendor-utils': ['date-fns', 'i18next', 'react-i18next'],
+          'vendor-utils': ['i18next', 'react-i18next'],
         },
       },
     },

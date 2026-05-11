@@ -11,12 +11,11 @@ import {
 export type CandidateShellVariant = 'dashboard' | 'profile' | 'role' | 'journey';
 
 const SURFACE_TONES: Record<CandidateShellVariant, string> = {
-  dashboard: 'from-[color:var(--shell-surface-gold)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-cyan)]',
-  profile: 'from-[color:var(--shell-surface-gold)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-teal)]',
+  dashboard: 'from-[color:var(--shell-surface-base)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-cyan)]',
+  profile: 'from-[color:var(--shell-surface-base)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-teal)]',
   role: 'from-[color:var(--shell-surface-base)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-base)]',
-  journey: 'from-[color:var(--shell-surface-teal)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-gold)]',
+  journey: 'from-[color:var(--shell-surface-base)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-teal)]',
 };
-
 
 const CALL_OUT_POSITIONS = [
   'left-[4%] top-[12%]',
@@ -44,35 +43,9 @@ export const CandidateShellSurface: React.FC<{
 }) => (
   <section className={cn('relative overflow-hidden', className)}>
     {variant !== 'role' ? (
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[22rem] overflow-hidden">
         <div className={cn('absolute inset-x-0 top-0 h-full bg-gradient-to-b', SURFACE_TONES[variant])} />
-        {variant === 'dashboard' ? (
-          <>
-            <div className="absolute left-[10%] top-8 h-32 w-32 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-gold)_20%,transparent)] blur-[86px]" />
-            <div className="absolute right-[13%] top-10 h-36 w-36 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-teal)_16%,transparent)] blur-[98px]" />
-            <div className="absolute inset-x-[8%] top-0 h-px bg-[linear-gradient(90deg,transparent,var(--dashboard-card-border),transparent)]" />
-
-          </>
-        ) : (
-          <>
-            <div className="absolute left-[8%] top-8 h-28 w-28 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-gold)_20%,transparent)] blur-[80px]" />
-            <div className="absolute right-[12%] top-10 h-32 w-32 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-teal)_14%,transparent)] blur-[92px]" />
-
-            <svg
-              className="absolute right-[18%] top-6 h-24 w-24 text-[color:color-mix(in_srgb,var(--dashboard-gold)_80%,transparent)]"
-              viewBox="0 0 120 120"
-
-              fill="none"
-              aria-hidden
-            >
-              <circle cx="94" cy="20" r="14" stroke="currentColor" strokeWidth="1.4" strokeDasharray="4 7" />
-              <path d="M92 32L72 62L36 92" stroke="currentColor" strokeWidth="1.4" />
-              <circle cx="72" cy="62" r="3" fill="var(--dashboard-gold)" />
-              <circle cx="36" cy="92" r="3" fill="var(--dashboard-teal)" />
-            </svg>
-
-          </>
-        )}
+        <div className="absolute inset-x-[4%] top-0 h-px bg-[color:var(--dashboard-card-border)]" />
       </div>
     ) : null}
 
@@ -81,7 +54,7 @@ export const CandidateShellSurface: React.FC<{
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             {eyebrow ? <div>{eyebrow}</div> : null}
-            {title ? <div className="mt-3 text-[1.85rem] font-semibold tracking-[-0.05em] text-[color:var(--dashboard-text-strong)]">{title}</div> : null}
+            {title ? <div className="mt-3 text-[1.85rem] font-semibold tracking-normal text-[color:var(--dashboard-text-strong)]">{title}</div> : null}
             {subtitle ? <div className="mt-2 max-w-3xl text-sm leading-7 text-[color:var(--dashboard-text-body)]">{subtitle}</div> : null}
           </div>
           {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -107,10 +80,10 @@ export const ShellCard: React.FC<{
 }> = ({ children, className, tone = 'default' }) => (
   <section
     className={cn(
-      tone === 'default' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-card-border)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-card-bg)_94%,transparent)] shadow-[0_18px_44px_-40px_rgba(72,55,24,0.1)]',
-      tone === 'soft' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-soft-border)_44%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-soft-bg)_94%,transparent)] shadow-[0_14px_30px_-30px_rgba(72,55,24,0.08)]',
-      tone === 'accent' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-gold)_48%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-card-bg)_94%,transparent)] shadow-[0_18px_44px_-36px_rgba(185,131,46,0.1)]',
-      tone === 'contrast' && 'rounded-[24px] border border-white/10 bg-[color:var(--shell-bg-base)] shadow-[0_26px_70px_-52px_rgba(0,0,0,0.8)] text-white',
+      tone === 'default' && 'rounded-lg border border-[color:color-mix(in_srgb,var(--dashboard-card-border)_62%,transparent)] bg-[color:var(--dashboard-card-bg)] shadow-[var(--dashboard-card-shadow)]',
+      tone === 'soft' && 'rounded-lg border border-[color:color-mix(in_srgb,var(--dashboard-soft-border)_72%,transparent)] bg-[color:var(--dashboard-soft-bg)] shadow-sm',
+      tone === 'accent' && 'rounded-lg border border-[color:color-mix(in_srgb,var(--dashboard-gold)_38%,transparent)] bg-[color:var(--dashboard-card-bg)] shadow-[var(--dashboard-card-shadow)]',
+      tone === 'contrast' && 'rounded-lg border border-white/10 bg-[color:var(--shell-bg-base)] shadow-[0_18px_54px_-42px_rgba(0,0,0,0.72)] text-white',
 
       'self-start',
       className,
@@ -134,7 +107,7 @@ export const CompactActionButton: React.FC<{
       tone === 'primary'
         ? primaryButtonClass
         : secondaryButtonClass,
-      'rounded-[14px] px-4 py-2.5 text-sm',
+      'rounded-lg px-4 py-2.5 text-sm',
       className,
     )}
   >
@@ -148,7 +121,7 @@ export const MetricPill: React.FC<{
   icon?: React.ReactNode;
   className?: string;
 }> = ({ label, value, icon, className }) => (
-  <div className={cn('rounded-[22px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-3', className)}>
+  <div className={cn('rounded-lg border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-3', className)}>
     <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--dashboard-text-muted)]">
       {icon}
       <span>{label}</span>
@@ -259,7 +232,7 @@ export const ArchetypeHeroScene: React.FC<{
   className?: string;
 }> = ({ title: _title, subtitle: _subtitle, metrics, className }) => {
   return (
-    <div className={cn('relative min-h-[16rem] overflow-hidden rounded-[24px]', className)}>
+    <div className={cn('relative min-h-[16rem] overflow-hidden rounded-lg', className)}>
       <div className="absolute inset-0 flex items-center justify-center">
         <img 
           src="/logo-transparent.png" 
@@ -277,7 +250,7 @@ export const ArchetypeHeroScene: React.FC<{
         <div
           key={`${metric.label}-${index}`}
           className={cn(
-            'absolute hidden max-w-[7.5rem] rounded-[14px] bg-white border border-slate-200 px-2 py-1.5 dark:bg-slate-800 dark:border-white/10 lg:block',
+            'absolute hidden max-w-[7.5rem] rounded-lg bg-white border border-slate-200 px-2 py-1.5 dark:bg-slate-800 dark:border-white/10 lg:block',
             CALL_OUT_POSITIONS[index],
           )}
         >

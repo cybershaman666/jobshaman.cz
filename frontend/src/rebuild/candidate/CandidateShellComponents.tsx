@@ -19,6 +19,13 @@ export const HeroStatCard: React.FC<{
   </div>
 );
 
+export const DetailMetaPill: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</div>
+    <div className="mt-1 text-sm font-semibold leading-6 text-slate-900">{value}</div>
+  </div>
+);
+
 export const DetailSection: React.FC<{ title: string; body: string }> = ({ title, body }) => {
   if (!body.trim()) return null;
   return (

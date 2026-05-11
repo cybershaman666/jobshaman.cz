@@ -4,33 +4,25 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  AlertTriangle,
   Building2,
   CheckCircle2,
   Clock3,
   Coins,
   Compass,
   ExternalLink,
-  Gauge,
   Loader2,
   MapPin,
-  LogOut,
-  Route,
-  Search,
-  ShieldCheck,
   Sparkles,
   Star,
   Users,
-  WalletCards,
-  UserCircle2,
   X,
 } from 'lucide-react';
 
-import type { CompanyProfile, DialogueSummary, UserProfile } from '../../types';
+import type { DialogueSummary } from '../../types';
 import { computeArchetype, fetchJcfpmItems, hasJcfpmAnswer, scoreJcfpmAnswer, submitJcfpm } from '../../services/v2JcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
 import { fetchHandshakeAvailability } from '../../services/v2HandshakeService';
-import { evaluateRole, roleMatchesDiscovery } from '../intelligence';
+import { roleMatchesDiscovery } from '../intelligence';
 import type {
   CandidatePreferenceProfile,
   Company,
@@ -42,22 +34,14 @@ import type {
 } from '../models';
 import { resolveCompany } from '../shellDomain';
 import { getApplicationStatusCopy } from '../status';
-import { BrandMark, LanguageSwitcher, ThemeToggle } from '../ui/RebuildChrome';
 import {
-  appHeaderChromeClass,
-  appHeaderShellClass,
-  fieldClass,
-  headerProfileChipClass,
   panelClass,
   pillEyebrowClass,
   primaryButtonClass,
   secondaryButtonClass,
-  segmentedControlClass,
   shellPageClass,
-  topBarSearchClass,
 } from '../ui/shellStyles';
 import { cn } from '../cn';
-import type { AuthIntent } from '../authTypes';
 import { getStockCoverCandidatesForDomain } from '../../utils/domainCoverImages';
 import {
   CandidateShellSurface,
@@ -65,16 +49,16 @@ import {
   SectionEyebrow,
   ShellCard,
 } from './CandidateShellSurface';
-import { CandidateTopBar } from './CandidateTopBar';
 import { 
   MarketplaceFilterPanel, 
   MarketplaceActiveFilters,
   MarketplaceSearchPanel
 } from './MarketplaceFilters';
 import { RoleRealityBoard } from './RoleRealityBoard';
+import { formatRoleCompensation } from './roleFormatting';
 import { RecommendationFitPanel } from './RecommendationFitPanel';
-import { RoleCard } from './RoleCard';
-import { HeroStatCard, InsightBadge, DetailSection } from './CandidateShellComponents';
+import { ResilientImage, RoleCard } from './RoleCard';
+import { DetailMetaPill, HeroStatCard, DetailSection } from './CandidateShellComponents';
 
 const MARKETPLACE_IMAGE_FALLBACK = '/hero-panorama.png';
 const MARKETPLACE_LOGO_FALLBACK = '/logo-alt.png';
@@ -488,7 +472,7 @@ export const MarketplacePage: React.FC<{
       }
       return true;
     });
-  }, [filters.benefits, filters.city, filters.crossBorder, filters.curatedOnly, filters.radiusKm, filters.remoteOnly, filters.roleFamily, filters.workArrangement, preferences, roles, searchValue]);
+  }, [filters.benefits, filters.city, filters.crossBorder, filters.curatedOnly, filters.radiusKm, filters.remoteOnly, filters.roleFamily, filters.workArrangement, hasTextSearch, preferences, roles, searchValue]);
   const curatedRoles = visibleRoles.filter((role) => role.source === 'curated');
   const importedRoles = visibleRoles.filter((role) => role.source === 'imported');
   const hasVisibleRoles = visibleRoles.length > 0;

@@ -480,6 +480,7 @@ const ArchetypeHeroCard: React.FC<{
   onStartJcfpm: () => void;
 }> = ({ vm, onOpenDetail, onStartJcfpm }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = React.useState('skills');
 
   if (!vm.isJcfpmComplete) {
     return (
@@ -496,7 +497,6 @@ const ArchetypeHeroCard: React.FC<{
   }
 
   const copy = formatArchetypeCopy(vm.archetypeDescription, t);
-  const [activeTab, setActiveTab] = React.useState('skills');
   const tabCopy: Record<string, string> = {
     skills: copy.join(' '),
     motivation: vm.mentorAdvice,
