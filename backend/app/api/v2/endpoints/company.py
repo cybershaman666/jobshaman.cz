@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
 from app.domains.handshake.service import HandshakeDomainService
