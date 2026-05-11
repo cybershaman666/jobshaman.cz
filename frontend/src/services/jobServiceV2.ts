@@ -475,7 +475,15 @@ export const fetchJobsWithFiltersV2 = async (
 
     try {
       // Skip recommendation feed if user is explicitly searching or heavily filtering
-      const hasSearchFilters = Boolean(options.searchTerm || options.filters?.city || (options.filters?.roleFamily && options.filters.roleFamily !== 'all'));
+      const hasSearchFilters = Boolean(
+        options.searchTerm || 
+        options.filters?.city || 
+        (options.filters?.roleFamily && options.filters.roleFamily !== 'all') ||
+        (options.filters?.minSalary && options.filters.minSalary > 0) ||
+        (options.filters?.benefits && options.filters.benefits.length > 0) ||
+        options.filters?.remoteOnly ||
+        (options.filters?.workArrangement && options.filters.workArrangement !== 'all')
+      );
       if (page === 0 && options.includeRecommendations !== false && !hasSearchFilters) {
         const hasAuthSession = await ApiService.hasAuthSession();
         if (hasAuthSession) {

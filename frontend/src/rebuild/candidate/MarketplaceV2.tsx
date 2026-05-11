@@ -21,6 +21,7 @@ import {
   Home,
   Banknote,
   BrainCircuit,
+  ChevronDown,
 } from 'lucide-react';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { Role, CandidatePreferenceProfile, MarketplaceFilters, MarketplaceSection } from '../models';
@@ -831,7 +832,18 @@ export const MarketplaceV2: React.FC<{
                     </h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {section.items.map((role) => (
+                    {section.items
+                      .filter((role) => !filters.city || role.location.toLowerCase().includes(filters.city.toLowerCase()))
+                      .filter((role) => {
+                        if (!searchValue.trim()) return true;
+                        const query = searchValue.toLowerCase();
+                        return (
+                          role.title.toLowerCase().includes(query) ||
+                          role.companyName.toLowerCase().includes(query) ||
+                          role.location.toLowerCase().includes(query)
+                        );
+                      })
+                      .map((role) => (
                       <DiscoveryRoleCard
                         key={role.id}
                         role={role}
@@ -875,19 +887,6 @@ export const MarketplaceV2: React.FC<{
                             <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                               {section.candidates.length}
                             </div>
-                            {onLoadMoreCategory && section.id !== 'other' ? (
-                              <button
-                                type="button"
-                                onClick={() => onLoadMoreCategory(section.id)}
-                                disabled={loadingCategoryId === section.id}
-                                className="inline-flex h-8 items-center gap-2 rounded-full border border-[#d8edf2] bg-[#eef8fb] px-3 text-[11px] font-black text-[#08788a] transition hover:bg-[#e3f4f8] disabled:cursor-wait disabled:opacity-70 dark:border-cyan-900/60 dark:bg-cyan-950/40 dark:text-cyan-200"
-                              >
-                                {loadingCategoryId === section.id ? <Loader2 size={13} className="animate-spin" /> : null}
-                                {loadingCategoryId === section.id
-                                  ? t('rebuild.marketplace.loading_category', { defaultValue: 'Načítám' })
-                                  : t('rebuild.marketplace.load_more_category', { defaultValue: 'Další z kategorie' })}
-                              </button>
-                            ) : null}
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -901,6 +900,25 @@ export const MarketplaceV2: React.FC<{
                             />
                           ))}
                         </div>
+                        {onLoadMoreCategory && section.id !== 'other' && section.candidates.length >= 4 && (
+                          <div className="mt-8 flex justify-center">
+                            <button
+                              type="button"
+                              onClick={() => onLoadMoreCategory(section.id)}
+                              disabled={loadingCategoryId === section.id}
+                              className="group flex h-11 items-center gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/30 px-6 text-[13px] font-bold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-wait disabled:opacity-70 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-300 dark:hover:bg-cyan-950/40 shadow-sm"
+                            >
+                              {loadingCategoryId === section.id ? (
+                                <Loader2 size={16} className="animate-spin text-cyan-500" />
+                              ) : (
+                                <ChevronDown size={16} className="transform transition-transform group-hover:translate-y-0.5" />
+                              )}
+                              {loadingCategoryId === section.id
+                                ? t('rebuild.marketplace.loading_category', { defaultValue: 'Načítám' })
+                                : t('rebuild.marketplace.load_more_category', { defaultValue: 'Zobrazit další z kategorie' })}
+                            </button>
+                          </div>
+                        )}
                       </section>
                     ))}
                   </div>
