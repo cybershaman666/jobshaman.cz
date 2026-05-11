@@ -6,8 +6,12 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs, urlunparse
 from dotenv import load_dotenv
 
-ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
-BACKEND_ENV = Path(__file__).resolve().parents[3] / "backend" / ".env"
+SCRIPT_PATH = Path(__file__).resolve()
+BACKEND_ROOT = SCRIPT_PATH.parent.parent
+REPO_ROOT = BACKEND_ROOT.parent
+
+ROOT_ENV = REPO_ROOT / ".env"
+BACKEND_ENV = BACKEND_ROOT / ".env"
 
 load_dotenv(ROOT_ENV)
 load_dotenv(BACKEND_ENV)
