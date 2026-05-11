@@ -26,12 +26,13 @@ import {
   fetchCompanyApplicationMessages,
   sendCompanyApplicationMessage,
 } from '../../services/v2DialogueService';
+import type { AssessmentTask } from '../../services/v2ChallengeService';
 
 import { cn } from '../cn';
 import { deriveDashboardMetrics } from '../derivations';
 import type { CalendarEvent, CandidateInsight, Company, HandshakeBlueprint, Role } from '../models';
 import type { RecruiterTab } from '../routing';
-import { roleFamilyLabel, generateAiBlueprint } from '../shellDomain';
+import { roleFamilyLabel } from '../shellDomain';
 import { getApplicationStatusCopy } from '../status';
 import {
   fieldClass,
@@ -131,6 +132,8 @@ export const RecruiterShell: React.FC<{
     salaryFrom: number | null;
     salaryTo: number | null;
     skills: string[];
+    assessmentTasks?: AssessmentTask[];
+    handshakeBlueprint?: Record<string, any>;
   }) => Promise<Role>;
   onAiDraftChallenge: (input: {
     title?: string;
@@ -167,9 +170,9 @@ export const RecruiterShell: React.FC<{
   userProfile,
   roles,
   blueprintLibrary,
-  setBlueprintLibrary,
+  setBlueprintLibrary: _setBlueprintLibrary,
   roleAssignments: _roleAssignments,
-  setRoleAssignments,
+  setRoleAssignments: _setRoleAssignments,
   companyLibrary,
   setCompanyLibrary,
   recruiterCompany,
@@ -204,6 +207,7 @@ export const RecruiterShell: React.FC<{
   const [draftRoleSalaryFrom, setDraftRoleSalaryFrom] = React.useState('');
   const [draftRoleSalaryTo, setDraftRoleSalaryTo] = React.useState('');
   const [draftRoleSkills, setDraftRoleSkills] = React.useState('');
+  const [draftAiOutput, setDraftAiOutput] = React.useState<Record<string, any> | null>(null);
   const [challengeSaving, setChallengeSaving] = React.useState(false);
   const [challengeAiDraftBusy, setChallengeAiDraftBusy] = React.useState(false);
   const [challengeBusyId, setChallengeBusyId] = React.useState<string | null>(null);
@@ -283,6 +287,7 @@ export const RecruiterShell: React.FC<{
     if (problemStatement) setDraftRoleSummary(problemStatement);
     if (taskBrief) setDraftRoleFirstStep(taskBrief);
     if (skills.length) setDraftRoleSkills(skills.slice(0, 10).join(', '));
+    setDraftAiOutput(output);
     setChallengeNotice(t('rebuild.recruiter.ai_draft_ready', { defaultValue: 'Mistral has prepared a draft of the challenge and assessment. Review it and confirm by saving.' }));
   };
 
@@ -320,7 +325,6 @@ export const RecruiterShell: React.FC<{
     }
     setChallengeSaving(true);
     try {
-      const blueprint = generateAiBlueprint(draftRoleFamily, title);
       const createdRole = await onCreateChallenge({
         title,
         roleFamily: draftRoleFamily,
@@ -331,15 +335,18 @@ export const RecruiterShell: React.FC<{
         salaryFrom: draftRoleSalaryFrom ? Number(draftRoleSalaryFrom) : null,
         salaryTo: draftRoleSalaryTo ? Number(draftRoleSalaryTo) : null,
         skills: draftRoleSkills.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 12),
+        assessmentTasks: Array.isArray(draftAiOutput?.assessment_tasks) ? draftAiOutput.assessment_tasks as AssessmentTask[] : undefined,
+        handshakeBlueprint: draftAiOutput?.handshake_blueprint_v1 && typeof draftAiOutput.handshake_blueprint_v1 === 'object'
+          ? draftAiOutput.handshake_blueprint_v1
+          : undefined,
       });
-      const assignedBlueprint = { ...blueprint, id: `${blueprint.id}-${createdRole.id}` };
-      setBlueprintLibrary((current) => [assignedBlueprint, ...current]);
-      setRoleAssignments((current) => ({ ...current, [createdRole.id]: assignedBlueprint.id }));
+      void createdRole;
       setChallengeNotice(t('rebuild.recruiter.challenge_saved', { defaultValue: 'Challenge is saved and ready for candidate handshake.' }));
       setDraftRoleTitle('');
       setDraftRoleSummary('');
       setDraftRoleFirstStep('');
       setDraftRoleSkills('');
+      setDraftAiOutput(null);
     } catch (error) {
       setChallengeError(error instanceof Error ? error.message : t('rebuild.recruiter.challenge_save_error', { defaultValue: 'Failed to save the challenge.' }));
     } finally {
@@ -362,6 +369,8 @@ export const RecruiterShell: React.FC<{
   };
 
   const handlePublishChallenge = async (roleId: string) => {
+    const confirmed = window.confirm(t('rebuild.recruiter.publish_confirm', { defaultValue: 'Publish this challenge to the marketplace? Candidates will be able to start the handshake.' }));
+    if (!confirmed) return;
     setChallengeBusyId(roleId);
     setChallengeError('');
     setChallengeNotice('');
@@ -814,6 +823,24 @@ export const RecruiterShell: React.FC<{
                           </div>
                         ))}
                       </div>
+                      {Array.isArray(draftAiOutput?.assessment_tasks) && draftAiOutput.assessment_tasks.length > 0 ? (
+                        <div className="mt-4 rounded-[8px] border border-slate-200 bg-white p-4">
+                          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                            {t('rebuild.recruiter.ai_draft_tasks', { defaultValue: 'AI draft tasks' })}
+                          </div>
+                          <div className="mt-3 space-y-3">
+                            {draftAiOutput.assessment_tasks.slice(0, 4).map((task: any, index: number) => (
+                              <div key={String(task?.id || index)} className="rounded-[8px] border border-slate-200 bg-slate-50 p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="text-sm font-bold text-slate-900">{String(task?.title || t('rebuild.recruiter.task_n', { defaultValue: 'Task {{n}}', n: index + 1 }))}</div>
+                                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{String(task?.type || 'task').replaceAll('_', ' ')}</div>
+                                </div>
+                                <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{String(task?.prompt || task?.instructions || '')}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                       <div className="mt-4 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
                         <div className="flex items-center gap-4">
                           <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#2f6fca] bg-[#eff6ff] text-lg font-bold text-[#1f5fbf]">{challengeScore}%</div>
@@ -858,9 +885,9 @@ export const RecruiterShell: React.FC<{
 
                 <div className="sticky bottom-4 z-20 mt-6 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 p-4 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] dark:shadow-none backdrop-blur">
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{t('rebuild.recruiter.draft_challenge', { defaultValue: 'Draft challenge' })}</div>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-emerald-700"><Check size={13} /> {t('rebuild.recruiter.auto_saved', { defaultValue: 'Automaticky uloženo lokálně' })}</div>
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{t('rebuild.recruiter.draft_challenge', { defaultValue: 'Draft challenge' })}</div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-600"><Check size={13} /> {draftAiOutput ? t('rebuild.recruiter.ai_contract_ready', { defaultValue: 'AI assessment contract is ready for saving' }) : t('rebuild.recruiter.server_draft_required', { defaultValue: 'Generate and save the draft to the company workspace' })}</div>
                     </div>
                     <div className="hidden flex-1 items-center justify-center gap-3 text-xs font-bold text-slate-400 lg:flex">
                       {['Podstata výzvy', 'Oblast a spolupráce', 'Kontext', 'Assessment', 'Náhled'].map((label, index) => (
@@ -873,10 +900,13 @@ export const RecruiterShell: React.FC<{
                         </React.Fragment>
                       ))}
                     </div>
-                    <button type="button" onClick={() => void handleMistralDraftAssist()} disabled={challengeAiDraftBusy} className={cn(primaryButtonClass, 'rounded-[8px] bg-[#c28a2c] hover:bg-[#a87421] disabled:opacity-60')}>
+                    <button type="button" onClick={() => void handleMistralDraftAssist()} disabled={challengeAiDraftBusy} className={cn(secondaryButtonClass, 'rounded-[8px] disabled:opacity-60')}>
                       {challengeAiDraftBusy ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {t('rebuild.recruiter.continue_with_ai', { defaultValue: 'Continue with AI' })}
-                      <span>→</span>
+                      {t('rebuild.recruiter.generate_ai_draft', { defaultValue: 'Generate AI draft' })}
+                    </button>
+                    <button type="button" onClick={() => void handleCreateChallenge()} disabled={challengeSaving} className={cn(primaryButtonClass, 'rounded-[8px] bg-[#c28a2c] hover:bg-[#a87421] disabled:opacity-60')}>
+                      {challengeSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                      {t('rebuild.recruiter.save_draft_to_workspace', { defaultValue: 'Save draft' })}
                     </button>
                   </div>
                 </div>
@@ -895,7 +925,9 @@ export const RecruiterShell: React.FC<{
                     </div>
                   ) : null}
                   {visibleRoles.map((role) => {
-                    const blueprint = blueprintLibrary.find((item) => item.id === role.blueprintId) || blueprintLibrary.find((item) => item.roleFamily === role.roleFamily);
+                    const blueprint = role.handshakeBlueprint && Array.isArray((role.handshakeBlueprint as HandshakeBlueprint).steps)
+                      ? role.handshakeBlueprint as HandshakeBlueprint
+                      : blueprintLibrary.find((item) => item.id === role.blueprintId) || blueprintLibrary.find((item) => item.roleFamily === role.roleFamily);
                     return (
                     <div key={role.id} className="rounded-[8px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-[0_18px_60px_-52px_rgba(15,23,42,0.35)] dark:shadow-none">
                       <div className="flex flex-wrap items-start justify-between gap-4">

@@ -15,7 +15,6 @@ import type { UserProfile } from '../../types';
 import type { CandidateInsight, HandshakeBlueprint, Role } from '../models';
 import { cn } from '../cn';
 
-import { buildRecruiterDashboardViewModel } from '../dashboard/viewModels';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { fetchV2CompanyDashboard, type V2CompanyDashboardPayload } from '../../services/companyDashboardService';
 
@@ -53,7 +52,7 @@ const RecruiterMetricCard: React.FC<{
 };
 
 const RecruiterRadarCard: React.FC<{
-  metrics: ReturnType<typeof buildRecruiterDashboardViewModel>['radarMetrics'];
+  metrics: Array<{ label: string; teamValue: number; benchmarkValue: number | null }>;
   t: TFunction;
 }> = ({ metrics, t }) => (
   <section className="rounded-[28px] border border-[color:var(--shell-panel-border)] bg-white/40 dark:bg-slate-900/40 p-7 shadow-sm backdrop-blur-xl">
@@ -93,7 +92,7 @@ const RecruiterRadarCard: React.FC<{
 );
 
 const ActiveRolesCard: React.FC<{
-  roles: ReturnType<typeof buildRecruiterDashboardViewModel>['activeRoles'];
+  roles: Array<{ id: string; title: string; team: string; candidates: number; status: string; accent: string }>;
   t: TFunction;
 }> = ({ roles, t }) => (
   <section className="rounded-[28px] border border-[color:var(--shell-panel-border)] bg-white/40 dark:bg-slate-900/40 p-7 shadow-sm backdrop-blur-xl">
@@ -130,7 +129,7 @@ const ActiveRolesCard: React.FC<{
 );
 
 const ResonanceCard: React.FC<{
-  resonance: ReturnType<typeof buildRecruiterDashboardViewModel>['resonance'];
+  resonance: Array<{ id: string; label: string; value: number }>;
   tip: string;
   t: TFunction;
 }> = ({ resonance, tip, t }) => (
@@ -171,7 +170,7 @@ const ResonanceCard: React.FC<{
 );
 
 const TopCandidatesCard: React.FC<{
-  candidates: ReturnType<typeof buildRecruiterDashboardViewModel>['topCandidates'];
+  candidates: Array<{ id: string; name: string; role: string; score: number | null; avatarSeed: string }>;
   t: TFunction;
 }> = ({ candidates, t }) => (
   <section className="rounded-[28px] border border-[color:var(--shell-panel-border)] bg-white/40 dark:bg-slate-900/40 p-7 shadow-sm backdrop-blur-xl">
@@ -197,7 +196,7 @@ const TopCandidatesCard: React.FC<{
             <div className="truncate text-xs text-[#6a7380] dark:text-slate-400">{candidate.role}</div>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[color:var(--shell-accent-cyan)] text-[10px] font-black">
-            {candidate.score}%
+            {candidate.score === null ? t('rebuild.recruiter.score_pending', { defaultValue: 'N/A' }) : `${candidate.score}%`}
           </div>
           <ChevronRight size={16} className="shrink-0 text-slate-300" />
         </button>
@@ -207,7 +206,7 @@ const TopCandidatesCard: React.FC<{
 );
 
 const PipelineCard: React.FC<{
-  pipeline: ReturnType<typeof buildRecruiterDashboardViewModel>['pipeline'];
+  pipeline: Array<{ id: string; label: string; count: number; color: string }>;
   t: TFunction;
 }> = ({ pipeline, t }) => {
   return (
@@ -241,7 +240,7 @@ const PipelineCard: React.FC<{
 };
 
 const CompositionCard: React.FC<{
-  composition: ReturnType<typeof buildRecruiterDashboardViewModel>['composition'];
+  composition: Array<{ id: string; label: string; value: number; color: string }>;
   t: TFunction;
 }> = ({ composition, t }) => {
   const gradient = composition.map((slice, index, items) => {
@@ -268,8 +267,8 @@ const CompositionCard: React.FC<{
           <div className="flex justify-center">
             <div className="relative h-[160px] w-[160px] rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
               <div className="absolute inset-[30px] rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center">
-                <div className="text-2xl font-bold dark:text-slate-100">32</div>
-                <div className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('rebuild.recruiter.members_unit', { defaultValue: 'members' })}</div>
+                <div className="text-2xl font-bold dark:text-slate-100">100%</div>
+                <div className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('rebuild.recruiter.role_mix_unit', { defaultValue: 'role mix' })}</div>
               </div>
             </div>
           </div>
@@ -338,10 +337,6 @@ export const RecruiterDashboardV2: React.FC<{
   navigate,
   userProfile,
   recruiterCompany,
-  roles,
-  blueprintLibrary,
-  candidateInsights,
-  dashboardMetrics,
   onSignOut,
   currentLanguage,
   onLanguageChange,
@@ -355,10 +350,6 @@ export const RecruiterDashboardV2: React.FC<{
       { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
       { id: 'billing', label: t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' }), icon: CreditCard, path: '/recruiter/billing' },
     ];
-    const vm = React.useMemo(
-      () => buildRecruiterDashboardViewModel(roles, candidateInsights, blueprintLibrary, dashboardMetrics, t),
-      [blueprintLibrary, candidateInsights, dashboardMetrics, roles],
-    );
     const [v2Dashboard, setV2Dashboard] = React.useState<V2CompanyDashboardPayload | null>(null);
     const [v2DashboardLoaded, setV2DashboardLoaded] = React.useState(false);
 
@@ -382,9 +373,15 @@ export const RecruiterDashboardV2: React.FC<{
       };
     }, [recruiterCompany?.id]);
 
+    const formatMetricValue = React.useCallback((value: number | null | undefined, suffix = '') => {
+      if (value === null || value === undefined) {
+        return t('rebuild.recruiter.insufficient_data_short', { defaultValue: 'N/A' });
+      }
+      return `${value}${suffix}`;
+    }, [t]);
+
     const dashboardVm = React.useMemo(() => {
       const emptyVm = {
-        ...vm,
         metrics: [
           { id: 'active_roles', label: t('rebuild.recruiter.metric_active_roles', { defaultValue: 'Active roles' }), value: '0', delta: v2DashboardLoaded ? t('rebuild.recruiter.no_data_yet', { defaultValue: 'No data yet' }) : t('rebuild.recruiter.loading_data', { defaultValue: 'Loading data' }), tone: 'neutral' as const },
           { id: 'candidates', label: t('rebuild.recruiter.metric_candidates', { defaultValue: 'Candidates in play' }), value: '0', delta: v2DashboardLoaded ? t('rebuild.recruiter.no_data_yet', { defaultValue: 'No data yet' }) : t('rebuild.recruiter.loading_data', { defaultValue: 'Loading data' }), tone: 'blue' as const },
@@ -405,13 +402,12 @@ export const RecruiterDashboardV2: React.FC<{
         return emptyVm;
       }
       return {
-        ...vm,
         metrics: [
           { id: 'active_roles', label: t('rebuild.recruiter.metric_active_roles', { defaultValue: 'Active roles' }), value: String(v2Dashboard.metrics.active_roles), delta: t('rebuild.recruiter.active_count', { defaultValue: '▲ {{count}} active', count: Math.max(0, v2Dashboard.metrics.active_roles) }), tone: 'neutral' as const },
           { id: 'candidates', label: t('rebuild.recruiter.metric_candidates', { defaultValue: 'Candidates in play' }), value: String(v2Dashboard.metrics.candidates), delta: t('rebuild.recruiter.in_progress_count', { defaultValue: '▲ {{count}} in progress', count: v2Dashboard.metrics.sandbox_sessions }), tone: 'blue' as const },
           { id: 'handshake', label: t('rebuild.recruiter.metric_responses', { defaultValue: 'Responses in process' }), value: String(v2Dashboard.metrics.handshakes_in_process), delta: t('rebuild.recruiter.submitted_count', { defaultValue: '▲ {{count}} submitted', count: v2Dashboard.metrics.submitted }), tone: 'orange' as const },
-          { id: 'success', label: t('rebuild.recruiter.metric_hire_success', { defaultValue: 'Hire success' }), value: `${v2Dashboard.metrics.hire_success}%`, delta: t('rebuild.recruiter.avg_rating', { defaultValue: '▲ {{rating}} avg rating', rating: v2Dashboard.metrics.average_evaluation || 0 }), tone: 'green' as const },
-          { id: 'resonance', label: t('rebuild.recruiter.metric_team_resonance', { defaultValue: 'Team resonance' }), value: `${v2Dashboard.metrics.team_resonance}%`, delta: t('rebuild.recruiter.completed_count', { defaultValue: '▲ {{count}} completed', count: v2Dashboard.metrics.sandbox_completed }), tone: 'blue' as const },
+          { id: 'success', label: t('rebuild.recruiter.metric_hire_success', { defaultValue: 'Hire success' }), value: formatMetricValue(v2Dashboard.metrics.hire_success, '%'), delta: v2Dashboard.metrics.hire_success === null ? t('rebuild.recruiter.insufficient_data', { defaultValue: 'Insufficient data' }) : t('rebuild.recruiter.avg_rating', { defaultValue: '▲ {{rating}} avg rating', rating: v2Dashboard.metrics.average_evaluation || 0 }), tone: 'green' as const },
+          { id: 'resonance', label: t('rebuild.recruiter.metric_team_resonance', { defaultValue: 'Team resonance' }), value: formatMetricValue(v2Dashboard.metrics.team_resonance, '%'), delta: v2Dashboard.metrics.team_resonance === null ? t('rebuild.recruiter.insufficient_data', { defaultValue: 'Insufficient data' }) : t('rebuild.recruiter.completed_count', { defaultValue: '▲ {{count}} completed', count: v2Dashboard.metrics.sandbox_completed }), tone: 'blue' as const },
         ],
         radarMetrics: v2Dashboard.radar_metrics,
         activeRoles: v2Dashboard.active_roles,
@@ -421,15 +417,18 @@ export const RecruiterDashboardV2: React.FC<{
             id: candidate.handshake_id || candidate.id,
             name: candidate.candidate_name || candidate.candidateName || t('rebuild.recruiter.candidate_n', { defaultValue: 'Candidate {{n}}', n: index + 1 }),
             role: candidate.headline || candidate.status,
-            score: candidate.score || candidate.matchPercent || 0,
+            score: candidate.score ?? candidate.matchPercent ?? null,
             avatarSeed: String(index + 1),
           }))
           : [],
-        pipeline: v2Dashboard.pipeline,
+        pipeline: v2Dashboard.pipeline.map((stage) => ({
+          ...stage,
+          label: stage.label_key ? t(stage.label_key, { defaultValue: stage.label || stage.id }) : (stage.label || stage.id),
+        })),
         composition: v2Dashboard.composition,
-        tip: v2Dashboard.tip || '',
+        tip: v2Dashboard.tip_key ? t(v2Dashboard.tip_key, { defaultValue: v2Dashboard.tip || '' }) : (v2Dashboard.tip || ''),
       };
-    }, [v2Dashboard, v2DashboardLoaded, vm]);
+    }, [formatMetricValue, t, v2Dashboard, v2DashboardLoaded]);
     const hasLiveSignals = Boolean(v2Dashboard && (
       v2Dashboard.metrics.active_roles > 0
       || v2Dashboard.metrics.candidates > 0

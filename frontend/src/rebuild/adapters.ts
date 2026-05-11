@@ -21,7 +21,8 @@ const fallbackLogo =
 const normalizeStepType = (type: unknown): HandshakeBlueprint['steps'][number]['type'] => {
   const value = String(type || '').toLowerCase();
   if (value === 'workspace') return 'task_workspace';
-  if (value === 'text_response') return 'scenario_response';
+  if (value === 'work_sample') return 'task_workspace';
+  if (value === 'text_response' || value === 'context') return 'scenario_response';
   if (value === 'external_link' || value === 'file_upload') return 'portfolio_or_proof';
   if (value === 'scheduler') return 'schedule_request';
   if (value === 'jcfpm_profile') return 'jcfpm_profile';

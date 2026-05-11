@@ -29,6 +29,7 @@ import {
   listCompanyChallenges,
   publishCompanyChallenge,
 } from '../services/v2ChallengeService';
+import type { AssessmentTask } from '../services/v2ChallengeService';
 import { supabase } from '../services/supabaseClient';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useCompanyJobsData } from '../hooks/useCompanyJobsData';
@@ -94,7 +95,6 @@ import {
   resolveBlueprintForRole,
   usePersistentState,
 } from './state';
-import { generateAiBlueprint } from './shellDomain';
 import { AppBackdrop } from './ui/RebuildChrome';
 import { DashboardLayoutV2 } from './ui/DashboardLayoutV2';
 import { type RoleClusterId } from './candidate/MarketplaceV2';
@@ -166,26 +166,14 @@ const JobshamanRebuildApp: React.FC = () => {
     enabled: true,
     userProfile,
   });
-  const [companyLibrary, setCompanyLibrary] = usePersistentState<Company[]>(
-    REBUILD_STORAGE_KEYS.companies,
-    getDefaultCompanyLibrary(),
-  );
+  const [companyLibrary, setCompanyLibrary] = React.useState<Company[]>(() => getDefaultCompanyLibrary());
   const [preferences, setPreferences] = usePersistentState<CandidatePreferenceProfile>(
     REBUILD_STORAGE_KEYS.preferences,
     getDefaultCandidatePreferences(),
   );
-  const [blueprintLibrary, setBlueprintLibrary] = usePersistentState<HandshakeBlueprint[]>(
-    REBUILD_STORAGE_KEYS.blueprints,
-    getDefaultBlueprintLibrary(),
-  );
-  const [localCompanyRoles, setLocalCompanyRoles] = usePersistentState<Role[]>(
-    REBUILD_STORAGE_KEYS.companyRoles,
-    [],
-  );
-  const [roleAssignments, setRoleAssignments] = usePersistentState<Record<string, string>>(
-    REBUILD_STORAGE_KEYS.roleAssignments,
-    getDefaultRoleAssignments(),
-  );
+  const [blueprintLibrary, setBlueprintLibrary] = React.useState<HandshakeBlueprint[]>(() => getDefaultBlueprintLibrary());
+  const [localCompanyRoles, setLocalCompanyRoles] = React.useState<Role[]>([]);
+  const [roleAssignments, setRoleAssignments] = React.useState<Record<string, string>>(() => getDefaultRoleAssignments());
   const [journeySessions, setJourneySessions] = usePersistentState<Record<string, CandidateJourneySession>>(
     REBUILD_STORAGE_KEYS.journeys,
     {},
@@ -725,7 +713,7 @@ const JobshamanRebuildApp: React.FC = () => {
   }, [localCompanyRoles, marketplaceRoles]);
 
   const getBlueprintForRole = React.useCallback((role: Role) => {
-    return resolveBlueprintForRole(role, blueprintLibrary, roleAssignments) || generateAiBlueprint(role.roleFamily, role.title);
+    return resolveBlueprintForRole(role, blueprintLibrary, roleAssignments);
   }, [blueprintLibrary, roleAssignments]);
 
   const setSessionForRole = React.useCallback((roleId: string, updater: React.SetStateAction<CandidateJourneySession>) => {
@@ -1510,6 +1498,8 @@ const JobshamanRebuildApp: React.FC = () => {
     salaryFrom: number | null;
     salaryTo: number | null;
     skills: string[];
+    assessmentTasks?: AssessmentTask[];
+    handshakeBlueprint?: Record<string, any>;
   }): Promise<Role> => {
     if (!companyProfile?.id) {
       throw new Error(t('rebuild.error.active_company_required', { defaultValue: 'An active company profile is required first.' }));
@@ -1535,6 +1525,8 @@ const JobshamanRebuildApp: React.FC = () => {
       location: input.location,
       first_reply_prompt: input.firstStep,
       company_goal: input.summary,
+      assessment_tasks: input.assessmentTasks,
+      handshake_blueprint_v1: input.handshakeBlueprint,
       editor_state: {
         source: 'rebuild_challenge_form',
         role_family: input.roleFamily,

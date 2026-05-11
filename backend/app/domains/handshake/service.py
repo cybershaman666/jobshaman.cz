@@ -674,6 +674,9 @@ class HandshakeDomainService:
             active_roles = HandshakeDomainService._active_roles_from_data(roles, handshakes)
             submitted_count = sum(1 for item in handshakes if item.status in {"submitted", "company_reviewing", "mutual_handshake", "completed"})
             avg_eval = round(sum(float(item.score or 0) for item in evaluations) / len(evaluations), 1) if evaluations else 0
+            sandbox_completed = sum(1 for item in sandboxes if item.status in {"submitted", "completed", "evaluated"})
+            has_evaluations = len(evaluations) > 0
+            has_completed_sandboxes = sandbox_completed > 0
             return {
                 "schema_version": "company-dashboard-v1",
                 "company_id": company_id,
@@ -683,24 +686,61 @@ class HandshakeDomainService:
                     "handshakes_in_process": sum(1 for item in handshakes if item.status not in TERMINAL_STATUSES),
                     "submitted": submitted_count,
                     "sandbox_sessions": len(sandboxes),
-                    "sandbox_completed": sum(1 for item in sandboxes if item.status in {"submitted", "completed", "evaluated"}),
-                    "average_evaluation": avg_eval,
-                    "hire_success": min(96, 68 + submitted_count * 3),
-                    "team_resonance": min(94, 72 + len(evaluations) * 2),
+                    "sandbox_completed": sandbox_completed,
+                    "average_evaluation": avg_eval if has_evaluations else None,
+                    "hire_success": None,
+                    "team_resonance": avg_eval if has_evaluations else None,
+                },
+                "data_quality": {
+                    "active_roles": {"status": "available", "source": "opportunities"},
+                    "candidates": {"status": "available", "source": "handshakes"},
+                    "handshakes_in_process": {"status": "available", "source": "handshakes"},
+                    "submitted": {"status": "available", "source": "handshakes"},
+                    "sandbox_sessions": {"status": "available", "source": "sandbox_sessions"},
+                    "sandbox_completed": {"status": "available", "source": "sandbox_sessions"},
+                    "average_evaluation": {
+                        "status": "available" if has_evaluations else "insufficient_data",
+                        "source": "sandbox_evaluations",
+                    },
+                    "hire_success": {
+                        "status": "insufficient_data",
+                        "source": "not_measured",
+                    },
+                    "team_resonance": {
+                        "status": "available" if has_evaluations else "insufficient_data",
+                        "source": "sandbox_evaluations",
+                    },
+                    "resonance": {
+                        "status": "available" if has_evaluations else "insufficient_data",
+                        "source": "sandbox_evaluations",
+                    },
+                    "composition": {
+                        "status": "available" if roles else "insufficient_data",
+                        "source": "opportunities",
+                    },
+                    "radar_metrics": {
+                        "status": "available" if has_evaluations else "insufficient_data",
+                        "source": "sandbox_evaluations",
+                    },
+                    "candidate_readouts": {
+                        "status": "available" if handshakes else "insufficient_data",
+                        "source": "handshakes",
+                    },
                 },
                 "status_counts": status_counts,
                 "active_roles": active_roles,
                 "top_candidates": top_candidates,
                 "pipeline": [
-                    {"id": "assigned", "label": "Zadano", "count": len(roles), "color": "#7da0f6"},
-                    {"id": "sandbox", "label": "V sandboxu", "count": len(sandboxes), "color": "#94bdf5"},
-                    {"id": "handshake", "label": "Handshake", "count": sum(1 for item in handshakes if item.status in {"in_progress", "submitted", "company_reviewing"}), "color": "#ffd88d"},
-                    {"id": "accepted", "label": "Přijato", "count": status_counts.get("mutual_handshake", 0) + status_counts.get("completed", 0), "color": "#99d7b2"},
+                    {"id": "assigned", "label_key": "company.dashboard.pipeline.assigned", "count": len(roles), "color": "#7da0f6"},
+                    {"id": "sandbox", "label_key": "company.dashboard.pipeline.sandbox", "count": len(sandboxes), "color": "#94bdf5"},
+                    {"id": "handshake", "label_key": "company.dashboard.pipeline.handshake", "count": sum(1 for item in handshakes if item.status in {"in_progress", "submitted", "company_reviewing"}), "color": "#ffd88d"},
+                    {"id": "accepted", "label_key": "company.dashboard.pipeline.accepted", "count": status_counts.get("mutual_handshake", 0) + status_counts.get("completed", 0), "color": "#99d7b2"},
                 ],
-                "resonance": HandshakeDomainService._resonance_from_evaluations(evaluations),
+                "resonance": HandshakeDomainService._resonance_from_evaluations(evaluations) if has_evaluations else [],
                 "composition": HandshakeDomainService._composition_from_roles(roles),
-                "radar_metrics": HandshakeDomainService._radar_metrics(evaluations),
-                "tip": "Dashboard zatím počítá jen z V2 handshaků. Jakmile kandidáti projdou sandboxem, doporučení se zpřesní podle jejich výstupů.",
+                "radar_metrics": HandshakeDomainService._radar_metrics(evaluations) if has_evaluations else [],
+                "tip_key": "company.dashboard.tip.native_handshakes_only" if has_completed_sandboxes else None,
+                "tip": None,
             }
 
     @staticmethod
@@ -1100,15 +1140,17 @@ class HandshakeDomainService:
             )
             for job in native_result.scalars().all():
                 capacity = _safe_dict(job.capacity_policy)
+                editor_state = _safe_dict(job.editor_state)
                 roles.append({
                     "id": str(job.id),
                     "title": job.title,
-                    "company": "Native challenge",
+                    "company": "",
                     "company_id": str(job.company_id),
                     "status": job.status,
                     "is_active": job.is_active,
                     "role_summary": job.summary,
                     "challenge_format": job.challenge_format,
+                    "role_family": editor_state.get("role_family") or "operations",
                     "capacity_policy": capacity,
                     "created_at": job.created_at,
                 })
@@ -1143,10 +1185,10 @@ class HandshakeDomainService:
         return [
             {
                 "id": str(role.get("id")),
-                "title": role.get("challenge_format") or role.get("title") or "Výzva",
-                "team": role.get("company") or "Tým",
+                "title": role.get("title") or role.get("challenge_format") or "Challenge",
+                "team": role.get("company") or role.get("role_family") or "Team",
                 "candidates": counts.get(str(role.get("id")), 0),
-                "status": "Plno" if counts.get(str(role.get("id")), 0) >= int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25) else ("Handshake" if counts.get(str(role.get("id")), 0) else "Zadáno"),
+                "status": "full" if counts.get(str(role.get("id")), 0) >= int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25) else ("handshake" if counts.get(str(role.get("id")), 0) else "assigned"),
                 "slots_active": counts.get(str(role.get("id")), 0),
                 "slots_limit": int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25),
                 "slots_remaining": max(0, int(_safe_dict(role.get("capacity_policy")).get("max_active_handshakes") or _safe_dict(role.get("capacity_policy")).get("company_slots_total") or 25) - counts.get(str(role.get("id")), 0)),
@@ -1160,15 +1202,14 @@ class HandshakeDomainService:
         profile_result = await session.execute(select(CandidateProfile).where(CandidateProfile.user_id == handshake.user_id))
         profile = profile_result.scalar_one_or_none()
         session_payload = await HandshakeDomainService._session_payload(session, handshake)
-        answers = _safe_dict(session_payload.get("answers"))
-        score = min(98, max(52, 58 + len(answers) * 9 + int(handshake.match_score_snapshot or 0)))
+        score = round(float(handshake.match_score_snapshot), 1) if handshake.match_score_snapshot is not None else None
         return {
             "id": str(handshake.id),
             "handshake_id": str(handshake.id),
             "candidate_id": str(handshake.user_id),
-            "candidate_name": profile.full_name if profile and profile.full_name else f"Kandidát {str(handshake.user_id)[-4:]}",
-            "candidateName": profile.full_name if profile and profile.full_name else f"Kandidát {str(handshake.user_id)[-4:]}",
-            "headline": _clean_text(_safe_dict(session_payload.get("candidate_context")).get("job_title") or "Kandidát v handshake", 160),
+            "candidate_name": profile.full_name if profile and profile.full_name else f"Candidate {str(handshake.user_id)[-4:]}",
+            "candidateName": profile.full_name if profile and profile.full_name else f"Candidate {str(handshake.user_id)[-4:]}",
+            "headline": _clean_text(_safe_dict(session_payload.get("candidate_context")).get("job_title") or "Handshake candidate", 160),
             "job_id": handshake.job_id,
             "status": handshake.status,
             "score": score,
@@ -1245,37 +1286,60 @@ class HandshakeDomainService:
 
     @staticmethod
     def _resonance_from_evaluations(evaluations: List[SandboxEvaluation]) -> List[Dict[str, Any]]:
-        base = 70 + min(15, len(evaluations) * 2)
+        buckets: Dict[str, List[float]] = {}
+        for evaluation in evaluations:
+            payload = _safe_dict(evaluation.evaluation_payload)
+            for card in _safe_list(payload.get("scorecards")):
+                item = _safe_dict(card)
+                key = _clean_text(item.get("key") or item.get("id"), 80)
+                value = item.get("score")
+                if not key:
+                    continue
+                try:
+                    buckets.setdefault(key, []).append(float(value))
+                except (TypeError, ValueError):
+                    continue
         return [
-            {"id": "cognitive_style", "label": "Kognitivní styl", "value": min(94, base + 8)},
-            {"id": "culture", "label": "Hodnoty a kultura", "value": min(92, base + 4)},
-            {"id": "pace", "label": "Pracovní tempo", "value": min(90, base + 1)},
-            {"id": "communication", "label": "Komunikační styl", "value": min(96, base + 10)},
-            {"id": "motivation", "label": "Motivace", "value": min(91, base + 5)},
-        ]
+            {
+                "id": key,
+                "label": key.replace("_", " ").title(),
+                "value": round(sum(values) / len(values)),
+            }
+            for key, values in buckets.items()
+            if values
+        ][:8]
 
     @staticmethod
     def _composition_from_roles(roles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        total = max(1, len(roles))
+        if not roles:
+            return []
+        counts: Dict[str, int] = {}
+        for role in roles:
+            key = _clean_text(role.get("role_family") or role.get("challenge_format") or "other", 80) or "other"
+            counts[key] = counts.get(key, 0) + 1
+        total = sum(counts.values()) or 1
+        colors = ["#7da9f5", "#88cfe0", "#9dd7b6", "#ffd88d", "#f0a0c2", "#c4b5fd", "#fca5a5", "#93c5fd"]
         return [
-            {"id": "visionaries", "label": "Vizionáři", "value": 28 if total else 0, "color": "#7da9f5"},
-            {"id": "architects", "label": "Architekti", "value": 25, "color": "#88cfe0"},
-            {"id": "realizers", "label": "Realizátoři", "value": 22, "color": "#9dd7b6"},
-            {"id": "analysts", "label": "Analytici", "value": 15, "color": "#ffd88d"},
-            {"id": "innovators", "label": "Inovátoři", "value": 10, "color": "#f0a0c2"},
+            {
+                "id": key,
+                "label": key.replace("_", " ").title(),
+                "value": round((count / total) * 100),
+                "color": colors[index % len(colors)],
+            }
+            for index, (key, count) in enumerate(sorted(counts.items(), key=lambda item: item[0]))
         ]
 
     @staticmethod
     def _radar_metrics(evaluations: List[SandboxEvaluation]) -> List[Dict[str, Any]]:
-        bump = min(10, len(evaluations))
+        resonance = HandshakeDomainService._resonance_from_evaluations(evaluations)
         return [
-            {"label": "Systémové myšlení", "teamValue": 72 + bump, "benchmarkValue": 86},
-            {"label": "Technologická adaptabilita", "teamValue": 66 + bump, "benchmarkValue": 82},
-            {"label": "Kognitivní flexe", "teamValue": 63 + bump, "benchmarkValue": 80},
-            {"label": "Sociální inteligence", "teamValue": 70 + bump, "benchmarkValue": 79},
-            {"label": "Strategické uvažování", "teamValue": 64 + bump, "benchmarkValue": 81},
-            {"label": "Odolnost ve stresu", "teamValue": 61 + bump, "benchmarkValue": 76},
-        ]
+            {
+                "label": item["label"],
+                "teamValue": item["value"],
+                "benchmarkValue": None,
+            }
+            for item in resonance
+        ][:6]
 
     @staticmethod
     async def _messages_for_handshake(session: AsyncSession, handshake: Handshake) -> List[Dict[str, Any]]:

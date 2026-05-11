@@ -51,8 +51,8 @@ export interface V2CompanyDashboardCandidate {
     candidateName?: string;
     headline: string;
     status: string;
-    score: number;
-    matchPercent?: number;
+    score: number | null;
+    matchPercent?: number | null;
     job_id: string;
     updated_at: string;
     submitted_at?: string | null;
@@ -68,18 +68,20 @@ export interface V2CompanyDashboardPayload {
         submitted: number;
         sandbox_sessions: number;
         sandbox_completed: number;
-        average_evaluation: number;
-        hire_success: number;
-        team_resonance: number;
+        average_evaluation: number | null;
+        hire_success: number | null;
+        team_resonance: number | null;
     };
+    data_quality?: Record<string, { status: 'available' | 'insufficient_data' | string; source?: string }>;
     status_counts: Record<string, number>;
     active_roles: V2CompanyDashboardRole[];
     top_candidates: V2CompanyDashboardCandidate[];
-    pipeline: Array<{ id: string; label: string; count: number; color: string }>;
+    pipeline: Array<{ id: string; label?: string; label_key?: string; count: number; color: string }>;
     resonance: Array<{ id: string; label: string; value: number }>;
     composition: Array<{ id: string; label: string; value: number; color: string }>;
-    radar_metrics: Array<{ label: string; teamValue: number; benchmarkValue: number }>;
-    tip: string;
+    radar_metrics: Array<{ label: string; teamValue: number; benchmarkValue: number | null }>;
+    tip?: string | null;
+    tip_key?: string | null;
 }
 
 export const fetchV2CompanyDashboard = async (companyId: string): Promise<V2CompanyDashboardPayload | null> => {
