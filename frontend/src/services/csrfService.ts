@@ -80,7 +80,7 @@ const resolveRequestTimeoutMs = (url: string): number => {
     if (path === '/assessments/invitations') return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path.startsWith('/assessments/invitations/')) return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path === '/jobs/hybrid-search' || path === '/jobs/hybrid-search-v2') return HYBRID_FETCH_TIMEOUT_MS;
-    if (path === '/subscription-status') return SUBSCRIPTION_FETCH_TIMEOUT_MS;
+    if (path === '/billing/subscription-status') return SUBSCRIPTION_FETCH_TIMEOUT_MS;
     if (path.startsWith('/ai/')) return AI_FETCH_TIMEOUT_MS;
     return DEFAULT_FETCH_TIMEOUT_MS;
 };
@@ -97,7 +97,7 @@ const getRequestOrigin = (url: string): string | null => {
 const isBackendOptionalCooldownEligiblePath = (path: string): boolean => {
     return (
         path === '/csrf-token' ||
-        path === '/subscription-status' ||
+        path === '/billing/subscription-status' ||
         path === '/jobs/interactions' ||
         path === '/jobs/interactions/state/sync' ||
         path === '/jobs/external/cached-feed' ||
@@ -149,8 +149,8 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
             path === '/jobs/interactions' ||
             path === '/jobs/interactions/state/sync' ||
             path.startsWith('/ai/') ||
-            path === '/verify-billing' ||
-            path === '/subscription-status' ||
+            path === '/billing/verify-billing' ||
+            path === '/billing/subscription-status' ||
             path.startsWith('/assessments/invitations/')
         );
     } catch {

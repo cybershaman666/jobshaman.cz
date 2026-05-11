@@ -17,7 +17,7 @@ export const redirectToCheckout = async (tier: 'premium' | 'starter' | 'growth' 
         if (!STRIPE_PUBLIC_KEY) {
             throw new Error('Stripe public key not configured. Set VITE_STRIPE_PUBLISHABLE_KEY before opening checkout.');
         }
-        const response = await authenticatedFetch(`${API_URL}/create-checkout-session`, {
+        const response = await authenticatedFetch(`${API_URL}/stripe/create-checkout-session`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const redirectToCheckout = async (tier: 'premium' | 'starter' | 'growth' 
  */
 export const openBillingPortal = async (): Promise<void> => {
     try {
-        const response = await authenticatedFetch(`${API_URL}/create-billing-portal-session`, {
+        const response = await authenticatedFetch(`${API_URL}/billing/create-billing-portal-session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -87,7 +87,7 @@ export const openBillingPortal = async (): Promise<void> => {
  */
 export const cancelSubscription = async (): Promise<boolean> => {
     try {
-        const response = await authenticatedFetch(`${API_URL}/cancel-subscription`, {
+        const response = await authenticatedFetch(`${API_URL}/billing/cancel-subscription`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
         });

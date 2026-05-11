@@ -139,7 +139,7 @@ export async function verifyServerSideBilling(
   check: ServerSideBillingCheck
 ): Promise<BillingVerificationResult> {
   try {
-    const response = await authenticatedFetch(`${BILLING_BACKEND_URL}/verify-billing`, {
+    const response = await authenticatedFetch(`${BILLING_BACKEND_URL}/billing/verify-billing`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     // subscription-status endpoint is guaranteed only on the main backend.
     // Keep probing tight to avoid noisy 404s and long fallback chains.
     const statusBackends = Array.from(new Set([BACKEND_URL].filter(Boolean)));
-    const statusPaths = ['/subscription-status'];
+    const statusPaths = ['/billing/subscription-status'];
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
