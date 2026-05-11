@@ -1,5 +1,5 @@
 -- Up Migration
-CREATE TABLE recommendation_personalized_weights (
+CREATE TABLE IF NOT EXISTS recommendation_personalized_weights (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     alpha_skill DOUBLE PRECISION NOT NULL DEFAULT 0.38,
@@ -14,4 +14,4 @@ CREATE TABLE recommendation_personalized_weights (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX ix_recommendation_personalized_weights_user_id ON recommendation_personalized_weights(user_id);
+CREATE INDEX IF NOT EXISTS ix_recommendation_personalized_weights_user_id ON recommendation_personalized_weights(user_id);
