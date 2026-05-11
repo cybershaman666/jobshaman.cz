@@ -9,6 +9,9 @@ from typing import Dict, Any, Optional
 # Import V2's core services
 from app.core.legacy_supabase import get_legacy_supabase_client
 from app.core.security import security, AccessControlService
+from app.core.database import async_session_factory
+from sqlalchemy import text
+import uuid
 
 supabase = get_legacy_supabase_client()
 
@@ -34,7 +37,7 @@ def require_company_access(user: dict, company_id: str) -> str:
         raise HTTPException(status_code=403, detail="Unauthorized")
     return company_id
 
-def verify_supabase_token_legacy(token: str) -> dict:
+async def verify_supabase_token_legacy(token: str) -> dict:
     if not supabase:
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
     cache_key = sha256(token.encode("utf-8")).hexdigest()
@@ -84,14 +87,61 @@ def verify_supabase_token_legacy(token: str) -> dict:
                         all_associations.append({"id": m["company_id"], "name": m.get("companies", {}).get("name"), "type": "member"})
                         authorized_ids.append(m["company_id"])
                 
-                if all_associations:
-                    profile["user_type"] = "company"
-                    profile["associations"] = all_associations
-                    profile["company_id"] = all_associations[0]["id"]
-                    profile["company_name"] = all_associations[0]["name"]
-                
-            profile["authorized_ids"] = authorized_ids
             profile["user_type"] = profile.get("user_type", "candidate")
+
+            # NEW: V2 Domain Synchronization
+            # We check the V2 database (Northflank Postgres) to see if the user has 
+            # recruiter status or company associations that are not yet in Supabase.
+            try:
+                async with async_session_factory() as session:
+                    v2_user_result = await session.execute(
+                        text("SELECT id, role FROM users WHERE supabase_id = :sid"),
+                        {"sid": uuid.UUID(str(user_id))}
+                    )
+                    v2_user = v2_user_result.mappings().first()
+                    
+                    if v2_user:
+                        v2_role = v2_user["role"]
+                        if v2_role == "recruiter" and profile.get("role") != "recruiter":
+                            profile["role"] = "recruiter"
+                        
+                        v2_companies_result = await session.execute(
+                            text("""
+                                SELECT c.id, c.name, cu.role 
+                                FROM company_users cu
+                                JOIN companies c ON c.id = cu.company_id
+                                WHERE cu.user_id = :uid
+                            """),
+                            {"uid": v2_user["id"]}
+                        )
+                        
+                        v2_associations = []
+                        for row in v2_companies_result.mappings().all():
+                            cid = str(row["id"])
+                            if cid not in authorized_ids:
+                                authorized_ids.append(cid)
+                            
+                            v2_associations.append({
+                                "id": cid,
+                                "name": row["name"],
+                                "type": row["role"]
+                            })
+                        
+                        if v2_associations:
+                            profile.setdefault("associations", [])
+                            existing_ids = {a["id"] for a in profile["associations"]}
+                            for va in v2_associations:
+                                if va["id"] not in existing_ids:
+                                    profile["associations"].append(va)
+                            
+                            profile["user_type"] = "company"
+                            if not profile.get("company_id") and profile["associations"]:
+                                profile["company_id"] = profile["associations"][0]["id"]
+                                profile["company_name"] = profile["associations"][0]["name"]
+            except Exception as e:
+                print(f"⚠️ [AUTH] V2 sync failed: {e}")
+
+            profile["authorized_ids"] = authorized_ids
             _AUTH_CONTEXT_CACHE[cache_key] = (now + timedelta(seconds=_AUTH_CONTEXT_CACHE_TTL_SECONDS), deepcopy(profile))
             return profile
             
@@ -103,7 +153,7 @@ async def get_current_user(request: Request, credentials: HTTPAuthorizationCrede
     cached_user = getattr(request.state, "current_user", None)
     if isinstance(cached_user, dict):
         return cached_user
-    user = verify_supabase_token_legacy(credentials.credentials)
+    user = await verify_supabase_token_legacy(credentials.credentials)
     request.state.current_user = user
     return user
 
