@@ -697,7 +697,7 @@ export const RecruiterShell: React.FC<{
           {tab === 'roles' ? (
             <div className="space-y-6">
               {isRoleEditorOpen ? (
-                <div className="animate-in fade-in zoom-in-95 duration-300">
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
                   <RoleEditorV2
                     initialRole={editingRole || undefined}
                     onSave={async (data) => {

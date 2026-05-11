@@ -172,14 +172,14 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[90vh] bg-slate-50 dark:bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
             {initialRole?.id ? t('rebuild.editor.edit_title', { defaultValue: 'Edit Role' }) : t('rebuild.editor.create_title', { defaultValue: 'Create New Role' })}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-slate-500 mt-2 font-medium">
             {t('rebuild.editor.subtitle', { defaultValue: 'Define the mission and build the assessment journey.' })}
           </p>
         </div>
@@ -251,7 +251,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 p-10">
+        <div className="flex-1 overflow-y-auto bg-slate-50/30 dark:bg-slate-950/30 p-10">
           <div className="max-w-3xl mx-auto">
             {currentStep === 'essence' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -272,7 +272,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                       <input 
                         value={title} 
                         onChange={e => setTitle(e.target.value)} 
-                        placeholder="e.g. Senior Frontend Architect" 
+                        placeholder={t('rebuild.editor.title_placeholder', { defaultValue: 'e.g. Senior Frontend Architect' })}
                         className={fieldClass} 
                       />
                     </label>
@@ -299,7 +299,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                       value={summary} 
                       onChange={e => setSummary(e.target.value)} 
                       rows={4} 
-                      placeholder="e.g. Our current dashboard takes 5 seconds to load. We need someone to lead the performance refactor..." 
+                      placeholder={t('rebuild.editor.challenge_placeholder', { defaultValue: 'e.g. Our current dashboard takes 5 seconds to load. We need someone to lead the performance refactor...' })}
                       className={textareaClass} 
                     />
                   </label>
@@ -313,7 +313,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                       value={mission} 
                       onChange={e => setMission(e.target.value)} 
                       rows={3} 
-                      placeholder="e.g. Establish a world-class design system and mentor 5 junior developers." 
+                      placeholder={t('rebuild.editor.mission_placeholder', { defaultValue: 'e.g. Establish a world-class design system and mentor 5 junior developers.' })}
                       className={textareaClass} 
                     />
                   </label>
@@ -343,7 +343,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                         value={newSkill} 
                         onChange={e => setNewSkill(e.target.value)} 
                         onKeyDown={handleAddSkill}
-                        placeholder="e.g. React, TypeScript, Performance Optimization..." 
+                        placeholder={t('rebuild.editor.skills_placeholder', { defaultValue: 'e.g. React, TypeScript, Performance Optimization...' })}
                         className={cn(fieldClass, 'mt-0')} 
                       />
                       <button 
@@ -394,7 +394,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                         const newStep: HandshakeBlueprintStep = {
                           id: `custom-${Date.now()}`,
                           type: 'scenario_response',
-                          title: 'New Assessment Step',
+                          title: t('rebuild.editor.default_step_title', { defaultValue: 'New Assessment Step' }),
                           prompt: '',
                           helper: '',
                           required: true,
@@ -446,7 +446,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                                       setBlueprintSteps(next);
                                     }}
                                     className="text-lg font-bold bg-transparent border-none p-0 focus:ring-0 text-slate-900 dark:text-white w-full"
-                                    placeholder="Step Title"
+                                    placeholder={t('rebuild.editor.step_title_placeholder', { defaultValue: 'Step Title' })}
                                   />
                                 </div>
                                 <div className="mt-1 flex items-center gap-2">
@@ -459,13 +459,13 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                                     }}
                                     className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-transparent border-none p-0 focus:ring-0"
                                   >
-                                    <option value="identity">Identity</option>
-                                    <option value="motivation">Motivation</option>
-                                    <option value="skill_alignment">Skill Alignment</option>
-                                    <option value="scenario_response">Scenario Response</option>
-                                    <option value="task_workspace">Task Workspace</option>
-                                    <option value="portfolio_or_proof">Portfolio/Proof</option>
-                                    <option value="schedule_request">Schedule</option>
+                                    <option value="identity">{t('rebuild.editor.type_identity', { defaultValue: 'Identity' })}</option>
+                                    <option value="motivation">{t('rebuild.editor.type_motivation', { defaultValue: 'Motivation' })}</option>
+                                    <option value="skill_alignment">{t('rebuild.editor.type_skill_alignment', { defaultValue: 'Skill Alignment' })}</option>
+                                    <option value="scenario_response">{t('rebuild.editor.type_scenario_response', { defaultValue: 'Scenario Response' })}</option>
+                                    <option value="task_workspace">{t('rebuild.editor.type_task_workspace', { defaultValue: 'Task Workspace' })}</option>
+                                    <option value="portfolio_or_proof">{t('rebuild.editor.type_portfolio_proof', { defaultValue: 'Portfolio/Proof' })}</option>
+                                    <option value="schedule_request">{t('rebuild.editor.type_schedule', { defaultValue: 'Schedule' })}</option>
                                   </select>
                                 </div>
                               </div>
@@ -489,7 +489,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                                   }}
                                   rows={2}
                                   className={cn(textareaClass, 'mt-1 text-sm py-2 px-3')}
-                                  placeholder="What should the candidate do or answer?"
+                                  placeholder={t('rebuild.editor.step_prompt_placeholder', { defaultValue: 'What should the candidate do or answer?' })}
                                 />
                               </label>
                               <label className="block">
@@ -502,7 +502,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                                     setBlueprintSteps(next);
                                   }}
                                   className={cn(fieldClass, 'mt-1 text-sm py-2 px-3')}
-                                  placeholder="Small hint or instruction"
+                                  placeholder={t('rebuild.editor.step_helper_placeholder', { defaultValue: 'Small hint or instruction' })}
                                 />
                               </label>
                             </div>
@@ -536,7 +536,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                         <input 
                           value={location} 
                           onChange={e => setLocation(e.target.value)} 
-                          placeholder="e.g. Prague, CZ" 
+                          placeholder={t('rebuild.editor.location_placeholder', { defaultValue: 'e.g. Prague, CZ' })}
                           className={cn(fieldClass, 'pl-10')} 
                         />
                       </div>
@@ -548,9 +548,9 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                         onChange={e => setWorkModel(e.target.value as any)} 
                         className={fieldClass}
                       >
-                        <option value="Hybrid">Hybrid</option>
-                        <option value="Remote">Remote</option>
-                        <option value="On-site">On-site</option>
+                         <option value="Hybrid">{t('rebuild.recruiter.work_hybrid', { defaultValue: 'Hybrid' })}</option>
+                        <option value="Remote">{t('rebuild.recruiter.work_remote', { defaultValue: 'Remote' })}</option>
+                        <option value="On-site">{t('rebuild.recruiter.work_onsite', { defaultValue: 'On-site' })}</option>
                       </select>
                     </label>
                   </div>
@@ -607,14 +607,14 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
                   <div className="bg-slate-900 p-8 text-white">
                     <div className="flex items-center gap-3">
                       <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider">{roleFamilyLabel[roleFamily]}</span>
-                      <span className="px-3 py-1 bg-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-wider">Skill-First Handshake</span>
+                      <span className="px-3 py-1 bg-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-wider">{t('rebuild.editor.preview_tag', { defaultValue: 'Skill-First Handshake' })}</span>
                     </div>
                     <h4 className="mt-6 text-4xl font-black tracking-tight leading-[0.95]">{title}</h4>
                     <p className="mt-4 text-lg text-white/70 leading-8 max-w-2xl">{summary}</p>
                     <div className="mt-8 flex flex-wrap gap-4 text-sm font-bold text-white/50">
                       <div className="flex items-center gap-2"><MapPin size={16} /> {location}</div>
                       <div className="flex items-center gap-2"><Clock size={16} /> {workModel}</div>
-                      <div className="flex items-center gap-2"><Zap size={16} /> {salaryFrom && salaryTo ? `${salaryFrom} - ${salaryTo} ${currency}` : 'Salary TBD'}</div>
+                      <div className="flex items-center gap-2"><Zap size={16} /> {salaryFrom && salaryTo ? `${salaryFrom} - ${salaryTo} ${currency}` : t('rebuild.editor.salary_tbd', { defaultValue: 'Salary TBD' })}</div>
                     </div>
                   </div>
                   
