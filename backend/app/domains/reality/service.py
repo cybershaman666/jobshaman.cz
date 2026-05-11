@@ -425,6 +425,9 @@ class RealityDomainService:
         work_arrangement: Optional[str] = None,
         category: Optional[str] = None,
         role_family: Optional[str] = None,
+        user_lat: Optional[float] = None,
+        user_lng: Optional[float] = None,
+        radius_km: Optional[float] = None,
     ) -> Dict[str, Any]:
         clamped_limit = max(1, min(int(limit or 500), 1000))
         clamped_offset = max(0, int(offset or 0))
@@ -436,6 +439,8 @@ class RealityDomainService:
         work_filter = str(work_arrangement or "").strip().lower()
         category_filter = _clean_text(category, 40).lower()
         role_family_filter = _clean_text(role_family, 40).lower()
+        has_user_coordinates = user_lat is not None and user_lng is not None
+        safe_radius_km = float(radius_km or 0) if radius_km is not None else 0.0
         broad_marketplace_listing = not any([
             query_filter,
             city_filter,
@@ -554,7 +559,55 @@ class RealityDomainService:
                 )
                 params[key] = f"%{term}%"
             extra_conditions.append(f"AND ({' OR '.join(taxonomy_sql_parts)})")
+        if has_user_coordinates and safe_radius_km > 0 and work_filter not in {"remote"}:
+            extra_conditions.append(
+                """
+                AND (
+                  LOWER(COALESCE(work_model, work_type, contract_type, location, description, '')) LIKE '%remote%'
+                  OR lat IS NULL
+                  OR lng IS NULL
+                  OR (
+                    6371 * 2 * ASIN(
+                      SQRT(
+                        POWER(SIN(RADIANS((lat - :user_lat) / 2)), 2)
+                        + COS(RADIANS(:user_lat)) * COS(RADIANS(lat))
+                        * POWER(SIN(RADIANS((lng - :user_lng) / 2)), 2)
+                      )
+                    )
+                  ) <= :radius_km
+                )
+                """
+            )
+            params["radius_km"] = safe_radius_km
         extra_condition_sql = "\n".join(extra_conditions)
+        distance_sql = "NULL"
+        distance_order_sql = "COALESCE(scraped_at, updated_at, created_at) DESC NULLS LAST"
+        if has_user_coordinates:
+            params["user_lat"] = float(user_lat)
+            params["user_lng"] = float(user_lng)
+            distance_sql = """
+              CASE
+                WHEN lat IS NULL OR lng IS NULL THEN NULL
+                ELSE (
+                  6371 * 2 * ASIN(
+                    SQRT(
+                      POWER(SIN(RADIANS((lat - :user_lat) / 2)), 2)
+                      + COS(RADIANS(:user_lat)) * COS(RADIANS(lat))
+                      * POWER(SIN(RADIANS((lng - :user_lng) / 2)), 2)
+                    )
+                  )
+                )
+              END
+            """
+            distance_order_sql = """
+              CASE
+                WHEN LOWER(COALESCE(work_model, work_type, contract_type, location, description, '')) LIKE '%remote%' THEN 0
+                WHEN lat IS NULL OR lng IS NULL THEN 2
+                ELSE 1
+              END ASC,
+              marketplace_distance_km ASC NULLS LAST,
+              COALESCE(scraped_at, updated_at, created_at) DESC NULLS LAST
+            """
 
         columns = """
           id,
@@ -591,7 +644,9 @@ class RealityDomainService:
           payload_json,
           created_at,
           scraped_at,
-          updated_at
+          updated_at,
+        """ + f"""
+          {distance_sql} AS marketplace_distance_km
         """
         base_where = f"""
           WHERE COALESCE(is_active, true) = true
@@ -628,7 +683,7 @@ class RealityDomainService:
                 SELECT {columns}
                 FROM jobs_nf
                 {base_where}
-                ORDER BY COALESCE(scraped_at, updated_at, created_at) DESC NULLS LAST
+                ORDER BY {distance_order_sql}
                 LIMIT :limit OFFSET :offset
                 """
             )

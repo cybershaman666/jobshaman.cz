@@ -1,3 +1,5 @@
+import { PRODUCTION_LOCALE_CODES, isProductionLocale } from '../i18nLocales';
+
 // SEO and AEO utilities for JobShaman
 
 export interface SEOMetadata {
@@ -417,10 +419,10 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
   }
 
   // hreflang alternate links
-  const languages = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+  const languages = [...PRODUCTION_LOCALE_CODES];
   const url = new URL(window.location.href);
   const segments = url.pathname.split('/').filter(Boolean);
-  const hasLangPrefix = segments.length > 0 && languages.includes(segments[0]);
+  const hasLangPrefix = segments.length > 0 && isProductionLocale(segments[0]);
   const pathWithoutLang = `/${(hasLangPrefix ? segments.slice(1) : segments).join('/')}`.replace(/\/+$/, '') || '/';
 
   languages.forEach(lang => {

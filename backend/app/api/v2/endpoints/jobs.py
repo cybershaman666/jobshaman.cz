@@ -123,6 +123,9 @@ async def get_jobs(
     work_arrangement: str | None = Query(None, max_length=20),
     category: str | None = Query(None, max_length=40),
     role_family: str | None = Query(None, max_length=40),
+    user_lat: float | None = Query(None, ge=-90, le=90),
+    user_lng: float | None = Query(None, ge=-180, le=180),
+    radius_km: float | None = Query(None, ge=0, le=500),
 ) -> Dict[str, Any]:
     """
     Public endpoint to list active jobs.
@@ -139,6 +142,9 @@ async def get_jobs(
         work_arrangement=work_arrangement,
         category=category,
         role_family=role_family,
+        user_lat=user_lat,
+        user_lng=user_lng,
+        radius_km=radius_km,
     )
 
 

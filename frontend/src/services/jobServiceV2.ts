@@ -444,6 +444,9 @@ export const fetchJobsWithFiltersV2 = async (
     filters?: MarketplaceFilters;
     category?: string;
     offsetOverride?: number;
+    userLat?: number;
+    userLng?: number;
+    radiusKm?: number;
   } = {},
 ): Promise<{ jobs: Role[]; sections: MarketplaceSection[]; hasMore: boolean; totalCount: number }> => {
   try {
@@ -462,6 +465,13 @@ export const fetchJobsWithFiltersV2 = async (
     if (options.filters?.benefits?.length) params.set('benefits', options.filters.benefits.join(','));
     if (options.category) params.set('category', options.category);
     if (options.filters?.roleFamily && options.filters.roleFamily !== 'all') params.set('role_family', options.filters.roleFamily);
+    if (Number.isFinite(options.userLat) && Number.isFinite(options.userLng)) {
+      params.set('user_lat', String(options.userLat));
+      params.set('user_lng', String(options.userLng));
+      if (Number.isFinite(options.radiusKm) && Number(options.radiusKm) > 0) {
+        params.set('radius_km', String(options.radiusKm));
+      }
+    }
     if (options.filters?.remoteOnly) {
       params.set('work_arrangement', 'remote');
     } else if (options.filters?.workArrangement && options.filters.workArrangement !== 'all') {

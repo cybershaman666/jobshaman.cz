@@ -1,4 +1,6 @@
-export const SUPPORTED_APP_LOCALES = ['cs', 'en', 'de', 'pl', 'sk', 'at'] as const;
+import { PRODUCTION_LOCALE_CODES, isProductionLocale } from '../i18nLocales';
+
+export const SUPPORTED_APP_LOCALES = PRODUCTION_LOCALE_CODES;
 
 export const getPathPartsWithoutLocale = (pathname: string): string[] => {
     const parts = pathname.split('/').filter(Boolean);
@@ -27,17 +29,10 @@ export const resolvePreferredLocale = (fallback: string = 'cs'): string => {
         const value = String(raw || '').trim().toLowerCase();
         if (!value) return null;
 
-        const [languagePart, regionPart] = value.replace('_', '-').split('-');
-        const region = regionPart?.toUpperCase();
+        const [languagePart] = value.replace('_', '-').split('-');
 
-        if (languagePart === 'de') {
-            return region === 'AT' ? 'at' : 'de';
-        }
-        if (languagePart === 'cs' || languagePart === 'sk' || languagePart === 'pl' || languagePart === 'en') {
+        if (isProductionLocale(languagePart)) {
             return languagePart;
-        }
-        if (languagePart === 'at') {
-            return 'at';
         }
 
         return null;
@@ -57,11 +52,7 @@ export const resolvePreferredLocale = (fallback: string = 'cs'): string => {
 
     try {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (timezone === 'Europe/Vienna') return 'at';
-        if (timezone === 'Europe/Berlin') return 'de';
         if (timezone === 'Europe/Prague') return 'cs';
-        if (timezone === 'Europe/Bratislava') return 'sk';
-        if (timezone === 'Europe/Warsaw') return 'pl';
     } catch {
         // Ignore timezone lookup failures and fall back to the provided locale.
     }

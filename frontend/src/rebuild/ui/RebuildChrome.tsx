@@ -3,18 +3,9 @@ import { Monitor, Moon, Sun } from 'lucide-react';
 
 import { cn } from '../cn';
 import { useRebuildTheme } from './rebuildTheme';
+import { PRODUCTION_LOCALES } from '../../i18nLocales';
 
-const LANG_OPTIONS = [
-  { code: 'cs', label: 'Čeština', flag: '🇨🇿' },
-  { code: 'sk', label: 'Slovenčina', flag: '🇸🇰' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'fi', label: 'Suomi', flag: '🇫🇮' },
-  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
-  { code: 'no', label: 'Norsk', flag: '🇳🇴' },
-  { code: 'da', label: 'Dansk', flag: '🇩🇰' },
-];
+const LANG_OPTIONS = PRODUCTION_LOCALES;
 
 export const BrandMark: React.FC<{ subtitle?: string; compact?: boolean }> = ({ subtitle, compact = false }) => {
   const { resolvedMode } = useRebuildTheme();

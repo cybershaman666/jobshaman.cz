@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
+import { PRODUCTION_LOCALE_CODES } from './i18nLocales';
 
 const I18N_VERSION = '20260506-ats-integrations';
 
@@ -18,21 +19,13 @@ i18n
     // for all options read: https://www.i18next.com/overview/configuration-options
     .init({
         fallbackLng: {
-            at: ['de', 'en', 'cs'],
-            de: ['en', 'cs'],
-            pl: ['en', 'cs'],
-            sk: ['cs', 'en'],
             cs: ['en'],
-            fi: ['en'],
-            sv: ['en'],
-            no: ['en'],
-            da: ['en'],
             default: ['en', 'cs']
         },
         debug: false,
 
         // Supported languages
-        supportedLngs: ['cs', 'en', 'de', 'pl', 'sk', 'at', 'fi', 'sv', 'no', 'da'],
+        supportedLngs: [...PRODUCTION_LOCALE_CODES],
 
         // Improve caching
         backend: {

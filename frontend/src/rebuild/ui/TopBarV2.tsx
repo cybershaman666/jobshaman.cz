@@ -5,6 +5,7 @@ import { UserProfile } from '../../types';
 import { useRebuildTheme } from './rebuildTheme';
 import { NotificationDropdown } from './NotificationDropdown';
 import { notificationService } from '../../services/notificationService';
+import { PRODUCTION_LOCALES } from '../../i18nLocales';
 
 export const TopBarV2: React.FC<{
   userRole: 'candidate' | 'recruiter';
@@ -46,17 +47,7 @@ export const TopBarV2: React.FC<{
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [isLangOpen, setIsLangOpen] = React.useState(false);
 
-  const languages = [
-    { code: 'cs', label: 'CZ', flag: '🇨🇿' },
-    { code: 'en', label: 'EN', flag: '🇬🇧' },
-    { code: 'de', label: 'DE', flag: '🇩🇪' },
-    { code: 'pl', label: 'PL', flag: '🇵🇱' },
-    { code: 'sk', label: 'SK', flag: '🇸🇰' },
-    { code: 'fi', label: 'FI', flag: '🇫🇮' },
-    { code: 'sv', label: 'SV', flag: '🇸🇪' },
-    { code: 'no', label: 'NO', flag: '🇳🇴' },
-    { code: 'da', label: 'DA', flag: '🇩🇰' },
-  ];
+  const languages = PRODUCTION_LOCALES;
 
   React.useEffect(() => {
     if (userProfile.isLoggedIn && userProfile.id) {
@@ -194,7 +185,7 @@ export const TopBarV2: React.FC<{
                   )}
                 >
                   <span className="text-[15px]">{currentLangOption.flag}</span>
-                  {currentLangOption.code.toUpperCase()}
+                  {currentLangOption.shortLabel}
                 </button>
                 {isLangOpen && (
                   <div className={cn(
@@ -218,7 +209,7 @@ export const TopBarV2: React.FC<{
                         )}
                       >
                         <span className="text-[16px]">{lang.flag}</span>
-                        {lang.label}
+                        {lang.shortLabel}
                       </button>
                     ))}
                   </div>

@@ -178,8 +178,9 @@ const JobFeedCard: React.FC<{
   variant?: 'featured' | 'compact';
   saved?: boolean;
   onOpen: () => void;
+  onToggleSaved?: () => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ candidate, variant = 'compact', saved = false, onOpen, t }) => {
+}> = ({ candidate, variant = 'compact', saved = false, onOpen, onToggleSaved, t }) => {
   const role = candidate.role;
   const isFeatured = variant === 'featured';
   const distanceLabel = Number.isFinite(candidate.distanceKm)
@@ -191,13 +192,13 @@ const JobFeedCard: React.FC<{
   return (
     <article
       className={cn(
-        'group flex h-full min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 text-slate-950 shadow-[0_16px_42px_-34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-[0_24px_58px_-36px_rgba(15,23,42,0.26)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100',
+        'group flex h-full min-w-0 flex-col rounded-2xl bg-white/92 p-5 text-slate-950 shadow-[0_18px_52px_-38px_rgba(15,23,42,0.28)] ring-1 ring-slate-900/[0.045] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_26px_70px_-42px_rgba(15,23,42,0.34)] dark:bg-slate-900/92 dark:text-slate-100 dark:ring-white/10',
         isFeatured && 'md:p-6',
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className={cn('flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800', isFeatured ? 'h-12 w-12' : 'h-10 w-10')}>
+          <div className={cn('flex shrink-0 items-center justify-center rounded-xl bg-[#eef8fb] p-2 text-[#0f95ac] dark:bg-cyan-950/50', isFeatured ? 'h-12 w-12' : 'h-10 w-10')}>
             {role.companyLogo ? (
               <img src={role.companyLogo} alt="" className="h-full w-full object-contain" />
             ) : (
@@ -214,8 +215,11 @@ const JobFeedCard: React.FC<{
         </div>
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0f95ac] dark:hover:bg-slate-800"
+          onClick={onToggleSaved}
+          disabled={!onToggleSaved}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-[#eef8fb] hover:text-[#0f95ac] disabled:cursor-default dark:hover:bg-slate-800"
           aria-label={saved ? t('rebuild.marketplace.saved_role', { defaultValue: 'Uložená nabídka' }) : t('rebuild.marketplace.save_role', { defaultValue: 'Uložit nabídku' })}
+          aria-pressed={saved}
         >
           <Bookmark size={17} className={saved ? 'fill-[#0f95ac] text-[#0f95ac]' : ''} />
         </button>
@@ -245,7 +249,7 @@ const JobFeedCard: React.FC<{
           </div>
         </div>
         {isFeatured ? (
-          <button type="button" onClick={onOpen} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[image:var(--shell-button-primary-bg)] px-4 text-[12px] font-black text-white shadow-[0_14px_28px_-20px_rgba(18,175,203,0.72)] transition hover:bg-[image:var(--shell-button-primary-hover)]">
+          <button type="button" onClick={onOpen} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[image:var(--shell-button-primary-bg)] px-4 text-[12px] font-black text-white shadow-[0_14px_28px_-20px_rgba(18,175,203,0.72)] transition hover:bg-[image:var(--shell-button-primary-hover)]">
             {t('rebuild.marketplace.offer_detail', { defaultValue: 'Detail nabídky' })}
             <ArrowRight size={15} />
           </button>
@@ -321,12 +325,13 @@ export const MarketplaceV2: React.FC<{
   onCompanySwitch?: () => void;
   onLoadMore?: () => void;
   onLoadMoreCategory?: (categoryId: RoleClusterId) => void;
+  onToggleSavedRole?: (roleId: string) => void;
   loadingCategoryId?: RoleClusterId | null;
   currentLanguage?: string;
   onLanguageChange?: (lang: string) => void;
   navigate: (path: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, savedRoleIds = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
+}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, savedRoleIds = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, onToggleSavedRole, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
   const [visibleRecommendationCount, setVisibleRecommendationCount] = React.useState(RECOMMENDATION_PAGE_SIZE);
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -610,6 +615,20 @@ export const MarketplaceV2: React.FC<{
       Icon: Heart,
     },
   ];
+  const workTabs = [
+    { id: 'all', label: t('rebuild.marketplace.all', { defaultValue: 'Vše' }) },
+    { id: 'remote', label: t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Na dálku' }) },
+    { id: 'hybrid', label: t('rebuild.marketplace.work_arrangement_hybrid', { defaultValue: 'Hybridní' }) },
+    { id: 'onsite', label: t('rebuild.marketplace.work_arrangement_onsite', { defaultValue: 'Na místě' }) },
+  ] as const;
+  const activeWorkTab = filters.remoteOnly ? 'remote' : filters.workArrangement;
+  const applyWorkTab = (tabId: (typeof workTabs)[number]['id']) => {
+    onFiltersChange((current) => ({
+      ...current,
+      remoteOnly: tabId === 'remote',
+      workArrangement: tabId === 'remote' ? 'all' : tabId,
+    }));
+  };
   return (
     <>
       <SearchFiltersModal
@@ -637,15 +656,15 @@ export const MarketplaceV2: React.FC<{
         subtitle={t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' })}
         t={t}
         actionRegion={
-          <button type="button" onClick={() => setFiltersOpen(true)} className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#08788a] shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-900 dark:text-cyan-300" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
+          <button type="button" onClick={() => setFiltersOpen(true)} className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/86 text-[#08788a] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.4)] ring-1 ring-slate-900/[0.06] transition hover:bg-[#f7fcfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-white/10" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
             <SlidersHorizontal size={16} />
             {activeFilterCount ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#12afcb] px-1 text-[10px] font-black text-white">{activeFilterCount}</span> : null}
           </button>
         }
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
-        <div className="space-y-8 pb-12">
-          <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_-62px_rgba(15,23,42,0.28)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="space-y-9 pb-12">
+          <section className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#ffffff_0%,#f5fcfe_58%,#fff8e9_100%)] shadow-[0_28px_90px_-68px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.045] dark:bg-[linear-gradient(135deg,#0f172a_0%,#10232b_58%,#1f1a12_100%)] dark:ring-white/10">
             <div className="grid min-h-[19rem] md:grid-cols-[minmax(0,1fr)_21rem]">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="flex items-center gap-3 text-[13px] font-bold text-[#0f95ac]">
@@ -664,7 +683,7 @@ export const MarketplaceV2: React.FC<{
                   <button
                     type="button"
                     onClick={() => setFiltersOpen(true)}
-                    className="flex min-h-14 flex-1 items-center gap-3 rounded-full border border-slate-200 bg-white px-5 text-left text-sm font-semibold text-slate-500 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.32)] transition hover:border-[#12afcb]/50 hover:text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                    className="flex min-h-14 flex-1 items-center gap-3 rounded-full bg-white/94 px-5 text-left text-sm font-semibold text-slate-500 shadow-[0_18px_44px_-30px_rgba(15,23,42,0.36)] ring-1 ring-slate-900/[0.055] transition hover:bg-white hover:text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:bg-slate-950/86 dark:text-slate-400 dark:ring-white/10 dark:hover:text-slate-100"
                   >
                     <Search size={18} className="shrink-0 text-slate-400" />
                     <span className="min-w-0 flex-1 truncate">{searchTriggerLabel}</span>
@@ -672,7 +691,7 @@ export const MarketplaceV2: React.FC<{
                       <Search size={18} />
                     </span>
                   </button>
-                  <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                  <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-white/92 px-5 text-sm font-black text-slate-700 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.055] transition hover:bg-[#f7fcfd] dark:bg-slate-950/86 dark:text-slate-200 dark:ring-white/10">
                     <Filter size={16} />
                     {t('rebuild.marketplace.filters', { defaultValue: 'Filtry' })}
                     {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-2 py-0.5 text-[11px] text-white">{activeFilterCount}</span> : null}
@@ -680,17 +699,17 @@ export const MarketplaceV2: React.FC<{
                 </div>
               </div>
               <div className="relative hidden overflow-hidden md:block">
-                <img src="/hero-panorama.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,#fff_0%,rgba(255,255,255,0.72)_28%,rgba(255,255,255,0.12)_100%)] dark:bg-[linear-gradient(90deg,#0f172a_0%,rgba(15,23,42,0.72)_28%,rgba(15,23,42,0.12)_100%)]" />
+                <img src="/marketplace-hero.svg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.88)_0%,rgba(255,255,255,0.42)_34%,rgba(255,255,255,0)_100%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.92)_0%,rgba(15,23,42,0.46)_34%,rgba(15,23,42,0)_100%)]" />
               </div>
             </div>
-            <div className="grid gap-3 border-t border-slate-100 p-5 dark:border-slate-800 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
               {categoryCards.map(({ id, title, count, Icon }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => onLoadMoreCategory?.(id)}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-md dark:border-slate-800 dark:bg-slate-950"
+                  className="flex items-center gap-3 rounded-2xl bg-white/82 px-4 py-4 text-left shadow-[0_14px_38px_-32px_rgba(15,23,42,0.34)] ring-1 ring-slate-900/[0.045] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.4)] dark:bg-slate-950/72 dark:ring-white/10"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50 dark:text-cyan-300">
                     {loadingCategoryId === id ? <Loader2 size={18} className="animate-spin" /> : <Icon size={18} />}
@@ -701,7 +720,7 @@ export const MarketplaceV2: React.FC<{
                   </span>
                 </button>
               ))}
-              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
+              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center gap-3 rounded-2xl bg-white/82 px-4 py-4 text-left shadow-[0_14px_38px_-32px_rgba(15,23,42,0.34)] ring-1 ring-slate-900/[0.045] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.4)] dark:bg-slate-950/72 dark:ring-white/10">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"><Grid2X2 size={18} /></span>
                 <span className="min-w-0">
                   <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' })}</span>
@@ -730,6 +749,7 @@ export const MarketplaceV2: React.FC<{
                     variant={index === 0 ? 'featured' : 'compact'}
                     saved={savedRoleIds?.includes(String(candidate.role.id))}
                     onOpen={() => navigate(getRolePath(candidate.role))}
+                    onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)}
                     t={t}
                   />
                 ))}
@@ -748,19 +768,14 @@ export const MarketplaceV2: React.FC<{
               <div>
                 <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.latest_jobs', { defaultValue: 'Nejnovější nabídky' })}</h2>
                 <div className="mt-4 flex flex-wrap gap-5 text-[13px] font-black text-slate-500">
-                  {[
-                    { id: 'all', label: t('rebuild.marketplace.all', { defaultValue: 'Vše' }) },
-                    { id: 'remote', label: t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Na dálku' }) },
-                    { id: 'hybrid', label: t('rebuild.marketplace.work_arrangement_hybrid', { defaultValue: 'Hybridní' }) },
-                    { id: 'onsite', label: t('rebuild.marketplace.work_arrangement_onsite', { defaultValue: 'Na místě' }) },
-                  ].map((item) => (
-                    <button key={item.id} type="button" onClick={() => setFiltersOpen(true)} className={cn('border-b-2 pb-2 transition hover:text-[#0f95ac]', item.id === 'all' ? 'border-[#12afcb] text-[#0f95ac]' : 'border-transparent')}>
+                  {workTabs.map((item) => (
+                    <button key={item.id} type="button" onClick={() => applyWorkTab(item.id)} className={cn('border-b-2 pb-2 transition hover:text-[#0f95ac]', activeWorkTab === item.id ? 'border-[#12afcb] text-[#0f95ac]' : 'border-transparent')}>
                       {item.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/86 px-4 text-[13px] font-black text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.055] transition hover:bg-white dark:bg-slate-900 dark:text-slate-200 dark:ring-white/10">
                 {t('rebuild.marketplace.newest', { defaultValue: 'Nejnovější' })}
                 <ChevronDown size={15} />
               </button>
@@ -772,19 +787,20 @@ export const MarketplaceV2: React.FC<{
                   candidate={candidate}
                   saved={savedRoleIds?.includes(String(candidate.role.id))}
                   onOpen={() => navigate(getRolePath(candidate.role))}
+                  onToggleSaved={() => onToggleSavedRole?.(candidate.role.id)}
                   t={t}
                 />
               ))}
             </div>
             <div className="flex flex-col items-center gap-3">
               {hasMoreRecommendations ? (
-                <button type="button" onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)} className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#d8edf2] bg-white px-6 text-[13px] font-black text-[#0f95ac] shadow-sm transition hover:bg-[#f1fbfd] dark:border-cyan-900/50 dark:bg-slate-900 dark:text-cyan-300">
+                <button type="button" onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/88 px-6 text-[13px] font-black text-[#0f95ac] shadow-[0_12px_32px_-28px_rgba(15,23,42,0.38)] ring-1 ring-[#12afcb]/15 transition hover:bg-[#f1fbfd] dark:bg-slate-900 dark:text-cyan-300 dark:ring-cyan-900/50">
                   {t('rebuild.marketplace.load_more', { defaultValue: 'Zobrazit další nabídky' })}
                   <ChevronDown size={15} />
                 </button>
               ) : null}
               {hasMore && onLoadMore ? (
-                <button type="button" onClick={onLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-6 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 disabled:cursor-wait disabled:opacity-70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                <button type="button" onClick={onLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/88 px-6 text-[13px] font-black text-slate-700 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.38)] ring-1 ring-slate-900/[0.055] transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:bg-slate-900 dark:text-slate-200 dark:ring-white/10">
                   {loading ? <Loader2 size={15} className="animate-spin" /> : null}
                   {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_from_db', { defaultValue: 'Načíst další z databáze' })}
                   <span className="text-slate-400">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
@@ -793,12 +809,12 @@ export const MarketplaceV2: React.FC<{
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f3fbfd,#fffaf0)] p-6 shadow-[0_20px_60px_-50px_rgba(15,23,42,0.24)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(14,116,144,0.14),rgba(180,83,9,0.1))]">
+          <section className="rounded-[28px] bg-[linear-gradient(135deg,#f3fbfd,#fffaf0)] p-6 shadow-[0_24px_70px_-58px_rgba(15,23,42,0.3)] ring-1 ring-slate-900/[0.045] dark:bg-[linear-gradient(135deg,rgba(14,116,144,0.14),rgba(180,83,9,0.1))] dark:ring-white/10">
             <h2 className="text-[20px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.saved_searches', { defaultValue: 'Uložené hledání' })}</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.saved_searches_desc', { defaultValue: 'Měj přehled o nových nabídkách ve svých oblastech' })}</p>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {savedSearchCards.map(({ id, title, count, Icon }) => (
-                <button key={id} type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 dark:border-slate-800 dark:bg-slate-900">
+                <button key={id} type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-2xl bg-white/82 px-4 py-4 text-left shadow-[0_14px_38px_-32px_rgba(15,23,42,0.34)] ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:bg-white dark:bg-slate-900 dark:ring-white/10">
                   <span className="flex min-w-0 items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50">
                       <Icon size={17} />
@@ -811,14 +827,14 @@ export const MarketplaceV2: React.FC<{
                   <Bell size={16} className="shrink-0 text-slate-400" />
                 </button>
               ))}
-              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white px-4 py-4 text-left text-[13px] font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-2xl bg-white/82 px-4 py-4 text-left text-[13px] font-black text-slate-700 shadow-[0_14px_38px_-32px_rgba(15,23,42,0.34)] ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:bg-white dark:bg-slate-900 dark:text-slate-200 dark:ring-white/10">
                 {t('rebuild.marketplace.show_all_saved', { defaultValue: 'Zobrazit všechna' })}
                 <ArrowRight size={16} />
               </button>
             </div>
           </section>
 
-          <section className="flex flex-col gap-5 rounded-2xl bg-[linear-gradient(135deg,#0f4f73,#0f95ac)] p-6 text-white shadow-[0_22px_58px_-38px_rgba(15,149,172,0.62)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <section className="flex flex-col gap-5 rounded-[28px] bg-[linear-gradient(135deg,#0f4f73,#0f95ac)] p-6 text-white shadow-[0_24px_68px_-42px_rgba(15,149,172,0.62)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div>
               <h2 className="text-[22px] font-black tracking-normal">{t('rebuild.marketplace.cta_talent_title', { defaultValue: 'Hledáš lepší fit pro svůj další krok?' })}</h2>
               <p className="mt-2 text-sm font-medium text-cyan-50/85">{t('rebuild.marketplace.cta_talent_copy', { defaultValue: 'Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.' })}</p>

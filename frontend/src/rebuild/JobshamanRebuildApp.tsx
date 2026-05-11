@@ -39,6 +39,7 @@ import { useJobInteractionState } from '../hooks/useJobInteractionState';
 import { mergeProfileWithParsedCv, uploadAndParseCv } from '../services/v2CvService';
 import { uploadV2Asset } from '../services/v2AssetService';
 import { trackJobInteraction } from '../services/jobInteractionService';
+import { getStaticCoordinates } from '../services/geocodingService';
 import type {
   ApplicationMessageAttachment,
   CandidateDialogueCapacity,
@@ -230,10 +231,6 @@ const JobshamanRebuildApp: React.FC = () => {
   const [companyLookupFailed, setCompanyLookupFailed] = React.useState(false);
   const [companyLookupRetry, setCompanyLookupRetry] = React.useState(0);
   const [checkoutBusyTier, setCheckoutBusyTier] = React.useState<'starter' | 'growth' | 'professional' | null>(null);
-  const geoIpMarketplaceCityRef = React.useRef<string>('');
-
-
-
   React.useEffect(() => {
     if (!preferences.address && !userProfile.isLoggedIn) {
       const detectRegion = async () => {
@@ -248,19 +245,17 @@ const JobshamanRebuildApp: React.FC = () => {
                 ...prev,
                 taxProfile: { ...prev.taxProfile, countryCode: detectedCountry }
               }));
-              geoIpMarketplaceCityRef.current = String(data.city || '').trim();
-
               // Auto-set language based on IP if not already manually changed/persisted
               const countryToLang: Record<string, string> = {
                 CZ: 'cs',
-                SK: 'sk',
-                PL: 'pl',
-                DE: 'de',
-                AT: 'de',
-                FI: 'fi',
-                SE: 'sv',
-                NO: 'no',
-                DK: 'da'
+                SK: 'en',
+                PL: 'en',
+                DE: 'en',
+                AT: 'en',
+                FI: 'en',
+                SE: 'en',
+                NO: 'en',
+                DK: 'en'
               };
               const targetLang = countryToLang[detectedCountry];
               if (targetLang && i18n.language !== targetLang) {
@@ -278,19 +273,14 @@ const JobshamanRebuildApp: React.FC = () => {
     }
   }, [preferences.address, userProfile.isLoggedIn, setPreferences, i18n]);
 
-  React.useEffect(() => {
-    if (!userProfile.isLoggedIn || !preferences.address) return;
-    const geoIpCity = geoIpMarketplaceCityRef.current;
-    if (!geoIpCity) return;
-    setMarketplaceFilters((current) => (
-      current.city.trim().toLowerCase() === geoIpCity.toLowerCase()
-        ? { ...current, city: '' }
-        : current
-    ));
-    geoIpMarketplaceCityRef.current = '';
-  }, [preferences.address, userProfile.isLoggedIn]);
-
   const deferredMarketplaceQuery = React.useDeferredValue(marketplaceQuery);
+  const marketplaceRequestCoordinates = React.useMemo(() => {
+    const staticCoordinates = getStaticCoordinates(preferences.address || '');
+    if (staticCoordinates) return staticCoordinates;
+    const lat = preferences.coordinates?.lat;
+    const lon = preferences.coordinates?.lon || (preferences.coordinates as any)?.lng;
+    return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+  }, [preferences.address, preferences.coordinates]);
   const marketplaceCriteriaKey = React.useMemo(() => JSON.stringify({
     q: deferredMarketplaceQuery.trim(),
     city: marketplaceFilters.city.trim(),
@@ -305,17 +295,15 @@ const JobshamanRebuildApp: React.FC = () => {
     transportMode: marketplaceFilters.transportMode,
     workArrangement: marketplaceFilters.workArrangement,
     borderSearchEnabled: preferences.borderSearchEnabled,
-    lat: preferences.coordinates.lat,
-    lng: preferences.coordinates.lon || (preferences.coordinates as any).lng,
+    lat: marketplaceRequestCoordinates?.lat ?? null,
+    lng: marketplaceRequestCoordinates?.lon ?? null,
     searchRadiusKm: preferences.searchRadiusKm,
     countryCode: preferences.taxProfile.countryCode,
   }), [
     deferredMarketplaceQuery,
     marketplaceFilters, // Broaden dependency to catch all filter changes
+    marketplaceRequestCoordinates,
     preferences.borderSearchEnabled,
-    preferences.coordinates.lat,
-    preferences.coordinates.lon,
-    (preferences.coordinates as any).lng,
     preferences.searchRadiusKm,
     preferences.taxProfile.countryCode,
   ]);
@@ -583,6 +571,9 @@ const JobshamanRebuildApp: React.FC = () => {
             includeRecommendations: false,
             searchTerm: deferredMarketplaceQuery,
             filters: marketplaceFilters,
+            userLat: marketplaceRequestCoordinates?.lat,
+            userLng: marketplaceRequestCoordinates?.lon,
+            radiusKm: marketplaceFilters.enableCommuteFilter !== false ? marketplaceFilters.radiusKm || preferences.searchRadiusKm : undefined,
           },
         );
 
@@ -635,10 +626,9 @@ const JobshamanRebuildApp: React.FC = () => {
     marketplaceFilters.transportMode,
     marketplaceFilters.workArrangement,
     marketplaceCriteriaKey,
+    marketplaceRequestCoordinates,
     marketplacePage,
     preferences.borderSearchEnabled,
-    preferences.coordinates.lat,
-    preferences.coordinates.lon,
     preferences.searchRadiusKm,
     preferences.taxProfile.countryCode,
   ]);
@@ -672,6 +662,9 @@ const JobshamanRebuildApp: React.FC = () => {
         filters: marketplaceFilters,
         category: categoryId,
         offsetOverride: offset,
+        userLat: marketplaceRequestCoordinates?.lat,
+        userLng: marketplaceRequestCoordinates?.lon,
+        radiusKm: marketplaceFilters.enableCommuteFilter !== false ? marketplaceFilters.radiusKm || preferences.searchRadiusKm : undefined,
       });
       setMarketplaceRoles((current) => {
         const merged = new Map<string, Role>();
@@ -693,7 +686,9 @@ const JobshamanRebuildApp: React.FC = () => {
     marketplaceCategoryLoading,
     marketplaceCategoryOffsets,
     marketplaceFilters,
+    marketplaceRequestCoordinates,
     marketplaceRoles,
+    preferences.searchRadiusKm,
     preferences.taxProfile.countryCode,
   ]);
 
@@ -1634,6 +1629,7 @@ const JobshamanRebuildApp: React.FC = () => {
             onCompanySwitch={handleCompanySwitch}
             onLoadMore={() => setMarketplacePage((current) => current + 1)}
             onLoadMoreCategory={handleMarketplaceCategoryLoadMore}
+            onToggleSavedRole={handleToggleSavedRole}
             loadingCategoryId={marketplaceCategoryLoading}
             currentLanguage={i18n.language}
             onLanguageChange={(lang) => i18n.changeLanguage(lang)}

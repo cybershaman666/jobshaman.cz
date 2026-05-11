@@ -17,7 +17,8 @@
     "audit:jdl": "node ./scripts/ui_i18n_audit.mjs",
     "audit:i18n": "node ./scripts/i18n_parity.mjs",
     "audit:i18n:strict": "node ./scripts/i18n_parity.mjs --strict",
-    "audit:baseline": "node ./scripts/ui_i18n_audit.mjs --write-baseline"
+    "audit:baseline": "node ./scripts/ui_i18n_audit.mjs --write-baseline",
+    "audit:prod": "npm --prefix frontend run lint && npm --prefix frontend run check:boundaries && node ./scripts/css_contract_audit.mjs && node ./scripts/i18n_parity.mjs --strict --locales=en && npm --prefix frontend run build"
   },
   "dependencies": {
     "@google/genai": "^0.2.0",
