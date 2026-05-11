@@ -85,7 +85,12 @@ const themeStyles: Record<RebuildResolvedThemeMode, React.CSSProperties> = {
     ['--dashboard-gold-strong' as string]: '#ffc170',
     ['--dashboard-teal' as string]: '#72d6e3',
     ['--dashboard-track' as string]: 'rgba(255,255,255,0.08)',
+    ['--shell-surface-base' as string]: 'rgba(10, 13, 18, 0.5)',
+    ['--shell-surface-gold' as string]: 'rgba(240, 199, 118, 0.12)',
+    ['--shell-surface-cyan' as string]: 'rgba(114, 214, 227, 0.1)',
+    ['--shell-surface-teal' as string]: 'rgba(36, 150, 171, 0.08)',
   },
+
   light: {
     ['--shell-bg-base' as string]: '#f8f4ee',
     ['--shell-bg-accent' as string]: '#f8f4ee',
@@ -141,7 +146,12 @@ const themeStyles: Record<RebuildResolvedThemeMode, React.CSSProperties> = {
     ['--dashboard-gold-strong' as string]: '#a86719',
     ['--dashboard-teal' as string]: '#2496ab',
     ['--dashboard-track' as string]: '#ece7dd',
+    ['--shell-surface-base' as string]: '#ffffff',
+    ['--shell-surface-gold' as string]: 'rgba(253, 246, 230, 0.8)',
+    ['--shell-surface-cyan' as string]: 'rgba(240, 252, 253, 0.8)',
+    ['--shell-surface-teal' as string]: 'rgba(235, 250, 251, 0.7)',
   },
+
 };
 
 export const RebuildThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

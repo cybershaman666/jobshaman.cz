@@ -45,6 +45,16 @@ export const DashboardLayoutV2: React.FC<{
   onLanguageChange = () => {},
   t
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  // Close menu when navigating
+  const handleNavigate = (id: string, path?: string) => {
+    onNavigate(id, path);
+    closeMobileMenu();
+  };
 
 
   return (
@@ -56,12 +66,22 @@ export const DashboardLayoutV2: React.FC<{
         userRole={userRole}
         navItems={navItems}
         activeItemId={activeItemId}
-        onNavigate={onNavigate}
+        onNavigate={handleNavigate}
         userProfile={userProfile}
         onSignOut={onSignOut}
         onOpenAuth={onOpenAuth}
         t={t}
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
       />
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={closeMobileMenu}
+        />
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden lg:pl-[248px]">
         <TopBarV2
@@ -78,6 +98,7 @@ export const DashboardLayoutV2: React.FC<{
           currentLanguage={currentLanguage}
           onLanguageChange={onLanguageChange}
           t={t}
+          onMenuToggle={toggleMobileMenu}
         />
         <main className={cn(
           'relative flex-1 overflow-y-auto px-2 pb-3 sm:px-3 lg:px-4',

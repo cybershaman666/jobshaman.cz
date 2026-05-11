@@ -11,11 +11,12 @@ import {
 export type CandidateShellVariant = 'dashboard' | 'profile' | 'role' | 'journey';
 
 const SURFACE_TONES: Record<CandidateShellVariant, string> = {
-  dashboard: 'from-amber-50/50 dark:from-slate-900/50 via-white dark:via-slate-950 to-cyan-50/30 dark:to-slate-900/30',
-  profile: 'from-amber-50/40 dark:from-slate-900/40 via-white dark:via-slate-950 to-emerald-50/30 dark:to-slate-900/30',
-  role: 'from-slate-50 dark:from-slate-900 via-white dark:via-slate-950 to-slate-50 dark:to-slate-900',
-  journey: 'from-emerald-50/40 dark:from-slate-900/40 via-white dark:via-slate-950 to-amber-50/30 dark:to-slate-900/30',
+  dashboard: 'from-[color:var(--shell-surface-gold)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-cyan)]',
+  profile: 'from-[color:var(--shell-surface-gold)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-teal)]',
+  role: 'from-[color:var(--shell-surface-base)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-base)]',
+  journey: 'from-[color:var(--shell-surface-teal)] via-[color:var(--shell-surface-base)] to-[color:var(--shell-surface-gold)]',
 };
+
 
 const CALL_OUT_POSITIONS = [
   'left-[4%] top-[12%]',
@@ -47,25 +48,29 @@ export const CandidateShellSurface: React.FC<{
         <div className={cn('absolute inset-x-0 top-0 h-full bg-gradient-to-b', SURFACE_TONES[variant])} />
         {variant === 'dashboard' ? (
           <>
-            <div className="absolute left-[10%] top-8 h-32 w-32 rounded-full bg-[#f1d29a]/20 blur-[86px]" />
-            <div className="absolute right-[13%] top-10 h-36 w-36 rounded-full bg-[#9edbe3]/16 blur-[98px]" />
-            <div className="absolute inset-x-[8%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(229,215,194,0.52),transparent)]" />
+            <div className="absolute left-[10%] top-8 h-32 w-32 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-gold)_20%,transparent)] blur-[86px]" />
+            <div className="absolute right-[13%] top-10 h-36 w-36 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-teal)_16%,transparent)] blur-[98px]" />
+            <div className="absolute inset-x-[8%] top-0 h-px bg-[linear-gradient(90deg,transparent,var(--dashboard-card-border),transparent)]" />
+
           </>
         ) : (
           <>
-            <div className="absolute left-[8%] top-8 h-28 w-28 rounded-full bg-[#f2cb87]/20 blur-[80px]" />
-            <div className="absolute right-[12%] top-10 h-32 w-32 rounded-full bg-[#72d6e3]/14 blur-[92px]" />
+            <div className="absolute left-[8%] top-8 h-28 w-28 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-gold)_20%,transparent)] blur-[80px]" />
+            <div className="absolute right-[12%] top-10 h-32 w-32 rounded-full bg-[color:color-mix(in_srgb,var(--dashboard-teal)_14%,transparent)] blur-[92px]" />
+
             <svg
-              className="absolute right-[18%] top-6 h-24 w-24 text-[#d7c2a6]/80"
+              className="absolute right-[18%] top-6 h-24 w-24 text-[color:color-mix(in_srgb,var(--dashboard-gold)_80%,transparent)]"
               viewBox="0 0 120 120"
+
               fill="none"
               aria-hidden
             >
               <circle cx="94" cy="20" r="14" stroke="currentColor" strokeWidth="1.4" strokeDasharray="4 7" />
               <path d="M92 32L72 62L36 92" stroke="currentColor" strokeWidth="1.4" />
-              <circle cx="72" cy="62" r="3" fill="#d58a22" />
-              <circle cx="36" cy="92" r="3" fill="#d0b088" />
+              <circle cx="72" cy="62" r="3" fill="var(--dashboard-gold)" />
+              <circle cx="36" cy="92" r="3" fill="var(--dashboard-teal)" />
             </svg>
+
           </>
         )}
       </div>
@@ -104,8 +109,9 @@ export const ShellCard: React.FC<{
     className={cn(
       tone === 'default' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-card-border)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-card-bg)_94%,transparent)] shadow-[0_18px_44px_-40px_rgba(72,55,24,0.1)]',
       tone === 'soft' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-soft-border)_44%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-soft-bg)_94%,transparent)] shadow-[0_14px_30px_-30px_rgba(72,55,24,0.08)]',
-      tone === 'accent' && 'rounded-[24px] border border-[color:color-mix(in_srgb,#ead8bc_48%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-card-bg)_94%,transparent)] shadow-[0_18px_44px_-36px_rgba(185,131,46,0.1)]',
-      tone === 'contrast' && 'rounded-[24px] border border-white/10 bg-[#12161f] shadow-[0_26px_70px_-52px_rgba(0,0,0,0.8)] text-white',
+      tone === 'accent' && 'rounded-[24px] border border-[color:color-mix(in_srgb,var(--dashboard-gold)_48%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-card-bg)_94%,transparent)] shadow-[0_18px_44px_-36px_rgba(185,131,46,0.1)]',
+      tone === 'contrast' && 'rounded-[24px] border border-white/10 bg-[color:var(--shell-bg-base)] shadow-[0_26px_70px_-52px_rgba(0,0,0,0.8)] text-white',
+
       'self-start',
       className,
     )}
@@ -163,8 +169,9 @@ export const SignalBar: React.FC<{
   label,
   primaryValue,
   secondaryValue,
-  primaryColor = '#2496ab',
-  secondaryColor = '#d8754a',
+  primaryColor = 'var(--dashboard-teal)',
+  secondaryColor = 'var(--dashboard-gold)',
+
   trailing,
 }) => {
   const { t } = useTranslation();
@@ -224,8 +231,9 @@ export const ProgressNodeRow: React.FC<{
             className={cn(
               'flex h-14 w-14 items-center justify-center rounded-full border bg-white dark:bg-slate-800 shadow-[0_16px_34px_-28px_rgba(37,23,8,0.24)]',
               item.active
-                ? 'border-[#d58a22] text-[#a86719] dark:border-amber-500 dark:text-amber-400'
+                ? 'border-[color:var(--dashboard-gold)] text-[color:var(--dashboard-gold-strong)]'
                 : 'border-[color:var(--dashboard-soft-border)] text-[color:var(--dashboard-teal)]',
+
             )}
           >
             {item.icon}
@@ -235,8 +243,9 @@ export const ProgressNodeRow: React.FC<{
         </div>
         {index < items.length - 1 ? (
           <div className="relative h-px flex-1 overflow-hidden rounded-full bg-[color:var(--dashboard-soft-border)]">
-            <div className="absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,#72d6e3,#d58a22)] opacity-55" />
+            <div className="absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,var(--dashboard-teal),var(--dashboard-gold))] opacity-55" />
           </div>
+
         ) : null}
       </React.Fragment>
     ))}
@@ -277,10 +286,11 @@ export const ArchetypeHeroScene: React.FC<{
             className={cn(
               'mt-0.5 text-[1.05rem] font-semibold',
               metric.tone === 'gold'
-                ? 'text-[#d58a22]'
+                ? 'text-[color:var(--dashboard-gold)]'
                 : metric.tone === 'teal'
-                  ? 'text-[#2496ab]'
+                  ? 'text-[color:var(--dashboard-teal)]'
                   : 'text-[color:var(--dashboard-text-muted)]',
+
             )}
           >
             {metric.value.toFixed(1)}

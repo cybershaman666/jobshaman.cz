@@ -664,44 +664,50 @@ const ChallengeCard: React.FC<{
 }> = ({ role, tags, portalAsset, onOpenRole, onOpenAll }) => {
   const { t } = useTranslation();
   return (
-    <ShellCard className="overflow-hidden border-[#e9e1d6] bg-white shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
+    <ShellCard className="overflow-hidden border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
+
       <div className="flex h-full flex-col px-5 py-5 xl:px-6 xl:py-6">
         <div className="flex items-center justify-between gap-3">
           <div className={sectionTitleClass}>{t('rebuild.dashboard.challenges_label', { defaultValue: 'Current challenges' })}</div>
-          <button type="button" onClick={onOpenAll} className="rounded-full border border-[#ece4d8] px-3 py-1 text-[11px] font-medium text-[#707885] transition hover:bg-slate-50">
+          <button type="button" onClick={onOpenAll} className="rounded-full border border-[color:var(--dashboard-soft-border)] px-3 py-1 text-[11px] font-medium text-[color:var(--dashboard-text-muted)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
             {t('rebuild.dashboard.view_all', { defaultValue: 'View all' })}
           </button>
+
         </div>
 
         {role ? (
           <>
             <div className="mt-4 grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_10.25rem]">
               <div className="min-w-0">
-                <div className="inline-flex rounded-md border border-[#f1d9b0] bg-[#fff6e9] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#b26f16]">
+                <div className="inline-flex rounded-md border border-[color:color-mix(in_srgb,var(--dashboard-gold)_40%,transparent)] bg-[color:color-mix(in_srgb,var(--dashboard-gold)_10%,transparent)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--dashboard-gold-strong)]">
                   {t('rebuild.dashboard.new_badge', { defaultValue: 'New' })}
                 </div>
-                <h3 className="mt-3 max-w-[17ch] text-[18px] font-semibold leading-[1.15] tracking-[-0.03em] text-[#111827] line-clamp-2">
+
+                <h3 className="mt-3 max-w-[17ch] text-[18px] font-semibold leading-[1.15] tracking-[-0.03em] text-[color:var(--dashboard-text-strong)] line-clamp-2">
                   {role.title}
                 </h3>
-                <p className="mt-3 max-w-[31ch] text-[14px] leading-6 text-[#5b6472] line-clamp-3">
+                <p className="mt-3 max-w-[31ch] text-[14px] leading-6 text-[color:var(--dashboard-text-body)] line-clamp-3">
+
                   {role.challenge || role.summary || role.description}
                 </p>
 
                 {tags.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded-full border border-[#e8e4dc] bg-white px-3 py-1 text-[12px] font-medium text-[#6a7380]">
+                      <span key={tag} className="rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-3 py-1 text-[12px] font-medium text-[color:var(--dashboard-text-muted)]">
                         {tag}
                       </span>
                     ))}
+
                   </div>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-[13px] text-[#6a7380]">
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-[13px] text-[color:var(--dashboard-text-muted)]">
                   <span className="inline-flex items-center gap-1.5">
-                    <Briefcase size={12} className="text-[#c58c38]" />
+                    <Briefcase size={12} className="text-[color:var(--dashboard-gold)]" />
                     Marketplace
                   </span>
+
                   {role.location ? (
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin size={12} className="text-[#2496ab]" />
@@ -718,7 +724,8 @@ const ChallengeCard: React.FC<{
               </div>
 
               <div className="hidden xl:block">
-                <div className="relative h-full min-h-[154px] overflow-hidden rounded-[22px] border border-[#e8e0d4] bg-[#dce7f3]">
+                <div className="relative h-full min-h-[154px] overflow-hidden rounded-[22px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)]">
+
                   <img
                     src={role.heroImage || portalAsset}
                     alt=""
@@ -733,16 +740,18 @@ const ChallengeCard: React.FC<{
               <button
                 type="button"
                 onClick={onOpenRole}
-                className="inline-flex items-center justify-center rounded-[16px] bg-[#f6d999] px-5 py-3 text-[14px] font-medium text-[#4a3515] shadow-[0_20px_28px_-20px_rgba(74,53,21,0.42)] transition hover:bg-[#f3d58c]"
+                className="inline-flex items-center justify-center rounded-[16px] bg-[color:var(--dashboard-gold)] px-5 py-3 text-[14px] font-bold text-black shadow-[0_20px_28px_-20px_rgba(var(--accent-gold-rgb),0.42)] transition hover:bg-[color:var(--dashboard-gold-strong)]"
               >
                 {t('rebuild.dashboard.accept_challenge', { defaultValue: 'Accept challenge' })}
               </button>
+
             </div>
           </>
         ) : (
-          <div className="mt-4 flex min-h-[170px] flex-1 items-center justify-center rounded-[22px] border border-dashed border-[#e3e8ec] bg-[#fbfcfd] px-6 text-center text-[13px] leading-6 text-[#6a7380]">
+          <div className="mt-4 flex min-h-[170px] flex-1 items-center justify-center rounded-[22px] border border-dashed border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-6 text-center text-[13px] leading-6 text-[color:var(--dashboard-text-muted)]">
             {t('rebuild.dashboard.no_challenges', { defaultValue: 'Once marketplace challenges arrive from the database, the one with the highest current match will appear here.' })}
           </div>
+
         )}
       </div>
     </ShellCard>
@@ -756,13 +765,15 @@ const HandshakeCard: React.FC<{
 }> = ({ rows, onOpenHandshake, onOpenAll }) => {
   const { t } = useTranslation();
   return (
-    <ShellCard className="overflow-hidden border-[#e9e1d6] bg-white shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
+    <ShellCard className="overflow-hidden border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] shadow-[0_18px_42px_-34px_rgba(78,61,28,0.28)] xl:min-h-[252px]">
+
       <div className="flex h-full flex-col px-5 py-5 xl:px-6 xl:py-6">
         <div className="flex items-center justify-between gap-3">
           <div className={sectionTitleClass}>{t('rebuild.dashboard.handshake_label', { defaultValue: 'Handshake' })}</div>
-          <button type="button" onClick={onOpenAll} className="rounded-full border border-[#ece4d8] px-3 py-1 text-[11px] font-medium text-[#707885] transition hover:bg-slate-50">
+          <button type="button" onClick={onOpenAll} className="rounded-full border border-[color:var(--dashboard-soft-border)] px-3 py-1 text-[11px] font-medium text-[color:var(--dashboard-text-muted)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
             {t('rebuild.dashboard.view_all', { defaultValue: 'View all' })}
           </button>
+
         </div>
 
         <div className="mt-5 space-y-3">
@@ -771,22 +782,25 @@ const HandshakeCard: React.FC<{
               key={row.id}
               type="button"
               onClick={() => onOpenHandshake(row.id)}
-              className="flex w-full items-center gap-3 rounded-[18px] border border-[#ebeff2] bg-white px-3 py-3 text-left transition hover:border-[#dde7ed] hover:bg-[#fbfcfd]"
+              className="flex w-full items-center gap-3 rounded-[18px] border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] px-3 py-3 text-left transition hover:border-[color:var(--dashboard-soft-border)] hover:bg-[color:var(--dashboard-soft-bg)]"
             >
+
               <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-[14px] font-black', companyTileClass[index % companyTileClass.length])}>
                 {row.company.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-medium text-[#111827]">{row.company}</div>
-                <div className="truncate text-[13px] text-[#6a7380]">{row.role}</div>
+                <div className="truncate text-[15px] font-medium text-[color:var(--dashboard-text-strong)]">{row.company}</div>
+                <div className="truncate text-[13px] text-[color:var(--dashboard-text-muted)]">{row.role}</div>
               </div>
+
               <HandshakeScore score={row.score} />
               <ChevronRight size={16} className="shrink-0 text-slate-300" />
             </button>
           )) : (
-            <div className="rounded-[18px] border border-dashed border-[#e1e7eb] bg-[#fbfcfd] px-4 py-8 text-center text-[13px] leading-7 text-[#6a7380]">
+            <div className="rounded-[18px] border border-dashed border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] px-4 py-8 text-center text-[13px] leading-7 text-[color:var(--dashboard-text-muted)]">
               {t('rebuild.dashboard.no_handshakes', { defaultValue: 'As soon as the first matches or handshakes submitted appear, you will see them here in a clear timeline.' })}
             </div>
+
           )}
         </div>
       </div>
@@ -803,7 +817,8 @@ const GrowthMapCard: React.FC<{
 
   if (!vm.isJcfpmComplete) {
     return (
-      <ShellCard className="xl:min-h-[252px] border-[#e9e1d6] bg-white flex items-center justify-center p-6">
+      <ShellCard className="xl:min-h-[252px] border-[color:var(--dashboard-card-border)] bg-[color:var(--dashboard-card-bg)] flex items-center justify-center p-6">
+
         <MissingDataPrompt
           title={t('rebuild.dashboard.unlock_map', { defaultValue: 'Map your future' })}
           description={t('rebuild.dashboard.unlock_map_desc', { defaultValue: 'Unlock your personalized growth map by completing the JCFPM assessment.' })}

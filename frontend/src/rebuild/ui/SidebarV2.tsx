@@ -22,27 +22,40 @@ export const SidebarV2: React.FC<{
   onSignOut?: () => void;
   onOpenAuth?: (intent: 'candidate' | 'recruiter') => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ userRole, navItems, activeItemId, onNavigate, userProfile, onSignOut, onOpenAuth, t }) => {
+  isOpen?: boolean;
+  onClose?: () => void;
+}> = ({ userRole, navItems, activeItemId, onNavigate, userProfile, onSignOut, onOpenAuth, t, isOpen, onClose }) => {
   const { resolvedMode } = useRebuildTheme();
   const candidateLight = resolvedMode === 'light';
   const candidateSidebarSurface = candidateLight
-    ? 'bg-white border-r border-slate-100'
-    : 'bg-[#0a0d12] border-r border-white/5';
+    ? 'bg-[color:var(--dashboard-sidebar-bg)] border-r border-[color:var(--dashboard-page-border)]'
+    : 'bg-[color:var(--dashboard-sidebar-bg)] border-r border-[color:var(--dashboard-page-border)]';
 
   return (
     <aside className={cn(
-      'fixed inset-y-0 left-0 z-40 hidden h-screen w-[248px] overflow-hidden lg:flex',
+      'fixed inset-y-0 left-0 z-40 h-screen w-[248px] overflow-hidden transition-transform duration-300 ease-in-out lg:flex lg:translate-x-0',
       userRole === 'recruiter'
-        ? 'border-[#e8e3d9] bg-[#fbfaf7]'
+        ? 'border-r border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-page-bg)]'
         : candidateSidebarSurface,
+      isOpen ? 'translate-x-0 flex' : '-translate-x-full hidden lg:flex',
     )}>
       <div className="flex h-full min-h-0 flex-col">
         <div className={cn(
-          'flex items-center px-4 pb-5 pt-6',
-          userRole === 'recruiter' ? 'border-b border-[#ece5da]' : '',
+          'flex items-center justify-between px-4 pb-5 pt-6',
+          userRole === 'recruiter' ? 'border-b border-[color:var(--dashboard-page-border)]' : '',
         )}>
           <button type="button" onClick={() => onNavigate(navItems[0]?.id, navItems[0]?.path)} className="ml-2 text-left outline-none">
             <BrandMark subtitle={userRole === 'recruiter' ? undefined : undefined} compact={false} />
+          </button>
+          
+          {/* Close button for mobile */}
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-black/5 lg:hidden"
+            aria-label="Close menu"
+          >
+            <span className={cn('text-xl', userRole === 'candidate' && !candidateLight ? 'text-white' : 'text-slate-600')}>×</span>
           </button>
         </div>
 
@@ -61,8 +74,8 @@ export const SidebarV2: React.FC<{
                     className={cn(
                       'flex w-full items-center justify-between rounded-[16px] px-4 py-3 text-sm font-medium transition-all duration-200 outline-none',
                       isActive
-                        ? 'border border-[#d9e6f7] bg-[#eef4ff] text-[#2563eb] shadow-[0_16px_34px_-28px_rgba(59,130,246,0.5)]'
-                        : 'border border-transparent text-[#4b5563] hover:bg-[#f3f4f6] hover:text-[#111827]',
+                        ? 'border border-[color:var(--accent-soft)] bg-[color:var(--accent-soft)] text-[color:var(--accent)] shadow-sm'
+                        : 'border border-transparent text-[color:var(--dashboard-text-muted)] hover:bg-[color:var(--dashboard-soft-bg)] hover:text-[color:var(--dashboard-text-strong)]',
                     )}
                   >
                     <span className="flex items-center gap-3">
@@ -87,10 +100,10 @@ export const SidebarV2: React.FC<{
                     'flex w-full items-center justify-between rounded-[16px] px-4 py-3.5 text-[15px] font-medium transition-all duration-200 outline-none',
                     isActive
                       ? candidateLight
-                        ? 'bg-[linear-gradient(135deg,rgba(255,247,225,0.98),rgba(246,223,180,0.92))] text-[#6d460f] shadow-[0_18px_32px_-24px_rgba(159,103,25,0.35)] ring-1 ring-[#edd39d]/90'
-                        : 'bg-[linear-gradient(135deg,rgba(213,138,34,0.24),rgba(213,138,34,0.1))] text-[#fcedce] shadow-[0_18px_38px_-22px_rgba(213,138,34,0.38)] ring-1 ring-amber-200/10'
+                        ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent)] shadow-sm ring-1 ring-[color:var(--accent)/20]'
+                        : 'bg-[color:var(--dashboard-soft-bg)] text-[color:var(--dashboard-gold)] shadow-sm ring-1 ring-white/10'
                       : candidateLight
-                        ? 'text-[color:var(--dashboard-text-body)] hover:bg-[#f3eee5] hover:text-[color:var(--dashboard-text-strong)]'
+                        ? 'text-[color:var(--dashboard-text-body)] hover:bg-[color:var(--dashboard-soft-bg)] hover:text-[color:var(--dashboard-text-strong)]'
                         : 'text-white/72 hover:bg-white/[0.04] hover:text-white',
                   )}
                 >
@@ -100,14 +113,14 @@ export const SidebarV2: React.FC<{
                         'flex h-8 w-8 items-center justify-center rounded-[11px] transition',
                         isActive
                           ? candidateLight
-                            ? 'bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'
+                            ? 'bg-white/80 shadow-sm'
                             : 'bg-white/10'
                           : candidateLight
                             ? 'bg-white/55'
                             : 'bg-white/[0.03]',
                       )}
                     >
-                      <Icon size={19} className={cn(isActive ? candidateLight ? 'text-[#6d460f]' : 'text-[#fcedce]' : candidateLight ? 'text-[color:var(--dashboard-text-muted)]' : 'text-white/45')} />
+                      <Icon size={19} className={cn(isActive ? candidateLight ? 'text-[color:var(--accent)]' : 'text-[color:var(--dashboard-gold)]' : candidateLight ? 'text-[color:var(--dashboard-text-muted)]' : 'text-white/45')} />
                     </span>
                     <span className="truncate">{item.label}</span>
                   </span>
@@ -115,9 +128,9 @@ export const SidebarV2: React.FC<{
                     <span className={cn(
                       'rounded-full px-2 py-0.5 text-xs font-semibold',
                       isActive
-                        ? 'bg-[#f8dfac] text-[#6d460f]'
+                        ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent)]'
                         : candidateLight
-                          ? 'bg-[#efe8de] text-[color:var(--dashboard-text-body)]'
+                          ? 'bg-[color:var(--dashboard-soft-bg)] text-[color:var(--dashboard-text-body)]'
                           : 'bg-white/10 text-white/68',
                     )}>
                       {item.badge}
@@ -132,26 +145,26 @@ export const SidebarV2: React.FC<{
         <div className="border-t border-[color:color-mix(in_srgb,var(--dashboard-sidebar-border)_80%,transparent)] p-4">
           {userRole === 'recruiter' && (
             <>
-              <button type="button" onClick={() => onNavigate('cybershaman')} className="flex w-full items-center gap-3 rounded-[18px] border border-[#ece4d8] bg-white px-4 py-4 text-sm font-medium text-[#334155] shadow-[0_14px_34px_-28px_rgba(15,23,42,0.22)] transition hover:bg-[#faf8f4]">
-                <Sparkles size={18} className="text-[#3b82f6]" />
+              <button type="button" onClick={() => onNavigate('cybershaman')} className="flex w-full items-center gap-3 rounded-[18px] border border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-card-bg)] px-4 py-4 text-sm font-medium text-[color:var(--dashboard-text-body)] shadow-sm transition hover:bg-[color:var(--dashboard-soft-bg)]">
+                <Sparkles size={18} className="text-[color:var(--accent)]" />
                 <div className="flex flex-col items-start">
                   <span>Cybershaman AI</span>
-                  <span className="text-[10px] font-normal text-slate-500">{t('rebuild.nav.ai_guide_subtitle', { defaultValue: 'Your AI recruitment guide' })}</span>
+                  <span className="text-[10px] font-normal text-[color:var(--dashboard-text-muted)]">{t('rebuild.nav.ai_guide_subtitle', { defaultValue: 'Your AI recruitment guide' })}</span>
                 </div>
               </button>
-              <div className="mt-4 space-y-1 border-t border-[#ece4d8] pt-4">
-                <button type="button" className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[#4b5563] transition hover:bg-[#f3f4f6]">
-                  <HelpCircle size={18} className="text-[#9ca3af]" />
+              <div className="mt-4 space-y-1 border-t border-[color:var(--dashboard-page-border)] pt-4">
+                <button type="button" className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[color:var(--dashboard-text-body)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
+                  <HelpCircle size={18} className="text-[color:var(--dashboard-text-muted)]" />
                   {t('rebuild.nav.help', { defaultValue: 'Help' })}
                 </button>
                 {userProfile.isLoggedIn ? (
-                  <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[#4b5563] transition hover:bg-[#f3f4f6]">
-                    <LogOut size={18} className="text-[#9ca3af]" />
+                  <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[color:var(--dashboard-text-body)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
+                    <LogOut size={18} className="text-[color:var(--dashboard-text-muted)]" />
                     {t('rebuild.nav.sign_out', { defaultValue: 'Sign out' })}
                   </button>
                 ) : (
-                  <button type="button" onClick={() => onOpenAuth?.('recruiter')} className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[#4b5563] transition hover:bg-[#f3f4f6]">
-                    <LogIn size={18} className="text-[#9ca3af]" />
+                  <button type="button" onClick={() => onOpenAuth?.('recruiter')} className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[color:var(--dashboard-text-body)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
+                    <LogIn size={18} className="text-[color:var(--dashboard-text-muted)]" />
                     {t('rebuild.nav.sign_in', { defaultValue: 'Sign in' })}
                   </button>
                 )}
@@ -166,8 +179,8 @@ export const SidebarV2: React.FC<{
                 className={cn(
                   'group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] px-3.5 py-3.5 text-left transition',
                   candidateLight
-                    ? 'border border-[color:color-mix(in_srgb,var(--shell-button-secondary-border)_82%,transparent)] bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(251,243,229,0.96)_55%,rgba(236,247,248,0.92))] shadow-[0_22px_40px_-34px_rgba(69,53,23,0.26)] hover:shadow-[0_30px_48px_-36px_rgba(69,53,23,0.3)]'
-                    : 'border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04)_52%,rgba(124,232,255,0.06))] hover:bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05)_52%,rgba(124,232,255,0.08))]',
+                    ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-panel-bg)] shadow-soft hover:shadow-card'
+                    : 'border border-white/10 bg-[color:var(--shell-button-secondary-bg)] hover:bg-[color:var(--shell-button-secondary-hover)]',
                 )}
               >
                 <div aria-hidden className={cn(
@@ -192,7 +205,7 @@ export const SidebarV2: React.FC<{
                   </div>
                   <div className={cn(
                     'absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-transform duration-300 group-hover:-translate-y-[55%] group-hover:translate-x-0.5',
-                    candidateLight ? 'bg-white/74 text-[#b88c46]' : 'bg-white/10 text-white/72',
+                    candidateLight ? 'bg-white/74 text-[color:var(--accent-gold)]' : 'bg-white/10 text-white/72',
                   )}>
                     <ArrowUpRight size={14} />
                   </div>
@@ -202,7 +215,7 @@ export const SidebarV2: React.FC<{
               <div className={cn(
                 'flex items-center justify-center rounded-[22px] border p-2',
                 candidateLight
-                  ? 'border-[color:color-mix(in_srgb,var(--shell-button-secondary-border)_75%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(249,245,238,0.92))]'
+                  ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-button-secondary-bg)]'
                   : 'border-white/10 bg-white/5',
               )}>
                 <ThemeToggle compact className="w-auto" />

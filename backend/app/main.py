@@ -22,12 +22,8 @@ from .domains.identity.models import User
 from sqlmodel import select
 from .core.database import engine
 from sqlalchemy.ext.asyncio import AsyncSession
-from .domains.identity import models as identity_models
-from .domains.reality import models as reality_models
-from .domains.ai_governance import models as ai_models
-from .domains.handshake import models as handshake_models
-from .domains.integrations import models as integration_models
-from .domains.media import models as media_models
+# Models are imported implicitly via service and endpoint registrations
+
 from .core.runtime import get_cors_origins, validate_runtime_config
 
 logger = logging.getLogger(__name__)

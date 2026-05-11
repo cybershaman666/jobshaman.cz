@@ -26,7 +26,7 @@ import {
   sendCompanyApplicationMessage,
 } from '../../services/v2DialogueService';
 
-import { InsightBadge } from '../candidate/CandidateShell';
+import { InsightBadge } from '../candidate/CandidateShellComponents';
 import { cn } from '../cn';
 import { deriveDashboardMetrics } from '../derivations';
 import type { CalendarEvent, CandidateInsight, Company, HandshakeBlueprint, Role } from '../models';

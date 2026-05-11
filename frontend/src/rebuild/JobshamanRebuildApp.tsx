@@ -57,17 +57,17 @@ import type {
   MarketplaceSection,
   Role,
 } from './models';
-import {
-  CandidateJcfpmPage,
-  CandidateRoleBriefingPage,
-  ImportedPrepPage,
-} from './candidate/CandidateShell';
-import { MarketplaceV2, type RoleClusterId } from './candidate/MarketplaceV2';
-import { CandidateInsightsPage, CandidateJourneyPage } from './candidate/CandidateExperience';
-import { CandidateApplicationsPage } from './candidate/CandidateApplicationsPage';
-import { CandidateLearningPage } from './candidate/CandidateLearningPage';
+const CandidateJcfpmPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.CandidateJcfpmPage })));
+const CandidateRoleBriefingPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.CandidateRoleBriefingPage })));
+const ImportedPrepPage = React.lazy(() => import('./candidate/CandidateShell').then(m => ({ default: m.ImportedPrepPage })));
+const MarketplaceV2 = React.lazy(() => import('./candidate/MarketplaceV2').then(m => ({ default: m.MarketplaceV2 })));
+const CandidateInsightsPage = React.lazy(() => import('./candidate/CandidateExperience').then(m => ({ default: m.CandidateInsightsPage })));
+const CandidateJourneyPage = React.lazy(() => import('./candidate/CandidateExperience').then(m => ({ default: m.CandidateJourneyPage })));
+const CandidateApplicationsPage = React.lazy(() => import('./candidate/CandidateApplicationsPage').then(m => ({ default: m.CandidateApplicationsPage })));
+const CandidateLearningPage = React.lazy(() => import('./candidate/CandidateLearningPage').then(m => ({ default: m.CandidateLearningPage })));
 import { deriveDashboardMetrics, deriveRecruiterCalendar, deriveRolePipelineStats, deriveTalentPool } from './derivations';
-import { RecruiterActivationPage, RecruiterShell } from './recruiter/RecruiterShell';
+const RecruiterActivationPage = React.lazy(() => import('./recruiter/RecruiterShell').then(m => ({ default: m.RecruiterActivationPage })));
+const RecruiterShell = React.lazy(() => import('./recruiter/RecruiterShell').then(m => ({ default: m.RecruiterShell })));
 import type { AuthIntent } from './authTypes';
 import { navigateTo, routeFromPath, usePathname } from './routing';
 import {
@@ -95,7 +95,8 @@ import {
 import { generateAiBlueprint } from './shellDomain';
 import { AppBackdrop } from './ui/RebuildChrome';
 import { DashboardLayoutV2 } from './ui/DashboardLayoutV2';
-import { CompanyEntryPage, LandingChoicePage, LegalPublicPage } from './public/PublicPages';
+import { type RoleClusterId } from './candidate/MarketplaceV2';
+import { initializeAnalytics } from '../services/cookieConsentService';
 import { CookieBanner } from './ui/CookieBanner';
 import {
   panelClass,
@@ -128,9 +129,11 @@ const getMarketplaceClusterId = (role: Role): RoleClusterId => {
   if (['care', 'education', 'health'].includes(role.roleFamily)) return 'services';
   return 'other';
 };
-import AdminDashboard from '../pages/AdminDashboard';
-import { initializeAnalytics } from '../services/cookieConsentService';
-import { AuthPanel } from './auth/AuthPanel';
+const CompanyEntryPage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.CompanyEntryPage })));
+const LandingChoicePage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.LandingChoicePage })));
+const LegalPublicPage = React.lazy(() => import('./public/PublicPages').then(m => ({ default: m.LegalPublicPage })));
+const AuthPanel = React.lazy(() => import('./auth/AuthPanel').then(m => ({ default: m.AuthPanel })));
+const AdminDashboard = React.lazy(() => import('../pages/AdminDashboard'));
 
 
 
@@ -1584,6 +1587,20 @@ const JobshamanRebuildApp: React.FC = () => {
         {!isStandaloneDashboardRoute ? <AppBackdrop /> : null}
         <AuthPanel open={authOpen} initialIntent={authIntent} onClose={() => setAuthOpen(false)} onSignedIn={(intent) => void handleSignedIn(intent)} navigate={navigate} t={t} />
 
+        <React.Suspense fallback={
+          <div className="flex min-h-[60vh] w-full items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative h-12 w-12">
+                <div className="absolute inset-0 rounded-full border-4 border-[color:var(--accent-soft)]"></div>
+                <div className="absolute inset-0 animate-spin rounded-full border-4 border-[color:var(--accent)] border-t-transparent"></div>
+              </div>
+              <div className="text-sm font-medium text-[color:var(--dashboard-text-muted)] animate-pulse">
+                {t('rebuild.loading.workspace', { defaultValue: 'Initializing workspace...' })}
+              </div>
+            </div>
+          </div>
+        }>
+
         {route.kind === 'marketplace' ? (
           <MarketplaceV2
             roles={roleLibrary}
@@ -1835,6 +1852,7 @@ const JobshamanRebuildApp: React.FC = () => {
             />
           )
         ) : null}
+        </React.Suspense>
       </div>
       <CookieBanner />
     </RebuildThemeProvider>
