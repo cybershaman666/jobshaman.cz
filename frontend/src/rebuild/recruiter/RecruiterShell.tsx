@@ -6,11 +6,16 @@ import {
   CreditCard,
   LayoutDashboard,
   Loader2,
+  MapPin,
   Paperclip,
   PlugZap,
+  Plus,
+  Rocket,
+  Settings,
   Settings2,
   Sparkles,
   Users,
+  Zap,
 } from 'lucide-react';
 
 import type {
@@ -50,6 +55,7 @@ import { RecruiterDashboardV2 } from './RecruiterDashboardV2';
 import { RecruiterIntegrationsPage } from './RecruiterIntegrationsPage';
 import { RecruiterBillingPage } from './RecruiterBillingPage';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
+import { RoleEditorV2 } from './RoleEditorV2';
 
 export const RecruiterActivationPage: React.FC<{
   userProfile: UserProfile;
@@ -224,6 +230,8 @@ export const RecruiterShell: React.FC<{
   const [_recruiterThreadNotice, setRecruiterThreadNotice] = React.useState('');
   const [_recruiterThreadError, setRecruiterThreadError] = React.useState('');
   const [brandAssetBusy, setBrandAssetBusy] = React.useState<string | null>(null);
+  const [isRoleEditorOpen, setIsRoleEditorOpen] = React.useState(false);
+  const [editingRole, setEditingRole] = React.useState<Role | null>(null);
   const recruiterAttachmentInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
@@ -688,294 +696,148 @@ export const RecruiterShell: React.FC<{
 
           {tab === 'roles' ? (
             <div className="space-y-6">
-              <div className="rounded-[8px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-[0_24px_80px_-64px_rgba(15,23,42,0.42)] dark:shadow-none">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <button type="button" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#1f5fbf]">
-                      <span>←</span>
-                      {t('rebuild.recruiter.back_to_roles', { defaultValue: 'Back to roles' })}
-                    </button>
-                    <h1 className="text-[2rem] font-semibold tracking-[-0.045em] text-slate-900">{t('rebuild.recruiter.create_challenge_title', { defaultValue: 'Create a new challenge ✨' })}</h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t('rebuild.recruiter.create_challenge_desc', { defaultValue: 'A quality challenge will attract the right people. Describe the situation, impact, and first assessment task.' })}</p>
-                  </div>
-                  <button type="button" onClick={() => void handleCreateChallenge()} disabled={challengeSaving} className={cn(primaryButtonClass, 'rounded-[8px] bg-[#c28a2c] hover:bg-[#a87421] disabled:cursor-not-allowed disabled:opacity-60')}>
-                    {challengeSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                    {t('rebuild.recruiter.save_challenge', { defaultValue: 'Save challenge' })}
-                  </button>
+              {isRoleEditorOpen ? (
+                <div className="animate-in fade-in zoom-in-95 duration-300">
+                  <RoleEditorV2
+                    initialRole={editingRole || undefined}
+                    onSave={async (data) => {
+                      try {
+                        setChallengeSaving(true);
+                        await onCreateChallenge(data);
+                        setIsRoleEditorOpen(false);
+                        setEditingRole(null);
+                        setChallengeNotice(t('rebuild.recruiter.role_saved_success', { defaultValue: 'Role successfully saved.' }));
+                      } catch (err) {
+                        setChallengeError(err instanceof Error ? err.message : 'Failed to save role');
+                      } finally {
+                        setChallengeSaving(false);
+                      }
+                    }}
+                    onCancel={() => {
+                      setIsRoleEditorOpen(false);
+                      setEditingRole(null);
+                    }}
+                    onAiDraft={onAiDraftChallenge}
+                    busy={challengeSaving}
+                    t={t}
+                  />
                 </div>
-
-                <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-                  <div className="space-y-4">
-                    <section className="grid overflow-hidden rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 md:grid-cols-[230px_minmax(0,1fr)]">
-                      <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-5 md:border-b-0 md:border-r">
-                        {[
-                          ['1', t('rebuild.recruiter.step1_title', { defaultValue: 'Essence of the challenge' }), t('rebuild.recruiter.step1_desc', { defaultValue: 'What is the goal and why it matters' }), draftRoleTitle || draftRoleSummary],
-                          ['2', t('rebuild.recruiter.step2_title', { defaultValue: 'Area and collaboration' }), t('rebuild.recruiter.step2_desc', { defaultValue: 'Categorization and way of working' }), draftRoleFamily || draftRoleWorkModel],
-                          ['3', t('rebuild.recruiter.step3_title', { defaultValue: 'Context for candidate' }), t('rebuild.recruiter.step3_desc', { defaultValue: 'Background, motivation, and expectations' }), draftRoleSummary],
-                          ['4', t('rebuild.recruiter.step4_title', { defaultValue: 'Assessment task' }), t('rebuild.recruiter.step4_desc', { defaultValue: 'First skill test' }), draftRoleFirstStep],
-                          ['5', t('rebuild.recruiter.step5_title', { defaultValue: 'Preview and publication' }), t('rebuild.recruiter.step5_desc', { defaultValue: 'Check and publish' }), draftCompleteness === 100 ? 'done' : ''],
-                        ].map(([index, label, copy, value], itemIndex) => {
-                          const active = itemIndex === 0;
-                          const complete = String(value).trim().length > 0;
-                          return (
-                            <div key={label} className={cn('flex gap-3 rounded-[8px] px-3 py-3', active ? 'bg-[#fff7e8]' : '')}>
-                              <span className={cn('mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold', active ? 'border-[#c28a2c] bg-[#c28a2c] text-white dark:border-amber-600 dark:bg-amber-600' : complete ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400' : 'border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400')}>
-                                {complete && !active ? <Check size={13} /> : index}
-                              </span>
-                              <span>
-                                <span className={cn('block text-sm font-bold', active ? 'text-[#9a6a1d]' : 'text-slate-800')}>{label}</span>
-                                <span className="block text-xs leading-5 text-slate-500">{copy}</span>
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="p-6">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <h2 className="text-lg font-bold text-slate-900">{t('rebuild.recruiter.section1_heading', { defaultValue: '1. Essence of the challenge' })}</h2>
-                          <button type="button" onClick={() => void handleMistralDraftAssist()} disabled={challengeAiDraftBusy} className={cn(secondaryButtonClass, 'rounded-[8px] px-3 py-2 text-sm disabled:opacity-60')}>
-                            {challengeAiDraftBusy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                            {t('rebuild.recruiter.mistral_assist', { defaultValue: 'Mistral will help formulate' })}
-                          </button>
-                        </div>
-                        <div className="mt-5 space-y-5">
-                          <label className="block text-sm font-semibold text-slate-700">
-                            {t('rebuild.recruiter.challenge_name', { defaultValue: 'Challenge name' })}
-                            <input value={draftRoleTitle} onChange={(event) => setDraftRoleTitle(event.target.value)} placeholder="E.g. Speed up dashboard loading by 50%" className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 text-base dark:text-slate-200')} />
-                          </label>
-                          <label className="block text-sm font-semibold text-slate-700">
-                            {t('rebuild.recruiter.why_important', { defaultValue: 'Why is it important?' })}
-                            <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{t('rebuild.recruiter.impact_desc', { defaultValue: 'Describe the impact you want to achieve.' })}</span>
-                            <textarea value={draftRoleSummary} onChange={(event) => setDraftRoleSummary(event.target.value)} rows={4} placeholder="E.g. Users wait too long for data and leave. We need to improve performance and increase satisfaction." className={cn(textareaClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                          </label>
-                          <label className="block text-sm font-semibold text-slate-700">
-                            {t('rebuild.recruiter.what_to_solve', { defaultValue: 'What should the candidate solve?' })}
-                            <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{t('rebuild.recruiter.solve_desc', { defaultValue: 'Briefly describe what the candidate should deliver or prove.' })}</span>
-                            <textarea value={draftRoleFirstStep} onChange={(event) => setDraftRoleFirstStep(event.target.value)} rows={4} placeholder="E.g. Analyze current state, propose improvement and show measurable procedure." className={cn(textareaClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                          </label>
-                          <div className="rounded-[8px] border border-[#ead2a2] bg-[#fff8ea] p-4">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#a87421]">{t('rebuild.recruiter.shaman_advice', { defaultValue: 'Shaman\'s advice' })}</div>
-                            <p className="mt-2 text-sm leading-6 text-slate-700">{t('rebuild.recruiter.shaman_advice_text', { defaultValue: 'A great challenge is specific, measurable, and inspiring. Describe the outcome, not just the task.' })}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section className="rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6">
-                      <h2 className="text-lg font-bold text-slate-900">{t('rebuild.recruiter.section2_heading', { defaultValue: '2. Area and collaboration' })}</h2>
-                      <div className="mt-5 grid gap-4 md:grid-cols-3">
-                        <label className="block text-sm font-semibold text-slate-700">
-                          {t('rebuild.recruiter.field_area', { defaultValue: 'Area' })}
-                          <select value={draftRoleFamily} onChange={(event) => setDraftRoleFamily(event.target.value as Role['roleFamily'])} className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')}>
-                            {Object.keys(roleFamilyLabel).map((family) => <option key={family} value={family}>{roleFamilyLabel[family as Role['roleFamily']]}</option>)}
-                          </select>
-                        </label>
-                        <label className="block text-sm font-semibold text-slate-700">
-                          {t('rebuild.recruiter.collab_type', { defaultValue: 'Collaboration type' })}
-                          <select value={draftRoleWorkModel} onChange={(event) => setDraftRoleWorkModel(event.target.value as Role['workModel'])} className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')}>
-                            <option value="Hybrid">{t('rebuild.recruiter.work_hybrid', { defaultValue: 'Hybrid' })}</option>
-                            <option value="Remote">{t('rebuild.recruiter.work_remote', { defaultValue: 'Remote' })}</option>
-                            <option value="On-site">{t('rebuild.recruiter.work_onsite', { defaultValue: 'On-site' })}</option>
-                          </select>
-                        </label>
-                        <label className="block text-sm font-semibold text-slate-700">
-                          {t('rebuild.recruiter.location', { defaultValue: 'Location' })}
-                          <input value={draftRoleLocation} onChange={(event) => setDraftRoleLocation(event.target.value)} className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                        </label>
-                      </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <label className="block text-sm font-semibold text-slate-600">
-                          {t('rebuild.recruiter.salary_from', { defaultValue: 'Salary from' })}
-                          <input type="number" value={draftRoleSalaryFrom} onChange={(event) => setDraftRoleSalaryFrom(event.target.value)} className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                        </label>
-                        <label className="block text-sm font-semibold text-slate-600">
-                          {t('rebuild.recruiter.salary_to', { defaultValue: 'Salary to' })}
-                          <input type="number" value={draftRoleSalaryTo} onChange={(event) => setDraftRoleSalaryTo(event.target.value)} className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                        </label>
-                        <label className="block text-sm font-semibold text-slate-600">
-                          {t('rebuild.recruiter.skills', { defaultValue: 'Skills' })}
-                          <input value={draftRoleSkills} onChange={(event) => setDraftRoleSkills(event.target.value)} placeholder="SQL, performance, analysis..." className={cn(fieldClass, 'rounded-[8px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200')} />
-                        </label>
-                      </div>
-                      {challengeError ? <div className="mt-4 rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{challengeError}</div> : null}
-                      {challengeNotice ? <div className="mt-4 rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{challengeNotice}</div> : null}
-                    </section>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-6">
+                    <div>
+                      <h1 className="text-[2.8rem] font-semibold tracking-[-0.06em] text-slate-900 dark:text-white">
+                        {t('rebuild.recruiter.roles_title', { defaultValue: 'Challenges & Handshakes' })}
+                      </h1>
+                      <p className="mt-2 text-slate-500 max-w-2xl">
+                        {t('rebuild.recruiter.roles_subtitle', { defaultValue: 'Manage your skill-first recruitment journeys. Each role is a bridge between company goals and candidate abilities.' })}
+                      </p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setEditingRole(null);
+                        setIsRoleEditorOpen(true);
+                      }} 
+                      className={cn(primaryButtonClass, 'h-14 px-8 rounded-2xl bg-[#c28a2c] hover:bg-[#a87421] border-[#a87421] shadow-xl shadow-amber-900/10')}
+                    >
+                      <Plus size={20} />
+                      {t('rebuild.recruiter.create_new_challenge', { defaultValue: 'Create New Challenge' })}
+                    </button>
                   </div>
 
-                  <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-                    <section className="rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#1f5fbf]">
-                        <Sparkles size={14} />
-                        {t('rebuild.recruiter.ai_assistant', { defaultValue: 'AI asistent' })}
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {challengeChecks.map((item) => (
-                          <div key={item.label} className="rounded-[8px] border border-slate-200 bg-[#f8fbff] p-3">
-                            <div className="flex items-start gap-3">
-                              <span className={cn('mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full', item.done ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
-                                <Check size={13} />
-                              </span>
-                              <span>
-                                <span className="block text-sm font-bold text-slate-900">{item.label}</span>
-                                <span className="block text-xs leading-5 text-slate-600">{item.copy}</span>
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {Array.isArray(draftAiOutput?.assessment_tasks) && draftAiOutput.assessment_tasks.length > 0 ? (
-                        <div className="mt-4 rounded-[8px] border border-slate-200 bg-white p-4">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                            {t('rebuild.recruiter.ai_draft_tasks', { defaultValue: 'AI draft tasks' })}
-                          </div>
-                          <div className="mt-3 space-y-3">
-                            {draftAiOutput.assessment_tasks.slice(0, 4).map((task: any, index: number) => (
-                              <div key={String(task?.id || index)} className="rounded-[8px] border border-slate-200 bg-slate-50 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="text-sm font-bold text-slate-900">{String(task?.title || t('rebuild.recruiter.task_n', { defaultValue: 'Task {{n}}', n: index + 1 }))}</div>
-                                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{String(task?.type || 'task').replaceAll('_', ' ')}</div>
-                                </div>
-                                <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">{String(task?.prompt || task?.instructions || '')}</p>
-                              </div>
-                            ))}
-                          </div>
+                  <div className="grid gap-6 xl:grid-cols-2">
+                    {visibleRoles.length === 0 ? (
+                      <div className="col-span-full py-20 text-center rounded-[32px] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <div className="mx-auto h-20 w-20 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-6">
+                          <BookOpen size={32} />
                         </div>
-                      ) : null}
-                      <div className="mt-4 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#2f6fca] bg-[#eff6ff] text-lg font-bold text-[#1f5fbf]">{challengeScore}%</div>
-                          <div>
-                            <div className="text-sm font-bold text-slate-900">{t('rebuild.recruiter.challenge_score', { defaultValue: 'Challenge score' })}</div>
-                            <p className="mt-1 text-xs leading-5 text-slate-600">{t('rebuild.recruiter.score_desc', { defaultValue: 'This challenge has the potential to attract relevant candidates.' })}</p>
-                          </div>
-                        </div>
-                        <button type="button" onClick={() => void handleMistralDraftAssist()} disabled={challengeAiDraftBusy} className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-[#1f5fbf] disabled:opacity-60">
-                          {challengeAiDraftBusy ? <Loader2 size={14} className="animate-spin" /> : null}
-                          {t('rebuild.recruiter.improve_score', { defaultValue: 'How to improve the score via Mistral →' })}
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('rebuild.recruiter.no_roles_yet', { defaultValue: 'No challenges active yet' })}</h3>
+                        <p className="mt-2 text-slate-500 max-w-xs mx-auto">{t('rebuild.recruiter.no_roles_desc', { defaultValue: 'Start by creating your first skill-first role to attract top talent.' })}</p>
+                        <button 
+                          onClick={() => setIsRoleEditorOpen(true)}
+                          className={cn(secondaryButtonClass, 'mt-6')}
+                        >
+                          {t('rebuild.recruiter.create_first_one', { defaultValue: 'Create your first challenge' })}
                         </button>
                       </div>
-                    </section>
+                    ) : (
+                      visibleRoles.map((role) => {
+                        const blueprint = role.handshakeBlueprint && Array.isArray((role.handshakeBlueprint as HandshakeBlueprint).steps)
+                          ? role.handshakeBlueprint as HandshakeBlueprint
+                          : blueprintLibrary.find((item) => item.id === role.blueprintId) || blueprintLibrary.find((item) => item.roleFamily === role.roleFamily);
+                        
+                        const completeness = role.handshakeBlueprint ? 100 : (role.summary && role.skills.length > 0 ? 60 : 30);
 
-                    <section className="rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{t('rebuild.recruiter.candidate_preview', { defaultValue: 'Candidate preview' })}</div>
-                        <button type="button" className="rounded-[6px] bg-[#fff3df] px-2.5 py-1 text-[11px] font-bold text-[#9a6a1d]">{t('rebuild.recruiter.full_preview', { defaultValue: 'Show full preview' })}</button>
-                      </div>
-                      <div className="pt-5">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{roleFamilyLabel[draftRoleFamily]}</div>
-                        <h3 className="mt-3 text-[1.35rem] font-semibold leading-tight tracking-[-0.035em] text-slate-900">{draftRoleTitle || t('rebuild.recruiter.enter_challenge', { defaultValue: 'Enter the challenge the candidate should solve' })}</h3>
-                        <p className="mt-3 text-sm leading-6 text-slate-600">{draftRoleSummary || t('rebuild.recruiter.preview_placeholder', { defaultValue: 'A brief context will be written here: what is happening, why it hurts, and what result would help the company.' })}</p>
-                        <div className="mt-4 space-y-2 text-sm text-slate-600">
-                          <div>☕ {draftRoleWorkModel === 'Hybrid' ? t('rebuild.recruiter.hybrid_collab', { defaultValue: 'Hybrid collaboration' }) : draftRoleWorkModel}</div>
-                          <div>⌖ {draftRoleLocation || 'Lokalita bude upřesněna'}</div>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {(draftRoleSkills.split(',').map((skill) => skill.trim()).filter(Boolean).slice(0, 4).length ? draftRoleSkills.split(',').map((skill) => skill.trim()).filter(Boolean).slice(0, 4) : ['Analýza', 'Návrh', 'Priorizace']).map((skill) => (
-                            <span key={skill} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">{skill}</span>
-                          ))}
-                        </div>
-                        <div className="mt-5 flex items-center justify-between rounded-[8px] border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-800">
-                          <span>{t('rebuild.recruiter.first_task_assessment', { defaultValue: 'First task - 14-day assessment' })}</span>
-                          <span>›</span>
-                        </div>
-                      </div>
-                    </section>
-                  </aside>
-                </div>
+                        return (
+                          <div key={role.id} className="group relative rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-sm transition-all hover:shadow-xl hover:border-amber-200/50 dark:hover:border-amber-900/30 overflow-hidden">
+                            {/* Handshake Progress Bar */}
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-slate-50 dark:bg-slate-800">
+                              <div className={cn('h-full transition-all duration-1000', completeness === 100 ? 'bg-emerald-500' : 'bg-amber-400')} style={{ width: `${completeness}%` }} />
+                            </div>
 
-                <div className="sticky bottom-4 z-20 mt-6 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 p-4 shadow-[0_24px_70px_-50px_rgba(15,23,42,0.45)] dark:shadow-none backdrop-blur">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{t('rebuild.recruiter.draft_challenge', { defaultValue: 'Draft challenge' })}</div>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-600"><Check size={13} /> {draftAiOutput ? t('rebuild.recruiter.ai_contract_ready', { defaultValue: 'AI assessment contract is ready for saving' }) : t('rebuild.recruiter.server_draft_required', { defaultValue: 'Generate and save the draft to the company workspace' })}</div>
-                    </div>
-                    <div className="hidden flex-1 items-center justify-center gap-3 text-xs font-bold text-slate-400 lg:flex">
-                      {['Podstata výzvy', 'Oblast a spolupráce', 'Kontext', 'Assessment', 'Náhled'].map((label, index) => (
-                        <React.Fragment key={label}>
-                          <span className={cn('inline-flex items-center gap-2', index === 0 ? 'text-[#c28a2c]' : '')}>
-                            <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full border', index === 0 ? 'border-[#c28a2c] bg-[#c28a2c] text-white' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-300')}>{index + 1}</span>
-                            {label}
-                          </span>
-                          {index < 4 ? <span className="h-px w-10 bg-slate-200" /> : null}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                    <button type="button" onClick={() => void handleMistralDraftAssist()} disabled={challengeAiDraftBusy} className={cn(secondaryButtonClass, 'rounded-[8px] disabled:opacity-60')}>
-                      {challengeAiDraftBusy ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {t('rebuild.recruiter.generate_ai_draft', { defaultValue: 'Generate AI draft' })}
-                    </button>
-                    <button type="button" onClick={() => void handleCreateChallenge()} disabled={challengeSaving} className={cn(primaryButtonClass, 'rounded-[8px] bg-[#c28a2c] hover:bg-[#a87421] disabled:opacity-60')}>
-                      {challengeSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                      {t('rebuild.recruiter.save_draft_to_workspace', { defaultValue: 'Save draft' })}
-                    </button>
+                            <div className="flex flex-col h-full">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-500">{roleFamilyLabel[role.roleFamily]}</span>
+                                    {completeness === 100 ? (
+                                      <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                        <Check size={10} /> {t('rebuild.recruiter.ready_handshake', { defaultValue: 'Handshake Ready' })}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t('rebuild.recruiter.incomplete_handshake', { defaultValue: 'Draft' })}</span>
+                                    )}
+                                  </div>
+                                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">{role.title}</h3>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      setEditingRole(role);
+                                      setIsRoleEditorOpen(true);
+                                    }}
+                                    className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
+                                  >
+                                    <Settings size={18} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <p className="mt-4 text-sm text-slate-500 leading-7 line-clamp-3 flex-1">{role.summary || role.challenge}</p>
+
+                              <div className="mt-6 flex flex-wrap gap-2">
+                                {role.skills.slice(0, 4).map(skill => (
+                                  <span key={skill} className="px-3 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">{skill}</span>
+                                ))}
+                                {role.skills.length > 4 && <span className="px-3 py-1 text-[11px] font-semibold text-slate-400">+{role.skills.length - 4} more</span>}
+                              </div>
+
+                              <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                  <span className="flex items-center gap-1.5"><MapPin size={14} /> {role.location}</span>
+                                  <span className="flex items-center gap-1.5"><Zap size={14} /> {role.workModel}</span>
+                                </div>
+                                <div className="flex gap-3">
+                                  <button
+                                    type="button"
+                                    disabled={challengeBusyId === role.id}
+                                    onClick={() => void handlePublishChallenge(role.id)}
+                                    className={cn(primaryButtonClass, 'rounded-xl px-5 py-2.5 text-xs bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100')}
+                                  >
+                                    {challengeBusyId === role.id ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+                                    {t('rebuild.recruiter.publish', { defaultValue: 'Publish' })}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{t('rebuild.recruiter.published_surface', { defaultValue: 'Published Surface' })}</div>
-                    <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em] text-slate-900">{t('rebuild.recruiter.challenges_and_assessments', { defaultValue: 'Challenges and assessment procedures' })}</h2>
-                </div>
-              </div>
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {visibleRoles.length === 0 ? (
-                    <div className="rounded-[8px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 text-sm leading-7 text-slate-600 dark:text-slate-400">
-                      {t('rebuild.recruiter.no_challenges_yet', { defaultValue: 'You do not have any challenges entered yet. Once you save one, it will appear here and the candidate can open it as a handshake.' })}
-                    </div>
-                  ) : null}
-                  {visibleRoles.map((role) => {
-                    const blueprint = role.handshakeBlueprint && Array.isArray((role.handshakeBlueprint as HandshakeBlueprint).steps)
-                      ? role.handshakeBlueprint as HandshakeBlueprint
-                      : blueprintLibrary.find((item) => item.id === role.blueprintId) || blueprintLibrary.find((item) => item.roleFamily === role.roleFamily);
-                    return (
-                    <div key={role.id} className="rounded-[8px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-[0_18px_60px_-52px_rgba(15,23,42,0.35)] dark:shadow-none">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-[6px] bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{roleFamilyLabel[role.roleFamily]}</span>
-                            <span className="rounded-[6px] bg-[#dbeafe] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1f5fbf]">Assessment</span>
-                          </div>
-                          <h3 className="mt-3 text-[1.65rem] font-semibold leading-tight tracking-[-0.045em] text-slate-900">{role.title}</h3>
-                          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{role.summary || role.challenge}</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">{role.workModel} · {role.location}</span>
-                          <button
-                            type="button"
-                            disabled={challengeBusyId === role.id}
-                            onClick={() => void handleAiAssistChallenge(role.id)}
-                            className={cn(secondaryButtonClass, 'rounded-[8px] px-4 py-3 text-sm disabled:opacity-60')}
-                          >
-                            {challengeBusyId === role.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                            {t('rebuild.recruiter.ai_tasks', { defaultValue: 'AI tasks' })}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={challengeBusyId === role.id}
-                            onClick={() => void handlePublishChallenge(role.id)}
-                            className={cn(primaryButtonClass, 'rounded-[8px] px-4 py-3 text-sm disabled:opacity-60')}
-                          >
-                            {challengeBusyId === role.id ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                            {t('rebuild.recruiter.publish', { defaultValue: 'Publikovat' })}
-                          </button>
-                        </div>
-                      </div>
-                      {blueprint ? <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {blueprint.steps.map((step) => (
-                          <div key={step.id} className="rounded-[8px] border border-slate-200 bg-slate-50 p-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-bold text-slate-900">{step.title}</div>
-                              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{step.type.replaceAll('_', ' ')}</div>
-                            </div>
-                            <div className="mt-2 text-sm leading-6 text-slate-600">{step.helper}</div>
-                          </div>
-                        ))}
-                      </div> : null}
-                    </div>
-                  );})}
-                </div>
-              </div>
+              )}
             </div>
           ) : null}
 
