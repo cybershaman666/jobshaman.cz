@@ -672,8 +672,11 @@ export const MarketplaceV2: React.FC<{
     return cityPart;
   }, [preferences.address]);
 
-  const sectionTitleClass = "flex items-center justify-between mb-5 px-1";
-  const h3Class = "text-[18px] font-black text-slate-900";
+  const sectionShellClass = "scroll-mt-24 border-t border-slate-200/80 pt-9 dark:border-slate-800/80 md:pt-11";
+  const firstSectionShellClass = "scroll-mt-24";
+  const sectionTitleClass = "mb-6 flex flex-col gap-3 border-b border-slate-200/70 px-1 pb-4 dark:border-slate-800/80 sm:flex-row sm:items-end sm:justify-between";
+  const h3Class = "text-[20px] font-black leading-tight text-slate-900";
+  const sectionDescriptionClass = "mt-1 block max-w-3xl text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-400";
   const viewAllClass = "text-[12px] font-bold text-[#12afcb] hover:underline";
   const activeFilterCount = [
     searchValue.trim(),
@@ -753,14 +756,14 @@ export const MarketplaceV2: React.FC<{
         <MarketplaceSchema roles={visibleRoles} t={t} />
         <div className="grid gap-6 xl:gap-8">
           {/* Main Column - min-w-0 is crucial to prevent content from stretching the grid */}
-          <div className="min-w-0 space-y-10 pb-12">
+          <div className="min-w-0 space-y-12 pb-14 md:space-y-14">
             {/* Featured Section */}
             {commuteFilterActive ? (
-            <section key="featured" id="marketplace-local-jobs" className="scroll-mt-24">
+            <section key="featured" id="marketplace-local-jobs" className={firstSectionShellClass}>
               <div className={sectionTitleClass}>
                 <h3 className={h3Class + ' dark:text-slate-100'}>
                   {t('rebuild.marketplace.local_jobs')}
-                  <span className="ml-2 text-sm font-medium text-slate-400">
+                  <span className={sectionDescriptionClass}>
                     {commuteFilterActive
                       ? `${locationLabel} ${t('rebuild.marketplace.radius_label', { radius: localRadiusKm })}`
                       : t('rebuild.marketplace.commute_disabled_short', { defaultValue: 'dojezd vypnutý' })}
@@ -789,11 +792,11 @@ export const MarketplaceV2: React.FC<{
             {/* Recommended Sections (New Hybrid Engine) */}
             {sections.length > 0 ? (
               sections.map((section, index) => (
-                <section key={section.id || section.title} id={index === 0 ? 'marketplace-recommended' : undefined} className={index === 0 ? 'scroll-mt-24' : undefined}>
+                <section key={section.id || section.title} id={index === 0 ? 'marketplace-recommended' : undefined} className={index === 0 && !commuteFilterActive ? firstSectionShellClass : sectionShellClass}>
                   <div className={sectionTitleClass}>
                     <h3 className={h3Class + ' dark:text-slate-100'}>
                       {section.title}
-                      <span className="ml-2 text-sm font-medium text-slate-400">{section.description}</span>
+                      <span className={sectionDescriptionClass}>{section.description}</span>
                     </h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -810,9 +813,12 @@ export const MarketplaceV2: React.FC<{
               ))
             ) : (
               /* Legacy Recommended Section fallback */
-              <section key="legacy-recommended" id="marketplace-recommended" className="scroll-mt-24">
+              <section key="legacy-recommended" id="marketplace-recommended" className={!commuteFilterActive ? firstSectionShellClass : sectionShellClass}>
                 <div className={sectionTitleClass}>
-                  <h3 className={h3Class + ' dark:text-slate-100'}>{t('rebuild.marketplace.recommended_for_you')} <span className="ml-2 text-sm font-medium text-slate-400">{t('rebuild.marketplace.based_on_profile')}</span></h3>
+                  <h3 className={h3Class + ' dark:text-slate-100'}>
+                    {t('rebuild.marketplace.recommended_for_you')}
+                    <span className={sectionDescriptionClass}>{t('rebuild.marketplace.based_on_profile')}</span>
+                  </h3>
                   <div className="text-[12px] font-bold text-slate-400">
                     {t('rebuild.marketplace.relevant_count', { relevant: scopedRecommendationCandidates.length, total: visibleRoles.length })}
                   </div>
@@ -826,13 +832,13 @@ export const MarketplaceV2: React.FC<{
                       onOpen={() => navigate(getRolePath(spotlightCandidate.role))}
                     />
                   ) : null}
-                  <div className="space-y-9">
+                  <div className="mt-8 space-y-11">
                     {catalogSections.map((section) => (
-                      <section key={section.id} className="scroll-mt-24">
-                        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
+                      <section key={section.id} className="scroll-mt-24 border-t border-slate-200/70 pt-7 first:border-t-0 first:pt-0 dark:border-slate-800/80">
+                        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 px-1">
                           <div>
-                            <h4 className="text-[17px] font-black text-slate-900 dark:text-slate-100">{section.title}</h4>
-                            <p className="mt-1 max-w-2xl text-[12px] font-medium leading-5 text-slate-500 dark:text-slate-400">{section.description}</p>
+                            <h4 className="text-[18px] font-black leading-tight text-slate-900 dark:text-slate-100">{section.title}</h4>
+                            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-400">{section.description}</p>
                           </div>
                           <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                             {section.candidates.length}

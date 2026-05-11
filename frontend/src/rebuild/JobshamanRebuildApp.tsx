@@ -772,7 +772,7 @@ const JobshamanRebuildApp: React.FC = () => {
     { id: 'learning', label: t('rebuild.nav.learning', { defaultValue: 'Learning' }), icon: GraduationCap, path: '/candidate/learning' },
   ]), [t]);
   const candidateWorkspaceActiveItemId = route.kind === 'candidate-jcfpm'
-    ? 'profile'
+    ? 'jcfpm'
     : route.kind === 'candidate-learning'
       ? 'learning'
       : route.kind === 'candidate-journey' || route.kind === 'candidate-applications'

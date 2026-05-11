@@ -5,7 +5,7 @@ services:
     healthCheckPath: /health
     buildCommand: pip install -r backend/requirements.txt
     startCommand: >
-      sh -c 'cd backend && exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120'
+      sh -c 'cd backend && exec sh scripts/start_backend.sh'
     envVars:
       - key: SUPABASE_URL
         sync: false

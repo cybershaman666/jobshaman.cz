@@ -1829,21 +1829,23 @@ export const CandidateJcfpmPage: React.FC<{
         if (!active) return;
 
         const localeChain = [locale.toLowerCase(), locale.toLowerCase().split('-')[0], 'cs', 'en'];
-        const shuffleArray = <T,>(array: T[]) => {
-          const arr = [...array];
-          for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-          }
-          return arr;
-        };
-
-        const randomizedItems = shuffleArray(items as any[]);
+        const stableItems = [...(items as any[])].sort((left, right) => {
+          const sortDelta = Number(left?.sort_order || 0) - Number(right?.sort_order || 0);
+          if (sortDelta !== 0) return sortDelta;
+          return String(left?.id || '').localeCompare(String(right?.id || ''));
+        });
 
         const selected = dimensionOrder
           .flatMap((dimension) => {
-            const dimItems = randomizedItems.filter((item: any) => item.dimension === dimension);
-            return dimItems.slice(0, 6).map((item: any) => {
+            const dimItems = stableItems.filter((item: any) => item.dimension === dimension);
+            const seenPools = new Set<string>();
+            const uniquePoolItems = dimItems.filter((item: any) => {
+              const key = String(item?.pool_key || item?.id || '');
+              if (seenPools.has(key)) return false;
+              seenPools.add(key);
+              return true;
+            });
+            return uniquePoolItems.slice(0, 6).map((item: any) => {
               const localizedPrompt = localeChain
                 .map((key) => item?.prompt_i18n?.[key])
                 .find((value) => typeof value === 'string' && value.trim().length > 0);
@@ -1942,6 +1944,173 @@ export const CandidateJcfpmPage: React.FC<{
     i3_world_needs: t('rebuild.jcfpm.dimensions.i3_world_needs', { defaultValue: 'What the world needs' }),
     i4_paid_for: t('rebuild.jcfpm.dimensions.i4_paid_for', { defaultValue: 'What the market values' }),
   }), [t]);
+
+  const dimensionReport = React.useMemo<Record<string, { summary: string; high: string; balanced: string; low: string; development: string; environment: string }>>(() => ({
+    d1_cognitive: {
+      summary: 'Způsob zpracování informací a řešení problémů.',
+      high: 'Přirozeně si rovnáš fakta, souvislosti a dopady. Vynikáš tam, kde je potřeba oddělit šum od podstaty.',
+      balanced: 'Umíš kombinovat analýzu s praktickou intuicí. Nejlépe funguješ, když máš dost signálů, ale nezasekneš se v detailu.',
+      low: 'Více se opíráš o intuici a celkový dojem. U důležitých rozhodnutí pomůže krátká kontrola faktů.',
+      development: 'Před důležitým rozhodnutím si sepiš 3 fakta, 1 riziko a 1 alternativu.',
+      environment: 'Role s jasným kontextem, možností analyzovat problém a převádět ho do rozhodnutí.',
+    },
+    d2_social: {
+      summary: 'Preferovaný způsob interakce s lidmi a týmové dynamiky.',
+      high: 'Umíš držet důvěru, domluvu a společný směr. Tvoje síla je číst lidi bez ztráty věcnosti.',
+      balanced: 'Sociální orientace je vyvážená. Dokážeš fungovat v týmu i samostatně podle potřeby.',
+      low: 'Pravděpodobně preferuješ samostatnou práci a menší množství sociální koordinace.',
+      development: 'Před schůzkou si pojmenuj očekávaný výsledek a po ní jeden jasný další krok.',
+      environment: 'Tým se srozumitelnou komunikací, pravidelnou zpětnou vazbou a rozumnou mírou autonomie.',
+    },
+    d3_motivational: {
+      summary: 'Co tě pohání a co považuješ za odměnu.',
+      high: 'Silně tě táhne smysl, dopad a růst odpovědnosti. Potřebuješ chápat proč, ne jen co.',
+      balanced: 'Zvládáš jak vnitřní smysl, tak jasné cíle a odměny. Pomáhá ujasnit si aktuální prioritu.',
+      low: 'Motivace může víc stát na konkrétní odměně, stabilitě nebo jasně zadaném výsledku.',
+      development: 'U každého většího úkolu si napiš, komu pomáhá a podle čeho poznáš dobrý výsledek.',
+      environment: 'Projekty s viditelným dopadem, férovou odpovědností a prostorem něco zlepšovat.',
+    },
+    d4_energy: {
+      summary: 'Tempo, intenzita a styl práce.',
+      high: 'Zvládáš vyšší tempo a dynamické situace. Klíčové je plánovat regeneraci, aby výkon zůstal udržitelný.',
+      balanced: 'Umíš přepínat mezi sprintem a stabilním tempem. Dobře funguje rytmus s jasnými prioritami.',
+      low: 'Spíš potřebuješ stabilnější tempo, méně přepínání a chráněný prostor pro soustředění.',
+      development: 'Na 14 dní si nastav rytmus sprint, pauza, review: co bere energii a co ji vrací.',
+      environment: 'Práce s realistickými prioritami, možností chránit hlubokou práci a domluvenými sprinty.',
+    },
+    d5_values: {
+      summary: 'Co musí práce přinášet, aby dávala smysl.',
+      high: 'Hodnoty jsou silná kotva. Integrita, důvěra a dlouhodobý dopad pro tebe nejsou dekorace.',
+      balanced: 'Hodnoty máš vyvážené a umíš se přizpůsobit různým kulturám, pokud víš, co je důležité.',
+      low: 'Můžeš snáze tolerovat různá prostředí, ale vyplatí se vědomě pojmenovat vlastní hranice.',
+      development: 'Sepiš si 3 pracovní situace, které jsou pro tebe nepřekročitelné, a proč.',
+      environment: 'Kultura s férovostí, transparentností a prostorem mluvit o dopadech rozhodnutí.',
+    },
+    d6_ai_readiness: {
+      summary: 'Jak dobře prosperuješ v rychle se měnícím technologickém prostředí.',
+      high: 'Technologická adaptabilita je silná stránka. Rychle testuješ nové nástroje a hledáš praktickou hodnotu.',
+      balanced: 'Nové nástroje umíš použít, když dávají smysl. Nejlépe funguje praktické učení na reálném úkolu.',
+      low: 'Změna nástrojů může stát víc energie. Pomůže bezpečný trénink na malých pracovních případech.',
+      development: 'Vyber jeden opakovaný úkol a zkus na něm AI použít třikrát s krátkým vyhodnocením.',
+      environment: 'Prostředí, kde se nové nástroje používají běžně, ale s jasným lidským úsudkem.',
+    },
+    d7_cognitive_reflection: {
+      summary: 'Schopnost zastavit první intuici a ověřit ji logikou.',
+      high: 'Umíš brzdit první závěr a ověřovat důkazy. To zvyšuje kvalitu rozhodnutí s vyšším dopadem.',
+      balanced: 'Intuici umíš doplnit kontrolou. Pomáhá jednoduchý rozhodovací rituál u větších kroků.',
+      low: 'Rychlá intuice může dominovat. U důležitých věcí přidej krátké zastav-se-ověř.',
+      development: 'Před rozhodnutím si polož otázku: Jaký je důkaz a co by mě přesvědčilo o opaku?',
+      environment: 'Role, kde je čas na review rozhodnutí a chyby se používají jako učení, ne jako trest.',
+    },
+    d8_digital_eq: {
+      summary: 'Citlivost na emoce, tón a důvěru v textové komunikaci.',
+      high: 'V textu dobře čteš tón, podtext i důvěru. To je silné v asynchronní spolupráci a citlivých tématech.',
+      balanced: 'Digitální komunikaci zvládáš prakticky. Pomáhá vědomě volit mezi zprávou a hovorem.',
+      low: 'V textu může snáz vzniknout nedorozumění. Pomůže kratší zpráva, jasný záměr a ověření dopadu.',
+      development: 'U náročné zprávy napiš nejdřív záměr, potom fakta a nakonec konkrétní prosbu.',
+      environment: 'Hybridní nebo remote tým s jasnou komunikační hygienou a bezpečným prostorem pro otázky.',
+    },
+    d9_systems_thinking: {
+      summary: 'Jak dobře čteš vztahy, zpětné vazby a vedlejší efekty.',
+      high: 'Silné systémové myšlení. Vidíš vztahy, zpožděné dopady a místa, kde se problém vrací.',
+      balanced: 'Umíš sledovat širší souvislosti, když máš jasně vymezený rámec problému.',
+      low: 'Může být užitečné vědomě mapovat příčiny, následky a závislosti místo řešení izolovaného symptomu.',
+      development: 'U jednoho problému nakresli mapu: příčina, dopad, zpětná vazba, skrytý náklad.',
+      environment: 'Procesní, produktové nebo provozní role, kde se zlepšují celé systémy, ne jen jednotlivé úkoly.',
+    },
+    d10_ambiguity_interpretation: {
+      summary: 'Jak čteš nejasné situace: rizika vs. příležitosti.',
+      high: 'V nejistotě vidíš směr a příležitosti. Umíš začít, i když zadání ještě není dokonalé.',
+      balanced: 'Nejasnost zvládáš, pokud máš možnost postupně ověřovat další kroky.',
+      low: 'Nejasné zadání může brzdit energii. Pomůže definovat minimální další signál a první bezpečný krok.',
+      development: 'U nejasného úkolu si napiš: co vím, co nevím, co ověřím do 48 hodin.',
+      environment: 'Prostředí s proměnlivými zadáními, ale dobrou oporou v prioritách a rozhodovacích právech.',
+    },
+    d11_problem_decomposition: {
+      summary: 'Schopnost rozsekat velký problém na jasné kroky.',
+      high: 'Umíš rychle vytvořit strukturu kroků. Silné pro strategii, delivery, provozní změny i komplexní projekty.',
+      balanced: 'Dokážeš problém rozložit, když máš jasný cíl a dost kontextu.',
+      low: 'Velký problém může působit zahlcujícím dojmem. Pomůže jeden malý experiment a jednoduché priority.',
+      development: 'Každý větší problém rozděl na blokátor, první krok a měřitelný výstup týdne.',
+      environment: 'Role, kde se strategie převádí do priorit, experimentů a praktického doručení.',
+    },
+    d12_moral_compass: {
+      summary: 'Stabilita hodnot v dilematech a tlakových situacích.',
+      high: 'Silný morální kompas. V tlaku držíš integritu, důvěru a dlouhodobé dopady.',
+      balanced: 'Etické dopady bereš v úvahu, zejména když jsou jasně pojmenované.',
+      low: 'V tlaku může být těžší otevřít nepohodlné téma. Pomůže předem daný princip rozhodování.',
+      development: 'U dilemat si napiš: koho to ovlivní, co se stane později a co bych obhájil/a nahlas.',
+      environment: 'Organizace, která bere vážně důvěru, odpovědnost a transparentní rozhodování.',
+    },
+    i1_love: {
+      summary: 'Co tě přirozeně vtahuje a nabíjí.',
+      high: 'Máš silný signál vnitřního zájmu. Hledej role, kde se tato energie používá často, ne jen okrajově.',
+      balanced: 'Zájem se probouzí v konkrétních situacích. Vyplatí se sledovat, kdy energie roste.',
+      low: 'Zatím není jasné, co tě pracovně opravdu vtahuje. Pomůže mapovat aktivity, u kterých mizí čas.',
+      development: 'Týden si zapisuj 3 momenty, kdy práce energii přidala nebo vzala.',
+      environment: 'Práce s prostorem pro ponor, tvorbu nebo problém, který tě osobně zajímá.',
+    },
+    i2_good_at: {
+      summary: 'V čem máš opakovaně použitelnou sílu.',
+      high: 'Silně vnímáš své schopnosti a umíš je převést do přínosu pro ostatní.',
+      balanced: 'Některé silné stránky už znáš, další se ukážou přes konkrétní pracovní důkazy.',
+      low: 'Můžeš podceňovat, v čem jsi dobrý/á. Hledej opakované žádosti o pomoc a výsledky.',
+      development: 'Sepiš 5 situací, kdy jsi někomu pomohl/a, a najdi společnou schopnost.',
+      environment: 'Role, kde se tvoje silné schopnosti používají pravidelně a jsou viditelné ve výsledku.',
+    },
+    i3_world_needs: {
+      summary: 'Jak moc potřebuješ vidět užitek pro lidi nebo svět.',
+      high: 'Dopad na konkrétní lidi je pro tebe důležitý zdroj smyslu a výdrže.',
+      balanced: 'Smysl a užitek jsou důležité, ale nemusí být jediným zdrojem motivace.',
+      low: 'Práce může dávat smysl i bez výrazného společenského dopadu, pokud sedí role, tým nebo odměna.',
+      development: 'U nabídky práce si ověř, komu výsledek pomáhá a jak se to pozná.',
+      environment: 'Produkty, služby nebo provozy, kde je vidět reálný užitek práce.',
+    },
+    i4_paid_for: {
+      summary: 'Jak propojuješ smysl, schopnosti a ekonomickou hodnotu.',
+      high: 'Dobře přemýšlíš o hodnotě své práce pro trh. To pomáhá volit udržitelné směřování.',
+      balanced: 'Ekonomickou hodnotu bereš v úvahu, ale bude dobré ji zpřesnit konkrétními důkazy.',
+      low: 'Může být potřeba víc přeložit schopnosti do řeči hodnoty pro firmu nebo zákazníka.',
+      development: 'Ke každé silné stránce napiš jeden měřitelný přínos pro tým, zákazníka nebo firmu.',
+      environment: 'Role, kde je jasné, jak tvoje práce vytváří hodnotu a férovou odměnu.',
+    },
+  }), []);
+
+  const interpretedScores = React.useMemo(() => {
+    const withLabels = dimensionScores.map((score) => ({
+      ...score,
+      label: dimensionLabels[score.dimension] || score.dimension.replace(/_/g, ' '),
+      report: dimensionReport[score.dimension],
+    }));
+    return {
+      all: withLabels,
+      strengths: [...withLabels].filter((score) => !String(score.dimension).startsWith('i')).sort((left, right) => right.percentile - left.percentile).slice(0, 3),
+      growth: [...withLabels].filter((score) => !String(score.dimension).startsWith('i')).sort((left, right) => left.percentile - right.percentile).slice(0, 2),
+      ikigai: withLabels.filter((score) => String(score.dimension).startsWith('i')).sort((left, right) => right.percentile - left.percentile),
+    };
+  }, [dimensionLabels, dimensionReport, dimensionScores]);
+
+  const scoreBand = React.useCallback((score: number, report?: { high: string; balanced: string; low: string }) => {
+    if (!report) return '';
+    if (score >= 85) return report.high;
+    if (score >= 50) return report.balanced;
+    return report.low;
+  }, []);
+
+  const reportLead = React.useMemo(() => {
+    const top = interpretedScores.strengths[0];
+    const second = interpretedScores.strengths[1];
+    const growth = interpretedScores.growth[0];
+    if (!top) return '';
+    return `Tvůj profil nejvíc stojí na oblasti ${top.label} (${top.percentile}/100)${second ? ` a ${second.label} (${second.percentile}/100)` : ''}. To ukazuje, kde se budeš nejspíš učit rychle, přinášet hodnotu a cítit pracovní tah. Nejbližší růstová páka je ${growth?.label || top.label}: tam stačí jeden konkrétní návyk, aby se profil zpřesnil a byl praktičtější pro výběr rolí.`;
+  }, [interpretedScores.growth, interpretedScores.strengths]);
+
+  const environmentRecommendations = React.useMemo(() =>
+    interpretedScores.strengths
+      .map((score) => score.report?.environment)
+      .filter((value): value is string => Boolean(value))
+      .slice(0, 3),
+  [interpretedScores.strengths]);
 
   React.useEffect(() => {
     if (!completed) return;
@@ -2171,6 +2340,81 @@ export const CandidateJcfpmPage: React.FC<{
                 <div className="mt-4 text-4xl font-bold tracking-[-0.05em]">{archetype.title}</div>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-white/90">{archetype.description}</p>
               </div>
+
+              <div className={cn(panelClass, 'p-7')}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">
+                  {t('rebuild.jcfpm.report_readout', { defaultValue: 'Interpretace profilu' })}
+                </div>
+                <h4 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-slate-900">
+                  {t('rebuild.jcfpm.report_title', { defaultValue: 'Co z výsledků opravdu plyne' })}
+                </h4>
+                <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-600">{reportLead}</p>
+                <div className="mt-6 grid gap-4 md:grid-cols-3">
+                  {interpretedScores.strengths.map((score) => (
+                    <div key={`strength-${score.dimension}`} className="rounded-[20px] border border-[#d8edf2] bg-[#f5fbfc] p-4">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0f95ac]">{score.label}</div>
+                      <div className="mt-2 text-2xl font-black text-slate-900">{score.percentile}/100</div>
+                      <p className="mt-3 text-[13px] leading-6 text-slate-600">{scoreBand(score.percentile, score.report)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div className={cn(panelClass, 'p-7')}>
+                  <h4 className="text-lg font-bold text-slate-900">{t('rebuild.jcfpm.work_environment_title', { defaultValue: 'Kde bude profil nejspíš fungovat' })}</h4>
+                  <div className="mt-5 space-y-3">
+                    {environmentRecommendations.map((recommendation, index) => (
+                      <div key={`environment-${index}`} className="flex gap-3 rounded-[18px] bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                        <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#0f95ac]" />
+                        <span>{recommendation}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={cn(panelClass, 'p-7')}>
+                  <h4 className="text-lg font-bold text-slate-900">{t('rebuild.jcfpm.growth_focus_title', { defaultValue: 'Nejbližší růstový fokus' })}</h4>
+                  <div className="mt-5 space-y-4">
+                    {interpretedScores.growth.map((score) => (
+                      <div key={`growth-${score.dimension}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-bold text-slate-900">{score.label}</div>
+                          <div className="text-xs font-bold text-slate-400">{score.percentile}/100</div>
+                        </div>
+                        <p className="mt-2 text-[13px] leading-6 text-slate-600">{score.report?.development}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {interpretedScores.ikigai.length > 0 ? (
+                <div className={cn(panelClass, 'p-7')}>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+                        {t('rebuild.jcfpm.ikigai_profile', { defaultValue: 'Ikigai profile' })}
+                      </div>
+                      <h4 className="mt-2 text-lg font-bold text-slate-900">{t('rebuild.jcfpm.ikigai_title', { defaultValue: 'Smysl, síla, potřeba a tržní hodnota' })}</h4>
+                    </div>
+                    <div className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">
+                      {t('rebuild.jcfpm.v3_layer', { defaultValue: 'JCFPM v3' })}
+                    </div>
+                  </div>
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    {interpretedScores.ikigai.map((score) => (
+                      <div key={`ikigai-${score.dimension}`} className="rounded-[20px] border border-amber-100 bg-[#fffaf1] p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-bold text-slate-900">{score.label}</div>
+                          <div className="text-xs font-black text-amber-700">{score.percentile}/100</div>
+                        </div>
+                        <p className="mt-3 text-[13px] leading-6 text-slate-600">{scoreBand(score.percentile, score.report)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {snapshot?.traits?.big_five && (
                 <div className={cn(panelClass, 'p-8')}>

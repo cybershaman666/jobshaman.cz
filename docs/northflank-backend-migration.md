@@ -41,8 +41,20 @@ Important:
 Use default image command:
 
 ```sh
-python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8080} --timeout 120
+sh scripts/start_backend.sh
 ```
+
+The start script runs `python scripts/migrate_v2.py` before Gunicorn. That applies every SQL file in `backend/migrations`, including `006_jcfpm_item_bank.sql`, so the Northflank Postgres schema and JCFPM question seed are updated on every backend deploy. The SQL is written with `CREATE IF NOT EXISTS` / `ON CONFLICT DO UPDATE`, so repeated deploys refresh the seed instead of duplicating rows.
+
+The migration runner uses a PostgreSQL advisory lock, so rolling deploys or multiple replicas do not apply the seed concurrently. If a migration fails, the container exits before the API starts.
+
+Emergency bypass:
+
+```sh
+RUN_DB_MIGRATIONS_ON_START=false
+```
+
+Use the bypass only for a temporary rollback or incident response; otherwise keep the default `true`.
 
 ## 4) Health Check
 
@@ -58,6 +70,7 @@ Required:
 - `SUPABASE_SERVICE_KEY` (legacy alias)
 - `SUPABASE_KEY` (legacy fallback only if it contains the service-role/secret key, not anon/public)
 - `SECRET_KEY` (or `JWT_SECRET`)
+- `DATABASE_URL` or `EXTERNAL_POSTGRES_URI` (Northflank Postgres DSN used by deploy migrations and the V2 domain DB)
 
 Common app/runtime:
 
