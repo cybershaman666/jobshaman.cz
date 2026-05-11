@@ -121,6 +121,8 @@ async def get_jobs(
     min_salary: int | None = Query(None, ge=0),
     benefits: str | None = Query(None, max_length=500),
     work_arrangement: str | None = Query(None, max_length=20),
+    category: str | None = Query(None, max_length=40),
+    role_family: str | None = Query(None, max_length=40),
 ) -> Dict[str, Any]:
     """
     Public endpoint to list active jobs.
@@ -135,6 +137,8 @@ async def get_jobs(
         min_salary=min_salary,
         benefits=[item.strip() for item in str(benefits or "").split(",") if item.strip()],
         work_arrangement=work_arrangement,
+        category=category,
+        role_family=role_family,
     )
 
 

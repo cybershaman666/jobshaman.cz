@@ -392,6 +392,8 @@ class RealityDomainService:
         min_salary: Optional[int] = None,
         benefits: Optional[List[str]] = None,
         work_arrangement: Optional[str] = None,
+        category: Optional[str] = None,
+        role_family: Optional[str] = None,
     ) -> Dict[str, Any]:
         clamped_limit = max(1, min(int(limit or 500), 1000))
         clamped_offset = max(0, int(offset or 0))
@@ -401,6 +403,8 @@ class RealityDomainService:
         benefit_filters = [_clean_text(item, 80).lower() for item in (benefits or []) if _clean_text(item, 80)]
         min_salary_filter = int(min_salary or 0)
         work_filter = str(work_arrangement or "").strip().lower()
+        category_filter = _clean_text(category, 40).lower()
+        role_family_filter = _clean_text(role_family, 40).lower()
         country_condition = ""
         params: Dict[str, Any] = {"limit": clamped_limit, "offset": clamped_offset}
         if country_filter:
@@ -448,6 +452,68 @@ class RealityDomainService:
             else:
                 extra_conditions.append("AND LOWER(COALESCE(work_model, work_type, contract_type, location, description, '')) LIKE :work_like")
                 params["work_like"] = f"%{work_filter}%"
+        category_terms: Dict[str, List[str]] = {
+            "operations": [
+                "výrob", "vyrob", "manufactur", "operator", "montáž", "montaz", "cnc",
+                "machine", "factory", "linka", "sklad", "warehouse", "logistik", "logistics",
+                "doprava", "řidič", "ridic", "stavb", "construction", "technik", "provoz",
+            ],
+            "management": [
+                "manager", "manažer", "manazer", "vedouc", "lead", "koordin", "project",
+                "projekt", "operations manager", "delivery manager", "program manager",
+            ],
+            "business": [
+                "sales", "obchod", "account", "finance", "účet", "ucet", "admin",
+                "administrativ", "hr", "recruit", "personalist", "marketing", "legal",
+            ],
+            "digital": [
+                "developer", "software", "frontend", "backend", "data", "devops", "cloud",
+                "it", "product", "designer", "ux", "ui", "figma", "ai",
+            ],
+            "services": [
+                "care", "péče", "pece", "support", "customer", "service", "zdrav",
+                "health", "teacher", "učitel", "ucitel", "lektor", "education", "vzděl", "vzdel",
+            ],
+        }
+        role_family_terms: Dict[str, List[str]] = {
+            "frontline": category_terms["operations"],
+            "operations": category_terms["operations"],
+            "logistics": ["logistik", "logistics", "sklad", "warehouse", "doprava", "řidič", "ridic", "driver"],
+            "construction": ["stavb", "construction", "řemesl", "remesl", "technik", "tesař", "tesar", "zedník", "zednik"],
+            "engineering": ["engineer", "engineering", "vývoj", "vyvoj", "konstrukt", "software", "developer", "technik"],
+            "design": ["design", "designer", "ux", "ui", "figma", "grafik"],
+            "product": ["product", "produkt", "owner", "roadmap", "discovery"],
+            "sales": ["sales", "obchod", "account", "business development", "vertrieb"],
+            "care": ["care", "péče", "pece", "support", "customer", "service"],
+            "marketing": ["marketing", "content", "seo", "ppc", "brand", "social"],
+            "finance": ["finance", "účet", "ucet", "accounting", "payroll", "controller"],
+            "people": ["hr", "people", "recruit", "talent", "personalist"],
+            "education": ["teacher", "učitel", "ucitel", "lektor", "education", "vzděl", "vzdel"],
+            "health": ["health", "zdrav", "nurse", "doctor", "sestra"],
+            "legal": ["legal", "law", "compliance", "práv", "prav"],
+        }
+
+        taxonomy_terms = category_terms.get(category_filter) or role_family_terms.get(role_family_filter) or []
+        if taxonomy_terms:
+            taxonomy_sql_parts: List[str] = []
+            for index, term in enumerate(taxonomy_terms[:28]):
+                key = f"taxonomy_{index}"
+                taxonomy_sql_parts.append(
+                    f"""
+                    LOWER(
+                      COALESCE(title, '') || ' ' ||
+                      COALESCE(company, '') || ' ' ||
+                      COALESCE(location, '') || ' ' ||
+                      COALESCE(role_summary, '') || ' ' ||
+                      COALESCE(description, '') || ' ' ||
+                      COALESCE(tags::text, '') || ' ' ||
+                      COALESCE(ai_analysis::text, '') || ' ' ||
+                      COALESCE(payload_json::text, '')
+                    ) LIKE :{key}
+                    """
+                )
+                params[key] = f"%{term}%"
+            extra_conditions.append(f"AND ({' OR '.join(taxonomy_sql_parts)})")
         extra_condition_sql = "\n".join(extra_conditions)
 
         columns = """

@@ -60,7 +60,7 @@ const isRemoteRole = (role: Role): boolean => String(role.workModel || '').toLow
 const RECOMMENDATION_PAGE_SIZE = 24;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
-type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
+export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
 
 const getBenefitOptions = (t: (key: string, opts?: { defaultValue: string }) => string) => [
   t('rebuild.marketplace.benefit_dog_friendly', { defaultValue: 'Dog-friendly office' }),
@@ -444,11 +444,13 @@ export const MarketplaceV2: React.FC<{
   onSignOut?: () => void;
   onCompanySwitch?: () => void;
   onLoadMore?: () => void;
+  onLoadMoreCategory?: (categoryId: RoleClusterId) => void;
+  loadingCategoryId?: RoleClusterId | null;
   currentLanguage?: string;
   onLanguageChange?: (lang: string) => void;
   navigate: (path: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, sections = [], onSignOut, onCompanySwitch, onLoadMore, currentLanguage, onLanguageChange, navigate, t }) => {
+}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, sections = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
   const [visibleRecommendationCount, setVisibleRecommendationCount] = React.useState(RECOMMENDATION_PAGE_SIZE);
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -840,8 +842,23 @@ export const MarketplaceV2: React.FC<{
                             <h4 className="text-[18px] font-black leading-tight text-slate-900 dark:text-slate-100">{section.title}</h4>
                             <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-400">{section.description}</p>
                           </div>
-                          <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                            {section.candidates.length}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                              {section.candidates.length}
+                            </div>
+                            {onLoadMoreCategory && section.id !== 'other' ? (
+                              <button
+                                type="button"
+                                onClick={() => onLoadMoreCategory(section.id)}
+                                disabled={loadingCategoryId === section.id}
+                                className="inline-flex h-8 items-center gap-2 rounded-full border border-[#d8edf2] bg-[#eef8fb] px-3 text-[11px] font-black text-[#08788a] transition hover:bg-[#e3f4f8] disabled:cursor-wait disabled:opacity-70 dark:border-cyan-900/60 dark:bg-cyan-950/40 dark:text-cyan-200"
+                              >
+                                {loadingCategoryId === section.id ? <Loader2 size={13} className="animate-spin" /> : null}
+                                {loadingCategoryId === section.id
+                                  ? t('rebuild.marketplace.loading_category', { defaultValue: 'Načítám' })
+                                  : t('rebuild.marketplace.load_more_category', { defaultValue: 'Další z kategorie' })}
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -442,10 +442,14 @@ export const fetchJobsWithFiltersV2 = async (
     includeRecommendations?: boolean;
     searchTerm?: string;
     filters?: MarketplaceFilters;
+    category?: string;
+    offsetOverride?: number;
   } = {},
 ): Promise<{ jobs: Role[]; sections: MarketplaceSection[]; hasMore: boolean; totalCount: number }> => {
   try {
-    const offset = Math.max(0, page) * pageSize;
+    const offset = typeof options.offsetOverride === 'number'
+      ? Math.max(0, options.offsetOverride)
+      : Math.max(0, page) * pageSize;
     const params = new URLSearchParams({
       limit: String(pageSize),
       offset: String(offset),
@@ -456,6 +460,8 @@ export const fetchJobsWithFiltersV2 = async (
     if (options.filters?.city) params.set('city', options.filters.city);
     if (options.filters?.minSalary && options.filters.minSalary > 0) params.set('min_salary', String(options.filters.minSalary));
     if (options.filters?.benefits?.length) params.set('benefits', options.filters.benefits.join(','));
+    if (options.category) params.set('category', options.category);
+    if (options.filters?.roleFamily && options.filters.roleFamily !== 'all') params.set('role_family', options.filters.roleFamily);
     if (options.filters?.remoteOnly) {
       params.set('work_arrangement', 'remote');
     } else if (options.filters?.workArrangement && options.filters.workArrangement !== 'all') {

@@ -62,7 +62,7 @@ import {
   CandidateRoleBriefingPage,
   ImportedPrepPage,
 } from './candidate/CandidateShell';
-import { MarketplaceV2 } from './candidate/MarketplaceV2';
+import { MarketplaceV2, type RoleClusterId } from './candidate/MarketplaceV2';
 import { CandidateInsightsPage, CandidateJourneyPage } from './candidate/CandidateExperience';
 import { CandidateApplicationsPage } from './candidate/CandidateApplicationsPage';
 import { CandidateLearningPage } from './candidate/CandidateLearningPage';
@@ -106,6 +106,28 @@ import {
 } from './ui/shellStyles';
 import { RebuildThemeProvider } from './ui/rebuildTheme';
 import './ui/rebuildTheme.css';
+
+const marketplaceRoleText = (role: Role) => [
+  role.title,
+  role.companyName,
+  role.location,
+  role.summary,
+  role.description,
+  role.roleFamily,
+  role.skills.join(' '),
+].join(' ').toLowerCase();
+
+const getMarketplaceClusterId = (role: Role): RoleClusterId => {
+  const text = marketplaceRoleText(role)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (/\b(project manager|projektov|operations manager|provozni manager|program manager|delivery manager|vedouci|manager|manazer|koordinator)\b/.test(text)) return 'management';
+  if (['frontline', 'logistics', 'construction', 'operations'].includes(role.roleFamily)) return 'operations';
+  if (['sales', 'finance', 'people', 'legal', 'marketing'].includes(role.roleFamily)) return 'business';
+  if (['engineering', 'product', 'design'].includes(role.roleFamily)) return 'digital';
+  if (['care', 'education', 'health'].includes(role.roleFamily)) return 'services';
+  return 'other';
+};
 import AdminDashboard from '../pages/AdminDashboard';
 import { initializeAnalytics } from '../services/cookieConsentService';
 import { AuthPanel } from './auth/AuthPanel';
@@ -175,6 +197,15 @@ const JobshamanRebuildApp: React.FC = () => {
   const [marketplacePage, setMarketplacePage] = React.useState(0);
   const [marketplaceHasMore, setMarketplaceHasMore] = React.useState(false);
   const [marketplaceLoading, setMarketplaceLoading] = React.useState(false);
+  const [marketplaceCategoryOffsets, setMarketplaceCategoryOffsets] = React.useState<Record<RoleClusterId, number>>({
+    management: 0,
+    operations: 0,
+    business: 0,
+    digital: 0,
+    services: 0,
+    other: 0,
+  });
+  const [marketplaceCategoryLoading, setMarketplaceCategoryLoading] = React.useState<RoleClusterId | null>(null);
   const [profileSaving, setProfileSaving] = React.useState(false);
   const [cvDocuments, setCvDocuments] = React.useState<CVDocument[]>([]);
   const [cvLoading, setCvLoading] = React.useState(false);
@@ -522,6 +553,14 @@ const JobshamanRebuildApp: React.FC = () => {
     marketplaceCriteriaRef.current = marketplaceCriteriaKey;
     setMarketplacePage(0);
     setMarketplaceHasMore(false);
+    setMarketplaceCategoryOffsets({
+      management: 0,
+      operations: 0,
+      business: 0,
+      digital: 0,
+      services: 0,
+      other: 0,
+    });
   }, [marketplaceCriteriaKey]);
 
   React.useEffect(() => {
@@ -613,6 +652,44 @@ const JobshamanRebuildApp: React.FC = () => {
       active = false;
     };
   }, [marketplaceRoles, route]);
+
+  const handleMarketplaceCategoryLoadMore = React.useCallback(async (categoryId: RoleClusterId) => {
+    if (marketplaceCategoryLoading) return;
+    const currentlyLoadedInCategory = marketplaceRoles.filter((role) => getMarketplaceClusterId(role) === categoryId).length;
+    const offset = Math.max(marketplaceCategoryOffsets[categoryId] || 0, currentlyLoadedInCategory);
+    setMarketplaceCategoryLoading(categoryId);
+    try {
+      const result = await fetchJobsWithFiltersV2(0, 36, {
+        countryCode: marketplaceFilters.crossBorder || marketplaceFilters.city.trim() ? undefined : preferences.taxProfile.countryCode,
+        includeRecommendations: false,
+        searchTerm: deferredMarketplaceQuery,
+        filters: marketplaceFilters,
+        category: categoryId,
+        offsetOverride: offset,
+      });
+      setMarketplaceRoles((current) => {
+        const merged = new Map<string, Role>();
+        current.forEach((role) => merged.set(role.id, role));
+        result.jobs.forEach((role) => merged.set(role.id, role));
+        return Array.from(merged.values());
+      });
+      setMarketplaceCategoryOffsets((current) => ({
+        ...current,
+        [categoryId]: offset + Math.max(result.jobs.length, 36),
+      }));
+    } catch (error) {
+      console.error('Failed to load marketplace category roles', error);
+    } finally {
+      setMarketplaceCategoryLoading(null);
+    }
+  }, [
+    deferredMarketplaceQuery,
+    marketplaceCategoryLoading,
+    marketplaceCategoryOffsets,
+    marketplaceFilters,
+    marketplaceRoles,
+    preferences.taxProfile.countryCode,
+  ]);
 
   const roleLibrary = React.useMemo(() => {
     const merged = new Map<string, Role>();
@@ -1536,6 +1613,8 @@ const JobshamanRebuildApp: React.FC = () => {
             onSignOut={handleSignOutToCompanyEntry}
             onCompanySwitch={handleCompanySwitch}
             onLoadMore={() => setMarketplacePage((current) => current + 1)}
+            onLoadMoreCategory={handleMarketplaceCategoryLoadMore}
+            loadingCategoryId={marketplaceCategoryLoading}
             currentLanguage={i18n.language}
             onLanguageChange={(lang) => i18n.changeLanguage(lang)}
             navigate={navigate}

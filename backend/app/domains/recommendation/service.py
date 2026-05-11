@@ -206,6 +206,8 @@ def _component(
 
 
 class RecommendationDomainService:
+    ALGORITHM_VERSION = "v2.0.0"
+
     # Optimization: simple in-memory cache
     FEED_CACHE: Dict[str, Dict[str, Any]] = {}
     TOKEN_CACHE: Dict[str, set[str]] = {}

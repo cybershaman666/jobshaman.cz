@@ -120,6 +120,26 @@ async def init_db():
                     else:
                         logger.warning("Could not add embedding column: %s", alter_err)
 
+            can_manage_jobs_nf_indexes = True
+            try:
+                ownership_result = await conn.execute(text("""
+                    SELECT c.relowner = current_user::regrole
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relname = 'jobs_nf'
+                      AND n.nspname = ANY (current_schemas(false))
+                    LIMIT 1;
+                """))
+                can_manage_jobs_nf_indexes = ownership_result.scalar()
+                if can_manage_jobs_nf_indexes is False:
+                    logger.info(
+                        "Skipping optional jobs_nf index optimization: current database user is not the table owner."
+                    )
+            except Exception as ownership_err:
+                await conn.rollback()
+                logger.warning("Could not inspect jobs_nf ownership before optional optimizations: %s", ownership_err)
+                can_manage_jobs_nf_indexes = False
+
             # 3. Best-effort indexes. Each statement is isolated so one failure does not
             # abort the rest of startup or poison the connection transaction state.
             optional_statements = [
@@ -147,13 +167,14 @@ async def init_db():
                 ),
             ]
 
-            for label, statement in optional_statements:
-                try:
-                    await conn.execute(text(statement))
-                    await conn.commit()
-                except Exception as stmt_err:
-                    await conn.rollback()
-                    logger.warning("Skipping optional DB optimization '%s': %s", label, stmt_err)
+            if can_manage_jobs_nf_indexes:
+                for label, statement in optional_statements:
+                    try:
+                        await conn.execute(text(statement))
+                        await conn.commit()
+                    except Exception as stmt_err:
+                        await conn.rollback()
+                        logger.warning("Skipping optional DB optimization '%s': %s", label, stmt_err)
 
     try:
         await asyncio.wait_for(connect_and_prepare(), timeout=timeout_seconds)
