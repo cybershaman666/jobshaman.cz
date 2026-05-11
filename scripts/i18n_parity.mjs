@@ -20,6 +20,10 @@ const LOCALES_DIR = resolveExistingPath(
 );
 const CANONICAL_LOCALE = 'cs';
 const strictMode = process.argv.includes('--strict');
+const localeArg = process.argv.find((arg) => arg.startsWith('--locales='));
+const requestedLocales = localeArg
+  ? new Set(localeArg.slice('--locales='.length).split(',').map((locale) => locale.trim()).filter(Boolean))
+  : null;
 
 const flattenTranslations = (value, prefix = '', target = {}) => {
   if (Array.isArray(value)) {
@@ -44,6 +48,7 @@ const flattenTranslations = (value, prefix = '', target = {}) => {
 const localeDirectories = fs
   .readdirSync(LOCALES_DIR)
   .filter((entry) => fs.statSync(path.join(LOCALES_DIR, entry)).isDirectory())
+  .filter((entry) => !requestedLocales || requestedLocales.has(entry) || entry === CANONICAL_LOCALE)
   .sort();
 
 const localeMaps = Object.fromEntries(

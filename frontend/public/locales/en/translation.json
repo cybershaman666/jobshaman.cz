@@ -6422,6 +6422,9 @@
       "growth_copy_pending": "Complete your JCFPM profile and Cybershaman will recommend a precise growth training.",
       "growth_meta_ready": "2 weeks • 5 lessons • 30 min/day",
       "growth_meta_pending": "Precise map unlocks after JCFPM",
+      "default_mentor_advice": "You show strong potential in systems thinking. Focus more on cognitive reflection to make even better decisions in complex situations.",
+      "tag_strategy": "Strategy",
+      "tag_processes": "Processes",
       "blind_spot": "Blind spot",
       "signal": "Signal",
       "default_current_role_name": "Analyst",
@@ -6433,7 +6436,23 @@
       "status_actual": "Actual",
       "status_sync": "Sync",
       "save_profile": "Save profile",
-      "save_top_role": "Save top role"
+      "save_top_role": "Save top role",
+      "delegation": "Delegation",
+      "patience": "Patience"
+    },
+    "dimensions": {
+      "cognitive_flex": "Cognitive flexibility",
+      "social_intelligence": "Social intelligence",
+      "motivation": "Motivation",
+      "stress_resilience": "Stress resilience",
+      "values": "Values",
+      "tech_adaptability": "Technical adaptability",
+      "cognitive_reflection": "Cognitive reflection",
+      "digital_eq": "Digital EQ",
+      "systems_thinking": "Systems thinking",
+      "ambiguity_handling": "Ambiguity handling",
+      "strategic_thinking": "Strategic thinking",
+      "moral_compass": "Moral compass"
     },
     "applications": {
       "active_handshakes": "Active handshakes",

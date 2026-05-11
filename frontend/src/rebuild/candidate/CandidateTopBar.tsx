@@ -5,7 +5,6 @@ import {
   UserCircle2, 
   LogOut 
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../cn';
 import type { CompanyProfile, UserProfile } from '../../types';
 import type { 

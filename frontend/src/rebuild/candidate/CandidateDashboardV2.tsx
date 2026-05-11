@@ -940,7 +940,7 @@ const CandidateMentorChat: React.FC<{
     } finally {
       setBusy(false);
     }
-  }, [busy, messages]);
+  }, [busy, messages, t]);
 
   return (
     <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-6 pt-1">
@@ -1163,7 +1163,7 @@ export const CandidateDashboardV2: React.FC<{
         role: item.role.title,
         score: item.score || clamp(vm.resonanceScore - (index * 7), 58, 96),
       }));
-    }, [candidateApplications, evaluatedRoles, vm.resonanceScore]);
+    }, [candidateApplications, evaluatedRoles, t, vm.resonanceScore]);
     const openHandshakeOrRole = React.useCallback((id: string) => {
       const application = candidateApplications.find((item) => String(item.id) === String(id));
       if (application?.job_id) {

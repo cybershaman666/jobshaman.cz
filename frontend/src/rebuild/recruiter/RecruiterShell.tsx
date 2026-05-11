@@ -26,7 +26,6 @@ import {
   sendCompanyApplicationMessage,
 } from '../../services/v2DialogueService';
 
-import { InsightBadge } from '../candidate/CandidateShellComponents';
 import { cn } from '../cn';
 import { deriveDashboardMetrics } from '../derivations';
 import type { CalendarEvent, CandidateInsight, Company, HandshakeBlueprint, Role } from '../models';
@@ -638,87 +637,6 @@ export const RecruiterShell: React.FC<{
       }
       t={t}
     >
-
-          {Boolean(false) ? (
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('rebuild.recruiter.command_center', { defaultValue: 'Company overview' })}</div>
-                  <h1 className="mt-2 text-[2.7rem] font-semibold tracking-[-0.06em] text-slate-900">{t('rebuild.recruiter.command_desc', { defaultValue: 'Overview of roles, candidates, and next steps.' })}</h1>
-                </div>
-                <button type="button" onClick={() => navigate('/recruiter/roles')} className={primaryButtonClass}>{t('rebuild.recruiter.create_process', { defaultValue: 'Create process' })} <Sparkles size={16} /></button>
-              </div>
-              <div className="grid gap-4 xl:grid-cols-4">
-                <InsightBadge label={t('rebuild.badge.curated_roles', { defaultValue: 'Curated roles' })} value={String(scopedDashboardMetrics.curatedRoles)} />
-                <InsightBadge label={t('rebuild.badge.blueprints', { defaultValue: 'Blueprints' })} value={String(scopedDashboardMetrics.blueprints)} />
-                <InsightBadge label={t('rebuild.badge.candidates', { defaultValue: 'Candidates' })} value={String(scopedDashboardMetrics.candidates)} />
-                <InsightBadge label={t('rebuild.badge.interviews_booked', { defaultValue: 'Interviews booked' })} value={String(scopedDashboardMetrics.interviewsBooked)} />
-              </div>
-              <div className="grid gap-5 xl:grid-cols-[320px_1fr_320px]">
-                <div className={cn(panelClass, 'p-5')}>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('rebuild.recruiter.refine', { defaultValue: 'Refine analysis' })}</div>
-                  <div className="mt-4 space-y-5 text-sm text-slate-700">
-                    <div>
-                      <div className="font-semibold">{t('rebuild.recruiter.exp_level', { defaultValue: 'Experience level' })}</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {([t('rebuild.level.senior', { defaultValue: 'Senior' }), t('rebuild.level.lead', { defaultValue: 'Lead' }), t('rebuild.level.principal', { defaultValue: 'Principal' })] as const).map((level, index) => (
-                          <span key={level} className={cn('rounded-full px-3 py-1.5', index === 0 ? 'bg-[#12AFCB] text-white' : 'bg-slate-100')}>{level}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-semibold">{t('rebuild.recruiter.competencies', { defaultValue: 'Core competencies' })}</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {['PyTorch', 'NLP', 'Transformers', 'Docker', 'Kubernetes'].map((tag, index) => (
-                          <span key={tag} className={cn('rounded-full px-3 py-1.5 text-xs font-medium', index < 3 ? 'bg-[#12AFCB] text-white' : 'bg-slate-100')}>{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <button type="button" className={secondaryButtonClass}>{t('rebuild.recruiter.apply_filters', { defaultValue: 'Apply filters' })}</button>
-                  </div>
-                </div>
-                <div className={cn(panelClass, 'p-6')}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xl font-semibold tracking-[-0.04em] text-slate-900">{t('rebuild.recruiter.competency_matrix', { defaultValue: 'Aggregated competency matrix' })}</div>
-                      <div className="mt-2 text-sm text-slate-500">{t('rebuild.recruiter.competency_matrix_copy', { defaultValue: 'Performance across the current selection pool.' })}</div>
-                    </div>
-                    <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">{t('rebuild.recruiter.overall', { defaultValue: 'Overall' })}</div>
-                  </div>
-                  <div className="mt-8 flex items-center justify-center">
-                    <svg width="360" height="280" viewBox="0 0 360 280" className="max-w-full">
-                      <polygon points="180,24 284,86 252,210 108,210 76,86" fill="rgba(18,175,203,0.10)" stroke="#12AFCB" strokeWidth="3" />
-                      {[
-                        t('rebuild.recruiter.axis_technical_depth', { defaultValue: 'Technical Depth' }),
-                        t('rebuild.recruiter.axis_soft_skills', { defaultValue: 'Soft Skills' }),
-                        t('rebuild.recruiter.axis_logic', { defaultValue: 'Logic' }),
-                        t('rebuild.recruiter.axis_leadership', { defaultValue: 'Leadership' }),
-                        t('rebuild.recruiter.axis_creativity', { defaultValue: 'Creativity' }),
-                        t('rebuild.recruiter.axis_agility', { defaultValue: 'Agility' }),
-                      ].map((label, index) => (
-                        <text key={label} x={[180, 310, 280, 180, 65, 35][index]} y={[14, 88, 226, 248, 226, 88][index]} fontSize="11" fill="#64748b" textAnchor="middle">{label}</text>
-                      ))}
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('rebuild.recruiter.elite_tier', { defaultValue: 'Elite talent tier' })}</div>
-                  {visibleCandidateInsights.slice(0, 4).map((candidate, index) => (
-                    <div key={candidate.id} className={cn(panelClass, 'flex items-center justify-between gap-3 p-4', index === 0 && 'border-[#12AFCB]/40')}>
-                      <div>
-                        <div className="text-lg font-semibold tracking-[-0.03em] text-slate-900">{candidate.candidateName}</div>
-                        <div className="mt-1 text-sm text-slate-500">{candidate.matchPercent}% {t('rebuild.recruiter.technical_match', { defaultValue: 'technical match' })}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-[#0f95ac]">{t('rebuild.recruiter.rank', { defaultValue: 'Rank' })} #{index + 1}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-400">{t('rebuild.recruiter.high_signal', { defaultValue: 'High signal' })}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : null}
 
           {tab === 'roles' ? (
             <div className="space-y-6">

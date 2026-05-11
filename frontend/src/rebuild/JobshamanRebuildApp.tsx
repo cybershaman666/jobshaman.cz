@@ -230,6 +230,7 @@ const JobshamanRebuildApp: React.FC = () => {
   const [companyLookupFailed, setCompanyLookupFailed] = React.useState(false);
   const [companyLookupRetry, setCompanyLookupRetry] = React.useState(0);
   const [checkoutBusyTier, setCheckoutBusyTier] = React.useState<'starter' | 'growth' | 'professional' | null>(null);
+  const geoIpMarketplaceCityRef = React.useRef<string>('');
 
 
 
@@ -247,10 +248,7 @@ const JobshamanRebuildApp: React.FC = () => {
                 ...prev,
                 taxProfile: { ...prev.taxProfile, countryCode: detectedCountry }
               }));
-              setMarketplaceFilters(prev => ({
-                ...prev,
-                city: data.city || prev.city
-              }));
+              geoIpMarketplaceCityRef.current = String(data.city || '').trim();
 
               // Auto-set language based on IP if not already manually changed/persisted
               const countryToLang: Record<string, string> = {
@@ -279,6 +277,18 @@ const JobshamanRebuildApp: React.FC = () => {
       detectRegion();
     }
   }, [preferences.address, userProfile.isLoggedIn, setPreferences, i18n]);
+
+  React.useEffect(() => {
+    if (!userProfile.isLoggedIn || !preferences.address) return;
+    const geoIpCity = geoIpMarketplaceCityRef.current;
+    if (!geoIpCity) return;
+    setMarketplaceFilters((current) => (
+      current.city.trim().toLowerCase() === geoIpCity.toLowerCase()
+        ? { ...current, city: '' }
+        : current
+    ));
+    geoIpMarketplaceCityRef.current = '';
+  }, [preferences.address, userProfile.isLoggedIn]);
 
   const deferredMarketplaceQuery = React.useDeferredValue(marketplaceQuery);
   const marketplaceCriteriaKey = React.useMemo(() => JSON.stringify({

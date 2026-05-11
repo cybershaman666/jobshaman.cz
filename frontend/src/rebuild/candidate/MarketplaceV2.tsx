@@ -1,28 +1,37 @@
 import React from 'react';
 import {
+  ArrowRight,
+  Bell,
   LayoutDashboard,
   Briefcase,
   CircleUserRound,
+  Code2,
+  Filter,
+  Grid2X2,
+  Heart,
+  Bookmark,
+  MapPin,
+  Megaphone,
   MessageSquare,
   GraduationCap,
   Loader2,
+  Palette,
+  PenLine,
   Search,
   SlidersHorizontal,
   BrainCircuit,
   ChevronDown,
+  Clock3,
 } from 'lucide-react';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { Role, CandidatePreferenceProfile, MarketplaceFilters, MarketplaceSection } from '../models';
 import { DialogueSummary, UserProfile } from '../../types';
-import {
-  FeaturedRoleCard,
-  DiscoveryRoleCard,
-} from './MarketplaceComponents';
 import { 
   SearchFiltersModal, 
   getRoleFamilyOptions 
 } from './MarketplaceSearchFilters';
 import { getStaticCoordinates } from '../../services/geocodingService';
+import { cn } from '../cn';
 
 // Helper to calculate distance in km
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -147,6 +156,105 @@ const diversifyCandidatesByLocation = (candidates: RoleCandidate[]): RoleCandida
 
 // SearchFiltersModal and associated helpers moved to MarketplaceSearchFilters.tsx
 
+const formatRoleSalary = (role: Role, fallback: string, language?: string) => {
+  if (role.salaryFrom <= 0 && role.salaryTo <= 0) return fallback;
+  const locale = language === 'cs' ? 'cs-CZ' : 'en-GB';
+  const from = role.salaryFrom > 0 ? role.salaryFrom.toLocaleString(locale) : role.salaryTo.toLocaleString(locale);
+  const to = role.salaryTo > 0 && role.salaryTo !== role.salaryFrom ? ` - ${role.salaryTo.toLocaleString(locale)}` : '';
+  return `${from}${to} ${role.currency}`;
+};
+
+const roleFamilyIcon = (clusterId: RoleClusterId) => {
+  if (clusterId === 'digital') return Code2;
+  if (clusterId === 'business') return Megaphone;
+  if (clusterId === 'services') return PenLine;
+  if (clusterId === 'management') return Briefcase;
+  if (clusterId === 'operations') return Grid2X2;
+  return Palette;
+};
+
+const JobFeedCard: React.FC<{
+  candidate: RoleCandidate;
+  variant?: 'featured' | 'compact';
+  saved?: boolean;
+  onOpen: () => void;
+  t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
+}> = ({ candidate, variant = 'compact', saved = false, onOpen, t }) => {
+  const role = candidate.role;
+  const isFeatured = variant === 'featured';
+  const distanceLabel = Number.isFinite(candidate.distanceKm)
+    ? `${Math.max(1, Math.round(candidate.distanceKm))} km`
+    : role.location;
+  const salary = formatRoleSalary(role, t('rebuild.marketplace.salary_not_specified', { defaultValue: 'Mzda neuvedena' }));
+  const tags = role.skills.length > 0 ? role.skills.slice(0, isFeatured ? 4 : 3) : role.benefits.slice(0, isFeatured ? 4 : 3);
+
+  return (
+    <article
+      className={cn(
+        'group flex h-full min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 text-slate-950 shadow-[0_16px_42px_-34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-[0_24px_58px_-36px_rgba(15,23,42,0.26)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100',
+        isFeatured && 'md:p-6',
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={cn('flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800', isFeatured ? 'h-12 w-12' : 'h-10 w-10')}>
+            {role.companyLogo ? (
+              <img src={role.companyLogo} alt="" className="h-full w-full object-contain" />
+            ) : (
+              <Briefcase size={18} className="text-[#0f95ac]" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-bold text-slate-900 dark:text-slate-100">{role.companyName || t('rebuild.marketplace.company_unknown', { defaultValue: 'Firma' })}</div>
+            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-slate-500">
+              <span>{role.source === 'curated' ? t('rebuild.marketplace.verified_company', { defaultValue: 'Ověřená firma' }) : t('rebuild.marketplace.imported_source', { defaultValue: 'Importovaná nabídka' })}</span>
+              {role.source === 'curated' ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-[#0f95ac] dark:hover:bg-slate-800"
+          aria-label={saved ? t('rebuild.marketplace.saved_role', { defaultValue: 'Uložená nabídka' }) : t('rebuild.marketplace.save_role', { defaultValue: 'Uložit nabídku' })}
+        >
+          <Bookmark size={17} className={saved ? 'fill-[#0f95ac] text-[#0f95ac]' : ''} />
+        </button>
+      </div>
+
+      <button type="button" onClick={onOpen} className="mt-5 text-left">
+        <h3 className={cn('font-black leading-snug tracking-normal text-slate-950 transition group-hover:text-[#0f95ac] dark:text-slate-100', isFeatured ? 'text-[22px]' : 'text-[17px]')}>
+          {role.title}
+        </h3>
+        <p className={cn('mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400', isFeatured ? 'line-clamp-3' : 'line-clamp-2')}>
+          {role.summary || role.description || role.roleSummary}
+        </p>
+      </button>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <span key={tag} className="rounded-md bg-[#eef8fb] px-2.5 py-1 text-[11px] font-bold text-[#08788a] dark:bg-cyan-950/50 dark:text-cyan-300">{tag}</span>
+        ))}
+      </div>
+
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+        <div className="min-w-0">
+          <div className="text-[15px] font-black text-slate-950 dark:text-slate-100">{salary}</div>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500">
+            <span className="inline-flex items-center gap-1"><MapPin size={12} />{distanceLabel} · {role.location}</span>
+            <span className="inline-flex items-center gap-1"><Clock3 size={12} />{role.workModel}</span>
+          </div>
+        </div>
+        {isFeatured ? (
+          <button type="button" onClick={onOpen} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[image:var(--shell-button-primary-bg)] px-4 text-[12px] font-black text-white shadow-[0_14px_28px_-20px_rgba(18,175,203,0.72)] transition hover:bg-[image:var(--shell-button-primary-hover)]">
+            {t('rebuild.marketplace.offer_detail', { defaultValue: 'Detail nabídky' })}
+            <ArrowRight size={15} />
+          </button>
+        ) : null}
+      </div>
+    </article>
+  );
+};
+
 
 const MarketplaceSchema: React.FC<{ roles: Role[]; t: any }> = ({ roles, t }) => {
   const itemListSchema = {
@@ -218,7 +326,7 @@ export const MarketplaceV2: React.FC<{
   onLanguageChange?: (lang: string) => void;
   navigate: (path: string) => void;
   t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
-}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, sections = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
+}> = ({ roles, loading = false, hasMore = false, totalCount = 0, userProfile, preferences, filters, searchValue, onSearchChange, onFiltersChange, onResetFilters, savedRoleIds = [], onSignOut, onCompanySwitch, onLoadMore, onLoadMoreCategory, loadingCategoryId = null, currentLanguage, onLanguageChange, navigate, t }) => {
   const [visibleRecommendationCount, setVisibleRecommendationCount] = React.useState(RECOMMENDATION_PAGE_SIZE);
   const [focusMode, setFocusMode] = React.useState<MarketplaceFocus>('all');
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -351,7 +459,6 @@ export const MarketplaceV2: React.FC<{
   }, [commuteFilterActive, featuredRole, filters.city, localRadiusKm, nearbyRoles, rolesWithDistance]);
   const visibleRecommendedCandidates = scopedRecommendationCandidates.slice(0, visibleRecommendationCount);
   const hasMoreRecommendations = visibleRecommendationCount < scopedRecommendationCandidates.length;
-  const spotlightCandidate = commuteFilterActive ? null : visibleRecommendedCandidates[0] || null;
   const gridCandidates = commuteFilterActive ? visibleRecommendedCandidates : visibleRecommendedCandidates.slice(1);
   const profileRelevanceText = React.useMemo(() => normalizeProfileText([
     searchValue,
@@ -450,12 +557,6 @@ export const MarketplaceV2: React.FC<{
     return cityPart;
   }, [preferences.address, t]);
 
-  const sectionShellClass = "scroll-mt-24 border-t border-slate-200/80 pt-9 dark:border-slate-800/80 md:pt-11";
-  const firstSectionShellClass = "scroll-mt-24";
-  const sectionTitleClass = "mb-6 flex flex-col gap-3 border-b border-slate-200/70 px-1 pb-4 dark:border-slate-800/80 sm:flex-row sm:items-end sm:justify-between";
-  const h3Class = "text-[20px] font-black leading-tight text-slate-900";
-  const sectionDescriptionClass = "mt-1 block max-w-3xl text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-400";
-  const viewAllClass = "text-[12px] font-bold text-[#12afcb] hover:underline";
   const activeFilterCount = [
     searchValue.trim(),
     filters.city.trim(),
@@ -480,6 +581,35 @@ export const MarketplaceV2: React.FC<{
       ? parts.join(' · ')
       : t('rebuild.marketplace.search_cta', { defaultValue: 'Hledat pozici, firmu nebo město' });
   }, [filters.city, filters.remoteOnly, filters.roleFamily, filters.workArrangement, searchValue, t]);
+  const feedCandidates = commuteFilterActive ? scopedRecommendationCandidates : visibleRecommendedCandidates;
+  const recommendedFeed = feedCandidates.slice(0, 2);
+  const latestFeed = feedCandidates.slice(2, 8);
+  const categoryCards = catalogSections.slice(0, 4).map((section) => ({
+    id: section.id,
+    title: section.title,
+    count: section.candidates.length,
+    Icon: roleFamilyIcon(section.id),
+  }));
+  const savedSearchCards = [
+    {
+      id: 'target',
+      title: filters.targetRole || userProfile.jobTitle || t('rebuild.marketplace.saved_target_role', { defaultValue: 'Doporučené role' }),
+      count: scopedRecommendationCandidates.length,
+      Icon: Briefcase,
+    },
+    {
+      id: 'local',
+      title: locationLabel,
+      count: nearbyRoles.length,
+      Icon: MapPin,
+    },
+    {
+      id: 'remote',
+      title: t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Pouze remote' }),
+      count: rolesWithDistance.filter(({ role }) => isRemoteRole(role)).length,
+      Icon: Heart,
+    },
+  ];
   return (
     <>
       <SearchFiltersModal
@@ -507,205 +637,197 @@ export const MarketplaceV2: React.FC<{
         subtitle={t('rebuild.marketplace.header_subtitle', { defaultValue: 'Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.' })}
         t={t}
         actionRegion={
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="hidden h-11 min-w-[24rem] max-w-[34rem] items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 text-left text-[13px] font-semibold text-slate-800 shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-600 md:flex"
-              aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#e8f8fb] text-[#08788a] dark:bg-cyan-950/60 dark:text-cyan-300">
-                <Search size={16} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{searchTriggerLabel}</span>
-                <span className="block truncate text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                  {t('rebuild.marketplace.search_hint', { defaultValue: 'Vyhledávání, lokalita, forma práce a další filtry' })}
-                </span>
-              </span>
-              {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-2.5 py-1 text-[11px] font-black text-white">{activeFilterCount}</span> : null}
-            </button>
-            <button type="button" onClick={() => setFiltersOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-[#08788a] shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-900 dark:text-cyan-300 md:hidden" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
-              <SlidersHorizontal size={16} />
-            </button>
-          </div>
+          <button type="button" onClick={() => setFiltersOpen(true)} className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-[#08788a] shadow-sm transition hover:border-[#12afcb] hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-900 dark:text-cyan-300" aria-label={t('rebuild.marketplace.open_search', { defaultValue: 'Otevřít vyhledávání' })}>
+            <SlidersHorizontal size={16} />
+            {activeFilterCount ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#12afcb] px-1 text-[10px] font-black text-white">{activeFilterCount}</span> : null}
+          </button>
         }
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
-        <div className="grid gap-6 xl:gap-8">
-          {/* Main Column - min-w-0 is crucial to prevent content from stretching the grid */}
-          <div className="min-w-0 space-y-12 pb-14 md:space-y-14">
-            {/* Featured Section */}
-            {commuteFilterActive ? (
-            <section key="featured" id="marketplace-local-jobs" className={firstSectionShellClass}>
-              <div className={sectionTitleClass}>
-                <h3 className={h3Class + ' dark:text-slate-100'}>
-                  {t('rebuild.marketplace.local_jobs')}
-                  <span className={sectionDescriptionClass}>
-                    {commuteFilterActive
-                      ? `${locationLabel} ${t('rebuild.marketplace.radius_label', { radius: localRadiusKm })}`
-                      : t('rebuild.marketplace.commute_disabled_short', { defaultValue: 'dojezd vypnutý' })}
-                  </span>
-                </h3>
-                <button type="button" onClick={() => setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate')} disabled={!commuteFilterActive} className={viewAllClass + (!commuteFilterActive ? ' opacity-40' : '')}>
-                  {focusMode === 'immediate' ? t('rebuild.marketplace.show_all') : t('rebuild.marketplace.only_local')}
-                </button>
+        <div className="space-y-8 pb-12">
+          <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_-62px_rgba(15,23,42,0.28)] dark:border-slate-800 dark:bg-slate-900">
+            <div className="grid min-h-[19rem] md:grid-cols-[minmax(0,1fr)_21rem]">
+              <div className="relative z-10 p-6 sm:p-8">
+                <div className="flex items-center gap-3 text-[13px] font-bold text-[#0f95ac]">
+                  <span className="h-2 w-2 rounded-full bg-[#12afcb]" />
+                  {t('rebuild.marketplace.feed_label', { defaultValue: 'Feed' })}
+                  <span className="text-slate-300">/</span>
+                  <span className="text-slate-500">{t('rebuild.nav.marketplace', { defaultValue: 'Marketplace' })}</span>
+                </div>
+                <h1 className="mt-8 text-[clamp(2rem,4vw,3.15rem)] font-black leading-tight tracking-normal text-slate-950 dark:text-slate-100">
+                  {t('rebuild.marketplace.feed_greeting', { defaultValue: 'Ahoj {{name}}, 👋', name: userProfile.name?.split(' ')[0] || preferences.name || t('rebuild.marketplace.you', { defaultValue: 'ty' }) })}
+                </h1>
+                <p className="mt-2 text-lg font-medium text-slate-600 dark:text-slate-400">
+                  {t('rebuild.marketplace.feed_subtitle', { defaultValue: 'Najdi další dobrou příležitost bez náhodných filtrů.' })}
+                </p>
+                <div className="mt-7 flex max-w-3xl flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setFiltersOpen(true)}
+                    className="flex min-h-14 flex-1 items-center gap-3 rounded-full border border-slate-200 bg-white px-5 text-left text-sm font-semibold text-slate-500 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.32)] transition hover:border-[#12afcb]/50 hover:text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#12afcb]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                  >
+                    <Search size={18} className="shrink-0 text-slate-400" />
+                    <span className="min-w-0 flex-1 truncate">{searchTriggerLabel}</span>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[image:var(--shell-button-primary-bg)] text-white shadow-[0_12px_28px_-18px_rgba(18,175,203,0.78)]">
+                      <Search size={18} />
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 hover:bg-[#f7fcfd] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                    <Filter size={16} />
+                    {t('rebuild.marketplace.filters', { defaultValue: 'Filtry' })}
+                    {activeFilterCount ? <span className="rounded-full bg-[#12afcb] px-2 py-0.5 text-[11px] text-white">{activeFilterCount}</span> : null}
+                  </button>
+                </div>
               </div>
-              {featuredRole ? (
-                <FeaturedRoleCard
-                  role={featuredRole}
-                  distanceKm={featuredCandidate?.distanceKm ?? null}
-                  onOpen={() => navigate(getRolePath(featuredRole))}
-                />
-              ) : (
-                <div className="rounded-[28px] border border-dashed border-[#eadfc9] dark:border-slate-700 bg-white/55 dark:bg-slate-900/55 p-7 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 shadow-[0_18px_40px_-34px_rgba(72,55,24,0.18)] dark:shadow-none">
-                  {commuteFilterActive
-                    ? t('rebuild.marketplace.no_local_jobs', { defaultValue: 'V okolí {{location}} aktuálně nejsou žádné aktivní výzvy v okruhu {{radius}} km.', radius: localRadiusKm, location: locationLabel })
-                    : t('rebuild.marketplace.no_commute_filter', { defaultValue: 'Dojezdový filtr je vypnutý. Hlavní seznam níže ukazuje všechny nabídky odpovídající hledání.' })}
-                </div>
-              )}
-            </section>
-            ) : null}
+              <div className="relative hidden overflow-hidden md:block">
+                <img src="/hero-panorama.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,#fff_0%,rgba(255,255,255,0.72)_28%,rgba(255,255,255,0.12)_100%)] dark:bg-[linear-gradient(90deg,#0f172a_0%,rgba(15,23,42,0.72)_28%,rgba(15,23,42,0.12)_100%)]" />
+              </div>
+            </div>
+            <div className="grid gap-3 border-t border-slate-100 p-5 dark:border-slate-800 sm:grid-cols-2 xl:grid-cols-5">
+              {categoryCards.map(({ id, title, count, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onLoadMoreCategory?.(id)}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-md dark:border-slate-800 dark:bg-slate-950"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50 dark:text-cyan-300">
+                    {loadingCategoryId === id ? <Loader2 size={18} className="animate-spin" /> : <Icon size={18} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{title}</span>
+                    <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{t('rebuild.marketplace.offer_count', { defaultValue: '{{count}} nabídek', count })}</span>
+                  </span>
+                </button>
+              ))}
+              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"><Grid2X2 size={18} /></span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' })}</span>
+                  <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{visibleRoles.length.toLocaleString('cs-CZ')} {t('rebuild.marketplace.results', { defaultValue: 'výsledků' })}</span>
+                </span>
+              </button>
+            </div>
+          </section>
 
-            {/* Recommended Sections (New Hybrid Engine) */}
-            {sections.length > 0 ? (
-              sections.map((section, index) => (
-                <section key={section.id || section.title} id={index === 0 ? 'marketplace-recommended' : undefined} className={index === 0 && !commuteFilterActive ? firstSectionShellClass : sectionShellClass}>
-                  <div className={sectionTitleClass}>
-                    <h3 className={h3Class + ' dark:text-slate-100'}>
-                      {section.title}
-                      <span className={sectionDescriptionClass}>{section.description}</span>
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {section.items
-                      .filter((role) => !filters.city || role.location.toLowerCase().includes(filters.city.toLowerCase()))
-                      .filter((role) => {
-                        if (!searchValue.trim()) return true;
-                        const query = searchValue.toLowerCase();
-                        return (
-                          role.title.toLowerCase().includes(query) ||
-                          role.companyName.toLowerCase().includes(query) ||
-                          role.location.toLowerCase().includes(query)
-                        );
-                      })
-                      .map((role) => (
-                      <DiscoveryRoleCard
-                        key={role.id}
-                        role={role}
-                        distanceKm={getDistance(effectiveCoordinates?.lat ?? 0, effectiveCoordinates?.lon ?? 0, role.coordinates.lat, role.coordinates.lng)}
-                        onOpen={() => navigate(getRolePath(role))}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))
+          <section id="marketplace-recommended" className="space-y-4">
+            <div className="flex items-end justify-between gap-4 px-1">
+              <div>
+                <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.recommended_for_you', { defaultValue: 'Doporučené pro vás' })} <span className="text-[#d58a22]">✦</span></h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.based_on_profile', { defaultValue: 'Na základě profilu a aktivity' })}</p>
+              </div>
+              <button type="button" onClick={() => setFocusMode((current) => current === 'immediate' ? 'all' : 'immediate')} className="text-[13px] font-black text-[#0f95ac] hover:underline">
+                {focusMode === 'immediate' ? t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' }) : t('rebuild.marketplace.only_local', { defaultValue: 'Jen lokální' })}
+              </button>
+            </div>
+            {recommendedFeed.length > 0 ? (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
+                {recommendedFeed.map((candidate, index) => (
+                  <JobFeedCard
+                    key={candidate.role.id}
+                    candidate={candidate}
+                    variant={index === 0 ? 'featured' : 'compact'}
+                    saved={savedRoleIds?.includes(String(candidate.role.id))}
+                    onOpen={() => navigate(getRolePath(candidate.role))}
+                    t={t}
+                  />
+                ))}
+              </div>
             ) : (
-              /* Legacy Recommended Section fallback */
-              <section key="legacy-recommended" id="marketplace-recommended" className={!commuteFilterActive ? firstSectionShellClass : sectionShellClass}>
-                <div className={sectionTitleClass}>
-                  <h3 className={h3Class + ' dark:text-slate-100'}>
-                    {t('rebuild.marketplace.recommended_for_you')}
-                    <span className={sectionDescriptionClass}>{t('rebuild.marketplace.based_on_profile')}</span>
-                  </h3>
-                  <div className="text-[12px] font-bold text-slate-400">
-                    {t('rebuild.marketplace.relevant_count', { relevant: scopedRecommendationCandidates.length, total: visibleRoles.length })}
-                  </div>
-                </div>
-                {visibleRecommendedCandidates.length > 0 ? (
-                  <>
-                  {spotlightCandidate ? (
-                    <FeaturedRoleCard
-                      role={spotlightCandidate.role}
-                      distanceKm={spotlightCandidate.distanceKm}
-                      onOpen={() => navigate(getRolePath(spotlightCandidate.role))}
-                    />
-                  ) : null}
-                  <div className="mt-8 space-y-11">
-                    {catalogSections.map((section) => (
-                      <section key={section.id} className="scroll-mt-24 border-t border-slate-200/70 pt-7 first:border-t-0 first:pt-0 dark:border-slate-800/80">
-                        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 px-1">
-                          <div>
-                            <h4 className="text-[18px] font-black leading-tight text-slate-900 dark:text-slate-100">{section.title}</h4>
-                            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-slate-500 dark:text-slate-400">{section.description}</p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                              {section.candidates.length}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                          {section.candidates.map(({ role, distanceKm }, index) => (
-                            <DiscoveryRoleCard
-                              key={role.id}
-                              role={role}
-                              distanceKm={distanceKm}
-                              variant={index === 0 && section.candidates.length >= 4 ? 'wide' : index % 7 === 0 ? 'accent' : index % 5 === 0 ? 'compact' : 'standard'}
-                              onOpen={() => navigate(getRolePath(role))}
-                            />
-                          ))}
-                        </div>
-                        {onLoadMoreCategory && section.id !== 'other' && section.candidates.length >= 4 && (
-                          <div className="mt-8 flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => onLoadMoreCategory(section.id)}
-                              disabled={loadingCategoryId === section.id}
-                              className="group flex h-11 items-center gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/30 px-6 text-[13px] font-bold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-wait disabled:opacity-70 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-300 dark:hover:bg-cyan-950/40 shadow-sm"
-                            >
-                              {loadingCategoryId === section.id ? (
-                                <Loader2 size={16} className="animate-spin text-cyan-500" />
-                              ) : (
-                                <ChevronDown size={16} className="transform transition-transform group-hover:translate-y-0.5" />
-                              )}
-                              {loadingCategoryId === section.id
-                                ? t('rebuild.marketplace.loading_category', { defaultValue: 'Načítám' })
-                                : t('rebuild.marketplace.load_more_category', { defaultValue: 'Zobrazit další z kategorie' })}
-                            </button>
-                          </div>
-                        )}
-                      </section>
-                    ))}
-                  </div>
-                  </>
-                ) : (
-                  <div className="rounded-[28px] border border-dashed border-[#eadfc9] dark:border-slate-700 bg-white/55 dark:bg-slate-900/55 p-7 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                    {t('rebuild.marketplace.no_more_recommendations', { defaultValue: 'V aktuálním radiusu nemám další vhodné nabídky. Zkus zvětšit dojezd v profilu nebo zapnout širší hledání.' })}
-                  </div>
-                )}
-                {hasMoreRecommendations ? (
-                  <div className="mt-6 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-[#e9dcc3] dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-[13px] font-bold text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-[#fff9ef] dark:hover:bg-slate-700"
-                    >
-                      <Loader2 size={15} className="text-[#12afcb]" />
-                      {t('rebuild.marketplace.load_more')}
-                      <span className="text-slate-400">
-                        {t('rebuild.marketplace.remaining_in_batch', { count: Math.min(RECOMMENDATION_PAGE_SIZE, scopedRecommendationCandidates.length - visibleRecommendationCount) })}
-                      </span>
-                    </button>
-                  </div>
-                ) : null}
-                {hasMore && onLoadMore ? (
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={onLoadMore}
-                      disabled={loading}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-[#d8edf2] bg-[#eef8fb] px-5 py-3 text-[13px] font-bold text-[#08788a] shadow-sm transition hover:bg-[#e3f4f8] disabled:cursor-wait disabled:opacity-70"
-                    >
-                      {loading ? <Loader2 size={15} className="animate-spin" /> : null}
-                      {loading ? t('rebuild.marketplace.loading_catalog') : t('rebuild.marketplace.load_from_db')}
-                      <span className="text-[#6aa7b2]">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
-                    </button>
-                  </div>
-                ) : null}
-              </section>
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-8 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-900/70">
+                {commuteFilterActive
+                  ? t('rebuild.marketplace.no_local_jobs', { defaultValue: 'V okolí {{location}} aktuálně nejsou žádné aktivní výzvy v okruhu {{radius}} km.', radius: localRadiusKm, location: locationLabel })
+                  : t('rebuild.marketplace.no_more_recommendations', { defaultValue: 'V aktuálním radiusu nemám další vhodné nabídky. Zkus zvětšit dojezd v profilu nebo zapnout širší hledání.' })}
+              </div>
             )}
-          </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 px-1">
+              <div>
+                <h2 className="text-[22px] font-black tracking-normal text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.latest_jobs', { defaultValue: 'Nejnovější nabídky' })}</h2>
+                <div className="mt-4 flex flex-wrap gap-5 text-[13px] font-black text-slate-500">
+                  {[
+                    { id: 'all', label: t('rebuild.marketplace.all', { defaultValue: 'Vše' }) },
+                    { id: 'remote', label: t('rebuild.marketplace.work_arrangement_remote', { defaultValue: 'Na dálku' }) },
+                    { id: 'hybrid', label: t('rebuild.marketplace.work_arrangement_hybrid', { defaultValue: 'Hybridní' }) },
+                    { id: 'onsite', label: t('rebuild.marketplace.work_arrangement_onsite', { defaultValue: 'Na místě' }) },
+                  ].map((item) => (
+                    <button key={item.id} type="button" onClick={() => setFiltersOpen(true)} className={cn('border-b-2 pb-2 transition hover:text-[#0f95ac]', item.id === 'all' ? 'border-[#12afcb] text-[#0f95ac]' : 'border-transparent')}>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button type="button" onClick={() => setFiltersOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                {t('rebuild.marketplace.newest', { defaultValue: 'Nejnovější' })}
+                <ChevronDown size={15} />
+              </button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {latestFeed.map((candidate) => (
+                <JobFeedCard
+                  key={candidate.role.id}
+                  candidate={candidate}
+                  saved={savedRoleIds?.includes(String(candidate.role.id))}
+                  onOpen={() => navigate(getRolePath(candidate.role))}
+                  t={t}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              {hasMoreRecommendations ? (
+                <button type="button" onClick={() => setVisibleRecommendationCount((current) => current + RECOMMENDATION_PAGE_SIZE)} className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#d8edf2] bg-white px-6 text-[13px] font-black text-[#0f95ac] shadow-sm transition hover:bg-[#f1fbfd] dark:border-cyan-900/50 dark:bg-slate-900 dark:text-cyan-300">
+                  {t('rebuild.marketplace.load_more', { defaultValue: 'Zobrazit další nabídky' })}
+                  <ChevronDown size={15} />
+                </button>
+              ) : null}
+              {hasMore && onLoadMore ? (
+                <button type="button" onClick={onLoadMore} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-6 text-[13px] font-black text-slate-700 shadow-sm transition hover:border-[#12afcb]/50 disabled:cursor-wait disabled:opacity-70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                  {loading ? <Loader2 size={15} className="animate-spin" /> : null}
+                  {loading ? t('rebuild.marketplace.loading_catalog', { defaultValue: 'Načítám katalog' }) : t('rebuild.marketplace.load_from_db', { defaultValue: 'Načíst další z databáze' })}
+                  <span className="text-slate-400">{roles.length.toLocaleString('cs-CZ')} / {totalCount.toLocaleString('cs-CZ')}</span>
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f3fbfd,#fffaf0)] p-6 shadow-[0_20px_60px_-50px_rgba(15,23,42,0.24)] dark:border-slate-800 dark:bg-[linear-gradient(135deg,rgba(14,116,144,0.14),rgba(180,83,9,0.1))]">
+            <h2 className="text-[20px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.saved_searches', { defaultValue: 'Uložené hledání' })}</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">{t('rebuild.marketplace.saved_searches_desc', { defaultValue: 'Měj přehled o nových nabídkách ve svých oblastech' })}</p>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {savedSearchCards.map(({ id, title, count, Icon }) => (
+                <button key={id} type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 dark:border-slate-800 dark:bg-slate-900">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50">
+                      <Icon size={17} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{title}</span>
+                      <span className="block text-[11px] font-semibold text-slate-500">{t('rebuild.marketplace.new_offer_count', { defaultValue: '{{count}} nových nabídek', count })}</span>
+                    </span>
+                  </span>
+                  <Bell size={16} className="shrink-0 text-slate-400" />
+                </button>
+              ))}
+              <button type="button" onClick={() => setFiltersOpen(true)} className="flex items-center justify-between gap-3 rounded-xl border border-white/80 bg-white px-4 py-4 text-left text-[13px] font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[#12afcb]/35 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                {t('rebuild.marketplace.show_all_saved', { defaultValue: 'Zobrazit všechna' })}
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-5 rounded-2xl bg-[linear-gradient(135deg,#0f4f73,#0f95ac)] p-6 text-white shadow-[0_22px_58px_-38px_rgba(15,149,172,0.62)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div>
+              <h2 className="text-[22px] font-black tracking-normal">{t('rebuild.marketplace.cta_talent_title', { defaultValue: 'Hledáš lepší fit pro svůj další krok?' })}</h2>
+              <p className="mt-2 text-sm font-medium text-cyan-50/85">{t('rebuild.marketplace.cta_talent_copy', { defaultValue: 'Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.' })}</p>
+            </div>
+            <button type="button" onClick={() => navigate('/candidate/profile')} className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-[#0f4f73] shadow-sm transition hover:bg-cyan-50">
+              {t('rebuild.marketplace.update_profile', { defaultValue: 'Upravit profil' })}
+              <ArrowRight size={16} />
+            </button>
+          </section>
         </div>
       </DashboardLayoutV2>
     </>

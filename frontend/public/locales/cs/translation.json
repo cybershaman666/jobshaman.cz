@@ -5217,7 +5217,7 @@
       "chat_with_shaman": "Popovídej si se Shamanem",
       "company": "Firma",
       "company_profile": "Firemní profil",
-      "self_knowledge": "Self-knowledge"
+      "self_knowledge": "Sebepoznání"
     },
     "search_placeholder": "Hledej role, firmy a kandidátské signály",
     "profile_label": "Profil",
@@ -5250,8 +5250,8 @@
       "schedule_interview": "Naplánovat pohovor",
       "move_next_stage": "Posunout do dalšího kola",
       "send": "Odeslat",
-      "try_again": "Try again",
-      "send_message": "Send message"
+      "try_again": "Zkusit znovu",
+      "send_message": "Odeslat zprávu"
     },
     "recruiter": {
       "dashboard": "Dashboard",
