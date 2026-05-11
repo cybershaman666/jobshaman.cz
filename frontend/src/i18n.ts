@@ -21,9 +21,8 @@ i18n
         fallbackLng: {
             default: ['en', 'cs']
         },
-        debug: false,
-
-        // Supported languages
+        debug: true,
+        load: 'languageOnly',
         supportedLngs: [...PRODUCTION_LOCALE_CODES],
 
         // Improve caching

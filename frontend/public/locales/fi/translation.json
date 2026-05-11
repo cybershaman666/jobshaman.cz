@@ -44,7 +44,20 @@
     "clear": "Tyhjennä",
     "demo_alert": "Kokeilutila aktiivinen — tutustu kaikkiin premium-etuihin",
     "saving": "Tallennetaan...",
-    "edit": "Muokkaa"
+    "edit": "Muokkaa",
+    "apply": {
+      "ai_assessment_desc": "Tämä yritys hyväksyy vahvistetut osaamisarvioinnit. Yhdistä JobShaman-profiilisi ja ohita ensimmäinen tekninen kierros.",
+      "ai_assessment_title": "JobShaman AI -osaamisen varmistus",
+      "ai_evaluation_desc": "Arvioimme sopivuutesi taitojen ja arvojen perusteella, emme vain avainsanojen. Autamme sinua ohittamaan ensimmäisen haastattelukierroksen.",
+      "ai_processing": "Käsitellään osaamisen yhteensopivuutta...",
+      "ai_prompt_label": "Kerro tekoälylle kokemuksestasi",
+      "connect_profile": "Yhdistä arviointiprofiili",
+      "cover_letter_placeholder": "Kirjoita saatekirjeesi tähän...",
+      "cv_from_profile": "Ansioluettelo profiilistasi",
+      "saved_cv_ready": "Tallennettu CV on valmis",
+      "upload_instead": "Lataa toinen tiedosto",
+      "use_saved_cv": "Käytä profiiliin tallennettua CV:tä"
+    }
   },
   "home": {
     "discovery": {
@@ -644,7 +657,7 @@
     "address_verified": "Osoite vahvistettu",
     "verifying": "Vahvistetaan...",
     "verification_failed": "Koordinaatteja ei löydy",
-    "experience": "Työkokemus",
+    "experience": "Kokemus",
     "education": "Koulutus",
     "skills": "Taidot",
     "save_profile": "Tallenna profiili",
@@ -859,33 +872,33 @@
       "value_2": "Stronger CV output",
       "value_3": "Better application context"
     },
-    "add_skill_prompt": "PĹ™idejte novou dovednost:",
-    "company_placeholder": "NĂˇzev spoleÄŤnosti",
-    "cv_size_error": "Soubor je pĹ™Ă­liĹˇ velkĂ˝. MaximĂˇlnĂ­ velikost je 10MB.",
-    "cv_text_manual": "Text Ĺľivotopisu (volitelnÄ›)",
-    "cv_text_placeholder": "VloĹľte text vaĹˇeho Ĺľivotopisu sem nebo nahrajte CV vĂ˝Ĺˇe...",
+    "add_skill_prompt": "Lisää uusi taito:",
+    "company_placeholder": "Yrityksen nimi",
+    "cv_size_error": "Tiedosto on liian suuri. Maksimikoko on 10 Mt.",
+    "cv_text_manual": "Ansioluettelon teksti (valinnainen)",
+    "cv_text_placeholder": "Liitä ansioluettelosi teksti tähän tai lataa CV ylhäältä...",
     "cv_type_error": "ProsĂ­m nahrĂˇvejte pouze PDF, DOC nebo DOCX soubory.",
-    "cv_upload_error": "NepodaĹ™ilo se nahrĂˇt CV. Zkuste to znovu.",
-    "cv_upload_success": "CV ĂşspÄ›ĹˇnÄ› nahrĂˇno a zpracovĂˇno!",
-    "degree_placeholder": "napĹ™. Ing., Bc., Mgr.",
-    "description_placeholder": "PopiĹˇte svĂ© hlavnĂ­ odpovÄ›dnosti a ĂşspÄ›chy...",
-    "duration_placeholder": "napĹ™. 2020 - 2022 (2 roky)",
-    "editor_title": "Editor Ĺľivotopisu",
-    "field_placeholder": "napĹ™. InformaÄŤnĂ­ technologie",
+    "cv_upload_error": "CV:n lataaminen epäonnistui. Yritä uudelleen.",
+    "cv_upload_success": "CV ladattu ja käsitelty onnistuneesti!",
+    "degree_placeholder": "esim. KTM, AMK, DI",
+    "description_placeholder": "Kuvaile päävastuusi ja saavutuksesi...",
+    "duration_placeholder": "esim. 2020 - 2022 (2 vuotta)",
+    "editor_title": "Ansioluettelon muokkain",
+    "field_placeholder": "esim. Tietotekniikka",
     "github": "GitHub",
     "github_placeholder": "github.com/jmeno",
     "linkedin": "LinkedIn",
     "linkedin_placeholder": "linkedin.com/in/jmeno-prijmeni",
     "new_education": "NovĂ© vzdÄ›lĂˇnĂ­",
     "new_role": "NovĂˇ pozice",
-    "photo_size_error": "ObrĂˇzek je pĹ™Ă­liĹˇ velkĂ˝. MaximĂˇlnĂ­ velikost je 5MB.",
+    "photo_size_error": "Kuva on liian suuri. Maksimikoko on 5 Mt.",
     "photo_type_error": "ProsĂ­m nahrĂˇvejte pouze obrĂˇzky.",
-    "placeholder_job": "VaĹˇe pracovnĂ­ pozice",
-    "placeholder_name": "VaĹˇe jmĂ©no",
+    "placeholder_job": "Tehtävänimikkeesi",
+    "placeholder_name": "Nimesi",
     "portfolio": "Portfolio",
     "portfolio_placeholder": "vasewebova.cz",
     "role_placeholder": "NĂˇzev pozice",
-    "save_error": "NepodaĹ™ilo se uloĹľit profil. Zkuste to znovu.",
+    "save_error": "Profiilin tallentaminen epäonnistui. Yritä uudelleen.",
     "saved_jobs": "Saved ({{count}})",
     "school_placeholder": "NĂˇzev instituce",
     "selection": "VybrĂˇno",
@@ -906,7 +919,7 @@
       "bike": "Bike",
       "walk": "Walk"
     },
-    "year_placeholder": "napĹ™. 2020",
+    "year_placeholder": "esim. 2020",
     "job_hub": {
       "status_reviewed": "Read",
       "status_shortlisted": "We want to continue",
@@ -5583,7 +5596,12 @@
       "created_at": "Created at",
       "unknown": "Unknown",
       "select_candidate_detail": "Select a candidate for a detailed cognitive map",
-      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent."
+      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent.",
+      "nav_billing": "Tilaus",
+      "subtitle_billing": "Tilaustiedot, käytön seuranta, laskut ja maksujen hallinta.",
+      "integrations_label": "Integrace",
+      "integrations_title": "ATS exporty, API klíče a webhooky.",
+      "integrations_copy": "První verze posílá data z JobShamanu do ATS přes company-scoped API a podepsané webhooky. Credentials cizích ATS zatím neukládáme."
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5803,7 +5821,47 @@
       "swipe_mode": "Swipe mode",
       "loading_batch": "Loading current offers.",
       "roles_unit": "roles",
-      "loading_more_title": "Loading more offers."
+      "loading_more_title": "Loading more offers.",
+      "company_unknown": "Firma",
+      "verified_company": "Ověřená firma",
+      "imported_source": "Importovaná nabídka",
+      "saved_role": "Uložená nabídka",
+      "save_role": "Uložit nabídku",
+      "offer_detail": "Detail nabídky",
+      "cluster_management": "Projektové a provozní řízení",
+      "cluster_management_desc": "Manažerské, koordinační a projektové role, kde se řeší lidé, procesy a dodání výsledku.",
+      "cluster_operations": "Výroba, provoz a logistika",
+      "cluster_operations_desc": "Role v terénu, provozu, skladech, stavbě a každodenním řízení práce.",
+      "cluster_business": "Obchod, administrativa a finance",
+      "cluster_business_desc": "Pozice pro práci s klienty, čísly, procesy, lidmi a podporou firmy.",
+      "cluster_digital": "Technologie, produkt a design",
+      "cluster_digital_desc": "Digitální a produktové role od vývoje po UX, data a systémovou práci.",
+      "cluster_services": "Služby, péče a vzdělávání",
+      "cluster_services_desc": "Práce s lidmi, péče, zákaznický kontext, školení a veřejně prospěšné role.",
+      "cluster_other": "Další příbuzné možnosti",
+      "cluster_other_desc": "Nabídky, které se nevešly do hlavních bloků, ale pořád stojí za rychlé projití.",
+      "search_cta": "Hledat pozici, firmu nebo město",
+      "saved_target_role": "Doporučené role",
+      "all": "Vše",
+      "header_title": "Marketplace práce",
+      "header_subtitle": "Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.",
+      "feed_label": "Feed",
+      "feed_greeting": "Ahoj {{name}}, 👋",
+      "feed_subtitle": "Najdi další dobrou příležitost bez náhodných filtrů.",
+      "filters": "Filtry",
+      "offer_count": "{{count}} nabídek",
+      "results": "výsledků",
+      "latest_jobs": "Nejnovější nabídky",
+      "newest": "Nejnovější",
+      "saved_searches": "Uložené hledání",
+      "saved_searches_desc": "Měj přehled o nových nabídkách ve svých oblastech",
+      "new_offer_count": "{{count}} nových nabídek",
+      "show_all_saved": "Zobrazit všechna",
+      "cta_talent_title": "Hledáš lepší fit pro svůj další krok?",
+      "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
+      "update_profile": "Upravit profil",
+      "commute_disabled": "Dojezd neomezuje výsledky",
+      "commute_toggle": "Filtrovat dojezd"
     },
     "status": {
       "in_review": "Arvioinnissa",
@@ -5851,7 +5909,10 @@
       "company_gallery": "Company gallery",
       "handshake_materials": "Materials for the handshake",
       "role_briefing": "Role briefing",
-      "next_step": "Next step"
+      "next_step": "Next step",
+      "slots_available": "Handshake slots",
+      "candidate_slots_full": "Your active handshake slots are full.",
+      "company_slots_full": "This challenge is currently full."
     },
     "prep": {
       "title": "Job ad detail",
@@ -5969,7 +6030,11 @@
       "week_of": "Week of {{date}}",
       "available_slots": "Available slots for {{day}}",
       "finalize_error": "Failed to finalize journey.",
-      "recently_submitted": "Recently submitted"
+      "recently_submitted": "Recently submitted",
+      "candidate_slots_full": "All your active handshake slots are currently occupied. Close or finish another handshake before starting this one.",
+      "company_slots_full": "This company challenge is currently full. Try again after the company frees a handshake slot.",
+      "no_slots_error": "This handshake cannot be submitted because no active slot is available.",
+      "jcfpm_required_error": "Complete JCFPM first. We will bring you back to this handshake afterwards."
     },
     "insights": {
       "title": "Oivallukset",
@@ -6073,7 +6138,11 @@
         "d9_systems_thinking": "Systems thinking",
         "d10_ambiguity_interpretation": "Navigating ambiguity",
         "d11_problem_decomposition": "Problem decomposition",
-        "d12_moral_compass": "Ethical judgment"
+        "d12_moral_compass": "Ethical judgment",
+        "i1_love": "What you love",
+        "i2_good_at": "What you are good at",
+        "i3_world_needs": "What the world needs",
+        "i4_paid_for": "What the market values"
       },
       "load_failed": "Failed to load JCFPM questions.",
       "loading_questions": "Načítám otázky JCFPM ze Supabase...",
@@ -6132,7 +6201,13 @@
         "agreeableness": "Agreeableness",
         "neuroticism": "Emotional reactivity"
       },
-      "confidence": "Estimation confidence"
+      "confidence": "Estimation confidence",
+      "ikigai_profile": "Ikigai profile",
+      "report_readout": "Interpretace profilu",
+      "work_environment_title": "Kde bude profil nejspíš fungovat",
+      "growth_focus_title": "Nejbližší růstový fokus",
+      "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
+      "v3_layer": "JCFPM v3"
     },
     "companies": {
       "hero": {
@@ -7001,7 +7076,8 @@
       "time": "Time",
       "mental": "Psychology",
       "growth": "Growth",
-      "values": "Values"
+      "values": "Values",
+      "finance": "Finance"
     },
     "employment": {
       "full_time": "Full-time",
@@ -7076,6 +7152,43 @@
       "note_strong": "Strong submission with clear signal, thoughtful tradeoffs and fast next-step readiness.",
       "note_promising": "Promising candidate with enough structured evidence to justify a live follow-up."
     },
-    "locale": "en-GB"
+    "locale": "en-GB",
+    "billing": {
+      "current_plan": "Nykyinen tilaus",
+      "active": "Aktiivinen",
+      "manage_payments": "Hallitse maksuja",
+      "refresh": "Päivitä",
+      "next_renewal": "Seuraava uusinta",
+      "expires": "Vanhenee",
+      "days_remaining": "Päiviä jäljellä",
+      "usage_overview": "Käyttökatsaus",
+      "ai_screenings": "Tekoälyarvioinnit",
+      "active_roles": "Aktiiviset roolit",
+      "dialogue_slots": "Dialogipaikat",
+      "role_opens": "Rooliavaukset",
+      "plans": "Saatavilla olevat tilaukset",
+      "choose_plan": "Valitse oikea tilaus tiimillesi",
+      "current": "Nykyinen",
+      "current_plan_btn": "Nykyinen tilaus",
+      "upgrade": "Päivitä",
+      "switch": "Vaihda tilausta",
+      "select": "Valitse",
+      "candidates_in_process": "hakijaa prosessissa",
+      "ai_screenings_month": "tekoälyarviointia/kk",
+      "team_members": "tiimin jäsentä",
+      "cancel_title": "Peruuta tilaus",
+      "cancel_desc": "Ominaisuutesi pysyvät aktiivisina laskutuskauden loppuun asti.",
+      "cancel_btn": "Peruuta",
+      "cancel_warning": "Oletko varma? Tilauksesi pysyy aktiivisena nykyisen laskutuskauden loppuun asti.",
+      "keep_plan": "Pidä tilaus",
+      "confirm_cancel": "Kyllä, peruuta tilaus",
+      "cancel_error": "Tilauksen peruuttaminen epäonnistui. Yritä uudelleen.",
+      "load_error": "Tilaustietojen lataaminen epäonnistui.",
+      "payment_success": "Maksu onnistui! Tilauksesi on nyt aktiivinen. 🎉",
+      "payment_cancelled": "Maksu peruutettiin. Voit yrittää uudelleen milloin tahansa."
+    },
+    "loading": {
+      "workspace": "Initializing workspace..."
+    }
   }
 }

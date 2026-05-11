@@ -5555,7 +5555,12 @@
       "created_at": "Created at",
       "unknown": "Unknown",
       "select_candidate_detail": "Select a candidate for a detailed cognitive map",
-      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent."
+      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent.",
+      "nav_billing": "Předplatné",
+      "subtitle_billing": "Detail tarifu, sledování spotřeby, faktury a správa plateb.",
+      "integrations_label": "Integrace",
+      "integrations_title": "ATS exporty, API klíče a webhooky.",
+      "integrations_copy": "První verze posílá data z JobShamanu do ATS přes company-scoped API a podepsané webhooky. Credentials cizích ATS zatím neukládáme."
     },
     "role": {
       "full_journey": "Plná Jobshaman cesta",
@@ -5775,7 +5780,47 @@
       "swipe_mode": "Swipe mode",
       "loading_batch": "Načtím aktuální nabídky.",
       "roles_unit": "pozic",
-      "loading_more_title": "Načítám další nabídky."
+      "loading_more_title": "Načítám další nabídky.",
+      "company_unknown": "Firma",
+      "verified_company": "Ověřená firma",
+      "imported_source": "Importovaná nabídka",
+      "saved_role": "Uložená nabídka",
+      "save_role": "Uložit nabídku",
+      "offer_detail": "Detail nabídky",
+      "cluster_management": "Projektové a provozní řízení",
+      "cluster_management_desc": "Manažerské, koordinační a projektové role, kde se řeší lidé, procesy a dodání výsledku.",
+      "cluster_operations": "Výroba, provoz a logistika",
+      "cluster_operations_desc": "Role v terénu, provozu, skladech, stavbě a každodenním řízení práce.",
+      "cluster_business": "Obchod, administrativa a finance",
+      "cluster_business_desc": "Pozice pro práci s klienty, čísly, procesy, lidmi a podporou firmy.",
+      "cluster_digital": "Technologie, produkt a design",
+      "cluster_digital_desc": "Digitální a produktové role od vývoje po UX, data a systémovou práci.",
+      "cluster_services": "Služby, péče a vzdělávání",
+      "cluster_services_desc": "Práce s lidmi, péče, zákaznický kontext, školení a veřejně prospěšné role.",
+      "cluster_other": "Další příbuzné možnosti",
+      "cluster_other_desc": "Nabídky, které se nevešly do hlavních bloků, ale pořád stojí za rychlé projití.",
+      "search_cta": "Hledat pozici, firmu nebo město",
+      "saved_target_role": "Doporučené role",
+      "all": "Vše",
+      "header_title": "Marketplace práce",
+      "header_subtitle": "Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.",
+      "feed_label": "Feed",
+      "feed_greeting": "Ahoj {{name}}, 👋",
+      "feed_subtitle": "Najdi další dobrou příležitost bez náhodných filtrů.",
+      "filters": "Filtry",
+      "offer_count": "{{count}} nabídek",
+      "results": "výsledků",
+      "latest_jobs": "Nejnovější nabídky",
+      "newest": "Nejnovější",
+      "saved_searches": "Uložené hledání",
+      "saved_searches_desc": "Měj přehled o nových nabídkách ve svých oblastech",
+      "new_offer_count": "{{count}} nových nabídek",
+      "show_all_saved": "Zobrazit všechna",
+      "cta_talent_title": "Hledáš lepší fit pro svůj další krok?",
+      "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
+      "update_profile": "Upravit profil",
+      "commute_disabled": "Dojezd neomezuje výsledky",
+      "commute_toggle": "Filtrovat dojezd"
     },
     "status": {
       "in_review": "V recenzí",
@@ -5814,7 +5859,10 @@
       "company_gallery": "Fotogalerie firmy",
       "handshake_materials": "Podklady pro handshake",
       "role_briefing": "Briefing pozice",
-      "next_step": "Next step"
+      "next_step": "Next step",
+      "slots_available": "Handshake slots",
+      "candidate_slots_full": "Your active handshake slots are full.",
+      "company_slots_full": "This challenge is currently full."
     },
     "prep": {
       "title": "Detail inzerátu",
@@ -5932,7 +5980,11 @@
       "week_of": "Týden od {{date}}",
       "available_slots": "Dostupné termíny na {{day}}",
       "finalize_error": "Nepodařilo se dokončit handshake.",
-      "recently_submitted": "Recently submitted"
+      "recently_submitted": "Recently submitted",
+      "candidate_slots_full": "All your active handshake slots are currently occupied. Close or finish another handshake before starting this one.",
+      "company_slots_full": "This company challenge is currently full. Try again after the company frees a handshake slot.",
+      "no_slots_error": "This handshake cannot be submitted because no active slot is available.",
+      "jcfpm_required_error": "Complete JCFPM first. We will bring you back to this handshake afterwards."
     },
     "insights": {
       "title": "Candidate intelligence",
@@ -6030,7 +6082,11 @@
         "d9_systems_thinking": "Systémové uvažování",
         "d10_ambiguity_interpretation": "Orientace v nejasnosti",
         "d11_problem_decomposition": "Rozklad problému",
-        "d12_moral_compass": "Etický úsudek"
+        "d12_moral_compass": "Etický úsudek",
+        "i1_love": "What you love",
+        "i2_good_at": "What you are good at",
+        "i3_world_needs": "What the world needs",
+        "i4_paid_for": "What the market values"
       },
       "load_failed": "Nepodařilo se načíst otázky JCFPM.",
       "loading_questions": "Načítám otázky JCFPM ze Supabase...",
@@ -6089,7 +6145,13 @@
         "extraversion": "Extraversion",
         "agreeableness": "Agreeableness",
         "neuroticism": "Emotional reactivity"
-      }
+      },
+      "ikigai_profile": "Ikigai profile",
+      "report_readout": "Interpretace profilu",
+      "work_environment_title": "Kde bude profil nejspíš fungovat",
+      "growth_focus_title": "Nejbližší růstový fokus",
+      "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
+      "v3_layer": "JCFPM v3"
     },
     "companies": {
       "hero": {
@@ -6972,7 +7034,8 @@
       "time": "Čas",
       "mental": "Psychika",
       "growth": "Růst",
-      "values": "Hodnoty"
+      "values": "Hodnoty",
+      "finance": "Finance"
     },
     "employment": {
       "full_time": "Plný úvazek",
@@ -7033,6 +7096,43 @@
       "note_strong": "Strong submission with clear signal, thoughtful tradeoffs and fast next-step readiness.",
       "note_promising": "Promising candidate with enough structured evidence to justify a live follow-up."
     },
-    "locale": "en-GB"
+    "locale": "en-GB",
+    "billing": {
+      "current_plan": "Aktuální tarif",
+      "active": "Aktivní",
+      "manage_payments": "Správa plateb",
+      "refresh": "Obnovit",
+      "next_renewal": "Další obnovení",
+      "expires": "Vyprší",
+      "days_remaining": "Zbývá dní",
+      "usage_overview": "Přehled spotřeby",
+      "ai_screenings": "AI hodnocení",
+      "active_roles": "Aktivní role",
+      "dialogue_slots": "Sloty dialogů",
+      "role_opens": "Otevření rolí",
+      "plans": "Dostupné tarify",
+      "choose_plan": "Vyberte správný tarif pro váš tým",
+      "current": "Aktuální",
+      "current_plan_btn": "Aktuální tarif",
+      "upgrade": "Upgradovat",
+      "switch": "Změnit tarif",
+      "select": "Vybrat",
+      "candidates_in_process": "kandidátů v procesu",
+      "ai_screenings_month": "AI hodnocení/měsíc",
+      "team_members": "členů týmu",
+      "cancel_title": "Zrušit předplatné",
+      "cancel_desc": "Vaše funkce zůstanou aktivní do konce fakturačního období.",
+      "cancel_btn": "Zrušit",
+      "cancel_warning": "Opravdu chcete zrušit? Předplatné zůstane aktivní do konce aktuálního fakturačního období.",
+      "keep_plan": "Ponechat tarif",
+      "confirm_cancel": "Ano, zrušit předplatné",
+      "cancel_error": "Nepodařilo se zrušit předplatné. Zkuste to prosím znovu.",
+      "load_error": "Nepodařilo se načíst údaje o předplatném.",
+      "payment_success": "Platba proběhla úspěšně! Vaše předplatné je nyní aktivní. 🎉",
+      "payment_cancelled": "Platba byla zrušena. Můžete to zkusit znovu kdykoliv."
+    },
+    "loading": {
+      "workspace": "Initializing workspace..."
+    }
   }
 }

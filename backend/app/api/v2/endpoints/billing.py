@@ -290,3 +290,60 @@ async def cancel_subscription(request: Request, user: dict = Depends(verify_subs
     else:
         invalidate_subscription_cache("user_id", user_id)
     return {"status": "success"}
+
+
+@router.post("/create-billing-portal-session")
+@limiter.limit("10/minute")
+async def create_billing_portal_session(request: Request, user: dict = Depends(get_current_user)):
+    """Create a Stripe Customer Portal session so the company admin can manage payment methods, invoices, and subscription."""
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    user_id = user.get("id") or user.get("auth_id")
+    is_company = user.get("company_name") is not None
+
+    if is_company:
+        company_id = require_company_access(user, user.get("company_id"))
+    else:
+        company_id = None
+
+    # Find the subscription to get stripe_customer_id
+    lookup_col = "company_id" if company_id else "user_id"
+    lookup_val = company_id if company_id else user_id
+    sub_resp = supabase.table("subscriptions").select("*").eq(lookup_col, lookup_val).order("updated_at", desc=True).limit(1).execute()
+
+    if not sub_resp.data:
+        raise HTTPException(status_code=404, detail="No subscription found")
+
+    sub = sub_resp.data[0]
+    stripe_customer_id = sub.get("stripe_customer_id")
+
+    if not stripe_customer_id or stripe_customer_id.startswith("trial_"):
+        # Try to find or create a Stripe customer
+        try:
+            email = user.get("email", "")
+            customer = stripe.Customer.create(
+                email=email,
+                metadata={"user_id": user_id, "company_id": company_id or ""},
+            )
+            stripe_customer_id = customer.id
+            supabase.table("subscriptions").update(
+                {"stripe_customer_id": stripe_customer_id, "updated_at": now_iso()}
+            ).eq("id", sub["id"]).execute()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to create Stripe customer: {e}")
+
+    try:
+        body = await request.json()
+        return_url = body.get("returnUrl", "https://jobshaman.cz/recruiter/billing")
+    except Exception:
+        return_url = "https://jobshaman.cz/recruiter/billing"
+
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=stripe_customer_id,
+            return_url=return_url,
+        )
+        return {"url": portal_session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create billing portal session: {e}")

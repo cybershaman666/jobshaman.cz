@@ -3,6 +3,7 @@ import {
   BookOpen,
   Building2,
   Check,
+  CreditCard,
   LayoutDashboard,
   Loader2,
   Paperclip,
@@ -46,6 +47,7 @@ import {
 } from '../shared/dialogueUi';
 import { RecruiterDashboardV2 } from './RecruiterDashboardV2';
 import { RecruiterIntegrationsPage } from './RecruiterIntegrationsPage';
+import { RecruiterBillingPage } from './RecruiterBillingPage';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 
 export const RecruiterActivationPage: React.FC<{
@@ -579,6 +581,7 @@ export const RecruiterShell: React.FC<{
     { id: 'talent-pool', label: t('rebuild.recruiter.nav_candidates', { defaultValue: 'Candidates' }), icon: Users, path: '/recruiter/talent-pool' },
     { id: 'integrations', label: t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' }), icon: PlugZap, path: '/recruiter/integrations' },
     { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
+    { id: 'billing', label: t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' }), icon: CreditCard, path: '/recruiter/billing' },
   ];
   const workspaceTitle = tab === 'roles'
     ? t('rebuild.recruiter.nav_roles', { defaultValue: 'Role' })
@@ -586,14 +589,18 @@ export const RecruiterShell: React.FC<{
       ? t('rebuild.recruiter.nav_candidates', { defaultValue: 'Kandidáti' })
       : tab === 'integrations'
         ? t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' })
-        : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
+        : tab === 'billing'
+          ? t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' })
+          : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
   const workspaceSubtitle = tab === 'roles'
     ? t('rebuild.recruiter.subtitle_roles', { defaultValue: 'Role assignments, evidence of ability, and skill-first selection management.' })
     : tab === 'talent-pool'
       ? t('rebuild.recruiter.subtitle_candidates', { defaultValue: 'Candidate profiles, recruiter readout, and shared threads in one decision space.' })
       : tab === 'integrations'
         ? t('rebuild.recruiter.subtitle_integrations', { defaultValue: 'API klíče, webhooky, ATS návody a audit doručení.' })
-        : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
+        : tab === 'billing'
+          ? t('rebuild.recruiter.subtitle_billing', { defaultValue: 'Plan details, usage tracking, invoices, and payment management.' })
+          : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
 
   const shouldRenderDashboardV2 = tab === 'dashboard';
   if (shouldRenderDashboardV2) {
@@ -611,6 +618,38 @@ export const RecruiterShell: React.FC<{
         onLanguageChange={onLanguageChange}
         t={t}
       />
+    );
+  }
+
+  if (tab === 'billing') {
+    const billingCompanyId = recruiterCompany?.id || recruiterCompanyHydrated?.id || '';
+    const billingCompanyName = recruiterCompany?.name || recruiterCompanyHydrated?.name || '';
+    return (
+      <DashboardLayoutV2
+        userRole="recruiter"
+        navItems={navItems}
+        activeItemId={tab}
+        onNavigate={(_id, path) => { if (path) navigate(path); }}
+        userProfile={userProfile}
+        onSignOut={onSignOut}
+        title={workspaceTitle}
+        subtitle={workspaceSubtitle}
+        currentLanguage={currentLanguage}
+        onLanguageChange={onLanguageChange}
+        actionRegion={
+          <button type="button" onClick={() => navigate('/candidate/insights')} className={secondaryButtonClass}>
+            {t('rebuild.recruiter.candidate_view', { defaultValue: 'Candidate view' })}
+          </button>
+        }
+        t={t}
+      >
+        <RecruiterBillingPage
+          companyId={billingCompanyId}
+          companyName={billingCompanyName}
+          navigate={navigate}
+          t={t}
+        />
+      </DashboardLayoutV2>
     );
   }
 

@@ -5583,7 +5583,12 @@
       "created_at": "Created at",
       "unknown": "Unknown",
       "select_candidate_detail": "Select a candidate for a detailed cognitive map",
-      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent."
+      "select_candidate_desc": "Here you will see a detailed analysis of skills, histories, and common communication with the selected talent.",
+      "nav_billing": "Abonnement",
+      "subtitle_billing": "Plandetaljer, forbrugssporing, fakturaer og betalingshåndtering.",
+      "integrations_label": "Integrace",
+      "integrations_title": "ATS exporty, API klíče a webhooky.",
+      "integrations_copy": "První verze posílá data z JobShamanu do ATS přes company-scoped API a podepsané webhooky. Credentials cizích ATS zatím neukládáme."
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5803,7 +5808,47 @@
       "swipe_mode": "Swipe mode",
       "loading_batch": "Loading current offers.",
       "roles_unit": "roles",
-      "loading_more_title": "Loading more offers."
+      "loading_more_title": "Loading more offers.",
+      "company_unknown": "Firma",
+      "verified_company": "Ověřená firma",
+      "imported_source": "Importovaná nabídka",
+      "saved_role": "Uložená nabídka",
+      "save_role": "Uložit nabídku",
+      "offer_detail": "Detail nabídky",
+      "cluster_management": "Projektové a provozní řízení",
+      "cluster_management_desc": "Manažerské, koordinační a projektové role, kde se řeší lidé, procesy a dodání výsledku.",
+      "cluster_operations": "Výroba, provoz a logistika",
+      "cluster_operations_desc": "Role v terénu, provozu, skladech, stavbě a každodenním řízení práce.",
+      "cluster_business": "Obchod, administrativa a finance",
+      "cluster_business_desc": "Pozice pro práci s klienty, čísly, procesy, lidmi a podporou firmy.",
+      "cluster_digital": "Technologie, produkt a design",
+      "cluster_digital_desc": "Digitální a produktové role od vývoje po UX, data a systémovou práci.",
+      "cluster_services": "Služby, péče a vzdělávání",
+      "cluster_services_desc": "Práce s lidmi, péče, zákaznický kontext, školení a veřejně prospěšné role.",
+      "cluster_other": "Další příbuzné možnosti",
+      "cluster_other_desc": "Nabídky, které se nevešly do hlavních bloků, ale pořád stojí za rychlé projití.",
+      "search_cta": "Hledat pozici, firmu nebo město",
+      "saved_target_role": "Doporučené role",
+      "all": "Vše",
+      "header_title": "Marketplace práce",
+      "header_subtitle": "Procházej nabídky, uprav filtry a otevírej jen ty role, které dávají smysl.",
+      "feed_label": "Feed",
+      "feed_greeting": "Ahoj {{name}}, 👋",
+      "feed_subtitle": "Najdi další dobrou příležitost bez náhodných filtrů.",
+      "filters": "Filtry",
+      "offer_count": "{{count}} nabídek",
+      "results": "výsledků",
+      "latest_jobs": "Nejnovější nabídky",
+      "newest": "Nejnovější",
+      "saved_searches": "Uložené hledání",
+      "saved_searches_desc": "Měj přehled o nových nabídkách ve svých oblastech",
+      "new_offer_count": "{{count}} nových nabídek",
+      "show_all_saved": "Zobrazit všechna",
+      "cta_talent_title": "Hledáš lepší fit pro svůj další krok?",
+      "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
+      "update_profile": "Upravit profil",
+      "commute_disabled": "Dojezd neomezuje výsledky",
+      "commute_toggle": "Filtrovat dojezd"
     },
     "status": {
       "in_review": "Til vurdering",
@@ -5851,7 +5896,10 @@
       "company_gallery": "Company gallery",
       "handshake_materials": "Materials for the handshake",
       "role_briefing": "Role briefing",
-      "next_step": "Next step"
+      "next_step": "Next step",
+      "slots_available": "Handshake slots",
+      "candidate_slots_full": "Your active handshake slots are full.",
+      "company_slots_full": "This challenge is currently full."
     },
     "prep": {
       "title": "Job ad detail",
@@ -5969,7 +6017,11 @@
       "week_of": "Week of {{date}}",
       "available_slots": "Available slots for {{day}}",
       "finalize_error": "Failed to finalize journey.",
-      "recently_submitted": "Recently submitted"
+      "recently_submitted": "Recently submitted",
+      "candidate_slots_full": "All your active handshake slots are currently occupied. Close or finish another handshake before starting this one.",
+      "company_slots_full": "This company challenge is currently full. Try again after the company frees a handshake slot.",
+      "no_slots_error": "This handshake cannot be submitted because no active slot is available.",
+      "jcfpm_required_error": "Complete JCFPM first. We will bring you back to this handshake afterwards."
     },
     "insights": {
       "title": "Indsigter",
@@ -6073,7 +6125,11 @@
         "d9_systems_thinking": "Systems thinking",
         "d10_ambiguity_interpretation": "Navigating ambiguity",
         "d11_problem_decomposition": "Problem decomposition",
-        "d12_moral_compass": "Ethical judgment"
+        "d12_moral_compass": "Ethical judgment",
+        "i1_love": "What you love",
+        "i2_good_at": "What you are good at",
+        "i3_world_needs": "What the world needs",
+        "i4_paid_for": "What the market values"
       },
       "load_failed": "Failed to load JCFPM questions.",
       "loading_questions": "Načítám otázky JCFPM ze Supabase...",
@@ -6132,7 +6188,13 @@
         "agreeableness": "Agreeableness",
         "neuroticism": "Emotional reactivity"
       },
-      "confidence": "Estimation confidence"
+      "confidence": "Estimation confidence",
+      "ikigai_profile": "Ikigai profile",
+      "report_readout": "Interpretace profilu",
+      "work_environment_title": "Kde bude profil nejspíš fungovat",
+      "growth_focus_title": "Nejbližší růstový fokus",
+      "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
+      "v3_layer": "JCFPM v3"
     },
     "companies": {
       "hero": {
@@ -7001,7 +7063,8 @@
       "time": "Time",
       "mental": "Psychology",
       "growth": "Growth",
-      "values": "Values"
+      "values": "Values",
+      "finance": "Finance"
     },
     "employment": {
       "full_time": "Full-time",
@@ -7076,6 +7139,43 @@
       "note_strong": "Strong submission with clear signal, thoughtful tradeoffs and fast next-step readiness.",
       "note_promising": "Promising candidate with enough structured evidence to justify a live follow-up."
     },
-    "locale": "en-GB"
+    "locale": "en-GB",
+    "billing": {
+      "current_plan": "Nuværende plan",
+      "active": "Aktiv",
+      "manage_payments": "Administrer betalinger",
+      "refresh": "Opdater",
+      "next_renewal": "Næste fornyelse",
+      "expires": "Udløber",
+      "days_remaining": "Dage tilbage",
+      "usage_overview": "Forbrugsoversigt",
+      "ai_screenings": "AI-vurderinger",
+      "active_roles": "Aktive roller",
+      "dialogue_slots": "Dialogpladser",
+      "role_opens": "Rolleåbninger",
+      "plans": "Tilgængelige planer",
+      "choose_plan": "Vælg den rigtige plan for dit team",
+      "current": "Nuværende",
+      "current_plan_btn": "Nuværende plan",
+      "upgrade": "Opgrader",
+      "switch": "Skift plan",
+      "select": "Vælg",
+      "candidates_in_process": "kandidater i proces",
+      "ai_screenings_month": "AI-vurderinger/måned",
+      "team_members": "teammedlemmer",
+      "cancel_title": "Annuller abonnement",
+      "cancel_desc": "Dine funktioner forbliver aktive til slutningen af faktureringsperioden.",
+      "cancel_btn": "Annuller",
+      "cancel_warning": "Er du sikker? Dit abonnement forbliver aktivt til slutningen af den aktuelle faktureringsperiode.",
+      "keep_plan": "Behold plan",
+      "confirm_cancel": "Ja, annuller abonnement",
+      "cancel_error": "Kunne ikke annullere abonnementet. Prøv venligst igen.",
+      "load_error": "Kunne ikke indlæse abonnementsdetaljer.",
+      "payment_success": "Betaling gennemført! Dit abonnement er nu aktivt. 🎉",
+      "payment_cancelled": "Betaling blev annulleret. Du kan prøve igen når som helst."
+    },
+    "loading": {
+      "workspace": "Initializing workspace..."
+    }
   }
 }

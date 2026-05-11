@@ -232,6 +232,7 @@ const JobshamanRebuildApp: React.FC = () => {
   const [companyLookupFailed, setCompanyLookupFailed] = React.useState(false);
   const [companyLookupRetry, setCompanyLookupRetry] = React.useState(0);
   const [checkoutBusyTier, setCheckoutBusyTier] = React.useState<'starter' | 'growth' | 'professional' | null>(null);
+  const pendingCheckoutTierRef = React.useRef<'starter' | 'growth' | 'professional' | null>(null);
   React.useEffect(() => {
     if (!preferences.address && !userProfile.isLoggedIn) {
       const detectRegion = async () => {
@@ -259,9 +260,8 @@ const JobshamanRebuildApp: React.FC = () => {
                 DK: 'da'
               };
               const targetLang = countryToLang[detectedCountry];
-              if (targetLang && i18n.language !== targetLang) {
-                // Only change if user hasn't explicitly chosen another language in this session
-                // (i18next-browser-languagedetector usually handles localStorage persistence)
+              const hasStoredLang = localStorage.getItem('i18nextLng');
+              if (targetLang && i18n.language !== targetLang && !hasStoredLang) {
                 void i18n.changeLanguage(targetLang);
               }
             }
@@ -993,10 +993,12 @@ const JobshamanRebuildApp: React.FC = () => {
 
   const handleCompanyCheckout = React.useCallback(async (tier: 'starter' | 'growth' | 'professional') => {
     if (!userProfile.isLoggedIn) {
+      pendingCheckoutTierRef.current = tier;
       openAuth('recruiter');
       return;
     }
     if (!companyProfile?.id) {
+      pendingCheckoutTierRef.current = tier;
       navigate('/recruiter');
       return;
     }
@@ -1020,6 +1022,19 @@ const JobshamanRebuildApp: React.FC = () => {
     if (!companyProfile?.id) return;
     setCompanyLookupBusy(false);
     setCompanyLookupFailed(false);
+    // Resume pending checkout if user just came through auth + company creation
+    const pendingTier = pendingCheckoutTierRef.current;
+    if (pendingTier) {
+      pendingCheckoutTierRef.current = null;
+      void (async () => {
+        setCheckoutBusyTier(pendingTier);
+        try {
+          await redirectToCheckout(pendingTier, companyProfile.id!);
+        } finally {
+          setCheckoutBusyTier(null);
+        }
+      })();
+    }
   }, [companyProfile?.id]);
 
   React.useEffect(() => {
@@ -1093,7 +1108,12 @@ const JobshamanRebuildApp: React.FC = () => {
     if (userId) {
       await handleSessionRestoration(userId);
     }
-    navigate(intent === 'recruiter' ? '/recruiter' : '/candidate/insights');
+    // If there's a pending checkout tier, navigate to recruiter so we can trigger checkout after company setup
+    if (pendingCheckoutTierRef.current) {
+      navigate('/recruiter');
+    } else {
+      navigate(intent === 'recruiter' ? '/recruiter' : '/candidate/insights');
+    }
   }, [handleSessionRestoration, navigate]);
 
   const handleSaveProfile = React.useCallback(async (profileOverrides: Partial<UserProfile> = {}) => {

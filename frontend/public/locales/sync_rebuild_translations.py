@@ -10,16 +10,19 @@ def extract_translations(directory):
         for file in files:
             if file.endswith(('.tsx', '.ts')):
                 path = os.path.join(root, file)
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    matches = t_regex.finditer(content)
-                    for match in matches:
-                        key = match.group('key')
-                        value = match.group('value')
-                        if key not in translations:
-                            translations[key] = value
-                        elif value and not translations[key]:
-                            translations[key] = value
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        matches = t_regex.finditer(content)
+                        for match in matches:
+                            key = match.group('key')
+                            value = match.group('value')
+                            if key not in translations:
+                                translations[key] = value
+                            elif value and not translations.get(key):
+                                translations[key] = value
+                except Exception as e:
+                    print(f"Error reading {path}: {e}")
     return translations
 
 def update_json(file_path, translations, is_czech=False):
@@ -38,12 +41,18 @@ def update_json(file_path, translations, is_czech=False):
                 curr[part] = {}
                 changed = True
             curr = curr[part]
+            if not isinstance(curr, dict):
+                # Fix cases where parent might be a string instead of object
+                # This can happen if some keys were misused before
+                parent = data
+                for p in parts[:parts.index(part)]:
+                    parent = parent[p]
+                parent[part] = {}
+                curr = parent[part]
+                changed = True
         
         last_part = parts[-1]
         if last_part not in curr:
-            # If we have a default value, use it. 
-            # Note: default values in code might be in Czech or English.
-            # We'll need to be careful.
             curr[last_part] = default_value or ""
             changed = True
     
@@ -59,8 +68,13 @@ print("Extracting translations from source code...")
 source_translations = extract_translations(rebuild_dir)
 print(f"Extracted {len(source_translations)} keys.")
 
-for lang in ["en", "cs"]:
+PRODUCTION_LANGS = ["cs", "en", "sk", "pl", "de", "at", "da", "sv", "no", "fi"]
+
+for lang in PRODUCTION_LANGS:
     path = os.path.join(locales_dir, lang, "translation.json")
+    if not os.path.exists(path):
+        print(f"Skipping {path} (not found)")
+        continue
     print(f"Updating {path}...")
     updated = update_json(path, source_translations, is_czech=(lang == "cs"))
     if updated:

@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Briefcase,
   ChevronRight,
+  CreditCard,
   LayoutDashboard,
   PlugZap,
   Settings2,
@@ -352,6 +353,7 @@ export const RecruiterDashboardV2: React.FC<{
       { id: 'talent-pool', label: t('rebuild.recruiter.nav_candidates', { defaultValue: 'Candidates' }), icon: Users, path: '/recruiter/talent-pool' },
       { id: 'integrations', label: t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' }), icon: PlugZap, path: '/recruiter/integrations' },
       { id: 'settings', label: t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Company profile' }), icon: Settings2, path: '/recruiter/settings' },
+      { id: 'billing', label: t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' }), icon: CreditCard, path: '/recruiter/billing' },
     ];
     const vm = React.useMemo(
       () => buildRecruiterDashboardViewModel(roles, candidateInsights, blueprintLibrary, dashboardMetrics, t),
