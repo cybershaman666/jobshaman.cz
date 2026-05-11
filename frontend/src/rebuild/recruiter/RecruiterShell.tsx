@@ -465,14 +465,19 @@ export const RecruiterShell: React.FC<{
           .filter((token) => token.length > 3);
         const overlap = candidateTokens.filter((token) => roleTokens.has(token)).length;
         
-        // Dynamic score calculation
+        // Dynamic score calculation - more descriptive and less "random"
         let score = candidate.matchPercent || 72;
         if (roleTokens.size > 0) {
-          score = Math.max(38, Math.min(97, 52 + overlap * 7 + Math.min(candidate.topSignals.length * 4, 16)));
+          // Weight the overlap more heavily and show it clearly in the internal note
+          const baseMatch = 55;
+          const boost = Math.min(overlap * 8, 35);
+          const signalVariety = Math.min(candidate.topSignals.length * 3, 12);
+          score = Math.max(40, Math.min(98, baseMatch + boost + signalVariety));
         } else {
-          // If no roles, use the base score from insight but add some candidate-specific variety
+          // Stable score based on profile completeness + slight variety
           const candidateSeed = candidate.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-          score = Math.max(42, Math.min(84, (candidate.matchPercent || 72) - 5 + (candidateSeed % 12)));
+          const baseStability = (candidate.matchPercent || 68);
+          score = Math.max(45, Math.min(88, baseStability - 5 + (candidateSeed % 10)));
         }
 
         return {
@@ -480,8 +485,8 @@ export const RecruiterShell: React.FC<{
           matchPercent: Math.round(score),
           verifiedScore: Math.round(score),
           internalNote: overlap > 0
-            ? `${t('rebuild.recruiter.relevant_signals', { defaultValue: 'Relevant signals relative to current challenges' })}: ${overlap}.`
-            : t('rebuild.recruiter.no_strong_link', { defaultValue: 'No strong link to active challenges yet.' }),
+            ? `${t('rebuild.recruiter.relevant_signals', { defaultValue: 'Relevant signal overlap' })}: ${overlap} markers.`
+            : t('rebuild.recruiter.no_strong_link', { defaultValue: 'No keyword overlap with active roles.' }),
         };
       })
       .sort((left, right) => right.matchPercent - left.matchPercent);
@@ -855,7 +860,7 @@ export const RecruiterShell: React.FC<{
               <div className="flex flex-wrap items-end justify-between gap-6">
                 <div className="max-w-3xl">
                   <div className={pillEyebrowClass}>{t('rebuild.talent_pool.label', { defaultValue: 'Talent Intelligence' })}</div>
-                  <h1 className="mt-4 text-[3.8rem] font-semibold leading-[0.92] tracking-[-0.08em] text-[color:var(--shell-text-primary)]">
+                  <h1 className="mt-4 text-[2.8rem] font-semibold leading-[1.1] tracking-[-0.06em] text-[color:var(--shell-text-primary)]">
                     {t('rebuild.talent_pool.heading', { defaultValue: 'Talent exploration and cognitive maps.' })}
                   </h1>
                   <p className="mt-5 text-lg leading-8 text-[color:var(--shell-text-secondary)] opacity-80">

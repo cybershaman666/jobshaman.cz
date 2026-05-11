@@ -47,6 +47,7 @@ _DOCUMENT_MIME_TYPES = {
 
 _IMAGE_MIME_TYPES = {
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/webp",
     "image/gif",
@@ -307,7 +308,8 @@ class MediaDomainService:
             }
         )
 
-        upload_url = f"{request_base_url.rstrip('/')}/api/v2/assets/upload/{upload_token}"
+        # Remove hardcoded /api/v2 prefix - use relative or properly detected base
+        upload_url = f"{request_base_url.rstrip('/')}/assets/upload/{upload_token}"
         upload_headers: Optional[dict[str, str]] = None
         direct_upload = False
         if storage_mode == "s3":
@@ -419,7 +421,8 @@ class MediaDomainService:
                 "purpose": "download",
             }
         )
-        return f"{request_base_url.rstrip('/')}/api/v2/assets/download/{token}"
+        # Remove hardcoded /api/v2 prefix
+        return f"{request_base_url.rstrip('/')}/assets/download/{token}"
 
     @staticmethod
     async def resolve_local_asset_path(download_token: str) -> tuple[MediaAsset, Path]:

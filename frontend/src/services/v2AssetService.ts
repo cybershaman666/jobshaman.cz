@@ -36,6 +36,7 @@ const MAX_SIZE_BY_KIND: Record<V2AssetKind, number> = {
 
 const IMAGE_TYPES = new Set([
   'image/jpeg',
+  'image/jpg',
   'image/png',
   'image/webp',
   'image/gif',
