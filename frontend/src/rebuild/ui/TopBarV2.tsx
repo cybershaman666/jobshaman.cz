@@ -69,10 +69,10 @@ export const TopBarV2: React.FC<{
     <header className={cn(
       'z-30 w-full shrink-0 transition-all duration-300',
       userRole === 'recruiter' 
-        ? 'border-b border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-page-bg)]' 
+        ? 'bg-[color:var(--dashboard-page-bg)]' 
         : candidateLight
-          ? 'bg-[color:var(--dashboard-page-bg)] border-b border-[color:var(--dashboard-page-border)]'
-          : 'bg-[color:var(--dashboard-page-bg)] border-b border-[color:var(--dashboard-page-border)]',
+          ? 'bg-[color:var(--dashboard-page-bg)]'
+          : 'bg-[color:var(--dashboard-page-bg)]',
     )}>
       <div className={cn(
         "flex items-center justify-between px-4 sm:px-6",
@@ -99,7 +99,7 @@ export const TopBarV2: React.FC<{
                <input
                  type="text"
                  placeholder={t('rebuild.search.placeholder', { defaultValue: 'Search candidates, roles...' })}
-                 className="h-9 w-full rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-soft-bg)] pl-10 pr-4 text-sm outline-none focus:border-[color:var(--accent-soft)] focus:ring-4 focus:ring-[color:var(--accent-soft)]"
+                 className="h-9 w-full rounded-full bg-white/82 pl-10 pr-4 text-sm shadow-[0_12px_30px_-28px_rgba(15,23,42,0.26)] outline-none focus:ring-4 focus:ring-[color:var(--accent-soft)]"
                  value={searchValue}
                  onChange={(e) => onSearchChange(e.target.value)}
                />
@@ -132,7 +132,7 @@ export const TopBarV2: React.FC<{
               <div className="relative">
                 <button 
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] text-[color:var(--dashboard-text-muted)] shadow-sm transition hover:bg-[color:var(--dashboard-soft-bg)]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/78 text-[color:var(--dashboard-text-muted)] shadow-[0_12px_30px_-28px_rgba(15,23,42,0.28)] transition hover:bg-white"
                 >
                   <Bell size={18} />
                   {unreadCount > 0 && (
@@ -147,7 +147,7 @@ export const TopBarV2: React.FC<{
                   onClose={() => setIsNotifOpen(false)} 
                 />
               </div>
-              <button onClick={onProfileClick} className="flex items-center gap-3 rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] p-1 shadow-sm transition hover:bg-[color:var(--dashboard-soft-bg)]">
+              <button onClick={onProfileClick} className="flex items-center gap-3 rounded-full bg-white/78 p-1 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.28)] transition hover:bg-white">
                 {userProfile.photo ? (
                   <img src={userProfile.photo} className="h-8 w-8 rounded-full object-cover" alt="" />
                 ) : (
@@ -163,7 +163,7 @@ export const TopBarV2: React.FC<{
                   onClick={onSignOut}
                   title={t('rebuild.nav.sign_out', { defaultValue: 'Sign out' })}
                   aria-label={t('rebuild.nav.sign_out', { defaultValue: 'Sign out' })}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:var(--dashboard-card-bg)] text-[color:var(--dashboard-text-muted)] shadow-sm transition hover:bg-[color:var(--dashboard-soft-bg)] hover:text-[color:var(--dashboard-text-strong)]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/78 text-[color:var(--dashboard-text-muted)] shadow-[0_12px_30px_-28px_rgba(15,23,42,0.28)] transition hover:bg-white hover:text-[color:var(--dashboard-text-strong)]"
                 >
                   <LogOut size={17} />
                 </button>
@@ -180,7 +180,7 @@ export const TopBarV2: React.FC<{
                   className={cn(
                     'flex h-9 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition shadow-sm',
                     candidateLight
-                      ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-button-secondary-bg)] text-[color:var(--shell-text-muted)] hover:bg-[color:var(--shell-button-secondary-hover)]'
+                      ? 'bg-white/78 text-[color:var(--shell-text-muted)] hover:bg-white'
                       : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10',
                   )}
                 >
@@ -223,7 +223,7 @@ export const TopBarV2: React.FC<{
                   className={cn(
                     'hidden items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition shadow-sm sm:flex',
                     candidateLight
-                      ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-button-secondary-bg)] text-[color:var(--shell-text-primary)] hover:bg-[color:var(--shell-button-secondary-hover)]'
+                      ? 'bg-white/78 text-[color:var(--shell-text-primary)] hover:bg-white'
                       : 'border border-white/10 bg-white/5 text-white/82 hover:bg-white/10 hover:text-white',
                   )}
                 >
@@ -237,7 +237,7 @@ export const TopBarV2: React.FC<{
                   className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-full transition shadow-sm',
                     candidateLight
-                      ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-button-secondary-bg)] text-[color:var(--shell-text-muted)] hover:bg-[color:var(--shell-button-secondary-hover)]'
+                      ? 'bg-white/78 text-[color:var(--shell-text-muted)] hover:bg-white'
                       : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10',
                   )}
                 >

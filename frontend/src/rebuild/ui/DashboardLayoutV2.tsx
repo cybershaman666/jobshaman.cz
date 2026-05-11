@@ -60,7 +60,7 @@ export const DashboardLayoutV2: React.FC<{
   return (
     <div className={cn(
       'flex min-h-screen w-full overflow-hidden font-sans transition-colors duration-300',
-      'bg-[color:var(--bg)]'
+      'bg-[color:var(--dashboard-page-bg)]'
     )}>
       <SidebarV2
         userRole={userRole}
@@ -101,7 +101,7 @@ export const DashboardLayoutV2: React.FC<{
           onMenuToggle={toggleMobileMenu}
         />
         <main className={cn(
-          'relative flex-1 overflow-y-auto px-2 pb-3 sm:px-3 lg:px-4',
+          'relative flex-1 overflow-y-auto bg-[color:var(--dashboard-page-bg)] px-2 pb-3 sm:px-3 lg:px-4',
           userRole === 'candidate' && 'pt-1',
         )}>
           {/* Background is now clean and unified */}

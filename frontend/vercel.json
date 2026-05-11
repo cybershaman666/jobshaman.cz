@@ -29,20 +29,6 @@
         },
         {
             "source": "/(.*)",
-            "has": [
-                { "type": "host", "value": "jobshaman.com" }
-            ],
-            "destination": "/index.html"
-        },
-        {
-            "source": "/(.*)",
-            "has": [
-                { "type": "host", "value": "www.jobshaman.com" }
-            ],
-            "destination": "/index.html"
-        },
-        {
-            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]

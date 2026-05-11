@@ -28,21 +28,20 @@ export const SidebarV2: React.FC<{
   const { resolvedMode } = useRebuildTheme();
   const candidateLight = resolvedMode === 'light';
   const candidateSidebarSurface = candidateLight
-    ? 'bg-[color:var(--dashboard-sidebar-bg)] border-r border-[color:var(--dashboard-page-border)]'
-    : 'bg-[color:var(--dashboard-sidebar-bg)] border-r border-[color:var(--dashboard-page-border)]';
+    ? 'bg-[color:var(--dashboard-sidebar-bg)]'
+    : 'bg-[color:var(--dashboard-sidebar-bg)]';
 
   return (
     <aside className={cn(
       'fixed inset-y-0 left-0 z-40 h-screen w-[248px] overflow-hidden transition-transform duration-300 ease-in-out lg:flex lg:translate-x-0',
       userRole === 'recruiter'
-        ? 'border-r border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-page-bg)]'
+        ? 'bg-[color:var(--dashboard-page-bg)]'
         : candidateSidebarSurface,
       isOpen ? 'translate-x-0 flex' : '-translate-x-full hidden lg:flex',
     )}>
       <div className="flex h-full min-h-0 flex-col">
         <div className={cn(
           'flex items-center justify-between px-4 pb-5 pt-6',
-          userRole === 'recruiter' ? 'border-b border-[color:var(--dashboard-page-border)]' : '',
         )}>
           <button type="button" onClick={() => onNavigate(navItems[0]?.id, navItems[0]?.path)} className="ml-2 text-left outline-none">
             <BrandMark subtitle={userRole === 'recruiter' ? undefined : undefined} compact={false} />
@@ -74,8 +73,8 @@ export const SidebarV2: React.FC<{
                     className={cn(
                       'flex w-full items-center justify-between rounded-[16px] px-4 py-3 text-sm font-medium transition-all duration-200 outline-none',
                       isActive
-                        ? 'border border-[color:var(--accent-soft)] bg-[color:var(--accent-soft)] text-[color:var(--accent)] shadow-sm'
-                        : 'border border-transparent text-[color:var(--dashboard-text-muted)] hover:bg-[color:var(--dashboard-soft-bg)] hover:text-[color:var(--dashboard-text-strong)]',
+                        ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent)]'
+                        : 'text-[color:var(--dashboard-text-muted)] hover:bg-white/70 hover:text-[color:var(--dashboard-text-strong)]',
                     )}
                   >
                     <span className="flex items-center gap-3">
@@ -142,17 +141,17 @@ export const SidebarV2: React.FC<{
           </div>
         </div>
 
-        <div className="border-t border-[color:color-mix(in_srgb,var(--dashboard-sidebar-border)_80%,transparent)] p-4">
+        <div className="p-4">
           {userRole === 'recruiter' && (
             <>
-              <button type="button" onClick={() => onNavigate('cybershaman')} className="flex w-full items-center gap-3 rounded-[18px] border border-[color:var(--dashboard-page-border)] bg-[color:var(--dashboard-card-bg)] px-4 py-4 text-sm font-medium text-[color:var(--dashboard-text-body)] shadow-sm transition hover:bg-[color:var(--dashboard-soft-bg)]">
+              <button type="button" onClick={() => onNavigate('cybershaman')} className="flex w-full items-center gap-3 rounded-[18px] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--dashboard-text-body)] shadow-[0_14px_38px_-34px_rgba(15,23,42,0.24)] transition hover:bg-white">
                 <Sparkles size={18} className="text-[color:var(--accent)]" />
                 <div className="flex flex-col items-start">
                   <span>Cybershaman AI</span>
                   <span className="text-[10px] font-normal text-[color:var(--dashboard-text-muted)]">{t('rebuild.nav.ai_guide_subtitle', { defaultValue: 'Your AI recruitment guide' })}</span>
                 </div>
               </button>
-              <div className="mt-4 space-y-1 border-t border-[color:var(--dashboard-page-border)] pt-4">
+              <div className="mt-4 space-y-1 pt-4">
                 <button type="button" className="flex w-full items-center gap-3 rounded-[14px] px-4 py-2.5 text-sm font-medium text-[color:var(--dashboard-text-body)] transition hover:bg-[color:var(--dashboard-soft-bg)]">
                   <HelpCircle size={18} className="text-[color:var(--dashboard-text-muted)]" />
                   {t('rebuild.nav.help', { defaultValue: 'Help' })}
