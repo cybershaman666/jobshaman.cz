@@ -1,8 +1,9 @@
 import type { StoredAsset, UploadSession } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 
-// Production calls go through Vercel's /api/v2 proxy to eliminate CORS issues.
-const DEFAULT_PRODUCTION_API_URL = '/api/v2';
+// Production calls go directly to the V2 backend; the Vercel /api/v2 rewrite
+// can fall through to the SPA fallback for some API paths.
+const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
 
 const normalizeApiBaseUrl = (): string => {
   // In dev mode, respect env vars and use Vite proxy
@@ -12,7 +13,7 @@ const normalizeApiBaseUrl = (): string => {
     return 'http://localhost:8000/api/v2';
   }
 
-  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS
+  // Production: use the backend directly; it sends CORS for jobshaman domains.
   return DEFAULT_PRODUCTION_API_URL;
 };
 

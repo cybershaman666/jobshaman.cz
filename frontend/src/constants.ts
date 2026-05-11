@@ -2,9 +2,9 @@
 import { UserProfile } from './types';
 import { createDefaultCandidateSearchProfile } from './services/profileDefaults';
 
-// Backend API Configuration — production calls go through Vercel's /api/v2 proxy
-// to eliminate CORS issues (Northflank 503 cold-starts strip CORS headers).
-const DEFAULT_PRODUCTION_BACKEND_URL = '/api/v2';
+// Backend API Configuration. Production calls go directly to the V2 backend
+// because the Vercel /api/v2 rewrite can fall through to the SPA fallback.
+const DEFAULT_PRODUCTION_BACKEND_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
 
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
@@ -18,8 +18,8 @@ const normalizeBackendHost = (raw?: string): string => {
     return value.replace(/\/$/, '');
   }
 
-  // Production: ALWAYS use /api/v2 Vercel proxy to avoid CORS.
-  // Ignore VITE_API_URL env vars that point to external backends.
+  // Production: use the backend directly; it sends CORS for jobshaman domains.
+  // Ignore VITE_API_URL env vars that point to stale external backends.
   return DEFAULT_PRODUCTION_BACKEND_URL;
 };
 
