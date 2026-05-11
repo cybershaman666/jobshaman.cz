@@ -11,7 +11,7 @@ export interface JHI {
   explanations?: string[];
 }
 
-export type SupportedCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT';
+export type SupportedCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' | 'FI' | 'SE' | 'NO' | 'DK';
 export type EmploymentType = 'employee' | 'contractor';
 export type MaritalStatus = 'single' | 'married';
 export type GermanTaxClass = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';

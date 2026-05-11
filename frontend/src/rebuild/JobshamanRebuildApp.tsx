@@ -47,6 +47,7 @@ import type {
   DialogueDetail,
   DialogueMessage,
   DialogueSummary,
+  SupportedCountryCode,
   UserProfile,
 } from '../types';
 import type {
@@ -243,19 +244,19 @@ const JobshamanRebuildApp: React.FC = () => {
             if (supportedCountries.includes(detectedCountry)) {
               setPreferences(prev => ({
                 ...prev,
-                taxProfile: { ...prev.taxProfile, countryCode: detectedCountry }
+                taxProfile: { ...prev.taxProfile, countryCode: detectedCountry as SupportedCountryCode }
               }));
               // Auto-set language based on IP if not already manually changed/persisted
               const countryToLang: Record<string, string> = {
                 CZ: 'cs',
-                SK: 'en',
-                PL: 'en',
-                DE: 'en',
-                AT: 'en',
-                FI: 'en',
-                SE: 'en',
-                NO: 'en',
-                DK: 'en'
+                SK: 'sk',
+                PL: 'pl',
+                DE: 'de',
+                AT: 'at',
+                FI: 'fi',
+                SE: 'sv',
+                NO: 'no',
+                DK: 'da'
               };
               const targetLang = countryToLang[detectedCountry];
               if (targetLang && i18n.language !== targetLang) {
@@ -272,6 +273,30 @@ const JobshamanRebuildApp: React.FC = () => {
       detectRegion();
     }
   }, [preferences.address, userProfile.isLoggedIn, setPreferences, i18n]);
+
+  // Synchronize country with language when language is manually changed
+  React.useEffect(() => {
+    const langToCountry: Record<string, string> = {
+      cs: 'CZ',
+      sk: 'SK',
+      pl: 'PL',
+      de: 'DE',
+      at: 'AT',
+      da: 'DK',
+      sv: 'SE',
+      no: 'NO',
+      fi: 'FI',
+    };
+    const baseLang = i18n.language.split('-')[0].toLowerCase();
+    const targetCountry = langToCountry[baseLang] as SupportedCountryCode | undefined;
+    // Only auto-update if not logged in or if preferences don't have an address yet
+    if (targetCountry && !preferences.address && preferences.taxProfile.countryCode !== targetCountry) {
+      setPreferences(prev => ({
+        ...prev,
+        taxProfile: { ...prev.taxProfile, countryCode: targetCountry }
+      }));
+    }
+  }, [i18n.language, preferences.address, preferences.taxProfile.countryCode, setPreferences]);
 
   const deferredMarketplaceQuery = React.useDeferredValue(marketplaceQuery);
   const marketplaceRequestCoordinates = React.useMemo(() => {

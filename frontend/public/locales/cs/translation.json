@@ -222,7 +222,7 @@
     "home_office": "Práce z domova",
     "saved_commute_time_money": "Ušetřený čas a peníze za dojíždění.",
     "eco_friendly_choice": "Ekologicky šetrnější volba.",
-    "calculation_hint": "Calculation hint"
+    "calculation_hint": "Odhad čistého příjmu a nákladů na dojíždění."
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
@@ -5226,13 +5226,13 @@
     "recruiter_sign_in": "Přihlášení pro firmy",
     "recruiter_search": "Hledat nabídky, lidi, schůzky...",
     "badge": {
-      "curated_roles": "Curated roles",
-      "blueprints": "Blueprints",
-      "candidates": "Candidates",
-      "interviews_booked": "Interviews booked"
+      "curated_roles": "Kurátorské role",
+      "blueprints": "Scénáře",
+      "candidates": "Kandidáti",
+      "interviews_booked": "Domluvené pohovory"
     },
     "talent_pool": {
-      "label": "Talent Intelligence",
+      "label": "Analýza talentů",
       "heading": "Průzkum talentů a kognitivní mapy.",
       "copy": "Jednotné rozhodovací rozhraní pro správu kandidátů, readoutů a společných komunikačních vláken.",
       "export": "Export poolu",
@@ -5240,7 +5240,7 @@
       "no_bio": "Kandidát zatím nevyplnil svůj osobní příběh."
     },
     "candidate_profile": {
-      "label": "Talent Profile"
+      "label": "Profil talentu"
     },
     "assessment_feedback": {
       "label": "Zpětná vazba z testu"
@@ -5254,27 +5254,27 @@
       "send_message": "Odeslat zprávu"
     },
     "recruiter": {
-      "dashboard": "Dashboard",
+      "dashboard": "Nástěnka",
       "assessment_center": "Testy",
       "talent_pool": "Databáze lidí",
       "calendar": "Kalendář",
       "settings": "Nastavení firmy",
-      "candidate_view": "Candidate view",
+      "candidate_view": "Pohled kandidáta",
       "command_center": "Firemní přehled",
       "command_desc": "Přehled rolí, kandidátů a dalších kroků.",
-      "refine": "Refine analysis",
-      "exp_level": "Experience level",
-      "competencies": "Core competencies",
-      "apply_filters": "Apply filters",
+      "refine": "Upřesnit analýzu",
+      "exp_level": "Úroveň zkušeností",
+      "competencies": "Klíčové kompetence",
+      "apply_filters": "Použít filtry",
       "candidate_view_title": "Přehled lidí, kteří se hlásí nebo by se hodili.",
-      "activation_label": "Recruiter activation",
-      "activation_title": "Turn your account into a company workspace.",
-      "activation_copy": "{{account}} is signed in. Add the company shell you want to manage and we will switch the account into Recruiter OS.",
+      "activation_label": "Aktivace náboráře",
+      "activation_title": "Přeměňte svůj účet na firemní pracovní prostor.",
+      "activation_copy": "{{account}} je přihlášen. Přidejte firemní profil, který chcete spravovat, a my přepneme účet do Recruiter OS.",
       "your_account": "Your account",
       "company_name": "Company name",
       "industry": "Industry",
       "website": "Website",
-      "activate": "Activate Recruiter OS",
+      "activate": "Aktivovat Recruiter OS",
       "activation_error": "Failed to activate recruiter workspace.",
       "access_label": "Vstup pro firmy",
       "access_title": "Přihlaste se do firemního účtu.",
@@ -5289,14 +5289,14 @@
       "role_title": "Název role",
       "role_family": "Rodina rolí",
       "assign_blueprint": "Přiřadit blueprint",
-      "axis_technical_depth": "Technical Depth",
-      "axis_soft_skills": "Soft Skills",
-      "axis_logic": "Logic",
-      "axis_leadership": "Leadership",
-      "axis_creativity": "Creativity",
-      "axis_agility": "Agility",
-      "competency_matrix": "Aggregated competency matrix",
-      "competency_matrix_copy": "Performance across the current selection pool.",
+      "axis_technical_depth": "Technická hloubka",
+      "axis_soft_skills": "Měkké dovednosti",
+      "axis_logic": "Logika",
+      "axis_leadership": "Vedení lidí",
+      "axis_creativity": "Kreativita",
+      "axis_agility": "Agilita",
+      "competency_matrix": "Agregovaná matice kompetencí",
+      "competency_matrix_copy": "Výkon v rámci aktuálního výběru talentů.",
       "overall": "Overall",
       "elite_tier": "Elite talent tier",
       "technical_match": "technical match",
@@ -6075,7 +6075,21 @@
         "agreeableness": "Přívětivost",
         "neuroticism": "Emoční reaktivita"
       },
-      "confidence": "Jistota odhadu"
+      "confidence": "Jistota odhadu",
+      "welcome_copy": "12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result will be saved to your profile and will help us with more accurate recommendations of positions and courses.",
+      "start_button": "Start JCFPM test",
+      "finish_button": "Finish and view results",
+      "abort_button": "Abort and start again",
+      "cognitive_profile": "Cognitive and skill prerequisites",
+      "report_subtitle": "This report compares your internal settings with cognitive prerequisites.",
+      "confidence_label": "Estimation confidence",
+      "traits": {
+        "openness": "Openness",
+        "conscientiousness": "Conscientiousness",
+        "extraversion": "Extraversion",
+        "agreeableness": "Agreeableness",
+        "neuroticism": "Emotional reactivity"
+      }
     },
     "companies": {
       "hero": {

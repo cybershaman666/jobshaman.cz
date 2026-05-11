@@ -21,6 +21,6 @@ def find_czech_keys(d, prefix=""):
             results.append((prefix[:-1], d))
     return results
 
-czech_in_en = find_czech_keys(data.get("rebuild", {}), "rebuild.")
+czech_in_en = find_czech_keys(data)
 for key, val in czech_in_en:
     print(f"{key}: {val}")
