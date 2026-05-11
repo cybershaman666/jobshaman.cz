@@ -455,24 +455,30 @@ export const candidatePreferencesToUserProfileUpdates = (
   };
 };
 
-export const mapCandidateToInsight = (candidate: Candidate, t: any): CandidateInsight => ({
-  id: candidate.id,
-  candidateName: candidate.full_name || candidate.name,
-  headline: candidate.job_title || candidate.title || candidate.role || t('rebuild.adapters.candidate', { defaultValue: 'Candidate' }),
-  location: t('rebuild.adapters.candidate_profile', { defaultValue: 'Candidate profile' }),
-  matchPercent: Math.round(candidate.matchScore || 78),
-  verifiedScore: Math.round((candidate.matchScore || 78)),
-  topSignals: candidate.skills.slice(0, 3),
-  recommendation: t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.' }),
-  internalNote: candidate.skills.length > 0
-    ? t('rebuild.adapters.public_signals', { defaultValue: 'Public profile signals: {{skills}}.', skills: candidate.skills.slice(0, 3).join(', ') })
-    : t('rebuild.adapters.no_public_signals', { defaultValue: 'No public profile signals yet.' }),
-  skills: (candidate.skills.length > 0 ? candidate.skills : [t('rebuild.adapters.signal_clarity', { defaultValue: 'Signal clarity' }), t('rebuild.adapters.experience', { defaultValue: 'Experience' }), t('rebuild.adapters.role_fit', { defaultValue: 'Role fit' })]).slice(0, 3).map((label, index) => ({
-    label,
-    score: Math.max(62, Math.min(96, Math.round((candidate.matchScore || 78) - index * 7))),
-    tags: [],
-  })),
-});
+export const mapCandidateToInsight = (candidate: Candidate, t: any): CandidateInsight => {
+  const seed = candidate.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const baseScore = Math.max(45, Math.min(82, 60 + (seed % 15) + (candidate.skills.length * 2)));
+  const score = Math.round(candidate.matchScore || baseScore);
+
+  return {
+    id: candidate.id,
+    candidateName: candidate.full_name || candidate.name,
+    headline: candidate.job_title || candidate.title || candidate.role || t('rebuild.adapters.candidate', { defaultValue: 'Candidate' }),
+    location: t('rebuild.adapters.candidate_profile', { defaultValue: 'Candidate profile' }),
+    matchPercent: score,
+    verifiedScore: score,
+    topSignals: candidate.skills.slice(0, 3),
+    recommendation: t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.' }),
+    internalNote: candidate.skills.length > 0
+      ? t('rebuild.adapters.public_signals', { defaultValue: 'Public profile signals: {{skills}}.', skills: candidate.skills.slice(0, 3).join(', ') })
+      : t('rebuild.adapters.no_public_signals', { defaultValue: 'No public profile signals yet.' }),
+    skills: (candidate.skills.length > 0 ? candidate.skills : [t('rebuild.adapters.signal_clarity', { defaultValue: 'Signal clarity' }), t('rebuild.adapters.experience', { defaultValue: 'Experience' }), t('rebuild.adapters.role_fit', { defaultValue: 'Role fit' })]).slice(0, 3).map((label, index) => ({
+      label,
+      score: Math.max(62, Math.min(96, Math.round(score - index * 7))),
+      tags: [],
+    })),
+  };
+};
 
 export const mapApplicationToInsight = (
   application: CompanyApplicationRow,
