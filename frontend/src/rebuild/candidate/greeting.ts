@@ -15,6 +15,16 @@ const isMisaName = (value: string): boolean => {
   return normalized === 'misa' || normalized === 'misha';
 };
 
+const toVocativeCzech = (name: string): string => {
+  // Czech vocative: for names ending in consonant, typically add -e
+  // Martin → Martine, Pavel → Pavele, Petr → Petre, etc.
+  if (!name) return name;
+  // If already ends in vowel, no change needed
+  if (/[aáeěiíoóuúůy]$/i.test(name)) return name;
+  // Add -e for consonants
+  return name + 'e';
+};
+
 export const getCandidateGreetingName = ({
   preferredAlias,
   preferenceName,
@@ -29,5 +39,11 @@ export const getCandidateGreetingName = ({
   const rawName = [preferredAlias, preferenceName, profileName].find((value) => String(value || '').trim());
   const firstName = firstNameOf(rawName);
   if (firstName && isCzechLanguage(language) && isMisaName(firstName)) return 'Míšo';
+  
+  // Convert to Czech vocative for Czech language
+  if (firstName && isCzechLanguage(language)) {
+    return toVocativeCzech(firstName);
+  }
+  
   return firstName;
 };
