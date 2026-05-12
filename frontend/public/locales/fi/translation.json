@@ -5978,7 +5978,20 @@
       "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
       "update_profile": "Upravit profil",
       "commute_disabled": "Dojezd neomezuje výsledky",
-      "commute_toggle": "Filtrovat dojezd"
+      "commute_toggle": "Filtrovat dojezd",
+      "hero_skill_signal": "Vahvistetut taidot",
+      "hero_match_signal": "Vahva osuma",
+      "hero_match_desc": "Rooli, tiimi ja konteksti sopivat.",
+      "hero_team_signal": "Tiimityö",
+      "hero_team_desc": "Viestintä, johtajuus",
+      "hero_react_title": "React",
+      "hero_react_desc": "Verkkosovellusten kehitys",
+      "hero_analytical_title": "Analyyttinen ajattelu",
+      "hero_analytical_desc": "Ongelmanratkaisu, datalähtöisyys",
+      "hero_reliability_title": "Luotettavuus",
+      "hero_reliability_desc": "Vastuunotto, itsenäisyys",
+      "hero_level_advanced": "Edistynyt",
+      "hero_level_expert": "Asiantuntija"
     },
     "status": {
       "in_review": "Arvioinnissa",

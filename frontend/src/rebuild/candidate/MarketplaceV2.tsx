@@ -22,6 +22,8 @@ import {
   BrainCircuit,
   ChevronDown,
   Clock3,
+  CheckCircle2,
+  Users,
 } from 'lucide-react';
 import { DashboardLayoutV2 } from '../ui/DashboardLayoutV2';
 import { Role, CandidatePreferenceProfile, MarketplaceFilters, MarketplaceSection } from '../models';
@@ -32,6 +34,7 @@ import {
 } from './MarketplaceSearchFilters';
 import { getStaticCoordinates } from '../../services/geocodingService';
 import { cn } from '../cn';
+import { getCandidateGreetingName } from './greeting';
 
 // Helper to calculate distance in km
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -63,6 +66,7 @@ const RECOMMENDATION_PAGE_SIZE = 24;
 type MarketplaceFocus = 'all' | 'immediate' | 'curated';
 type RoleCandidate = { role: Role; distanceKm: number };
 export type RoleClusterId = 'management' | 'operations' | 'business' | 'digital' | 'services' | 'other';
+type MarketplaceTFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
 
 const normalizeProfileText = (value: string): string =>
   String(value || '')
@@ -179,7 +183,7 @@ const JobFeedCard: React.FC<{
   saved?: boolean;
   onOpen: () => void;
   onToggleSaved?: () => void;
-  t: (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
+  t: MarketplaceTFunction;
 }> = ({ candidate, variant = 'compact', saved = false, onOpen, onToggleSaved, t }) => {
   const role = candidate.role;
   const isFeatured = variant === 'featured';
@@ -259,6 +263,75 @@ const JobFeedCard: React.FC<{
   );
 };
 
+const HeroMeter: React.FC<{ tone: 'cyan' | 'violet' | 'amber' | 'green'; width?: string }> = ({ tone, width = '78%' }) => {
+  const toneClass = {
+    cyan: 'from-[#12afcb] to-[#61d4e5]',
+    violet: 'from-[#8258e8] to-[#c7b5ff]',
+    amber: 'from-[#f4a11c] to-[#ffd895]',
+    green: 'from-[#62bd2f] to-[#bde59e]',
+  }[tone];
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className={cn('h-full rounded-full bg-gradient-to-r', toneClass)} style={{ width }} />
+      </div>
+      <div className="h-1.5 w-6 rounded-full bg-slate-100 dark:bg-slate-800" />
+    </div>
+  );
+};
+
+const HeroSignalBubble: React.FC<{
+  className?: string;
+  title: string;
+  subtitle?: string;
+  meta?: string;
+  Icon: React.ElementType;
+  tone: 'cyan' | 'violet' | 'amber' | 'green';
+  compact?: boolean;
+  delay?: string;
+}> = ({ className, title, subtitle, meta, Icon, tone, compact = false, delay }) => {
+  const toneClass = {
+    cyan: 'bg-[#e6fbff] text-[#0f95ac]',
+    violet: 'bg-[#f0eaff] text-[#8258e8]',
+    amber: 'bg-[#fff2d9] text-[#d88916]',
+    green: 'bg-[#eaf7df] text-[#62bd2f]',
+  }[tone];
+
+  return (
+    <div
+      className={cn('marketplace-hero-bubble absolute rounded-2xl bg-white/76 text-slate-950 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.32)] ring-1 ring-white/70 backdrop-blur-xl dark:bg-slate-950/72 dark:text-slate-100 dark:ring-white/10', compact ? 'px-3.5 py-2.5' : 'px-4 py-3', className)}
+      style={{ animationDelay: delay }}
+    >
+      <div className="flex items-center gap-3">
+        <span className={cn('flex shrink-0 items-center justify-center rounded-full', compact ? 'h-8 w-8' : 'h-10 w-10', toneClass)}>
+          <Icon size={compact ? 15 : 18} />
+        </span>
+        <div className="min-w-0">
+          <div className={cn('truncate font-black', compact ? 'text-[11px]' : 'text-[12px]')}>{title}</div>
+          {subtitle ? <div className={cn('mt-1 truncate font-semibold text-slate-500 dark:text-slate-400', compact ? 'text-[10px]' : 'text-[11px]')}>{subtitle}</div> : null}
+        </div>
+      </div>
+      {!compact ? (
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <HeroMeter tone={tone} />
+          {meta ? <span className="shrink-0 text-[10px] font-bold text-slate-500 dark:text-slate-400">{meta}</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const HeroSignalOrb: React.FC<{ className?: string; title: string; Icon: React.ElementType }> = ({ className, title, Icon }) => (
+  <div className={cn('marketplace-hero-bubble absolute flex h-24 w-24 items-center justify-center rounded-full bg-white/80 text-center text-[12px] font-black leading-tight text-slate-950 shadow-[0_20px_52px_-34px_rgba(15,23,42,0.32)] ring-1 ring-white/70 backdrop-blur-xl dark:bg-slate-950/72 dark:text-slate-100 dark:ring-white/10', className)}>
+    <div>
+      <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#e6fbff] text-[#0f95ac]">
+        <Icon size={20} />
+      </span>
+      {title}
+    </div>
+  </div>
+);
 
 const MarketplaceSchema: React.FC<{ roles: Role[]; t: any }> = ({ roles, t }) => {
   const itemListSchema = {
@@ -633,6 +706,12 @@ export const MarketplaceV2: React.FC<{
     { id: 'onsite', label: t('rebuild.marketplace.work_arrangement_onsite', { defaultValue: 'Na místě' }) },
   ] as const;
   const activeWorkTab = filters.remoteOnly ? 'remote' : filters.workArrangement;
+  const greetingName = getCandidateGreetingName({
+    preferredAlias: preferences.preferredAlias,
+    preferenceName: preferences.name,
+    profileName: userProfile.name,
+    language: currentLanguage,
+  }) || t('rebuild.marketplace.you', { defaultValue: 'ty' });
   const applyWorkTab = (tabId: (typeof workTabs)[number]['id']) => {
     onFiltersChange((current) => ({
       ...current,
@@ -675,8 +754,67 @@ export const MarketplaceV2: React.FC<{
       >
         <MarketplaceSchema roles={visibleRoles} t={t} />
         <div className="space-y-9 pb-12">
-          <section className="relative overflow-hidden rounded-[28px] bg-white/72 shadow-[0_28px_90px_-72px_rgba(15,23,42,0.34)] dark:bg-slate-900/70">
-            <div className="grid min-h-[19rem] md:grid-cols-[minmax(0,1fr)_21rem]">
+          <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.11),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.86),rgba(248,252,253,0.82)_52%,rgba(255,248,237,0.62))] shadow-[0_28px_90px_-72px_rgba(15,23,42,0.34)] dark:bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.86),rgba(15,23,42,0.76)_52%,rgba(30,41,59,0.68))]">
+            <div className="marketplace-hero-halo absolute right-[-2%] top-4 hidden h-72 w-72 rounded-full bg-[#12afcb]/10 blur-3xl lg:block" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-[74%] overflow-hidden md:block lg:w-[78%] xl:w-[80%]">
+              <img src="/handshake.png" alt="" className="marketplace-hero-handshake absolute inset-y-[-34%] right-0 h-[168%] w-[132%] object-cover object-[88%_50%] opacity-[0.94]" />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_22%,rgba(255,255,255,0)_58%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.76)_0%,rgba(15,23,42,0.24)_28%,rgba(15,23,42,0.03)_76%)]" />
+              <svg className="marketplace-hero-guardrails pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 704 432" preserveAspectRatio="none" aria-hidden="true">
+                <path className="marketplace-hero-guardrail" d="M150 84C264 132 336 72 446 116C520 146 540 210 618 196" fill="none" stroke="#12afcb" strokeWidth="2" strokeDasharray="7 9" opacity="0.58" />
+                <path className="marketplace-hero-guardrail marketplace-hero-guardrail-delayed" d="M172 342C272 270 354 346 456 314C548 286 548 246 636 268" fill="none" stroke="#a58cff" strokeWidth="2" strokeDasharray="7 9" opacity="0.5" />
+                <path className="marketplace-hero-guardrail marketplace-hero-guardrail-slow" d="M318 312C354 254 412 252 460 286" fill="none" stroke="#f4a11c" strokeWidth="2" strokeDasharray="7 9" opacity="0.54" />
+              </svg>
+              <HeroSignalBubble
+                className="left-[14%] top-5 hidden w-56 md:block xl:left-[18%] xl:top-7"
+                title={t('rebuild.marketplace.hero_react_title', { defaultValue: 'React' })}
+                subtitle={t('rebuild.marketplace.hero_react_desc', { defaultValue: 'Vývoj webových aplikací' })}
+                meta={t('rebuild.marketplace.hero_level_advanced', { defaultValue: 'Pokročilý' })}
+                Icon={Code2}
+                tone="cyan"
+                delay="0.1s"
+              />
+              <HeroSignalBubble
+                className="right-6 top-6 hidden w-56 lg:block xl:right-8 xl:top-8"
+                title={t('rebuild.marketplace.hero_team_signal', { defaultValue: 'Týmová spolupráce' })}
+                subtitle={t('rebuild.marketplace.hero_team_desc', { defaultValue: 'Komunikace, leadership' })}
+                meta={t('rebuild.marketplace.hero_level_expert', { defaultValue: 'Expert' })}
+                Icon={Users}
+                tone="violet"
+                delay="0.6s"
+              />
+              <HeroSignalBubble
+                className="left-[42%] top-[34%] w-48"
+                title={t('rebuild.marketplace.hero_skill_signal', { defaultValue: 'Ověřené dovednosti' })}
+                Icon={CheckCircle2}
+                tone="cyan"
+                compact
+                delay="0.35s"
+              />
+              <HeroSignalBubble
+                className="bottom-7 left-[17%] hidden w-60 lg:block xl:left-[19%]"
+                title={t('rebuild.marketplace.hero_analytical_title', { defaultValue: 'Analytické myšlení' })}
+                subtitle={t('rebuild.marketplace.hero_analytical_desc', { defaultValue: 'Řešení problémů, data-driven' })}
+                meta={t('rebuild.marketplace.hero_level_advanced', { defaultValue: 'Pokročilý' })}
+                Icon={BrainCircuit}
+                tone="amber"
+                delay="0.8s"
+              />
+              <HeroSignalOrb
+                className="bottom-5 left-[52%] hidden lg:flex [animation-delay:1s]"
+                title={t('rebuild.marketplace.hero_match_signal', { defaultValue: 'Skvělé matchnutí' })}
+                Icon={CheckCircle2}
+              />
+              <HeroSignalBubble
+                className="bottom-7 right-8 w-56 xl:right-10"
+                title={t('rebuild.marketplace.hero_reliability_title', { defaultValue: 'Spolehlivost' })}
+                subtitle={t('rebuild.marketplace.hero_reliability_desc', { defaultValue: 'Zodpovědnost, samostatnost' })}
+                meta={t('rebuild.marketplace.hero_level_expert', { defaultValue: 'Expert' })}
+                Icon={CheckCircle2}
+                tone="green"
+                delay="1.2s"
+              />
+            </div>
+            <div className="relative z-10 grid min-h-[19rem] md:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:min-h-[27rem] lg:grid-cols-[minmax(0,33rem)_minmax(0,1fr)]">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="flex items-center gap-3 text-[13px] font-bold text-[#0f95ac]">
                   <span className="h-2 w-2 rounded-full bg-[#12afcb]" />
@@ -685,7 +823,7 @@ export const MarketplaceV2: React.FC<{
                   <span className="text-slate-500">{t('rebuild.nav.marketplace', { defaultValue: 'Marketplace' })}</span>
                 </div>
                 <h1 className="mt-8 text-[clamp(2rem,4vw,3.15rem)] font-black leading-tight tracking-normal text-slate-950 dark:text-slate-100">
-                  {t('rebuild.marketplace.feed_greeting', { defaultValue: 'Ahoj {{name}}, 👋', name: userProfile.name?.split(' ')[0] || preferences.name || t('rebuild.marketplace.you', { defaultValue: 'ty' }) })}
+                  {t('rebuild.marketplace.feed_greeting', { defaultValue: 'Ahoj {{name}}', name: greetingName })}
                 </h1>
                 <p className="mt-2 text-lg font-medium text-slate-600 dark:text-slate-400">
                   {t('rebuild.marketplace.feed_subtitle', { defaultValue: 'Najdi další dobrou příležitost bez náhodných filtrů.' })}
@@ -709,10 +847,7 @@ export const MarketplaceV2: React.FC<{
                   </button>
                 </div>
               </div>
-              <div className="relative hidden overflow-hidden md:block">
-                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop" alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.52)_38%,rgba(255,255,255,0.04)_100%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.94)_0%,rgba(15,23,42,0.56)_38%,rgba(15,23,42,0.08)_100%)]" />
-              </div>
+              <div className="hidden md:block" aria-hidden="true" />
             </div>
             <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
               {categoryCards.map(({ id, title, count, Icon }) => (

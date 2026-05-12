@@ -5970,7 +5970,20 @@
       "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
       "update_profile": "Upravit profil",
       "commute_disabled": "Dojezd neomezuje výsledky",
-      "commute_toggle": "Filtrovat dojezd"
+      "commute_toggle": "Filtrovat dojezd",
+      "hero_skill_signal": "Overené zručnosti",
+      "hero_match_signal": "Silné prepojenie",
+      "hero_match_desc": "Rola, tím a kontext sedia.",
+      "hero_team_signal": "Tímová spolupráca",
+      "hero_team_desc": "Komunikácia, leadership",
+      "hero_react_title": "React",
+      "hero_react_desc": "Vývoj webových aplikácií",
+      "hero_analytical_title": "Analytické myslenie",
+      "hero_analytical_desc": "Riešenie problémov, data-driven",
+      "hero_reliability_title": "Spoľahlivosť",
+      "hero_reliability_desc": "Zodpovednosť, samostatnosť",
+      "hero_level_advanced": "Pokročilý",
+      "hero_level_expert": "Expert"
     },
     "status": {
       "in_review": "V recenzii",

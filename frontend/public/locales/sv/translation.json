@@ -5965,7 +5965,20 @@
       "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
       "update_profile": "Upravit profil",
       "commute_disabled": "Dojezd neomezuje výsledky",
-      "commute_toggle": "Filtrovat dojezd"
+      "commute_toggle": "Filtrovat dojezd",
+      "hero_skill_signal": "Verifierade färdigheter",
+      "hero_match_signal": "Stark matchning",
+      "hero_match_desc": "Roll, team och sammanhang passar.",
+      "hero_team_signal": "Teamsamarbete",
+      "hero_team_desc": "Kommunikation, ledarskap",
+      "hero_react_title": "React",
+      "hero_react_desc": "Utveckling av webbapplikationer",
+      "hero_analytical_title": "Analytiskt tänkande",
+      "hero_analytical_desc": "Problemlösning, datadrivet",
+      "hero_reliability_title": "Pålitlighet",
+      "hero_reliability_desc": "Ansvar, självständighet",
+      "hero_level_advanced": "Avancerad",
+      "hero_level_expert": "Expert"
     },
     "status": {
       "in_review": "Granskas",

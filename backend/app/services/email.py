@@ -1,9 +1,13 @@
 from html import escape
 
-import resend
 from ..core.config import APPLICATION_NOTIFICATION_EMAIL, RESEND_API_KEY
 
-if RESEND_API_KEY:
+try:
+    import resend
+except ModuleNotFoundError:
+    resend = None
+
+if RESEND_API_KEY and resend is not None:
     resend.api_key = RESEND_API_KEY
 
 
@@ -73,6 +77,9 @@ def _to_czech_vocative(first_name: str) -> str:
 def send_email(to_email: str, subject: str, html: str):
     if not RESEND_API_KEY:
         print("⚠️ Resend API key missing. Email not sent.")
+        return False
+    if resend is None:
+        print("⚠️ Resend package missing. Install backend requirements to send email.")
         return False
     try:
         params = {

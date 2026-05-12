@@ -34,6 +34,7 @@ import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 import { CandidateShellSurface, ShellCard } from './CandidateShellSurface';
 import { CandidateProfileV2 } from './CandidateProfileV2';
 import { sendMentorChatMessage, type MentorChatMessage } from '../../services/v2MentorService';
+import { getCandidateGreetingName } from './greeting';
 
 type TFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
 
@@ -900,8 +901,8 @@ const CandidateMentorChat: React.FC<{
   userProfile: UserProfile;
   vm: ReturnType<typeof buildCandidateDashboardViewModel>;
 }> = ({ userProfile, vm }) => {
-  const { t } = useTranslation();
-  const firstName = userProfile.name?.split(' ')[0] || t('rebuild.dashboard.you', { defaultValue: 'you' });
+  const { i18n, t } = useTranslation();
+  const firstName = getCandidateGreetingName({ profileName: userProfile.name, language: i18n.language }) || t('rebuild.dashboard.you', { defaultValue: 'you' });
   const [messages, setMessages] = React.useState<MentorChatMessage[]>(() => [
     {
       role: 'assistant',
@@ -1203,7 +1204,7 @@ export const CandidateDashboardV2: React.FC<{
             : 'home';
     const isProfileView = hashSection === 'profile';
     const isMentorView = hashSection === 'mentor';
-    const firstName = userProfile.isLoggedIn ? userProfile.name?.split(' ')[0] : '';
+    const firstName = userProfile.isLoggedIn ? getCandidateGreetingName({ profileName: userProfile.name, language: currentLanguage }) : '';
 
     if (!userProfile.isLoggedIn) {
       return (
@@ -1269,7 +1270,7 @@ export const CandidateDashboardV2: React.FC<{
         onCompanySwitch={onCompanySwitch}
         currentLanguage={currentLanguage}
         onLanguageChange={onLanguageChange}
-        title={isProfileView ? t('rebuild.dashboard.my_profile', { defaultValue: 'My profile' }) : firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Hello, {{name}} 👋', name: firstName }) : t('rebuild.dashboard.default_title', { defaultValue: 'Your work compass' })}
+        title={isProfileView ? t('rebuild.dashboard.my_profile', { defaultValue: 'My profile' }) : firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Hello, {{name}}', name: firstName }) : t('rebuild.dashboard.default_title', { defaultValue: 'Your work compass' })}
         subtitle={isProfileView ? t('rebuild.dashboard.profile_subtitle', { defaultValue: 'Your skills, experience, and potential in one place.' }) : t('rebuild.dashboard.default_subtitle', { defaultValue: '„Everyone has potential. Our mission is to reveal it.“ — Cybershaman' })}
         t={t}
       >

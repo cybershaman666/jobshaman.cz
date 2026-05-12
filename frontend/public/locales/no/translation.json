@@ -5965,7 +5965,20 @@
       "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
       "update_profile": "Upravit profil",
       "commute_disabled": "Dojezd neomezuje výsledky",
-      "commute_toggle": "Filtrovat dojezd"
+      "commute_toggle": "Filtrovat dojezd",
+      "hero_skill_signal": "Verifiserte ferdigheter",
+      "hero_match_signal": "Sterk match",
+      "hero_match_desc": "Rolle, team og kontekst passer.",
+      "hero_team_signal": "Teamsamarbeid",
+      "hero_team_desc": "Kommunikasjon, ledelse",
+      "hero_react_title": "React",
+      "hero_react_desc": "Utvikling av webapplikasjoner",
+      "hero_analytical_title": "Analytisk tenkning",
+      "hero_analytical_desc": "Problemløsing, datadrevet",
+      "hero_reliability_title": "Pålitelighet",
+      "hero_reliability_desc": "Ansvar, selvstendighet",
+      "hero_level_advanced": "Viderekommen",
+      "hero_level_expert": "Ekspert"
     },
     "status": {
       "in_review": "Til vurdering",

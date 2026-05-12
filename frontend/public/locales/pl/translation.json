@@ -7132,7 +7132,20 @@
       "cta_talent_copy": "Uprav svůj profil a nech Jobshaman seřadit nabídky podle reality.",
       "update_profile": "Upravit profil",
       "commute_disabled": "Dojezd neomezuje výsledky",
-      "commute_toggle": "Filtrovat dojezd"
+      "commute_toggle": "Filtrovat dojezd",
+      "hero_skill_signal": "Zweryfikowane umiejętności",
+      "hero_match_signal": "Silne dopasowanie",
+      "hero_match_desc": "Rola, zespół i kontekst pasują.",
+      "hero_team_signal": "Współpraca zespołowa",
+      "hero_team_desc": "Komunikacja, leadership",
+      "hero_react_title": "React",
+      "hero_react_desc": "Tworzenie aplikacji webowych",
+      "hero_analytical_title": "Myślenie analityczne",
+      "hero_analytical_desc": "Rozwiązywanie problemów, data-driven",
+      "hero_reliability_title": "Niezawodność",
+      "hero_reliability_desc": "Odpowiedzialność, samodzielność",
+      "hero_level_advanced": "Zaawansowany",
+      "hero_level_expert": "Ekspert"
     },
     "status": {
       "in_review": "In review",

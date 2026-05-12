@@ -84,6 +84,7 @@ import {
   mapJobToRole,
   mapUserProfileToCandidatePreferences,
 } from './adapters';
+import { getCandidateGreetingName } from './candidate/greeting';
 import { checkPaymentStatus, redirectToCheckout } from '../services/stripeService';
 import {
   buildInitialJourneySession,
@@ -875,7 +876,12 @@ const JobshamanRebuildApp: React.FC = () => {
           ? 'work'
           : 'home';
   const candidateGreetingName = userProfile.isLoggedIn
-    ? preferences.preferredAlias || preferences.name || userProfile.name
+    ? getCandidateGreetingName({
+        preferredAlias: preferences.preferredAlias,
+        preferenceName: preferences.name,
+        profileName: userProfile.name,
+        language: i18n.language,
+      })
     : '';
   const candidateWorkspaceTitle = route.kind === 'candidate-jcfpm'
     ? t('rebuild.candidate.self_knowledge', { defaultValue: 'Self-knowledge' })
@@ -888,7 +894,7 @@ const JobshamanRebuildApp: React.FC = () => {
           : route.kind === 'candidate-role' || route.kind === 'candidate-imported'
             ? activeRole?.title || t('rebuild.candidate.selected_challenge', { defaultValue: 'Selected Challenge' })
             : candidateGreetingName
-              ? t('rebuild.candidate.greeting', { defaultValue: 'Hello, {{name}} 👋', name: candidateGreetingName })
+              ? t('rebuild.candidate.greeting', { defaultValue: 'Hello, {{name}}', name: candidateGreetingName })
               : t('rebuild.candidate.tagline', { defaultValue: 'Let\'s find work that fits you.' });
   const candidateWorkspaceSubtitle = route.kind === 'candidate-jcfpm'
     ? t('rebuild.candidate.self_knowledge_desc', { defaultValue: 'Short profile of strengths, working style, and direction for further growth.' })
