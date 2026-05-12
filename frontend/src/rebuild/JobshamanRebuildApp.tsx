@@ -279,14 +279,14 @@ const JobshamanRebuildApp: React.FC = () => {
     };
     const baseLang = i18n.language.split('-')[0].toLowerCase();
     const targetCountry = langToCountry[baseLang] as SupportedCountryCode | undefined;
-    // Only auto-update if not logged in or if preferences don't have an address yet
-    if (targetCountry && !preferences.address && preferences.taxProfile.countryCode !== targetCountry) {
+    // Sync country when language is manually changed - this overrides GeoIP for user intent
+    if (targetCountry && preferences.taxProfile.countryCode !== targetCountry) {
       setPreferences(prev => ({
         ...prev,
         taxProfile: { ...prev.taxProfile, countryCode: targetCountry }
       }));
     }
-  }, [i18n.language, preferences.address, preferences.taxProfile.countryCode, setPreferences]);
+  }, [i18n.language, preferences.taxProfile.countryCode, setPreferences]);
 
   const deferredMarketplaceQuery = React.useDeferredValue(marketplaceQuery);
   const marketplaceRequestCoordinates = React.useMemo(() => {

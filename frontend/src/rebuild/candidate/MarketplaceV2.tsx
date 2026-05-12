@@ -756,7 +756,7 @@ export const MarketplaceV2: React.FC<{
         <div className="space-y-9 pb-12">
           <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.11),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.86),rgba(248,252,253,0.82)_52%,rgba(255,248,237,0.62))] shadow-[0_28px_90px_-72px_rgba(15,23,42,0.34)] dark:bg-[radial-gradient(circle_at_82%_35%,rgba(18,175,203,0.16),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.86),rgba(15,23,42,0.76)_52%,rgba(30,41,59,0.68))]">
             <div className="marketplace-hero-halo absolute right-[-2%] top-4 hidden h-72 w-72 rounded-full bg-[#12afcb]/10 blur-3xl lg:block" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-[74%] overflow-hidden md:block lg:w-[78%] xl:w-[80%]">
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-[74%] overflow-hidden md:block lg:w-[78%] xl:w-[80%]">
               <img src="/handshake.png" alt="" className="marketplace-hero-handshake absolute inset-y-[-34%] right-0 h-[168%] w-[132%] object-cover object-[88%_50%] opacity-[0.94]" />
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.18)_22%,rgba(255,255,255,0)_58%)] dark:bg-[linear-gradient(90deg,rgba(15,23,42,0.76)_0%,rgba(15,23,42,0.24)_28%,rgba(15,23,42,0.03)_76%)]" />
               <svg className="marketplace-hero-guardrails pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 704 432" preserveAspectRatio="none" aria-hidden="true">
@@ -814,7 +814,7 @@ export const MarketplaceV2: React.FC<{
                 delay="1.2s"
               />
             </div>
-            <div className="relative z-10 grid min-h-[19rem] md:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:min-h-[27rem] lg:grid-cols-[minmax(0,33rem)_minmax(0,1fr)]">
+            <div className="relative z-10 grid min-h-[22rem] md:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:min-h-[30rem] lg:grid-cols-[minmax(0,33rem)_minmax(0,1fr)]">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="flex items-center gap-3 text-[13px] font-bold text-[#0f95ac]">
                   <span className="h-2 w-2 rounded-full bg-[#12afcb]" />
