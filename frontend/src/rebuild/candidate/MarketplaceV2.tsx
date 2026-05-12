@@ -849,9 +849,6 @@ export const MarketplaceV2: React.FC<{
               </div>
               <div className="hidden md:block" aria-hidden="true" />
             </div>
-          </section>
-
-          <section className="mt-6">
             <div className="relative z-30 grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
               {categoryCards.map(({ id, title, count, Icon }) => (
                 <button
