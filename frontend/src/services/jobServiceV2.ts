@@ -486,8 +486,8 @@ export const fetchJobsWithFiltersV2 = async (
     try {
       // Skip recommendation feed if user is explicitly searching or heavily filtering
       const hasSearchFilters = Boolean(
-        options.searchTerm || 
-        options.filters?.city || 
+        options.searchTerm ||
+        options.filters?.city ||
         (options.filters?.roleFamily && options.filters.roleFamily !== 'all') ||
         (options.filters?.minSalary && options.filters.minSalary > 0) ||
         (options.filters?.benefits && options.filters.benefits.length > 0) ||
@@ -517,14 +517,14 @@ export const fetchJobsWithFiltersV2 = async (
               intent: section.intent,
               items: Array.isArray(section.items)
                 ? section.items.map((item: any) => mapJobToRole({
-                    ...(item.job || {}),
-                    recommendation_fit_score: item.fit_score,
-                    recommendation_reasons: item.reasons,
-                    recommendation_caveats: item.caveats,
-                    recommendation_fit_breakdown: item.fit_breakdown,
-                    recommendation_risk_flags: item.risk_flags,
-                    recommendation_debug_formula: item.debug_formula,
-                  }, 'imported'))
+                  ...(item.job || {}),
+                  recommendation_fit_score: item.fit_score,
+                  recommendation_reasons: item.reasons,
+                  recommendation_caveats: item.caveats,
+                  recommendation_fit_breakdown: item.fit_breakdown,
+                  recommendation_risk_flags: item.risk_flags,
+                  recommendation_debug_formula: item.debug_formula,
+                }, 'imported'))
                 : [],
             }));
           }
