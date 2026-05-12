@@ -49,8 +49,8 @@ import {
   SectionEyebrow,
   ShellCard,
 } from './CandidateShellSurface';
-import { 
-  MarketplaceFilterPanel, 
+import {
+  MarketplaceFilterPanel,
   MarketplaceActiveFilters,
   MarketplaceSearchPanel
 } from './MarketplaceFilters';
@@ -1142,12 +1142,30 @@ export const CandidateJcfpmPage: React.FC<{
                 .map((key) => item?.payload_i18n?.[key])
                 .find((value) => value && typeof value === 'object');
 
+              // Merge payload: start with item.payload (has options/sources/images for skill items),
+              // then overlay any localized text fields from localizedPayload
+              const mergedPayload = item?.payload ? { ...item.payload } : {};
+              if (localizedPayload && typeof localizedPayload === 'object') {
+                for (const key of ['question', 'helper_text', 'instructions', 'title', 'description']) {
+                  if (key in localizedPayload && localizedPayload[key]) {
+                    mergedPayload[key] = localizedPayload[key];
+                  }
+                }
+                // If localized payload has localized options/sources, use them
+                if (Array.isArray(localizedPayload.options) && localizedPayload.options.length > 0) {
+                  mergedPayload.options = localizedPayload.options;
+                }
+                if (Array.isArray(localizedPayload.sources) && localizedPayload.sources.length > 0) {
+                  mergedPayload.sources = localizedPayload.sources;
+                }
+              }
+
               return {
                 id: String(item?.id || ''),
                 dimension: (item?.dimension || 'd1_cognitive') as JcfpmQuestion['dimension'],
                 prompt: localizedPrompt || String(item?.prompt || ''),
                 item_type: item?.item_type || 'likert',
-                payload: localizedPayload || item?.payload || {},
+                payload: mergedPayload,
                 section: item?.section || 'psychometric',
                 scale_min: item?.scale_min ?? 1,
                 scale_max: item?.scale_max ?? 7,
@@ -1398,7 +1416,7 @@ export const CandidateJcfpmPage: React.FC<{
       .map((score) => score.report?.environment)
       .filter((value): value is string => Boolean(value))
       .slice(0, 3),
-  [interpretedScores.strengths]);
+    [interpretedScores.strengths]);
 
   React.useEffect(() => {
     if (!completed) return;
@@ -1586,8 +1604,8 @@ export const CandidateJcfpmPage: React.FC<{
                               'flex w-full items-center rounded-[16px] border-2 p-4 text-left transition-all',
                               active ? 'border-[#255DAB] bg-[#255DAB]/5 text-[#255DAB]' : 'border-slate-100 bg-white text-slate-600 hover:border-[#255DAB]/30'
                             )}
-                            >
-                              <div className={cn('mr-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
+                          >
+                            <div className={cn('mr-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
                               {active ? (
                                 isSequence && Array.isArray(answer)
                                   ? <span className="text-[10px] font-bold text-white">{answer.indexOf(optionId) + 1}</span>
