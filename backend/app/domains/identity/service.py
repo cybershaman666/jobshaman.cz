@@ -202,14 +202,25 @@ class IdentityDomainService:
 
             items: list[Dict[str, Any]] = []
             for row in result.mappings().all():
-                payload = _json_value(row.get("payload_json"), {})
                 item_payload = _json_value(row.get("item_payload"), {})
+                translation_payload = _json_value(row.get("payload_json"), {})
                 assets = _json_value(row.get("assets_json"), {})
                 payload_requested = _json_value(row.get("payload_requested"), {})
                 payload_en = _json_value(row.get("payload_en"), {})
                 payload_cs = _json_value(row.get("payload_cs"), {})
-                if not payload and item_payload:
-                    payload = item_payload
+
+                # Merge: start with item_payload (has options/sources for non-likert items)
+                # then overlay translated fields from translation_payload
+                payload = dict(item_payload) if item_payload else {}
+                if translation_payload:
+                    for key in ("question", "helper_text", "instructions", "title", "description"):
+                        if key in translation_payload:
+                            payload[key] = translation_payload[key]
+                    # If translation payload provides localized options/sources, use those
+                    if "options" in translation_payload and isinstance(translation_payload["options"], list) and translation_payload["options"]:
+                        payload["options"] = translation_payload["options"]
+                    if "sources" in translation_payload and isinstance(translation_payload["sources"], list) and translation_payload["sources"]:
+                        payload["sources"] = translation_payload["sources"]
 
                 prompt_i18n = {
                     "cs": row.get("prompt_cs") or row.get("prompt") or "",
@@ -218,12 +229,17 @@ class IdentityDomainService:
                 if row.get("prompt_requested"):
                     prompt_i18n[normalized_locale] = row.get("prompt_requested")
 
-                payload_i18n = {
-                    "cs": payload_cs or payload,
-                    "en": payload_en or payload,
-                }
+                payload_i18n = {}
                 if payload_requested:
                     payload_i18n[normalized_locale] = payload_requested
+                if payload_cs:
+                    payload_i18n["cs"] = payload_cs
+                elif item_payload:
+                    payload_i18n["cs"] = item_payload
+                if payload_en:
+                    payload_i18n["en"] = payload_en
+                elif item_payload:
+                    payload_i18n["en"] = item_payload
 
                 items.append({
                     "id": row.get("item_id"),
