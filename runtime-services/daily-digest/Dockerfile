@@ -5,8 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /backend
 
-COPY runtime-services/daily-digest/requirements.txt /backend/requirements.txt
-RUN pip install --no-cache-dir -r /backend/requirements.txt
+COPY backend/requirements.txt /backend/backend-requirements.txt
+COPY runtime-services/daily-digest/requirements.txt /backend/runtime-requirements.txt
+RUN pip install --no-cache-dir -r /backend/backend-requirements.txt -r /backend/runtime-requirements.txt
 
 COPY backend /backend
 

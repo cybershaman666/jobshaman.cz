@@ -849,7 +849,10 @@ export const MarketplaceV2: React.FC<{
               </div>
               <div className="hidden md:block" aria-hidden="true" />
             </div>
-            <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
+          </section>
+
+          <section className="mt-6">
+            <div className="relative z-30 grid gap-3 px-5 pb-5 sm:grid-cols-2 xl:grid-cols-5">
               {categoryCards.map(({ id, title, count, Icon }) => (
                 <button
                   key={id}
@@ -860,8 +863,8 @@ export const MarketplaceV2: React.FC<{
                   }}
                   aria-pressed={activeCategoryId === id}
                   className={cn(
-                    'flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72',
-                    activeCategoryId === id ? 'bg-[#eef8fb] ring-2 ring-[#12afcb]/25 dark:bg-cyan-950/35' : 'bg-white/86',
+                    'flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950',
+                    activeCategoryId === id ? 'bg-[#eef8fb] ring-2 ring-[#12afcb]/25 dark:bg-cyan-950/35' : 'bg-white',
                   )}
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef8fb] text-[#0f95ac] dark:bg-cyan-950/50 dark:text-cyan-300">
@@ -873,7 +876,7 @@ export const MarketplaceV2: React.FC<{
                   </span>
                 </button>
               ))}
-              <button type="button" onClick={() => setActiveCategoryId(null)} className={cn('flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950/72', activeCategoryId ? 'bg-white/86' : 'bg-slate-50 ring-2 ring-slate-200/70 dark:bg-slate-900')}>
+              <button type="button" onClick={() => setActiveCategoryId(null)} className={cn('flex items-center gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_14px_38px_-34px_rgba(15,23,42,0.28)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_54px_-42px_rgba(15,23,42,0.32)] dark:bg-slate-950', activeCategoryId ? 'bg-white' : 'bg-white ring-2 ring-slate-200/70 dark:bg-slate-900')}>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"><Grid2X2 size={18} /></span>
                 <span className="min-w-0">
                   <span className="block truncate text-[13px] font-black text-slate-950 dark:text-slate-100">{t('rebuild.marketplace.show_all', { defaultValue: 'Zobrazit vše' })}</span>
