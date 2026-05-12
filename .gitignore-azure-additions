@@ -1,0 +1,42 @@
+# Azure Migration Configuration (.env, secrets, credentials)
+
+# Local Azure configuration
+scripts/.env.azure
+scripts/.env.*.local
+
+# Azure credentials & keys
+.azure/
+.azure-credentials
+*.azureauth
+
+# Service Principal files
+service-principal.json
+
+# Database passwords & connection strings (local)
+~/.jobshaman-db-password
+.db-password*
+
+# Local environment overrides
+.env.local
+.env.*.local
+
+# Azure Static Web Apps
+.swa/
+.azure/
+
+# Build artifacts specific to Azure deploy
+dist-azure/
+
+# Terraform/IaC state (if using)
+terraform.tfstate*
+.terraform/
+*.tfvars
+
+# Function App local settings
+azure-functions/local.settings.json
+
+# IDE Azure extensions
+.vscode/settings.azure.json
+
+# CI/CD secrets (backup)
+.github/workflows/.secrets*

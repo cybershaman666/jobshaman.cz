@@ -1,0 +1,58 @@
+name: Deploy Frontend to Azure Static Web Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend-azure.yml'
+  workflow_dispatch:
+
+env:
+  APP_LOCATION: "frontend"
+  OUTPUT_LOCATION: "dist"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        lfs: false
+
+    - name: Build and Deploy to Azure Static Web Apps
+      id: deploy
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        action: "upload"
+        app_location: ${{ env.APP_LOCATION }}
+        api_location: ""
+        output_location: ${{ env.OUTPUT_LOCATION }}
+        app_build_command: "npm run build"
+        skip_app_build: false
+
+    - name: Test deployed site
+      run: |
+        sleep 5
+        SITE_URL="${{ steps.deploy.outputs.static_web_app_url }}"
+        echo "Testing site at: $SITE_URL"
+        
+        # Test main page
+        curl -f -s -o /dev/null -w "Homepage: %{http_code}\n" "$SITE_URL"
+        
+        # Test that SPA routing works
+        curl -f -s -o /dev/null -w "SPA route: %{http_code}\n" "$SITE_URL/nonexistent-route"
+
+    - name: Notify deployment
+      if: success()
+      run: |
+        echo "✅ Frontend deployed successfully to Static Web Apps"
+        echo "URL: ${{ steps.deploy.outputs.static_web_app_url }}"

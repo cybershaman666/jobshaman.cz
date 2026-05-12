@@ -9561,11 +9561,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "Which change is most likely to trigger a chain reaction in the system?",
-      "de": "Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "Kde obvykle vzniká úzké místo v systému?",
+      "en": "Where does a bottleneck usually form in the system?",
+      "de": "Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9590,13 +9590,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "Which change is most likely to trigger a chain reaction in the system?"
+        "question": "Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
@@ -9613,11 +9613,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "Představ si tuto situaci: Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "Představ si tuto situaci: Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "Představ si tuto situaci: Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "Imagine this situation: Which change is most likely to trigger a chain reaction in the system?",
-      "de": "Stell dir diese Situation vor: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "Představ si tuto situaci: Kde obvykle vzniká úzké místo v systému?",
+      "en": "Imagine this situation: Where does a bottleneck usually form in the system?",
+      "de": "Stell dir diese Situation vor: Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9642,13 +9642,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "Představ si tuto situaci: Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "Představ si tuto situaci: Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "Imagine this situation: Which change is most likely to trigger a chain reaction in the system?"
+        "question": "Imagine this situation: Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "Stell dir diese Situation vor: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "Stell dir diese Situation vor: Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
@@ -9665,11 +9665,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "V běžném pracovním provozu: Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "V běžném pracovním provozu: Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "V běžném pracovním provozu: Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "In a normal work setting: Which change is most likely to trigger a chain reaction in the system?",
-      "de": "Im normalen Arbeitsalltag: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "V běžném pracovním provozu: Kde obvykle vzniká úzké místo v systému?",
+      "en": "In a normal work setting: Where does a bottleneck usually form in the system?",
+      "de": "Im normalen Arbeitsalltag: Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9694,13 +9694,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "V běžném pracovním provozu: Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "V běžném pracovním provozu: Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "In a normal work setting: Which change is most likely to trigger a chain reaction in the system?"
+        "question": "In a normal work setting: Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "Im normalen Arbeitsalltag: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "Im normalen Arbeitsalltag: Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
@@ -9717,11 +9717,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "Pod časovým tlakem: Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "Pod časovým tlakem: Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "Pod časovým tlakem: Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "Under time pressure: Which change is most likely to trigger a chain reaction in the system?",
-      "de": "Unter Zeitdruck: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "Pod časovým tlakem: Kde obvykle vzniká úzké místo v systému?",
+      "en": "Under time pressure: Where does a bottleneck usually form in the system?",
+      "de": "Unter Zeitdruck: Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9746,13 +9746,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "Pod časovým tlakem: Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "Pod časovým tlakem: Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "Under time pressure: Which change is most likely to trigger a chain reaction in the system?"
+        "question": "Under time pressure: Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "Unter Zeitdruck: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "Unter Zeitdruck: Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
@@ -9769,11 +9769,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "Když na tom záleží: Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "Když na tom záleží: Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "Když na tom záleží: Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "When it matters: Which change is most likely to trigger a chain reaction in the system?",
-      "de": "Wenn es wichtig ist: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "Když na tom záleží: Kde obvykle vzniká úzké místo v systému?",
+      "en": "When it matters: Where does a bottleneck usually form in the system?",
+      "de": "Wenn es wichtig ist: Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9798,13 +9798,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "Když na tom záleží: Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "Když na tom záleží: Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "When it matters: Which change is most likely to trigger a chain reaction in the system?"
+        "question": "When it matters: Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "Wenn es wichtig ist: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "Wenn es wichtig ist: Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
@@ -9821,11 +9821,11 @@
       "cs": "d9_system_2",
       "en": "d9_system_2"
     },
-    "prompt": "V realistické praxi: Která změna nejspíš spustí řetězový dopad v systému?",
+    "prompt": "V realistické praxi: Kde obvykle vzniká úzké místo v systému?",
     "prompt_i18n": {
-      "cs": "V realistické praxi: Která změna nejspíš spustí řetězový dopad v systému?",
-      "en": "In realistic practice: Which change is most likely to trigger a chain reaction in the system?",
-      "de": "In der realistischen Praxis: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+      "cs": "V realistické praxi: Kde obvykle vzniká úzké místo v systému?",
+      "en": "In realistic practice: Where does a bottleneck usually form in the system?",
+      "de": "In der realistischen Praxis: Wo entsteht normalerweise ein Engpass im System?"
     },
     "reverse_scoring": false,
     "sort_order": 902,
@@ -9850,13 +9850,13 @@
     },
     "payload_i18n": {
       "cs": {
-        "question": "V realistické praxi: Která změna nejspíš spustí řetězový dopad v systému?"
+        "question": "V realistické praxi: Kde obvykle vzniká bottleneck?"
       },
       "en": {
-        "question": "In realistic practice: Which change is most likely to trigger a chain reaction in the system?"
+        "question": "In realistic practice: Where does a bottleneck usually form?"
       },
       "de": {
-        "question": "In der realistischen Praxis: Welche Veränderung löst im System am ehesten eine Kettenreaktion aus?"
+        "question": "In der realistischen Praxis: Wo entsteht normalerweise ein Engpass?"
       }
     },
     "assets": null,
