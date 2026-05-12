@@ -167,12 +167,26 @@ const fallbackItems = () => Object.entries(DIMENSION_PROMPTS).flatMap(([dimensio
   })),
 );
 
+const EXPECTED_DIMENSIONS = [
+  'd1_cognitive', 'd2_social', 'd3_motivational', 'd4_energy',
+  'd5_values', 'd6_ai_readiness', 'd7_cognitive_reflection',
+  'd8_digital_eq', 'd9_systems_thinking', 'd10_ambiguity_interpretation',
+  'd11_problem_decomposition', 'd12_moral_compass',
+  'i1_love', 'i2_good_at', 'i3_world_needs', 'i4_paid_for',
+];
+
 const hasIkigai = (items: any[]) => items.some((item) => String(item?.section || '').toLowerCase() === 'ikigai' || String(item?.dimension || '').startsWith('i'));
+
+const hasAllDimensions = (items: any[]): boolean => {
+  const dimsInItems = new Set(items.map((item) => String(item?.dimension || '')));
+  return EXPECTED_DIMENSIONS.every((dim) => dimsInItems.has(dim));
+};
 
 const isUsableV3Pool = (items: any[], meta?: any) => {
   if (!Array.isArray(items)) return false;
   if (String(meta?.source || '').toLowerCase() === 'fallback') return false;
   if (items.length < 72) return false;
+  if (!hasAllDimensions(items)) return false;
   return hasIkigai(items);
 };
 
