@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jobshaman-backend"
+version = "0.0.0"
+description = "Editable package wrapper for backend to allow pytest imports during development"
+authors = [ { name = "Roo" } ]
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*"]

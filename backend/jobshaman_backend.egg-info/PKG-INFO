@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: jobshaman-backend
+Version: 0.0.0
+Summary: Editable package wrapper for backend to allow pytest imports during development
+Author: Roo
+License: MIT
+Description-Content-Type: text/markdown

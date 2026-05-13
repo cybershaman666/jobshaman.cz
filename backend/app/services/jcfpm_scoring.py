@@ -172,6 +172,31 @@ def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
             payload = __import__("json").loads(payload)
         except Exception:
             payload = {}
+
+    # Normalise legacy and camelCase keys so older/migrated items still behave correctly.
+    if isinstance(payload, dict):
+        # correct pairs / ordering
+        if "correctPairs" in payload and "correct_pairs" not in payload:
+            payload["correct_pairs"] = payload.get("correctPairs")
+        if "correctOrder" in payload and "correct_order" not in payload:
+            payload["correct_order"] = payload.get("correctOrder")
+
+        # options: normalise image keys and keep asset references
+        opts = payload.get("options") if isinstance(payload.get("options"), list) else []
+        for opt in opts:
+            if not isinstance(opt, dict):
+                continue
+            if "imageUrl" in opt and "image_url" not in opt:
+                opt["image_url"] = opt.get("imageUrl")
+            if "image" in opt and "image_url" not in opt:
+                opt["image_url"] = opt.get("image")
+            # keep asset_id and accept camelCase assetId
+            if "assetId" in opt and "asset_id" not in opt:
+                opt["asset_id"] = opt.get("assetId")
+        # write back options in case payload was string-backed
+        if opts:
+            payload["options"] = opts
+
     if item_type in {"likert", ""}:
         if isinstance(payload, dict):
             if isinstance(payload.get("correct_order"), list):
