@@ -60,6 +60,7 @@ def _api_key() -> Optional[str]:
         _env("AZURE_OPENAI_API_KEY")
         or _env("AZURE_AI_API_KEY")
         or _env("AZURE_INFERENCE_CREDENTIAL")
+        or _env("OPEN_API_KEY")
         or _env("OPENAI_API_KEY")
     )
 
@@ -91,6 +92,7 @@ def _chat_endpoint() -> tuple[str, dict[str, str], bool]:
         or _env("AZURE_AI_ENDPOINT")
         or _env("AZURE_OPENAI_ENDPOINT")
         or _env("OPENAI_ENDPOINT")
+        or "https://jobshaman.openai.azure.com/"
     )
     if not endpoint:
         raise AzureAIClientError(
@@ -273,6 +275,7 @@ def call_ai_embed(
         or _env("AZURE_AI_FOUNDRY_ENDPOINT")
         or _env("AZURE_AI_ENDPOINT")
         or _env("AZURE_OPENAI_ENDPOINT")
+        or "https://jobshaman.openai.azure.com/"
     )
     if not endpoint:
         raise AzureAIClientError("Azure AI embedding endpoint is not configured")
