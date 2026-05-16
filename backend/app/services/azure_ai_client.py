@@ -35,6 +35,8 @@ class AzureAIEmbeddingResult:
 def _env(name: str, default: Optional[str] = None) -> Optional[str]:
     raw = os.getenv(name)
     if raw is None:
+        raw = os.getenv(name.replace("_", "-"))
+    if raw is None:
         return default
     value = raw.strip().strip('"').strip("'")
     return value or default

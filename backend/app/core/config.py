@@ -8,6 +8,8 @@ load_dotenv()
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
+        raw = os.getenv(name.replace("_", "-"))
+    if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
@@ -15,6 +17,8 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def _env_str(name: str, default: str | None = None) -> str | None:
     """Gets an environment variable, returning default if it's None or empty string."""
     raw = os.getenv(name)
+    if raw is None:
+        raw = os.getenv(name.replace("_", "-"))
     if raw is None:
         return default
     val = raw.strip()

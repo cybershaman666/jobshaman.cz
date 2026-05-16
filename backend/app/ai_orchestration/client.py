@@ -5,6 +5,15 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 import requests
 
+def _env(name: str, default: Optional[str] = None) -> Optional[str]:
+    raw = os.getenv(name)
+    if raw is None:
+        raw = os.getenv(name.replace("_", "-"))
+    if raw is None:
+        return default
+    value = raw.strip().strip('"').strip("'")
+    return value or default
+
 class AIClientError(Exception):
     pass
 
@@ -51,16 +60,16 @@ def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
 
 
 def resolve_ai_provider() -> str:
-    provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    provider = (_env("AI_PROVIDER") or "").strip().lower()
     if provider in {"azure", "mistral", "openai"}:
         return provider
     if (
-        os.getenv("AZURE_OPENAI_API_KEY")
-        or os.getenv("AZURE_AI_API_KEY")
-        or os.getenv("AZURE_INFERENCE_CREDENTIAL")
+        _env("AZURE_OPENAI_API_KEY")
+        or _env("AZURE_AI_API_KEY")
+        or _env("AZURE_INFERENCE_CREDENTIAL")
     ):
         return "azure"
-    if os.getenv("MISTRAL_API_KEY"):
+    if _env("MISTRAL_API_KEY"):
         return "mistral"
     return "openai"
 
@@ -69,34 +78,34 @@ def get_default_primary_model() -> str:
     provider = resolve_ai_provider()
     if provider == "azure":
         return (
-            os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-            or os.getenv("AZURE_AI_DEPLOYMENT_NAME")
-            or os.getenv("AZURE_AI_MODEL")
-            or os.getenv("OPENAI_MODEL")
+            _env("AZURE_OPENAI_DEPLOYMENT_NAME")
+            or _env("AZURE_AI_DEPLOYMENT_NAME")
+            or _env("AZURE_AI_MODEL")
+            or _env("OPENAI_MODEL")
             or "gpt-5-mini"
         )
     if provider == "mistral":
-        return os.getenv("MISTRAL_MODEL", "mistral-small-latest")
-    return os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        return _env("MISTRAL_MODEL") or "mistral-small-latest"
+    return _env("OPENAI_MODEL") or "gpt-4.1-mini"
 
 
 def get_default_fallback_model() -> Optional[str]:
     provider = resolve_ai_provider()
     if provider == "azure":
         return (
-            os.getenv("AZURE_OPENAI_FALLBACK_DEPLOYMENT_NAME")
-            or os.getenv("AZURE_AI_FALLBACK_DEPLOYMENT_NAME")
-            or os.getenv("AZURE_AI_FALLBACK_MODEL")
-            or os.getenv("OPENAI_FALLBACK_MODEL")
+            _env("AZURE_OPENAI_FALLBACK_DEPLOYMENT_NAME")
+            or _env("AZURE_AI_FALLBACK_DEPLOYMENT_NAME")
+            or _env("AZURE_AI_FALLBACK_MODEL")
+            or _env("OPENAI_FALLBACK_MODEL")
             or None
         )
     if provider == "mistral":
         return (
-            os.getenv("MISTRAL_FALLBACK_MODEL")
-            or os.getenv("MISTRAL_MODEL_FALLBACK")
+            _env("MISTRAL_FALLBACK_MODEL")
+            or _env("MISTRAL_MODEL_FALLBACK")
             or None
         )
-    return os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+    return _env("OPENAI_FALLBACK_MODEL") or "gpt-4.1-nano"
 
 
 def _extract_openai_text(payload: Dict[str, Any]) -> str:
@@ -142,11 +151,11 @@ def _call_mistral_chat_completion(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> AIClientResult:
-    api_key = os.getenv("MISTRAL_API_KEY")
+    api_key = _env("MISTRAL_API_KEY")
     if not api_key:
         raise AIClientError("MISTRAL_API_KEY is not configured")
 
-    endpoint = os.getenv("MISTRAL_ENDPOINT", "https://api.mistral.ai/v1/chat/completions")
+    endpoint = _env("MISTRAL_ENDPOINT") or "https://api.mistral.ai/v1/chat/completions"
     temperature = (generation_config or {}).get("temperature", 0)
     top_p = (generation_config or {}).get("top_p", 1)
 
@@ -200,11 +209,11 @@ def _call_openai_chat_completion(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> AIClientResult:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = _env("OPENAI_API_KEY")
     if not api_key:
         raise AIClientError("OPENAI_API_KEY is not configured")
 
-    endpoint = os.getenv("OPENAI_ENDPOINT", "https://openrouter.ai/api/v1/chat/completions")
+    endpoint = _env("OPENAI_ENDPOINT") or "https://openrouter.ai/api/v1/chat/completions"
     temperature = (generation_config or {}).get("temperature", 0)
     top_p = (generation_config or {}).get("top_p", 1)
 
@@ -226,8 +235,8 @@ def _call_openai_chat_completion(
     }
     is_openrouter = "openrouter.ai" in endpoint
     if is_openrouter:
-        headers["HTTP-Referer"] = os.getenv("OPENROUTER_HTTP_REFERER", "https://jobshaman.cz")
-        headers["X-Title"] = os.getenv("OPENROUTER_APP_TITLE", "JobShaman")
+        headers["HTTP-Referer"] = _env("OPENROUTER_HTTP_REFERER") or "https://jobshaman.cz"
+        headers["X-Title"] = _env("OPENROUTER_APP_TITLE") or "JobShaman"
 
     attempt = 0
     while True:
@@ -333,7 +342,7 @@ def call_primary_with_fallback(
     if provider == "mistral":
         default_rescue = "mistral-small-latest"
 
-    rescue_raw = os.getenv("AI_RESCUE_MODELS") or default_rescue
+    rescue_raw = _env("AI_RESCUE_MODELS") or default_rescue
     rescue_models = [m.strip() for m in rescue_raw.split(",") if m.strip()]
 
     chain = [primary_model]

@@ -6,6 +6,15 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+def _env(name: str, default: Optional[str] = None) -> Optional[str]:
+    raw = os.getenv(name)
+    if raw is None:
+        raw = os.getenv(name.replace("_", "-"))
+    if raw is None:
+        return default
+    value = raw.strip().strip('"').strip("'")
+    return value or default
+
 
 class MistralClientError(Exception):
     pass
@@ -81,15 +90,12 @@ def call_mistral_embed(
     Generate embeddings via Mistral's v1/embeddings endpoint.
     Returns 1024-dimensional vectors matching the jobs_nf.embedding column.
     """
-    api_key = os.getenv("MISTRAL_API_KEY")
+    api_key = _env("MISTRAL_API_KEY")
     if not api_key:
         raise MistralClientError("MISTRAL_API_KEY is not configured")
 
-    model = model_name or os.getenv("MISTRAL_EMBED_MODEL", "mistral-embed")
-    endpoint = os.getenv(
-        "MISTRAL_EMBED_ENDPOINT",
-        "https://api.mistral.ai/v1/embeddings",
-    )
+    model = model_name or _env("MISTRAL_EMBED_MODEL") or "mistral-embed"
+    endpoint = _env("MISTRAL_EMBED_ENDPOINT") or "https://api.mistral.ai/v1/embeddings"
 
     # Mistral embed API accepts max ~16K tokens per request; batch in chunks if needed
     payload = {
@@ -143,12 +149,12 @@ def call_mistral_text(
     timeout: int = 90,
     response_format: Optional[Dict[str, Any]] = None,
 ) -> tuple[str, MistralResult]:
-    api_key = os.getenv("MISTRAL_API_KEY")
+    api_key = _env("MISTRAL_API_KEY")
     if not api_key:
         raise MistralClientError("MISTRAL_API_KEY is not configured")
 
-    model = model_name or os.getenv("MISTRAL_MODEL", "mistral-small-latest")
-    endpoint = os.getenv("MISTRAL_ENDPOINT", "https://api.mistral.ai/v1/chat/completions")
+    model = model_name or _env("MISTRAL_MODEL") or "mistral-small-latest"
+    endpoint = _env("MISTRAL_ENDPOINT") or "https://api.mistral.ai/v1/chat/completions"
     payload = {
         "model": model,
         "temperature": temperature,
