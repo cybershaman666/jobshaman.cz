@@ -1,7 +1,7 @@
 import { authenticatedFetch } from './csrfService';
 import { BACKEND_URL } from '../constants';
 
-const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = (BACKEND_URL || '/api/v2').replace(/\/$/, '');
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
 const urlBase64ToUint8Array = (base64String: string): Uint8Array => {

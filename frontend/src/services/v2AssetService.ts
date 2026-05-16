@@ -3,14 +3,14 @@ import { getSupabaseClient } from './supabaseClient';
 
 // Production calls go directly to the V2 backend; the Vercel /api/v2 rewrite
 // can fall through to the SPA fallback for some API paths.
-const DEFAULT_PRODUCTION_API_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+const DEFAULT_PRODUCTION_API_URL = 'https://jobshaman-api.mangorock-7014fb1a.northeurope.azurecontainerapps.io/api/v2';
 
 const normalizeApiBaseUrl = (): string => {
   // In dev mode, respect env vars and use Vite proxy
   if (import.meta.env.DEV || (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname))) {
     const explicit = (import.meta.env.VITE_API_URL || import.meta.env.VITE_V2_API_URL || '').trim();
     if (explicit) return explicit.replace(/\/$/, '');
-    return 'http://localhost:8000/api/v2';
+    return '/api/v2'; // Relative path works for Vite proxy
   }
 
   // Production: use the backend directly; it sends CORS for jobshaman domains.

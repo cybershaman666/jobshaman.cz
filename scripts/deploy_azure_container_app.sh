@@ -73,6 +73,22 @@ spec:
         secretRef: stripe-webhook-secret
       - name: OPENAI_API_KEY
         secretRef: openai-api-key
+      - name: AI_PROVIDER
+        value: "azure"
+      - name: AZURE_OPENAI_API_KEY
+        secretRef: azure-openai-api-key
+      - name: AZURE_OPENAI_ENDPOINT
+        secretRef: azure-openai-endpoint
+      - name: AZURE_OPENAI_DEPLOYMENT_NAME
+        value: "gpt-5-mini"
+      - name: AZURE_OPENAI_API_VERSION
+        value: "2024-10-21"
+      - name: AZURE_AI_API_VERSION
+        value: "2024-05-01-preview"
+      - name: AZURE_AI_EMBEDDING_MODEL
+        value: "text-embedding-3-large"
+      - name: AZURE_AI_EMBEDDING_DIMENSIONS
+        value: "1024"
       - name: RESEND_API_KEY
         secretRef: resend-api-key
       - name: SENTRY_DSN
@@ -86,14 +102,14 @@ spec:
       probes:
       - type: Liveness
         httpGet:
-          path: /healthz
+          path: /health
           port: 8080
         initialDelaySeconds: 10
         periodSeconds: 10
         failureThreshold: 3
       - type: Readiness
         httpGet:
-          path: /healthz
+          path: /health
           port: 8080
         initialDelaySeconds: 5
         periodSeconds: 5
@@ -142,6 +158,12 @@ spec:
     - name: openai-api-key
       keyVaultUrl: https://KEYVAULT_NAME.vault.azure.net/secrets/OPENAI-API-KEY/
       identity: /subscriptions/{subscription}/resourceGroups/RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/jobshaman-keyvault-identity
+    - name: azure-openai-api-key
+      keyVaultUrl: https://KEYVAULT_NAME.vault.azure.net/secrets/AZURE-OPENAI-API-KEY/
+      identity: /subscriptions/{subscription}/resourceGroups/RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/jobshaman-keyvault-identity
+    - name: azure-openai-endpoint
+      keyVaultUrl: https://KEYVAULT_NAME.vault.azure.net/secrets/AZURE-OPENAI-ENDPOINT/
+      identity: /subscriptions/{subscription}/resourceGroups/RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/jobshaman-keyvault-identity
     - name: resend-api-key
       keyVaultUrl: https://KEYVAULT_NAME.vault.azure.net/secrets/RESEND-API-KEY/
       identity: /subscriptions/{subscription}/resourceGroups/RESOURCE_GROUP/providers/Microsoft.ManagedIdentity/userAssignedIdentities/jobshaman-keyvault-identity
@@ -166,6 +188,14 @@ az containerapp create \
     PORT=8080 \
     ENABLE_BACKGROUND_SCHEDULER=true \
     ENABLE_DAILY_DIGESTS=true \
+    AI_PROVIDER=azure \
+    AZURE_OPENAI_DEPLOYMENT_NAME=gpt-5-mini \
+    AZURE_OPENAI_API_VERSION=2024-10-21 \
+    AZURE_AI_API_VERSION=2024-05-01-preview \
+    AZURE_AI_EMBEDDING_MODEL=text-embedding-3-large \
+    AZURE_AI_EMBEDDING_DIMENSIONS=1024 \
+    AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
+    AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
     API_BASE_URL=https://api.jobshaman.cz \
     APP_PUBLIC_URL=https://jobshaman.cz \
     ALLOWED_ORIGINS="https://jobshaman.cz,https://www.jobshaman.cz" \
@@ -177,11 +207,13 @@ az containerapp create \
     "stripe-secret-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-SECRET-KEY/" \
     "stripe-webhook-secret=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/STRIPE-WEBHOOK-SECRET/" \
     "openai-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/OPENAI-API-KEY/" \
+    "azure-openai-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-API-KEY/" \
+    "azure-openai-endpoint=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/AZURE-OPENAI-ENDPOINT/" \
     "resend-api-key=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/RESEND-API-KEY/" \
     "sentry-dsn=keyvaultref@https://${KEYVAULT_NAME}.vault.azure.net/secrets/SENTRY-DSN/" \
   --registry-server "${ACR_NAME}.azurecr.io" \
   --registry-identity system \
-  --health-probe-path /healthz \
+  --health-probe-path /health \
   --health-probe-interval 10 \
   --health-probe-timeout 5 \
   --health-probe-failure-count-threshold 3
@@ -202,7 +234,7 @@ echo ""
 # Test health endpoint
 echo "🏥 Testing health endpoint..."
 sleep 5
-curl -s "https://$FQDN/healthz" | jq . || echo "Health check in progress..."
+curl -s "https://$FQDN/health" | jq . || echo "Health check in progress..."
 
 echo ""
 echo "✅ Deployment complete!"

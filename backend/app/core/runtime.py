@@ -61,7 +61,7 @@ def validate_runtime_config() -> None:
     if not (_env("DATABASE_URL") or _env("EXTERNAL_POSTGRES_URI")):
         raise RuntimeError("DATABASE_URL or EXTERNAL_POSTGRES_URI must be set in production mode.")
 
-    if not (_env("SUPABASE_JWT_SECRET") or _env("JWT_SECRET")):
-        raise RuntimeError("SUPABASE_JWT_SECRET must be set in production mode.")
+    if not (_env("SUPABASE_JWT_SECRET") or _env("JWT_SECRET")) and not allow_legacy_auth_fallback():
+        raise RuntimeError("SUPABASE_JWT_SECRET must be set in production mode unless V2_AUTH_LEGACY_SUPABASE_FALLBACK is enabled.")
 
     get_cors_origins()

@@ -64,6 +64,9 @@ def _resolve_secret_key() -> str:
         if val:
             return val
 
+    if _env_bool("V2_AUTH_LEGACY_SUPABASE_FALLBACK"):
+        return "fallback-placeholder-not-for-production"
+
     raise RuntimeError(
         "Missing SECRET_KEY/JWT_SECRET environment variable. "
         f"Checked: {', '.join(candidates)}"
@@ -95,6 +98,17 @@ STRIPE_PRICE_PROFESSIONAL = _env_str("STRIPE_PRICE_PROFESSIONAL", "price_1T3JcHG
 
 # Other APIs
 MISTRAL_API_KEY = _env_str("MISTRAL_API_KEY")
+OPENAI_API_KEY = _env_str("OPENAI_API_KEY")
+AZURE_OPENAI_API_KEY = _env_str("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_ENDPOINT = _env_str("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_DEPLOYMENT_NAME = _env_str("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-5-mini")
+AZURE_OPENAI_API_VERSION = _env_str("AZURE_OPENAI_API_VERSION", "2024-10-21")
+AZURE_AI_API_KEY = _env_str("AZURE_AI_API_KEY")
+AZURE_AI_FOUNDRY_ENDPOINT = _env_str("AZURE_AI_FOUNDRY_ENDPOINT")
+AZURE_AI_ENDPOINT = _env_str("AZURE_AI_ENDPOINT")
+AZURE_AI_DEPLOYMENT_NAME = _env_str("AZURE_AI_DEPLOYMENT_NAME", "gpt-5-mini")
+AZURE_AI_API_VERSION = _env_str("AZURE_AI_API_VERSION", "2024-05-01-preview")
+AZURE_INFERENCE_CREDENTIAL = _env_str("AZURE_INFERENCE_CREDENTIAL")
 RESEND_API_KEY = _env_str("RESEND_API_KEY") or _env_str("VITE_RESEND_API_KEY")
 APPLICATION_NOTIFICATION_EMAIL = _env_str("APPLICATION_NOTIFICATION_EMAIL", "floki@jobshaman.cz")
 

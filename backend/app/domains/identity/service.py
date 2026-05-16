@@ -21,7 +21,7 @@ import json
 import asyncio
 from datetime import datetime
 from app.domains.recommendation.learning import LifecycleBackprop
-from app.services.mistral_client import call_mistral_json
+from app.services.azure_ai_client import call_ai_json
 from app.services.embedding_service import EmbeddingService
 
 
@@ -1156,7 +1156,7 @@ Ritual Answers:
         """
 
         try:
-            ai_data, _ = call_mistral_json(prompt)
+            ai_data, _ = call_ai_json(prompt)
         except Exception as exc:
             raise ValueError(f"AI interpretation failed: {exc}")
 
@@ -1232,7 +1232,7 @@ Ritual Answers:
                 "preferences": preferences
             },
             "meta": {
-                "model_used": "mistral-small-latest",
+                "model_used": "gpt-5-mini",
                 "archetype": archetype
             }
         }

@@ -17,7 +17,7 @@ import secrets
 from app.domains.identity.models import User
 from app.domains.identity.service import IdentityDomainService
 from app.domains.reality.models import Company, CompanyUser, Job
-from app.services.mistral_client import MistralClientError, call_mistral_json
+from app.services.azure_ai_client import AzureAIClientError, call_ai_json
 from app.services.email import send_teammate_invitation_email
 
 
@@ -289,7 +289,7 @@ class RealityDomainService:
             "jcfpm_policy": {"include_in_results": True, "required_if_missing": True, "reuse_existing": True},
             "human_confirmation_required": True,
             "generated_at": datetime.utcnow().isoformat(),
-            "provider": "mistral",
+            "provider": "azure",
         }
 
     @staticmethod
@@ -1266,14 +1266,14 @@ class RealityDomainService:
             problem = _clean_text(payload.get("problem_statement") or job.summary or job.description, 1200)
             try:
                 raw_output, model_result = await asyncio.to_thread(
-                    call_mistral_json,
+                    call_ai_json,
                     RealityDomainService._challenge_ai_prompt(payload, company, job),
                     temperature=0.2,
                 )
                 ai_output = RealityDomainService._normalize_ai_output(raw_output, job.title, problem, role_family)
                 ai_output["model"] = model_result.model_name
                 ai_output["latency_ms"] = model_result.latency_ms
-            except (MistralClientError, Exception) as exc:
+            except (AzureAIClientError, Exception) as exc:
                 tasks = RealityDomainService._default_assessment_tasks(job.title, problem, role_family)
                 ai_output = {
                     "schema_version": "challenge-ai-assist-v1",
@@ -1285,7 +1285,7 @@ class RealityDomainService:
                     "suggested_tools": ["notion", "canva", "figma", "google_docs", "miro"],
                     "review_questions": ["Jak konkrétní byl první krok?", "Pojmenoval kandidát trade-off?", "Umí výstup ověřit v realitě?"],
                     "quality_score": 68,
-                    "quality_checks": [{"id": "mistral_unavailable", "label": "Mistral nedostupný", "status": "warning", "advice": str(exc)[:180]}],
+                    "quality_checks": [{"id": "ai_unavailable", "label": "AI nedostupná", "status": "warning", "advice": str(exc)[:180]}],
                     "jcfpm_policy": {"include_in_results": True, "required_if_missing": True, "reuse_existing": True},
                     "human_confirmation_required": True,
                     "generated_at": datetime.utcnow().isoformat(),
@@ -1327,14 +1327,14 @@ class RealityDomainService:
         summary = _clean_text(payload.get("summary") or payload.get("problem_statement"), 1800)
         try:
             raw_output, model_result = await asyncio.to_thread(
-                call_mistral_json,
+                call_ai_json,
                 RealityDomainService._challenge_ai_prompt(payload, company, None),
                 temperature=0.25,
             )
             ai_output = RealityDomainService._normalize_ai_output(raw_output, title, summary, role_family)
             ai_output["model"] = model_result.model_name
             ai_output["latency_ms"] = model_result.latency_ms
-        except (MistralClientError, Exception) as exc:
+        except (AzureAIClientError, Exception) as exc:
             tasks = RealityDomainService._default_assessment_tasks(title, summary, role_family)
             ai_output = {
                 "schema_version": "challenge-ai-assist-v1",
@@ -1345,7 +1345,7 @@ class RealityDomainService:
                 "handshake_blueprint_v1": RealityDomainService._default_blueprint(title, tasks, role_family),
                 "suggested_tools": ["notion", "canva", "figma", "google_docs", "miro"],
                 "quality_score": 62,
-                "quality_checks": [{"id": "mistral_unavailable", "label": "Mistral nedostupný", "status": "warning", "advice": str(exc)[:180]}],
+                "quality_checks": [{"id": "ai_unavailable", "label": "AI nedostupná", "status": "warning", "advice": str(exc)[:180]}],
                 "jcfpm_policy": {"include_in_results": True, "required_if_missing": True, "reuse_existing": True},
                 "human_confirmation_required": True,
                 "generated_at": datetime.utcnow().isoformat(),
@@ -1434,7 +1434,7 @@ class RealityDomainService:
                         INSERT INTO ai_outputs
                           (interpretation_job_id, user_id, opportunity_id, output_type, output_payload, allowed_use, confidence, prompt_version, input_hash)
                         VALUES
-                          (:job_id, :user_id, :opportunity_id, :output_type, :output_payload, 'draft_requires_human_confirmation', 0.820, 'mistral-v2-assist', :input_hash)
+                          (:job_id, :user_id, :opportunity_id, :output_type, :output_payload, 'draft_requires_human_confirmation', 0.820, 'azure-gpt-5-mini', :input_hash)
                         """
                     ),
                     {

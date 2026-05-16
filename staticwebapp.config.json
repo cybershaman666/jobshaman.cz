@@ -1,14 +1,6 @@
 {
   "routes": [
     {
-      "route": "/api/v2/(.+)/?$",
-      "rewrite": "/api/v2/"
-    },
-    {
-      "route": "/api/v2/*",
-      "rewrite": "/api/v2/"
-    },
-    {
       "route": "/seo/*",
       "rewrite": "/seo"
     },
@@ -19,52 +11,27 @@
     {
       "route": "/health",
       "rewrite": "/health"
-    },
-    {
-      "route": "/*",
-      "serve": "/index.html",
-      "statusCode": 200
     }
   ],
   "responseOverrides": {
-    "404": "/index.html"
-  },
-  "globalHeaders": [
-    {
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://*.unsplash.com https://images.unsplash.com; connect-src 'self' https://*.supabase.co https://nominatim.openstreetmap.org https://ipapi.co https://api.*.openrouter.ai https://api.openai.com; worker-src 'self' blob:; manifest-src 'self';"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "geolocation=(), microphone=(), camera=()"
-        }
-      ]
+    "404": {
+      "rewrite": "/index.html"
     }
-  ],
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://*.unsplash.com https://images.unsplash.com; connect-src 'self' https://*.supabase.co https://nominatim.openstreetmap.org https://ipapi.co https://*.openrouter.ai https://api.openai.com https://jobshaman-api.mangorock-7014fb1a.northeurope.azurecontainerapps.io; worker-src 'self' blob:; manifest-src 'self';",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()"
+  },
   "auth": {
     "identityProviders": {}
   },
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*", "/css/*", "/js/*", "/*.json", "/*.txt"]
+    "exclude": ["/assets/*", "/images/*", "/css/*", "/js/*", "/*.json", "/*.txt"]
   },
   "trailingSlash": "auto",
   "mimeTypes": {

@@ -4,23 +4,19 @@ import { createDefaultCandidateSearchProfile } from './services/profileDefaults'
 
 // Backend API Configuration. Production calls go directly to the V2 backend
 // because the Vercel /api/v2 rewrite can fall through to the SPA fallback.
-const DEFAULT_PRODUCTION_BACKEND_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+const DEFAULT_PRODUCTION_BACKEND_URL = '/api/v2';
 
 const normalizeBackendHost = (raw?: string): string => {
   const value = (raw || '').trim();
-  const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
-  // Local development: use Vite proxy
-  if (isLocalhost || import.meta.env.DEV) {
-    if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/api\/v2)?\/?$/i.test(value)) {
-      return '/api/v2';
-    }
+  
+  // If explicitly provided via env var and NOT pointing to localhost, use that
+  if (value && !value.startsWith('/') && !value.includes('localhost') && !value.includes('127.0.0.1')) {
     return value.replace(/\/$/, '');
   }
 
-  // Production: use the backend directly; it sends CORS for jobshaman domains.
-  // Ignore VITE_API_URL env vars that point to stale external backends.
-  return DEFAULT_PRODUCTION_BACKEND_URL;
+  // Otherwise, use relative path which works for both dev (Vite proxy) and prod (SWA link)
+  // This prevents localhost from being baked into production builds.
+  return '/api/v2';
 };
 
 export const BACKEND_URL = normalizeBackendHost(

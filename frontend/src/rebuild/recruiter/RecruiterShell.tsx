@@ -297,7 +297,7 @@ export const RecruiterShell: React.FC<{
     if (taskBrief) setDraftRoleFirstStep(taskBrief);
     if (skills.length) setDraftRoleSkills(skills.slice(0, 10).join(', '));
     setDraftAiOutput(output);
-    setChallengeNotice(t('rebuild.recruiter.ai_draft_ready', { defaultValue: 'Mistral has prepared a draft of the challenge and assessment. Review it and confirm by saving.' }));
+    setChallengeNotice(t('rebuild.recruiter.ai_draft_ready', { defaultValue: 'AI připravila návrh role a assessmentu. Zkontrolujte jej a potvrďte uložením.' }));
   };
 
   const handleMistralDraftAssist = async () => {

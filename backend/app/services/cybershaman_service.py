@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from app.services.mistral_client import MistralClientError, call_mistral_json
+from app.services.azure_ai_client import AzureAIClientError, call_ai_json
 
 
 def _manual_text() -> str:
@@ -88,10 +88,10 @@ Vrať validní JSON:
   "suggested_prompts": ["navazující otázka 1", "navazující otázka 2", "navazující otázka 3"]
 }}
 """
-    payload, result = call_mistral_json(prompt, temperature=0.45, timeout=45)
+    payload, result = call_ai_json(prompt, temperature=0.45, timeout=45)
     reply = str(payload.get("reply") or "").strip()
     if not reply:
-        raise MistralClientError("Mistral response did not include reply")
+        raise AzureAIClientError("AI response did not include reply")
     return {
         "reply": reply,
         "next_step": str(payload.get("next_step") or "").strip(),

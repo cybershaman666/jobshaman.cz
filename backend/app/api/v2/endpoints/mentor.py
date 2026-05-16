@@ -5,7 +5,7 @@ from typing import Dict, List
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
 from app.services.cybershaman_service import build_cybershaman_reply
-from app.services.mistral_client import MistralClientError
+from app.services.azure_ai_client import AzureAIClientError
 
 
 router = APIRouter()
@@ -40,6 +40,6 @@ async def mentor_chat(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except MistralClientError as exc:
-        raise HTTPException(status_code=503, detail=f"Mistral mentor is unavailable: {str(exc)}") from exc
+    except AzureAIClientError as exc:
+        raise HTTPException(status_code=503, detail=f"AI mentor is unavailable: {str(exc)}") from exc
     return {"status": "success", "data": data}

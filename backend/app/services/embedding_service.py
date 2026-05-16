@@ -1,7 +1,8 @@
 """
 EmbeddingService — Semantic embedding infrastructure for JobShaman V2.
 
-Uses Mistral's `mistral-embed` model (1024 dimensions) to generate vector
+Uses Azure AI embeddings by default (1024 dimensions expected by the current
+pgvector schema) to generate vector
 representations of candidate profiles and job opportunities. These vectors
 are stored in the `jobs_nf.embedding` pgvector column and used for
 semantic retrieval in the recommendation pipeline.
@@ -17,6 +18,7 @@ All embedding operations are logged for AI governance audit trail.
 import hashlib
 import json
 import logging
+import os
 import re
 from typing import Any, Dict, List, Optional
 
@@ -24,19 +26,17 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import engine
-from app.services.mistral_client import (
-    MistralClientError,
-    call_mistral_embed,
-)
+from app.services.azure_ai_client import AzureAIClientError, call_ai_embed
 
 logger = logging.getLogger(__name__)
 
 # Maximum characters to send per text chunk to avoid token overflow.
-# mistral-embed handles ~8K tokens; ~16K chars is safe with utf-8 multilingual text.
+# Keep batches small enough for common Azure embedding deployment token limits.
 _MAX_TEXT_CHARS = 12_000
 
 # Batch size for embedding multiple texts in one API call.
-_EMBED_BATCH_SIZE = 25
+_EMBED_BATCH_SIZE = max(1, min(200, int(os.getenv("AZURE_AI_EMBEDDING_BATCH_SIZE", "100") or "100")))
+_EMBEDDING_DIM = 1024
 
 
 def _truncate(text_value: str, limit: int = _MAX_TEXT_CHARS) -> str:
@@ -54,6 +54,15 @@ def _clean_for_embedding(text_value: str) -> str:
 def _text_hash(text_value: str) -> str:
     """Stable hash for cache/dedup of embedding inputs."""
     return hashlib.sha256(text_value.encode("utf-8")).hexdigest()[:16]
+
+
+def _fit_embedding_dimension(vector: list[float], dim: int = _EMBEDDING_DIM) -> list[float]:
+    """Fit provider vectors to the current pgvector dimension until the schema is migrated."""
+    if len(vector) == dim:
+        return vector
+    if len(vector) > dim:
+        return vector[:dim]
+    return vector + ([0.0] * (dim - len(vector)))
 
 
 def build_candidate_embedding_text(
@@ -176,16 +185,16 @@ def build_job_embedding_text(job: Dict[str, Any]) -> str:
 class EmbeddingService:
     """
     Service for generating, storing, and querying semantic embeddings
-    using Mistral's mistral-embed model (1024 dimensions).
+    using the configured Azure AI embedding deployment.
     """
 
     @staticmethod
     def embed_texts(texts: list[str]) -> list[list[float]]:
         """
-        Generate embeddings for a list of texts using Mistral embed API.
+        Generate embeddings for a list of texts using Azure AI embeddings.
         Handles batching for large input sets.
 
-        Returns list of 1024-dimensional float vectors in input order.
+        Returns 1024-dimensional float vectors in input order.
         """
         if not texts:
             return []
@@ -197,18 +206,19 @@ class EmbeddingService:
             # Truncate each text in the batch
             batch = [_truncate(_clean_for_embedding(t)) for t in batch]
             try:
-                result = call_mistral_embed(batch)
-                all_embeddings.extend(result.embeddings)
+                result = call_ai_embed(batch)
+                embeddings = [_fit_embedding_dimension(vec) for vec in result.embeddings]
+                all_embeddings.extend(embeddings)
                 logger.info(
                     "Embedded batch of %d texts (%d tokens, %dms)",
                     len(batch),
                     result.tokens_used,
                     result.latency_ms,
                 )
-            except MistralClientError as exc:
+            except AzureAIClientError as exc:
                 logger.error("Embedding batch failed: %s", exc)
                 # Return zero vectors as fallback so the pipeline doesn't crash
-                all_embeddings.extend([[0.0] * 1024] * len(batch))
+                all_embeddings.extend([[0.0] * _EMBEDDING_DIM] * len(batch))
 
         return all_embeddings
 
@@ -216,7 +226,7 @@ class EmbeddingService:
     def embed_single(text_value: str) -> list[float]:
         """Convenience wrapper for embedding a single text."""
         results = EmbeddingService.embed_texts([text_value])
-        return results[0] if results else [0.0] * 1024
+        return results[0] if results else [0.0] * _EMBEDDING_DIM
 
     @staticmethod
     async def embed_candidate_profile(
@@ -233,7 +243,7 @@ class EmbeddingService:
         text_value = build_candidate_embedding_text(profile, signals, preferences)
         if not text_value.strip():
             logger.warning("Empty candidate profile text for user %s, using zero vector", user_id)
-            return [0.0] * 1024
+            return [0.0] * _EMBEDDING_DIM
 
         embedding = EmbeddingService.embed_single(text_value)
         logger.info(
@@ -250,8 +260,8 @@ class EmbeddingService:
         Store a pre-computed embedding into the jobs_nf.embedding column.
         Returns True if successful, False otherwise.
         """
-        if len(embedding) != 1024:
-            logger.error("Embedding dimension mismatch: expected 1024, got %d", len(embedding))
+        if len(embedding) != _EMBEDDING_DIM:
+            logger.error("Embedding dimension mismatch: expected %d, got %d", _EMBEDDING_DIM, len(embedding))
             return False
 
         vector_literal = "[" + ",".join(f"{v:.8f}" for v in embedding) + "]"
@@ -313,7 +323,7 @@ class EmbeddingService:
 
         Uses pgvector's <=> operator (cosine distance) with the HNSW index.
         """
-        if not candidate_embedding or len(candidate_embedding) != 1024:
+        if not candidate_embedding or len(candidate_embedding) != _EMBEDDING_DIM:
             logger.warning("Invalid candidate embedding for vector recall, falling back to empty")
             return []
 

@@ -906,16 +906,16 @@ const CandidateMentorChat: React.FC<{
   const [messages, setMessages] = React.useState<MentorChatMessage[]>(() => [
     {
       role: 'assistant',
-      content: t('rebuild.dashboard.mentor_intro', { defaultValue: 'I\'m here. Not as a chatbot for pleasantries, but as a career mirror. Start with a question, or tell me directly where your career is stuck, {{name}}.', name: firstName }),
+      content: t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: firstName }),
     },
   ]);
   const [draft, setDraft] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const [suggestions, setSuggestions] = React.useState<string[]>([
-    t('rebuild.dashboard.mentor_suggestion_1', { defaultValue: 'What does my data tell me about my next step?' }),
-    t('rebuild.dashboard.mentor_suggestion_2', { defaultValue: 'What work should I stop chasing just for money?' }),
-    t('rebuild.dashboard.mentor_suggestion_3', { defaultValue: 'What should I do in the next 24 hours?' }),
+    t('rebuild.dashboard.mentor_suggestion_1', { defaultValue: 'Co mi moje data říkají o dalším kroku?' }),
+    t('rebuild.dashboard.mentor_suggestion_2', { defaultValue: 'Jakou práci mám přestat honit jen kvůli penězům?' }),
+    t('rebuild.dashboard.mentor_suggestion_3', { defaultValue: 'Co mám udělat během příštích 24 hodin?' }),
   ]);
 
   const submitMessage = React.useCallback(async (rawMessage: string) => {
@@ -950,14 +950,14 @@ const CandidateMentorChat: React.FC<{
           <section className="flex min-h-0 flex-col p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dashboard-soft-border)] pb-5">
               <div>
-                <div className={sectionTitleClass}>Cybershaman AI</div>
-                <h2 className="mt-2 text-[2rem] font-semibold leading-tight tracking-[-0.045em] text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Career conversation without the fluff' })}</h2>
+                <div className={sectionTitleClass}>{t('rebuild.dashboard.mentor_title', { defaultValue: 'Cybershaman AI' })}</div>
+                <h2 className="mt-2 text-[2rem] font-semibold leading-tight text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Pracovní kompas bez vaty' })}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--dashboard-text-body)]">
-                  {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Answers go through Mistral and follow the manual of shamanic honesty. If data is missing, it should say so out loud.' })}
+                  {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Cybershaman používá tvůj profil, signály a doporučení z Azure AI. Když data chybí, řekne to nahlas a navrhne další konkrétní krok.' })}
                 </p>
               </div>
-              <div className="hidden rounded-2xl border-[#c7e9f0] bg-[#f0fcfd] px-4 py-3 text-right sm:block">
-                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.dashboard.compass', { defaultValue: 'Compass' })}</div>
+              <div className="hidden rounded-lg border border-[#c7e9f0] bg-[#f0fcfd] px-4 py-3 text-right sm:block">
+                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.dashboard.compass', { defaultValue: 'Kompas' })}</div>
                 <div className="mt-1 text-lg font-black text-slate-900">{vm.resonanceScore}%</div>
               </div>
             </div>
@@ -966,7 +966,7 @@ const CandidateMentorChat: React.FC<{
               {messages.map((message, index) => (
                 <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div className={cn(
-                    'max-w-[min(42rem,92%)] whitespace-pre-line rounded-[22px] px-5 py-4 text-sm leading-7 shadow-sm',
+                    'max-w-[min(42rem,92%)] whitespace-pre-line rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
                     message.role === 'user'
                       ? 'bg-[#103d46] text-white'
                       : 'border border-[color:var(--dashboard-soft-border)] bg-white/80 text-slate-700',
@@ -977,14 +977,14 @@ const CandidateMentorChat: React.FC<{
               ))}
               {busy ? (
                 <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--dashboard-soft-border)] bg-white/80 px-4 py-2 text-sm font-semibold text-slate-500">
+                  <div className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--dashboard-soft-border)] bg-white/80 px-4 py-2 text-sm font-semibold text-slate-500">
                     <Loader2 size={15} className="animate-spin text-[#12afcb]" />
-                    {t('rebuild.dashboard.mistral_thinking', { defaultValue: 'Mistral is composing a reply' })}
+                    {t('rebuild.dashboard.mistral_thinking', { defaultValue: 'AI skládá odpověď' })}
                   </div>
                 </div>
               ) : null}
               {error ? (
-                <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                   {error}
                 </div>
               ) : null}
@@ -1002,14 +1002,14 @@ const CandidateMentorChat: React.FC<{
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   rows={2}
-                  placeholder={t('rebuild.dashboard.mentor_placeholder', { defaultValue: 'Write what you want to unravel...' })}
-                  className="min-h-[3.5rem] flex-1 resize-none rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#12afcb] focus:ring-4 focus:ring-[#f0fcfd]"
+                  placeholder={t('rebuild.dashboard.mentor_placeholder', { defaultValue: 'Napiš, co chceš rozmotat...' })}
+                  className="min-h-[3.5rem] flex-1 resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#12afcb] focus:ring-4 focus:ring-[#f0fcfd]"
                 />
                 <button
                   type="submit"
                   disabled={busy || !draft.trim()}
-                  className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#12afcb] text-white shadow-[0_18px_34px_-24px_rgba(18,175,203,0.5)] transition hover:bg-[#0f95ac] disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label={t('rebuild.actions.send_message', { defaultValue: 'Send message' })}
+                  className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#12afcb] text-white shadow-[0_18px_34px_-24px_rgba(18,175,203,0.5)] transition hover:bg-[#0f95ac] disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={t('rebuild.actions.send_message', { defaultValue: 'Odeslat zprávu' })}
                 >
                   {busy ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </button>
@@ -1018,10 +1018,10 @@ const CandidateMentorChat: React.FC<{
           </section>
 
           <aside className="border-t border-[color:var(--dashboard-soft-border)] bg-[#f7fcfd]/80 p-5 lg:border-l lg:border-t-0">
-            <div className="rounded-[24px] border-[#c7e9f0] bg-white p-5">
+            <div className="rounded-lg border border-[#c7e9f0] bg-white p-5">
               <div className="flex items-center gap-2 text-sm font-black text-slate-900">
                 <Sparkles size={16} className="text-[#12afcb]" />
-                {t('rebuild.dashboard.quick_inputs', { defaultValue: 'Quick inputs' })}
+                {t('rebuild.dashboard.quick_inputs', { defaultValue: 'Rychlé vstupy' })}
               </div>
               <div className="mt-4 space-y-2">
                 {suggestions.map((suggestion) => (
@@ -1030,16 +1030,16 @@ const CandidateMentorChat: React.FC<{
                     type="button"
                     onClick={() => void submitMessage(suggestion)}
                     disabled={busy}
-                    className="w-full rounded-[16px] border border-slate-100 bg-slate-50 px-3 py-3 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-[#12afcb] hover:bg-[#f0fcfd] disabled:opacity-60"
+                    className="w-full rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-[#12afcb] hover:bg-[#f0fcfd] disabled:opacity-60"
                   >
                     {suggestion}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="mt-4 rounded-[24px] border border-slate-100 bg-white p-5 text-sm leading-6 text-slate-500">
-              <div className="font-black text-slate-900">{t('rebuild.dashboard.tone_source', { defaultValue: 'Tone source' })}</div>
-              <p className="mt-2">{t('rebuild.dashboard.tone_source_desc', { defaultValue: 'Backend loads `manual.md` and adds security boundaries so that direct speech doesn\'t slip into caricature.' })}</p>
+            <div className="mt-4 rounded-lg border border-slate-100 bg-white p-5 text-sm leading-6 text-slate-500">
+              <div className="font-black text-slate-900">{t('rebuild.dashboard.tone_source', { defaultValue: 'Tón a data' })}</div>
+              <p className="mt-2">{t('rebuild.dashboard.tone_source_desc', { defaultValue: 'Odpovědi se opírají o tvůj profil, JCFPM signály, uložené role a aktuální doporučení. Když něco nevíme, AI to má říct otevřeně.' })}</p>
             </div>
           </aside>
         </div>

@@ -1,67 +1,43 @@
-name: Deploy Backend to Azure Container Apps
+name: Deploy Backend to Azure
 
 on:
   push:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'Dockerfile'
-      - '.github/workflows/deploy-backend-azure.yml'
-  workflow_dispatch:
-
-env:
-  REGISTRY: jobshamanacr.azurecr.io
-  IMAGE_NAME: jobshaman-api
-  RESOURCE_GROUP: jobshaman-prod
-  CONTAINER_APP_NAME: jobshaman-api
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Azure login with OIDC
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Azure
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Build and push Docker image to ACR
+    - name: Build and push image to ACR
       run: |
         az acr build \
-          --registry jobshamanacr \
-          --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
-          --image ${{ env.IMAGE_NAME }}:latest \
-          --file backend/Dockerfile \
-          .
+          --registry ${{ secrets.ACR_NAME }} \
+          --image jobshaman-api:latest \
+          --file backend/Dockerfile .
 
-    - name: Deploy to Azure Container Apps
+    - name: Deploy to Container Apps
       run: |
         az containerapp update \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-    - name: Health check
-      run: |
-        sleep 10
-        CONTAINER_APP_URL=$(az containerapp show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query properties.configuration.ingress.fqdn \
-          --output tsv)
-        
-        curl -f https://$CONTAINER_APP_URL/healthz || exit 1
-
-    - name: Notify deployment
-      if: success()
-      run: |
-        echo "✅ Backend deployed successfully"
-        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          --name jobshaman-api \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ secrets.ACR_NAME }}.azurecr.io/jobshaman-api:latest

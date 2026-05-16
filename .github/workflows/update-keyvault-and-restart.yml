@@ -1,0 +1,46 @@
+name: Update KeyVault DB secret and restart Container App
+
+on:
+  workflow_dispatch:
+    inputs:
+      az_host:
+        description: 'Azure DB host'
+        required: true
+      az_user:
+        description: 'DB user (appuser)'
+        required: true
+      az_db:
+        description: 'DB name'
+        required: true
+      app_password:
+        description: 'DB password (will be treated as secret)'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Set DATABASE-URL in Key Vault
+      run: |
+        ./infra/scripts/set_keyvault_secret_db.sh --vault-name ${VAULT_NAME} --secret-name DATABASE-URL \
+          --db-user ${{ github.event.inputs.az_user }} --db-pass ${{ github.event.inputs.app_password }} \
+          --db-host ${{ github.event.inputs.az_host }} --db-name ${{ github.event.inputs.az_db }}
+      env:
+        VAULT_NAME: ${{ secrets.KEYVAULT_NAME }}
+
+    - name: Restart Container App (force update)
+      run: |
+        az containerapp update --name jobshaman-api --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --set properties.template.containers[0].image="${{ secrets.ACR_NAME }}.azurecr.io/jobshaman-api:latest"

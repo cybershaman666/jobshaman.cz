@@ -1,5 +1,10 @@
 from .models import AIGuidedProfileResponseV2
-from .pipeline import generate_profile_with_orchestration
+
+
+def generate_profile_with_orchestration(*args, **kwargs):
+    from .pipeline import generate_profile_with_orchestration as _generate
+
+    return _generate(*args, **kwargs)
 
 __all__ = [
     "AIGuidedProfileResponseV2",

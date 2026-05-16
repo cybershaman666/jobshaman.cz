@@ -1,7 +1,7 @@
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 
-const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = (BACKEND_URL || '/api/v2').replace(/\/$/, '');
 
 export const sendWelcomeEmail = async (locale: string, appUrl: string): Promise<boolean> => {
     try {

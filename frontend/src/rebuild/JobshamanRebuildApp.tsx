@@ -226,7 +226,11 @@ const JobshamanRebuildApp: React.FC = () => {
     if (!preferences.address && !userProfile.isLoggedIn) {
       const detectRegion = async () => {
         try {
-          const res = await fetch('https://ipapi.co/json/');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) throw new Error('GeoIP service response not OK');
           const data = await res.json();
           if (data && data.country_code) {
             const detectedCountry = data.country_code.toUpperCase();

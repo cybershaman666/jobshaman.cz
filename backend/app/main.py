@@ -73,7 +73,8 @@ _ALLOWED_ORIGIN_REGEX = (
     r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$|"
     r"^https?://([a-z0-9-]+\.)+vercel\.app(:\d+)?$|"
     r"^https?://[a-z0-9-]+\.northflank\.app(:\d+)?$|"
-    r"^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$"
+    r"^https?://[a-z0-9-]+--[a-z0-9-]+(?:--[a-z0-9-]+)?\.code\.run(:\d+)?$|"
+    r"^https?://[a-z0-9-]+\.azurestaticapps\.net(:\d+)?$"
 )
 
 # Custom exception handler middleware for better error responses
@@ -102,19 +103,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(candidate.router, prefix="/candidate", tags=["candidate"])
-app.include_router(company.router, prefix="/company", tags=["company"])
-app.include_router(assets.router, prefix="/assets", tags=["assets"])
-app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
-app.include_router(recommendation.router, prefix="/recommendation", tags=["recommendation"])
-app.include_router(handshake.router, prefix="/handshake", tags=["handshake"])
-app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
-app.include_router(mentor.router, prefix="/mentor", tags=["mentor"])
-app.include_router(admin.router, prefix="/admin", tags=["admin"])
-app.include_router(billing.router, prefix="/billing", tags=["billing"])
-app.include_router(stripe.router, prefix="/stripe", tags=["stripe"])
-app.include_router(scraper.router, prefix="/scraper", tags=["scraper"])
-app.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+from fastapi import APIRouter
+api_v2_router = APIRouter(prefix="/api/v2")
+
+api_v2_router.include_router(candidate.router, prefix="/candidate", tags=["candidate"])
+api_v2_router.include_router(company.router, prefix="/company", tags=["company"])
+api_v2_router.include_router(assets.router, prefix="/assets", tags=["assets"])
+api_v2_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
+api_v2_router.include_router(recommendation.router, prefix="/recommendation", tags=["recommendation"])
+api_v2_router.include_router(handshake.router, prefix="/handshake", tags=["handshake"])
+api_v2_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_v2_router.include_router(mentor.router, prefix="/mentor", tags=["mentor"])
+api_v2_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_v2_router.include_router(billing.router, prefix="/billing", tags=["billing"])
+api_v2_router.include_router(stripe.router, prefix="/stripe", tags=["stripe"])
+api_v2_router.include_router(scraper.router, prefix="/scraper", tags=["scraper"])
+api_v2_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+
+app.include_router(api_v2_router)
 
 @app.get("/csrf-token")
 def get_csrf_token():

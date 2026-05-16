@@ -1342,12 +1342,16 @@ def _starter_prompts(locale: str, role_context: dict[str, Any], section_id: str)
 
 
 def _ai_available() -> bool:
-    return bool(config.MISTRAL_API_KEY or config.OPENAI_API_KEY)
+    return bool(
+        config.AZURE_OPENAI_API_KEY
+        or config.AZURE_AI_API_KEY
+        or config.AZURE_INFERENCE_CREDENTIAL
+        or config.MISTRAL_API_KEY
+        or config.OPENAI_API_KEY
+    )
 
 
 def _signal_boost_ai_provider() -> str:
-    if config.MISTRAL_API_KEY:
-        return "mistral"
     return resolve_ai_provider()
 
 

@@ -21,9 +21,9 @@ class AccessControlService:
     @staticmethod
     def verify_supabase_jwt_raw(token: str):
         if not JWT_SECRET:
-            use_legacy_fallback = allow_legacy_auth_fallback() or not strict_production_mode()
-            if strict_production_mode() or not use_legacy_fallback:
-                raise HTTPException(status_code=500, detail="Supabase JWT verification is not configured")
+            use_legacy_fallback = allow_legacy_auth_fallback()
+            if not use_legacy_fallback and strict_production_mode():
+                raise HTTPException(status_code=500, detail="Supabase JWT verification is not configured (SUPABASE_JWT_SECRET missing)")
             client = get_legacy_supabase_client()
             if not client:
                 raise HTTPException(status_code=500, detail="Supabase auth is not configured")

@@ -52,21 +52,45 @@ def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
 
 def resolve_ai_provider() -> str:
     provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
-    if provider in {"mistral", "openai"}:
+    if provider in {"azure", "mistral", "openai"}:
         return provider
+    if (
+        os.getenv("AZURE_OPENAI_API_KEY")
+        or os.getenv("AZURE_AI_API_KEY")
+        or os.getenv("AZURE_INFERENCE_CREDENTIAL")
+    ):
+        return "azure"
     if os.getenv("MISTRAL_API_KEY"):
         return "mistral"
     return "openai"
 
 
 def get_default_primary_model() -> str:
-    if resolve_ai_provider() == "mistral":
+    provider = resolve_ai_provider()
+    if provider == "azure":
+        return (
+            os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_MODEL")
+            or os.getenv("OPENAI_MODEL")
+            or "gpt-5-mini"
+        )
+    if provider == "mistral":
         return os.getenv("MISTRAL_MODEL", "mistral-small-latest")
     return os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 
 def get_default_fallback_model() -> Optional[str]:
-    if resolve_ai_provider() == "mistral":
+    provider = resolve_ai_provider()
+    if provider == "azure":
+        return (
+            os.getenv("AZURE_OPENAI_FALLBACK_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_FALLBACK_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_FALLBACK_MODEL")
+            or os.getenv("OPENAI_FALLBACK_MODEL")
+            or None
+        )
+    if provider == "mistral":
         return (
             os.getenv("MISTRAL_FALLBACK_MODEL")
             or os.getenv("MISTRAL_MODEL_FALLBACK")
@@ -231,6 +255,39 @@ def _call_openai_chat_completion(
             time.sleep(backoff)
 
 
+def _call_azure_chat_completion(
+    prompt: str,
+    model_name: str,
+    max_retries: int = 2,
+    generation_config: Optional[Dict[str, Any]] = None,
+) -> AIClientResult:
+    from app.services.azure_ai_client import AzureAIClientError, call_ai_text
+
+    temperature = (generation_config or {}).get("temperature", 0)
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            text, result = call_ai_text(
+                prompt,
+                model_name=model_name,
+                temperature=temperature,
+                timeout=90,
+            )
+            return AIClientResult(
+                text=text,
+                model_name=result.model_name,
+                tokens_in=result.tokens_in,
+                tokens_out=result.tokens_out,
+                latency_ms=result.latency_ms,
+            )
+        except AzureAIClientError as exc:
+            if attempt > max_retries or not _is_transient_error(exc):
+                raise AIClientError(str(exc))
+            backoff = 0.4 * (2 ** (attempt - 1))
+            time.sleep(backoff)
+
+
 def call_model_with_retry(
     prompt: str,
     model_name: str,
@@ -239,6 +296,13 @@ def call_model_with_retry(
     provider_override: Optional[str] = None,
 ) -> AIClientResult:
     provider = (provider_override or resolve_ai_provider()).strip().lower()
+    if provider == "azure":
+        return _call_azure_chat_completion(
+            prompt,
+            model_name,
+            max_retries=max_retries,
+            generation_config=generation_config,
+        )
     if provider == "mistral":
         return _call_mistral_chat_completion(
             prompt,
@@ -264,6 +328,8 @@ def call_primary_with_fallback(
 ) -> tuple[AIClientResult, bool]:
     default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
     provider = (provider_override or resolve_ai_provider()).strip().lower()
+    if provider == "azure":
+        default_rescue = "gpt-5-mini"
     if provider == "mistral":
         default_rescue = "mistral-small-latest"
 

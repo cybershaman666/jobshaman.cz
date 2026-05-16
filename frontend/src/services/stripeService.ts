@@ -5,7 +5,7 @@ export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 import { BILLING_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 
-const API_URL = BILLING_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = (BILLING_BACKEND_URL || '/api/v2').replace(/\/$/, '');
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.

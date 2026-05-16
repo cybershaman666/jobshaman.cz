@@ -194,7 +194,7 @@ async def get_embedding_stats(
             "status": "success",
             "data": {
                 "embedded_jobs": embedded_count,
-                "embedding_model": "mistral-embed",
+                "embedding_model": "azure-ai-embeddings",
                 "embedding_dims": 1024,
             },
         }
@@ -238,4 +238,3 @@ async def backfill_job_embeddings(
             "total_embedded": remaining,
         },
     }
-

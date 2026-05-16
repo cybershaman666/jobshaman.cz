@@ -4,7 +4,7 @@ import { BACKEND_URL } from '../constants';
 const normalizeApiBaseUrl = (): string => (BACKEND_URL || '/api/v2').replace(/\/$/, '');
 
 const API_BASE_URL = normalizeApiBaseUrl();
-const DIRECT_API_BASE_URL = 'https://site--jobshaman--rb4dlj74d5kc.code.run';
+const DIRECT_API_BASE_URL = 'https://jobshaman-api.mangorock-7014fb1a.northeurope.azurecontainerapps.io';
 
 const isHtmlResponse = (response: Response): boolean => {
   const contentType = response.headers.get('Content-Type') || '';

@@ -30,6 +30,16 @@ def _mask(value: str | None) -> str:
 
 def _resolve_models() -> tuple[str, str | None]:
     provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    if provider == "azure" or os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY"):
+        return (
+            os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_MODEL")
+            or "gpt-5-mini",
+            os.getenv("AZURE_OPENAI_FALLBACK_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_FALLBACK_DEPLOYMENT_NAME")
+            or os.getenv("AZURE_AI_FALLBACK_MODEL"),
+        )
     if provider == "openai":
         return (
             os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
@@ -42,15 +52,24 @@ def _resolve_models() -> tuple[str, str | None]:
 
 
 def main() -> int:
-    provider = (os.getenv("AI_PROVIDER") or "").strip().lower() or "mistral"
+    provider = (os.getenv("AI_PROVIDER") or "").strip().lower() or "azure"
     primary_model, fallback_model = _resolve_models()
-    endpoint = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1/chat/completions")
+    endpoint = (
+        os.getenv("AZURE_AI_FOUNDRY_ENDPOINT")
+        or os.getenv("AZURE_AI_ENDPOINT")
+        or os.getenv("AZURE_OPENAI_ENDPOINT")
+        or os.getenv("OPENAI_ENDPOINT")
+        or "(missing)"
+    )
 
     print("=== AI Provider Self-Test ===")
     print(f"AI_PROVIDER: {provider}")
     print(f"primary_model: {primary_model}")
     print(f"fallback_model: {fallback_model}")
-    print(f"OPENAI_ENDPOINT: {endpoint}")
+    print(f"AI_ENDPOINT: {endpoint}")
+    print(f"AZURE_OPENAI_API_KEY: {_mask(os.getenv('AZURE_OPENAI_API_KEY'))}")
+    print(f"AZURE_AI_API_KEY: {_mask(os.getenv('AZURE_AI_API_KEY'))}")
+    print(f"AZURE_INFERENCE_CREDENTIAL: {_mask(os.getenv('AZURE_INFERENCE_CREDENTIAL'))}")
     print(f"OPENAI_API_KEY: {_mask(os.getenv('OPENAI_API_KEY'))}")
     print(f"MISTRAL_API_KEY: {_mask(os.getenv('MISTRAL_API_KEY'))}")
     print(f"OPENROUTER_HTTP_REFERER: {os.getenv('OPENROUTER_HTTP_REFERER', '(default)')}")
