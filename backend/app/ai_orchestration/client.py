@@ -61,7 +61,7 @@ def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
 
 def resolve_ai_provider() -> str:
     provider = (_env("AI_PROVIDER") or "").strip().lower()
-    if provider in {"azure", "mistral", "openai"}:
+    if provider in {"azure", "openai"}:
         return provider
     if (
         _env("AZURE_OPENAI_API_KEY")
@@ -69,8 +69,6 @@ def resolve_ai_provider() -> str:
         or _env("AZURE_INFERENCE_CREDENTIAL")
     ):
         return "azure"
-    if _env("MISTRAL_API_KEY"):
-        return "mistral"
     return "openai"
 
 
@@ -84,8 +82,6 @@ def get_default_primary_model() -> str:
             or _env("OPENAI_MODEL")
             or "gpt-5-mini"
         )
-    if provider == "mistral":
-        return _env("MISTRAL_MODEL") or "mistral-small-latest"
     return _env("OPENAI_MODEL") or "gpt-4.1-mini"
 
 
@@ -97,12 +93,6 @@ def get_default_fallback_model() -> Optional[str]:
             or _env("AZURE_AI_FALLBACK_DEPLOYMENT_NAME")
             or _env("AZURE_AI_FALLBACK_MODEL")
             or _env("OPENAI_FALLBACK_MODEL")
-            or None
-        )
-    if provider == "mistral":
-        return (
-            _env("MISTRAL_FALLBACK_MODEL")
-            or _env("MISTRAL_MODEL_FALLBACK")
             or None
         )
     return _env("OPENAI_FALLBACK_MODEL") or "gpt-4.1-nano"
@@ -145,62 +135,7 @@ def _extract_openai_text(payload: Dict[str, Any]) -> str:
     raise AIClientError("OpenAI response did not contain text")
 
 
-def _call_mistral_chat_completion(
-    prompt: str,
-    model_name: str,
-    max_retries: int = 2,
-    generation_config: Optional[Dict[str, Any]] = None,
-) -> AIClientResult:
-    api_key = _env("MISTRAL_API_KEY")
-    if not api_key:
-        raise AIClientError("MISTRAL_API_KEY is not configured")
 
-    endpoint = _env("MISTRAL_ENDPOINT") or "https://api.mistral.ai/v1/chat/completions"
-    temperature = (generation_config or {}).get("temperature", 0)
-    top_p = (generation_config or {}).get("top_p", 1)
-
-    payload = {
-        "model": model_name,
-        "temperature": temperature,
-        "top_p": top_p,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-    }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    attempt = 0
-    while True:
-        attempt += 1
-        started = time.perf_counter()
-        try:
-            resp = requests.post(endpoint, headers=headers, json=payload, timeout=90)
-            if resp.status_code >= 400:
-                raise AIClientError(f"Mistral HTTP {resp.status_code}: {resp.text[:500]}")
-            data = resp.json()
-            elapsed_ms = int((time.perf_counter() - started) * 1000)
-            text = _extract_openai_text(data)
-            tokens_in, tokens_out = _usage_counts_openai(data)
-            return AIClientResult(
-                text=text,
-                model_name=model_name,
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
-                latency_ms=elapsed_ms,
-            )
-        except Exception as exc:
-            if attempt > max_retries or not _is_transient_error(exc):
-                raise AIClientError(str(exc))
-            backoff = 0.4 * (2 ** (attempt - 1))
-            time.sleep(backoff)
 
 
 def _call_openai_chat_completion(
@@ -312,13 +247,6 @@ def call_model_with_retry(
             max_retries=max_retries,
             generation_config=generation_config,
         )
-    if provider == "mistral":
-        return _call_mistral_chat_completion(
-            prompt,
-            model_name,
-            max_retries=max_retries,
-            generation_config=generation_config,
-        )
     return _call_openai_chat_completion(
         prompt,
         model_name,
@@ -339,8 +267,6 @@ def call_primary_with_fallback(
     provider = (provider_override or resolve_ai_provider()).strip().lower()
     if provider == "azure":
         default_rescue = "gpt-5-mini"
-    if provider == "mistral":
-        default_rescue = "mistral-small-latest"
 
     rescue_raw = _env("AI_RESCUE_MODELS") or default_rescue
     rescue_models = [m.strip() for m in rescue_raw.split(",") if m.strip()]
