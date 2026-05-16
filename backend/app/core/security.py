@@ -3,6 +3,11 @@ import os
 from fastapi import HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
+import requests
+from jose import jwt as jose_jwt
+from jose import jwk as jose_jwk
+import json
+import time
 
 from app.core.legacy_supabase import get_legacy_supabase_client
 from app.core.runtime import allow_legacy_auth_fallback, strict_production_mode
@@ -18,6 +23,27 @@ security = HTTPBearer()
 JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET") or os.environ.get("JWT_SECRET")
 
 class AccessControlService:
+    JWKS_URL = os.environ.get("SUPABASE_JWKS_URL") or "https://frquoinhhxkxnvcyomtr.supabase.co/auth/v1/.well-known/jwks.json"
+    JWKS_CACHE = None
+    JWKS_CACHE_AT = 0
+    JWKS_CACHE_TTL = 300  # 5 min
+
+    @staticmethod
+    def _get_jwks():
+        now = int(time.time())
+        if (
+            not AccessControlService.JWKS_CACHE
+            or (now - AccessControlService.JWKS_CACHE_AT) > AccessControlService.JWKS_CACHE_TTL
+        ):
+            try:
+                resp = requests.get(AccessControlService.JWKS_URL, timeout=5)
+                resp.raise_for_status()
+                AccessControlService.JWKS_CACHE = resp.json()
+                AccessControlService.JWKS_CACHE_AT = now
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Chyba načítání JWKS: {e}")
+        return AccessControlService.JWKS_CACHE
+
     @staticmethod
     def verify_supabase_jwt_raw(token: str):
         if not JWT_SECRET:
@@ -45,20 +71,64 @@ class AccessControlService:
             except Exception as exc:
                 raise HTTPException(status_code=401, detail=f"Invalid token: {str(exc)}") from exc
 
+        # Rozpoznání typu tokenu podle headeru
+        headers_segment = token.split('.')[0] + "=="
         try:
-            payload = jwt.decode(
-                token,
-                JWT_SECRET,
-                algorithms=["HS256"],
-                options={"verify_aud": False}
+            headers = json.loads(
+                base64url_decode(headers_segment).decode()
             )
-            if "id" not in payload and "sub" in payload:
-                payload["id"] = payload["sub"]
-            return payload
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token has expired")
-        except jwt.InvalidTokenError as e:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+            alg = headers.get("alg")
+            kid = headers.get("kid")
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid JWT header.")
+
+        if alg == "HS256":
+            try:
+                payload = jwt.decode(
+                    token,
+                    JWT_SECRET,
+                    algorithms=["HS256"],
+                    options={"verify_aud": False}
+                )
+                if "id" not in payload and "sub" in payload:
+                    payload["id"] = payload["sub"]
+                return payload
+            except jwt.ExpiredSignatureError:
+                raise HTTPException(status_code=401, detail="Token has expired")
+            except jwt.InvalidTokenError as e:
+                raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+        elif alg == "ES256":
+            # JWKS+JOSE-based ověření
+            jwks = AccessControlService._get_jwks()
+            keys = jwks.get("keys", [])
+            key = next((k for k in keys if k.get("kid") == kid), None)
+            if not key:
+                raise HTTPException(status_code=401, detail=f"Unknown KID '{kid}' in JWT.")
+            try:
+                payload = jose_jwt.decode(
+                    token,
+                    key,
+                    algorithms=["ES256"],
+                    options={"verify_aud": False}
+                )
+                if "id" not in payload and "sub" in payload:
+                    payload["id"] = payload["sub"]
+                return payload
+            except jose_jwt.ExpiredSignatureError:
+                raise HTTPException(status_code=401, detail="Token has expired")
+            except jose_jwt.JWTError as e:
+                raise HTTPException(status_code=401, detail=f"Invalid token (ES256): {str(e)}")
+        else:
+            raise HTTPException(status_code=401, detail=f"JWT s nepodporovaným algoritmem: {alg}")
+
+# helper
+import base64
+def base64url_decode(input):
+    rem = len(input) % 4
+    if rem > 0:
+        input += '=' * (4 - rem)
+    return base64.urlsafe_b64decode(input)
 
     @staticmethod
     def verify_supabase_jwt(credentials: HTTPAuthorizationCredentials = Security(security)):

@@ -8,6 +8,7 @@ dnspython
 python-dotenv
 beautifulsoup4
 requests
+python-jose[cryptography]
 pydantic
 pydantic-settings
 email-validator

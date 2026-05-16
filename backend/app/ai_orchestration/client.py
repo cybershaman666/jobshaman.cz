@@ -61,6 +61,9 @@ def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
 
 def resolve_ai_provider() -> str:
     provider = (_env("AI_PROVIDER") or "").strip().lower()
+    # Zákaz Mistralu - pokaždé vynuceně openai/azure, nikdy mistral
+    if provider == "mistral":
+        return "openai"
     if provider in {"azure", "openai"}:
         return provider
     if (
