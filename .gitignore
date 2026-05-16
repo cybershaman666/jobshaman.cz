@@ -38,3 +38,5 @@ __pycache__/
 # Local envs
 .venv/
 venv/
+
+infra/terraform/.terraform/

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import logging
 from pydantic import BaseModel, Field
 from typing import Dict, List
 
@@ -9,6 +10,7 @@ from app.services.azure_ai_client import AzureAIClientError
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class MentorMessage(BaseModel):
@@ -41,5 +43,12 @@ async def mentor_chat(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except AzureAIClientError as exc:
+        # Known upstream AI problems -> map to 503 so clients can retry later
+        logger.warning("AzureAIClientError in mentor_chat: %s", exc)
         raise HTTPException(status_code=503, detail=f"AI mentor is unavailable: {str(exc)}") from exc
+    except Exception as exc:  # pragma: no cover - defensive catch to log unexpected errors
+        # Log full exception so we can debug 500s in production (App Insights / container logs)
+        logger.exception("Unhandled exception in mentor_chat")
+        # Return a safe 500 to caller without leaking internals
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
     return {"status": "success", "data": data}

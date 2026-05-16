@@ -300,6 +300,8 @@
   },
   "intelligence": {
     "title": "Kandidátská inteligence",
+    "market_domestic": "Tuzemský",
+    "market_cross_border": "Přeshraniční",
     "jhi_index": "JHI index",
     "real_value": "Reálná hodnota",
     "tax_regime": "Daňový režim",

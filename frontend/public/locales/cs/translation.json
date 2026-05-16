@@ -5686,9 +5686,11 @@
       "open_journey": "Otevřít cestu",
       "open_prep": "Otevřít přípravu"
     },
-    "intelligence": {
+   "intelligence": {
       "title": "Kandidátská inteligence",
-      "jhi_index": "JHI index",
+      "market_domestic": "Tuzemský",
+      "market_cross_border": "Přeshraniční",
+      "open_listing": "Otevřít původní inzerát",
       "real_value": "Reálná hodnota",
       "tax_regime": "Daňový režim",
       "commute": "Dojezd",
