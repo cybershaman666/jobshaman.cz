@@ -1,5 +1,6 @@
 import jwt
 import os
+import base64
 from fastapi import HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -21,6 +22,12 @@ load_dotenv(backend_env)
 
 security = HTTPBearer()
 JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET") or os.environ.get("JWT_SECRET")
+
+def base64url_decode(input: str) -> bytes:
+    rem = len(input) % 4
+    if rem > 0:
+        input += '=' * (4 - rem)
+    return base64.urlsafe_b64decode(input)
 
 class AccessControlService:
     JWKS_URL = os.environ.get("SUPABASE_JWKS_URL") or "https://frquoinhhxkxnvcyomtr.supabase.co/auth/v1/.well-known/jwks.json"
@@ -121,14 +128,6 @@ class AccessControlService:
                 raise HTTPException(status_code=401, detail=f"Invalid token (ES256): {str(e)}")
         else:
             raise HTTPException(status_code=401, detail=f"JWT s nepodporovaným algoritmem: {alg}")
-
-# helper
-import base64
-def base64url_decode(input):
-    rem = len(input) % 4
-    if rem > 0:
-        input += '=' * (4 - rem)
-    return base64.urlsafe_b64decode(input)
 
     @staticmethod
     def verify_supabase_jwt(credentials: HTTPAuthorizationCredentials = Security(security)):

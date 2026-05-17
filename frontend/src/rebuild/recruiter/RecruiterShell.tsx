@@ -37,6 +37,7 @@ import { cn } from '../cn';
 import { deriveDashboardMetrics } from '../derivations';
 import type { CalendarEvent, CandidateInsight, Company, HandshakeBlueprint, Role } from '../models';
 import type { RecruiterTab } from '../routing';
+import { RecruiterAssistantPage } from './RecruiterAssistantPage';
 import { roleFamilyLabel } from '../shellDomain';
 import { getApplicationStatusCopy } from '../status';
 import {
@@ -622,7 +623,9 @@ export const RecruiterShell: React.FC<{
         ? t('rebuild.recruiter.nav_integrations', { defaultValue: 'Integrace' })
         : tab === 'billing'
           ? t('rebuild.recruiter.nav_billing', { defaultValue: 'Subscription' })
-          : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
+          : tab === 'assistant'
+            ? t('rebuild.recruiter.assistant_title', { defaultValue: 'Ask Shami' })
+            : t('rebuild.recruiter.nav_company_profile', { defaultValue: 'Firemní profil' });
   const workspaceSubtitle = tab === 'roles'
     ? t('rebuild.recruiter.subtitle_roles', { defaultValue: 'Role assignments, evidence of ability, and skill-first selection management.' })
     : tab === 'talent-pool'
@@ -631,7 +634,9 @@ export const RecruiterShell: React.FC<{
         ? t('rebuild.recruiter.subtitle_integrations', { defaultValue: 'API klíče, webhooky, ATS návody a audit doručení.' })
         : tab === 'billing'
           ? t('rebuild.recruiter.subtitle_billing', { defaultValue: 'Plan details, usage tracking, invoices, and payment management.' })
-          : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
+          : tab === 'assistant'
+            ? t('rebuild.recruiter.assistant_subtitle', { defaultValue: 'Váš náborový a asistenční průvodce Shami' })
+            : t('rebuild.recruiter.subtitle_settings', { defaultValue: 'Brand, media, and contact persons as a single source of truth.' });
 
   const shouldRenderDashboardV2 = tab === 'dashboard';
   if (shouldRenderDashboardV2) {
@@ -1163,6 +1168,10 @@ export const RecruiterShell: React.FC<{
 
           {tab === 'integrations' ? (
             <RecruiterIntegrationsPage t={t} />
+          ) : null}
+
+          {tab === 'assistant' ? (
+            <RecruiterAssistantPage t={t} navigate={navigate} />
           ) : null}
 
           {tab === 'settings' && recruiterCompanyHydrated ? (

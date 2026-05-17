@@ -381,7 +381,9 @@ const JobshamanRebuildApp: React.FC = () => {
         ? 'candidates'
         : route.tab === 'roles'
           ? 'jobs'
-          : 'settings'
+          : route.tab === 'assistant'
+            ? 'assistant'
+            : 'settings'
     : '';
   const recruiterDialogueTab = route.kind === 'recruiter'
     ? route.tab === 'roles'

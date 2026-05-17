@@ -456,7 +456,7 @@ const OnboardingAlert: React.FC<{ onStart: () => void }> = ({ onStart }) => {
             <Sparkles size={24} />
           </div>
           <div>
-            <div className="text-lg font-bold text-amber-900">{t('rebuild.dashboard.onboarding_pending_title', { defaultValue: 'Průvodce Cybershamanem není dokončen' })}</div>
+            <div className="text-lg font-bold text-amber-900">{t('rebuild.dashboard.onboarding_pending_title', { defaultValue: 'Průvodce Shamim není dokončen' })}</div>
             <p className="mt-1 text-sm leading-6 text-amber-800/80">
               {t('rebuild.dashboard.onboarding_pending_desc', { defaultValue: 'Projděte rituálem probuzení, abychom mohli přesněji namířit váš pracovní kompas.' })}
             </p>
@@ -937,7 +937,7 @@ const CandidateMentorChat: React.FC<{
       ]);
       if (reply.suggested_prompts?.length) setSuggestions(reply.suggested_prompts);
     } catch (chatError) {
-      setError(chatError instanceof Error ? chatError.message : t('rebuild.dashboard.mentor_error', { defaultValue: 'Cybershaman did not respond right now.' }));
+      setError(chatError instanceof Error ? chatError.message : t('rebuild.dashboard.mentor_error', { defaultValue: 'Shami did not respond right now.' }));
     } finally {
       setBusy(false);
     }
@@ -949,12 +949,15 @@ const CandidateMentorChat: React.FC<{
         <div className="grid min-h-[calc(100vh-9rem)] gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
           <section className="flex min-h-0 flex-col p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dashboard-soft-border)] pb-5">
-              <div>
-                <div className={sectionTitleClass}>{t('rebuild.dashboard.mentor_title', { defaultValue: 'Cybershaman AI' })}</div>
-                <h2 className="mt-2 text-[2rem] font-semibold leading-tight text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Pracovní kompas bez vaty' })}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--dashboard-text-body)]">
-                  {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Cybershaman používá tvůj profil, signály a doporučení z Azure AI. Když data chybí, řekne to nahlas a navrhne další konkrétní krok.' })}
-                </p>
+              <div className="flex items-start gap-4">
+                <img src="/shami.png" alt="Shami" className="h-16 w-16 object-contain rounded-2xl shadow-sm border border-slate-100 bg-white p-1" />
+                <div>
+                  <div className={sectionTitleClass}>{t('rebuild.dashboard.mentor_title', { defaultValue: 'Shami AI' })}</div>
+                  <h2 className="mt-1 text-[2rem] font-semibold leading-tight text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Pracovní kompas bez vaty' })}</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--dashboard-text-body)]">
+                    {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Shami používá tvůj profil, signály a doporučení z Azure AI. Když data chybí, řekne to nahlas a navrhne další konkrétní krok.' })}
+                  </p>
+                </div>
               </div>
               <div className="hidden rounded-lg border border-[#c7e9f0] bg-[#f0fcfd] px-4 py-3 text-right sm:block">
                 <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.dashboard.compass', { defaultValue: 'Kompas' })}</div>
@@ -965,12 +968,15 @@ const CandidateMentorChat: React.FC<{
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-5">
               {messages.map((message, index) => (
                 <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  <div className={cn(
-                    'max-w-[min(42rem,92%)] whitespace-pre-line rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
-                    message.role === 'user'
-                      ? 'bg-[#103d46] text-white'
-                      : 'border border-[color:var(--dashboard-soft-border)] bg-white/80 text-slate-700',
-                  )}>
+                  <div
+                    className={cn(
+                      'max-w-[min(42rem,92%)] whitespace-pre-line rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
+                      message.role === 'user'
+                        ? 'bg-[#103d46] !text-white'
+                        : 'border border-[color:var(--dashboard-soft-border)] bg-white/80 text-slate-700',
+                    )}
+                    style={message.role === 'user' ? { color: '#ffffff' } : {}}
+                  >
                     {message.content}
                   </div>
                 </div>
@@ -979,7 +985,7 @@ const CandidateMentorChat: React.FC<{
                 <div className="flex justify-start">
                   <div className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--dashboard-soft-border)] bg-white/80 px-4 py-2 text-sm font-semibold text-slate-500">
                     <Loader2 size={15} className="animate-spin text-[#12afcb]" />
-                    {t('rebuild.dashboard.mistral_thinking', { defaultValue: 'AI skládá odpověď' })}
+                    {t('rebuild.dashboard.ai_thinking', { defaultValue: 'AI skládá odpověď' })}
                   </div>
                 </div>
               ) : null}
@@ -1271,7 +1277,7 @@ export const CandidateDashboardV2: React.FC<{
         currentLanguage={currentLanguage}
         onLanguageChange={onLanguageChange}
         title={isProfileView ? t('rebuild.dashboard.my_profile', { defaultValue: 'My profile' }) : firstName ? t('rebuild.dashboard.greeting', { defaultValue: 'Hello, {{name}}', name: firstName }) : t('rebuild.dashboard.default_title', { defaultValue: 'Your work compass' })}
-        subtitle={isProfileView ? t('rebuild.dashboard.profile_subtitle', { defaultValue: 'Your skills, experience, and potential in one place.' }) : t('rebuild.dashboard.default_subtitle', { defaultValue: '„Everyone has potential. Our mission is to reveal it.“ — Cybershaman' })}
+        subtitle={isProfileView ? t('rebuild.dashboard.profile_subtitle', { defaultValue: 'Your skills, experience, and potential in one place.' }) : t('rebuild.dashboard.default_subtitle', { defaultValue: '„Everyone has potential. Our mission is to reveal it.“ — Shami' })}
         t={t}
       >
         {isProfileView ? (

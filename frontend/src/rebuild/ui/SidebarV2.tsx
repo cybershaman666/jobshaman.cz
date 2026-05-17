@@ -144,10 +144,10 @@ export const SidebarV2: React.FC<{
         <div className="p-4">
           {userRole === 'recruiter' && (
             <>
-              <button type="button" onClick={() => onNavigate('cybershaman')} className="flex w-full items-center gap-3 rounded-[18px] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--dashboard-text-body)] shadow-[0_14px_38px_-34px_rgba(15,23,42,0.24)] transition hover:bg-white">
-                <Sparkles size={18} className="text-[color:var(--accent)]" />
+              <button type="button" onClick={() => onNavigate('assistant', '/recruiter/assistant')} className="flex w-full items-center gap-3 rounded-[18px] bg-white/72 px-4 py-4 text-sm font-medium text-[color:var(--dashboard-text-body)] shadow-[0_14px_38px_-34px_rgba(15,23,42,0.24)] transition hover:bg-white">
+                <img src="/shami.png" alt="Shami" className="h-9 w-9 object-contain rounded-lg shadow-sm" />
                 <div className="flex flex-col items-start">
-                  <span>Cybershaman AI</span>
+                  <span>{t('rebuild.nav.ai_guide', { defaultValue: 'Ask Shami' })}</span>
                   <span className="text-[10px] font-normal text-[color:var(--dashboard-text-muted)]">{t('rebuild.nav.ai_guide_subtitle', { defaultValue: 'Your AI recruitment guide' })}</span>
                 </div>
               </button>
@@ -196,11 +196,11 @@ export const SidebarV2: React.FC<{
                       ? 'bg-[radial-gradient(circle_at_50%_35%,rgba(255,247,223,0.98),rgba(232,200,130,0.92)_60%,rgba(192,229,233,0.78))] shadow-[0_18px_30px_-20px_rgba(88,64,24,0.45)]'
                       : 'bg-[radial-gradient(circle_at_50%_35%,rgba(255,247,223,0.18),rgba(229,193,124,0.22)_58%,rgba(124,232,255,0.16))] shadow-[0_18px_34px_-20px_rgba(4,10,22,0.62)]',
                   )} />
-                  <img src={candidateLight ? "/logo-transparent.png" : "/logodark.png"} alt="" className="relative h-9 w-9 object-contain opacity-95" />
+                  <img src="/shami.png" alt="Shami" className="relative h-11 w-11 object-contain rounded-xl shadow-sm" />
                 </div>
                 <div className="relative min-w-0 flex-1">
                   <div className={cn('pr-8 text-[15px] font-semibold leading-5', candidateLight ? 'text-[color:var(--shell-text-primary)]' : 'text-white')}>
-                    {t('rebuild.nav.chat_with_shaman', { defaultValue: 'Chat with Shaman' })}
+                    {t('rebuild.nav.chat_with_shaman', { defaultValue: 'Chat with Shami' })}
                   </div>
                   <div className={cn(
                     'absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-transform duration-300 group-hover:-translate-y-[55%] group-hover:translate-x-0.5',

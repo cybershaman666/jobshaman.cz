@@ -17,7 +17,12 @@ BACKEND_DIR = CURRENT_FILE.parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from dotenv import load_dotenv
+# Load .env from the repository root
+load_dotenv(BACKEND_DIR.parent / ".env")
+
 from app.ai_orchestration.client import AIClientError, call_primary_with_fallback
+
 
 
 def _mask(value: str | None) -> str:
