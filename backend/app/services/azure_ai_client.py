@@ -196,7 +196,12 @@ def call_ai_text(
     response_format: Optional[Dict[str, Any]] = None,
 ) -> tuple[str, AzureAIResult]:
     url, headers, model_in_body = _chat_endpoint()
-    model = _deployment_name(model_name)
+    # Pokud přijde model_name začínající na mistral, ignoruj jej a použij default podle prostředí
+    model = model_name
+    if model and str(model).lower().startswith("mistral"):
+        model = None
+    model = _deployment_name(model)
+
     payload: Dict[str, Any] = {
         "messages": [{"role": "user", "content": prompt}],
     }
@@ -212,7 +217,8 @@ def call_ai_text(
 
     started = time.perf_counter()
     try:
-        logger.debug("POST %s (model=%s) payload keys=%s", url, model, list(payload.keys()))
+        # Loguj kompletní payload pro analýzu chyb Azure AI
+        logger.warning("AzureAI DEBUG REQUEST:\nPOST %s\nheaders: %s\nmodel: %s\npayload: %s", url, {h: "****" if "key" in h.lower() else v for h, v in headers.items()}, model, json.dumps(payload, ensure_ascii=False, indent=2))
         resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
     except Exception as exc:
         logger.exception("Request to Azure AI failed")
