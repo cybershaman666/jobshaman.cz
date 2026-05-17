@@ -969,7 +969,7 @@ const CandidateMentorChat: React.FC<{
           <section className="flex min-h-0 flex-col p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dashboard-soft-border)] pb-5">
               <div className="flex items-start gap-4">
-                <img src="/shami.png" alt="Shami" className="h-16 w-16 object-contain rounded-2xl shadow-sm border border-slate-100 bg-white p-1" />
+                <img src="/shami.png" alt="Shami" className="h-24 w-24 object-contain rounded-2xl shadow-sm border border-slate-100 bg-white p-1" />
                 <div>
                   <div className={sectionTitleClass}>{t('rebuild.dashboard.mentor_title', { defaultValue: 'Shami AI' })}</div>
                   <h2 className="mt-1 text-[2rem] font-semibold leading-tight text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Pracovní kompas bez vaty' })}</h2>
@@ -987,6 +987,9 @@ const CandidateMentorChat: React.FC<{
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-5">
               {messages.map((message, index) => (
                 <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  {message.role === 'assistant' && (
+                    <img src="/shami.png" alt="Shami" className="h-10 w-10 object-contain rounded-full shadow-sm ring-1 ring-slate-100 mr-3 mt-1 shrink-0 bg-white" />
+                  )}
                   <div
                     className={cn(
                       'max-w-[min(42rem,92%)] whitespace-pre-line rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',

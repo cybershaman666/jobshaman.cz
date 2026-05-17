@@ -119,7 +119,7 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
         <img
           src="/shami.png"
           alt="Shami"
-          className="h-12 w-12 rounded-xl border border-slate-100 dark:border-slate-800 bg-white p-0.5 object-contain shadow-sm"
+          className="h-20 w-20 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white p-1 object-contain shadow-sm"
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
                 <img
                   src="/shami.png"
                   alt="Shami"
-                  className="h-8 w-8 rounded-lg border border-slate-100 bg-white object-contain shadow-sm mt-0.5"
+                  className="h-12 w-12 rounded-full border border-slate-100 bg-white object-contain shadow-sm mt-0.5"
                 />
               )}
               <div className="flex flex-col">
@@ -192,7 +192,7 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
             <img
               src="/shami.png"
               alt="Shami"
-              className="h-8 w-8 rounded-lg border border-slate-100 bg-white object-contain shadow-sm mt-0.5"
+              className="h-12 w-12 rounded-full border border-slate-100 bg-white object-contain shadow-sm mt-0.5 shrink-0"
             />
             <div className="rounded-[20px] rounded-tl-none border border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800 px-4.5 py-3 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
