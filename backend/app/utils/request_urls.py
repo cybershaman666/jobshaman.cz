@@ -58,8 +58,14 @@ def get_request_base_url(request: Request) -> str:
         if (proto == "https" and forwarded_port != "443") or (proto == "http" and forwarded_port != "80"):
             host = f"{host}:{forwarded_port}"
 
+    if "northeurope.azurecontainerapps.io" in host or "jobshaman" in host:
+        proto = "https"
+
     if not host:
         base = str(request.base_url).rstrip("/")
+        if "northeurope.azurecontainerapps.io" in base or "jobshaman" in base:
+            base = base.replace("http://", "https://")
         return base
 
     return f"{proto}://{host}"
+

@@ -28,7 +28,10 @@ ASSET_S3_REGION = os.environ.get("EXTERNAL_ASSET_S3_REGION", "auto")
 ASSET_S3_BUCKET = os.environ.get("EXTERNAL_ASSET_S3_BUCKET")
 ASSET_S3_ACCESS_KEY_ID = os.environ.get("EXTERNAL_ASSET_S3_ACCESS_KEY_ID")
 ASSET_S3_SECRET_ACCESS_KEY = os.environ.get("EXTERNAL_ASSET_S3_SECRET_ACCESS_KEY")
-ASSET_SECRET = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SUPABASE_JWT_SECRET")
+from app.core.config import SECRET_KEY
+
+ASSET_SECRET = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SUPABASE_JWT_SECRET") or SECRET_KEY
+
 
 _DOCUMENT_MIME_TYPES = {
     "application/pdf",

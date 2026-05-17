@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
 from app.domains.handshake.service import HandshakeDomainService
 from app.domains.reality.service import RealityDomainService
-from fastapi import Query
+from app.utils.request_urls import get_request_base_url
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
 
@@ -85,7 +85,7 @@ async def list_company_assets(
     from app.domains.reality.service import RealityDomainService
     from app.domains.media.service import MediaDomainService
     
-    request_base_url = str(request.base_url).rstrip("/")
+    request_base_url = get_request_base_url(request)
     assets = await RealityDomainService.list_company_assets(domain_user["id"], company_id, request_base_url=request_base_url)
     if assets is None:
         raise HTTPException(status_code=403, detail="Forbidden")

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  AlertCircle,
   BookOpen,
   Building2,
   Check,
@@ -764,6 +765,21 @@ export const RecruiterShell: React.FC<{
                       {t('rebuild.recruiter.create_new_challenge', { defaultValue: 'Create New Challenge' })}
                     </button>
                   </div>
+
+                  {challengeError && (
+                    <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm font-bold flex items-center gap-3">
+                      <AlertCircle className="shrink-0" size={18} />
+                      <div className="flex-1">{challengeError}</div>
+                      <button onClick={() => setChallengeError('')} className="hover:opacity-75">✕</button>
+                    </div>
+                  )}
+                  {challengeNotice && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 text-sm font-bold flex items-center gap-3">
+                      <Check className="shrink-0" size={18} />
+                      <div className="flex-1">{challengeNotice}</div>
+                      <button onClick={() => setChallengeNotice('')} className="hover:opacity-75">✕</button>
+                    </div>
+                  )}
 
                   <div className="grid gap-6 xl:grid-cols-2">
                     {visibleRoles.length === 0 ? (

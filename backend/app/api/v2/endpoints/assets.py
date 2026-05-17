@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
 from app.domains.media.service import MediaDomainService
+from app.utils.request_urls import get_request_base_url
 
 router = APIRouter()
 
@@ -26,7 +27,7 @@ async def create_asset_upload_session(
             file_name=payload.get("file_name") or payload.get("fileName") or "",
             content_type=payload.get("content_type") or payload.get("contentType") or "application/octet-stream",
             size_bytes=int(payload.get("size_bytes") or payload.get("sizeBytes") or 0),
-            request_base_url=str(request.base_url).rstrip("/"),
+            request_base_url=get_request_base_url(request),
             usage=payload.get("usage"),
             company_id=payload.get("company_id") or payload.get("companyId"),
             title=payload.get("title"),
@@ -70,7 +71,7 @@ async def complete_asset_upload(
     try:
         asset = await MediaDomainService.complete_upload(
             payload.get("upload_token") or payload.get("uploadToken") or "",
-            request_base_url=str(request.base_url).rstrip("/"),
+            request_base_url=get_request_base_url(request),
             requester_user_id=domain_user["id"],
         )
     except PermissionError as exc:
@@ -93,7 +94,7 @@ async def get_asset_download_url(
     )
     download_url = await MediaDomainService.create_download_url(
         asset_id,
-        request_base_url=str(request.base_url).rstrip("/"),
+        request_base_url=get_request_base_url(request),
         requester_user_id=domain_user["id"],
     )
     if not download_url:

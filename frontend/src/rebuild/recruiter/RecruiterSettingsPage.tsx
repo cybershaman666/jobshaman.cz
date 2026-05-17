@@ -80,6 +80,8 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const [showManualLogoUrl, setShowManualLogoUrl] = useState(false);
+  const [showManualCoverUrl, setShowManualCoverUrl] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'team') {
@@ -473,54 +475,172 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
 
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <label className="text-sm font-semibold text-slate-700">{t('rebuild.recruiter.logo', { defaultValue: 'Company Logo' })}</label>
-                        <div className="flex items-start gap-4">
-                          <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+                        <label className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                          <span>{t('rebuild.recruiter.logo', { defaultValue: 'Company Logo' })}</span>
+                          <span className="text-[11px] font-normal text-slate-400 normal-case">{t('rebuild.recruiter.logo_hint', { defaultValue: 'Square SVG or PNG is recommended' })}</span>
+                        </label>
+                        <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all">
+                          {/* Logo Upload Box */}
+                          <label className="relative group flex h-28 w-28 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white shadow-sm transition-all hover:border-indigo-400 hover:shadow-md">
                             {logoUrl ? (
-                              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
+                              <>
+                                <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-2 transition-all group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200">
+                                  {isUploadingLogo ? (
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Camera className="h-6 w-6 mb-1" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider">{t('rebuild.recruiter.change', { defaultValue: 'Change' })}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </>
                             ) : (
-                              <Camera className="h-8 w-8 text-slate-300" />
+                              <div className="flex flex-col items-center justify-center p-4 text-center text-slate-400 group-hover:text-indigo-500">
+                                {isUploadingLogo ? (
+                                  <Loader2 className="h-8 w-8 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Upload className="h-7 w-7 mb-1.5 transition-transform group-hover:-translate-y-0.5" />
+                                    <span className="text-[11px] font-extrabold uppercase tracking-wider">{t('rebuild.recruiter.upload', { defaultValue: 'Upload' })}</span>
+                                  </>
+                                )}
+                              </div>
                             )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex gap-2">
-                              <input 
-                                className={cn(fieldClass, 'text-xs')} 
-                                placeholder="https://...logo.png"
-                                value={logoUrl}
-                                onChange={(e) => setLogoUrl(e.target.value)}
-                              />
-                              <label className={cn(secondaryButtonClass, 'cursor-pointer px-3')}>
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={handleUploadLogo} 
+                              disabled={isUploadingLogo} 
+                            />
+                          </label>
+
+                          <div className="flex-1 flex flex-col justify-center space-y-3 w-full">
+                            <div className="flex flex-wrap gap-2.5">
+                              <label className={cn(primaryButtonClass, 'cursor-pointer px-4.5 py-2 text-sm shadow-sm gap-2')}>
                                 {isUploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                {t('rebuild.recruiter.upload_logo_btn', { defaultValue: 'Select File' })}
                                 <input type="file" className="hidden" accept="image/*" onChange={handleUploadLogo} disabled={isUploadingLogo} />
                               </label>
+                              {logoUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setLogoUrl('')}
+                                  className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition-all shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t('rebuild.recruiter.remove', { defaultValue: 'Remove' })}
+                                </button>
+                              )}
                             </div>
-                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('rebuild.recruiter.logo_hint', { defaultValue: 'Square SVG or PNG is recommended' })}</p>
+                            
+                            {/* toggler for manual url input */}
+                            <button
+                              type="button"
+                              onClick={() => setShowManualLogoUrl(!showManualLogoUrl)}
+                              className="text-left text-xs font-semibold text-slate-400 hover:text-indigo-500 transition-colors w-fit underline decoration-dotted"
+                            >
+                              {showManualLogoUrl ? t('rebuild.recruiter.hide_url', { defaultValue: 'Hide manual URL input' }) : t('rebuild.recruiter.show_url', { defaultValue: 'Or paste image URL instead' })}
+                            </button>
+
+                            {showManualLogoUrl && (
+                              <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <input 
+                                  className={cn(fieldClass, 'text-xs')} 
+                                  placeholder="https://...logo.png"
+                                  value={logoUrl}
+                                  onChange={(e) => setLogoUrl(e.target.value)}
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-3">
-                        <label className="text-sm font-semibold text-slate-700">{t('rebuild.recruiter.cover', { defaultValue: 'Brand Cover' })}</label>
-                        <div className="space-y-3">
-                          <div className="aspect-[3/1] w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center">
+                        <label className="text-sm font-bold text-slate-800 flex items-center justify-between">
+                          <span>{t('rebuild.recruiter.cover', { defaultValue: 'Brand Cover' })}</span>
+                          <span className="text-[11px] font-normal text-slate-400 normal-case">{t('rebuild.recruiter.cover_hint', { defaultValue: 'Landscape photo, 1200x400 recommended' })}</span>
+                        </label>
+                        
+                        <div className="space-y-4 p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all">
+                          {/* Banner Drag and Drop upload area */}
+                          <label className="relative group block aspect-[3/1] w-full overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white cursor-pointer shadow-sm hover:border-indigo-400 hover:shadow-md transition-all">
                             {coverUrl ? (
-                              <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" />
+                              <>
+                                <img src={coverUrl} alt="Cover" className="h-full w-full object-cover transition-all group-hover:scale-[1.02]" />
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200">
+                                  {isUploadingCover ? (
+                                    <Loader2 className="h-7 w-7 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Camera className="h-7 w-7 mb-1" />
+                                      <span className="text-xs font-bold uppercase tracking-wider">{t('rebuild.recruiter.change_banner', { defaultValue: 'Change Cover Banner' })}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </>
                             ) : (
-                              <Layout className="h-8 w-8 text-slate-300" />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-400 group-hover:text-indigo-500">
+                                {isUploadingCover ? (
+                                  <Loader2 className="h-8 w-8 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Layout className="h-9 w-9 mb-2 transition-transform group-hover:-translate-y-0.5" />
+                                    <span className="text-xs font-extrabold uppercase tracking-wider">{t('rebuild.recruiter.upload_cover', { defaultValue: 'Upload Brand Cover' })}</span>
+                                    <span className="text-[10px] text-slate-400 mt-1">{t('rebuild.recruiter.drag_drop_click', { defaultValue: 'Click or drag cover image here' })}</span>
+                                  </>
+                                )}
+                              </div>
                             )}
-                          </div>
-                          <div className="flex gap-2">
                             <input 
-                              className={cn(fieldClass, 'text-xs')} 
-                              placeholder="https://...cover.jpg"
-                              value={coverUrl}
-                              onChange={(e) => setCoverUrl(e.target.value)}
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={handleUploadCover} 
+                              disabled={isUploadingCover} 
                             />
-                            <label className={cn(secondaryButtonClass, 'cursor-pointer px-3')}>
-                              {isUploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              <input type="file" className="hidden" accept="image/*" onChange={handleUploadCover} disabled={isUploadingCover} />
-                            </label>
+                          </label>
+
+                          <div className="flex flex-col space-y-3">
+                            <div className="flex flex-wrap gap-2.5">
+                              <label className={cn(primaryButtonClass, 'cursor-pointer px-4.5 py-2 text-sm shadow-sm gap-2')}>
+                                {isUploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                {t('rebuild.recruiter.upload_cover_btn', { defaultValue: 'Select File' })}
+                                <input type="file" className="hidden" accept="image/*" onChange={handleUploadCover} disabled={isUploadingCover} />
+                              </label>
+                              {coverUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCoverUrl('')}
+                                  className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition-all shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t('rebuild.recruiter.remove_cover', { defaultValue: 'Remove Cover' })}
+                                </button>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setShowManualCoverUrl(!showManualCoverUrl)}
+                              className="text-left text-xs font-semibold text-slate-400 hover:text-indigo-500 transition-colors w-fit underline decoration-dotted"
+                            >
+                              {showManualCoverUrl ? t('rebuild.recruiter.hide_url', { defaultValue: 'Hide manual URL input' }) : t('rebuild.recruiter.show_url', { defaultValue: 'Or paste cover image URL instead' })}
+                            </button>
+
+                            {showManualCoverUrl && (
+                              <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <input 
+                                  className={cn(fieldClass, 'text-xs')} 
+                                  placeholder="https://...cover.jpg"
+                                  value={coverUrl}
+                                  onChange={(e) => setCoverUrl(e.target.value)}
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
