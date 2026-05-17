@@ -5684,9 +5684,9 @@
       "skills_required": "Požadované dovednosti",
       "handshake_journey": "Cesta kandidáta (Handshake)",
       "launch_role": "Spustit roli na Marketplace",
-      "ai_co_pilot": "AI Co-pilot",
-      "ai_hint": "Nechte naši AI navrhnout misi role a assessment úkoly na základě názvu pozice.",
-      "generate_draft": "Generovat AI draft"
+      "ai_co_pilot": "Shami AI",
+      "ai_hint": "Nechte Shamiho navrhnout misi role a assessment úkoly na základě názvu pozice.",
+      "generate_draft": "Generovat návrh od Shamiho"
     },
     "role": {
       "full_journey": "Plná Jobshaman cesta",

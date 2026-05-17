@@ -14,14 +14,31 @@ interface RecruiterMessage extends MentorChatMessage {
 }
 
 export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ t, navigate }) => {
-  const [messages, setMessages] = React.useState<RecruiterMessage[]>(() => [
-    {
-      role: 'assistant',
-      content: t('rebuild.recruiter.assistant_desc', {
-        defaultValue: 'Ahoj! Jsem Shami, tvůj inteligentní kyber-sob a náborový agent. Pomohu ti zorientovat se v aplikaci, vyhledat aktivní pozice nebo najít ideální kandidáty v talent poolu. Jak se dnes máš a s čím ti mohu pomoci?',
-      }),
-    },
-  ]);
+  const storageKey = 'shami_recruiter_chat';
+  const [messages, setMessages] = React.useState<RecruiterMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load chat history', e);
+    }
+    return [
+      {
+        role: 'assistant',
+        content: t('rebuild.recruiter.assistant_desc', {
+          defaultValue: 'Ahoj! Jsem Shami, tvůj inteligentní kyber-sob a náborový agent. Pomohu ti zorientovat se v aplikaci, vyhledat aktivní pozice nebo najít ideální kandidáty v talent poolu. Jak se dnes máš a s čím ti mohu pomoci?',
+        }),
+      },
+    ];
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Failed to save chat history', e);
+    }
+  }, [messages]);
   const [draft, setDraft] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');

@@ -903,12 +903,31 @@ const CandidateMentorChat: React.FC<{
 }> = ({ userProfile, vm }) => {
   const { i18n, t } = useTranslation();
   const firstName = getCandidateGreetingName({ profileName: userProfile.name, language: i18n.language }) || t('rebuild.dashboard.you', { defaultValue: 'you' });
-  const [messages, setMessages] = React.useState<MentorChatMessage[]>(() => [
-    {
-      role: 'assistant',
-      content: t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: firstName }),
-    },
-  ]);
+  const storageKey = `shami_candidate_chat_${userProfile?.id || 'anonymous'}`;
+  
+  const [messages, setMessages] = React.useState<MentorChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load chat history', e);
+    }
+    return [
+      {
+        role: 'assistant',
+        content: t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: firstName }),
+      },
+    ];
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Failed to save chat history', e);
+    }
+  }, [messages, storageKey]);
+
   const [draft, setDraft] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');

@@ -82,6 +82,7 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
   const [currency, setCurrency] = React.useState<Role['currency']>(initialRole?.currency || 'CZK');
 
   const [aiBusy, setAiBusy] = React.useState(false);
+  const [aiSuccess, setAiSuccess] = React.useState(false);
 
   const steps: { id: RoleEditorStep; label: string; icon: any }[] = [
     { id: 'essence', label: t('rebuild.editor.step_essence', { defaultValue: 'Role Essence' }), icon: Rocket },
@@ -120,31 +121,62 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
 
   const handleAiAssist = async () => {
     setAiBusy(true);
+    setAiSuccess(false);
     try {
       const result = await onAiDraft({
         title,
         roleFamily,
-        summary,
-        challenge,
+        summary: summary || challenge,
         skills,
       });
-      
-      if (result.ai_output) {
-        const out = result.ai_output;
+
+      // Backend returns { ai_output: {...} } or the ai_output directly
+      // handleAiDraftRecruiterChallenge in JobshamanRebuildApp already unwraps .ai_output
+      // so `result` is the ai_output object itself
+      const out = (result && typeof result === 'object' && 'ai_output' in result)
+        ? (result as any).ai_output
+        : result;
+
+      if (out && typeof out === 'object') {
+        // Backend field: title
         if (out.title) setTitle(out.title);
-        if (out.problem_statement) setSummary(out.problem_statement);
-        if (out.mission) setMission(out.mission);
-        if (Array.isArray(out.skills)) {
-          const newSkills = Array.from(new Set([...skills, ...out.skills]));
+
+        // Backend field: problem_statement (maps to summary/challenge)
+        const problemStatement = out.problem_statement || out.summary;
+        if (problemStatement) {
+          setSummary(problemStatement);
+          setChallenge(problemStatement);
+        }
+
+        // Backend field: task_brief (maps to mission — long-term direction)
+        const missionText = out.mission || out.task_brief || out.candidate_task;
+        if (missionText) setMission(missionText);
+
+        // Backend field: skills (may come as suggested skills or extracted from tasks)
+        if (Array.isArray(out.skills) && out.skills.length > 0) {
+          const newSkills = Array.from(new Set([...skills, ...out.skills.map(String)]));
           setSkills(newSkills);
         }
-        if (Array.isArray(out.assessment_tasks)) {
-           setAssessmentTasks(out.assessment_tasks);
+
+        // Backend field: assessment_tasks
+        if (Array.isArray(out.assessment_tasks) && out.assessment_tasks.length > 0) {
+          setAssessmentTasks(out.assessment_tasks);
         }
-        if (out.handshake_blueprint_v1?.steps) {
-           setBlueprintSteps(out.handshake_blueprint_v1.steps);
+
+        // Backend field: handshake_blueprint_v1.steps
+        const blueprint = out.handshake_blueprint_v1;
+        if (blueprint && Array.isArray(blueprint.steps) && blueprint.steps.length > 0) {
+          setBlueprintSteps(blueprint.steps);
+        }
+
+        setAiSuccess(true);
+        // Auto-advance to next step if we're on essence
+        if (currentStep === 'essence') {
+          setTimeout(() => setCurrentStep('skills'), 1200);
         }
       }
+    } catch (err) {
+      console.error('AI draft error:', err);
     } finally {
       setAiBusy(false);
     }
@@ -230,23 +262,58 @@ export const RoleEditorV2: React.FC<RoleEditorProps> = ({
           })}
 
           <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
-            <div className="rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 p-5 border border-indigo-100/50 dark:border-indigo-900/30">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">
-                <Sparkles size={12} />
-                {t('rebuild.editor.ai_co_pilot', { defaultValue: 'AI Co-pilot' })}
+            <div className={cn(
+              'rounded-2xl p-5 border transition-all duration-500',
+              aiSuccess
+                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800'
+                : 'bg-gradient-to-br from-[#0f95ac]/5 to-[#0f95ac]/10 dark:from-[#0f95ac]/10 dark:to-[#0f95ac]/20 border-[#0f95ac]/20 dark:border-[#0f95ac]/30'
+            )}>
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#0f95ac] dark:text-[#0f95ac]">
+                <img
+                  src={aiBusy ? '/shami-matching.png' : aiSuccess ? '/shami-happy.png' : '/shami.png'}
+                  alt="Shami"
+                  className={cn('h-8 w-8 object-contain rounded-lg bg-white/50 dark:bg-white/10 p-0.5 shadow-sm transition-all', aiBusy && 'animate-pulse')}
+                />
+                {aiSuccess
+                  ? t('rebuild.editor.ai_done', { defaultValue: 'Shami vygeneroval návrh!' })
+                  : t('rebuild.editor.ai_co_pilot', { defaultValue: 'Shami AI' })}
               </div>
-              <p className="mt-3 text-xs leading-5 text-indigo-900/70 dark:text-indigo-300/70">
-                {t('rebuild.editor.ai_hint', { defaultValue: 'Let our AI draft the role mission and assessment tasks based on your core title.' })}
-              </p>
-              <button 
-                onClick={handleAiAssist} 
+              {aiSuccess ? (
+                <p className="mt-3 text-xs leading-5 text-emerald-700 dark:text-emerald-400 font-medium">
+                  {t('rebuild.editor.ai_success_hint', { defaultValue: 'Mise, assessment a dovednosti jsou připraveny. Zkontroluj a uprav dle potřeby.' })}
+                </p>
+              ) : (
+                <p className="mt-3 text-xs leading-5 text-slate-700 dark:text-slate-300">
+                  {aiBusy
+                    ? t('rebuild.editor.ai_generating', { defaultValue: 'Shami analyzuje pozici a připravuje návrh...' })
+                    : t('rebuild.editor.ai_hint', { defaultValue: 'Zadejte název role a Shami navrhne misi, assessment úkoly a strukturu.' })}
+                </p>
+              )}
+              <button
+                onClick={() => { setAiSuccess(false); handleAiAssist(); }}
                 disabled={aiBusy || !title}
-                className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-slate-800 py-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all disabled:opacity-50"
+                className={cn(
+                  'mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50',
+                  aiSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-[#0f95ac] hover:bg-[#0d859a]'
+                )}
               >
-                {aiBusy ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                {t('rebuild.editor.generate_draft', { defaultValue: 'Generate AI Draft' })}
+                {aiBusy
+                  ? <><Loader2 size={14} className="animate-spin" />{t('rebuild.editor.ai_generating_btn', { defaultValue: 'Generuji...' })}</>
+                  : aiSuccess
+                    ? <><Sparkles size={14} />{t('rebuild.editor.ai_regenerate', { defaultValue: 'Znovu generovat' })}</>
+                    : <><Sparkles size={14} />{t('rebuild.editor.generate_draft', { defaultValue: 'Generovat návrh od Shamiho' })}</>}
               </button>
             </div>
+
+            {/* Tip from Shami */}
+            {!aiBusy && !aiSuccess && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3">
+                <img src="/shami-tip.png" alt="Shami tip" className="h-6 w-6 object-contain shrink-0 mt-0.5" />
+                <p className="text-[10px] leading-4 text-slate-500 dark:text-slate-400">
+                  {t('rebuild.editor.ai_tip', { defaultValue: 'Tip: Čím konkrétnější název role zadáš, tím přesnější bude návrh.' })}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

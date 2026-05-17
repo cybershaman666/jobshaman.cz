@@ -5712,9 +5712,9 @@
       "skills_required": "Nødvendige ferdigheter",
       "handshake_journey": "Kandidatreise (Handshake)",
       "launch_role": "Lanser rolle på Marketplace",
-      "ai_co_pilot": "AI Co-pilot",
-      "ai_hint": "La vår AI foreslå rollens misjon og vurderingsoppgaver baseret på tittelen.",
-      "generate_draft": "Generer AI-utkast"
+      "ai_co_pilot": "Shami AI",
+      "ai_hint": "Let Shami draft the role mission and assessment tasks based on your core title.",
+      "generate_draft": "Generate Shami Draft"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",

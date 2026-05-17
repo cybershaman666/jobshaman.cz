@@ -5684,9 +5684,9 @@
       "skills_required": "Required Skills",
       "handshake_journey": "Handshake Journey",
       "launch_role": "Launch Role on Marketplace",
-      "ai_co_pilot": "AI Co-pilot",
-      "ai_hint": "Let our AI suggest the role mission and assessment tasks based on the job title.",
-      "generate_draft": "Generate AI Draft"
+      "ai_co_pilot": "Shami AI",
+      "ai_hint": "Let Shami draft the role mission and assessment tasks based on your core title.",
+      "generate_draft": "Generate Shami Draft"
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
