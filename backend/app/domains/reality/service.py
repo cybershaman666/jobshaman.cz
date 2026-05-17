@@ -220,11 +220,19 @@ class RealityDomainService:
         }
 
     @staticmethod
-    def _challenge_ai_prompt(payload: Dict[str, Any], company: Optional[Company] = None, job: Optional[Job] = None) -> str:
+    def _challenge_ai_prompt(
+        payload: Dict[str, Any], 
+        company: Optional[Company] = None, 
+        job: Optional[Job] = None,
+        company_name: Optional[str] = None,
+        company_industry: Optional[str] = None
+    ) -> str:
+        c_name = company_name or (company.name if company else None)
+        c_ind = company_industry or (getattr(company, "industry", None) if company else None)
         context = {
             "company": {
-                "name": company.name if company else None,
-                "industry": getattr(company, "industry", None) if company else None,
+                "name": c_name,
+                "industry": c_ind,
             },
             "draft": {
                 "title": payload.get("title") or (job.title if job else ""),
@@ -1203,6 +1211,8 @@ class RealityDomainService:
             session.add(job)
             await session.commit()
             await session.refresh(job)
+            if company:
+                await session.refresh(company)
             return RealityDomainService._serialize_opportunity(job, company)
 
     @staticmethod
@@ -1252,6 +1262,8 @@ class RealityDomainService:
             job.updated_at = datetime.utcnow()
             await session.commit()
             await session.refresh(job)
+            if company:
+                await session.refresh(company)
             return RealityDomainService._serialize_opportunity(job, company)
 
     @staticmethod
@@ -1312,6 +1324,8 @@ class RealityDomainService:
             session.add(job)
             await session.commit()
             await session.refresh(job)
+            if company:
+                await session.refresh(company)
             await RealityDomainService._log_ai_assist(user_id, str(job.id), ai_output)
             return {
                 "challenge": RealityDomainService._serialize_opportunity(job, company),
@@ -1322,13 +1336,16 @@ class RealityDomainService:
     async def ai_draft_company_challenge(user_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         async with AsyncSession(engine) as session:
             company = await RealityDomainService._company_for_user_in_session(session, user_id)
+            company_name = company.name if company else None
+            company_industry = getattr(company, "industry", None) if company else None
+            
         role_family = _clean_text(payload.get("role_family") or "operations", 80)
         title = _clean_text(payload.get("title"), 180) or "Nová výzva"
         summary = _clean_text(payload.get("summary") or payload.get("problem_statement"), 1800)
         try:
             raw_output, model_result = await asyncio.to_thread(
                 call_ai_json,
-                RealityDomainService._challenge_ai_prompt(payload, company, None),
+                RealityDomainService._challenge_ai_prompt(payload, None, None, company_name=company_name, company_industry=company_industry),
                 temperature=0.25,
             )
             ai_output = RealityDomainService._normalize_ai_output(raw_output, title, summary, role_family)
