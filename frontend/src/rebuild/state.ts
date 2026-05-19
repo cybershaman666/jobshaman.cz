@@ -76,5 +76,54 @@ export const resolveBlueprintForRole = (
     return role.handshakeBlueprint as HandshakeBlueprint;
   }
   const assigned = roleAssignments[role.id] || role.blueprintId;
-  return blueprintLibrary.find((item) => item.id === assigned) || blueprintLibrary[0] || null;
+  const libraryBlueprint = blueprintLibrary.find((item) => item.id === assigned) || blueprintLibrary[0];
+  if (libraryBlueprint) return libraryBlueprint;
+  return {
+    id: `bp-fallback-${role.id}`,
+    name: `${role.title} handshake`,
+    roleFamily: role.roleFamily,
+    tone: 'precision',
+    overview: 'Praktický handshake navázaný na reálnou výzvu firmy.',
+    benchmarkLabels: ['Porozumění', 'Úsudek', 'Praktičnost'],
+    aiGeneratorNote: 'Fallback handshake blueprint.',
+    scheduleEnabled: true,
+    steps: [
+      {
+        id: 'problem_frame',
+        type: 'scenario_response',
+        title: 'Porozumění zadání',
+        prompt: role.firstStep || role.challenge || 'Jak rozumíš prvnímu reálnému kroku v této roli?',
+        helper: role.summary || 'Odpověz konkrétně, s předpoklady a riziky.',
+        required: true,
+        uiVariant: 'story_field',
+      },
+      {
+        id: 'work_sample',
+        type: 'task_workspace',
+        title: 'Praktický postup',
+        prompt: role.challenge || 'Navrhni praktické řešení nebo postup.',
+        helper: role.description || role.mission || 'Popiš kroky, důkazy a rozhodovací kritéria.',
+        required: true,
+        uiVariant: 'workspace',
+      },
+      {
+        id: 'risk_and_unknowns',
+        type: 'reflection',
+        title: 'Rizika a neznámé',
+        prompt: 'Co by se mohlo pokazit a co bys potřeboval/a ověřit?',
+        helper: 'Dobrá odpověď umí říct i co ještě neví.',
+        required: true,
+        uiVariant: 'story_field',
+      },
+      {
+        id: 'schedule',
+        type: 'schedule_request',
+        title: 'Navázání dialogu',
+        prompt: 'Vyber preferovaný čas pro další lidský krok.',
+        helper: 'Termín je žádost, firma jej potvrdí po review.',
+        required: false,
+        uiVariant: 'scheduler',
+      },
+    ],
+  } satisfies HandshakeBlueprint;
 };

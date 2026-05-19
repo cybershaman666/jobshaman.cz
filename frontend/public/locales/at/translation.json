@@ -5656,7 +5656,20 @@
       "assistant_suggested_roles": "Find my active IT roles",
       "assistant_suggested_candidates": "Show candidates in talent pool",
       "assistant_suggested_help": "How can you help me navigate?",
-      "assistant_quick_actions": "Shami Quick Actions"
+      "assistant_quick_actions": "Shami Quick Actions",
+      "cybershaman_tip": "Tip Cybershamana",
+      "cybershaman_advises": "Cybershaman advises you",
+      "change": "Change",
+      "upload": "Upload",
+      "upload_logo_btn": "Select File",
+      "remove": "Remove",
+      "hide_url": "Hide manual URL input",
+      "show_url": "Or paste image URL instead",
+      "cover_hint": "Landscape photo, 1200x400 recommended",
+      "change_banner": "Change Cover Banner",
+      "drag_drop_click": "Click or drag cover image here",
+      "upload_cover_btn": "Select File",
+      "remove_cover": "Remove Cover"
     },
     "editor": {
       "step_essence": "Kern der Rolle",
@@ -5726,7 +5739,13 @@
       "launch_role": "Rolle auf dem Marktplatz starten",
       "ai_co_pilot": "Shami AI",
       "ai_hint": "Let Shami draft the role mission and assessment tasks based on your core title.",
-      "generate_draft": "Generate Shami Draft"
+      "generate_draft": "Generate Shami Draft",
+      "ai_done": "Shami vygeneroval návrh!",
+      "ai_success_hint": "Mise, assessment a dovednosti jsou připraveny. Zkontroluj a uprav dle potřeby.",
+      "ai_generating": "Shami analyzuje pozici a připravuje návrh...",
+      "ai_generating_btn": "Generuji...",
+      "ai_regenerate": "Znovu generovat",
+      "ai_tip": "Tip: Čím konkrétnější název role zadáš, tím přesnější bude návrh."
     },
     "role": {
       "full_journey": "Vollständige Jobshaman-Reise",
@@ -6002,7 +6021,8 @@
       "hero_reliability_title": "Zuverlässigkeit",
       "hero_reliability_desc": "Verantwortung, Selbstständigkeit",
       "hero_level_advanced": "Fortgeschritten",
-      "hero_level_expert": "Experte"
+      "hero_level_expert": "Experte",
+      "you": "ty"
     },
     "status": {
       "in_review": "In Prüfung",
@@ -6044,7 +6064,8 @@
       "next_step": "Next step",
       "slots_available": "Handshake slots",
       "candidate_slots_full": "Your active handshake slots are full.",
-      "company_slots_full": "This challenge is currently full."
+      "company_slots_full": "This challenge is currently full.",
+      "the_challenge": "The challenge"
     },
     "prep": {
       "title": "Externe Outbound-Vorbereitung",
@@ -6279,7 +6300,7 @@
       "saving": "Saving JCFPM...",
       "disagree": "Disagree",
       "agree": "Agree",
-      "welcome_title": "Psychometric and skill profile",
+      "welcome_title": "Psychometrisches und Kompetenzprofil",
       "welcome_copy": "12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result will be saved to your profile and will help us with more accurate recommendations of positions and courses.",
       "start_button": "Start JCFPM test",
       "next_block": "Continue to next block",
@@ -6313,11 +6334,11 @@
       "open_profile": "Open JCFPM profile",
       "handshake_rule_title": "Handshake rule",
       "handshake_rule_desc": "A finished JCFPM is simply used. An unfinished JCFPM is part of the handshake and, once completed, is saved to the profile for further challenges.",
-      "welcome_desc": "12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result is saved to your profile and helps us with more accurate recommendations for positions and courses.",
-      "start_test": "Start JCFPM test",
-      "skill_profile": "Cognitive and skill prerequisites",
-      "finish": "Finish and show results",
-      "abort": "Interrupt and start again",
+      "welcome_desc": "Es erwarten dich 16 Blöcke: Arbeitsstil, situative Urteilsfähigkeit, kognitive Voraussetzungen und eine grundlegende Ikigai-Ebene. Antworte nach deinem üblichen Arbeitsverhalten, nicht nach einer Idealversion deiner selbst.",
+      "start_test": "JCFPM-Test starten",
+      "skill_profile": "Kognitive und fachliche Voraussetzungen",
+      "finish": "Abschließen und Ergebnisse anzeigen",
+      "abort": "Unterbrechen und neu starten",
       "psych_report_title": "Psychometric report (Big 5)",
       "psych_report_desc": "This report compares your internal setting with cognitive prerequisites.",
       "big5": {
@@ -6328,12 +6349,27 @@
         "neuroticism": "Emotional reactivity"
       },
       "confidence": "Estimation confidence",
-      "ikigai_profile": "Ikigai profile",
+      "ikigai_profile": "Ikigai-Profil",
       "report_readout": "Interpretace profilu",
       "work_environment_title": "Kde bude profil nejspíš fungovat",
       "growth_focus_title": "Nejbližší růstový fokus",
       "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
-      "v3_layer": "JCFPM v3"
+      "v3_layer": "JCFPM v3",
+      "item_progress": "Aufgabe {{current}} / {{total}}",
+      "next_item": "Nächste Aufgabe",
+      "confirm_visible_order": "Sichtbare Reihenfolge bestätigen",
+      "interaction_pairing": "Zuordnung",
+      "interaction_sequence": "Reihenfolge",
+      "interaction_visual_choice": "Visuelle Auswahl",
+      "interaction_scale": "Skala",
+      "interaction_choice": "Auswahl",
+      "hint_pairing": "Ordne jedes Element links der wahrscheinlichsten Wirkung rechts zu. Ziehen funktioniert, alternativ zuerst Quelle und dann Ziel anklicken.",
+      "hint_ordering": "Bringe die Schritte von zuerst bis zuletzt in Reihenfolge. Du kannst Elemente ziehen oder mit den Pfeilen verschieben.",
+      "hint_visual_choice": "Wähle die Interpretation, die am besten zum angezeigten Signal passt.",
+      "response_quality_title": "Messqualität",
+      "coverage": "Abdeckung",
+      "response_quality_flagged": "Das Ergebnis wurde gespeichert, aber einige Antwortmuster senken die Sicherheit der Interpretation.",
+      "response_quality_clean": "Die Antworten sind ausreichend differenziert für eine grundlegende Profilinterpretation."
     },
     "auth": {
       "sign_in": "Anmelden",
@@ -7315,6 +7351,14 @@
     },
     "loading": {
       "workspace": "Initializing workspace..."
+    },
+    "shami": {
+      "hint_first_step": "What the first signal looks like",
+      "hint_journey": "Journey overview",
+      "hint_context": "Company context",
+      "guide_title": "What this company wants to understand about you",
+      "guide_subtitle": "Before you start the handshake, here is what a strong response looks like and what the team is really testing.",
+      "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested."
     }
   },
   "faq": {

@@ -450,6 +450,8 @@ export const RecruiterShell: React.FC<{
 
   const talentPoolCandidates = React.useMemo(() => {
     if (tab !== 'talent-pool') return candidateInsights;
+    const activeHandshakeCandidates = candidateInsights.filter((candidate) => candidate.source === 'handshake' || candidate.id.startsWith('application-'));
+    const activeCandidateNames = new Set(activeHandshakeCandidates.map((candidate) => candidate.candidateName.trim().toLowerCase()).filter(Boolean));
     const roleTokens = new Set(
       visibleRoles
         .flatMap((role) => [role.title, role.challenge, role.summary, ...role.skills])
@@ -458,7 +460,8 @@ export const RecruiterShell: React.FC<{
         .split(/[^a-z0-9á-ž]+/i)
         .filter((token) => token.length > 3),
     );
-    return allRegisteredCandidates
+    const openTalentCandidates = allRegisteredCandidates
+      .filter((candidate) => !activeCandidateNames.has(candidate.candidateName.trim().toLowerCase()))
       .map((candidate) => {
         const candidateTokens = [candidate.headline, candidate.recommendation, ...candidate.topSignals]
           .join(' ')
@@ -492,6 +495,7 @@ export const RecruiterShell: React.FC<{
         };
       })
       .sort((left, right) => right.matchPercent - left.matchPercent);
+    return [...activeHandshakeCandidates, ...openTalentCandidates];
   }, [allRegisteredCandidates, candidateInsights, tab, visibleRoles, t]);
   const visibleCandidateInsights = React.useMemo(
     () => talentPoolCandidates.filter((candidate) => {
@@ -528,6 +532,18 @@ export const RecruiterShell: React.FC<{
     if (score > 0) return t('rebuild.recruiter.match_exploratory', { defaultValue: 'Exploratory match' });
     return t('rebuild.recruiter.match_none', { defaultValue: 'No evaluation yet' });
   }, [selectedCandidate?.matchPercent, selectedCandidate?.verifiedScore]);
+  const selectedRecruiterReadout = React.useMemo(
+    () => (selectedRecruiterDialogueDetail?.application_payload as any)?.readout || (selectedRecruiterDialogueDetail as any)?.signal_boost?.recruiter_readout || null,
+    [selectedRecruiterDialogueDetail],
+  );
+  const selectedReadoutEvidence = React.useMemo(
+    () => Array.isArray(selectedRecruiterReadout?.evidence_sections) ? selectedRecruiterReadout.evidence_sections : [],
+    [selectedRecruiterReadout],
+  );
+  const selectedReadoutScorecards = React.useMemo(
+    () => Array.isArray(selectedRecruiterReadout?.scorecards) ? selectedRecruiterReadout.scorecards : [],
+    [selectedRecruiterReadout],
+  );
 
   React.useEffect(() => {
     if (!selectedRecruiterDialogueId) {
@@ -935,7 +951,14 @@ export const RecruiterShell: React.FC<{
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-[15px] font-bold text-[color:var(--shell-text-primary)]">{candidate.candidateName}</div>
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <div className="truncate text-[15px] font-bold text-[color:var(--shell-text-primary)]">{candidate.candidateName}</div>
+                                    {candidate.source === 'handshake' || candidate.id.startsWith('application-') ? (
+                                      <span className="shrink-0 rounded-full bg-[color:var(--shell-accent-cyan)]/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-[color:var(--shell-accent-cyan)]">
+                                        Handshake
+                                      </span>
+                                    ) : null}
+                                  </div>
                                   <div className="truncate text-xs text-[color:var(--shell-text-muted)] mt-0.5">{candidate.headline || t('rebuild.recruiter.applicant', { defaultValue: 'Applicant' })}</div>
                                 </div>
                                 <div className="text-right shrink-0">
@@ -1030,6 +1053,78 @@ export const RecruiterShell: React.FC<{
                           </div>
                         </div>
                       </section>
+
+                      {(selectedRecruiterDialogueId || selectedRecruiterReadout) ? (
+                        <section className={cn(panelClass, 'p-10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>
+                          <div className="flex flex-wrap items-start justify-between gap-6">
+                            <div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-accent-cyan)]">Handshake readout</div>
+                              <h3 className="mt-2 text-2xl font-bold tracking-tight text-[color:var(--shell-text-primary)]">
+                                {selectedCandidate.jobTitle || (selectedRecruiterDialogueDetail as any)?.job_title || t('rebuild.recruiter.candidate_submission', { defaultValue: 'Candidate submission' })}
+                              </h3>
+                              <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--shell-text-secondary)]">
+                                {selectedRecruiterReadout?.summary || selectedCandidate.recommendation}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedCandidate.hasJcfpm ? <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">JCFPM</span> : null}
+                              {selectedCandidate.hasCv ? <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">CV</span> : null}
+                              {selectedCandidate.answerCount ? <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">{selectedCandidate.answerCount} odpovědí</span> : null}
+                            </div>
+                          </div>
+
+                          {recruiterDialogueLoading ? (
+                            <div className="mt-8 flex h-28 items-center justify-center gap-3 text-sm text-[color:var(--shell-text-muted)]">
+                              <Loader2 size={20} className="animate-spin text-[color:var(--shell-accent-cyan)]" />
+                              Načítám detail handshake…
+                            </div>
+                          ) : (
+                            <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                              <div className="space-y-4">
+                                <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Scorecards</h4>
+                                {selectedReadoutScorecards.length > 0 ? selectedReadoutScorecards.map((card: any) => (
+                                  <div key={card.key || card.label} className="rounded-[20px] border border-[color:var(--shell-panel-border)] bg-white/60 dark:bg-slate-800/60 p-4">
+                                    <div className="flex items-center justify-between gap-3 text-sm font-bold">
+                                      <span className="text-[color:var(--shell-text-primary)]">{card.label || card.key}</span>
+                                      <span className="text-[color:var(--shell-accent-cyan)]">{Math.round(Number(card.score || 0))}%</span>
+                                    </div>
+                                    <div className="mt-3 h-2 rounded-full bg-[color:var(--shell-track)]">
+                                      <div className="h-2 rounded-full bg-[color:var(--shell-accent-cyan)]" style={{ width: `${Math.max(0, Math.min(100, Number(card.score || 0)))}%` }} />
+                                    </div>
+                                  </div>
+                                )) : (
+                                  <div className="rounded-[20px] border border-dashed border-[color:var(--shell-panel-border)] p-5 text-sm text-[color:var(--shell-text-muted)]">
+                                    Scorecards se objeví po načtení detailu dokončeného handshake.
+                                  </div>
+                                )}
+                                {selectedRecruiterReadout?.jcfpm_summary?.completed ? (
+                                  <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-emerald-900">
+                                    <div className="font-bold">JCFPM dokončeno</div>
+                                    <div className="mt-1 text-emerald-800/80">
+                                      {selectedRecruiterReadout.jcfpm_summary?.archetype?.title || 'Souhrn je součástí handshake kontextu.'}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              <div className="space-y-4">
+                                <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Odpovědi kandidáta</h4>
+                                {selectedReadoutEvidence.length > 0 ? selectedReadoutEvidence.map((section: any) => (
+                                  <div key={section.id} className="rounded-[24px] border border-[color:var(--shell-panel-border)] bg-white/60 dark:bg-slate-800/60 p-5">
+                                    <div className="text-sm font-bold text-[color:var(--shell-text-primary)]">{section.title}</div>
+                                    {section.prompt ? <div className="mt-2 text-xs leading-6 text-[color:var(--shell-text-muted)]">{section.prompt}</div> : null}
+                                    <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[color:var(--shell-text-secondary)]">{section.body || 'Bez textové odpovědi.'}</div>
+                                  </div>
+                                )) : (
+                                  <div className="rounded-[24px] border border-dashed border-[color:var(--shell-panel-border)] p-8 text-center text-sm leading-7 text-[color:var(--shell-text-muted)]">
+                                    Tento kandidát zatím nemá načtené odpovědi, nebo handshake ještě není dokončený.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </section>
+                      ) : null}
 
                       {/* Dialogue Section Integrated better */}
                       <section className={cn(panelClass, 'p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>

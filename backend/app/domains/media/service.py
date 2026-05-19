@@ -115,9 +115,12 @@ def _sanitize_filename(name: str) -> str:
 
 
 def _storage_mode() -> str:
+    if ASSET_STORAGE_MODE == "azure" and config.AZURE_STORAGE_KEY:
+        return "azure"
     if ASSET_STORAGE_MODE == "s3" and all([ASSET_S3_ENDPOINT, ASSET_S3_BUCKET, ASSET_S3_ACCESS_KEY_ID, ASSET_S3_SECRET_ACCESS_KEY]):
         return "s3"
     return "local"
+
 
 
 def _storage_root() -> Path:
@@ -324,6 +327,24 @@ class MediaDomainService:
             )
             upload_headers = {"Content-Type": normalized_type}
             direct_upload = True
+        elif storage_mode == "azure":
+            from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+            permissions = BlobSasPermissions(write=True, create=True)
+            sas_token = generate_blob_sas(
+                account_name=config.AZURE_STORAGE_ACCOUNT,
+                container_name=config.AZURE_STORAGE_CONTAINER,
+                blob_name=object_key,
+                account_key=config.AZURE_STORAGE_KEY,
+                permission=permissions,
+                expiry=datetime.now(timezone.utc) + timedelta(seconds=ASSET_UPLOAD_SESSION_TTL_SECONDS)
+            )
+            upload_url = f"https://{config.AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/{config.AZURE_STORAGE_CONTAINER}/{object_key}?{sas_token}"
+            upload_headers = {
+                "Content-Type": normalized_type,
+                "x-ms-blob-type": "BlockBlob",
+            }
+            direct_upload = True
+
 
         return {
             "asset_id": str(asset_id),
@@ -417,6 +438,18 @@ class MediaDomainService:
                 object_key=asset.object_key,
                 expires_seconds=ASSET_DOWNLOAD_URL_TTL_SECONDS,
             )
+        elif asset.storage_provider == "azure":
+            from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+            permissions = BlobSasPermissions(read=True)
+            sas_token = generate_blob_sas(
+                account_name=config.AZURE_STORAGE_ACCOUNT,
+                container_name=config.AZURE_STORAGE_CONTAINER,
+                blob_name=asset.object_key,
+                account_key=config.AZURE_STORAGE_KEY,
+                permission=permissions,
+                expiry=datetime.now(timezone.utc) + timedelta(seconds=ASSET_DOWNLOAD_URL_TTL_SECONDS)
+            )
+            return f"https://{config.AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/{config.AZURE_STORAGE_CONTAINER}/{asset.object_key}?{sas_token}"
         token = _sign_payload(
             {
                 "asset_id": str(asset.id),
@@ -426,6 +459,7 @@ class MediaDomainService:
         )
         # Remove hardcoded /api/v2 prefix
         return f"{request_base_url.rstrip('/')}/assets/download/{token}"
+
 
     @staticmethod
     async def resolve_local_asset_path(download_token: str) -> tuple[MediaAsset, Path]:

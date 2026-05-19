@@ -52,7 +52,10 @@ engine = create_async_engine(
     DATABASE_URL,
     connect_args=CONNECT_ARGS,
     echo=os.environ.get("SQL_ECHO") == "1",
-    pool_pre_ping=True,
+    # asyncpg already validates connections on checkout through the async engine.
+    # SQLAlchemy's synchronous pre-ping path can trip MissingGreenlet under ASGI
+    # load, so prefer pool_recycle plus normal async failure handling.
+    pool_pre_ping=os.environ.get("V2_DB_POOL_PRE_PING", "0") == "1",
     pool_size=int(os.environ.get("V2_DB_POOL_SIZE", "20")),
     max_overflow=int(os.environ.get("V2_DB_MAX_OVERFLOW", "15")),
     pool_recycle=int(os.environ.get("V2_DB_POOL_RECYCLE_SECONDS", "180")),

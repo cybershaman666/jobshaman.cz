@@ -5644,7 +5644,20 @@
       "assistant_suggested_roles": "Find my active IT roles",
       "assistant_suggested_candidates": "Show candidates in talent pool",
       "assistant_suggested_help": "How can you help me navigate?",
-      "assistant_quick_actions": "Shami Quick Actions"
+      "assistant_quick_actions": "Shami Quick Actions",
+      "cybershaman_tip": "Tip Cybershamana",
+      "cybershaman_advises": "Cybershaman advises you",
+      "change": "Change",
+      "upload": "Upload",
+      "upload_logo_btn": "Select File",
+      "remove": "Remove",
+      "hide_url": "Hide manual URL input",
+      "show_url": "Or paste image URL instead",
+      "cover_hint": "Landscape photo, 1200x400 recommended",
+      "change_banner": "Change Cover Banner",
+      "drag_drop_click": "Click or drag cover image here",
+      "upload_cover_btn": "Select File",
+      "remove_cover": "Remove Cover"
     },
     "editor": {
       "step_essence": "Rollens kärna",
@@ -5714,7 +5727,13 @@
       "launch_role": "Lansera roll på Marketplace",
       "ai_co_pilot": "Shami AI",
       "ai_hint": "Let Shami draft the role mission and assessment tasks based on your core title.",
-      "generate_draft": "Generate Shami Draft"
+      "generate_draft": "Generate Shami Draft",
+      "ai_done": "Shami vygeneroval návrh!",
+      "ai_success_hint": "Mise, assessment a dovednosti jsou připraveny. Zkontroluj a uprav dle potřeby.",
+      "ai_generating": "Shami analyzuje pozici a připravuje návrh...",
+      "ai_generating_btn": "Generuji...",
+      "ai_regenerate": "Znovu generovat",
+      "ai_tip": "Tip: Čím konkrétnější název role zadáš, tím přesnější bude návrh."
     },
     "role": {
       "full_journey": "Full Jobshaman journey",
@@ -5987,7 +6006,8 @@
       "hero_reliability_title": "Pålitlighet",
       "hero_reliability_desc": "Ansvar, självständighet",
       "hero_level_advanced": "Avancerad",
-      "hero_level_expert": "Expert"
+      "hero_level_expert": "Expert",
+      "you": "ty"
     },
     "status": {
       "in_review": "Granskas",
@@ -6038,7 +6058,8 @@
       "next_step": "Next step",
       "slots_available": "Handshake slots",
       "candidate_slots_full": "Your active handshake slots are full.",
-      "company_slots_full": "This challenge is currently full."
+      "company_slots_full": "This challenge is currently full.",
+      "the_challenge": "The challenge"
     },
     "prep": {
       "title": "Job ad detail",
@@ -6279,7 +6300,7 @@
       "save_failed": "Failed to save JCFPM",
       "disagree": "Disagree",
       "agree": "Agree",
-      "welcome_title": "Psychometric and skill profile",
+      "welcome_title": "Psykometrisk profil och färdighetsprofil",
       "welcome_copy": "12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result will be saved to your profile and will help us with more accurate recommendations of positions and courses.",
       "start_button": "Start JCFPM test",
       "next_block": "Continue to next block",
@@ -6313,11 +6334,11 @@
       "open_profile": "Open JCFPM profile",
       "handshake_rule_title": "Handshake rule",
       "handshake_rule_desc": "A finished JCFPM is simply used. An unfinished JCFPM is part of the handshake and, once completed, is saved to the profile for further challenges.",
-      "welcome_desc": "12 groups of questions await you. The first 6 focus on your psychological profile and work style, the next 6 map your real skills and cognitive prerequisites. The result is saved to your profile and helps us with more accurate recommendations for positions and courses.",
-      "start_test": "Start JCFPM test",
-      "skill_profile": "Cognitive and skill prerequisites",
-      "finish": "Finish and show results",
-      "abort": "Interrupt and start again",
+      "welcome_desc": "Du går igenom 16 block: arbetsstil, situationsbedömning, kognitiva förutsättningar och ett grundläggande Ikigai-lager. Svara utifrån ditt vanliga arbetsbeteende, inte en idealversion av dig själv.",
+      "start_test": "Starta JCFPM-test",
+      "skill_profile": "Kognitiva och färdighetsmässiga förutsättningar",
+      "finish": "Slutför och visa resultat",
+      "abort": "Avbryt och börja om",
       "psych_report_title": "Psychometric report (Big 5)",
       "psych_report_desc": "This report compares your internal setting with cognitive prerequisites.",
       "big5": {
@@ -6328,12 +6349,27 @@
         "neuroticism": "Emotional reactivity"
       },
       "confidence": "Estimation confidence",
-      "ikigai_profile": "Ikigai profile",
+      "ikigai_profile": "Ikigai-profil",
       "report_readout": "Interpretace profilu",
       "work_environment_title": "Kde bude profil nejspíš fungovat",
       "growth_focus_title": "Nejbližší růstový fokus",
       "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
-      "v3_layer": "JCFPM v3"
+      "v3_layer": "JCFPM v3",
+      "item_progress": "Uppgift {{current}} / {{total}}",
+      "next_item": "Nästa uppgift",
+      "confirm_visible_order": "Bekräfta synlig ordning",
+      "interaction_pairing": "Matchning",
+      "interaction_sequence": "Ordning",
+      "interaction_visual_choice": "Visuellt val",
+      "interaction_scale": "Skala",
+      "interaction_choice": "Val",
+      "hint_pairing": "Matcha varje objekt till vänster med den mest sannolika effekten till höger. Dra och släpp fungerar, eller klicka först på källa och sedan mål.",
+      "hint_ordering": "Ordna stegen från första till sista. Du kan dra objekt eller flytta dem med pilknapparna.",
+      "hint_visual_choice": "Välj den tolkning som bäst passar den visade signalen.",
+      "response_quality_title": "Mätkvalitet",
+      "coverage": "Täckning",
+      "response_quality_flagged": "Resultatet är sparat, men vissa svarsmönster sänker tolkningssäkerheten.",
+      "response_quality_clean": "Svarens variation räcker för en grundläggande profiltolkning."
     },
     "companies": {
       "hero": {
@@ -7315,6 +7351,14 @@
     },
     "loading": {
       "workspace": "Initializing workspace..."
+    },
+    "shami": {
+      "hint_first_step": "What the first signal looks like",
+      "hint_journey": "Journey overview",
+      "hint_context": "Company context",
+      "guide_title": "What this company wants to understand about you",
+      "guide_subtitle": "Before you start the handshake, here is what a strong response looks like and what the team is really testing.",
+      "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested."
     }
   }
 }

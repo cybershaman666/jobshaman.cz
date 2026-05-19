@@ -31,3 +31,4 @@ sqlalchemy[asyncio]
 ftfy
 unstructured
 httpx
+azure-storage-blob

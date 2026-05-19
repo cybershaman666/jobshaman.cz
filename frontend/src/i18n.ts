@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 import { PRODUCTION_LOCALE_CODES } from './i18nLocales';
 
-const I18N_VERSION = '20260512-multilingual-fix';
+const I18N_VERSION = '20260518-multilingual-locales';
 
 i18n
     // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)

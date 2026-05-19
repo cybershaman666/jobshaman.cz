@@ -1,4 +1,5 @@
 import React from 'react';
+import { getPathPartsWithoutLocale } from '../utils/appRouting';
 
 export type RecruiterTab = 'dashboard' | 'roles' | 'talent-pool' | 'integrations' | 'settings' | 'billing' | 'assistant';
 export type PublicPage = 'home' | 'companies' | 'terms' | 'privacy' | 'contact';
@@ -18,7 +19,7 @@ export type AppRoute =
 
 export const routeFromPath = (pathname: string): AppRoute => {
   const cleanPath = pathname.split('#')[0]?.split('?')[0] || '/';
-  const parts = cleanPath.split('/').filter(Boolean);
+  const parts = getPathPartsWithoutLocale(cleanPath);
   if (parts.length === 0) return { kind: 'public', page: 'home' };
   if (parts[0] === 'admin') return { kind: 'admin' };
   if (parts[0] === 'firmy' || parts[0] === 'companies') return { kind: 'public', page: 'companies' };

@@ -295,8 +295,12 @@ const normalizeHandshakeBlueprint = (job: any, roleFamily: RoleFamily, title: st
   const taskSteps = Array.isArray(job.assessment_tasks || job.payload_json?.assessment_tasks)
     ? (job.assessment_tasks || job.payload_json?.assessment_tasks)
     : [];
-  const sourceSteps = Array.isArray(raw?.steps) && raw.steps.length
-    ? raw.steps
+  const rawSteps = Array.isArray(raw?.steps) ? raw.steps : [];
+  const sourceSteps = rawSteps.length
+    ? [
+        ...rawSteps,
+        ...taskSteps.filter((task: any) => !rawSteps.some((step: any) => String(step?.id || '') === String(task?.id || ''))),
+      ]
     : [
       { id: 'identity', type: 'identity', title: 'Identity', prompt: 'Kdo jste a proč vás výzva zajímá?', required: true },
       { id: 'motivation', type: 'motivation', title: 'Motivation', prompt: `Co vás táhne k výzvě ${title}?`, required: true },

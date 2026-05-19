@@ -28,13 +28,14 @@ import {
   UserRound,
 } from 'lucide-react';
 
-import type { CVDocument, Education, UserProfile, WorkExperience } from '../../types';
+import type { CandidateLanguage, CVDocument, Education, TransportMode, UserProfile, WorkExperience } from '../../types';
 import type { CandidatePreferenceProfile } from '../models';
 import { cn } from '../cn';
 import { CandidateShellSurface, CompactActionButton, SectionEyebrow, ShellCard } from './CandidateShellSurface';
 import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 import { validateCvFile } from '../../services/v2CvService';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
+import { createDefaultCandidateSearchProfile } from '../../services/profileDefaults';
 import { getCandidateIntentDomainLabel, resolveCandidateIntentProfile } from '../../services/candidateIntentService';
 import { getStaticCoordinates } from '../../services/geocodingService';
 
@@ -48,9 +49,9 @@ const formatVisibility = (value?: string) => {
 
 const formatTransportMode = (value?: string) => {
   if (value === 'car') return 'Auto';
-  if (value === 'public_transport') return 'MHD / vlak';
+  if (value === 'public' || value === 'public_transport') return 'MHD / vlak';
   if (value === 'bike') return 'Kolo';
-  if (value === 'walking') return 'Pěšky';
+  if (value === 'walk' || value === 'walking') return 'Pěšky';
   return 'Dle příležitosti';
 };
 
@@ -61,6 +62,66 @@ const formatEmploymentType = (value?: string) => {
   if (value === 'internship') return 'Stáž';
   if (value === 'temporary') return 'Dočasná spolupráce';
   return 'Flexibilní';
+};
+
+const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: 'full_time', label: 'Plný úvazek' },
+  { value: 'part_time', label: 'Zkrácený úvazek' },
+  { value: 'contract', label: 'Kontrakt' },
+  { value: 'internship', label: 'Stáž' },
+  { value: 'temporary', label: 'Dočasná spolupráce' },
+] as const;
+
+const TRANSPORT_MODE_OPTIONS = [
+  { value: 'public', label: 'Dle příležitosti' },
+  { value: 'car', label: 'Auto' },
+  { value: 'bike', label: 'Kolo' },
+  { value: 'walk', label: 'Pěšky' },
+] as const;
+
+const VISIBILITY_OPTIONS = [
+  { value: 'private', label: 'Soukromý profil' },
+  { value: 'recruiter', label: 'Viditelný firmám' },
+  { value: 'public', label: 'Veřejný profil' },
+] as const;
+
+const parseListInput = (value: string) =>
+  value
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const listToInput = (values?: string[]) => (values || []).join('\n');
+
+const clampLanguageLevel = (value: number) => Math.max(1, Math.min(8, Math.round(value || 1)));
+
+const normalizeLanguages = (languages?: CandidateLanguage[]) =>
+  (languages || [])
+    .map((language) => ({
+      label: String(language.label || '').trim(),
+      level: clampLanguageLevel(Number(language.level || 1)),
+      note: String(language.note || '').trim(),
+    }))
+    .filter((language) => language.label);
+
+type ProfileEditForm = {
+  name: string;
+  jobTitle: string;
+  phone: string;
+  address: string;
+  story: string;
+  skillsText: string;
+  inferredSkillsText: string;
+  workPreferencesText: string;
+  languages: CandidateLanguage[];
+  desiredEmploymentType: UserProfile['preferences']['desired_employment_type'] | '';
+  desiredSalaryMin: string;
+  desiredSalaryMax: string;
+  profileVisibility: NonNullable<UserProfile['preferences']['profile_visibility']>;
+  searchRadiusKm: string;
+  transportMode: TransportMode;
+  linkedIn: string;
+  portfolio: string;
 };
 
 const formatUploadedAt = (value?: string) => {
@@ -336,19 +397,28 @@ export const CandidateProfileV2: React.FC<{
     const [cvError, setCvError] = React.useState('');
     const [cvNotice, setCvNotice] = React.useState('');
     const [isEditingProfile, setIsEditingProfile] = React.useState(false);
-    const [editForm, setEditForm] = React.useState({
+    const buildEditForm = React.useCallback((): ProfileEditForm => ({
       name: userProfile.name || '',
       jobTitle: userProfile.jobTitle || '',
       phone: userProfile.phone || '',
       address: userProfile.address || preferences.address || '',
-    });
+      story: userProfile.story || userProfile.bio || '',
+      skillsText: listToInput(userProfile.skills),
+      inferredSkillsText: listToInput(userProfile.inferredSkills),
+      workPreferencesText: listToInput(userProfile.workPreferences),
+      languages: normalizeLanguages(userProfile.languages),
+      desiredEmploymentType: userProfile.preferences?.desired_employment_type || '',
+      desiredSalaryMin: userProfile.preferences?.desired_salary_min ? String(userProfile.preferences.desired_salary_min) : '',
+      desiredSalaryMax: userProfile.preferences?.desired_salary_max ? String(userProfile.preferences.desired_salary_max) : '',
+      profileVisibility: userProfile.preferences?.profile_visibility || 'private',
+      searchRadiusKm: String(preferences.searchRadiusKm || userProfile.preferences?.searchProfile?.defaultMaxDistanceKm || 25),
+      transportMode: userProfile.transportMode || preferences.transportMode || 'public',
+      linkedIn: userProfile.preferences?.linkedIn || preferences.linkedInUrl || '',
+      portfolio: userProfile.preferences?.portfolio || preferences.portfolioUrl || '',
+    }), [preferences.address, preferences.linkedInUrl, preferences.portfolioUrl, preferences.searchRadiusKm, preferences.transportMode, userProfile]);
+    const [editForm, setEditForm] = React.useState<ProfileEditForm>(buildEditForm);
 
-    const currentProfileForm = React.useMemo(() => ({
-      name: userProfile.name || '',
-      jobTitle: userProfile.jobTitle || '',
-      phone: userProfile.phone || '',
-      address: userProfile.address || preferences.address || '',
-    }), [preferences.address, userProfile.address, userProfile.jobTitle, userProfile.name, userProfile.phone]);
+    const currentProfileForm = React.useMemo(() => buildEditForm(), [buildEditForm]);
 
     React.useEffect(() => {
       if (isEditingProfile) return;
@@ -376,11 +446,38 @@ export const CandidateProfileV2: React.FC<{
     const handleSaveEdit = async () => {
       const detectedCountry = resolveCountryFromAddress(editForm.address);
       const staticCoordinates = getStaticCoordinates(editForm.address);
+      const basePreferences: UserProfile['preferences'] = userProfile.preferences || {
+        workLifeBalance: 50,
+        financialGoals: 50,
+        commuteTolerance: 45,
+        priorities: [],
+      };
+      const nextPreferences: UserProfile['preferences'] = {
+        ...basePreferences,
+        desired_employment_type: editForm.desiredEmploymentType || undefined,
+        desired_salary_min: editForm.desiredSalaryMin ? Number(editForm.desiredSalaryMin) : null,
+        desired_salary_max: editForm.desiredSalaryMax ? Number(editForm.desiredSalaryMax) : null,
+        profile_visibility: editForm.profileVisibility as UserProfile['preferences']['profile_visibility'],
+        linkedIn: editForm.linkedIn.trim() || undefined,
+        portfolio: editForm.portfolio.trim() || undefined,
+        searchProfile: {
+          ...(basePreferences.searchProfile || createDefaultCandidateSearchProfile()),
+          defaultMaxDistanceKm: Math.max(0, Number(editForm.searchRadiusKm) || 0),
+        },
+      };
       const updates = {
         name: editForm.name.trim(),
         jobTitle: editForm.jobTitle.trim(),
         phone: editForm.phone.trim(),
         address: editForm.address.trim(),
+        story: editForm.story.trim(),
+        bio: editForm.story.trim(),
+        skills: parseListInput(editForm.skillsText),
+        inferredSkills: parseListInput(editForm.inferredSkillsText),
+        workPreferences: parseListInput(editForm.workPreferencesText),
+        languages: normalizeLanguages(editForm.languages),
+        transportMode: editForm.transportMode as UserProfile['transportMode'],
+        preferences: nextPreferences,
         ...(staticCoordinates ? { coordinates: staticCoordinates } : {}),
       };
       setUserProfile?.(updates);
@@ -394,6 +491,29 @@ export const CandidateProfileV2: React.FC<{
       setIsEditingProfile(false);
     };
 
+    const updateLanguage = (index: number, updates: Partial<CandidateLanguage>) => {
+      setEditForm((prev) => ({
+        ...prev,
+        languages: prev.languages.map((language, itemIndex) => (
+          itemIndex === index ? { ...language, ...updates } : language
+        )),
+      }));
+    };
+
+    const addLanguage = () => {
+      setEditForm((prev) => ({
+        ...prev,
+        languages: [...prev.languages, { label: '', level: 3, note: '' }],
+      }));
+    };
+
+    const removeLanguage = (index: number) => {
+      setEditForm((prev) => ({
+        ...prev,
+        languages: prev.languages.filter((_, itemIndex) => itemIndex !== index),
+      }));
+    };
+
     const completion = React.useMemo(
       () => computeProfileCompletion(userProfile, preferences, cvDocuments),
       [cvDocuments, preferences, userProfile],
@@ -405,6 +525,10 @@ export const CandidateProfileV2: React.FC<{
     const skills = React.useMemo(
       () => extractSkills(userProfile, activeCvDocument),
       [activeCvDocument, userProfile],
+    );
+    const languages = React.useMemo(
+      () => normalizeLanguages(userProfile.languages),
+      [userProfile.languages],
     );
     const workHistory = React.useMemo(
       () => extractWorkHistory(userProfile, activeCvDocument),
@@ -511,44 +635,112 @@ export const CandidateProfileV2: React.FC<{
       >
         {isEditingProfile ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-            <div className="w-full max-w-lg rounded-[24px] bg-white p-6 shadow-xl">
-              <h3 className="text-xl font-semibold text-slate-900">Upravit základní údaje</h3>
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Jméno</label>
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20"
-                  />
+            <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[24px] bg-white p-6 shadow-xl">
+              <h3 className="text-xl font-semibold text-slate-900">Upravit profil</h3>
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Jméno</label>
+                    <input type="text" value={editForm.name} onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Pracovní role</label>
+                    <input type="text" value={editForm.jobTitle} onChange={(e) => setEditForm(prev => ({ ...prev, jobTitle: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Telefon</label>
+                    <input type="text" value={editForm.phone} onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Adresa / lokalita</label>
+                    <input type="text" value={editForm.address} onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Příběh / bio</label>
+                  <textarea value={editForm.story} onChange={(e) => setEditForm(prev => ({ ...prev, story: e.target.value }))} rows={4} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Pracovní role</label>
-                  <input
-                    type="text"
-                    value={editForm.jobTitle}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, jobTitle: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20"
-                  />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Dovednosti</label>
+                  <textarea value={editForm.skillsText} onChange={(e) => setEditForm(prev => ({ ...prev, skillsText: e.target.value }))} rows={5} placeholder="Každou dovednost na nový řádek" className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Telefon</label>
-                  <input
-                    type="text"
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20"
-                  />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Odvozené / doplňkové dovednosti</label>
+                  <textarea value={editForm.inferredSkillsText} onChange={(e) => setEditForm(prev => ({ ...prev, inferredSkillsText: e.target.value }))} rows={5} placeholder="Např. leadership, komunikace, analytika" className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                </div>
+                <div className="md:col-span-2">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className="block text-sm font-medium text-slate-700">Jazykové znalosti</label>
+                    <button type="button" onClick={addLanguage} className={cn(secondaryButtonClass, 'rounded-full px-3 py-2 text-xs')}><Plus size={14} /> Přidat jazyk</button>
+                  </div>
+                  <div className="space-y-3">
+                    {editForm.languages.map((language, index) => (
+                      <div key={`edit-language-${index}`} className="grid gap-3 rounded-[16px] border border-slate-200 p-3 md:grid-cols-[1fr_130px_1fr_auto] md:items-end">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Jazyk</label>
+                          <input type="text" value={language.label} onChange={(e) => updateLanguage(index, { label: e.target.value })} className="w-full rounded-[10px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#255DAB]" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Úroveň 1-8</label>
+                          <input type="number" min={1} max={8} value={language.level} onChange={(e) => updateLanguage(index, { level: clampLanguageLevel(Number(e.target.value)) })} className="w-full rounded-[10px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#255DAB]" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Poznámka</label>
+                          <input type="text" value={language.note || ''} onChange={(e) => updateLanguage(index, { note: e.target.value })} className="w-full rounded-[10px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#255DAB]" />
+                        </div>
+                        <button type="button" onClick={() => removeLanguage(index)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-600 transition hover:bg-rose-50" aria-label="Odebrat jazyk"><Trash2 size={16} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Adresa (Lokalita)</label>
-                  <input
-                    type="text"
-                    value={editForm.address}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20"
-                  />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Preferované podmínky</label>
+                  <textarea value={editForm.workPreferencesText} onChange={(e) => setEditForm(prev => ({ ...prev, workPreferencesText: e.target.value }))} rows={4} placeholder="Hybrid, autonomie, žádné noční směny..." className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                </div>
+                <div className="grid gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">Typ úvazku</label>
+                      <select value={editForm.desiredEmploymentType} onChange={(e) => setEditForm(prev => ({ ...prev, desiredEmploymentType: e.target.value as ProfileEditForm['desiredEmploymentType'] }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
+                        <option value="">Flexibilní</option>
+                        {EMPLOYMENT_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">Doprava</label>
+                      <select value={editForm.transportMode} onChange={(e) => setEditForm(prev => ({ ...prev, transportMode: e.target.value as TransportMode }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
+                        {TRANSPORT_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">Dojíždění km</label>
+                      <input type="number" min={0} value={editForm.searchRadiusKm} onChange={(e) => setEditForm(prev => ({ ...prev, searchRadiusKm: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">Mzda od</label>
+                      <input type="number" min={0} value={editForm.desiredSalaryMin} onChange={(e) => setEditForm(prev => ({ ...prev, desiredSalaryMin: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">Mzda do</label>
+                      <input type="number" min={0} value={editForm.desiredSalaryMax} onChange={(e) => setEditForm(prev => ({ ...prev, desiredSalaryMax: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">LinkedIn</label>
+                  <input type="text" value={editForm.linkedIn} onChange={(e) => setEditForm(prev => ({ ...prev, linkedIn: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Portfolio</label>
+                  <input type="text" value={editForm.portfolio} onChange={(e) => setEditForm(prev => ({ ...prev, portfolio: e.target.value }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-[#255DAB] focus:ring-2 focus:ring-[#255DAB]/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Viditelnost</label>
+                  <select value={editForm.profileVisibility} onChange={(e) => setEditForm(prev => ({ ...prev, profileVisibility: e.target.value as ProfileEditForm['profileVisibility'] }))} className="w-full rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#255DAB]">
+                    {VISIBILITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="mt-8 flex justify-end gap-3">
@@ -925,7 +1117,7 @@ export const CandidateProfileV2: React.FC<{
           </div>
 
           <div className="grid gap-4 xl:col-span-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(300px,0.95fr)]">
-            <SectionCard title="Moje dovednosti" icon={<Sparkles size={18} />}>
+            <SectionCard title="Moje dovednosti" icon={<Sparkles size={18} />} action={<button type="button" onClick={() => { setEditForm(currentProfileForm); setIsEditingProfile(true); }} className={cn(secondaryButtonClass, 'rounded-full px-3 py-2 text-xs')}><Plus size={14} /> Upravit</button>}>
               <div className="flex flex-wrap gap-2">
                 {skills.length > 0 ? skills.slice(0, 12).map((skill, index) => (
                   <span key={`skill-${skill}-${index}`} className="rounded-full border border-[color:var(--dashboard-soft-border)] bg-[color:color-mix(in_srgb,var(--dashboard-soft-bg)_94%,white)] px-3 py-1.5 text-[12px] font-medium text-[color:var(--dashboard-text-body)]">
@@ -935,12 +1127,9 @@ export const CandidateProfileV2: React.FC<{
               </div>
             </SectionCard>
 
-            <SectionCard title="Jazykové znalosti" icon={<Languages size={18} />}>
+            <SectionCard title="Jazykové znalosti" icon={<Languages size={18} />} action={<button type="button" onClick={() => { setEditForm(currentProfileForm); setIsEditingProfile(true); }} className={cn(secondaryButtonClass, 'rounded-full px-3 py-2 text-xs')}><Plus size={14} /> Upravit</button>}>
               <div className="space-y-4">
-                {[
-                  { label: 'Čeština', level: 6, note: 'Rodilý mluvčí' },
-                  { label: 'Angličtina', level: preferences.linkedInUrl || preferences.portfolioUrl ? 3 : 2, note: 'Základy až pracovní úroveň' },
-                ].map((language, index) => (
+                {languages.length > 0 ? languages.map((language, index) => (
                   <div key={`language-${language.label}-${index}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -954,17 +1143,18 @@ export const CandidateProfileV2: React.FC<{
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : <div className="text-sm text-[color:var(--dashboard-text-muted)]">Jazyky zatím nejsou doplněné.</div>}
               </div>
             </SectionCard>
 
-            <SectionCard title="Preferované podmínky" icon={<MapPin size={18} />}>
+            <SectionCard title="Preferované podmínky" icon={<MapPin size={18} />} action={<button type="button" onClick={() => { setEditForm(currentProfileForm); setIsEditingProfile(true); }} className={cn(secondaryButtonClass, 'rounded-full px-3 py-2 text-xs')}><Plus size={14} /> Upravit</button>}>
               <div className="space-y-3">
                 <DetailRow label="Lokalita" value={userProfile.address || preferences.address || 'Neuvedeno'} />
                 <DetailRow label="Typ úvazku" value={formatEmploymentType(userProfile.preferences?.desired_employment_type)} />
                 <DetailRow label="Dojíždění" value={`${preferences.searchRadiusKm} km • ${formatTransportMode(userProfile.transportMode)}`} />
                 <DetailRow label="Mzda" value={desiredSalary} />
                 <DetailRow label="Viditelnost" value={formatVisibility(userProfile.preferences?.profile_visibility)} />
+                {userProfile.workPreferences?.length ? <DetailRow label="Další" value={userProfile.workPreferences.join(', ')} /> : null}
               </div>
             </SectionCard>
 

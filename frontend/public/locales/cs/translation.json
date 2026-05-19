@@ -5616,7 +5616,20 @@
       "assistant_suggested_roles": "Najdi mé aktivní IT pozice",
       "assistant_suggested_candidates": "Ukaž kandidáty v talent poolu",
       "assistant_suggested_help": "Jak mi můžeš pomoci s onboardingem?",
-      "assistant_quick_actions": "Rychlé akce Shamiho"
+      "assistant_quick_actions": "Rychlé akce Shamiho",
+      "cybershaman_tip": "Tip Cybershamana",
+      "cybershaman_advises": "Cybershaman advises you",
+      "change": "Change",
+      "upload": "Upload",
+      "upload_logo_btn": "Select File",
+      "remove": "Remove",
+      "hide_url": "Hide manual URL input",
+      "show_url": "Or paste image URL instead",
+      "cover_hint": "Landscape photo, 1200x400 recommended",
+      "change_banner": "Change Cover Banner",
+      "drag_drop_click": "Click or drag cover image here",
+      "upload_cover_btn": "Select File",
+      "remove_cover": "Remove Cover"
     },
     "editor": {
       "step_essence": "Podstata role",
@@ -5686,7 +5699,13 @@
       "launch_role": "Spustit roli na Marketplace",
       "ai_co_pilot": "Shami AI",
       "ai_hint": "Nechte Shamiho navrhnout misi role a assessment úkoly na základě názvu pozice.",
-      "generate_draft": "Generovat návrh od Shamiho"
+      "generate_draft": "Generovat návrh od Shamiho",
+      "ai_done": "Shami vygeneroval návrh!",
+      "ai_success_hint": "Mise, assessment a dovednosti jsou připraveny. Zkontroluj a uprav dle potřeby.",
+      "ai_generating": "Shami analyzuje pozici a připravuje návrh...",
+      "ai_generating_btn": "Generuji...",
+      "ai_regenerate": "Znovu generovat",
+      "ai_tip": "Tip: Čím konkrétnější název role zadáš, tím přesnější bude návrh."
     },
     "role": {
       "full_journey": "Plná Jobshaman cesta",
@@ -5961,7 +5980,8 @@
       "hero_reliability_title": "Spolehlivost",
       "hero_reliability_desc": "Zodpovědnost, samostatnost",
       "hero_level_advanced": "Pokročilý",
-      "hero_level_expert": "Expert"
+      "hero_level_expert": "Expert",
+      "you": "ty"
     },
     "status": {
       "in_review": "V recenzí",
@@ -6003,7 +6023,17 @@
       "next_step": "Next step",
       "slots_available": "Handshake slots",
       "candidate_slots_full": "Your active handshake slots are full.",
-      "company_slots_full": "This challenge is currently full."
+      "company_slots_full": "This challenge is currently full.",
+      "the_challenge": "Výzva"
+    },
+    "shami": {
+      "guide_title": "Co tato firma chce pochopit o tobě",
+      "guide_title_company": "Co chce {{company}} pochopit o tobě",
+      "guide_subtitle": "Než spustíš handshake, tady jsou signály, jak vypadá silná odpověď a co tým opravdu testuje.",
+      "hint_first_step": "Jak vypadá první signál",
+      "hint_journey": "Jak probíhá výběrové řízení",
+      "hint_context": "Kontext firmy",
+      "guide_fallback": "Přečti si výzvu pozorně. Tvá první odpověď by měla ukázat, že chápeš jádro problému – nestačí jen zájem."
     },
     "prep": {
       "title": "Detail inzerátu",
@@ -6258,7 +6288,7 @@
       "open_profile": "Otevřít JCFPM profil",
       "handshake_rule_title": "Pravidlo handshaku",
       "handshake_rule_desc": "Hotový JCFPM se pouze použije. Nehotový JCFPM je součástí handshaku a po dokončení se uloží do profilu pro další výzvy.",
-      "welcome_desc": "Čeká tě 12 skupin otázek. Prvních 6 se zaměřuje na tvůj psychologický profil a pracovní styl, dalších 6 mapuje tvé reálné schopnosti a kognitivní předpoklady. Výsledek se uloží do tvého profilu a pomůže nám s přesnějším doporučováním pozic a kurzů.",
+      "welcome_desc": "Čeká tě 16 bloků: pracovní styl, situační úsudek, kognitivní předpoklady a základní Ikigai vrstva. Odpovídej podle běžného pracovního chování, ne podle ideální verze sebe sama.",
       "start_test": "Spustit JCFPM test",
       "skill_profile": "Kognitivní a dovednostní předpoklady",
       "finish": "Dokončit a zobrazit výsledky",
@@ -6287,12 +6317,27 @@
         "agreeableness": "Agreeableness",
         "neuroticism": "Emotional reactivity"
       },
-      "ikigai_profile": "Ikigai profile",
+      "ikigai_profile": "Ikigai profil",
       "report_readout": "Interpretace profilu",
       "work_environment_title": "Kde bude profil nejspíš fungovat",
       "growth_focus_title": "Nejbližší růstový fokus",
       "ikigai_title": "Smysl, síla, potřeba a tržní hodnota",
-      "v3_layer": "JCFPM v3"
+      "v3_layer": "JCFPM v3",
+      "item_progress": "Úloha {{current}} / {{total}}",
+      "next_item": "Další úloha",
+      "confirm_visible_order": "Potvrdit zobrazené pořadí",
+      "interaction_pairing": "Párování",
+      "interaction_sequence": "Pořadí",
+      "interaction_visual_choice": "Vizuální volba",
+      "interaction_scale": "Škála",
+      "interaction_choice": "Volba",
+      "hint_pairing": "Propoj každou položku vlevo s nejpravděpodobnějším důsledkem vpravo. Funguje přetažení i kliknutí: nejdřív zdroj, potom cíl.",
+      "hint_ordering": "Seřaď kroky od prvního po poslední. Položky můžeš přetáhnout nebo posouvat šipkami.",
+      "hint_visual_choice": "Vyber interpretaci, která nejlépe odpovídá zobrazenému signálu.",
+      "response_quality_title": "Kvalita měření",
+      "coverage": "Pokrytí",
+      "response_quality_flagged": "Výsledek je uložen, ale některé odpovědní vzorce snižují jistotu interpretace.",
+      "response_quality_clean": "Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu."
     },
     "companies": {
       "hero": {

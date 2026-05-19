@@ -125,6 +125,7 @@ export const CandidateJourneyPage: React.FC<{
   const currentStepId = session.currentStepId || journeyBlueprint.steps[0]?.id || 'identity';
   const stepIndex = Math.max(0, journeyBlueprint.steps.findIndex((step) => step.id === currentStepId));
   const currentStep = journeyBlueprint.steps[stepIndex] || journeyBlueprint.steps[0];
+  const currentStepType = String((currentStep as any)?.type || '');
   const evaluation = React.useMemo(() => evaluateRole(role, preferences, t), [role, preferences, t]);
   const candidateScore = React.useMemo(() => {
     const textVolume = Object.values(session.answers).reduce((sum, value) => {
@@ -294,7 +295,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               </div>
 
-              {currentStep.type === 'identity' ? (
+              {currentStepType === 'identity' ? (
                 <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
                   <div className="space-y-4">
                     <div className="overflow-hidden rounded-[8px] bg-[#0f172a]">
@@ -335,7 +336,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'motivation' ? (
+              {currentStepType === 'motivation' ? (
                 <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">{t('rebuild.journey.motivation_label')}</div>
@@ -374,7 +375,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'skill_alignment' ? (
+              {currentStepType === 'skill_alignment' ? (
                 <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
                   <div className="rounded-[8px] border border-slate-200 bg-[#f9fbff] p-6">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('rebuild.journey.skill_map_overlay')}</div>
@@ -446,7 +447,17 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'portfolio_or_proof' || currentStep.type === 'scenario_response' || currentStep.type === 'reflection' ? (
+              {[
+                'portfolio_or_proof',
+                'scenario_response',
+                'reflection',
+                'context',
+                'text_response',
+                'work_sample',
+                'workspace',
+                'external_link',
+                'file_upload',
+              ].includes(currentStepType) ? (
                 <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">{currentStep.title}</div>
@@ -471,7 +482,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'task_workspace' ? (
+              {currentStepType === 'task_workspace' ? (
                 <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
                   <div className="space-y-4">
                     <div className="rounded-[8px] border border-slate-200 bg-white p-5">
@@ -509,7 +520,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'jcfpm_profile' ? (
+              {currentStepType === 'jcfpm_profile' ? (
                 <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#1f5fbf]">JCFPM signal</div>
@@ -544,7 +555,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'results_summary' ? (
+              {currentStepType === 'results_summary' ? (
                 <div className="space-y-6">
                   <div className="text-center">
                     <div className="inline-flex items-center gap-2 rounded-full bg-[#12AFCB]/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0f95ac]">
@@ -625,7 +636,7 @@ export const CandidateJourneyPage: React.FC<{
                 </div>
               ) : null}
 
-              {currentStep.type === 'schedule_request' ? (
+              {currentStepType === 'schedule_request' ? (
                 <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
                   <div className="space-y-4">
                     <div className="rounded-[8px] border border-slate-200 bg-white p-6">
@@ -709,11 +720,6 @@ export const CandidateJourneyPage: React.FC<{
                 onClick={() => {
                   if (session.slotAvailability && !session.slotAvailability.available && !session.applicationId) {
                     setSubmitError(t('rebuild.journey.no_slots_error', { defaultValue: 'This handshake cannot be submitted because no active slot is available.' }));
-                    return;
-                  }
-                  if (!hasJcfpm && journeyBlueprint.steps.some((step) => step.type === 'jcfpm_profile')) {
-                    setSubmitError(t('rebuild.journey.jcfpm_required_error', { defaultValue: 'Complete JCFPM first. We will bring you back to this handshake afterwards.' }));
-                    navigate('/candidate/jcfpm');
                     return;
                   }
                   const candidateName = String(session.answers.preferred_alias || session.answers.legal_name || preferences.name);

@@ -1,0 +1,4 @@
+Total active MCQ items in database: 60
+
+
+Comparison finished. Found 0 mismatched MCQ items out of 60 total active MCQ items.

@@ -640,7 +640,32 @@ def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
         try:
             _respect_domain_throttle(domain)
             headers = _get_headers(url)
-            resp = _SESSION.get(url, timeout=20, headers=headers)
+            
+            # Disable verification for domains with known SSL issues (like prace.sk)
+            verify = True
+            if domain and 'prace.sk' in domain:
+                verify = False
+                try:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                except ImportError:
+                    pass
+            
+            try:
+                resp = _SESSION.get(url, timeout=20, headers=headers, verify=verify)
+            except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as ssl_err:
+                err_str = str(ssl_err).lower()
+                if verify and ("ssl" in err_str or "cert" in err_str or "verify failed" in err_str):
+                    print(f"⚠️ SSL cert verification failed for {url}, retrying with verify=False...")
+                    try:
+                        import urllib3
+                        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    except ImportError:
+                        pass
+                    resp = _SESSION.get(url, timeout=20, headers=headers, verify=False)
+                else:
+                    raise ssl_err
+
             if resp.status_code in (403, 429, 503):
                 wait = backoff
                 if resp.status_code == 429:

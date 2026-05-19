@@ -49,7 +49,12 @@ const normalizeLiveBlueprint = (
   title: string,
 ): HandshakeBlueprint | undefined => {
   const rawSteps = Array.isArray(rawBlueprint?.steps) ? rawBlueprint.steps : [];
-  const sourceSteps = rawSteps.length ? rawSteps : tasks;
+  const sourceSteps = rawSteps.length
+    ? [
+        ...rawSteps,
+        ...tasks.filter((task: any) => !rawSteps.some((step: any) => String(step?.id || '') === String(task?.id || ''))),
+      ]
+    : tasks;
   if (!sourceSteps.length) return undefined;
   const steps = sourceSteps.map((step: any, index: number) => {
     const type = normalizeStepType(step?.type);
@@ -486,17 +491,20 @@ export const mapApplicationToInsight = (
   t: any,
 ): CandidateInsight => {
   const matchedRole = roles.find((role) => String(role.id) === String(application.job_id));
-  const topSignals = (matchedRole?.skills || ['Structured submission', 'Candidate signal', 'Role fit']).slice(0, 3);
+  const candidateSkills = Array.isArray(application.candidateSkills) ? application.candidateSkills.filter(Boolean) : [];
+  const topSignals = (candidateSkills.length ? candidateSkills : matchedRole?.skills || ['Structured submission', 'Candidate signal', 'Role fit']).slice(0, 3);
   const statusBoost = application.status === 'shortlisted' || application.status === 'reviewed' ? 8 : application.status === 'hired' ? 12 : 0;
   const hasCvBoost = application.hasCv ? 6 : 0;
   const hasJcfpmBoost = application.hasJcfpm ? 4 : 0;
-  const baseScore = Math.max(72, Math.min(97, 74 + statusBoost + hasCvBoost + hasJcfpmBoost));
+  const answerBoost = Math.min((application.answerCount || 0) * 3, 12);
+  const liveScore = typeof application.matchPercent === 'number' ? application.matchPercent : null;
+  const baseScore = Math.round(Math.max(72, Math.min(97, liveScore || 74 + statusBoost + hasCvBoost + hasJcfpmBoost + answerBoost)));
 
   return {
     id: `application-${application.id}`,
     candidateName: application.candidate_name || 'Candidate',
     headline: application.candidateHeadline || application.job_title || matchedRole?.title || 'Candidate submission',
-    location: matchedRole?.location || 'Candidate submission',
+    location: application.candidateLocation || matchedRole?.location || 'Candidate submission',
     matchPercent: baseScore,
     verifiedScore: baseScore,
     topSignals,
@@ -513,6 +521,15 @@ export const mapApplicationToInsight = (
       score: Math.max(68, Math.min(96, baseScore - index * 5)),
       tags: matchedRole?.featuredInsights.slice(index, index + 2) || [],
     })),
+    avatar_url: application.candidate_avatar_url || application.candidateAvatarUrl,
+    bio: application.candidateBio,
+    created_at: application.created_at,
+    source: 'handshake',
+    status: application.status,
+    jobTitle: application.job_title || matchedRole?.title,
+    answerCount: application.answerCount,
+    hasJcfpm: application.hasJcfpm,
+    hasCv: application.hasCv,
   };
 };
 

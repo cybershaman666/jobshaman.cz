@@ -40,9 +40,9 @@ const normalizeStatus = (status: unknown): CompanyApplicationRow['status'] => {
 };
 
 const buildJobSnapshot = (item: any) => ({
-  title: item?.job_title || item?.jobTitle || item?.title || item?.headline || null,
-  company: item?.company_name || item?.companyName || null,
-  location: item?.location || null,
+  title: item?.job_title || item?.jobTitle || item?.title || item?.session?.job_snapshot?.title || item?.headline || null,
+  company: item?.company_name || item?.companyName || item?.session?.job_snapshot?.company || null,
+  location: item?.location || item?.session?.job_snapshot?.location || null,
   url: item?.url || null,
   source: item?.source || 'v2_native_handshake',
 });
@@ -62,9 +62,9 @@ const mapHandshakeToSummary = (item: any): DialogueSummary => {
     source: 'v2_native_handshake',
     has_cover_letter: false,
     has_cv: Boolean(session?.candidate_context?.cv || session?.candidate_context?.cv_summary),
-    has_jcfpm: Boolean(session?.candidate_context?.jcfpm),
-    jcfpm_share_level: session?.candidate_context?.jcfpm ? 'summary' : undefined,
-    company_name: item?.company_name || item?.companyName || null,
+    has_jcfpm: Boolean(session?.candidate_context?.jcfpm?.completed),
+    jcfpm_share_level: session?.candidate_context?.jcfpm?.completed ? 'summary' : undefined,
+    company_name: item?.company_name || item?.companyName || session?.job_snapshot?.company || null,
     job_snapshot: buildJobSnapshot(item),
   };
 };
@@ -80,9 +80,14 @@ const mapCompanyHandshakeToRow = (item: any): CompanyApplicationRow => ({
   job_title: item?.job_title || item?.jobTitle || undefined,
   candidate_name: item?.candidate_name || item?.candidateName || undefined,
   candidateHeadline: item?.headline || undefined,
+  candidateLocation: item?.candidate_location || item?.candidateLocation || undefined,
+  candidateBio: item?.candidate_bio || item?.candidateBio || undefined,
+  candidateSkills: Array.isArray(item?.candidate_skills) ? item.candidate_skills : Array.isArray(item?.candidateSkills) ? item.candidateSkills : [],
+  matchPercent: item?.matchPercent ?? item?.score ?? null,
+  answerCount: Number(item?.answer_count ?? item?.answerCount ?? 0),
   hasCoverLetter: false,
-  hasCv: true,
-  hasJcfpm: true,
+  hasCv: item?.has_cv ?? item?.hasCv ?? true,
+  hasJcfpm: item?.has_jcfpm ?? item?.hasJcfpm ?? false,
   jcfpmShareLevel: 'summary',
 });
 
@@ -110,6 +115,7 @@ const mapReadoutToDossier = (payload: any): DialogueDossier | null => {
   const data = unwrapData<any>(payload);
   const readout = data?.readout || data;
   const session = data?.session || {};
+  const profileSummary = readout?.profile_summary || {};
   const handshakeId = readout?.handshake_id || data?.handshake_id || session?.id;
   if (!handshakeId) return null;
   return {
@@ -123,9 +129,9 @@ const mapReadoutToDossier = (payload: any): DialogueDossier | null => {
     updated_at: session?.updated_at || undefined,
     cover_letter: session?.final_note || null,
     candidate_profile_snapshot: {
-      name: readout?.identity?.name || readout?.identity?.alias || undefined,
-      jobTitle: readout?.headline || undefined,
-      skills: Array.isArray(readout?.strengths) ? readout.strengths : [],
+      name: profileSummary?.name || readout?.identity?.name || readout?.identity?.alias || undefined,
+      jobTitle: profileSummary?.headline || readout?.headline || undefined,
+      skills: Array.isArray(profileSummary?.skills) && profileSummary.skills.length ? profileSummary.skills : Array.isArray(readout?.strengths) ? readout.strengths : [],
       values: [],
     },
     shared_jcfpm_payload: readout?.jcfpm_summary || null,

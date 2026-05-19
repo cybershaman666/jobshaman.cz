@@ -1,0 +1,241 @@
+Loaded 36 items and 36 translation slots.
+
+======================================
+Pool Key: D9.1
+======================================
+
+Item: D9.1 | Type: drag_drop | Variant: 1
+  Base Question: None
+  CS Prompt:     Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+Item: D9.1_v2 | Type: drag_drop | Variant: 2
+  Base Question: None
+  CS Prompt:     Představ si tuto situaci: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+Item: D9.1_v3 | Type: drag_drop | Variant: 3
+  Base Question: None
+  CS Prompt:     V běžném pracovním provozu: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+Item: D9.1_v4 | Type: drag_drop | Variant: 4
+  Base Question: None
+  CS Prompt:     Pod časovým tlakem: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+Item: D9.1_v5 | Type: drag_drop | Variant: 5
+  Base Question: None
+  CS Prompt:     Když na tom záleží: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+Item: D9.1_v6 | Type: drag_drop | Variant: 6
+  Base Question: None
+  CS Prompt:     V realistické praxi: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Base Options:  [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Zvýšení ceny'}, {'id': 's2', 'label': 'Lepší podpora'}, {'id': 's3', 'label': 'Rychlejší dodání'}], 'targets': [{'id': 't1', 'label': 'Pokles poptávky'}, {'id': 't2', 'label': 'Vyšší spokojenost'}, {'id': 't3', 'label': 'Vyšší loajalita'}]}
+
+======================================
+Pool Key: D9.2
+======================================
+
+Item: D9.2 | Type: mcq | Variant: 1
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'Kde obvykle vzniká bottleneck?'}
+
+Item: D9.2_v2 | Type: mcq | Variant: 2
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     Představ si tuto situaci: Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'Představ si tuto situaci: Kde obvykle vzniká bottleneck?'}
+
+Item: D9.2_v3 | Type: mcq | Variant: 3
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     V běžném pracovním provozu: Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'V běžném pracovním provozu: Kde obvykle vzniká bottleneck?'}
+
+Item: D9.2_v4 | Type: mcq | Variant: 4
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     Pod časovým tlakem: Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'Pod časovým tlakem: Kde obvykle vzniká bottleneck?'}
+
+Item: D9.2_v5 | Type: mcq | Variant: 5
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     Když na tom záleží: Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'Když na tom záleží: Kde obvykle vzniká bottleneck?'}
+
+Item: D9.2_v6 | Type: mcq | Variant: 6
+  Base Question: Kde obvykle vzniká bottleneck?
+  CS Prompt:     V realistické praxi: Kde obvykle vzniká úzké místo v systému?
+  Base Options:  [{'id': 'a', 'label': 'V navazujícím kroku po zlepšení lokální části'}, {'id': 'b', 'label': 'Vždy v první části'}, {'id': 'c', 'label': 'Nikdy nevzniká'}]
+  CS Payload:    {'question': 'V realistické praxi: Kde obvykle vzniká bottleneck?'}
+
+======================================
+Pool Key: D9.3
+======================================
+
+Item: D9.3 | Type: ordering | Variant: 1
+  Base Question: None
+  CS Prompt:     Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+Item: D9.3_v2 | Type: ordering | Variant: 2
+  Base Question: None
+  CS Prompt:     Představ si tuto situaci: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+Item: D9.3_v3 | Type: ordering | Variant: 3
+  Base Question: None
+  CS Prompt:     V běžném pracovním provozu: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+Item: D9.3_v4 | Type: ordering | Variant: 4
+  Base Question: None
+  CS Prompt:     Pod časovým tlakem: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+Item: D9.3_v5 | Type: ordering | Variant: 5
+  Base Question: None
+  CS Prompt:     Když na tom záleží: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+Item: D9.3_v6 | Type: ordering | Variant: 6
+  Base Question: None
+  CS Prompt:     V realistické praxi: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Base Options:  [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]
+  CS Payload:    {'correct_order': ['o1', 'o2', 'o3', 'o4'], 'options': [{'id': 'o1', 'label': 'Vstup'}, {'id': 'o2', 'label': 'Zpracování'}, {'id': 'o3', 'label': 'Výstup'}, {'id': 'o4', 'label': 'Zpětná vazba'}]}
+
+======================================
+Pool Key: D9.4
+======================================
+
+Item: D9.4 | Type: drag_drop | Variant: 1
+  Base Question: None
+  CS Prompt:     Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+Item: D9.4_v2 | Type: drag_drop | Variant: 2
+  Base Question: None
+  CS Prompt:     Představ si tuto situaci: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+Item: D9.4_v3 | Type: drag_drop | Variant: 3
+  Base Question: None
+  CS Prompt:     V běžném pracovním provozu: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+Item: D9.4_v4 | Type: drag_drop | Variant: 4
+  Base Question: None
+  CS Prompt:     Pod časovým tlakem: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+Item: D9.4_v5 | Type: drag_drop | Variant: 5
+  Base Question: None
+  CS Prompt:     Když na tom záleží: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+Item: D9.4_v6 | Type: drag_drop | Variant: 6
+  Base Question: None
+  CS Prompt:     V realistické praxi: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Base Options:  [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}]
+  CS Payload:    {'correct_pairs': [{'source': 's1', 'target': 't1'}, {'source': 's2', 'target': 't2'}, {'source': 's3', 'target': 't3'}], 'sources': [{'id': 's1', 'label': 'Vyšší marketing'}, {'id': 's2', 'label': 'Nižší chybovost'}, {'id': 's3', 'label': 'Vyšší fluktuace'}], 'targets': [{'id': 't1', 'label': 'Růst poptávky'}, {'id': 't2', 'label': 'Nižší reklamace'}, {'id': 't3', 'label': 'Ztráta know-how'}]}
+
+======================================
+Pool Key: D9.5
+======================================
+
+Item: D9.5 | Type: mcq | Variant: 1
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+Item: D9.5_v2 | Type: mcq | Variant: 2
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     Představ si tuto situaci: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'Představ si tuto situaci: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+Item: D9.5_v3 | Type: mcq | Variant: 3
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     V běžném pracovním provozu: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'V běžném pracovním provozu: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+Item: D9.5_v4 | Type: mcq | Variant: 4
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     Pod časovým tlakem: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'Pod časovým tlakem: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+Item: D9.5_v5 | Type: mcq | Variant: 5
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     Když na tom záleží: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'Když na tom záleží: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+Item: D9.5_v6 | Type: mcq | Variant: 6
+  Base Question: Co je zpětná vazba v systému?
+  CS Prompt:     V realistické praxi: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Base Options:  [{'id': 'a', 'label': 'Výsledek, který ovlivní další vstup'}, {'id': 'b', 'label': 'Jednorázový efekt bez návaznosti'}, {'id': 'c', 'label': 'Náhodný jev'}]
+  CS Payload:    {'question': 'V realistické praxi: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?'}
+
+======================================
+Pool Key: D9.6
+======================================
+
+Item: D9.6 | Type: mcq | Variant: 1
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'Který zásah nejspíš zlepší celek, ne jen jednu část?'}
+
+Item: D9.6_v2 | Type: mcq | Variant: 2
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     Představ si tuto situaci: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'Představ si tuto situaci: Který zásah nejspíš zlepší celek, ne jen jednu část?'}
+
+Item: D9.6_v3 | Type: mcq | Variant: 3
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     V běžném pracovním provozu: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'V běžném pracovním provozu: Který zásah nejspíš zlepší celek, ne jen jednu část?'}
+
+Item: D9.6_v4 | Type: mcq | Variant: 4
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     Pod časovým tlakem: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'Pod časovým tlakem: Který zásah nejspíš zlepší celek, ne jen jednu část?'}
+
+Item: D9.6_v5 | Type: mcq | Variant: 5
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     Když na tom záleží: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'Když na tom záleží: Který zásah nejspíš zlepší celek, ne jen jednu část?'}
+
+Item: D9.6_v6 | Type: mcq | Variant: 6
+  Base Question: Před změnou procesu je důležité sledovat:
+  CS Prompt:     V realistické praxi: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Base Options:  [{'id': 'a', 'label': 'Jen lokální metriku'}, {'id': 'b', 'label': 'Dopady na navazující části i časový efekt'}, {'id': 'c', 'label': 'Názor jedné osoby'}]
+  CS Payload:    {'question': 'V realistické praxi: Který zásah nejspíš zlepší celek, ne jen jednu část?'}

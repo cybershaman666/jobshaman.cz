@@ -10,6 +10,7 @@ import {
   Coins,
   Compass,
   ExternalLink,
+  GripVertical,
   Loader2,
   MapPin,
   Sparkles,
@@ -114,6 +115,90 @@ const buildImageCandidates = (sources: Array<string | null | undefined>): string
 // Components extracted to separate files
 
 // Components extracted to separate files (RecommendationFitPanel, JhiNetGraph, RoleRealityBoard)
+
+// ─── ShamiGuidePanel ────────────────────────────────────────────────────────
+const ShamiGuidePanel: React.FC<{
+  role: Role;
+  blueprint: HandshakeBlueprint;
+  company: Company;
+  t: (key: string, opts: { defaultValue: string }) => string;
+}> = ({ role, blueprint, company, t }) => {
+  // Build contextual guidance bullets from available role/blueprint data
+  const hints: { id: string; icon: React.ReactNode; label: string; text: string }[] = [];
+
+  if (role.firstStep) {
+    hints.push({
+      id: 'first_step',
+      icon: <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
+      label: t('rebuild.shami.hint_first_step', { defaultValue: 'What the first signal looks like' }),
+      text: role.firstStep,
+    });
+  }
+  if (blueprint.overview) {
+    hints.push({
+      id: 'blueprint',
+      icon: <Compass size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
+      label: t('rebuild.shami.hint_journey', { defaultValue: 'Journey overview' }),
+      text: blueprint.overview,
+    });
+  }
+  const reviewerIntro = company.reviewer?.intro || role.companyNarrative || '';
+  if (reviewerIntro) {
+    hints.push({
+      id: 'reviewer',
+      icon: <Users size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
+      label: t('rebuild.shami.hint_context', { defaultValue: 'Company context' }),
+      text: reviewerIntro,
+    });
+  }
+
+  const companyName = company.name || role.companyName || '';
+
+  return (
+    <ShellCard className="overflow-hidden">
+      <div className="bg-gradient-to-br from-[rgba(18,175,203,0.07)] via-[rgba(18,175,203,0.04)] to-transparent p-6">
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#12AFCB] to-[#0a7a98] shadow-[0_8px_24px_-12px_rgba(18,175,203,0.55)]">
+            <Sparkles size={20} className="text-white" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Shami</div>
+            <h3 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-slate-900">
+              {companyName
+                ? t('rebuild.shami.guide_title_company', { defaultValue: `What ${companyName} wants to understand about you` })
+                : t('rebuild.shami.guide_title', { defaultValue: 'What this company wants to understand about you' })}
+            </h3>
+            <p className="mt-1.5 text-sm leading-6 text-slate-500">
+              {t('rebuild.shami.guide_subtitle', { defaultValue: 'Before you start the handshake, here is what a strong response looks like and what the team is really testing.' })}
+            </p>
+          </div>
+        </div>
+
+        {/* Hint rows */}
+        {hints.length > 0 ? (
+          <div className="mt-5 space-y-3">
+            {hints.map((hint) => (
+              <div key={hint.id} className="rounded-[18px] border border-[rgba(18,175,203,0.13)] bg-white/80 p-4 shadow-[0_2px_8px_-4px_rgba(18,175,203,0.12)]">
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f95ac]">{hint.label}</div>
+                <div className="flex items-start gap-2">
+                  {hint.icon}
+                  <p className="text-sm leading-6 text-slate-600">{hint.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-[18px] border border-[rgba(18,175,203,0.13)] bg-white/80 p-4 text-sm leading-6 text-slate-500">
+            {t('rebuild.shami.guide_fallback', { defaultValue: 'Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.' })}
+          </div>
+        )}
+      </div>
+    </ShellCard>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
 
 const CompanyEncounterPanel: React.FC<{
   role: Role;
@@ -876,14 +961,24 @@ export const CandidateRoleBriefingPage: React.FC<{
           </div>
         </div>
       </ShellCard>
+      <ShamiGuidePanel role={role} blueprint={blueprint} company={company} t={t} />
       <RoleRealityBoard role={role} preferences={preferences} t={t} />
       <RecommendationFitPanel role={role} t={t} />
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <ShellCard className="p-6">
             <SectionEyebrow>{t('rebuild.briefing.title', { defaultValue: 'Role briefing' })}</SectionEyebrow>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-900">{role.challenge}</h2>
-            <p className="mt-4 text-base leading-8 text-slate-600">{role.mission || role.description}</p>
+            {role.challenge ? (
+              <div className="mt-4 rounded-[20px] border border-[rgba(18,175,203,0.18)] bg-[rgba(18,175,203,0.05)] p-5">
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#0f95ac]">
+                  {t('rebuild.briefing.the_challenge', { defaultValue: 'The challenge' })}
+                </div>
+                <p className="whitespace-pre-wrap text-base leading-8 text-slate-700">{role.challenge}</p>
+              </div>
+            ) : null}
+            {(role.mission || role.description) ? (
+              <p className="mt-4 text-base leading-8 text-slate-600">{role.mission || role.description}</p>
+            ) : null}
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Building2 size={16} className="text-[#0f95ac]" />{t('rebuild.detail.company_signal', { defaultValue: 'Company from inside' })}</div>
@@ -1080,8 +1175,12 @@ export const CandidateJcfpmPage: React.FC<{
     answers: draft?.responses || {},
   }));
   const [currentGroupIndex, setCurrentGroupIndex] = React.useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
   const [wizardStep, setWizardStep] = React.useState<'welcome' | 'questions' | 'results'>('welcome');
   const [snapshot, setSnapshot] = React.useState<any>(null);
+  // Local ordering state: keyed by question.id, holds the current drag/arrow order
+  // before the candidate confirms. This prevents arrow clicks from skipping to next question.
+  const [localOrderMap, setLocalOrderMap] = React.useState<Record<string, string[]>>({});
 
   const dimensionOrder = React.useMemo(
     () =>
@@ -1158,13 +1257,27 @@ export const CandidateJcfpmPage: React.FC<{
                 if (Array.isArray(localizedPayload.sources) && localizedPayload.sources.length > 0) {
                   mergedPayload.sources = localizedPayload.sources;
                 }
+                if (Array.isArray(localizedPayload.targets) && localizedPayload.targets.length > 0) {
+                  mergedPayload.targets = localizedPayload.targets;
+                }
               }
+              const rawItemType = String(item?.item_type || '').trim().toLowerCase();
+              const resolvedItemType =
+                rawItemType && rawItemType !== 'likert'
+                  ? rawItemType
+                  : Array.isArray(mergedPayload.correct_order)
+                    ? 'ordering'
+                    : Array.isArray(mergedPayload.correct_pairs)
+                      ? 'drag_drop'
+                      : Array.isArray(mergedPayload.options)
+                        ? (mergedPayload.options.some((opt: any) => opt?.image_url || opt?.imageUrl || opt?.image) ? 'image_choice' : 'mcq')
+                        : rawItemType || 'likert';
 
               return {
                 id: String(item?.id || ''),
                 dimension: (item?.dimension || 'd1_cognitive') as JcfpmQuestion['dimension'],
                 prompt: localizedPrompt || String(item?.prompt || ''),
-                item_type: item?.item_type || 'likert',
+                item_type: resolvedItemType,
                 payload: mergedPayload,
                 section: item?.section || 'psychometric',
                 scale_min: item?.scale_min ?? 1,
@@ -1225,9 +1338,16 @@ export const CandidateJcfpmPage: React.FC<{
   const archetype = React.useMemo(() => computeArchetype(dimensionScores as never), [dimensionScores]);
   const isQuestionComplete = React.useCallback((question: JcfpmQuestion) => {
     const answer = session.answers[question.id];
-    if (question.item_type === 'ordering' || question.item_type === 'drag_drop') {
-      const optionCount = ((question.payload?.options as any[]) || (question.payload?.sources as any[]) || []).length;
-      return Array.isArray(answer) && answer.length >= Math.max(1, optionCount);
+    if (question.item_type === 'ordering') {
+      const optionCount = ((question.payload?.options as any[]) || []).length;
+      const order = Array.isArray((answer as any)?.order) ? (answer as any).order : Array.isArray(answer) ? answer : [];
+      return order.length >= Math.max(1, optionCount);
+    }
+    if (question.item_type === 'drag_drop') {
+      const sourceCount = ((question.payload?.sources as any[]) || []).length;
+      const pairs = Array.isArray((answer as any)?.pairs) ? (answer as any).pairs : [];
+      const uniqueSources = new Set(pairs.map((pair: any) => String(pair?.source || '')).filter(Boolean));
+      return uniqueSources.size >= Math.max(1, sourceCount);
     }
     return hasJcfpmAnswer(answer);
   }, [session.answers]);
@@ -1465,13 +1585,72 @@ export const CandidateJcfpmPage: React.FC<{
     }
   }, [questionsLoading, dimensionGroups, completed, isQuestionComplete, currentGroupIndex]);
 
-  const handleAnswer = (questionId: string, value: number | string | string[]) => {
+  React.useEffect(() => {
+    const group = dimensionGroups[currentGroupIndex];
+    if (!group) return;
+    const firstIncomplete = group.questions.findIndex((question) => !isQuestionComplete(question));
+    setCurrentQuestionIndex(firstIncomplete >= 0 ? firstIncomplete : Math.max(0, group.questions.length - 1));
+  }, [currentGroupIndex, dimensionGroups, isQuestionComplete]);
+
+  const optionId = React.useCallback((option: any) => String(option?.id ?? option?.value ?? option), []);
+
+  const optionLabel = React.useCallback((option: any) => String(option?.label ?? option?.text ?? option?.title ?? option), []);
+
+  const optionImage = React.useCallback((option: any) => String(option?.image_url ?? option?.imageUrl ?? option?.image ?? ''), []);
+
+  const syntheticChoiceImage = React.useCallback((question: JcfpmQuestion, option: any, index: number) => {
+    const seed = `${question.id}-${optionId(option)}-${optionLabel(option)}`;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+    const palettes = [
+      ['#eff6ff', '#2563eb', '#0f766e', '#f59e0b'],
+      ['#f8fafc', '#475569', '#0284c7', '#14b8a6'],
+      ['#f0fdf4', '#15803d', '#0f766e', '#64748b'],
+    ];
+    const palette = palettes[Math.abs(hash) % palettes.length];
+    const x = 18 + (Math.abs(hash) % 28);
+    const y = 18 + (Math.abs(hash >> 3) % 24);
+    const tilt = (Math.abs(hash >> 5) % 32) - 16;
+    const density = index + 2;
+    const shapes = Array.from({ length: density }).map((_, shapeIndex) => {
+      const sx = 18 + ((Math.abs(hash >> shapeIndex) + shapeIndex * 19) % 72);
+      const sy = 24 + ((Math.abs(hash >> (shapeIndex + 2)) + shapeIndex * 13) % 58);
+      const size = 12 + ((Math.abs(hash >> (shapeIndex + 4)) + shapeIndex * 5) % 18);
+      return `<rect x="${sx}" y="${sy}" width="${size}" height="${size}" rx="4" fill="${palette[(shapeIndex % 3) + 1]}" opacity="${0.18 + shapeIndex * 0.11}" transform="rotate(${tilt}, ${sx + size / 2}, ${sy + size / 2})"/>`;
+    }).join('');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 112" role="img" aria-label="${optionLabel(option).replace(/"/g, '&quot;')}"><rect width="160" height="112" rx="10" fill="${palette[0]}"/><path d="M14 86 C42 ${y}, 58 ${104 - y}, 90 72 S126 42 146 58" fill="none" stroke="${palette[2]}" stroke-width="3" opacity=".35"/><circle cx="${x}" cy="${y}" r="18" fill="${palette[1]}" opacity=".18"/><circle cx="${122 - index * 12}" cy="${30 + index * 12}" r="${12 + index * 3}" fill="${palette[3]}" opacity=".22"/>${shapes}<path d="M24 24h36M24 34h24M104 84h34M114 94h24" stroke="#0f172a" stroke-width="3" stroke-linecap="round" opacity=".16"/></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }, [optionId, optionLabel]);
+
+  const handleAnswer = (
+    questionId: string,
+    value: number | string | string[] | { choice_id?: string; order?: string[]; pairs?: Array<{ source: string; target: string }>; selectedSource?: string; time_ms?: number },
+  ) => {
     setSession((current) => ({ ...current, answers: { ...current.answers, [questionId]: value } }));
+  };
+
+  const handleSingleChoiceAnswer = (
+    question: JcfpmQuestion,
+    value: number | string | { choice_id?: string; order?: string[]; pairs?: Array<{ source: string; target: string }>; selectedSource?: string; time_ms?: number },
+  ) => {
+    handleAnswer(question.id, value);
+    window.setTimeout(() => {
+      const group = dimensionGroups[currentGroupIndex];
+      if (!group) return;
+      const nextIndex = currentQuestionIndex + 1;
+      if (nextIndex < group.questions.length) {
+        setCurrentQuestionIndex(nextIndex);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        handleNextGroup();
+      }
+    }, 240);
   };
 
   const handleNextGroup = () => {
     if (currentGroupIndex < dimensionGroups.length - 1) {
       setCurrentGroupIndex((prev) => prev + 1);
+      setCurrentQuestionIndex(0);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (completed) {
       setWizardStep('results');
@@ -1484,6 +1663,7 @@ export const CandidateJcfpmPage: React.FC<{
     submittedSignatureRef.current = '';
     setSubmitState('idle');
     setCurrentGroupIndex(0);
+    setCurrentQuestionIndex(0);
     setWizardStep('welcome');
     setSnapshot(null);
   };
@@ -1545,14 +1725,61 @@ export const CandidateJcfpmPage: React.FC<{
                   : t('rebuild.jcfpm.ikigai_profile', { defaultValue: 'Ikigai profile' })} • {dimensionLabels[dimensionGroups[currentGroupIndex].dimension]}
             </div>
 
-            {dimensionGroups[currentGroupIndex].questions.map((question) => {
+            {(() => {
+              const group = dimensionGroups[currentGroupIndex];
+              const question = group.questions[Math.min(currentQuestionIndex, group.questions.length - 1)];
               const isLikert = !question.item_type || question.item_type === 'likert';
-              const options = (question.payload?.options as any[]) || (question.payload?.sources as any[]) || [];
-              const isSequence = question.item_type === 'ordering' || question.item_type === 'drag_drop';
+              const isOrdering = question.item_type === 'ordering';
+              const isPairing = question.item_type === 'drag_drop';
+              const isImageChoice = question.item_type === 'image_choice';
+              const options = ((question.payload?.options as any[]) || []).filter(Boolean);
+              const sources = ((question.payload?.sources as any[]) || options).filter(Boolean);
+              const targets = ((question.payload?.targets as any[]) || []).filter(Boolean);
+              const answer = session.answers[question.id] as any;
+              // Use localOrderMap for in-progress reordering; fall back to saved answer or default option order
+              const savedOrder = Array.isArray(answer?.order) ? answer.order.map(String) : options.map(optionId);
+              const order = localOrderMap[question.id] ?? savedOrder;
+              const pairs = Array.isArray(answer?.pairs) ? answer.pairs : [];
+              const selectedSource = typeof answer?.selectedSource === 'string' ? answer.selectedSource : '';
+              const interactionLabel = isPairing
+                ? t('rebuild.jcfpm.interaction_pairing', { defaultValue: 'Párování' })
+                : isOrdering
+                  ? t('rebuild.jcfpm.interaction_sequence', { defaultValue: 'Pořadí' })
+                  : isImageChoice
+                    ? t('rebuild.jcfpm.interaction_visual_choice', { defaultValue: 'Vizuální volba' })
+                    : isLikert
+                      ? t('rebuild.jcfpm.interaction_scale', { defaultValue: 'Škála' })
+                      : t('rebuild.jcfpm.interaction_choice', { defaultValue: 'Volba' });
+              const interactionHint = isPairing
+                ? t('rebuild.jcfpm.hint_pairing', { defaultValue: 'Propoj každou položku vlevo s nejpravděpodobnějším důsledkem vpravo. Funguje přetažení i kliknutí: nejdřív zdroj, potom cíl.' })
+                : isOrdering
+                  ? t('rebuild.jcfpm.hint_ordering', { defaultValue: 'Seřaď kroky od prvního po poslední. Položky můžeš přetáhnout nebo posouvat šipkami.' })
+                  : isImageChoice
+                    ? t('rebuild.jcfpm.hint_visual_choice', { defaultValue: 'Vyber interpretaci, která nejlépe odpovídá zobrazenému signálu.' })
+                    : '';
+
+              // setLocalOrder: only updates the visual order on screen (does NOT submit answer)
+              const setLocalOrder = (nextOrder: string[]) =>
+                setLocalOrderMap((prev) => ({ ...prev, [question.id]: nextOrder }));
+              // confirmOrder: called when candidate clicks "Potvrdit zobrazené pořadí"
+              const confirmOrder = () => {
+                handleAnswer(question.id, { order: order });
+              };
+              const setPair = (source: string, target: string) => {
+                const nextPairs = [...pairs.filter((pair: any) => pair.source !== source && pair.target !== target), { source, target }];
+                handleAnswer(question.id, { pairs: nextPairs });
+              };
+              const markSource = (source: string) => handleAnswer(question.id, { pairs, selectedSource: source });
 
               return (
                 <ShellCard key={question.id} className="p-6 md:p-8">
-                  <h3 className="text-xl font-medium leading-relaxed text-slate-900">{question.prompt}</h3>
+                  <div className="mb-5 flex items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    <span>{t('rebuild.jcfpm.item_progress', { defaultValue: 'Úloha {{current}} / {{total}}', current: currentQuestionIndex + 1, total: group.questions.length })}</span>
+                    <span>{interactionLabel}</span>
+                  </div>
+                  <h3 className="text-xl font-semibold leading-relaxed text-slate-950">{question.prompt || question.payload?.question}</h3>
+                  {question.payload?.helper_text ? <p className="mt-3 text-sm leading-6 text-slate-500">{question.payload.helper_text}</p> : null}
+                  {interactionHint ? <p className="mt-3 text-sm leading-6 text-slate-500">{interactionHint}</p> : null}
 
                   {isLikert ? (
                     <div className="mt-8">
@@ -1563,13 +1790,13 @@ export const CandidateJcfpmPage: React.FC<{
                             <button
                               key={value}
                               type="button"
-                              onClick={() => handleAnswer(question.id, value)}
+                              onClick={() => handleSingleChoiceAnswer(question, value)}
                               className={cn(
-                                'flex aspect-square flex-col items-center justify-center rounded-[16px] border-2 transition-all duration-200',
-                                active ? 'border-[#255DAB] bg-[#255DAB] text-white shadow-lg' : 'border-slate-100 bg-white text-slate-600 hover:border-[#255DAB]/30'
+                                'flex aspect-square min-h-12 flex-col items-center justify-center rounded-[8px] border text-base font-bold transition-all duration-200',
+                                active ? 'border-[#255DAB] bg-[#255DAB] text-white shadow-lg' : 'border-slate-200 bg-white text-slate-600 hover:border-[#255DAB]/40 hover:bg-slate-50'
                               )}
                             >
-                              <span className="text-xl font-bold">{value}</span>
+                              {value}
                             </button>
                           );
                         })}
@@ -1579,40 +1806,146 @@ export const CandidateJcfpmPage: React.FC<{
                         <span>{t('rebuild.jcfpm.agree', { defaultValue: 'Agree' })}</span>
                       </div>
                     </div>
+                  ) : isOrdering ? (
+                    <div className="mt-7 space-y-3">
+                      <button
+                          type="button"
+                          onClick={confirmOrder}
+                          className="mb-2 rounded-[8px] border border-[#255DAB]/30 bg-[#255DAB]/5 px-4 py-2 text-sm font-semibold text-[#255DAB]"
+                        >
+                          {t('rebuild.jcfpm.confirm_visible_order', { defaultValue: 'Potvrdit zobrazené pořadí' })}
+                        </button>
+                      {order.map((id: string, index: number) => {
+                        const opt = options.find((item) => optionId(item) === id) || { id, label: id };
+                        return (
+                          <div
+                            key={id}
+                            draggable
+                            onDragStart={(event) => event.dataTransfer.setData('text/plain', id)}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              const dragged = event.dataTransfer.getData('text/plain');
+                              if (!dragged || dragged === id) return;
+                              const next = order.filter((item: string) => item !== dragged);
+                              next.splice(index, 0, dragged);
+                              setLocalOrder(next);
+                            }}
+                            className="flex items-center gap-3 rounded-[8px] border border-slate-200 bg-white p-3 shadow-sm"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-slate-900 text-sm font-bold text-white">{index + 1}</div>
+                            <GripVertical size={18} className="shrink-0 text-slate-300" />
+                            <span className="min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-700">{optionLabel(opt)}</span>
+                            <div className="flex shrink-0 gap-1">
+                              <button type="button" disabled={index === 0} onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const next = [...order];
+                                [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                                setLocalOrder(next);
+                              }} className="rounded-[8px] border border-slate-200 p-2 text-slate-500 disabled:opacity-30">
+                                <ArrowUp size={14} />
+                              </button>
+                              <button type="button" disabled={index === order.length - 1} onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const next = [...order];
+                                [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                                setLocalOrder(next);
+                              }} className="rounded-[8px] border border-slate-200 p-2 text-slate-500 disabled:opacity-30">
+                                <ArrowRight size={14} className="rotate-90" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : isPairing ? (
+                    <div className="mt-7 grid gap-4 md:grid-cols-2">
+                      <div className="space-y-3">
+                        {sources.map((source) => {
+                          const id = optionId(source);
+                          const paired = pairs.find((pair: any) => pair.source === id);
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              draggable
+                              onDragStart={(event) => event.dataTransfer.setData('text/plain', id)}
+                              onClick={() => markSource(id)}
+                              className={cn(
+                                'flex w-full items-center justify-between gap-3 rounded-[8px] border p-4 text-left transition-all',
+                                selectedSource === id ? 'border-[#255DAB] bg-[#255DAB]/5 text-[#255DAB]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#255DAB]/40'
+                              )}
+                            >
+                              <span className="text-sm font-semibold leading-6">{optionLabel(source)}</span>
+                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">{paired ? targets.find((target) => optionId(target) === paired.target)?.label || paired.target : 'vyber'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="space-y-3">
+                        {targets.map((target) => {
+                          const id = optionId(target);
+                          const paired = pairs.find((pair: any) => pair.target === id);
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                const sourceId = event.dataTransfer.getData('text/plain');
+                                if (sourceId) setPair(sourceId, id);
+                              }}
+                              onClick={() => selectedSource && setPair(selectedSource, id)}
+                              className={cn(
+                                'min-h-16 w-full rounded-[8px] border border-dashed p-4 text-left transition-all',
+                                paired ? 'border-[#255DAB] bg-[#255DAB]/5' : 'border-slate-300 bg-slate-50 hover:border-[#255DAB]/50'
+                              )}
+                            >
+                              <div className="text-sm font-semibold text-slate-900">{optionLabel(target)}</div>
+                              <div className="mt-1 text-xs font-medium text-slate-500">{paired ? sources.find((source) => optionId(source) === paired.source)?.label || paired.source : 'Sem přetáhni nebo přiřaď příčinu'}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ) : (
-                    <div className="mt-6 grid gap-3">
+                    <div className={cn('mt-6 grid gap-3', isImageChoice ? 'md:grid-cols-3' : '')}>
                       {options.map((opt) => {
-                        const optionId = String(opt.id || opt.value || opt);
-                        const answer = session.answers[question.id];
-                        const active = Array.isArray(answer) ? answer.includes(optionId) : answer === optionId;
+                        const id = optionId(opt);
+                        const selected = String((answer?.choice_id ?? answer) || '') === id;
+                        const image = optionImage(opt) || (isImageChoice ? syntheticChoiceImage(question, opt, options.findIndex((item) => optionId(item) === id)) : '');
                         return (
                           <button
-                            key={optionId}
+                            key={id}
                             type="button"
-                            onClick={() => {
-                              if (!isSequence) {
-                                handleAnswer(question.id, optionId);
-                                return;
-                              }
-                              const current = Array.isArray(answer) ? answer : [];
-                              handleAnswer(
-                                question.id,
-                                current.includes(optionId) ? current.filter((item) => item !== optionId) : [...current, optionId],
-                              );
-                            }}
+                            onClick={() => handleSingleChoiceAnswer(question, { choice_id: id })}
                             className={cn(
-                              'flex w-full items-center rounded-[16px] border-2 p-4 text-left transition-all',
-                              active ? 'border-[#255DAB] bg-[#255DAB]/5 text-[#255DAB]' : 'border-slate-100 bg-white text-slate-600 hover:border-[#255DAB]/30'
+                              'w-full overflow-hidden rounded-[8px] border text-left transition-all',
+                              selected ? 'border-[#255DAB] bg-[#255DAB]/5 text-[#255DAB]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#255DAB]/40'
                             )}
                           >
-                            <div className={cn('mr-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', active ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
-                              {active ? (
-                                isSequence && Array.isArray(answer)
-                                  ? <span className="text-[10px] font-bold text-white">{answer.indexOf(optionId) + 1}</span>
-                                  : <div className="h-2 w-2 rounded-full bg-white" />
-                              ) : null}
+                            {isImageChoice ? (
+                              image ? (
+                                <img src={image} alt="" className="h-32 w-full object-cover" loading="lazy" />
+                              ) : (
+                                <div className="h-32 w-full bg-[radial-gradient(circle_at_25%_30%,rgba(37,93,171,0.28),transparent_30%),linear-gradient(135deg,#f8fafc,#dbeafe_48%,#ecfeff)]">
+                                  <div className="grid h-full grid-cols-3 gap-2 p-4 opacity-80">
+                                    <span className="rounded-[8px] bg-white/70 shadow-sm" />
+                                    <span className="rounded-full border-2 border-white/80 bg-[#255DAB]/20" />
+                                    <span className="rounded-[8px] bg-white/50 shadow-sm" />
+                                  </div>
+                                </div>
+                              )
+                            ) : null}
+                            <div className="flex items-center gap-3 p-4">
+                              <div className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', selected ? 'border-[#255DAB] bg-[#255DAB]' : 'border-slate-200')}>
+                                {selected ? <div className="h-2 w-2 rounded-full bg-white" /> : null}
+                              </div>
+                              <span className="text-sm font-semibold leading-6">{optionLabel(opt)}</span>
                             </div>
-                            <span className="text-sm font-medium">{opt.label || opt.text || opt}</span>
                           </button>
                         );
                       })}
@@ -1620,17 +1953,27 @@ export const CandidateJcfpmPage: React.FC<{
                   )}
                 </ShellCard>
               );
-            })}
+            })()}
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-6">
             <button
               type="button"
-              disabled={!dimensionGroups[currentGroupIndex].questions.every((q) => isQuestionComplete(q))}
-              onClick={handleNextGroup}
+              disabled={!isQuestionComplete(dimensionGroups[currentGroupIndex].questions[Math.min(currentQuestionIndex, dimensionGroups[currentGroupIndex].questions.length - 1)])}
+              onClick={() => {
+                const group = dimensionGroups[currentGroupIndex];
+                if (currentQuestionIndex < group.questions.length - 1) {
+                  setCurrentQuestionIndex((prev) => prev + 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  return;
+                }
+                handleNextGroup();
+              }}
               className={cn(primaryButtonClass, 'w-full max-w-sm rounded-[16px] py-4 text-lg disabled:opacity-50 disabled:grayscale')}
             >
-              {currentGroupIndex < dimensionGroups.length - 1 ? t('rebuild.jcfpm.next_block', { defaultValue: 'Continue to next block' }) : t('rebuild.jcfpm.finish', { defaultValue: 'Finish and show results' })}
+              {currentQuestionIndex < dimensionGroups[currentGroupIndex].questions.length - 1
+                ? t('rebuild.jcfpm.next_item', { defaultValue: 'Další úloha' })
+                : currentGroupIndex < dimensionGroups.length - 1 ? t('rebuild.jcfpm.next_block', { defaultValue: 'Continue to next block' }) : t('rebuild.jcfpm.finish', { defaultValue: 'Finish and show results' })}
             </button>
             <button type="button" onClick={handleReset} className="text-sm font-medium text-slate-400 hover:text-slate-600">
               {t('rebuild.jcfpm.abort', { defaultValue: 'Interrupt and start again' })}
@@ -1797,6 +2140,24 @@ export const CandidateJcfpmPage: React.FC<{
             </div>
           </div>
           <div className="space-y-5">
+            <div className={cn(panelClass, 'p-5')}>
+              <div className="text-sm font-semibold text-slate-900">{t('rebuild.jcfpm.response_quality_title', { defaultValue: 'Kvalita měření' })}</div>
+              <div className="mt-4 flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">{t('rebuild.jcfpm.confidence', { defaultValue: 'Estimation confidence' })}</div>
+                  <div className="mt-1 text-3xl font-black text-slate-900">{snapshot?.confidence ?? Math.round((questions.filter((question) => isQuestionComplete(question)).length / Math.max(1, questions.length)) * 100)}%</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">{t('rebuild.jcfpm.coverage', { defaultValue: 'Pokrytí' })}</div>
+                  <div className="mt-1 text-lg font-bold text-[#255DAB]">{snapshot?.response_quality?.coverage ?? 100}%</div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                {snapshot?.response_quality?.flags?.length
+                  ? t('rebuild.jcfpm.response_quality_flagged', { defaultValue: 'Výsledek je uložen, ale některé odpovědní vzorce snižují jistotu interpretace.' })
+                  : t('rebuild.jcfpm.response_quality_clean', { defaultValue: 'Odpovědi mají dostatečné rozlišení pro základní interpretaci profilu.' })}
+              </p>
+            </div>
             <div className={cn(panelClass, 'p-5')}>
               <div className="text-sm font-semibold text-slate-900">{t('rebuild.jcfpm.dimension_map', { defaultValue: 'Dimension overview' })}</div>
               <div className="mt-5 space-y-4">

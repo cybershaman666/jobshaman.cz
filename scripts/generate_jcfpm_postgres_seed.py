@@ -5,11 +5,12 @@ import json
 from pathlib import Path
 
 
-SUPPORTED_LOCALES = ("cs", "en", "de", "pl", "sk", "fi", "sv", "no", "da")
+SUPPORTED_LOCALES = ("cs", "en", "de", "at", "pl", "sk", "fi", "sv", "no", "da")
 SOURCE_LOCALE = {
     "cs": "cs",
     "en": "en",
     "de": "de",
+    "at": "de",
     "pl": "en",
     "sk": "cs",
     "fi": "en",

@@ -720,7 +720,30 @@ def scrape_page(url):
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
-        resp = requests.get(url, headers=headers, timeout=12)
+        verify = True
+        if 'prace.sk' in url.lower():
+            verify = False
+            try:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            except ImportError:
+                pass
+        
+        try:
+            resp = requests.get(url, headers=headers, timeout=12, verify=verify)
+        except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as ssl_err:
+            err_str = str(ssl_err).lower()
+            if verify and ("ssl" in err_str or "cert" in err_str or "verify failed" in err_str):
+                print(f"⚠️ SSL cert verification failed for {url}, retrying with verify=False...")
+                try:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                except ImportError:
+                    pass
+                resp = requests.get(url, headers=headers, timeout=12, verify=False)
+            else:
+                raise ssl_err
+
         resp.raise_for_status()
         return BeautifulSoup(resp.content, "html.parser")
     except Exception as e:

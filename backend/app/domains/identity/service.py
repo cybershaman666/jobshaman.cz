@@ -550,6 +550,7 @@ class IdentityDomainService:
                 "cvText",
                 "cvAiText",
                 "cvUrl",
+                "languages",
                 "workHistory",
                 "education",
                 "strengths",

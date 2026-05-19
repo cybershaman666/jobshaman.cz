@@ -1,0 +1,218 @@
+Total systems thinking items: 36
+
+[1] ID: D9.1 | Type: drag_drop
+  Prompt: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[2] ID: D9.1_v2 | Type: drag_drop
+  Prompt: Představ si tuto situaci: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: Představ si tuto situaci: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[3] ID: D9.1_v3 | Type: drag_drop
+  Prompt: V běžném pracovním provozu: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: V běžném pracovním provozu: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[4] ID: D9.1_v4 | Type: drag_drop
+  Prompt: Pod časovým tlakem: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: Pod časovým tlakem: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[5] ID: D9.1_v5 | Type: drag_drop
+  Prompt: Když na tom záleží: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: Když na tom záleží: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[6] ID: D9.1_v6 | Type: drag_drop
+  Prompt: V realistické praxi: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Prompt CS: V realistické praxi: Propoj příčiny s nejpravděpodobnějšími důsledky v systému.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[7] ID: D9.2 | Type: mcq
+  Prompt: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[8] ID: D9.2_v2 | Type: mcq
+  Prompt: Představ si tuto situaci: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: Představ si tuto situaci: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: Představ si tuto situaci: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[9] ID: D9.2_v3 | Type: mcq
+  Prompt: V běžném pracovním provozu: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: V běžném pracovním provozu: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: V běžném pracovním provozu: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[10] ID: D9.2_v4 | Type: mcq
+  Prompt: Pod časovým tlakem: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: Pod časovým tlakem: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: Pod časovým tlakem: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[11] ID: D9.2_v5 | Type: mcq
+  Prompt: Když na tom záleží: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: Když na tom záleží: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: Když na tom záleží: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[12] ID: D9.2_v6 | Type: mcq
+  Prompt: V realistické praxi: Kde obvykle vzniká úzké místo v systému?
+  Prompt CS: V realistické praxi: Kde obvykle vzniká úzké místo v systému?
+  Payload Question: V realistické praxi: Kde obvykle vzniká bottleneck?
+  Payload Options: ['V navazujícím kroku po zlepšení lokální části', 'Vždy v první části', 'Nikdy nevzniká']
+--------------------------------------------------
+[13] ID: D9.3 | Type: ordering
+  Prompt: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[14] ID: D9.3_v2 | Type: ordering
+  Prompt: Představ si tuto situaci: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: Představ si tuto situaci: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[15] ID: D9.3_v3 | Type: ordering
+  Prompt: V běžném pracovním provozu: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: V běžném pracovním provozu: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[16] ID: D9.3_v4 | Type: ordering
+  Prompt: Pod časovým tlakem: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: Pod časovým tlakem: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[17] ID: D9.3_v5 | Type: ordering
+  Prompt: Když na tom záleží: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: Když na tom záleží: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[18] ID: D9.3_v6 | Type: ordering
+  Prompt: V realistické praxi: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Prompt CS: V realistické praxi: Seřaď kroky tak, aby systémová změna proběhla v logickém sledu.
+  Payload Question: None
+  Payload Options: ['Vstup', 'Zpracování', 'Výstup', 'Zpětná vazba']
+--------------------------------------------------
+[19] ID: D9.4 | Type: drag_drop
+  Prompt: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[20] ID: D9.4_v2 | Type: drag_drop
+  Prompt: Představ si tuto situaci: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: Představ si tuto situaci: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[21] ID: D9.4_v3 | Type: drag_drop
+  Prompt: V běžném pracovním provozu: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: V běžném pracovním provozu: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[22] ID: D9.4_v4 | Type: drag_drop
+  Prompt: Pod časovým tlakem: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: Pod časovým tlakem: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[23] ID: D9.4_v5 | Type: drag_drop
+  Prompt: Když na tom záleží: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: Když na tom záleží: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[24] ID: D9.4_v6 | Type: drag_drop
+  Prompt: V realistické praxi: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Prompt CS: V realistické praxi: Přiřaď zásah k jeho nejbližšímu dopadu na celek.
+  Payload Question: None
+  Payload Options: []
+--------------------------------------------------
+[25] ID: D9.5 | Type: mcq
+  Prompt: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[26] ID: D9.5_v2 | Type: mcq
+  Prompt: Představ si tuto situaci: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: Představ si tuto situaci: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: Představ si tuto situaci: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[27] ID: D9.5_v3 | Type: mcq
+  Prompt: V běžném pracovním provozu: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: V běžném pracovním provozu: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: V běžném pracovním provozu: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[28] ID: D9.5_v4 | Type: mcq
+  Prompt: Pod časovým tlakem: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: Pod časovým tlakem: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: Pod časovým tlakem: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[29] ID: D9.5_v5 | Type: mcq
+  Prompt: Když na tom záleží: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: Když na tom záleží: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: Když na tom záleží: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[30] ID: D9.5_v6 | Type: mcq
+  Prompt: V realistické praxi: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Prompt CS: V realistické praxi: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Question: V realistické praxi: Co by nejspíš zlepšilo výsledek bez vedlejšího přetížení systému?
+  Payload Options: ['Výsledek, který ovlivní další vstup', 'Jednorázový efekt bez návaznosti', 'Náhodný jev']
+--------------------------------------------------
+[31] ID: D9.6 | Type: mcq
+  Prompt: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------
+[32] ID: D9.6_v2 | Type: mcq
+  Prompt: Představ si tuto situaci: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: Představ si tuto situaci: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: Představ si tuto situaci: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------
+[33] ID: D9.6_v3 | Type: mcq
+  Prompt: V běžném pracovním provozu: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: V běžném pracovním provozu: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: V běžném pracovním provozu: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------
+[34] ID: D9.6_v4 | Type: mcq
+  Prompt: Pod časovým tlakem: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: Pod časovým tlakem: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: Pod časovým tlakem: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------
+[35] ID: D9.6_v5 | Type: mcq
+  Prompt: Když na tom záleží: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: Když na tom záleží: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: Když na tom záleží: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------
+[36] ID: D9.6_v6 | Type: mcq
+  Prompt: V realistické praxi: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Prompt CS: V realistické praxi: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Question: V realistické praxi: Který zásah nejspíš zlepší celek, ne jen jednu část?
+  Payload Options: ['Jen lokální metriku', 'Dopady na navazující části i časový efekt', 'Názor jedné osoby']
+--------------------------------------------------

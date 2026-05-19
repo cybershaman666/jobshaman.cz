@@ -286,6 +286,12 @@ export interface CandidateInsight {
   avatar_url?: string;
   bio?: string;
   created_at?: string;
+  source?: 'talent_pool' | 'handshake' | 'demo';
+  status?: string;
+  jobTitle?: string;
+  answerCount?: number;
+  hasJcfpm?: boolean;
+  hasCv?: boolean;
 }
 
 export interface CalendarEvent {
@@ -328,7 +334,13 @@ export interface JcfpmQuestion {
 }
 
 export interface JCFPMSession {
-  answers: Record<string, number | string | string[]>;
+  answers: Record<
+    string,
+    | number
+    | string
+    | string[]
+    | { choice_id?: string; order?: string[]; pairs?: Array<{ source: string; target: string }>; selectedSource?: string; time_ms?: number }
+  >;
   completedAt?: string;
   archetypeTitle?: string;
   summary?: string;

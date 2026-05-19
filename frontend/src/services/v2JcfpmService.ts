@@ -1,6 +1,10 @@
 import ApiService from './apiService';
 
-export type JcfpmAnswer = number | string | string[];
+export type JcfpmAnswer =
+  | number
+  | string
+  | string[]
+  | { choice_id?: string; order?: string[]; pairs?: Array<{ source: string; target: string }>; selectedSource?: string; time_ms?: number };
 type JcfpmScoreSummary = {
   dimension?: string;
   section?: string;
@@ -228,7 +232,39 @@ export const hasJcfpmAnswer = (value: unknown) => {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'number') return Number.isFinite(value) && value > 0;
   if (typeof value === 'string') return value.trim().length > 0;
+  if (value && typeof value === 'object') {
+    const answer = value as { choice_id?: unknown; order?: unknown; pairs?: unknown };
+    if (typeof answer.choice_id === 'string') return answer.choice_id.trim().length > 0;
+    if (Array.isArray(answer.order)) return answer.order.length > 0;
+    if (Array.isArray(answer.pairs)) return answer.pairs.length > 0;
+  }
   return value !== undefined && value !== null;
+};
+
+const orderingSimilarity = (correctOrder: string[], selectedOrder: string[]) => {
+  if (!correctOrder.length) return 0;
+  if (correctOrder.length === 1) return selectedOrder[0] === correctOrder[0] ? 1 : 0;
+  const maxShift = correctOrder.length - 1;
+  const indexMap = new Map<string, number>();
+  selectedOrder.forEach((value, index) => indexMap.set(value, index));
+  return correctOrder.reduce((sum, value, correctIndex) => {
+    const selectedIndex = indexMap.get(value);
+    if (typeof selectedIndex !== 'number') return sum;
+    const distance = Math.abs(selectedIndex - correctIndex);
+    return sum + Math.max(0, 1 - distance / maxShift);
+  }, 0) / correctOrder.length;
+};
+
+const pairMatchRatio = (correctPairs: any[], selectedPairs: any[]) => {
+  const correctSet = new Set(correctPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+  const selectedSet = new Set(selectedPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+  if (!correctSet.size) return 0;
+  let truePositive = 0;
+  correctSet.forEach((key) => {
+    if (selectedSet.has(key)) truePositive += 1;
+  });
+  const falsePositive = Math.max(0, selectedSet.size - truePositive);
+  return Math.max(0, truePositive - falsePositive * 0.35) / correctSet.size;
 };
 
 export const scoreJcfpmAnswer = (item: any, answer: unknown) => {
@@ -245,16 +281,30 @@ export const scoreJcfpmAnswer = (item: any, answer: unknown) => {
     return item?.reverse_scoring ? min + max - clamped : clamped;
   }
 
-  if (Array.isArray(answer)) {
+  if (type === 'ordering' || (Array.isArray(payload?.correct_order) && (answer as any)?.order)) {
+    const selectedOrder = Array.isArray((answer as any)?.order)
+      ? (answer as any).order.map(String)
+      : Array.isArray(answer)
+        ? answer.map(String)
+        : [];
     const correctOrder = Array.isArray(payload?.correct_order) ? payload.correct_order.map(String) : [];
     if (correctOrder.length > 0) {
-      const matches = answer.map(String).filter((value, index) => value === correctOrder[index]).length;
-      return 1 + (matches / correctOrder.length) * 6;
+      return 1 + orderingSimilarity(correctOrder, selectedOrder) * 6;
     }
+    return Math.min(7, Math.max(1, selectedOrder.length));
+  }
+
+  if (type === 'drag_drop' || (Array.isArray(payload?.correct_pairs) && (answer as any)?.pairs)) {
+    const correctPairs = Array.isArray(payload?.correct_pairs) ? payload.correct_pairs : [];
+    const selectedPairs = Array.isArray((answer as any)?.pairs) ? (answer as any).pairs : [];
+    return correctPairs.length ? 1 + pairMatchRatio(correctPairs, selectedPairs) * 6 : Math.min(7, Math.max(1, selectedPairs.length));
+  }
+
+  if (Array.isArray(answer)) {
     return Math.min(7, Math.max(1, answer.length));
   }
 
-  const selected = String(answer);
+  const selected = String((answer as any)?.choice_id ?? answer);
   const options = Array.isArray(payload?.options) ? payload.options : [];
   const option = options.find((opt: any) => String(opt?.id ?? opt?.value) === selected);
   if (Number.isFinite(Number(option?.score))) return Number(option.score);
@@ -287,6 +337,56 @@ const summarizeScores = (items: any[], responses: Record<string, unknown>, key: 
   });
 };
 
+const computeResponseQuality = (items: any[], responses: Record<string, unknown>) => {
+  const answeredCount = items.filter((item) => hasJcfpmAnswer(responses[item.id])).length;
+  const coverage = Math.round((answeredCount / Math.max(1, items.length)) * 100);
+  const likertItems = items.filter((item) => (item?.item_type || 'likert') === 'likert');
+  const likertValues = likertItems
+    .map((item) => Number(responses[item.id]))
+    .filter((value) => Number.isFinite(value) && value >= 1 && value <= 7);
+  const byDimension = new Map<string, number[]>();
+  likertItems.forEach((item) => {
+    const value = Number(responses[item.id]);
+    if (!Number.isFinite(value)) return;
+    const dimension = String(item.dimension || 'unknown');
+    const values = byDimension.get(dimension) || [];
+    values.push(value);
+    byDimension.set(dimension, values);
+  });
+
+  const straightLineDimensions: string[] = [];
+  byDimension.forEach((values, dimension) => {
+    if (values.length >= 4 && new Set(values).size === 1) straightLineDimensions.push(dimension);
+  });
+
+  const extremeRatio = likertValues.length
+    ? likertValues.filter((value) => value === 1 || value === 7).length / likertValues.length
+    : 0;
+  const midpointRatio = likertValues.length
+    ? likertValues.filter((value) => value === 4).length / likertValues.length
+    : 0;
+  const flags: string[] = [];
+  if (straightLineDimensions.length >= 2) flags.push('straight_lining');
+  if (extremeRatio > 0.72) flags.push('extreme_response_style');
+  if (midpointRatio > 0.72) flags.push('low_differentiation');
+  if (coverage < 100) flags.push('incomplete');
+
+  const penalty =
+    straightLineDimensions.length * 8 +
+    (extremeRatio > 0.72 ? 14 : 0) +
+    (midpointRatio > 0.72 ? 10 : 0) +
+    Math.max(0, 100 - coverage) * 0.4;
+  const score = Math.max(35, Math.min(100, Math.round(100 - penalty)));
+  return {
+    score,
+    coverage,
+    flags,
+    straight_line_dimensions: straightLineDimensions,
+    extreme_response_ratio: Number(extremeRatio.toFixed(2)),
+    midpoint_response_ratio: Number(midpointRatio.toFixed(2)),
+  };
+};
+
 export const submitJcfpm = async (
   responses: Record<string, JcfpmAnswer>,
   itemIds: string[],
@@ -294,11 +394,21 @@ export const submitJcfpm = async (
   locale = 'cs',
   itemsOverride?: any[],
 ) => {
+  const cleanResponses = Object.fromEntries(
+    Object.entries(responses).map(([key, value]) => {
+      if (value && typeof value === 'object' && !Array.isArray(value) && 'selectedSource' in value) {
+        const { selectedSource: _selectedSource, ...rest } = value;
+        return [key, rest];
+      }
+      return [key, value];
+    }),
+  ) as Record<string, JcfpmAnswer>;
   const allItems = itemsOverride?.length ? itemsOverride : await fetchJcfpmItems(locale);
   const idSet = new Set(itemIds);
   const items = allItems.filter((item: any) => idSet.has(String(item?.id)));
-  const dimensionScores = summarizeScores(items, responses, 'dimension');
-  const sectionScores = summarizeScores(items, responses, 'section');
+  const dimensionScores = summarizeScores(items, cleanResponses, 'dimension');
+  const sectionScores = summarizeScores(items, cleanResponses, 'section');
+  const responseQuality = computeResponseQuality(items, cleanResponses);
   const ikigaiProfile = Object.fromEntries(
     dimensionScores
       .filter((score: any) => String(score.dimension).startsWith('i'))
@@ -310,7 +420,7 @@ export const submitJcfpm = async (
     form_key: items[0]?.form_key || 'jcfpm-v3-ikigai',
     locale,
     completed_at: new Date().toISOString(),
-    responses,
+    responses: cleanResponses,
     item_ids: itemIds,
     variant_seed: variantSeed,
     dimension_scores: dimensionScores,
@@ -320,8 +430,15 @@ export const submitJcfpm = async (
     traits: [],
     fit_scores: [],
     ai_report: null,
+    methodology: {
+      name: 'JobShaman Career Fit & Potential Matrix',
+      schema: 'jcfpm-v3-ikigai',
+      scoring_model: 'hybrid_likert_situational_partial_credit',
+      sections: ['psychometric_work_style', 'cognitive_skill_prerequisites', 'ikigai_orientation'],
+    },
+    response_quality: responseQuality,
     percentile_summary: Object.fromEntries(dimensionScores.map((score: any) => [score.dimension, score.percentile])),
-    confidence: Math.round((Object.keys(responses).length / Math.max(1, items.length)) * 100),
+    confidence: Math.round((responseQuality.coverage * 0.65) + (responseQuality.score * 0.35)),
     archetype,
   };
   try {

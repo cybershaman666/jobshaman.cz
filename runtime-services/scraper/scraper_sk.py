@@ -742,11 +742,6 @@ def run_slovakia_scraper():
             'name': 'Kariera.sk',
             'base_url': 'https://kariera.zoznam.sk/pracovne-ponuky/za-1-den',
             'max_pages': 10
-        },
-        {
-            'name': 'Prace.sk',
-            'base_url': 'https://www.prace.sk/pozicie',
-            'max_pages': 10
         }
     ]
     

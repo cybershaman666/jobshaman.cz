@@ -1188,6 +1188,11 @@ export interface CompanyApplicationRow {
   jcfpmShareLevel?: ApplicationJcfpmShareLevel;
   hasJcfpm?: boolean;
   candidateHeadline?: string;
+  candidateLocation?: string;
+  candidateBio?: string;
+  candidateSkills?: string[];
+  matchPercent?: number | null;
+  answerCount?: number;
 }
 
 export type ApplicationJcfpmShareLevel = 'summary' | 'full_report' | 'do_not_share';
@@ -1670,7 +1675,9 @@ export interface UserProfile {
   cvText?: string;
   cvUrl?: string;
   cvAiText?: string;
+  bio?: string;
   skills?: string[];
+  languages?: CandidateLanguage[];
   workHistory?: WorkExperience[];
   education?: Education[];
   cvAnalysis?: CVAnalysis;
@@ -1725,6 +1732,12 @@ export interface UserProfile {
   dailyDigestTime?: string;
   dailyDigestTimezone?: string;
   dailyDigestPushEnabled?: boolean;
+}
+
+export interface CandidateLanguage {
+  label: string;
+  level: number;
+  note?: string;
 }
 
 export interface CandidateActivationStateV1 {

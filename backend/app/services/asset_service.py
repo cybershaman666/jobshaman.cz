@@ -49,6 +49,8 @@ _BUCKET_BY_KIND = {
 
 def _storage_mode() -> str:
     raw = (config.EXTERNAL_ASSET_STORAGE_MODE or "local").strip().lower()
+    if raw == "azure" and config.AZURE_STORAGE_KEY:
+        return "azure"
     if raw == "s3":
         if not (
             config.EXTERNAL_ASSET_S3_ENDPOINT
@@ -58,6 +60,7 @@ def _storage_mode() -> str:
         ):
             return "local"
     return "s3" if raw == "s3" else "local"
+
 
 
 def _storage_root() -> Path:
@@ -302,6 +305,24 @@ def create_upload_session(
             "Content-Type": (content_type or "application/octet-stream").strip().lower(),
         }
         direct_upload = True
+    elif provider_mode == "azure":
+        from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+        permissions = BlobSasPermissions(write=True, create=True)
+        sas_token = generate_blob_sas(
+            account_name=config.AZURE_STORAGE_ACCOUNT,
+            container_name=config.AZURE_STORAGE_CONTAINER,
+            blob_name=object_key,
+            account_key=config.AZURE_STORAGE_KEY,
+            permission=permissions,
+            expiry=datetime.now(timezone.utc) + timedelta(seconds=config.EXTERNAL_ASSET_UPLOAD_SESSION_TTL_SECONDS)
+        )
+        upload_url = f"https://{config.AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/{config.AZURE_STORAGE_CONTAINER}/{object_key}?{sas_token}"
+        upload_headers = {
+            "Content-Type": (content_type or "application/octet-stream").strip().lower(),
+            "x-ms-blob-type": "BlockBlob",
+        }
+        direct_upload = True
+
     return {
         "asset_id": asset_id,
         "kind": normalized_kind,
@@ -498,8 +519,24 @@ def build_download_url(asset: dict[str, Any], request_base_url: str) -> str:
     provider = str(asset.get("storage_provider") or asset.get("provider") or _storage_mode()).strip().lower()
     if provider == "s3":
         return _build_s3_download_url(asset)
+    elif provider == "azure":
+        from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+        object_key = str(asset.get("object_key") or "").strip()
+        if not object_key:
+            raise ValueError("Missing object key")
+        permissions = BlobSasPermissions(read=True)
+        sas_token = generate_blob_sas(
+            account_name=config.AZURE_STORAGE_ACCOUNT,
+            container_name=config.AZURE_STORAGE_CONTAINER,
+            blob_name=object_key,
+            account_key=config.AZURE_STORAGE_KEY,
+            permission=permissions,
+            expiry=datetime.now(timezone.utc) + timedelta(seconds=config.EXTERNAL_ASSET_DOWNLOAD_URL_TTL_SECONDS)
+        )
+        return f"https://{config.AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/{config.AZURE_STORAGE_CONTAINER}/{object_key}?{sas_token}"
     token = _build_download_token(asset)
     return _build_abs_url(request_base_url, f"/assets/download/{token}")
+
 
 
 def _serialize_asset(asset: dict[str, Any], request_base_url: str) -> dict[str, Any]:

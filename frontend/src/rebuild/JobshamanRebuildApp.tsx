@@ -1125,6 +1125,7 @@ const JobshamanRebuildApp: React.FC = () => {
     setProfileSaving(true);
     try {
       const nextProfile = { ...userProfile, ...profileOverrides };
+      const overridePreferences = (profileOverrides.preferences || {}) as Partial<UserProfile['preferences']>;
       const nextPreferences: CandidatePreferenceProfile = {
         ...preferences,
         name: profileOverrides.name ?? preferences.name,
@@ -1135,6 +1136,9 @@ const JobshamanRebuildApp: React.FC = () => {
         story: profileOverrides.story ?? preferences.story,
         taxProfile: profileOverrides.taxProfile ?? preferences.taxProfile,
         jhiPreferences: profileOverrides.jhiPreferences ?? preferences.jhiPreferences,
+        linkedInUrl: overridePreferences.linkedIn ?? preferences.linkedInUrl,
+        portfolioUrl: overridePreferences.portfolio ?? preferences.portfolioUrl,
+        searchRadiusKm: overridePreferences.searchProfile?.defaultMaxDistanceKm ?? preferences.searchRadiusKm,
       };
       const updates = {
         ...candidatePreferencesToUserProfileUpdates(nextPreferences, nextProfile),

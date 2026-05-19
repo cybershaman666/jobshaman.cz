@@ -1,7 +1,7 @@
 from sqlmodel import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import engine
+from app.core.database import async_session_factory
 from app.domains.handshake.models import Handshake, HandshakeEvent, HandshakeMessage, SandboxEvaluation, SandboxSession, SlotReservation
 from app.domains.identity.models import CandidateJcfpmSnapshot, CandidateProfile, User
 from app.domains.reality.models import CompanyUser, Job
@@ -46,7 +46,7 @@ def _uuid_or_none(value: Any) -> Optional[uuid.UUID]:
 class HandshakeDomainService:
     @staticmethod
     async def initiate_handshake(user_id: str, job_id: str, score: float = 0.0) -> Dict[str, Any]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             existing_result = await session.execute(
                 select(Handshake).where(
                     Handshake.user_id == uuid.UUID(user_id),
@@ -114,15 +114,15 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_user_handshakes(user_id: str) -> List[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
-            statement = select(Handshake).where(Handshake.user_id == uuid.UUID(user_id))
+        async with async_session_factory() as session:
+            statement = select(Handshake).where(Handshake.user_id == uuid.UUID(user_id)).order_by(Handshake.updated_at.desc())
             result = await session.execute(statement)
             handshakes = result.scalars().all()
-            return [HandshakeDomainService._handshake_to_dict(h) for h in handshakes]
+            return [await HandshakeDomainService._hydrate_handshake_response(session, h) for h in handshakes]
 
     @staticmethod
     async def get_user_handshake(user_id: str, handshake_id: str) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             result = await session.execute(
                 select(Handshake).where(
                     Handshake.id == uuid.UUID(handshake_id),
@@ -143,7 +143,7 @@ class HandshakeDomainService:
         stage: Optional[str] = None,
         elapsed_ms: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -190,7 +190,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def finalize_handshake(user_id: str, handshake_id: str, note: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -241,7 +241,7 @@ class HandshakeDomainService:
         evidence_required: bool = True,
         visibility: str = "company_review",
     ) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -288,7 +288,7 @@ class HandshakeDomainService:
         actor_type: str = "system",
         payload: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             statement = select(Handshake).where(Handshake.id == uuid.UUID(handshake_id))
             result = await session.execute(statement)
             handshake = result.scalar_one_or_none()
@@ -356,7 +356,8 @@ class HandshakeDomainService:
         next_status = status_by_action.get(str(action or "").strip().lower())
         if not next_status:
             raise ValueError("Unsupported handshake decision.")
-        async with AsyncSession(engine) as session:
+        candidate_user_id: Optional[str] = None
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             result = await session.execute(
@@ -368,6 +369,7 @@ class HandshakeDomainService:
             handshake = result.scalar_one_or_none()
             if not handshake:
                 return None
+            candidate_user_id = str(handshake.user_id)
             previous_status = handshake.status
             handshake.status = next_status
             handshake.state_version += 1
@@ -389,17 +391,18 @@ class HandshakeDomainService:
             ))
             await session.commit()
             await session.refresh(handshake)
-        await IdentityDomainService.create_notification(str(handshake.user_id), {
-            "title": "Firma rozhodla o handshaku",
-            "content": "Firma posunula tvůj handshake do dalšího stavu.",
-            "type": "handshake",
-            "link": f"/candidate/handshake/{handshake.id}",
-        })
+        if candidate_user_id:
+            await IdentityDomainService.create_notification(candidate_user_id, {
+                "title": "Firma rozhodla o handshaku",
+                "content": "Firma posunula tvůj handshake do dalšího stavu.",
+                "type": "handshake",
+                "link": f"/candidate/handshake/{handshake_id}",
+            })
         return await HandshakeDomainService.get_company_handshake_readout(user_id, company_id, handshake_id)
 
     @staticmethod
     async def get_handshake_availability(user_id: str, job_id: str) -> Dict[str, Any]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             job = await RealityDomainService.get_job_details(str(job_id)) or {}
             company_id = _uuid_or_none(job.get("company_id"))
             opportunity_id = _uuid_or_none(job.get("id"))
@@ -465,7 +468,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_handshake_events(user_id: str, handshake_id: str) -> List[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake_result = await session.execute(
                 select(Handshake).where(
                     Handshake.id == uuid.UUID(handshake_id),
@@ -484,7 +487,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def withdraw_user_handshake(user_id: str, handshake_id: str) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -510,7 +513,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_user_handshake_messages(user_id: str, handshake_id: str) -> Optional[List[Dict[str, Any]]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -518,7 +521,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def send_user_handshake_message(user_id: str, handshake_id: str, body: str, attachments: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             handshake = await HandshakeDomainService._load_user_handshake(session, user_id, handshake_id)
             if not handshake:
                 return None
@@ -543,7 +546,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def user_has_company_access(user_id: str, company_id: str) -> bool:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             result = await session.execute(
                 select(CompanyUser).where(
                     CompanyUser.user_id == uuid.UUID(user_id),
@@ -554,7 +557,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def list_company_handshakes(user_id: str, company_id: str, limit: int = 80) -> Optional[List[Dict[str, Any]]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             result = await session.execute(
@@ -568,7 +571,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_company_handshake_readout(user_id: str, company_id: str, handshake_id: str) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             result = await session.execute(
@@ -594,7 +597,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_company_handshake_messages(user_id: str, company_id: str, handshake_id: str) -> Optional[List[Dict[str, Any]]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             result = await session.execute(
@@ -610,7 +613,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def send_company_handshake_message(user_id: str, company_id: str, handshake_id: str, body: str, attachments: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             result = await session.execute(
@@ -645,7 +648,7 @@ class HandshakeDomainService:
 
     @staticmethod
     async def get_company_dashboard(user_id: str, company_id: str) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
+        async with async_session_factory() as session:
             if not await HandshakeDomainService._has_company_access(session, user_id, company_id):
                 return None
             handshakes_result = await session.execute(
@@ -927,6 +930,26 @@ class HandshakeDomainService:
         ai_analysis = _safe_dict(job.get("ai_analysis"))
         blueprint = _safe_dict(job.get("handshake_blueprint_v1")) or _safe_dict(payload.get("handshake_blueprint_v1")) or HandshakeDomainService._default_blueprint(job)
         assessment_tasks = _safe_list(job.get("assessment_tasks")) or _safe_list(payload.get("assessment_tasks"))
+        if assessment_tasks:
+            steps = list(_safe_list(blueprint.get("steps")))
+            existing_step_ids = {str(_safe_dict(step).get("id")) for step in steps if _safe_dict(step).get("id")}
+            for task in assessment_tasks:
+                item = _safe_dict(task)
+                task_id = str(item.get("id") or "").strip()
+                if not task_id or task_id in existing_step_ids:
+                    continue
+                task_type = str(item.get("type") or "scenario_response")
+                steps.append({
+                    "id": task_id,
+                    "type": task_type,
+                    "title": item.get("title") or task_id.replace("_", " ").title(),
+                    "prompt": item.get("prompt") or item.get("candidate_task") or item.get("instructions") or "",
+                    "helper": item.get("helper") or item.get("instructions") or "",
+                    "required": item.get("required", True) is not False,
+                    "phase": item.get("phase") or "task",
+                })
+                existing_step_ids.add(task_id)
+            blueprint = {**blueprint, "steps": steps}
         jcfpm_context = _safe_dict(candidate_context.get("jcfpm"))
         jcfpm_completed = bool(jcfpm_context.get("completed"))
         if not jcfpm_completed:
@@ -1202,26 +1225,64 @@ class HandshakeDomainService:
         profile_result = await session.execute(select(CandidateProfile).where(CandidateProfile.user_id == handshake.user_id))
         profile = profile_result.scalar_one_or_none()
         session_payload = await HandshakeDomainService._session_payload(session, handshake)
+        job_snapshot = _safe_dict(session_payload.get("job_snapshot"))
+        candidate_context = _safe_dict(session_payload.get("candidate_context"))
+        jcfpm_context = _safe_dict(candidate_context.get("jcfpm"))
+        preferences = _loads(profile.preferences if profile else None, {})
+        profile_fields = _safe_dict(preferences.get("v2_profile"))
+        live_skills = _loads(profile.skills if profile else None, [])
+        candidate_skills = live_skills if live_skills else _safe_list(candidate_context.get("skills"))
         score = round(float(handshake.match_score_snapshot), 1) if handshake.match_score_snapshot is not None else None
+        candidate_name = profile.full_name if profile and profile.full_name else candidate_context.get("name") or f"Candidate {str(handshake.user_id)[-4:]}"
+        candidate_headline = _clean_text(profile_fields.get("jobTitle") or candidate_context.get("job_title") or job_snapshot.get("title") or "Handshake candidate", 160)
         return {
             "id": str(handshake.id),
             "handshake_id": str(handshake.id),
             "candidate_id": str(handshake.user_id),
-            "candidate_name": profile.full_name if profile and profile.full_name else f"Candidate {str(handshake.user_id)[-4:]}",
-            "candidateName": profile.full_name if profile and profile.full_name else f"Candidate {str(handshake.user_id)[-4:]}",
-            "headline": _clean_text(_safe_dict(session_payload.get("candidate_context")).get("job_title") or "Handshake candidate", 160),
+            "candidate_name": candidate_name,
+            "candidateName": candidate_name,
+            "candidate_avatar_url": profile.avatar_url if profile else None,
+            "candidateAvatarUrl": profile.avatar_url if profile else None,
+            "headline": candidate_headline,
+            "candidate_headline": candidate_headline,
+            "candidateHeadline": candidate_headline,
+            "candidate_location": _clean_text(profile.location if profile else candidate_context.get("location"), 180),
+            "candidateLocation": _clean_text(profile.location if profile else candidate_context.get("location"), 180),
+            "candidate_bio": _clean_text(profile.bio if profile else "", 1200),
+            "candidateBio": _clean_text(profile.bio if profile else "", 1200),
+            "candidate_skills": candidate_skills,
+            "candidateSkills": candidate_skills,
             "job_id": handshake.job_id,
+            "opportunity_id": str(handshake.opportunity_id) if handshake.opportunity_id else None,
+            "company_id": str(handshake.company_id) if handshake.company_id else None,
+            "job_title": job_snapshot.get("title") or handshake.job_id,
+            "jobTitle": job_snapshot.get("title") or handshake.job_id,
+            "company_name": job_snapshot.get("company"),
+            "companyName": job_snapshot.get("company"),
             "status": handshake.status,
             "score": score,
             "matchPercent": score,
+            "has_jcfpm": bool(jcfpm_context.get("completed")),
+            "hasJcfpm": bool(jcfpm_context.get("completed")),
+            "has_cv": bool(candidate_context.get("cv") or candidate_context.get("cv_summary")),
+            "hasCv": bool(candidate_context.get("cv") or candidate_context.get("cv_summary")),
+            "answer_count": len(_safe_dict(session_payload.get("answers"))),
+            "answerCount": len(_safe_dict(session_payload.get("answers"))),
             "updated_at": handshake.updated_at.isoformat(),
             "submitted_at": session_payload.get("finalized_at"),
+            "created_at": handshake.created_at.isoformat(),
         }
 
     @staticmethod
     async def _build_readout(session: AsyncSession, handshake: Handshake, session_payload: Dict[str, Any], reveal_identity: bool = False) -> Dict[str, Any]:
         profile_result = await session.execute(select(CandidateProfile).where(CandidateProfile.user_id == handshake.user_id))
         profile = profile_result.scalar_one_or_none()
+        try:
+            preferences = json.loads(profile.preferences or "{}") if profile else {}
+        except json.JSONDecodeError:
+            preferences = {}
+        profile_fields = _safe_dict(preferences.get("v2_profile"))
+        live_skills = _loads(profile.skills if profile else None, [])
         answers = _safe_dict(session_payload.get("answers"))
         evidence = []
         blueprint_steps = {
@@ -1268,6 +1329,16 @@ class HandshakeDomainService:
             },
             "headline": f"{alias}: praktický výstup připravený k review",
             "summary": "Kandidát dokončil nativní Jobshaman handshake. Readout zvýrazňuje kvalitu úsudku, konkrétnost a práci s rizikem bez odhalení identity.",
+            "profile_summary": {
+                "name": profile.full_name if profile else None,
+                "headline": _clean_text(profile_fields.get("jobTitle"), 160),
+                "location": _clean_text(profile.location if profile else "", 180),
+                "bio": _clean_text(profile.bio if profile else "", 1200),
+                "skills": live_skills,
+                "languages": _safe_list(profile_fields.get("languages")),
+                "work_preferences": _safe_list(profile_fields.get("workPreferences")),
+                "inferred_skills": _safe_list(profile_fields.get("inferredSkills")),
+            },
             "scorecards": [
                 {"key": "evidence", "label": "Práce s důkazy", "score": score},
                 {"key": "judgment", "label": "Úsudek", "score": max(50, score - 4)},

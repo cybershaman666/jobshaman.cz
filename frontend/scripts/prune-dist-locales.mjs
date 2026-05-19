@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendRoot = path.resolve(__dirname, '..');
 const distLocalesDir = path.join(frontendRoot, 'dist', 'locales');
-const productionLocales = new Set(['cs', 'en']);
+const productionLocales = new Set(['cs', 'en', 'sk', 'pl', 'de', 'at', 'da', 'sv', 'no', 'fi']);
 
 if (!fs.existsSync(distLocalesDir)) {
   process.exit(0);

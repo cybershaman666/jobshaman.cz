@@ -53,3 +53,41 @@ def test_challenge_blueprint_propagates_assessment_tasks():
     assert task_ids.issubset(blueprint_task_ids)
     assert blueprint["review_policy"]["human_confirmation_required"] is True
     assert blueprint["review_policy"]["jcfpm_required_if_missing"] is True
+
+
+def test_handshake_assignment_merges_assessment_tasks_into_existing_blueprint():
+    job = {
+        "id": "role-1",
+        "title": "Product operator",
+        "company": "Acme",
+        "payload_json": {
+            "handshake_blueprint_v1": {
+                "id": "bp-1",
+                "steps": [
+                    {"id": "intro", "type": "context", "title": "Intro", "prompt": "Why this role?"}
+                ],
+            },
+            "assessment_tasks": [
+                {"id": "case_task", "type": "text_response", "title": "Case", "prompt": "Solve the case."}
+            ],
+        },
+    }
+
+    assignment = HandshakeDomainService._build_assignment_payload(job, {"jcfpm": {"completed": True}})
+    step_ids = {step["id"] for step in assignment["blueprint"]["steps"]}
+
+    assert {"intro", "case_task"}.issubset(step_ids)
+
+
+def test_handshake_assignment_adds_jcfpm_when_missing():
+    assignment = HandshakeDomainService._build_assignment_payload(
+        {"id": "role-2", "title": "Ops", "company": "Acme", "payload_json": {}},
+        {"jcfpm": {"completed": False}},
+    )
+
+    step_ids = {step["id"] for step in assignment["blueprint"]["steps"]}
+    task_ids = {task["id"] for task in assignment["assessment_tasks"]}
+
+    assert "jcfpm_profile" in step_ids
+    assert "jcfpm_profile" in task_ids
+    assert assignment["blueprint"]["jcfpm_policy"]["candidate_has_completed"] is False
