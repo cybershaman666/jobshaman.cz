@@ -23,6 +23,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+Azure IDs.txt
 *.suo
 *.ntvs*
 *.njsproj
