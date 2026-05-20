@@ -294,11 +294,31 @@ class IdentityDomainService:
                     preferences = json.loads(profile.preferences or "{}")
                 except json.JSONDecodeError:
                     preferences = {}
+                
+                if not isinstance(preferences, dict):
+                    preferences = {}
+
                 legacy = preferences.get("v2_migration", {}).get("legacy_profile", {}) if isinstance(preferences, dict) else {}
                 jcfpm = preferences.get("jcfpm_v1") if isinstance(preferences, dict) else None
                 full_name = profile.full_name or user.email.split("@")[0]
                 job_title = legacy.get("job_title") or preferences.get("targetRole") if isinstance(preferences, dict) else None
-                values = legacy.get("values") if isinstance(legacy.get("values"), list) else []
+                
+                # Fetch onboarding values, if present
+                onboarding = preferences.get("candidate_onboarding_v2", {})
+                onboarding_values = onboarding.get("values") if isinstance(onboarding, dict) else []
+                values = onboarding_values if onboarding_values else (legacy.get("values") if isinstance(legacy, dict) and isinstance(legacy.get("values"), list) else [])
+                
+                # Sanitize preferences for public view (only expose candidate_onboarding_v2 and jhiPreferences)
+                if public_view:
+                    sanitized_pref = {}
+                    if isinstance(preferences, dict):
+                        if "candidate_onboarding_v2" in preferences:
+                            sanitized_pref["candidate_onboarding_v2"] = preferences["candidate_onboarding_v2"]
+                        if "jhiPreferences" in preferences:
+                            sanitized_pref["jhiPreferences"] = preferences["jhiPreferences"]
+                else:
+                    sanitized_pref = preferences
+
                 public_skills = skills if isinstance(skills, list) else []
                 candidates.append({
                     "id": str(user.id),
@@ -314,13 +334,13 @@ class IdentityDomainService:
                     "experienceYears": 0,
                     "salaryExpectation": 0,
                     "skills": public_skills,
-                    "bio": "" if public_view else (profile.bio or ""),
+                    "bio": profile.bio or "",
                     "matchScore": 0,
                     "flightRisk": "Low",
-                    "values": [] if public_view else values,
-                    "location": "" if public_view else (profile.location or ""),
+                    "values": values,
+                    "location": profile.location or "",
                     "hasJcfpm": bool(jcfpm),
-                    "preferences": {} if public_view else (preferences if isinstance(preferences, dict) else {}),
+                    "preferences": sanitized_pref,
                 })
 
             # 2. Backfill from legacy Supabase if we have room
@@ -362,11 +382,11 @@ class IdentityDomainService:
                     "experienceYears": 0,
                     "salaryExpectation": 0,
                     "skills": leg_cand.get("skills") if isinstance(leg_cand.get("skills"), list) else [],
-                    "bio": "" if public_view else (leg_cand.get("story") or leg_cand.get("bio") or ""),
+                    "bio": leg_cand.get("story") or leg_cand.get("bio") or "",
                     "matchScore": 0,
                     "flightRisk": "Low",
-                    "values": [] if public_view else (leg_cand.get("values") if isinstance(leg_cand.get("values"), list) else []),
-                    "location": "" if public_view else location,
+                    "values": leg_cand.get("values") if isinstance(leg_cand.get("values"), list) else [],
+                    "location": location,
                     "hasJcfpm": False, # We'd need another query for this, skip for listing
                     "preferences": {},
                     "source": "legacy_supabase",
@@ -1176,6 +1196,22 @@ Ritual Answers:
             
             profile.bio = ai_data.get("bio")
             
+            # Extract skills and append to profile.skills safely
+            inferred_skills = ai_data.get("inferred_skills") or []
+            existing_skills = []
+            try:
+                existing_skills = json.loads(profile.skills or "[]")
+            except:
+                existing_skills = []
+            
+            if not isinstance(existing_skills, list):
+                existing_skills = []
+                
+            for s in inferred_skills:
+                if s not in existing_skills:
+                    existing_skills.append(s)
+            profile.skills = json.dumps(existing_skills, ensure_ascii=False)
+            
             # Store archetype as a signal
             await IdentityDomainService.create_identity_signal(user_id, {
                 "signal_key": "ritual_archetype",
@@ -1204,6 +1240,10 @@ Ritual Answers:
             onboarding = preferences.get("candidate_onboarding_v2", {})
             onboarding["completed_at"] = datetime.utcnow().isoformat()
             onboarding["archetype"] = archetype
+            onboarding["values"] = ai_data.get("values") or []
+            onboarding["inferred_skills"] = inferred_skills
+            onboarding["motivations"] = ai_data.get("motivations") or []
+            onboarding["bio"] = ai_data.get("bio") or ""
             preferences["candidate_onboarding_v2"] = onboarding
             profile.preferences = json.dumps(preferences, ensure_ascii=False)
             

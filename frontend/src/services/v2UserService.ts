@@ -220,8 +220,26 @@ export const fetchCompanyMembers = async (companyId: string): Promise<any[]> => 
 };
 
 export const inviteTeammate = async (companyId: string, email: string, name?: string): Promise<any> => {
-  const response = await ApiService.post<any>(`/company/${encodeURIComponent(companyId)}/invite`, { email, name });
-  return response?.data || null;
+    const response = await ApiService.post<any>(`/company/${encodeURIComponent(companyId)}/invite`, { email, name });
+    return response?.data || null;
+};
+
+/** Odebrání člena firmy podle ID */
+export const removeCompanyMember = async (
+    companyId: string,
+    memberId: string
+): Promise<any> => {
+    const response = await ApiService.delete<any>(`/company/${encodeURIComponent(companyId)}/member/${encodeURIComponent(memberId)}`);
+    return response?.data || null;
+};
+
+/** Opětovné odeslání pozvánky členovi týmu */
+export const resendCompanyInvitation = async (
+    companyId: string,
+    memberId: string
+): Promise<any> => {
+    const response = await ApiService.post<any>(`/company/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberId)}/resend-invitation`, {});
+    return response?.data || null;
 };
 
 export const acceptInvitation = async (token: string): Promise<any> => {

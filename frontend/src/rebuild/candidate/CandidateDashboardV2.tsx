@@ -33,7 +33,7 @@ import { useRebuildTheme } from '../ui/rebuildTheme';
 import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 import { CandidateShellSurface, ShellCard } from './CandidateShellSurface';
 import { CandidateProfileV2 } from './CandidateProfileV2';
-import { sendMentorChatMessage, type MentorChatMessage } from '../../services/v2MentorService';
+import { sendMentorChatMessage, type MentorChatMessage, type ShamiJobRecommendation } from '../../services/v2MentorService';
 import { getCandidateGreetingName } from './greeting';
 
 type TFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
@@ -120,6 +120,65 @@ const getCompactArchetypeTitle = (title: string, t: any) => {
   if (parts.length === 0) return t('rebuild.dashboard.archetype', { defaultValue: 'Archetyp' });
   if (parts[0].length <= 24) return parts[0];
   return parts[0].split(/\s+/).slice(0, 2).join(' ');
+};
+
+const formatShamiFitScore = (score?: number) => {
+  if (typeof score !== 'number' || Number.isNaN(score)) return '';
+  return `${Math.round(score)}% fit`;
+};
+
+const getShamiIntentLabel = (intent?: string) => {
+  const labels: Record<string, string> = {
+    safe_match: 'Přesná shoda',
+    stretch_match: 'Stretch role',
+    growth_path: 'Růstová výzva',
+    income_now: 'Rychlý příjem',
+    exploration: 'K prozkoumání',
+    fallback: 'Další možnost',
+  };
+  return labels[intent || ''] || '';
+};
+
+const ShamiJobRecommendationCard: React.FC<{ recommendation: ShamiJobRecommendation }> = ({ recommendation }) => {
+  const fitScore = formatShamiFitScore(recommendation.fit_score);
+  const intent = getShamiIntentLabel(recommendation.intent);
+  const meta = [
+    recommendation.company,
+    recommendation.location,
+    recommendation.work_model,
+    recommendation.salary,
+  ].filter(Boolean);
+  const why = recommendation.why || recommendation.reasons?.[0] || '';
+  const watchOut = recommendation.watch_out || recommendation.caveats?.[0] || '';
+
+  return (
+    <div className="mt-3 rounded-lg border border-[#c7e9f0] bg-[#f7fcfd] p-4 text-left shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[13px] font-black leading-5 text-slate-950">{recommendation.title}</div>
+          {meta.length ? <div className="mt-1 text-[11px] font-semibold leading-5 text-slate-500">{meta.join(' · ')}</div> : null}
+        </div>
+        {fitScore || intent ? (
+          <div className="shrink-0 rounded-full border border-[#b8e4ec] bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#0f95ac]">
+            {[fitScore, intent].filter(Boolean).join(' · ')}
+          </div>
+        ) : null}
+      </div>
+      {why ? <p className="mt-3 text-[12px] font-semibold leading-5 text-slate-700">{why}</p> : null}
+      {watchOut ? <p className="mt-2 text-[11px] leading-5 text-slate-500">Ověřit: {watchOut}</p> : null}
+      {recommendation.url ? (
+        <a
+          href={recommendation.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-black text-[#0f95ac] hover:text-[#0b7181]"
+        >
+          Otevřít nabídku
+          <ArrowRight size={13} />
+        </a>
+      ) : null}
+    </div>
+  );
 };
 
 const AnimatedEnsoRing: React.FC = () => (
@@ -952,6 +1011,7 @@ const CandidateMentorChat: React.FC<{
         {
           role: 'assistant',
           content: [reply.reply, reply.next_step ? `${t('rebuild.dashboard.next_step', { defaultValue: 'Next step' })}: ${reply.next_step}` : ''].filter(Boolean).join('\n\n'),
+          jobRecommendations: reply.job_recommendations || [],
         },
       ]);
       if (reply.suggested_prompts?.length) setSuggestions(reply.suggested_prompts);
@@ -992,14 +1052,21 @@ const CandidateMentorChat: React.FC<{
                   )}
                   <div
                     className={cn(
-                      'max-w-[min(42rem,92%)] whitespace-pre-line rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
+                      'max-w-[min(42rem,92%)] rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
                       message.role === 'user'
                         ? 'bg-[#103d46] !text-white'
                         : 'border border-[color:var(--dashboard-soft-border)] bg-white/80 text-slate-700',
                     )}
                     style={message.role === 'user' ? { color: '#ffffff' } : {}}
                   >
-                    {message.content}
+                    <div className="whitespace-pre-line">{message.content}</div>
+                    {message.role === 'assistant' && message.jobRecommendations?.length ? (
+                      <div className="mt-4 space-y-3">
+                        {message.jobRecommendations.map((recommendation) => (
+                          <ShamiJobRecommendationCard key={recommendation.id} recommendation={recommendation} />
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}

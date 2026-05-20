@@ -31,7 +31,9 @@ import {
 import { 
   fetchCompanyMembers, 
   inviteTeammate, 
-  updateCompanyProfile 
+  updateCompanyProfile,
+  removeCompanyMember,
+  resendCompanyInvitation
 } from '../../services/v2UserService';
 import { uploadV2Asset, API_BASE_URL } from '../../services/v2AssetService';
 import type { CompanyProfile, UserProfile, StoredAsset } from '../../types';
@@ -95,7 +97,7 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const loadAssets = async () => {
     setIsLoadingAssets(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/company/${company.id}/assets`, {
+      const response = await fetch(`${API_BASE_URL}/company/${company.id || ''}/assets`, {
         headers: {
           'Authorization': `Bearer ${(await (await import('../../services/supabaseClient')).getSupabaseClient()?.auth.getSession())?.data.session?.access_token}`
         }
@@ -111,22 +113,45 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     }
   };
 
-  const loadMembers = async () => {
-    setIsLoadingMembers(true);
-    try {
-      const data = await fetchCompanyMembers(company.id);
-      setMembers(data);
-    } catch (err) {
-      console.error('Failed to load members', err);
-    } finally {
-      setIsLoadingMembers(false);
-    }
-  };
+   const loadMembers = async () => {
+     setIsLoadingMembers(true);
+     try {
+       const data = await fetchCompanyMembers(company.id || '');
+       setMembers(data);
+     } catch (err) {
+       console.error('Failed to load members', err);
+     } finally {
+       setIsLoadingMembers(false);
+     }
+   };
+
+    const handleRemoveMember = async (memberId: string) => {
+      if (!company.id) return;
+      if (!window.confirm('Opravdu odebrat tohoto člena z workspace?')) return;
+      try {
+        await removeCompanyMember(company.id, memberId);
+        await loadMembers();
+     } catch (err) {
+       alert('Nepodařilo se odebrat člena.');
+       console.error(err);
+     }
+   };
+
+    const handleResendInvitation = async (memberId: string) => {
+      if (!company.id) return;
+      try {
+        await resendCompanyInvitation(company.id, memberId);
+        alert('Pozvánka byla opětovně odeslána.');
+     } catch (err) {
+       alert('Nepodařilo se odeslat pozvánku.');
+       console.error(err);
+     }
+   };
 
   const handleSaveGeneral = async () => {
     setIsSaving(true);
     try {
-      await updateCompanyProfile(company.id, {
+      await updateCompanyProfile(company.id || '', {
         name,
         website_url: website,
         industry,
@@ -199,7 +224,7 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
   const handleSaveBrand = async () => {
     setIsSaving(true);
     try {
-      await updateCompanyProfile(company.id, {
+      await updateCompanyProfile(company.id || '', {
         brand_color: brandColor,
         accent_color: accentColor,
         logo_url: logoUrl,
@@ -218,13 +243,14 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
     if (!inviteEmail) return;
     
     setIsInviting(true);
-    try {
-      await inviteTeammate(company.id, inviteEmail, inviteName);
-      setInviteEmail('');
-      setInviteName('');
-      setIsInviteModalOpen(false);
-      loadMembers();
-    } catch (err) {
+      try {
+        if (!company.id) return;
+        await inviteTeammate(company.id, inviteEmail, inviteName);
+        setInviteEmail('');
+        setInviteName('');
+        setIsInviteModalOpen(false);
+        loadMembers();
+      } catch (err) {
       console.error('Invitation failed', err);
     } finally {
       setIsInviting(false);
@@ -381,11 +407,26 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                         <div className="text-sm font-medium text-slate-400">
                           {member.role === 'owner' ? t('rebuild.recruiter.role_owner', { defaultValue: 'Owner' }) : t('rebuild.recruiter.role_recruiter', { defaultValue: 'Recruiter' })}
                         </div>
-                        {member.user_id !== userProfile.id && member.role !== 'owner' && (
-                          <button className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+{member.user_id !== userProfile.id && member.role !== 'owner' && (
+  <>
+    <button
+      className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+      title="Odebrat člena"
+      onClick={() => handleRemoveMember(member.id)}
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+    {member.status === 'invited' && (
+      <button
+        className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
+        title="Znovu odeslat pozvánku"
+        onClick={() => handleResendInvitation(member.id)}
+      >
+        <RefreshCw className="h-4 w-4" />
+      </button>
+    )}
+  </>
+)}
                       </div>
                     </div>
                   ))
@@ -684,7 +725,14 @@ export const RecruiterSettingsPage: React.FC<RecruiterSettingsPageProps> = ({
                             </div>
                             <div className="overflow-hidden">
                               <div className="text-sm font-bold text-slate-900 truncate">{asset.name || asset.original_name}</div>
-                              <div className="text-[10px] text-slate-500 uppercase tracking-tighter">{(asset.size_bytes / 1024 / 1024).toFixed(2)} MB • {asset.mime_type?.split('/')[1] || 'FILE'}</div>
+                              <div className="text-[10px] text-slate-500 uppercase tracking-tighter">
+                                {typeof asset.size_bytes === 'number'
+                                  ? (asset.size_bytes / 1024 / 1024).toFixed(2) + ' MB'
+                                  : '? MB'
+                                }
+                                {' '}
+                                • {asset.mime_type?.split('/')[1] || 'FILE'}
+                              </div>
                             </div>
                           </div>
                           <a 

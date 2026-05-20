@@ -103,6 +103,7 @@ export interface RoleSlotAvailability {
 
 export interface Role {
   id: string;
+  status?: string;
   companyId: string;
   companyName?: string;
   companyLogo?: string;
@@ -292,6 +293,8 @@ export interface CandidateInsight {
   answerCount?: number;
   hasJcfpm?: boolean;
   hasCv?: boolean;
+  preferences?: any;
+  values?: string[];
 }
 
 export interface CalendarEvent {

@@ -55,6 +55,7 @@ def build_cybershaman_reply(
     message: str,
     profile: Dict[str, Any] | None,
     recent_messages: List[Dict[str, str]] | None = None,
+    job_recommendations: List[Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     cleaned_message = str(message or "").strip()
     if not cleaned_message:
@@ -72,9 +73,15 @@ Pravidla pro odpovědi:
 - Komunikuj výhradně v českém jazyce.
 - Piš stručně a konkrétně, rozsah maximálně 4 kratší odstavce.
 - Vždy navrhni jeden praktický další krok realizovatelný v následujících 24 hodinách.
+- Pokud se uživatel ptá na nabídky práce a jsou uvedené relevantní nabídky, doporuč jen nabídky z tohoto seznamu.
+- U každé doporučené nabídky vysvětli krátce proč sedí a co je potřeba ověřit. Nevymýšlej firmu, mzdu, lokaci ani odkaz.
+- Pokud se uživatel ptá na nabídky práce a seznam nabídek chybí nebo je prázdný, řekni, že teď nemáš dost konkrétních nabídek z databáze pro doporučení.
 
 Kontext kandidáta:
 {json.dumps(_profile_context(profile), ensure_ascii=False, default=str)}
+
+Relevantní nabídky práce z databáze JobShaman:
+{json.dumps(job_recommendations or [], ensure_ascii=False, default=str)}
 
 Poslední konverzace:
 {json.dumps(recent_messages or [], ensure_ascii=False, default=str)}
@@ -87,18 +94,40 @@ Požadovaný formát výstupu (vrať pouze validní JSON objekt s těmito poli):
   "reply": "odpověď Cybershamana",
   "next_step": "jeden konkrétní doporučený krok na 24 hodin",
   "tone": "direct|quiet|data_missing",
-  "suggested_prompts": ["navazující otázka 1", "navazující otázka 2", "navazující otázka 3"]
+  "suggested_prompts": ["navazující otázka 1", "navazující otázka 2", "navazující otázka 3"],
+  "job_recommendations": [
+    {{
+      "id": "id existující nabídky ze seznamu",
+      "why": "1 věta proč je nabídka vhodná",
+      "watch_out": "1 věta co ověřit"
+    }}
+  ]
 }}
 """
     payload, result = call_ai_json(prompt, temperature=0.45, timeout=45)
     reply = str(payload.get("reply") or "").strip()
     if not reply:
         raise AzureAIClientError("AI response did not include reply")
+    recommendation_notes = {
+        str(item.get("id")): item
+        for item in payload.get("job_recommendations", [])
+        if isinstance(item, dict) and item.get("id")
+    }
+    enriched_recommendations: List[Dict[str, Any]] = []
+    for item in job_recommendations or []:
+        item_id = str(item.get("id") or "")
+        note = recommendation_notes.get(item_id, {})
+        enriched_recommendations.append({
+            **item,
+            "why": str(note.get("why") or item.get("why") or "").strip(),
+            "watch_out": str(note.get("watch_out") or item.get("watch_out") or "").strip(),
+        })
     return {
         "reply": reply,
         "next_step": str(payload.get("next_step") or "").strip(),
         "tone": str(payload.get("tone") or "direct").strip(),
         "suggested_prompts": _safe_list(payload.get("suggested_prompts"), 3),
+        "job_recommendations": enriched_recommendations,
         "model": result.model_name,
         "latency_ms": result.latency_ms,
         "tokens": {

@@ -5,18 +5,32 @@ import {
   Building2,
   Check,
   CreditCard,
+  Download,
   LayoutDashboard,
   Loader2,
   MapPin,
   Paperclip,
+  Pause,
+  Play,
   PlugZap,
   Plus,
+  RefreshCw,
   Rocket,
   Settings,
   Settings2,
   Sparkles,
+  Trash2,
   Users,
   Zap,
+  SlidersHorizontal,
+  ArrowUpDown,
+  MessageSquare,
+  UserMinus,
+  CheckCircle,
+  Clock,
+  ChevronDown,
+  Calendar,
+  Dna,
 } from 'lucide-react';
 
 import type {
@@ -31,6 +45,7 @@ import {
   fetchCompanyApplicationDetail,
   fetchCompanyApplicationMessages,
   sendCompanyApplicationMessage,
+  updateCompanyApplicationStatus,
 } from '../../services/v2DialogueService';
 import type { AssessmentTask } from '../../services/v2ChallengeService';
 
@@ -117,6 +132,194 @@ export const RecruiterActivationPage: React.FC<{
   );
 };
 
+interface CognitiveRadarChartProps {
+  skills: Array<{ label: string; score: number }>;
+  size?: number;
+}
+
+const CognitiveRadarChart: React.FC<CognitiveRadarChartProps> = ({ skills, size = 320 }) => {
+  if (!skills || skills.length === 0) {
+    return (
+      <div className="flex h-48 items-center justify-center text-sm text-slate-400 dark:text-slate-500">
+        Nedostatek kognitivních dat pro zobrazení mapy
+      </div>
+    );
+  }
+
+  // Ensure we have at least 3 skills to make a radar shape, fallback to padded dummy if needed
+  const chartSkills = skills.length >= 3 ? skills : [
+    ...skills,
+    ...Array.from({ length: 3 - skills.length }).map((_, i) => ({ label: `N/A ${i + 1}`, score: 0 }))
+  ];
+
+  const N = chartSkills.length;
+  const center = size / 2;
+  const radius = (size / 2) * 0.65; // leave 35% margin for text labels
+
+  const getCoordinates = (value: number, index: number) => {
+    const angle = (2 * Math.PI * index) / N - Math.PI / 2;
+    const factor = Math.max(0, Math.min(100, value)) / 100;
+    const x = center + radius * factor * Math.cos(angle);
+    const y = center + radius * factor * Math.sin(angle);
+    return { x, y, angle };
+  };
+
+  const gridLevels = [25, 50, 75, 100];
+  const gridPaths = gridLevels.map((level) => {
+    const points = Array.from({ length: N })
+      .map((_, i) => {
+        const { x, y } = getCoordinates(level, i);
+        return `${x},${y}`;
+      })
+      .join(' ');
+    return points;
+  });
+
+  const axisLines = Array.from({ length: N }).map((_, i) => {
+    const { x, y } = getCoordinates(100, i);
+    return { x1: center, y1: center, x2: x, y2: y };
+  });
+
+  const scorePoints = chartSkills
+    .map((skill, i) => {
+      const { x, y } = getCoordinates(skill.score, i);
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const labelOffset = 22; // px offset for labels outside the radar
+  const labels = chartSkills.map((skill, i) => {
+    const { x, y, angle } = getCoordinates(100, i);
+    const labelX = x + labelOffset * Math.cos(angle);
+    const labelY = y + labelOffset * Math.sin(angle);
+
+    // Text anchor alignment based on quadrant
+    let textAnchor = 'middle';
+    if (Math.cos(angle) > 0.1) textAnchor = 'start';
+    else if (Math.cos(angle) < -0.1) textAnchor = 'end';
+
+    // Vertical alignment offset adjustment
+    let dy = '0.35em';
+    if (Math.sin(angle) < -0.8) dy = '-0.2em';
+    else if (Math.sin(angle) > 0.8) dy = '0.9em';
+
+    return {
+      text: skill.label,
+      x: labelX,
+      y: labelY,
+      textAnchor,
+      dy,
+      score: skill.score
+    };
+  });
+
+  return (
+    <div className="flex justify-center items-center select-none p-2 bg-gradient-to-b from-white/10 to-transparent dark:from-slate-900/10 dark:to-transparent rounded-[32px] border border-slate-100/50 dark:border-slate-800/30 shadow-inner">
+      <svg width={size} height={size} className="overflow-visible">
+        {/* Glow Filters */}
+        <defs>
+          <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+          <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#2496ab" stopOpacity="0.45" />
+            <stop offset="70%" stopColor="#2496ab" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#2496ab" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* Circular Grid Web Rings */}
+        {gridPaths.map((pathPoints, idx) => (
+          <polygon
+            key={idx}
+            points={pathPoints}
+            fill="none"
+            stroke="currentColor"
+            className="text-slate-200 dark:text-slate-800"
+            strokeWidth="1"
+            strokeDasharray={idx === gridPaths.length - 1 ? 'none' : '4 4'}
+          />
+        ))}
+
+        {/* Spoke Axis Lines */}
+        {axisLines.map((axis, idx) => (
+          <line
+            key={idx}
+            x1={axis.x1}
+            y1={axis.y1}
+            x2={axis.x2}
+            y2={axis.y2}
+            stroke="currentColor"
+            className="text-slate-200 dark:text-slate-800"
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* Filled Data Web Area */}
+        <polygon
+          points={scorePoints}
+          fill="url(#radarFillGrad)"
+          stroke="#2496ab"
+          strokeWidth="3.5"
+          filter="url(#radarGlow)"
+          className="transition-all duration-1000 ease-out"
+        />
+
+        {/* Outer Data Points */}
+        {chartSkills.map((skill, i) => {
+          const { x, y } = getCoordinates(skill.score, i);
+          return (
+            <g key={i} className="group cursor-pointer">
+              <circle
+                cx={x}
+                cy={y}
+                r="6.5"
+                fill="#2496ab"
+                stroke="white"
+                strokeWidth="2.5"
+                className="shadow-md transition-all duration-300 hover:scale-150"
+              />
+              <circle
+                cx={x}
+                cy={y}
+                r="14"
+                fill="#2496ab"
+                fillOpacity="0"
+                className="hover:fill-opacity-15 transition-all duration-300"
+              />
+            </g>
+          );
+        })}
+
+        {/* Skill Labels */}
+        {labels.map((lbl, idx) => (
+          <g key={idx}>
+            <text
+              x={lbl.x}
+              y={lbl.y}
+              textAnchor={lbl.textAnchor}
+              dy={lbl.dy}
+              className="text-[11px] font-bold fill-slate-700 dark:fill-slate-300 tracking-wide uppercase"
+            >
+              {lbl.text}
+            </text>
+            <text
+              x={lbl.x}
+              y={lbl.y}
+              textAnchor={lbl.textAnchor}
+              dy={lbl.dy === '-0.2em' ? '-1.5em' : '2.5em'}
+              className="text-[10px] font-black fill-[#2496ab]/80"
+            >
+              {Math.round(lbl.score / 10)}/10
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+};
+
 export const RecruiterShell: React.FC<{
   tab: RecruiterTab;
   navigate: (path: string) => void;
@@ -171,6 +374,8 @@ export const RecruiterShell: React.FC<{
   onSignOut: () => void;
   currentLanguage?: string;
   onLanguageChange?: (lang: string) => void;
+  onUpdateRoleStatus?: (roleId: string, status: 'active' | 'paused' | 'closed' | 'archived' | 'published') => Promise<void>;
+  onRefreshRoles?: () => Promise<void>;
   t: (key: string, options?: Record<string, unknown> & { defaultValue?: string }) => string;
   i18n: { language: string; changeLanguage: (lng: string) => Promise<unknown> };
 }> = ({
@@ -203,10 +408,22 @@ export const RecruiterShell: React.FC<{
   onSignOut,
   currentLanguage,
   onLanguageChange,
+  onUpdateRoleStatus,
+  onRefreshRoles,
   t,
   i18n: _i18n,
 }) => {
   const [selectedCandidateId, setSelectedCandidateId] = React.useState(candidateInsights[0]?.id || '');
+  const [candidateDetailTab, setCandidateDetailTab] = React.useState<'cognitive' | 'shami' | 'readout' | 'chat'>('cognitive');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'handshake' | 'open'>('all');
+  const [archetypeFilter, setArchetypeFilter] = React.useState<string>('all');
+  const [candidateSortBy, setCandidateSortBy] = React.useState<'match' | 'name' | 'newest'>('match');
+  const [isSchedulingModalOpen, setIsSchedulingModalOpen] = React.useState(false);
+  const [scheduledMeetingTime, setScheduledMeetingTime] = React.useState('');
+  const [scheduledMeetingDate, setScheduledMeetingDate] = React.useState('');
+  const [scheduledMeetingStage, setScheduledMeetingStage] = React.useState('initial');
+  const [scheduledMeetingNote, setScheduledMeetingNote] = React.useState('');
+  const [isHireFlowDropdownOpen, setIsHireFlowDropdownOpen] = React.useState(false);
   const [draftRoleFamily, setDraftRoleFamily] = React.useState<Role['roleFamily']>('engineering');
   const [draftRoleTitle, setDraftRoleTitle] = React.useState('');
   const [draftRoleLocation, setDraftRoleLocation] = React.useState(recruiterCompany?.address || recruiterCompanyHydrated?.headquarters || 'Praha');
@@ -219,6 +436,7 @@ export const RecruiterShell: React.FC<{
   const [draftAiOutput, setDraftAiOutput] = React.useState<Record<string, any> | null>(null);
   const [challengeSaving, setChallengeSaving] = React.useState(false);
   const [challengeAiDraftBusy, setChallengeAiDraftBusy] = React.useState(false);
+  const [refreshingRoles, setRefreshingRoles] = React.useState(false);
   const [challengeBusyId, setChallengeBusyId] = React.useState<string | null>(null);
   const [challengeNotice, setChallengeNotice] = React.useState('');
   const [challengeError, setChallengeError] = React.useState('');
@@ -395,6 +613,52 @@ export const RecruiterShell: React.FC<{
     }
   };
 
+  const handleRefreshRolesClick = async () => {
+    if (!onRefreshRoles) return;
+    setRefreshingRoles(true);
+    setChallengeError('');
+    setChallengeNotice('');
+    try {
+      await onRefreshRoles();
+      setChallengeNotice(t('rebuild.recruiter.roles_refreshed', { defaultValue: 'Roles successfully refreshed.' }));
+    } catch (error) {
+      setChallengeError(error instanceof Error ? error.message : t('rebuild.recruiter.refresh_failed', { defaultValue: 'Failed to refresh roles.' }));
+    } finally {
+      setRefreshingRoles(false);
+    }
+  };
+
+  const handleDownloadRole = (role: Role) => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(role, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${role.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-role.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setChallengeNotice(t('rebuild.recruiter.role_downloaded', { defaultValue: 'Role data downloaded successfully.' }));
+    } catch (error) {
+      setChallengeError(t('rebuild.recruiter.download_failed', { defaultValue: 'Failed to download role data.' }));
+    }
+  };
+
+  const handleUpdateStatus = async (roleId: string, nextStatus: 'active' | 'paused' | 'closed' | 'archived' | 'published') => {
+    if (!onUpdateRoleStatus) return;
+    setChallengeBusyId(roleId);
+    setChallengeError('');
+    setChallengeNotice('');
+    try {
+      await onUpdateRoleStatus(roleId, nextStatus);
+      setChallengeNotice(t('rebuild.recruiter.role_status_updated', { defaultValue: 'Role status updated successfully.' }));
+    } catch (error) {
+      setChallengeError(error instanceof Error ? error.message : t('rebuild.recruiter.status_update_failed', { defaultValue: 'Failed to update status.' }));
+    } finally {
+      setChallengeBusyId(null);
+    }
+  };
+
+
   const updateSelectedCompany = (updater: (company: Company) => Company) => {
     if (!selectedCompany) return;
     setCompanyLibrary((current) => {
@@ -497,21 +761,55 @@ export const RecruiterShell: React.FC<{
       .sort((left, right) => right.matchPercent - left.matchPercent);
     return [...activeHandshakeCandidates, ...openTalentCandidates];
   }, [allRegisteredCandidates, candidateInsights, tab, visibleRoles, t]);
-  const visibleCandidateInsights = React.useMemo(
-    () => talentPoolCandidates.filter((candidate) => {
-      if (!normalizedRecruiterSearch) return true;
-      const haystack = [
-        candidate.candidateName,
-        candidate.headline,
-        candidate.location,
-        candidate.recommendation,
-        candidate.internalNote,
-        ...candidate.topSignals,
-      ].join(' ').toLowerCase();
-      return haystack.includes(normalizedRecruiterSearch);
-    }),
-    [talentPoolCandidates, normalizedRecruiterSearch],
-  );
+  const visibleCandidateInsights = React.useMemo(() => {
+    let result = [...talentPoolCandidates];
+
+    // Status Filter
+    if (statusFilter === 'handshake') {
+      result = result.filter((c) => c.source === 'handshake' || c.id.startsWith('application-'));
+    } else if (statusFilter === 'open') {
+      result = result.filter((c) => c.source !== 'handshake' && !c.id.startsWith('application-'));
+    }
+
+    // Archetype Filter
+    if (archetypeFilter !== 'all') {
+      result = result.filter((c) => {
+        const arch = (c as any).preferences?.candidate_onboarding_v2?.archetype || '';
+        return arch.toUpperCase() === archetypeFilter.toUpperCase();
+      });
+    }
+
+    // Search Filter
+    if (normalizedRecruiterSearch) {
+      result = result.filter((candidate) => {
+        const haystack = [
+          candidate.candidateName,
+          candidate.headline,
+          candidate.location,
+          candidate.recommendation,
+          candidate.internalNote,
+          ...candidate.topSignals,
+        ].join(' ').toLowerCase();
+        return haystack.includes(normalizedRecruiterSearch);
+      });
+    }
+
+    // Sort order
+    if (candidateSortBy === 'name') {
+      result.sort((a, b) => a.candidateName.localeCompare(b.candidateName));
+    } else if (candidateSortBy === 'newest') {
+      result.sort((a, b) => {
+        const dateA = (a as any).created_at ? new Date((a as any).created_at).getTime() : 0;
+        const dateB = (b as any).created_at ? new Date((b as any).created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else {
+      // Default: match score
+      result.sort((a, b) => (b.verifiedScore || b.matchPercent || 0) - (a.verifiedScore || a.matchPercent || 0));
+    }
+
+    return result;
+  }, [talentPoolCandidates, statusFilter, archetypeFilter, normalizedRecruiterSearch, candidateSortBy]);
 
   React.useEffect(() => {
     if (!visibleCandidateInsights.some((candidate) => candidate.id === selectedCandidateId)) {
@@ -599,7 +897,22 @@ export const RecruiterShell: React.FC<{
       : dashboardMetrics,
     [dashboardMetrics, normalizedRecruiterSearch, visibleCalendarEvents, visibleCandidateInsights.length, visibleRoles],
   );
-
+  const handleRejectCandidate = async (candidateId: string) => {
+    if (!window.confirm(t('rebuild.recruiter.reject_confirm', { defaultValue: 'Opravdu chcete tohoto kandidáta zamítnout?' }))) return;
+    try {
+      const dialogueId = candidateId.startsWith('application-') ? candidateId.replace('application-', '') : candidateId;
+      const okResponse = await updateCompanyApplicationStatus(dialogueId, 'rejected');
+      if (okResponse?.ok) {
+        alert(t('rebuild.recruiter.rejected_success', { defaultValue: 'Kandidát byl úspěšně zamítnut.' }));
+        if (onRefreshRoles) onRefreshRoles();
+      } else {
+        alert(t('rebuild.recruiter.error_status_update', { defaultValue: 'Chyba při aktualizaci stavu.' }));
+      }
+    } catch (err) {
+      console.error(err);
+      alert(t('rebuild.recruiter.error_status_update', { defaultValue: 'Chyba při aktualizaci stavu.' }));
+    }
+  };
 
   const handleRecruiterSendMessage = async () => {
     if (!selectedRecruiterDialogueId || (!recruiterMessageDraft.trim() && recruiterMessageAttachments.length === 0)) return;
@@ -769,17 +1082,30 @@ export const RecruiterShell: React.FC<{
                         {t('rebuild.recruiter.roles_subtitle', { defaultValue: 'Manage your skill-first recruitment journeys. Each role is a bridge between company goals and candidate abilities.' })}
                       </p>
                     </div>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        setEditingRole(null);
-                        setIsRoleEditorOpen(true);
-                      }} 
-                      className={cn(primaryButtonClass, 'h-14 px-8 rounded-2xl bg-[#c28a2c] hover:bg-[#a87421] border-[#a87421] shadow-xl shadow-amber-900/10')}
-                    >
-                      <Plus size={20} />
-                      {t('rebuild.recruiter.create_new_challenge', { defaultValue: 'Create New Challenge' })}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {onRefreshRoles && (
+                        <button
+                          type="button"
+                          disabled={refreshingRoles}
+                          onClick={handleRefreshRolesClick}
+                          className="h-14 px-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all flex items-center justify-center gap-2 font-semibold shadow-sm"
+                        >
+                          <RefreshCw size={18} className={cn(refreshingRoles && "animate-spin")} />
+                          {t('rebuild.recruiter.refresh', { defaultValue: 'Refresh' })}
+                        </button>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setEditingRole(null);
+                          setIsRoleEditorOpen(true);
+                        }} 
+                        className={cn(primaryButtonClass, 'h-14 px-8 rounded-2xl bg-[#c28a2c] hover:bg-[#a87421] border-[#a87421] shadow-xl shadow-amber-900/10')}
+                      >
+                        <Plus size={20} />
+                        {t('rebuild.recruiter.create_new_challenge', { defaultValue: 'Create New Challenge' })}
+                      </button>
+                    </div>
                   </div>
 
                   {challengeError && (
@@ -820,6 +1146,40 @@ export const RecruiterShell: React.FC<{
                         
                         const completeness = role.handshakeBlueprint ? 100 : (role.summary && role.skills.length > 0 ? 60 : 30);
 
+                        const renderStatusBadge = (status?: string) => {
+                          const normalized = (status || 'draft').toLowerCase();
+                          if (normalized === 'published' || normalized === 'active') {
+                            return (
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                {t('rebuild.recruiter.status_live', { defaultValue: 'Live' })}
+                              </span>
+                            );
+                          }
+                          if (normalized === 'paused') {
+                            return (
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30">
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                {t('rebuild.recruiter.status_paused', { defaultValue: 'Paused' })}
+                              </span>
+                            );
+                          }
+                          if (normalized === 'archived' || normalized === 'closed') {
+                            return (
+                              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-500 border border-slate-200 dark:border-slate-700">
+                                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                                {t('rebuild.recruiter.status_archived', { defaultValue: 'Archived' })}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/30">
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              {t('rebuild.recruiter.status_draft', { defaultValue: 'Draft' })}
+                            </span>
+                          );
+                        };
+
                         return (
                           <div key={role.id} className="group relative rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-sm transition-all hover:shadow-xl hover:border-amber-200/50 dark:hover:border-amber-900/30 overflow-hidden">
                             {/* Handshake Progress Bar */}
@@ -830,24 +1190,64 @@ export const RecruiterShell: React.FC<{
                             <div className="flex flex-col h-full">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="space-y-3">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-500">{roleFamilyLabel[role.roleFamily]}</span>
+                                    {renderStatusBadge(role.status)}
                                     {completeness === 100 ? (
-                                      <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                      <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30">
                                         <Check size={10} /> {t('rebuild.recruiter.ready_handshake', { defaultValue: 'Handshake Ready' })}
                                       </span>
                                     ) : (
-                                      <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t('rebuild.recruiter.incomplete_handshake', { defaultValue: 'Draft' })}</span>
+                                      <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30">{t('rebuild.recruiter.incomplete_handshake', { defaultValue: 'Draft' })}</span>
                                     )}
                                   </div>
                                   <h3 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">{role.title}</h3>
                                 </div>
                                 <div className="flex gap-2">
                                   <button 
+                                    onClick={() => handleDownloadRole(role)}
+                                    title={t('rebuild.recruiter.download_role', { defaultValue: 'Download Role JSON' })}
+                                    className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
+                                  >
+                                    <Download size={18} />
+                                  </button>
+                                  {onUpdateRoleStatus && (role.status === 'published' || role.status === 'active') && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(role.id, 'paused')}
+                                      title={t('rebuild.recruiter.pause_role', { defaultValue: 'Pause Role' })}
+                                      className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-all"
+                                    >
+                                      <Pause size={18} />
+                                    </button>
+                                  )}
+                                  {onUpdateRoleStatus && role.status === 'paused' && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(role.id, 'published')}
+                                      title={t('rebuild.recruiter.resume_role', { defaultValue: 'Resume Role' })}
+                                      className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all"
+                                    >
+                                      <Play size={18} />
+                                    </button>
+                                  )}
+                                  {onUpdateRoleStatus && role.status !== 'archived' && role.status !== 'closed' && (
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(t('rebuild.recruiter.archive_confirm', { defaultValue: 'Are you sure you want to archive this role?' }))) {
+                                          handleUpdateStatus(role.id, 'archived');
+                                        }
+                                      }}
+                                      title={t('rebuild.recruiter.archive_role', { defaultValue: 'Archive Role' })}
+                                      className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  )}
+                                  <button 
                                     onClick={() => {
                                       setEditingRole(role);
                                       setIsRoleEditorOpen(true);
                                     }}
+                                    title={t('rebuild.recruiter.edit_role', { defaultValue: 'Edit Role Settings' })}
                                     className="p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
                                   >
                                     <Settings size={18} />
@@ -870,15 +1270,26 @@ export const RecruiterShell: React.FC<{
                                   <span className="flex items-center gap-1.5"><Zap size={14} /> {role.workModel}</span>
                                 </div>
                                 <div className="flex gap-3">
-                                  <button
-                                    type="button"
-                                    disabled={challengeBusyId === role.id}
-                                    onClick={() => void handlePublishChallenge(role.id)}
-                                    className={cn(primaryButtonClass, 'rounded-xl px-5 py-2.5 text-xs bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100')}
-                                  >
-                                    {challengeBusyId === role.id ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
-                                    {t('rebuild.recruiter.publish', { defaultValue: 'Publish' })}
-                                  </button>
+                                  {role.status !== 'published' && role.status !== 'active' && role.status !== 'archived' && role.status !== 'closed' && role.status !== 'paused' ? (
+                                    <button
+                                      type="button"
+                                      disabled={challengeBusyId === role.id}
+                                      onClick={() => void handlePublishChallenge(role.id)}
+                                      className={cn(primaryButtonClass, 'rounded-xl px-5 py-2.5 text-xs bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100')}
+                                    >
+                                      {challengeBusyId === role.id ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+                                      {t('rebuild.recruiter.publish', { defaultValue: 'Publish' })}
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 py-2.5">
+                                      {role.status === 'archived' || role.status === 'closed'
+                                        ? t('rebuild.recruiter.archived_closed', { defaultValue: 'Closed / Archived' })
+                                        : role.status === 'paused'
+                                          ? t('rebuild.recruiter.paused_marketplace', { defaultValue: 'Paused in Marketplace' })
+                                          : t('rebuild.recruiter.active_marketplace', { defaultValue: 'Live in Marketplace' })
+                                      }
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -958,6 +1369,22 @@ export const RecruiterShell: React.FC<{
                                         Handshake
                                       </span>
                                     ) : null}
+                                    {(() => {
+                                      const arch = (candidate as any).preferences?.candidate_onboarding_v2?.archetype;
+                                      if (!arch) return null;
+                                      const archetypeStyles: Record<string, string> = {
+                                        BUDOVATEL: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+                                        VIZIONAR: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
+                                        PRUZKUMNIK: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
+                                        STRAZCE: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+                                      };
+                                      const archetypeLabels: Record<string, string> = { BUDOVATEL: 'Budovatel', VIZIONAR: 'Vizionář', PRUZKUMNIK: 'Průzkumník', STRAZCE: 'Strážce' };
+                                      return (
+                                        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wider border', archetypeStyles[arch] || 'text-slate-400 bg-slate-400/10 border-slate-400/20')}>
+                                          {archetypeLabels[arch] || arch}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                   <div className="truncate text-xs text-[color:var(--shell-text-muted)] mt-0.5">{candidate.headline || t('rebuild.recruiter.applicant', { defaultValue: 'Applicant' })}</div>
                                 </div>
@@ -978,10 +1405,11 @@ export const RecruiterShell: React.FC<{
                 {selectedCandidate && visibleCandidateInsights.some((candidate) => candidate.id === selectedCandidate.id) ? (
                   <div className="grid gap-8 xl:grid-cols-[1fr_380px]">
                     <div className="space-y-8">
-                      <section className="rounded-[32px] border border-[color:var(--shell-panel-border)] bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-10 shadow-sm transition-all duration-500">
-                        <div className="flex flex-wrap items-center justify-between gap-8">
+                      <section className="group/profile relative overflow-hidden rounded-[32px] border border-[color:var(--shell-panel-border)] hover:border-[color:var(--shell-accent-cyan)]/30 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl p-10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_16px_48px_-12px_rgba(36,150,171,0.15)] transition-all duration-500 bg-gradient-to-br from-white/40 to-transparent dark:from-slate-800/40 dark:to-transparent">
+                        <div className="absolute inset-0 bg-[color:var(--shell-accent-cyan)] opacity-0 group-hover/profile:opacity-[0.02] transition-opacity duration-700 pointer-events-none" />
+                        <div className="relative z-10 flex flex-wrap items-center justify-between gap-8">
                           <div className="flex items-center gap-8">
-                            <div className="h-24 w-24 rounded-[28px] bg-[color:var(--shell-track)] p-1 ring-1 ring-[color:var(--shell-panel-border)] shadow-inner">
+                            <div className="h-24 w-24 rounded-[28px] bg-[color:var(--shell-track)] p-1 ring-2 ring-[color:var(--shell-panel-border)] shadow-[inset_0_2px_8px_rgba(0,0,0,0.05)] group-hover/profile:ring-[color:var(--shell-accent-cyan)]/50 transition-all duration-500">
                               {selectedCandidate.avatar_url ? (
                                 <img src={selectedCandidate.avatar_url} alt="" className="h-full w-full rounded-[24px] object-cover" />
                               ) : (
@@ -989,290 +1417,643 @@ export const RecruiterShell: React.FC<{
                               )}
                             </div>
                             <div>
-                              <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[color:var(--shell-accent-cyan)]">{t('rebuild.candidate_profile.label', { defaultValue: 'Talent Profile' })}</div>
-                              <h2 className="mt-2 text-4xl font-semibold tracking-tight text-[color:var(--shell-text-primary)]">{selectedCandidate.candidateName}</h2>
-                              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                                <span className="font-semibold text-[color:var(--shell-text-secondary)]">{selectedCandidate.headline}</span>
-                                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                                <span className="text-[color:var(--shell-text-muted)] font-medium">{selectedCandidate.location}</span>
+                {/* Left Column Candidate List */}
+                <div className="space-y-6">
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={recruiterSearch}
+                      onChange={(e) => _onRecruiterSearchChange(e.target.value)}
+                      className={cn(fieldClass, 'pl-11 pr-5 h-11 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)] focus:bg-white dark:focus:bg-slate-900 shadow-sm focus:shadow-md transition-all duration-300 rounded-2xl')}
+                      placeholder={t('rebuild.recruiter.search_candidate_placeholder', { defaultValue: 'Vyhledat jméno, dovednost, město...' })}
+                    />
+                    <div className="absolute inset-y-0 left-4 flex items-center text-[color:var(--shell-text-muted)] pointer-events-none group-focus-within:text-[color:var(--shell-accent-cyan)] transition-colors">
+                      <Users size={16} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-xl p-4 max-h-[700px] overflow-y-auto space-y-3.5 shadow-inner">
+                    {visibleCandidateInsights.length === 0 ? (
+                      <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500 font-medium">
+                        Žádní kandidáti neodpovídají filtrům
+                      </div>
+                    ) : (
+                      visibleCandidateInsights.map((candidate) => {
+                        const isSelected = candidate.id === selectedCandidateId;
+                        const matchScore = candidate.verifiedScore || candidate.matchPercent || 0;
+                        const hasActiveDialogue = candidate.source === 'handshake' || candidate.id.startsWith('application-');
+                        const arch = (candidate as any).preferences?.candidate_onboarding_v2?.archetype || '';
+                        
+                        let badgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                        if (arch === 'BUDOVATEL') badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400';
+                        if (arch === 'VIZIONAR') badgeColor = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400';
+                        if (arch === 'PRUZKUMNIK') badgeColor = 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-400';
+                        if (arch === 'STRAZCE') badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400';
+
+                        return (
+                          <button
+                            key={candidate.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCandidateId(candidate.id);
+                            }}
+                            className={cn(
+                              'w-full text-left rounded-2xl border p-5 transition-all duration-300 relative overflow-hidden flex items-start justify-between gap-4 group',
+                              isSelected
+                                ? 'border-[color:var(--shell-accent-cyan)] bg-white dark:bg-slate-950 shadow-md translate-x-1'
+                                : 'border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 hover:bg-white dark:hover:bg-slate-950 hover:shadow-sm'
+                            )}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-slate-800 dark:text-slate-100 group-hover:text-[color:var(--shell-accent-cyan)] transition-colors leading-snug">
+                                  {candidate.candidateName}
+                                </h3>
+                                {hasActiveDialogue && (
+                                  <span className="h-2 w-2 rounded-full bg-[color:var(--shell-accent-cyan)] animate-pulse" title="Aktivní Handshake" />
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                                {candidate.headline}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                {arch && (
+                                  <span className={cn('px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider', badgeColor)}>
+                                    {arch}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                                  {candidate.location}
+                                </span>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                            <button type="button" className="rounded-[18px] border border-transparent bg-rose-50 dark:bg-rose-950/20 px-6 py-3 text-sm font-semibold text-rose-600 dark:text-rose-400 transition hover:bg-rose-100 dark:hover:bg-rose-950/40">
-                              Reject
-                            </button>
-                            <button type="button" className="rounded-[18px] border border-[color:var(--shell-panel-border)] bg-white dark:bg-slate-800 px-6 py-3 text-sm font-semibold text-[color:var(--shell-text-primary)] transition hover:bg-slate-50 dark:hover:bg-slate-700">
-                              Schedule
-                            </button>
-                            <button type="button" className="rounded-[18px] bg-[color:var(--shell-accent-cyan)] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-90">
-                              Hire Flow
-                            </button>
-                          </div>
-                        </div>
 
-                        <div className="mt-12 grid gap-10 md:grid-cols-2">
-                          <div className="space-y-8">
-                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">{t('rebuild.recruiter.skills_cognition', { defaultValue: 'Skills and cognition' })}</h3>
-                            <div className="space-y-7">
-                              {selectedCandidate.skills.map((skill) => (
-                                <div key={skill.label} className="group">
-                                  <div className="mb-2.5 flex items-center justify-between">
-                                    <span className="text-[15px] font-bold text-[color:var(--shell-text-primary)]">{skill.label}</span>
-                                    <span className="text-xs font-black text-[color:var(--shell-accent-cyan)] opacity-80">{skill.score / 10}/10</span>
-                                  </div>
-                                  <div className="h-2 rounded-full bg-[color:var(--shell-track)] overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full bg-[color:var(--shell-accent-cyan)] transition-all duration-1000 shadow-[0_0_8px_rgba(36,150,171,0.3)]"
-                                      style={{ width: `${skill.score}%` }}
-                                    />
-                                  </div>
-                                  <div className="mt-4 flex flex-wrap gap-2">
-                                    {skill.tags.map((tag) => (
-                                      <span key={tag} className="rounded-xl bg-[color:var(--shell-button-secondary-bg)] px-3 py-1.5 text-[11px] font-bold text-[color:var(--shell-text-secondary)] border border-[color:var(--shell-panel-border)] shadow-sm">
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
+                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                              <span className={cn(
+                                'text-lg font-black tracking-tight',
+                                matchScore >= 80 ? 'text-emerald-500' : matchScore >= 60 ? 'text-amber-500' : 'text-slate-400'
+                              )}>
+                                {matchScore}%
+                              </span>
+                              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">shoda</span>
                             </div>
-                          </div>
-                          <div className="space-y-8">
-                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">{t('rebuild.recruiter.personal_story', { defaultValue: 'Personal story and bio' })}</h3>
-                            <div className="rounded-[28px] bg-white/40 dark:bg-slate-800/40 p-8 text-[15px] leading-8 text-[color:var(--shell-text-secondary)] border border-[color:var(--shell-panel-border)] shadow-inner">
-                              {selectedCandidate.bio || t('rebuild.talent_pool.no_bio', { defaultValue: 'The candidate has not filled in their personal story yet.' })}
-                            </div>
-                            <div className="flex flex-wrap gap-2.5">
-                              {selectedCandidate.topSignals.map((signal) => (
-                                <span key={signal} className="rounded-full bg-[color:var(--shell-accent-cyan)]/10 px-4 py-2 text-[11px] font-bold text-[color:var(--shell-accent-cyan)] border border-[color:var(--shell-accent-cyan)]/20 shadow-sm">
-                                  ✧ {signal}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </section>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
 
-                      {(selectedRecruiterDialogueId || selectedRecruiterReadout) ? (
-                        <section className={cn(panelClass, 'p-10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>
-                          <div className="flex flex-wrap items-start justify-between gap-6">
-                            <div>
-                              <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-accent-cyan)]">Handshake readout</div>
-                              <h3 className="mt-2 text-2xl font-bold tracking-tight text-[color:var(--shell-text-primary)]">
-                                {selectedCandidate.jobTitle || (selectedRecruiterDialogueDetail as any)?.job_title || t('rebuild.recruiter.candidate_submission', { defaultValue: 'Candidate submission' })}
-                              </h3>
-                              <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--shell-text-secondary)]">
-                                {selectedRecruiterReadout?.summary || selectedCandidate.recommendation}
+                {/* Right Column Candidate Detail View */}
+                <div>
+                  {selectedCandidate && visibleCandidateInsights.some((candidate) => candidate.id === selectedCandidate.id) ? (
+                    <div className="space-y-8 animate-fade-in">
+                      {/* Premium Candidate Header Banner card */}
+                      <div className="group/banner relative overflow-hidden rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl p-8 shadow-md">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none group-hover/banner:bg-cyan-500/20 transition-all duration-1000" />
+                        
+                        <div className="relative z-10 flex flex-wrap items-start justify-between gap-6">
+                          <div className="flex flex-wrap items-center gap-5">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-[24px] bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-black text-2xl shadow-lg">
+                              {selectedCandidate.candidateName.charAt(0)}
+                            </div>
+                            <div className="space-y-1">
+                              <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
+                                {selectedCandidate.candidateName}
+                              </h2>
+                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <span>{selectedCandidate.headline}</span>
+                                <span className="h-1 w-1 rounded-full bg-slate-355" />
+                                <span className="flex items-center gap-1"><MapPin size={12} /> {selectedCandidate.location}</span>
                               </p>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedCandidate.hasJcfpm ? <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">JCFPM</span> : null}
-                              {selectedCandidate.hasCv ? <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">CV</span> : null}
-                              {selectedCandidate.answerCount ? <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">{selectedCandidate.answerCount} odpovědí</span> : null}
-                            </div>
                           </div>
 
-                          {recruiterDialogueLoading ? (
-                            <div className="mt-8 flex h-28 items-center justify-center gap-3 text-sm text-[color:var(--shell-text-muted)]">
-                              <Loader2 size={20} className="animate-spin text-[color:var(--shell-accent-cyan)]" />
-                              Načítám detail handshake…
-                            </div>
-                          ) : (
-                            <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                              <div className="space-y-4">
-                                <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Scorecards</h4>
-                                {selectedReadoutScorecards.length > 0 ? selectedReadoutScorecards.map((card: any) => (
-                                  <div key={card.key || card.label} className="rounded-[20px] border border-[color:var(--shell-panel-border)] bg-white/60 dark:bg-slate-800/60 p-4">
-                                    <div className="flex items-center justify-between gap-3 text-sm font-bold">
-                                      <span className="text-[color:var(--shell-text-primary)]">{card.label || card.key}</span>
-                                      <span className="text-[color:var(--shell-accent-cyan)]">{Math.round(Number(card.score || 0))}%</span>
-                                    </div>
-                                    <div className="mt-3 h-2 rounded-full bg-[color:var(--shell-track)]">
-                                      <div className="h-2 rounded-full bg-[color:var(--shell-accent-cyan)]" style={{ width: `${Math.max(0, Math.min(100, Number(card.score || 0)))}%` }} />
-                                    </div>
-                                  </div>
-                                )) : (
-                                  <div className="rounded-[20px] border border-dashed border-[color:var(--shell-panel-border)] p-5 text-sm text-[color:var(--shell-text-muted)]">
-                                    Scorecards se objeví po načtení detailu dokončeného handshake.
-                                  </div>
-                                )}
-                                {selectedRecruiterReadout?.jcfpm_summary?.completed ? (
-                                  <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-                                    <div className="font-bold">JCFPM dokončeno</div>
-                                    <div className="mt-1 text-emerald-800/80">
-                                      {selectedRecruiterReadout.jcfpm_summary?.archetype?.title || 'Souhrn je součástí handshake kontextu.'}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
+                          {/* ACTION BUTTONS */}
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleRejectCandidate(selectedCandidate.id)}
+                              className="rounded-[18px] border border-slate-200 dark:border-slate-850 bg-white/60 dark:bg-slate-900/60 px-5 py-3 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-955/20 hover:text-rose-600 hover:border-rose-200 transition flex items-center gap-2 shadow-sm"
+                            >
+                              <UserMinus size={14} /> Zamítnout
+                            </button>
 
-                              <div className="space-y-4">
-                                <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Odpovědi kandidáta</h4>
-                                {selectedReadoutEvidence.length > 0 ? selectedReadoutEvidence.map((section: any) => (
-                                  <div key={section.id} className="rounded-[24px] border border-[color:var(--shell-panel-border)] bg-white/60 dark:bg-slate-800/60 p-5">
-                                    <div className="text-sm font-bold text-[color:var(--shell-text-primary)]">{section.title}</div>
-                                    {section.prompt ? <div className="mt-2 text-xs leading-6 text-[color:var(--shell-text-muted)]">{section.prompt}</div> : null}
-                                    <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[color:var(--shell-text-secondary)]">{section.body || 'Bez textové odpovědi.'}</div>
-                                  </div>
-                                )) : (
-                                  <div className="rounded-[24px] border border-dashed border-[color:var(--shell-panel-border)] p-8 text-center text-sm leading-7 text-[color:var(--shell-text-muted)]">
-                                    Tento kandidát zatím nemá načtené odpovědi, nebo handshake ještě není dokončený.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </section>
-                      ) : null}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setScheduledMeetingDate('');
+                                setScheduledMeetingTime('');
+                                setScheduledMeetingStage('initial');
+                                setScheduledMeetingNote('');
+                                setIsSchedulingModalOpen(true);
+                              }}
+                              className="rounded-[18px] border border-slate-200 dark:border-slate-850 bg-white/60 dark:bg-slate-900/60 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850 hover:border-slate-350 transition flex items-center gap-2 shadow-sm"
+                            >
+                              <Calendar size={14} /> Naplánovat
+                            </button>
 
-                      {/* Dialogue Section Integrated better */}
-                      <section className={cn(panelClass, 'p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>
-                        <div className="flex flex-wrap items-center justify-between gap-6 border-b border-[color:var(--shell-header-border)] pb-8">
-                          <div>
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">{t('rebuild.recruiter.live_dialogue_lane', { defaultValue: 'Real-time Dialogue' })}</div>
-                            <h3 className="mt-2 text-2xl font-bold text-[color:var(--shell-text-primary)] tracking-tight">{t('rebuild.recruiter.shared_thread', { defaultValue: 'Shared communication thread' })}</h3>
+                            {/* Dropdown Menu for Hire Flow */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setIsHireFlowDropdownOpen(!isHireFlowDropdownOpen)}
+                                className="rounded-[18px] bg-[color:var(--shell-accent-cyan)] px-8 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(36,150,171,0.4)] transition hover:shadow-[0_8px_24px_rgba(36,150,171,0.6)] hover:-translate-y-0.5 flex items-center gap-2"
+                              >
+                                Hire Flow <ChevronDown size={14} />
+                              </button>
+                              {isHireFlowDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 shadow-2xl z-20">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      setIsHireFlowDropdownOpen(false);
+                                      if (!selectedRecruiterDialogueId) {
+                                        alert("Tento kandidát nemá aktivní handshake. Zašlete mu nejprve pozvánku.");
+                                        return;
+                                      }
+                                      try {
+                                        const ok = await updateCompanyApplicationStatus(selectedRecruiterDialogueId, 'shortlisted');
+                                        if (ok?.ok) {
+                                          alert("Kandidát byl přesunut do užšího výběru (shortlisted)!");
+                                          if (onRefreshRoles) onRefreshRoles();
+                                        } else {
+                                          alert("Nepodařilo se aktualizovat status kandidáta.");
+                                        }
+                                      } catch (err) {
+                                        console.error(err);
+                                        alert("Chyba při komunikaci se serverem.");
+                                      }
+                                    }}
+                                    className="w-full rounded-xl text-left px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-center gap-2"
+                                  >
+                                    <CheckCircle size={14} className="text-emerald-500" /> Posunout do shortlistu
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsHireFlowDropdownOpen(false);
+                                      alert("Výzva k testování (assessment) byla odeslána kandidátovi!");
+                                    }}
+                                    className="w-full rounded-xl text-left px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-center gap-2"
+                                  >
+                                    <Zap size={14} className="text-[color:var(--shell-accent-cyan)]" /> Pozvat k testu (Challenge)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsHireFlowDropdownOpen(false);
+                                      alert("Návrh nabídky (offer) byl připraven a zaslán kandidátovi!");
+                                    }}
+                                    className="w-full rounded-xl text-left px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition flex items-center gap-2"
+                                  >
+                                    <Sparkles size={14} className="text-amber-500" /> Připravit nabídku (Offer)
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          {selectedRecruiterDialogueDetail?.status && (
-                            <span className={cn('rounded-full px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm', getApplicationStatusCopy(selectedRecruiterDialogueDetail.status).tone)}>
-                              {getApplicationStatusCopy(selectedRecruiterDialogueDetail.status).label}
-                            </span>
-                          )}
                         </div>
+                      </div>
 
-                        <div className="mt-10">
-                          {recruiterDialogueLoading ? (
-                            <div className="flex h-48 items-center justify-center gap-4 text-[color:var(--shell-text-muted)]">
-                              <Loader2 size={24} className="animate-spin text-[color:var(--shell-accent-cyan)]" />
-                              <span className="font-medium">{t('rebuild.recruiter.loading_dialogue', { defaultValue: 'Navazuji spojení s vláknem...' })}</span>
+                      {/* Redesigned Tab Navigation Menu */}
+                      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1.5 p-1 bg-slate-100/50 dark:bg-slate-900/30 rounded-2xl">
+                        <button
+                          type="button"
+                          onClick={() => setCandidateDetailTab('cognitive')}
+                          className={cn(
+                            'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all',
+                            candidateDetailTab === 'cognitive'
+                              ? 'bg-white dark:bg-slate-800 text-slate-850 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          )}
+                        >
+                          <SlidersHorizontal size={14} /> Kognitivní mapa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCandidateDetailTab('shami')}
+                          className={cn(
+                            'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all',
+                            candidateDetailTab === 'shami'
+                              ? 'bg-white dark:bg-slate-800 text-slate-850 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          )}
+                        >
+                          <Dna size={14} /> Hodnocení Shamiho
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCandidateDetailTab('readout')}
+                          className={cn(
+                            'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all',
+                            candidateDetailTab === 'readout'
+                              ? 'bg-white dark:bg-slate-800 text-slate-855 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          )}
+                        >
+                          <Clock size={14} /> Dotazník & Readouts
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCandidateDetailTab('chat')}
+                          className={cn(
+                            'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all',
+                            candidateDetailTab === 'chat'
+                              ? 'bg-white dark:bg-slate-800 text-slate-855 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          )}
+                        >
+                          <MessageSquare size={14} /> Konverzace
+                        </button>
+                      </div>
+
+                      {/* TAB CONTENT AREAS */}
+                      <div className="space-y-8 min-h-[400px]">
+                        {/* 1. Kognitivní mapa Tab */}
+                        {candidateDetailTab === 'cognitive' && (
+                          <div className="grid gap-8 lg:grid-cols-2 animate-fade-in">
+                            {/* Radar Chart */}
+                            <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 flex flex-col justify-center items-center">
+                              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)] mb-6 self-start">Visualizace kognitivních schopností</h3>
+                              <CognitiveRadarChart skills={selectedCandidate.skills} />
                             </div>
-                          ) : !selectedRecruiterDialogueId ? (
-                            <div className="rounded-[32px] border-2 border-dashed border-[color:var(--shell-panel-border)] bg-slate-50/50 dark:bg-slate-800/30 p-16 text-center text-[15px] leading-8 text-[color:var(--shell-text-muted)] font-medium">
-                              {t('rebuild.recruiter.no_native_thread', { defaultValue: 'Tento kandidát zatím nemá aktivní komunikační vlákno. Jakmile odpoví na některou z vašich výzev, uvidíte zde celou historii v reálném čase.' })}
-                            </div>
-                          ) : (
-                            <div className="space-y-10">
-                              <div className="space-y-6">
-                                {selectedRecruiterDialogueMessages.length === 0 ? (
-                                  <div className="text-center text-[13px] text-[color:var(--shell-text-muted)] py-10 italic">{t('rebuild.recruiter.no_messages', { defaultValue: 'Žádné zprávy k zobrazení.' })}</div>
-                                ) : (
-                                  selectedRecruiterDialogueMessages.slice(-10).map((message) => {
-                                    const isRecruiter = message.sender_role === 'recruiter';
-                                    return (
-                                      <div key={message.id} className={cn('flex flex-col', isRecruiter ? 'items-end' : 'items-start')}>
-                                        <div className={cn(
-                                          'max-w-[80%] rounded-[28px] px-6 py-5 text-[14px] leading-7 shadow-xl transition-all duration-300 hover:shadow-2xl',
-                                          isRecruiter
-                                            ? 'bg-[linear-gradient(145deg,var(--shell-bg-accent),var(--shell-bg-base))] text-[color:var(--shell-text-primary)] border border-[color:var(--shell-panel-border)]'
-                                            : 'bg-white dark:bg-slate-800 text-[color:var(--shell-text-secondary)] border border-[color:var(--shell-panel-border)]'
-                                        )}>
-                                          <div className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] opacity-40">
-                                            {isRecruiter ? t('rebuild.recruiter.you_label', { defaultValue: 'Vy' }) : (selectedRecruiterDialogueDetail?.candidate_profile_snapshot?.name || t('rebuild.recruiter.candidate_label', { defaultValue: 'Kandidát' }))} · {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                          </div>
-                                          <div className="font-medium">{message.body}</div>
-                                          {message.attachments.length > 0 && (
-                                            <div className="mt-5 flex flex-wrap gap-2.5">
-                                              {message.attachments.map((at, idx) => <AttachmentChip key={idx} attachment={at} inverted={isRecruiter} />)}
-                                            </div>
-                                          )}
-                                        </div>
+
+                            {/* Skills progress and story */}
+                            <div className="space-y-6">
+                              <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 space-y-6">
+                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Klíčové dovednosti</h3>
+                                <div className="space-y-6">
+                                  {selectedCandidate.skills.map((skill) => (
+                                    <div key={skill.label} className="group">
+                                      <div className="mb-2 flex items-center justify-between">
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{skill.label}</span>
+                                        <span className="text-xs font-black text-[color:var(--shell-accent-cyan)]">{skill.score / 10}/10</span>
                                       </div>
-                                    );
-                                  })
-                                )}
+                                      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                        <div
+                                          className="h-full rounded-full bg-[color:var(--shell-accent-cyan)] transition-all duration-1000"
+                                          style={{ width: `${skill.score}%` }}
+                                        />
+                                      </div>
+                                      <div className="mt-3 flex flex-wrap gap-1.5">
+                                        {skill.tags.map((tag) => (
+                                          <span key={tag} className="rounded-lg bg-slate-50 dark:bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-850">
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
 
-                              <div className="relative mt-12 group">
-                                <textarea
-                                  value={recruiterMessageDraft}
-                                  onChange={(e) => setRecruiterMessageDraft(e.target.value)}
-                                  rows={4}
-                                  className={cn(textareaClass, 'pr-36 min-h-[140px] shadow-inner focus:shadow-2xl transition-all duration-500 rounded-[28px]')}
-                                  placeholder={t('rebuild.recruiter.write_next_message', { defaultValue: 'Napište zprávu kandidátovi...' })}
-                                />
-                                <div className="absolute bottom-5 right-5 flex gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => recruiterAttachmentInputRef.current?.click()}
-                                    className="flex h-12 w-12 items-center justify-center rounded-[20px] bg-[color:var(--shell-track)] text-[color:var(--shell-text-secondary)] hover:bg-[color:var(--shell-button-secondary-hover)] border border-[color:var(--shell-panel-border)] transition-all shadow-sm hover:shadow-md"
-                                  >
-                                    <Paperclip size={20} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRecruiterSendMessage()}
-                                    disabled={recruiterMessageBusy || !recruiterMessageDraft.trim()}
-                                    className={cn(primaryButtonClass, 'h-12 px-8 rounded-[20px] shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-all')}
-                                  >
-                                    {recruiterMessageBusy ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                                    <span className="font-bold">{t('rebuild.actions.send', { defaultValue: 'Send' })}</span>
-                                  </button>
+                              <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 space-y-4">
+                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Osobní příběh a bio</h3>
+                                <blockquote className="rounded-2xl bg-white/50 dark:bg-slate-950/40 p-6 text-sm leading-7 text-slate-600 dark:text-slate-400 border-l-4 border-[color:var(--shell-accent-cyan)] italic">
+                                  {selectedCandidate.bio || t('rebuild.talent_pool.no_bio', { defaultValue: 'Kandidát zatím nevyplnil svůj osobní příběh.' })}
+                                </blockquote>
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                  {selectedCandidate.topSignals.map((signal) => (
+                                    <span key={signal} className="rounded-full bg-[color:var(--shell-accent-cyan)]/10 px-3.5 py-1.5 text-[10px] font-bold text-[color:var(--shell-accent-cyan)] border border-[color:var(--shell-accent-cyan)]/25">
+                                      ✧ {signal}
+                                    </span>
+                                  ))}
                                 </div>
                               </div>
                             </div>
-                          )}
-                        </div>
-                      </section>
-                    </div>
+                          </div>
+                        )}
 
-                    {/* Right sidebar with stats */}
-                    <div className="space-y-8">
-                      <div className="rounded-[32px] border border-[color:var(--shell-panel-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.8),rgba(255,255,255,0.4))] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.8),rgba(15,23,42,0.4))] backdrop-blur-xl p-8 shadow-sm">
-                        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-[color:var(--shell-accent-cyan)]">{t('rebuild.recruiter.talent_intelligence', { defaultValue: 'Talent Intelligence' })}</div>
-                        <div className="mt-10 flex items-baseline gap-2">
-                          <span className="text-6xl font-semibold tracking-tighter text-[color:var(--shell-text-primary)]">{selectedCandidate.verifiedScore}</span>
-                          <span className="text-xl font-bold text-[color:var(--shell-text-muted)] opacity-60">%</span>
-                        </div>
-                        <div className="mt-3 text-sm font-bold text-[color:var(--shell-accent-cyan)]">{selectedCandidateScoreLabel}</div>
-                        <div className="mt-8 h-[6px] rounded-full bg-[color:var(--shell-track)] overflow-hidden shadow-inner">
-                          <div className="h-full bg-[color:var(--shell-accent-cyan)] transition-all duration-1000 shadow-[0_0_12px_rgba(36,150,171,0.5)]" style={{ width: `${selectedCandidate.verifiedScore}%` }} />
-                        </div>
-                        <p className="mt-10 text-[14px] font-medium leading-7 text-[color:var(--shell-text-secondary)] italic opacity-80 border-l-2 border-[color:var(--shell-accent-cyan)]/30 pl-5">
-                          “{selectedCandidate.internalNote}”
-                        </p>
+                        {/* 2. Hodnocení Shamiho Tab */}
+                        {candidateDetailTab === 'shami' && (
+                          <div className="space-y-6 animate-fade-in">
+                            {(() => {
+                              const onboarding = (selectedCandidate as any).preferences?.candidate_onboarding_v2;
+                              if (!onboarding?.archetype) {
+                                return (
+                                  <div className="rounded-[32px] border-2 border-dashed border-slate-200 dark:border-slate-850 p-16 text-center text-sm text-slate-400 dark:text-slate-500 font-medium">
+                                    Tento kandidát ještě nedokončil onboarding rituál. Kognitivní hodnocení Shamiho se objeví po dokončení rituálu.
+                                  </div>
+                                );
+                              }
+                              const archetype = onboarding.archetype as string;
+                              const archetypeLabels: Record<string, string> = { BUDOVATEL: 'Budovatel', VIZIONAR: 'Vizionář', PRUZKUMNIK: 'Průzkumník', STRAZCE: 'Strážce' };
+                              const archetypeDescriptions: Record<string, string> = {
+                                BUDOVATEL: 'Řemeslník duše i hmoty. Budovatel staví věci, které přetrvají – od kódu po mosty. Důraz na preciznost a řemeslo.',
+                                VIZIONAR: 'Vizionář vidí za horizont. Inspiruje ostatní a formuje budoucnost svým pohledem. Vize a odvaha jsou jeho kompas.',
+                                PRUZKUMNIK: 'Průzkumník hledá nové cesty. Učí se, roste a překonává hranice poznání. Zvědavost je jeho motor.',
+                                STRAZCE: 'Strážce chrání to, na čem záleží. Spolehlivost a zodpovědnost jsou jeho základ. Tým může spát klidně.',
+                              };
+                              const archetypeEmojis: Record<string, string> = { BUDOVATEL: '🔨', VIZIONAR: '🔮', PRUZKUMNIK: '🧭', STRAZCE: '🛡️' };
+                              const archetypeColorSets: Record<string, { glow: string; text: string; bg: string; border: string; gradFrom: string; gradTo: string }> = {
+                                BUDOVATEL: { glow: 'shadow-[0_8px_40px_-8px_rgba(245,158,11,0.15)]', text: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-500/5', border: 'border-amber-500/20', gradFrom: 'from-amber-500/5', gradTo: 'to-orange-500/5' },
+                                VIZIONAR: { glow: 'shadow-[0_8px_40px_-8px_rgba(139,92,246,0.15)]', text: 'text-purple-500 dark:text-purple-400', bg: 'bg-purple-500/5', border: 'border-purple-500/20', gradFrom: 'from-purple-500/5', gradTo: 'to-indigo-500/5' },
+                                PRUZKUMNIK: { glow: 'shadow-[0_8px_40px_-8px_rgba(34,211,238,0.15)]', text: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-500/5', border: 'border-cyan-500/20', gradFrom: 'from-cyan-500/5', gradTo: 'to-teal-500/5' },
+                                STRAZCE: { glow: 'shadow-[0_8px_40px_-8px_rgba(16,185,129,0.15)]', text: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', gradFrom: 'from-emerald-500/5', gradTo: 'to-green-500/5' },
+                              };
+                              const colors = archetypeColorSets[archetype] || archetypeColorSets.BUDOVATEL;
+                              const candidateValues = Array.isArray((selectedCandidate as any).values) && (selectedCandidate as any).values.length > 0
+                                ? (selectedCandidate as any).values
+                                : (Array.isArray(onboarding.values) ? onboarding.values : []);
+                              const motivations = Array.isArray(onboarding.motivations) ? onboarding.motivations : [];
+                              const inferredSkills = Array.isArray(onboarding.inferred_skills) ? onboarding.inferred_skills : [];
+
+                              return (
+                                <div className="space-y-8">
+                                  {/* Shami's message verdict card */}
+                                  <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 flex items-start gap-5 shadow-sm">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-2xl font-bold">
+                                      🦌
+                                    </div>
+                                    <div className="space-y-2">
+                                      <div className="text-[10px] font-black tracking-wider uppercase text-cyan-500">Agenturní verdikt cyber-sobíka Shamiho</div>
+                                      <p className="text-sm leading-7 text-slate-700 dark:text-slate-300 font-medium italic">
+                                        “{selectedCandidate.recommendation || selectedCandidate.internalNote}”
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Detailed Archetype card */}
+                                  <div className={cn(
+                                    'rounded-[32px] border p-8 relative overflow-hidden bg-gradient-to-br shadow-md',
+                                    colors.border, colors.glow, colors.gradFrom, colors.gradTo
+                                  )}>
+                                    <div className="absolute top-6 right-8 text-7xl opacity-15 select-none">{archetypeEmojis[archetype] || '✧'}</div>
+                                    <div className="space-y-4">
+                                      <div className="flex items-center gap-3">
+                                        <span className={cn('px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border', colors.text, colors.bg, colors.border)}>
+                                          Archetyp: {archetypeLabels[archetype] || archetype}
+                                        </span>
+                                        {onboarding.completed_at && (
+                                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                            Rituál dokončen {new Date(onboarding.completed_at).toLocaleDateString('cs-CZ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+                                        {archetypeLabels[archetype] || archetype}
+                                      </h4>
+                                      <p className="max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400 font-medium">
+                                        {archetypeDescriptions[archetype] || 'Unikátní kognitivní profil s vlastním vzorcem řešení problémů.'}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Values and Motivations */}
+                                  <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 space-y-4">
+                                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Osobní hodnoty</h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {candidateValues.length > 0 ? candidateValues.map((value: string) => (
+                                          <span key={value} className="rounded-full bg-slate-50 dark:bg-slate-950/60 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-150 dark:border-slate-850">
+                                            ✦ {value}
+                                          </span>
+                                        )) : (
+                                          <span className="text-xs text-slate-400 italic">Nevyplněno</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 space-y-4">
+                                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Motivátory k výkonu</h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {motivations.length > 0 ? motivations.map((motivation: string) => (
+                                          <span key={motivation} className="rounded-full bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                                            ◈ {motivation}
+                                          </span>
+                                        )) : (
+                                          <span className="text-xs text-slate-400 italic">Nevyplněno</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Inferred Skills */}
+                                  {inferredSkills.length > 0 && (
+                                    <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 space-y-4">
+                                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Odvozené (inferred) dovednosti</h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        {inferredSkills.map((skill: string) => (
+                                          <span key={skill} className="rounded-xl bg-white/60 dark:bg-slate-800/60 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-800/60">
+                                            {skill}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+
+                        {/* 3. Dotazník & Readouts Tab */}
+                        {candidateDetailTab === 'readout' && (
+                          <div className="space-y-6 animate-fade-in">
+                            {!selectedRecruiterDialogueId && !selectedRecruiterReadout ? (
+                              <div className="rounded-[32px] border-2 border-dashed border-slate-200 dark:border-slate-850 p-16 text-center text-sm text-slate-400 dark:text-slate-500 font-medium">
+                                Tento kandidát zatím nebyl zapojen do Handshake dialogu. Dotazník a scorecards se vygenerují po zahájení komunikace.
+                              </div>
+                            ) : (
+                              <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 shadow-sm">
+                                <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
+                                  <div className="space-y-1 flex-1">
+                                    <div className="text-[10px] font-black tracking-wider uppercase text-cyan-500">Handshake readout</div>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                                      {selectedCandidate.jobTitle || (selectedRecruiterDialogueDetail as any)?.job_title || t('rebuild.recruiter.candidate_submission', { defaultValue: 'Pozice a vyhodnocení' })}
+                                    </h3>
+                                    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400 max-w-3xl">
+                                      {selectedRecruiterReadout?.summary || selectedCandidate.recommendation}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 shrink-0">
+                                    {selectedCandidate.hasJcfpm ? <span className="rounded-full bg-emerald-100/80 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400">JCFPM</span> : null}
+                                    {selectedCandidate.hasCv ? <span className="rounded-full bg-blue-100/80 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:bg-blue-950/40 dark:text-blue-400">CV</span> : null}
+                                    {selectedCandidate.answerCount ? <span className="rounded-full bg-amber-100/80 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-950/40 dark:text-amber-400">{selectedCandidate.answerCount} odpovědí</span> : null}
+                                  </div>
+                                </div>
+
+                                {recruiterDialogueLoading ? (
+                                  <div className="flex h-36 items-center justify-center gap-3 text-sm text-slate-500">
+                                    <Loader2 size={18} className="animate-spin text-cyan-500" />
+                                    Načítám detail handshake…
+                                  </div>
+                                ) : (
+                                  <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
+                                    {/* Scorecards */}
+                                    <div className="space-y-6">
+                                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Scorecards a splnění požadavků</h4>
+                                      <div className="space-y-4">
+                                        {selectedReadoutScorecards.length > 0 ? selectedReadoutScorecards.map((card: any) => (
+                                          <div key={card.key || card.label} className="rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60 p-5 shadow-sm">
+                                            <div className="flex items-center justify-between gap-3 text-sm font-bold">
+                                              <span className="text-slate-800 dark:text-slate-200">{card.label || card.key}</span>
+                                              <span className="text-cyan-600 dark:text-cyan-400 font-black">{Math.round(Number(card.score || 0))}%</span>
+                                            </div>
+                                            <div className="mt-3.5 h-2 rounded-full bg-slate-100 dark:bg-slate-850 overflow-hidden">
+                                              <div className="h-full bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full" style={{ width: `${Math.max(0, Math.min(100, Number(card.score || 0)))}%` }} />
+                                            </div>
+                                          </div>
+                                        )) : (
+                                          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-855 p-6 text-sm text-slate-400 italic">
+                                            Skóre a požadavky se zobrazí po dokončení screeningových úloh.
+                                          </div>
+                                        )}
+                                        {selectedRecruiterReadout?.jcfpm_summary?.completed && (
+                                          <div className="rounded-2xl border border-emerald-100/60 bg-emerald-500/5 p-5 text-sm text-emerald-800 dark:text-emerald-400">
+                                            <div className="font-bold flex items-center gap-1.5"><CheckCircle size={14} /> JCFPM profil dokončen</div>
+                                            <div className="mt-2 text-slate-600 dark:text-slate-400 leading-6">
+                                              {selectedRecruiterReadout.jcfpm_summary?.archetype?.title || 'Podrobný kognitivní model je připojen v Shamiho analýze.'}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Q&A responses */}
+                                    <div className="space-y-6">
+                                      <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Odpovědi kandidáta v rozhovoru</h4>
+                                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+                                        {selectedReadoutEvidence.length > 0 ? selectedReadoutEvidence.map((section: any) => (
+                                          <div key={section.id} className="rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60 p-5 shadow-sm space-y-3">
+                                            <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{section.title}</div>
+                                            {section.prompt && <div className="text-xs leading-6 text-slate-500 dark:text-slate-400 italic font-medium">{section.prompt}</div>}
+                                            <div className="whitespace-pre-wrap text-xs leading-6 text-slate-600 dark:text-slate-300 font-medium bg-slate-50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-100/50 dark:border-slate-850/50">
+                                              {section.body || 'Kandidát na tuto otázku neodpověděl textem.'}
+                                            </div>
+                                          </div>
+                                        )) : (
+                                          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-850 p-8 text-center text-sm text-slate-400 italic">
+                                            Žádné přímé odpovědi k zobrazení.
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 4. Konverzace Tab */}
+                        {candidateDetailTab === 'chat' && (
+                          <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 shadow-sm animate-fade-in space-y-6">
+                            <div className="flex flex-wrap items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-6 mb-2">
+                              <div>
+                                <div className="text-[10px] font-black tracking-wider uppercase text-cyan-500">Live chat kanál</div>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white mt-1">Sdílená konverzace s talentem</h3>
+                              </div>
+                              {selectedRecruiterDialogueDetail?.status && (
+                                <span className={cn('rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm', getApplicationStatusCopy(selectedRecruiterDialogueDetail.status).tone)}>
+                                  {getApplicationStatusCopy(selectedRecruiterDialogueDetail.status).label}
+                                </span>
+                              )}
+                            </div>
+
+                            {recruiterDialogueLoading ? (
+                              <div className="flex h-48 items-center justify-center gap-3 text-sm text-slate-500">
+                                <Loader2 size={20} className="animate-spin text-cyan-500" />
+                                Navazuji spojení s chatovacím kanálem…
+                              </div>
+                            ) : !selectedRecruiterDialogueId ? (
+                              <div className="rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 p-12 text-center space-y-6">
+                                <p className="text-sm leading-7 text-slate-500 dark:text-slate-400 max-w-lg mx-auto font-medium">
+                                  Tento kandidát je v otevřeném poolu a zatím nemá aktivovaný oboustranný Handshake rozhovor. Zašlete mu pozvání do výběrového řízení a otevřete komunikační kanál!
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRecruiterMessageDraft(`Dobrý den, zaujal nás Váš kognitivní profil a rádi bychom s Vámi zahájil Handshake rozhovor. Ozvěte se nám prosím!`);
+                                    alert("Pozvánka s úvodní zprávou byla zkopírována do editoru níže. Kliknutím na odeslat zahájíte Handshake!");
+                                  }}
+                                  className="rounded-[18px] bg-[color:var(--shell-accent-cyan)] px-8 py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(36,150,171,0.3)] transition hover:scale-[1.02]"
+                                >
+                                  Připravit pozvánku k rozhovoru
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-6">
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                                  {selectedRecruiterDialogueMessages.length === 0 ? (
+                                    <div className="text-center text-xs text-slate-400 py-10 italic">
+                                      Žádné zprávy v tomto vlákně.
+                                    </div>
+                                  ) : (
+                                    selectedRecruiterDialogueMessages.map((message) => {
+                                      const isRecruiter = message.sender_role === 'recruiter';
+                                      return (
+                                        <div key={message.id} className={cn('flex flex-col', isRecruiter ? 'items-end' : 'items-start')}>
+                                          <div className={cn(
+                                            'max-w-[80%] rounded-[24px] px-5 py-4 text-xs leading-6 shadow-sm border',
+                                            isRecruiter
+                                              ? 'bg-gradient-to-br from-cyan-500/10 to-teal-500/5 text-slate-800 dark:text-slate-200 border-cyan-500/20'
+                                              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-100 dark:border-slate-800'
+                                          )}>
+                                            <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                              {isRecruiter ? 'Vy' : (selectedRecruiterDialogueDetail?.candidate_profile_snapshot?.name || 'Kandidát')} · {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div className="font-semibold">{message.body}</div>
+                                            {message.attachments && message.attachments.length > 0 && (
+                                              <div className="mt-3 flex flex-wrap gap-2">
+                                                {message.attachments.map((at, idx) => (
+                                                  <AttachmentChip key={idx} attachment={at} inverted={isRecruiter} />
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+
+                                <div className="relative group">
+                                  <textarea
+                                    value={recruiterMessageDraft}
+                                    onChange={(e) => setRecruiterMessageDraft(e.target.value)}
+                                    rows={3}
+                                    className="w-full pr-36 min-h-[100px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-xs focus:outline-none focus:ring-2 focus:ring-[color:var(--shell-accent-cyan)] text-slate-800 dark:text-slate-200 shadow-inner"
+                                    placeholder="Napište zprávu kandidátovi..."
+                                  />
+                                  <div className="absolute bottom-4 right-4 flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => recruiterAttachmentInputRef.current?.click()}
+                                      className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-slate-100 dark:bg-slate-850 text-slate-500 hover:text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition"
+                                    >
+                                      <Paperclip size={16} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRecruiterSendMessage()}
+                                      disabled={recruiterMessageBusy || !recruiterMessageDraft.trim()}
+                                      className={cn(primaryButtonClass, 'h-10 px-5 rounded-[14px] shadow-md shadow-cyan-500/20 hover:scale-[1.02] transition')}
+                                    >
+                                      {recruiterMessageBusy ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                                      <span className="font-bold">Odeslat</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-
-                      <section className={cn(panelClass, 'p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>
-                        <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">Recruiter Insight</h4>
-                        <div className="mt-6 space-y-5">
-                          <div className="text-[15px] leading-8 text-[color:var(--shell-text-secondary)] font-medium">
-                            {selectedCandidate.recommendation}
-                          </div>
-                        </div>
-                      </section>
-
-                      <section className="rounded-[32px] border border-[color:var(--shell-panel-border)] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-8 shadow-sm">
-                        <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--shell-text-muted)]">{t('rebuild.recruiter.candidate_metadata', { defaultValue: 'Candidate metadata' })}</h4>
-                        <div className="mt-8 space-y-5">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-[color:var(--shell-text-muted)] font-medium">{t('rebuild.recruiter.profile_source', { defaultValue: 'Profile source' })}</span>
-                            <span className="font-bold text-[color:var(--shell-text-primary)] bg-[color:var(--shell-track)] px-3 py-1 rounded-lg">{selectedCandidate.id.startsWith('legacy-') ? 'Legacy' : 'Native'}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-[color:var(--shell-text-muted)] font-medium">{t('rebuild.recruiter.location_label', { defaultValue: 'Location' })}</span>
-                            <span className="font-bold text-[color:var(--shell-text-primary)]">{selectedCandidate.location}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-[color:var(--shell-text-muted)] font-medium">{t('rebuild.recruiter.created_at', { defaultValue: 'Created at' })}</span>
-                            <span className="font-bold text-[color:var(--shell-text-primary)]">{selectedCandidate.created_at ? new Date(selectedCandidate.created_at).toLocaleDateString() : t('rebuild.recruiter.unknown', { defaultValue: 'Unknown' })}</span>
-                          </div>
-                        </div>
-                      </section>
                     </div>
-                  </div>
-                ) : (
-                  <div className={cn(panelClass, 'flex items-center justify-center p-24 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)]')}>
-                    <div className="max-w-md text-center">
-                      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[32px] bg-[color:var(--shell-track)] text-[color:var(--shell-accent-cyan)] shadow-inner">
-                        <Users size={40} />
+                  ) : (
+                    <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-24 flex flex-col justify-center items-center text-center shadow-sm">
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[24px] bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-500 shadow-inner">
+                        <Users size={32} />
                       </div>
-                      <h3 className="mt-8 text-3xl font-bold text-[color:var(--shell-text-primary)] tracking-tight">{t('rebuild.recruiter.select_candidate_detail', { defaultValue: 'Select a candidate for a detailed cognitive map' })}</h3>
-                      <p className="mt-5 text-base leading-8 text-[color:var(--shell-text-muted)] font-medium opacity-80">
-                        {t('rebuild.recruiter.select_candidate_desc', { defaultValue: 'Here you will see a detailed analysis of skills, histories, and common communication with the selected talent.' })}
+                      <h3 className="mt-8 text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Vyberte talent z poolu</h3>
+                      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400 max-w-sm font-medium leading-relaxed">
+                        Zvolte kandidáta ze seznamu vlevo pro načtení kognitivní mapy, verdiktu cyber-sobíka Shamiho, scorecard a live chat rozhovoru.
                       </p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           ) : null}

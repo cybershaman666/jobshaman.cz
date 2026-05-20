@@ -196,6 +196,7 @@ az containerapp create \
     AZURE_AI_EMBEDDING_DIMENSIONS=1024 \
     AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key \
     AZURE_OPENAI_ENDPOINT=secretref:azure-openai-endpoint \
+    RESEND_API_KEY=secretref:resend-api-key \
     API_BASE_URL=https://api.jobshaman.cz \
     APP_PUBLIC_URL=https://jobshaman.cz \
     ALLOWED_ORIGINS="https://jobshaman.cz,https://www.jobshaman.cz" \

@@ -1,18 +1,95 @@
 from fastapi import APIRouter, Depends, HTTPException
 import logging
 from pydantic import BaseModel, Field
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from app.core.security import AccessControlService
 from app.domains.identity.service import IdentityDomainService
+from app.domains.recommendation.service import RecommendationDomainService
 from app.domains.reality.service import RealityDomainService
 from app.services.cybershaman_service import build_cybershaman_reply
-from app.services.shami_agent_service import build_shami_recruiter_agent_reply
+from app.services.shami_agent_service import build_shami_recruiter_agent_reply, get_agent_memory, save_agent_memory
 from app.services.azure_ai_client import AzureAIClientError
 
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+JOB_SEARCH_INTENT_TERMS = {
+    "prace",
+    "práce",
+    "nabidka",
+    "nabídka",
+    "nabidky",
+    "nabídky",
+    "pozice",
+    "role",
+    "job",
+    "jobs",
+    "hledam",
+    "hledám",
+    "hledat",
+    "najdi",
+    "najít",
+    "vyhledej",
+    "doporuc",
+    "doporuceni",
+    "doporuč",
+    "doporučení",
+    "vhodna",
+    "vhodná",
+    "remote",
+    "hybrid",
+    "plat",
+    "mzda",
+    "firma",
+}
+
+
+def _has_job_search_intent(message: str) -> bool:
+    normalized = str(message or "").lower()
+    return any(term in normalized for term in JOB_SEARCH_INTENT_TERMS)
+
+
+def _salary_label(job: Dict[str, Any]) -> str:
+    salary_from = job.get("salary_from")
+    salary_to = job.get("salary_to")
+    currency = str(job.get("currency") or "CZK").upper()
+    if salary_from and salary_to and salary_from != salary_to:
+        return f"{salary_from} - {salary_to} {currency}"
+    if salary_from or salary_to:
+        return f"{salary_from or salary_to} {currency}"
+    return ""
+
+
+def _compact_job_recommendations(feed: Dict[str, Any], limit: int = 4) -> List[Dict[str, Any]]:
+    compact: List[Dict[str, Any]] = []
+    for item in feed.get("items", [])[:limit]:
+        job = item.get("job") or {}
+        job_id = str(job.get("id") or "")
+        if not job_id:
+            continue
+        reasons = item.get("reasons") if isinstance(item.get("reasons"), list) else []
+        caveats = item.get("caveats") if isinstance(item.get("caveats"), list) else []
+        compact.append(
+            {
+                "id": job_id,
+                "title": job.get("title") or "Nabídka bez názvu",
+                "company": job.get("company_name") or "Neznámá firma",
+                "location": job.get("location") or "",
+                "url": job.get("url") or job.get("source_url") or "",
+                "fit_score": item.get("fit_score"),
+                "intent": item.get("intent"),
+                "work_model": job.get("recommendation_work_model") or job.get("work_model") or "",
+                "salary": _salary_label(job),
+                "reasons": [str(reason) for reason in reasons[:3]],
+                "caveats": [str(caveat) for caveat in caveats[:2]],
+                "why": str(reasons[0]) if reasons else "",
+                "watch_out": str(caveats[0]) if caveats else "",
+            }
+        )
+    return compact
 
 
 class MentorMessage(BaseModel):
@@ -42,10 +119,18 @@ async def mentor_chat(
     )
     profile = await IdentityDomainService.get_candidate_profile(domain_user["id"])
     try:
+        job_recommendations: Optional[List[Dict[str, Any]]] = None
+        if _has_job_search_intent(payload.message):
+            try:
+                feed = await RecommendationDomainService.build_candidate_feed(domain_user["id"], limit=12)
+                job_recommendations = _compact_job_recommendations(feed, limit=4)
+            except Exception as recommendation_exc:
+                logger.warning("Failed to load mentor job recommendations: %s", recommendation_exc)
         data = build_cybershaman_reply(
             message=payload.message,
             profile=profile,
             recent_messages=[item.model_dump() for item in payload.recent_messages],
+            job_recommendations=job_recommendations,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -89,12 +174,29 @@ async def recruiter_chat(
             candidates = []
 
     try:
+        # 0. Načti persistentní paměť agenta (historii chatu)
+        memory = get_agent_memory(domain_user["id"])
+        persisted_messages = memory.get("chat_history", []) or []
+        # Nový payload upřednostňuje inline recent_messages > persistentní, ale lze je sloučit
+        incoming_messages = [item.model_dump() for item in payload.recent_messages] if payload.recent_messages else []
+        combined_history = persisted_messages[-4:] + incoming_messages  # krátká historie až 8 zpráv (omezení pro tok)
+
         data = build_shami_recruiter_agent_reply(
             message=payload.message,
             company=company,
             roles=roles,
             candidates=candidates,
-            recent_messages=[item.model_dump() for item in payload.recent_messages],
+            recent_messages=combined_history,
+        )
+        # 1. Ulož rozšířenou konverzaci do persistentní storage
+        # Append uživatelova zpráva + odpověď agenta
+        save_agent_memory(
+            domain_user["id"],
+            chat_history=(combined_history + [
+                {"role": "user", "message": payload.message},
+                {"role": "agent", "message": data["reply"]},
+            ])[-20:],  # Omezit délku na max 20 posledních zpráv
+            agent_state=None
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

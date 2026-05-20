@@ -1151,6 +1151,8 @@ export interface Candidate {
     score: number;
   }>;
   values: string[];
+  location?: string;
+  preferences?: any;
 }
 
 export interface CompanyApplicationRow {

@@ -470,6 +470,50 @@ async def list_company_members(
         raise HTTPException(status_code=403, detail="Access denied or company not found")
     return {"status": "success", "data": members}
 
+@router.delete("/{company_id}/members/{member_id}")
+async def remove_company_member(
+    company_id: str,
+    member_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    result = await RealityDomainService.remove_company_member(
+        domain_user["id"],
+        company_id,
+        member_id
+    )
+    if result is None:
+        raise HTTPException(status_code=403, detail="Access denied or company not found")
+    return {"status": "success", "data": result}
+
+@router.post("/{company_id}/members/{member_id}/resend-invitation")
+async def resend_company_invitation(
+    company_id: str,
+    member_id: str,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+):
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    result = await RealityDomainService.resend_company_invitation(
+        domain_user["id"],
+        company_id,
+        member_id
+    )
+    if result is None or (isinstance(result, dict) and result.get("error") == "internal"):
+        raise HTTPException(status_code=500, detail="Internal error during invitation resend")
+    if isinstance(result, dict) and result.get("error") == "access_denied":
+        raise HTTPException(status_code=403, detail="Access denied")
+    if isinstance(result, dict) and result.get("error") == "not_invited":
+        raise HTTPException(status_code=404, detail="Invitation not found for the selected user")
+    return {"status": "success", "data": result}
+
 @router.post("/{company_id}/invite")
 async def invite_company_member(
     company_id: str,

@@ -31,7 +31,7 @@ import {
 import type { CandidateLanguage, CVDocument, Education, TransportMode, UserProfile, WorkExperience } from '../../types';
 import type { CandidatePreferenceProfile } from '../models';
 import { cn } from '../cn';
-import { CandidateShellSurface, CompactActionButton, SectionEyebrow, ShellCard } from './CandidateShellSurface';
+import { CandidateShellSurface, SectionEyebrow, ShellCard } from './CandidateShellSurface';
 import { primaryButtonClass, secondaryButtonClass } from '../ui/shellStyles';
 import { validateCvFile } from '../../services/v2CvService';
 import { buildCandidateSearchPresets } from '../../services/searchProfilePresets';
@@ -617,9 +617,6 @@ export const CandidateProfileV2: React.FC<{
         subtitle="Tvé dovednosti, zkušenosti a potenciál na jednom místě."
         actions={(
           <>
-            <CompactActionButton tone="secondary" onClick={() => navigate('/candidate/insights#mentor')}>
-              <Sparkles size={16} /> Promluvit si s Cybershamanem
-            </CompactActionButton>
             {userProfile.isLoggedIn ? (
               <div className="flex gap-2">
                 <button type="button" onClick={() => { setEditForm(currentProfileForm); setIsEditingProfile(true); }} className={cn(secondaryButtonClass, 'rounded-[16px] px-4 py-2.5 text-sm')}>

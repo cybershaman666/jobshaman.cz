@@ -1642,3 +1642,88 @@ class RealityDomainService:
             assets = result.scalars().all()
             
             return [MediaDomainService.serialize_asset(a, request_base_url=request_base_url) for a in assets]
+
+    @staticmethod
+    async def remove_company_member(user_id: str, company_id: str, member_id: str) -> Optional[Dict[str, Any]]:
+        async with AsyncSession(engine) as session:
+            actor_uuid = uuid.UUID(user_id)
+            company_uuid = uuid.UUID(company_id)
+            member_uuid = uuid.UUID(member_id)
+
+            # Ověření přístupu k firmě
+            if not await RealityDomainService._has_company_access(session, user_id, company_uuid):
+                return None
+
+            # Najít daného člena
+            member_stmt = select(CompanyUser).where(
+                CompanyUser.company_id == company_uuid,
+                CompanyUser.id == member_uuid
+            )
+            member_res = await session.execute(member_stmt)
+            member = member_res.scalar_one_or_none()
+            if not member:
+                return None
+
+            if member.status == "invited":
+                await session.delete(member)
+                await session.commit()
+                return {"status": "removed", "id": str(member_id)}
+            else:
+                member.status = "removed"
+                await session.commit()
+                return {"status": "removed", "id": str(member_id)}
+
+    @staticmethod
+    async def resend_company_invitation(user_id: str, company_id: str, member_id: str) -> Dict[str, Any]:
+        async with AsyncSession(engine) as session:
+            actor_uuid = uuid.UUID(user_id)
+            company_uuid = uuid.UUID(company_id)
+            member_uuid = uuid.UUID(member_id)
+
+            # Ověření přístupu k firmě
+            has_access = await RealityDomainService._has_company_access(session, user_id, company_uuid)
+            if not has_access:
+                return {"error": "access_denied"}
+
+            # Najít pozvánku, která ještě nebyla přijata
+            member_stmt = select(CompanyUser).where(
+                CompanyUser.company_id == company_uuid,
+                CompanyUser.id == member_uuid,
+                CompanyUser.status == "invited"
+            )
+            member_res = await session.execute(member_stmt)
+            member = member_res.scalar_one_or_none()
+            if not member:
+                return {"error": "not_invited"}
+
+            # Vygenerovat nový token, uložit a poslat novou pozvánku
+            token = secrets.token_urlsafe(32)
+            member.invitation_token = token
+            try:
+                await session.commit()
+
+                # Získat info o firmě, jménu, emailu
+                company_stmt = select(Company).where(Company.id == company_uuid)
+                company_res = await session.execute(company_stmt)
+                company = company_res.scalar_one_or_none()
+                company_name = company.name if company else "Firma"
+
+                inviter_stmt = select(User).where(User.id == actor_uuid)
+                inviter_res = await session.execute(inviter_stmt)
+                inviter = inviter_res.scalar_one_or_none()
+                inviter_name = inviter.email if inviter else "Kolega"
+
+                await asyncio.to_thread(
+                    send_teammate_invitation_email,
+                    to_email=member.invited_email,
+                    invited_name=member.invited_name,
+                    company_name=company_name,
+                    inviter_name=inviter_name,
+                    invitation_token=token
+                )
+
+                return {"status": "resent", "id": str(member_id), "email": member.invited_email}
+            except Exception as e:
+                # Případná chyba při zápisu nebo odeslání emailu např. SMTP, DB atd.
+                print(f"[resend_company_invitation] ERROR: {e}")
+                return None

@@ -28,8 +28,10 @@ import {
   createCompanyChallenge,
   listCompanyChallenges,
   publishCompanyChallenge,
+  updateCompanyChallenge,
 } from '../services/v2ChallengeService';
 import type { AssessmentTask } from '../services/v2ChallengeService';
+import { updateCompanyRoleLifecycle } from '../services/companyJobDraftService';
 import { supabase } from '../services/supabaseClient';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useCompanyJobsData } from '../hooks/useCompanyJobsData';
@@ -50,6 +52,7 @@ import type {
   DialogueSummary,
   SupportedCountryCode,
   UserProfile,
+  Job,
 } from '../types';
 import type {
   Company,
@@ -1622,6 +1625,55 @@ const JobshamanRebuildApp: React.FC = () => {
     return nextRole;
   }, [companyProfile, recruiterCompany, refreshRecruiterJobs, setLocalCompanyRoles]);
 
+  const handleRefreshRecruiterRoles = React.useCallback(async () => {
+    if (!companyProfile?.id) return;
+    try {
+      const challenges = await listCompanyChallenges();
+      const company = recruiterCompany;
+      setLocalCompanyRoles(challenges.map((challenge) => mapChallengeDraftToRole(challenge, t, company)));
+      await refreshRecruiterJobs().catch(() => undefined);
+    } catch (error) {
+      console.warn('Failed to refresh recruiter roles/challenges', error);
+      throw error;
+    }
+  }, [companyProfile, recruiterCompany, refreshRecruiterJobs, setLocalCompanyRoles, t]);
+
+  const handleUpdateRoleStatus = React.useCallback(async (roleId: string, nextStatus: 'active' | 'paused' | 'closed' | 'archived' | 'published') => {
+    const isLocalChallenge = localCompanyRoles.some((r) => r.id === roleId);
+    let nextRole: Role;
+    const company = recruiterCompany || (companyProfile ? mapCompanyProfileToCompany(companyProfile) : null);
+    
+    if (isLocalChallenge) {
+      const mappedChallengeStatus = nextStatus === 'active' || nextStatus === 'published' ? 'published' : nextStatus;
+      const updatedChallenge = await updateCompanyChallenge(roleId, { status: mappedChallengeStatus });
+      nextRole = mapChallengeDraftToRole(updatedChallenge, t, company);
+    } else {
+      const mappedJobStatus = nextStatus === 'published' ? 'active' : nextStatus;
+      await updateCompanyRoleLifecycle(roleId, mappedJobStatus as any);
+      
+      const updatedJobs = recruiterJobs.map((j) => {
+        if (String(j.id) === String(roleId)) {
+          return { ...j, status: mappedJobStatus as any } as Job;
+        }
+        return j;
+      });
+      setRecruiterJobs(updatedJobs);
+      const targetJob = updatedJobs.find((j) => String(j.id) === String(roleId));
+      if (targetJob) {
+        nextRole = mapJobToRole(targetJob);
+      } else {
+        await refreshRecruiterJobs().catch(() => undefined);
+        return;
+      }
+    }
+    
+    setLocalCompanyRoles((current) => current.map((item) => (item.id === roleId ? { ...item, ...nextRole } : item)));
+    setMarketplaceRoles((current) => current.map((item) => (item.id === roleId ? { ...item, ...nextRole } : item)));
+    
+    await refreshRecruiterJobs().catch(() => undefined);
+  }, [localCompanyRoles, recruiterCompany, companyProfile, recruiterJobs, setRecruiterJobs, refreshRecruiterJobs, setLocalCompanyRoles, t]);
+
+
   const isStandaloneDashboardRoute =
     route.kind === 'admin'
     || route.kind === 'marketplace'
@@ -1897,6 +1949,8 @@ const JobshamanRebuildApp: React.FC = () => {
               onAiDraftChallenge={handleAiDraftRecruiterChallenge}
               onAiAssistChallenge={handleAiAssistRecruiterChallenge}
               onPublishChallenge={handlePublishRecruiterChallenge}
+              onUpdateRoleStatus={handleUpdateRoleStatus}
+              onRefreshRoles={handleRefreshRecruiterRoles}
               onUploadCompanyAsset={handleUploadCompanyAsset}
               brandSaving={brandSaving}
               candidateInsights={candidateInsights}

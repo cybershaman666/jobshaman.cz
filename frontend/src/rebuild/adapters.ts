@@ -359,6 +359,7 @@ export const mapJobToRole = (job: Job): Role => {
   );
   return {
     id: String(job.id),
+    status: job.status || 'published',
     companyId,
     companyName: job.company,
     companyLogo: job.companyProfile?.logo_url || undefined,
@@ -465,23 +466,56 @@ export const mapCandidateToInsight = (candidate: Candidate, t: any): CandidateIn
   const baseScore = Math.max(45, Math.min(82, 60 + (seed % 15) + (candidate.skills.length * 2)));
   const score = Math.round(candidate.matchScore || baseScore);
 
+  // Extract onboarding data from preferences
+  const onboarding = candidate.preferences?.candidate_onboarding_v2 || {};
+  const onboardingBio = onboarding.bio || '';
+  const onboardingValues = Array.isArray(onboarding.values) ? onboarding.values : [];
+  const onboardingMotivations = Array.isArray(onboarding.motivations) ? onboarding.motivations : [];
+  const onboardingSkills = Array.isArray(onboarding.inferred_skills) ? onboarding.inferred_skills : [];
+  const archetype = onboarding.archetype || '';
+
+  // Use real bio from backend, with onboarding bio as fallback
+  const realBio = candidate.bio || onboardingBio || '';
+  // Use real location from backend
+  const realLocation = candidate.location || '';
+  // Merge values from candidate root + onboarding
+  const mergedValues = Array.isArray(candidate.values) && candidate.values.length > 0
+    ? candidate.values
+    : onboardingValues;
+
+  // Build recommendation text from real bio or fallback
+  const recommendation = realBio
+    ? realBio
+    : t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.' });
+
+  // Merge skills: real skills + onboarding inferred skills
+  const allSkills = [...new Set([...candidate.skills, ...onboardingSkills])];
+
   return {
     id: candidate.id,
     candidateName: candidate.full_name || candidate.name,
     headline: candidate.job_title || candidate.title || candidate.role || t('rebuild.adapters.candidate', { defaultValue: 'Candidate' }),
-    location: t('rebuild.adapters.candidate_profile', { defaultValue: 'Candidate profile' }),
+    location: realLocation || t('rebuild.adapters.candidate_profile', { defaultValue: 'Candidate profile' }),
     matchPercent: score,
     verifiedScore: score,
-    topSignals: candidate.skills.slice(0, 3),
-    recommendation: t('rebuild.adapters.talent_pool_rec', { defaultValue: 'Registered candidate in talent pool. Detailed story, onboarding, JCFPM and sensitive signals will appear after explicit sharing or an active handshake.' }),
-    internalNote: candidate.skills.length > 0
-      ? t('rebuild.adapters.public_signals', { defaultValue: 'Public profile signals: {{skills}}.', skills: candidate.skills.slice(0, 3).join(', ') })
+    topSignals: allSkills.slice(0, 3),
+    recommendation,
+    internalNote: allSkills.length > 0
+      ? t('rebuild.adapters.public_signals', { defaultValue: 'Public profile signals: {{skills}}.', skills: allSkills.slice(0, 3).join(', ') })
       : t('rebuild.adapters.no_public_signals', { defaultValue: 'No public profile signals yet.' }),
-    skills: (candidate.skills.length > 0 ? candidate.skills : [t('rebuild.adapters.signal_clarity', { defaultValue: 'Signal clarity' }), t('rebuild.adapters.experience', { defaultValue: 'Experience' }), t('rebuild.adapters.role_fit', { defaultValue: 'Role fit' })]).slice(0, 3).map((label, index) => ({
+    skills: (allSkills.length > 0 ? allSkills : [t('rebuild.adapters.signal_clarity', { defaultValue: 'Signal clarity' }), t('rebuild.adapters.experience', { defaultValue: 'Experience' }), t('rebuild.adapters.role_fit', { defaultValue: 'Role fit' })]).slice(0, 5).map((label, index) => ({
       label,
-      score: Math.max(62, Math.min(96, Math.round(score - index * 7))),
+      score: Math.max(62, Math.min(96, Math.round(score - index * 5))),
       tags: [],
     })),
+    avatar_url: candidate.avatar_url,
+    bio: realBio,
+    created_at: candidate.created_at,
+    source: 'talent_pool',
+    jobTitle: candidate.job_title || candidate.title || undefined,
+    hasJcfpm: candidate.hasJcfpm,
+    preferences: candidate.preferences,
+    values: mergedValues,
   };
 };
 
@@ -584,6 +618,7 @@ export const mapChallengeDraftToRole = (challenge: ChallengeDraft, t: any, compa
   );
   return {
     id: String(challenge.id),
+    status: challenge.status,
     companyId: String(challenge.company_id),
     companyName: challenge.company_name || company?.name || t('rebuild.adapters.company_fallback', { defaultValue: 'Company' }),
     companyLogo: company?.logo,

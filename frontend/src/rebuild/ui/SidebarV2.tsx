@@ -176,35 +176,46 @@ export const SidebarV2: React.FC<{
                 type="button"
                 onClick={() => onNavigate('mentor', '/candidate/insights#mentor')}
                 className={cn(
-                  'group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] px-3.5 py-3.5 text-left transition',
+                  'group relative flex w-full items-center gap-3 overflow-hidden rounded-[24px] px-3.5 py-3.5 text-left transition duration-300',
                   candidateLight
-                    ? 'border border-[color:var(--shell-button-secondary-border)] bg-[color:var(--shell-panel-bg)] shadow-soft hover:shadow-card'
-                    : 'border border-white/10 bg-[color:var(--shell-button-secondary-bg)] hover:bg-[color:var(--shell-button-secondary-hover)]',
+                    ? 'border border-[#cceff4] bg-white shadow-[0_20px_48px_-32px_rgba(20,141,160,0.42)] ring-1 ring-[#12afcb]/10 hover:-translate-y-0.5 hover:border-[#12afcb]/45 hover:shadow-[0_28px_58px_-34px_rgba(20,141,160,0.58)]'
+                    : 'border border-[#12afcb]/35 bg-white/[0.06] shadow-[0_18px_44px_-30px_rgba(18,175,203,0.45)] hover:-translate-y-0.5 hover:bg-white/[0.09]',
                 )}
               >
                 <div aria-hidden className={cn(
-                  'pointer-events-none absolute inset-0',
+                  'pointer-events-none absolute inset-x-0 top-0 h-1',
                   candidateLight
-                    ? 'bg-[radial-gradient(circle_at_18%_20%,rgba(229,193,124,0.32),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(55,199,226,0.16),transparent_22%)]'
-                    : 'bg-[radial-gradient(circle_at_18%_20%,rgba(229,193,124,0.22),transparent_32%),radial-gradient(circle_at_88%_10%,rgba(124,232,255,0.14),transparent_22%)]',
+                    ? 'bg-[#12afcb]'
+                    : 'bg-[#37c7e2]',
                 )} />
-                <div className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[18px]">
+                <div className="relative flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[20px]">
                   <div className="absolute inset-0 rounded-[18px]" />
                   <div className={cn(
-                    'absolute inset-0 rounded-[18px]',
+                    'absolute inset-0 rounded-[20px]',
                     candidateLight
-                      ? 'bg-[radial-gradient(circle_at_50%_35%,rgba(255,247,223,0.98),rgba(232,200,130,0.92)_60%,rgba(192,229,233,0.78))] shadow-[0_18px_30px_-20px_rgba(88,64,24,0.45)]'
-                      : 'bg-[radial-gradient(circle_at_50%_35%,rgba(255,247,223,0.18),rgba(229,193,124,0.22)_58%,rgba(124,232,255,0.16))] shadow-[0_18px_34px_-20px_rgba(4,10,22,0.62)]',
+                      ? 'bg-[#e9fbfd] shadow-[0_18px_30px_-22px_rgba(20,141,160,0.5)] ring-1 ring-[#12afcb]/18'
+                      : 'bg-[#12afcb]/12 shadow-[0_18px_34px_-20px_rgba(4,10,22,0.62)] ring-1 ring-white/10',
                   )} />
-                  <img src="/shami.png" alt="Shami" className="relative h-11 w-11 object-contain rounded-xl shadow-sm" />
+                  <img src="/shami.png" alt="Shami" className="relative h-12 w-12 object-contain rounded-xl shadow-sm transition duration-300 group-hover:scale-105" />
                 </div>
                 <div className="relative min-w-0 flex-1">
-                  <div className={cn('pr-8 text-[15px] font-semibold leading-5', candidateLight ? 'text-[color:var(--shell-text-primary)]' : 'text-white')}>
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]',
+                      candidateLight ? 'bg-[#e8f8fb] text-[#087f95]' : 'bg-[#12afcb]/16 text-[#7ce8ff]',
+                    )}>
+                      <Sparkles size={10} /> Shami
+                    </span>
+                  </div>
+                  <div className={cn('pr-8 text-[15px] font-bold leading-5', candidateLight ? 'text-[color:var(--shell-text-primary)]' : 'text-white')}>
                     {t('rebuild.nav.chat_with_shaman', { defaultValue: 'Chat with Shami' })}
+                  </div>
+                  <div className={cn('mt-1 max-h-8 overflow-hidden text-[11px] leading-4', candidateLight ? 'text-[color:var(--dashboard-text-muted)]' : 'text-white/62')}>
+                    {t('rebuild.nav.shami_profile_hint', { defaultValue: 'Pomůže doplnit profil a vybrat další krok.' })}
                   </div>
                   <div className={cn(
                     'absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-transform duration-300 group-hover:-translate-y-[55%] group-hover:translate-x-0.5',
-                    candidateLight ? 'bg-white/74 text-[color:var(--accent-gold)]' : 'bg-white/10 text-white/72',
+                    candidateLight ? 'bg-[#12afcb] text-white shadow-[0_14px_24px_-18px_rgba(18,175,203,0.7)]' : 'bg-white/10 text-white/72',
                   )}>
                     <ArrowUpRight size={14} />
                   </div>
