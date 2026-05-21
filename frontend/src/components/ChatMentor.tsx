@@ -25,22 +25,28 @@ export const ChatMentor: React.FC<ChatMentorProps> = ({
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = React.useState<{ role: 'assistant' | 'user'; content: string; navigation_suggestion?: string; navigation_label?: string }[]>(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const loaded = JSON.parse(saved);
-        // Zajistit správné typy: jen "assistant" | "user"
-        if (Array.isArray(loaded)) {
-          return loaded
-            .map((msg) => ({
-              ...msg,
-              role: msg.role === 'assistant' ? 'assistant' : msg.role === 'user' ? 'user' : 'assistant',
-            }))
-            .filter((msg) => msg && (msg.role === 'assistant' || msg.role === 'user'));
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
+       const saved = localStorage.getItem(storageKey);
+       if (saved) {
+         const loaded = JSON.parse(saved);
+         // Zajistit správné typy: jen "assistant" | "user"
+         if (Array.isArray(loaded)) {
+           return loaded
+             .map((msg) => ({
+               ...msg,
+               role: msg.role === 'assistant' ? 'assistant' : msg.role === 'user' ? 'user' : 'assistant',
+             }))
+             .filter((msg) => msg && (msg.role === 'assistant' || msg.role === 'user'));
+         } else {
+           // Pokud poškozený state – smaž a vrať initial
+           localStorage.removeItem(storageKey);
+           console.warn('Smazán poškozený chat state v localStorage:', loaded);
+         }
+       }
+     } catch (e) {
+       // pokud selže načtení, smažeme (zabráníme spadnutí celého chatu)
+       localStorage.removeItem(storageKey);
+       console.warn('Chyba při čtení chat state z localStorage, reset:', e);
+     }
     if (initialMessages && initialMessages.length)
       return initialMessages;
     return [{
