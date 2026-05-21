@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, ArrowRight, MessageSquare, Compass, ShieldAlert, Sparkles } from 'lucide-react';
+import { Send, ArrowRight, MessageSquare, ShieldAlert, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { sendRecruiterAgentMessage, type MentorChatMessage } from '../../services/v2MentorService';
 
@@ -43,6 +43,24 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  const handleNewChat = () => {
+    setMessages([
+      {
+        role: 'assistant',
+        content: t('rebuild.recruiter.assistant_desc', {
+          defaultValue: 'Ahoj! Jsem Shami, tvůj inteligentní kyber-sob a náborový agent. Pomohu ti zorientovat se v aplikaci, vyhledat aktivní pozice nebo najít ideální kandidáty v talent poolu. Jak se dnes máš a s čím ti mohu pomoci?',
+        }),
+      },
+    ]);
+    setDraft('');
+    setError('');
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.warn('Failed to clear chat history', e);
+    }
+  };
 
   const suggestions = [
     { label: t('rebuild.recruiter.assistant_suggested_roles', { defaultValue: 'Najdi mé aktivní IT pozice' }), query: 'Ukaž mi moje aktivní pozice a výzvy.' },
@@ -115,27 +133,41 @@ export const RecruiterAssistantPage: React.FC<RecruiterAssistantPageProps> = ({ 
   return (
     <div className="flex h-[calc(100vh-12rem)] min-h-[450px] flex-col overflow-hidden rounded-[24px] border border-[color:var(--shell-panel-border)] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-soft">
       {/* Header section with cute Shami */}
-      <div className="flex items-center gap-4 border-b border-[color:var(--dashboard-soft-border)] bg-white/60 dark:bg-slate-900/60 px-5 py-4">
-        <img
-          src="/shami.png"
-          alt="Shami"
-          className="h-20 w-20 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white p-1 object-contain shadow-sm"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Shami AI</h3>
-            <span className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-950 px-2 py-0.5 text-[10px] font-semibold text-teal-600 dark:text-teal-400">
-              Agent
-            </span>
+      <div className="flex items-center justify-between gap-4 border-b border-[color:var(--dashboard-soft-border)] bg-white/60 dark:bg-slate-900/60 px-5 py-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <img
+            src="/shami.png"
+            alt="Shami"
+            className="h-20 w-20 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white p-1 object-contain shadow-sm shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Shami AI</h3>
+              <span className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-950 px-2 py-0.5 text-[10px] font-semibold text-teal-600 dark:text-teal-400">
+                Agent
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+              {t('rebuild.recruiter.assistant_subtitle', { defaultValue: 'Váš náborový a asistenční průvodce Shami' })}
+            </p>
           </div>
-          <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-            {t('rebuild.recruiter.assistant_subtitle', { defaultValue: 'Váš náborový a asistenční průvodce Shami' })}
-          </p>
         </div>
-        <div className="hidden rounded-lg bg-teal-50/60 dark:bg-teal-950/40 px-3 py-1.5 sm:block">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
-            <Sparkles size={11} />
-            <span>Foundry Powered</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={busy}
+            title="Spustit nový chat"
+            className="flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 transition disabled:opacity-50"
+          >
+            <MessageSquare size={13} />
+            <span className="hidden sm:inline">Nový chat</span>
+          </button>
+          <div className="hidden rounded-lg bg-teal-50/60 dark:bg-teal-950/40 px-3 py-1.5 sm:flex">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+              <Sparkles size={11} />
+              <span>Foundry Powered</span>
+            </div>
           </div>
         </div>
       </div>

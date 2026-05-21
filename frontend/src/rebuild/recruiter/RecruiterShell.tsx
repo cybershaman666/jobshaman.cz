@@ -194,9 +194,9 @@ const CognitiveRadarChart: React.FC<CognitiveRadarChartProps> = ({ skills, size 
     const labelY = y + labelOffset * Math.sin(angle);
 
     // Text anchor alignment based on quadrant
-    let textAnchor = 'middle';
-    if (Math.cos(angle) > 0.1) textAnchor = 'start';
-    else if (Math.cos(angle) < -0.1) textAnchor = 'end';
+    let textAnchor: "start" | "end" | "middle" | "inherit" = "middle";
+    if (Math.cos(angle) > 0.1) textAnchor = "start";
+    else if (Math.cos(angle) < -0.1) textAnchor = "end";
 
     // Vertical alignment offset adjustment
     let dy = '0.35em';
@@ -1009,7 +1009,7 @@ export const RecruiterShell: React.FC<{
         }
         t={t}
       >
-        <RecruiterBillingPage
+      <RecruiterBillingPage
           companyId={billingCompanyId}
           companyName={billingCompanyName}
           navigate={navigate}
@@ -1402,109 +1402,6 @@ export const RecruiterShell: React.FC<{
                 </div>
 
                 {/* Candidate Detail Area */}
-                {selectedCandidate && visibleCandidateInsights.some((candidate) => candidate.id === selectedCandidate.id) ? (
-                  <div className="grid gap-8 xl:grid-cols-[1fr_380px]">
-                    <div className="space-y-8">
-                      <section className="group/profile relative overflow-hidden rounded-[32px] border border-[color:var(--shell-panel-border)] hover:border-[color:var(--shell-accent-cyan)]/30 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl p-10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_16px_48px_-12px_rgba(36,150,171,0.15)] transition-all duration-500 bg-gradient-to-br from-white/40 to-transparent dark:from-slate-800/40 dark:to-transparent">
-                        <div className="absolute inset-0 bg-[color:var(--shell-accent-cyan)] opacity-0 group-hover/profile:opacity-[0.02] transition-opacity duration-700 pointer-events-none" />
-                        <div className="relative z-10 flex flex-wrap items-center justify-between gap-8">
-                          <div className="flex items-center gap-8">
-                            <div className="h-24 w-24 rounded-[28px] bg-[color:var(--shell-track)] p-1 ring-2 ring-[color:var(--shell-panel-border)] shadow-[inset_0_2px_8px_rgba(0,0,0,0.05)] group-hover/profile:ring-[color:var(--shell-accent-cyan)]/50 transition-all duration-500">
-                              {selectedCandidate.avatar_url ? (
-                                <img src={selectedCandidate.avatar_url} alt="" className="h-full w-full rounded-[24px] object-cover" />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center rounded-[24px] bg-white dark:bg-slate-800 text-3xl font-bold text-[color:var(--shell-text-muted)]">{selectedCandidate.candidateName.slice(0, 1)}</div>
-                              )}
-                            </div>
-                            <div>
-                {/* Left Column Candidate List */}
-                <div className="space-y-6">
-                  <div className="relative group">
-                    <input
-                      type="text"
-                      value={recruiterSearch}
-                      onChange={(e) => _onRecruiterSearchChange(e.target.value)}
-                      className={cn(fieldClass, 'pl-11 pr-5 h-11 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-[color:var(--shell-panel-border)] focus:bg-white dark:focus:bg-slate-900 shadow-sm focus:shadow-md transition-all duration-300 rounded-2xl')}
-                      placeholder={t('rebuild.recruiter.search_candidate_placeholder', { defaultValue: 'Vyhledat jméno, dovednost, město...' })}
-                    />
-                    <div className="absolute inset-y-0 left-4 flex items-center text-[color:var(--shell-text-muted)] pointer-events-none group-focus-within:text-[color:var(--shell-accent-cyan)] transition-colors">
-                      <Users size={16} />
-                    </div>
-                  </div>
-
-                  <div className="rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-xl p-4 max-h-[700px] overflow-y-auto space-y-3.5 shadow-inner">
-                    {visibleCandidateInsights.length === 0 ? (
-                      <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500 font-medium">
-                        Žádní kandidáti neodpovídají filtrům
-                      </div>
-                    ) : (
-                      visibleCandidateInsights.map((candidate) => {
-                        const isSelected = candidate.id === selectedCandidateId;
-                        const matchScore = candidate.verifiedScore || candidate.matchPercent || 0;
-                        const hasActiveDialogue = candidate.source === 'handshake' || candidate.id.startsWith('application-');
-                        const arch = (candidate as any).preferences?.candidate_onboarding_v2?.archetype || '';
-                        
-                        let badgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-                        if (arch === 'BUDOVATEL') badgeColor = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400';
-                        if (arch === 'VIZIONAR') badgeColor = 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400';
-                        if (arch === 'PRUZKUMNIK') badgeColor = 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-400';
-                        if (arch === 'STRAZCE') badgeColor = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400';
-
-                        return (
-                          <button
-                            key={candidate.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedCandidateId(candidate.id);
-                            }}
-                            className={cn(
-                              'w-full text-left rounded-2xl border p-5 transition-all duration-300 relative overflow-hidden flex items-start justify-between gap-4 group',
-                              isSelected
-                                ? 'border-[color:var(--shell-accent-cyan)] bg-white dark:bg-slate-950 shadow-md translate-x-1'
-                                : 'border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 hover:bg-white dark:hover:bg-slate-950 hover:shadow-sm'
-                            )}
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-slate-800 dark:text-slate-100 group-hover:text-[color:var(--shell-accent-cyan)] transition-colors leading-snug">
-                                  {candidate.candidateName}
-                                </h3>
-                                {hasActiveDialogue && (
-                                  <span className="h-2 w-2 rounded-full bg-[color:var(--shell-accent-cyan)] animate-pulse" title="Aktivní Handshake" />
-                                )}
-                              </div>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
-                                {candidate.headline}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                {arch && (
-                                  <span className={cn('px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider', badgeColor)}>
-                                    {arch}
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                                  {candidate.location}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-1.5 shrink-0">
-                              <span className={cn(
-                                'text-lg font-black tracking-tight',
-                                matchScore >= 80 ? 'text-emerald-500' : matchScore >= 60 ? 'text-amber-500' : 'text-slate-400'
-                              )}>
-                                {matchScore}%
-                              </span>
-                              <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">shoda</span>
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column Candidate Detail View */}
                 <div>
                   {selectedCandidate && visibleCandidateInsights.some((candidate) => candidate.id === selectedCandidate.id) ? (
                     <div className="space-y-8 animate-fade-in">
@@ -2072,10 +1969,7 @@ export const RecruiterShell: React.FC<{
               userProfile={userProfile}
               t={t}
               onRefreshCompany={async () => {
-                // In this context, we'd ideally trigger a re-fetch of the company profile.
-                // For now we'll rely on the parent to handle updates if they pass onSaveRecruiterBrand.
                 if (onSaveRecruiterBrand) {
-                  // This is a bit of a hack to trigger a refresh in the parent if it's listening
                   onSaveRecruiterBrand(recruiterCompanyHydrated as any);
                 }
               }}
@@ -2085,6 +1979,6 @@ export const RecruiterShell: React.FC<{
               <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
             </div>
           ) : null}
-    </DashboardLayoutV2>
-  );
+      </DashboardLayoutV2>
+    );
 };

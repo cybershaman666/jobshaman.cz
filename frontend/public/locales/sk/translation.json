@@ -620,6 +620,10 @@
     "switch_to_list_title": "Prepnúť na zoznam",
     "title": "Názov pozície"
   },
+  "rebuild.dashboard.mentor_ready": "Shami je pripravený, napíš svoju otázku.",
+  "rebuild.dashboard.mentor_send": "Odoslať",
+  "rebuild.dashboard.mentor_new": "Nový chat",
+  "rebuild.dashboard.mentor_typing": "Shami píše odpoveď...",
   "profile": {
     "title": "Profil",
     "saved_jobs": "Uložené ({{count}})",

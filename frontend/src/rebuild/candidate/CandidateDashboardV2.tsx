@@ -35,6 +35,8 @@ import { CandidateShellSurface, ShellCard } from './CandidateShellSurface';
 import { CandidateProfileV2 } from './CandidateProfileV2';
 import { sendMentorChatMessage, type MentorChatMessage, type ShamiJobRecommendation } from '../../services/v2MentorService';
 import { getCandidateGreetingName } from './greeting';
+import { ChatMentor } from '../../components/ChatMentor';
+import { CandidateChatSidebar } from '../../components/CandidateChatSidebar';
 
 type TFunction = (key: string, options?: { defaultValue?: string } & Record<string, any>) => string;
 
@@ -622,9 +624,10 @@ const ArchetypeHeroCard: React.FC<{
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative h-[92%] w-full max-w-[380px]">
               <img
-                src="/logo-transparent.png"
-                alt="Shaman"
-                className="absolute inset-x-0 bottom-0 h-full w-full object-contain object-center drop-shadow-[0_0_32px_rgba(var(--accent-rgb),0.2)]"
+                src="/shami-tip.png"
+                alt="Shami kariérní průvodce"
+                className="absolute left-1/2 bottom-0 max-w-[180px] w-auto h-auto object-contain object-bottom drop-shadow-[0_0_32px_rgba(var(--accent-rgb),0.2)]"
+                style={{ transform: 'translateX(-50%)' }}
               />
             </div>
           </div>
@@ -956,192 +959,6 @@ const GrowthMapCard: React.FC<{
   );
 };
 
-const CandidateMentorChat: React.FC<{
-  userProfile: UserProfile;
-  vm: ReturnType<typeof buildCandidateDashboardViewModel>;
-}> = ({ userProfile, vm }) => {
-  const { i18n, t } = useTranslation();
-  const firstName = getCandidateGreetingName({ profileName: userProfile.name, language: i18n.language }) || t('rebuild.dashboard.you', { defaultValue: 'you' });
-  const storageKey = `shami_candidate_chat_${userProfile?.id || 'anonymous'}`;
-  
-  const [messages, setMessages] = React.useState<MentorChatMessage[]>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed to load chat history', e);
-    }
-    return [
-      {
-        role: 'assistant',
-        content: t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: firstName }),
-      },
-    ];
-  });
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(messages));
-    } catch (e) {
-      console.warn('Failed to save chat history', e);
-    }
-  }, [messages, storageKey]);
-
-  const [draft, setDraft] = React.useState('');
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState('');
-  const [suggestions, setSuggestions] = React.useState<string[]>([
-    t('rebuild.dashboard.mentor_suggestion_1', { defaultValue: 'Co mi moje data říkají o dalším kroku?' }),
-    t('rebuild.dashboard.mentor_suggestion_2', { defaultValue: 'Jakou práci mám přestat honit jen kvůli penězům?' }),
-    t('rebuild.dashboard.mentor_suggestion_3', { defaultValue: 'Co mám udělat během příštích 24 hodin?' }),
-  ]);
-
-  const submitMessage = React.useCallback(async (rawMessage: string) => {
-    const message = rawMessage.trim();
-    if (!message || busy) return;
-    const nextMessages: MentorChatMessage[] = [...messages, { role: 'user', content: message }];
-    setMessages(nextMessages);
-    setDraft('');
-    setError('');
-    setBusy(true);
-    try {
-      const reply = await sendMentorChatMessage(message, nextMessages);
-      setMessages((current) => [
-        ...current,
-        {
-          role: 'assistant',
-          content: [reply.reply, reply.next_step ? `${t('rebuild.dashboard.next_step', { defaultValue: 'Next step' })}: ${reply.next_step}` : ''].filter(Boolean).join('\n\n'),
-          jobRecommendations: reply.job_recommendations || [],
-        },
-      ]);
-      if (reply.suggested_prompts?.length) setSuggestions(reply.suggested_prompts);
-    } catch (chatError) {
-      setError(chatError instanceof Error ? chatError.message : t('rebuild.dashboard.mentor_error', { defaultValue: 'Shami did not respond right now.' }));
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, messages, t]);
-
-  return (
-    <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-6 pt-1">
-      <ShellCard className="overflow-hidden p-0">
-        <div className="grid min-h-[calc(100vh-9rem)] gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="flex min-h-0 flex-col p-5 sm:p-7">
-            <div className="flex items-start justify-between gap-4 border-b border-[color:var(--dashboard-soft-border)] pb-5">
-              <div className="flex items-start gap-4">
-                <img src="/shami.png" alt="Shami" className="h-24 w-24 object-contain rounded-2xl shadow-sm border border-slate-100 bg-white p-1" />
-                <div>
-                  <div className={sectionTitleClass}>{t('rebuild.dashboard.mentor_title', { defaultValue: 'Shami AI' })}</div>
-                  <h2 className="mt-1 text-[2rem] font-semibold leading-tight text-[color:var(--dashboard-text-strong)]">{t('rebuild.dashboard.mentor_chat_title', { defaultValue: 'Pracovní kompas bez vaty' })}</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--dashboard-text-body)]">
-                    {t('rebuild.dashboard.mentor_chat_desc', { defaultValue: 'Shami používá tvůj profil, signály a doporučení z Azure AI. Když data chybí, řekne to nahlas a navrhne další konkrétní krok.' })}
-                  </p>
-                </div>
-              </div>
-              <div className="hidden rounded-lg border border-[#c7e9f0] bg-[#f0fcfd] px-4 py-3 text-right sm:block">
-                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">{t('rebuild.dashboard.compass', { defaultValue: 'Kompas' })}</div>
-                <div className="mt-1 text-lg font-black text-slate-900">{vm.resonanceScore}%</div>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-5">
-              {messages.map((message, index) => (
-                <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  {message.role === 'assistant' && (
-                    <img src="/shami.png" alt="Shami" className="h-10 w-10 object-contain rounded-full shadow-sm ring-1 ring-slate-100 mr-3 mt-1 shrink-0 bg-white" />
-                  )}
-                  <div
-                    className={cn(
-                      'max-w-[min(42rem,92%)] rounded-lg px-5 py-4 text-sm leading-7 shadow-sm',
-                      message.role === 'user'
-                        ? 'bg-[#103d46] !text-white'
-                        : 'border border-[color:var(--dashboard-soft-border)] bg-white/80 text-slate-700',
-                    )}
-                    style={message.role === 'user' ? { color: '#ffffff' } : {}}
-                  >
-                    <div className="whitespace-pre-line">{message.content}</div>
-                    {message.role === 'assistant' && message.jobRecommendations?.length ? (
-                      <div className="mt-4 space-y-3">
-                        {message.jobRecommendations.map((recommendation) => (
-                          <ShamiJobRecommendationCard key={recommendation.id} recommendation={recommendation} />
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-              {busy ? (
-                <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--dashboard-soft-border)] bg-white/80 px-4 py-2 text-sm font-semibold text-slate-500">
-                    <Loader2 size={15} className="animate-spin text-[#12afcb]" />
-                    {t('rebuild.dashboard.ai_thinking', { defaultValue: 'AI skládá odpověď' })}
-                  </div>
-                </div>
-              ) : null}
-              {error ? (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-                  {error}
-                </div>
-              ) : null}
-            </div>
-
-            <form
-              className="border-t border-[color:var(--dashboard-soft-border)] pt-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void submitMessage(draft);
-              }}
-            >
-              <div className="flex gap-3">
-                <textarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  rows={2}
-                  placeholder={t('rebuild.dashboard.mentor_placeholder', { defaultValue: 'Napiš, co chceš rozmotat...' })}
-                  className="min-h-[3.5rem] flex-1 resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#12afcb] focus:ring-4 focus:ring-[#f0fcfd]"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !draft.trim()}
-                  className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#12afcb] text-white shadow-[0_18px_34px_-24px_rgba(18,175,203,0.5)] transition hover:bg-[#0f95ac] disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label={t('rebuild.actions.send_message', { defaultValue: 'Odeslat zprávu' })}
-                >
-                  {busy ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <aside className="border-t border-[color:var(--dashboard-soft-border)] bg-[#f7fcfd]/80 p-5 lg:border-l lg:border-t-0">
-            <div className="rounded-lg border border-[#c7e9f0] bg-white p-5">
-              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                <Sparkles size={16} className="text-[#12afcb]" />
-                {t('rebuild.dashboard.quick_inputs', { defaultValue: 'Rychlé vstupy' })}
-              </div>
-              <div className="mt-4 space-y-2">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => void submitMessage(suggestion)}
-                    disabled={busy}
-                    className="w-full rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-left text-xs font-bold leading-5 text-slate-600 transition hover:border-[#12afcb] hover:bg-[#f0fcfd] disabled:opacity-60"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 rounded-lg border border-slate-100 bg-white p-5 text-sm leading-6 text-slate-500">
-              <div className="font-black text-slate-900">{t('rebuild.dashboard.tone_source', { defaultValue: 'Tón a data' })}</div>
-              <p className="mt-2">{t('rebuild.dashboard.tone_source_desc', { defaultValue: 'Odpovědi se opírají o tvůj profil, JCFPM signály, uložené role a aktuální doporučení. Když něco nevíme, AI to má říct otevřeně.' })}</p>
-            </div>
-          </aside>
-        </div>
-      </ShellCard>
-    </CandidateShellSurface>
-  );
-};
 
 export const CandidateDashboardV2: React.FC<{
   roles: Role[];
@@ -1197,6 +1014,8 @@ export const CandidateDashboardV2: React.FC<{
   t,
 }) => {
     const { resolvedMode } = useRebuildTheme();
+
+    const [currentChatId, setCurrentChatId] = React.useState<string | null>(null);
     const resolveSectionFromLocation = React.useCallback(() => {
       if (typeof window === 'undefined') return '';
       if (window.location.pathname === '/candidate/profile') return 'profile';
@@ -1386,8 +1205,29 @@ export const CandidateDashboardV2: React.FC<{
             onUploadPhoto={onUploadPhoto}
             navigate={navigate}
           />
-        ) : isMentorView ? (
-          <CandidateMentorChat userProfile={userProfile} vm={vm} />
+) : isMentorView ? (
+  <div className="flex w-full h-[75vh] gap-5">
+    <div className="flex-1 min-w-0 rounded-3xl border border-cyan-100 bg-white shadow-xl overflow-hidden p-2 md:p-4 transition-all duration-200">
+      <ChatMentor
+        intro={t('rebuild.dashboard.mentor_intro', { defaultValue: 'Jsem tady. Ne jako chatbot na líbivé věty, ale jako pracovní zrcadlo. Začni otázkou, nebo mi rovnou řekni, kde se ti kariéra zasekla, {{name}}.', name: getCandidateGreetingName({ profileName: userProfile.name, language: currentLanguage }) || t('rebuild.dashboard.you', { defaultValue: 'you' }) })}
+        sendMessageFn={async (message, messages) => {
+          const reply = await sendMentorChatMessage(message, messages);
+          return {
+            reply: [reply.reply, reply.next_step ? `${t('rebuild.dashboard.next_step', { defaultValue: 'Next step' })}: ${reply.next_step}` : ''].filter(Boolean).join('\n\n')
+          };
+        }}
+        storageKey={`shami_candidate_chat_${userProfile?.id || 'anonymous'}`}
+      />
+    </div>
+    <div className="hidden xl:block w-[360px] max-w-xs flex-shrink-0">
+      {/* Sidebar pro seznam chatů */}
+      <CandidateChatSidebar
+        userId={userProfile?.id}
+        selectedChatId={currentChatId}
+        onSelectChat={setCurrentChatId}
+      />
+    </div>
+  </div>
         ) : (
           <CandidateShellSurface variant="dashboard" className="max-w-full px-2 pb-6 pt-1">
             {!vm.isOnboardingComplete && (

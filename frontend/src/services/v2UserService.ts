@@ -229,7 +229,7 @@ export const removeCompanyMember = async (
     companyId: string,
     memberId: string
 ): Promise<any> => {
-    const response = await ApiService.delete<any>(`/company/${encodeURIComponent(companyId)}/member/${encodeURIComponent(memberId)}`);
+    const response = await ApiService.delete<any>(`/company/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberId)}`);
     return response?.data || null;
 };
 

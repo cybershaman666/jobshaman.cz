@@ -188,7 +188,16 @@ async def recruiter_chat(
             candidates=candidates,
             recent_messages=combined_history,
         )
-        # 1. Ulož rozšířenou konverzaci do persistentní storage
+        # 1. Pokud agent vrátil schválené změny profilu, ulož je do databáze
+        profile_update = data.get("profile_update_request")
+        if profile_update and isinstance(profile_update, dict):
+            try:
+                await IdentityDomainService.update_candidate_profile(domain_user["id"], profile_update)
+                logger.info("Shami agent applied profile_update_request for user %s: %s", domain_user["id"], list(profile_update.keys()))
+            except Exception as profile_exc:
+                logger.warning("Failed to apply Shami profile_update_request for user %s: %s", domain_user["id"], profile_exc)
+
+        # 2. Ulož rozšířenou konverzaci do persistentní storage
         # Append uživatelova zpráva + odpověď agenta
         save_agent_memory(
             domain_user["id"],

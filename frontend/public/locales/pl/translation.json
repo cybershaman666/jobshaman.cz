@@ -653,6 +653,10 @@
     "switch_to_list_title": "Przełącz na widok listy",
     "title": "Stanowisko"
   },
+  "rebuild.dashboard.mentor_ready": "Shami jest gotowy, zadaj pytanie.",
+  "rebuild.dashboard.mentor_send": "Wyślij",
+  "rebuild.dashboard.mentor_new": "Nowy czat",
+  "rebuild.dashboard.mentor_typing": "Shami pisze odpowiedź...",
   "profile": {
     "personal_info": "Dane osobowe",
     "full_name": "Imię i nazwisko",

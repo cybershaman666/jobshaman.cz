@@ -1,4 +1,12 @@
 {
+  "chatMentor": {
+    "inputPlaceholder": "Spør Shami eller skriv inn neste trinn…",
+    "welcomeTitle": "Shami AI – Din karriereguide",
+    "shamiName": "Shami",
+    "brandHint": "Drevet av JobShaman AI",
+    "slogan": "Shami ser sammenhenger i profilen din og finner neste steg – uten HR-prat.",
+    "avatarAlt": "Shami avatar"
+  },
   "app": {
     "title": "JobShaman",
     "description": "Profesjonell analyse av jobbtilbud",

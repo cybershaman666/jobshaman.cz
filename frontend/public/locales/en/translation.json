@@ -1,5 +1,14 @@
 {
   "app": {
+
+    "chatMentor": {
+      "inputPlaceholder": "Ask Shami or type your next step…",
+      "welcomeTitle": "Shami AI – Your Career Guide",
+      "shamiName": "Shami",
+      "brandHint": "Powered by JobShaman AI",
+      "slogan": "Shami finds connections in your profile and next steps – no HR fluff.",
+      "avatarAlt": "Shami avatar"
+    },
     "title": "JobShaman",
     "description": "Professional Job Offer Analysis",
     "search_placeholder": "Find your challenge, company...",
@@ -632,6 +641,10 @@
     "q5": "Is my data safe?",
     "a5": "Yes, your data is protected according to GDPR. We use it only to improve your job search results."
   },
+  "rebuild.dashboard.mentor_ready": "Shami is ready. Type your question…",
+  "rebuild.dashboard.mentor_send": "Send",
+  "rebuild.dashboard.mentor_new": "New chat",
+  "rebuild.dashboard.mentor_typing": "Shami is typing…",
   "profile": {
     "personal_info": "Personal Information",
     "full_name": "Full Name",
@@ -5197,6 +5210,13 @@
     }
   },
   "rebuild": {
+    "dashboard": {
+      "mentor_ready": "Shami is ready. Type your question…",
+      "mentor_new": "New chat",
+      "mentor_send": "Send",
+      "mentor_error": "Shami did not reply this time.",
+      "mentor_typing": "Shami is thinking…"
+    },
     "nav": {
       "marketplace": "Marketplace",
       "profile_insights": "Profile & Insights",
@@ -6612,6 +6632,12 @@
       "greeting": "Hello {{name}}",
       "my_profile": "My profile",
       "mentor_title": "Shami AI",
+      "mentor_chat_title": "Shami AI – Your career guide",
+      "mentor_chat_desc": "Shami connects the dots in your profile, experiences and work signals. Finds blind spots and suggests the next concrete step — no corporate speak.",
+      "mentor_placeholder": "Type a message…",
+      "mentor_new": "New chat",
+      "mentor_typing": "Shami is composing a reply...",
+      "mentor_ready": "Shami is ready to help your career grow.",
       "mentor_subtitle": "Career conversation without fluff",
       "mentor_disclaimer": "Answers use Azure AI and stay grounded in profile data. When data is missing, it should say so out loud.",
       "kompas_label": "Compass",

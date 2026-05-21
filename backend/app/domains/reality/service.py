@@ -943,6 +943,8 @@ class RealityDomainService:
             "name": company.name,
             "industry": company.industry or company.domain or "",
             "tone": company.tone or "",
+            "language": profile_data.get("language"),  # Vrátit language z profile_data
+            "locale": profile_data.get("locale"),       # Vrátit locale z profile_data
             "values": values if isinstance(values, list) else [],
             "philosophy": company.philosophy or "",
             "gallery_urls": gallery_urls if isinstance(gallery_urls, list) else [],
@@ -1048,6 +1050,12 @@ class RealityDomainService:
 
         if "legacy_supabase" in payload and isinstance(payload.get("legacy_supabase"), dict):
             profile_data["legacy_supabase"] = payload.get("legacy_supabase")
+
+        # Handle language/locale settings
+        if "language" in payload:
+            profile_data["language"] = payload.get("language")
+        if "locale" in payload:
+            profile_data["locale"] = payload.get("locale")
 
         if "values" in payload:
             values = payload.get("values")
@@ -1481,26 +1489,6 @@ class RealityDomainService:
             return RealityDomainService._serialize_company(company)
 
     @staticmethod
-    async def update_company_for_user(user_id: str, company_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        async with AsyncSession(engine) as session:
-            membership_statement = select(CompanyUser).where(
-                CompanyUser.user_id == uuid.UUID(user_id),
-                CompanyUser.company_id == uuid.UUID(company_id),
-            )
-            membership_result = await session.execute(membership_statement)
-            if not membership_result.scalar_one_or_none():
-                return None
-
-            company_result = await session.execute(select(Company).where(Company.id == uuid.UUID(company_id)))
-            company = company_result.scalar_one_or_none()
-            if not company:
-                return None
-
-            RealityDomainService._apply_company_payload(company, payload)
-            await session.commit()
-            await session.refresh(company)
-            return RealityDomainService._serialize_company(company)
-    @staticmethod
     async def list_company_members(user_id: str, company_id: str) -> Optional[List[Dict[str, Any]]]:
         async with AsyncSession(engine) as session:
             actor_uuid = uuid.UUID(user_id)
@@ -1578,6 +1566,22 @@ class RealityDomainService:
 
             # Create invitation
             token = secrets.token_urlsafe(32)
+            
+            # Send email FIRST, before committing to DB
+            email_sent = send_teammate_invitation_email(
+                to_email=email,
+                invited_name=name,
+                company_name=company_name,
+                inviter_name=inviter_name,
+                invitation_token=token
+            )
+            
+            # Only save invitation if email was sent successfully
+            if not email_sent:
+                logger.warning(f"Failed to send invitation email to {email}. Email service unavailable.")
+                return {"status": "email_failed", "error": "Email service unavailable. Please try again later."}
+            
+            # Create and save invitation record
             invitation = CompanyUser(
                 company_id=company_uuid,
                 invited_email=email,
@@ -1588,15 +1592,6 @@ class RealityDomainService:
             )
             session.add(invitation)
             await session.commit()
-            
-            # Send email
-            send_teammate_invitation_email(
-                to_email=email,
-                invited_name=name,
-                company_name=company_name,
-                inviter_name=inviter_name,
-                invitation_token=token
-            )
             
             return {"status": "invited", "email": email}
 
@@ -1698,6 +1693,8 @@ class RealityDomainService:
 
             # Vygenerovat nový token, uložit a poslat novou pozvánku
             token = secrets.token_urlsafe(32)
+            invited_email = member.invited_email
+            invited_name = member.invited_name
             member.invitation_token = token
             try:
                 await session.commit()
@@ -1715,14 +1712,14 @@ class RealityDomainService:
 
                 await asyncio.to_thread(
                     send_teammate_invitation_email,
-                    to_email=member.invited_email,
-                    invited_name=member.invited_name,
+                    to_email=invited_email,
+                    invited_name=invited_name,
                     company_name=company_name,
                     inviter_name=inviter_name,
                     invitation_token=token
                 )
 
-                return {"status": "resent", "id": str(member_id), "email": member.invited_email}
+                return {"status": "resent", "id": str(member_id), "email": invited_email}
             except Exception as e:
                 # Případná chyba při zápisu nebo odeslání emailu např. SMTP, DB atd.
                 print(f"[resend_company_invitation] ERROR: {e}")

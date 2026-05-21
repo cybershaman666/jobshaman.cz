@@ -620,6 +620,10 @@
     "switch_to_list_title": "Zur Listenansicht wechseln",
     "title": "Stellenbezeichnung"
   },
+  "rebuild.dashboard.mentor_ready": "Shami ist bereit. Tippe deine Frage …",
+  "rebuild.dashboard.mentor_send": "Senden",
+  "rebuild.dashboard.mentor_new": "Neuer Chat",
+  "rebuild.dashboard.mentor_typing": "Shami tippt …",
   "profile": {
     "personal_info": "Persönliche Informationen",
     "full_name": "Vollständiger Name",
@@ -1142,7 +1146,25 @@
   },
   "about": "Über uns",
   "contact": "Kontakt",
-  "company": {
+  "chatMentor": {
+  "shamiName": "Shami",
+  "welcomeTitle": "Shami AI – Ihr Karrierebegleiter",
+  "slogan": "Shami erkennt Zusammenhänge in deinem Profil, findet blinde Flecken und empfiehlt klare nächste Schritte – ohne leeres HR-Geschwätz.",
+  "avatarAlt": "Shami KI Karrierebegleiter",
+  "inputPlaceholder": "Stellen Sie eine Frage oder schildern Sie Ihre berufliche Blockade...",
+  "emptyState": "Starten Sie das Gespräch. Shami hilft Ihnen dabei, Ihre Karriere voranzubringen.",
+  "brandHint": "Powered by JobShaman AI",
+  "guidePromo": "Ich bin Shami – Ihr Job- und Karriere-Guide. Stellen Sie einfach Ihre Frage.",
+  "historyTitle": "Chatverlauf",
+  "autosuggestionTitle": "Schnellstart:",
+  "autosuggestions": [
+    "Wie verbessere ich mein Profil für Tech-Jobs?",
+    "Welche Fähigkeiten fehlen mir für meine Wunschposition?",
+    "Checke meine JHI-Scores.",
+    "Wie stoße ich Karriereschritte an?"
+  ]
+},
+"company": {
     "portal": {
       "title": "Unternehmensportal",
       "subtitle": "Personalbeschaffung ohne Schnörkel, Daten bez Verzerrung."

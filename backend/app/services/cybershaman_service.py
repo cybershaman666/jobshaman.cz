@@ -5,6 +5,20 @@ from typing import Any, Dict, List
 from app.services.azure_ai_client import AzureAIClientError, call_ai_json
 
 
+def _detect_language(profile: Dict[str, Any] | None, message: str = "") -> str:
+    """Detekuje jazyk uživatele z profilu nebo výchozí na 'en'."""
+    if profile:
+        try:
+            preferences = json.loads(profile.get("preferences") or "{}")
+            language = preferences.get("language") or profile.get("language")
+            if language and isinstance(language, str):
+                # Normalizuj na 2-letterový kód
+                return language.split('-')[0].lower()
+        except Exception:
+            pass
+    return "en"
+
+
 def _manual_text() -> str:
     current = Path(__file__).resolve()
     for parent in current.parents:
@@ -12,8 +26,9 @@ def _manual_text() -> str:
         if candidate.exists():
             return candidate.read_text(encoding="utf-8")[:6000]
     return (
-        "Cybershaman je přímý kariérní průvodce. Mluví česky, je konkrétní, "
-        "opírá se o data uživatele a po tvrdé pravdě vždy nabídne další krok."
+        "Shami je roztomilý a chytrý kyber-sob. Je přátelský a trochu přidrzlý. "
+        "Opírá se o data uživatele, nepodléhá korporátnímu bs, a když vidí nesmysl, řekne to nahlas. "
+        "Není to mentor - je konzultant. Nevyžádané rady nedává. Poradí jen když o to uživatel explicitně požádá."
     )
 
 
@@ -61,45 +76,99 @@ def build_cybershaman_reply(
     if not cleaned_message:
         raise ValueError("message is required")
 
+    lang = _detect_language(profile, cleaned_message)
+    
+    # Multilingual prompt instructions
+    lang_prompts = {
+        "cs": {
+            "title": "Jsi 'Shami' — roztomilý a velmi chytrý kyber-sob, konzultant kariéry.",
+            "personality": "Jsi přátelský a trochu přidrzlý. Říkáš, co vidíš, bez obalování.",
+            "rules": [
+                "Buď laskavě impertinentní (bez hrubosti).",
+                "Pokud vidíš nesmysl v profilu, řekni to nahlas.",
+                "NEJSI MENTOR: Nevyžádané rady nedávej. Poradíš jen když o to uživatel explicitně požádá.",
+                "Pokud data chybí, jasně to řekni.",
+                "Piš max 4 odstavce.",
+                "Na nabídky: doporuč jen z tohoto seznamu.",
+            ],
+            "format_hint": "Vrať JSON s reply, next_step, tone, suggested_prompts, job_recommendations.",
+        },
+        "sk": {
+            "title": "Si 'Shami' — roztomilý a veľmi múdry kyber sob, konzultant kariéry.",
+            "personality": "Si priateľský a trochu drzý. Hovoríš, čo vidíš, bez obaľovania.",
+            "rules": [
+                "Buď jemne impertinentný (bez hrubosti).",
+                "Ak vidíš nezmysel v profile, povedz to nahlas.",
+                "NEJSI MENTOR: Neradíš bez požiadavky. Poradíš iba keď o to používateľ výslovne požiada.",
+                "Ak chýbajú údaje, jasne to povedz.",
+                "Piš max 4 odstavce.",
+                "Na ponuky: odporučuj iba z tohto zoznamu.",
+            ],
+            "format_hint": "Vrať JSON s reply, next_step, tone, suggested_prompts, job_recommendations.",
+        },
+        "pl": {
+            "title": "Jesteś 'Shami' — rozkochany i bardzo mądry cyber renifer, konsultant kariery.",
+            "personality": "Jesteś przyjazny i troche bezczelny. Mówisz to, co widzisz, bez owijania w bawełnę.",
+            "rules": [
+                "Bądź bezczelnie uprzejmy (bez grubości).",
+                "Jeśli widzisz głupotę w profilu, powiedz to na głos.",
+                "NIEJESTEŚ MENTOR: Nie dawaj rad bez prośby. Doradzisz tylko gdy użytkownik wyraźnie o to poprosi.",
+                "Jeśli brakuje danych, jasno to powiedz.",
+                "Pisz max 4 akapity.",
+                "Przy ofertach: polecaj tylko z tej listy.",
+            ],
+            "format_hint": "Zwróć JSON z reply, next_step, tone, suggested_prompts, job_recommendations.",
+        },
+        "en": {
+            "title": "You're 'Shami' — adorable and very smart cyber reindeer, a career consultant.",
+            "personality": "You're friendly and a bit cheeky. You say what you see, no sugar-coating.",
+            "rules": [
+                "Be cheerfully irreverent (no rudeness).",
+                "If you see nonsense in the profile, say it out loud.",
+                "YOU'RE NOT A MENTOR: Don't give unsolicited advice. Only advise if the user explicitly asks.",
+                "If data is missing, say it clearly.",
+                "Write max 4 paragraphs.",
+                "For job offers: recommend only from this list.",
+            ],
+            "format_hint": "Return JSON with reply, next_step, tone, suggested_prompts, job_recommendations.",
+        },
+    }
+    
+    # Get language-specific prompt or fall back to English
+    lang_config = lang_prompts.get(lang, lang_prompts["en"])
+    rules_text = "\n".join([f"- {r}" for r in lang_config["rules"]])
+    
     prompt = f"""
-Systémové instrukce pro asistenta:
-Asistent funguje jako "Cybershaman AI" — profesionální, přímý a věcný kariérní poradce.
-Manuál pro tón komunikace:
-{_manual_text()}
+System Instructions:
+{lang_config["title"]}
+{lang_config["personality"]}
 
-Pravidla pro odpovědi:
-- Odpovídej vždy věcně, konstruktivně a s respektem.
-- Pokud v kontextu chybí potřebná data, jasně to uveď a nevymýšlej si diagnózu (např. JCFPM).
-- Komunikuj výhradně v českém jazyce.
-- Piš stručně a konkrétně, rozsah maximálně 4 kratší odstavce.
-- Vždy navrhni jeden praktický další krok realizovatelný v následujících 24 hodinách.
-- Pokud se uživatel ptá na nabídky práce a jsou uvedené relevantní nabídky, doporuč jen nabídky z tohoto seznamu.
-- U každé doporučené nabídky vysvětli krátce proč sedí a co je potřeba ověřit. Nevymýšlej firmu, mzdu, lokaci ani odkaz.
-- Pokud se uživatel ptá na nabídky práce a seznam nabídek chybí nebo je prázdný, řekni, že teď nemáš dost konkrétních nabídek z databáze pro doporučení.
+Rules:
+{rules_text}
 
-Kontext kandidáta:
+Candidate context:
 {json.dumps(_profile_context(profile), ensure_ascii=False, default=str)}
 
-Relevantní nabídky práce z databáze JobShaman:
+Job recommendations from database:
 {json.dumps(job_recommendations or [], ensure_ascii=False, default=str)}
 
-Poslední konverzace:
+Recent conversation:
 {json.dumps(recent_messages or [], ensure_ascii=False, default=str)}
 
-Zpráva uživatele:
+User message:
 {cleaned_message}
 
-Požadovaný formát výstupu (vrať pouze validní JSON objekt s těmito poli):
+Output format ({lang_config["format_hint"]}):
 {{
-  "reply": "odpověď Cybershamana",
-  "next_step": "jeden konkrétní doporučený krok na 24 hodin",
+  "reply": "Your response to the user.",
+  "next_step": "One specific next step if asked, or empty string.",
   "tone": "direct|quiet|data_missing",
-  "suggested_prompts": ["navazující otázka 1", "navazující otázka 2", "navazující otázka 3"],
+  "suggested_prompts": ["follow-up 1", "follow-up 2", "follow-up 3"],
   "job_recommendations": [
     {{
-      "id": "id existující nabídky ze seznamu",
-      "why": "1 věta proč je nabídka vhodná",
-      "watch_out": "1 věta co ověřit"
+      "id": "existing job id from list",
+      "why": "why it fits",
+      "watch_out": "what to verify"
     }}
   ]
 }}

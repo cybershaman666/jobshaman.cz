@@ -1,5 +1,14 @@
 {
   "app": {
+
+  "chatMentor": {
+    "inputPlaceholder": "Zeptej se Shamiho nebo napiš další krok…",
+    "welcomeTitle": "Shami AI – Tvůj kariérní průvodce",
+    "shamiName": "Shami",
+    "brandHint": "Powered by JobShaman AI",
+    "slogan": "Shami vidí souvislosti v profilu, najde další krok – bez HR omáčky.",
+    "avatarAlt": "Shami avatar"
+  },
     "title": "JobShaman",
     "description": "Profesionální Analýza Nabídek",
     "search_placeholder": "Najdi svoji výzvu, firmu...",
@@ -632,6 +641,10 @@
     "switch_to_list_title": "Přepnout na seznam",
     "title": "Title"
   },
+  "rebuild.dashboard.mentor_ready": "Shami je připraven, napiš svou otázku.",
+  "rebuild.dashboard.mentor_send": "Odeslat",
+  "rebuild.dashboard.mentor_new": "Nový chat",
+  "rebuild.dashboard.mentor_typing": "Shami píše odpověď...",
   "profile": {
     "title": "Profil",
     "saved_jobs": "Uloženo ({{count}})",
@@ -5197,6 +5210,13 @@
     }
   },
   "rebuild": {
+    "dashboard": {
+      "mentor_ready": "Shami je připraven. Napiš svůj dotaz…",
+      "mentor_new": "Nový chat",
+      "mentor_send": "Odeslat",
+      "mentor_error": "Shami teď neodpověděl.",
+      "mentor_typing": "Shami právě přemýšlí…"
+    },
     "nav": {
       "marketplace": "Katalog",
       "profile_insights": "Můj přehled",
@@ -6716,6 +6736,12 @@
       "mentor_intro": "Jsem Shami. Projdu tvoje data, najdu, co tě brzdí, a ukážu ti lepší směr. Stačí se zeptat.",
       "greeting": "Ahoj {{name}}",
       "mentor_title": "Shami AI",
+      "mentor_chat_title": "Shami AI – Tvůj kariérní průvodce",
+      "mentor_chat_desc": "Shami vidí souvislosti v tvém profilu, zkušenostech i pracovních signálech. Najde slepá místa, doporučí další konkrétní krok — bez korporátní omáčky.",
+      "mentor_placeholder": "Napiš zprávu…",
+      "mentor_new": "Nový chat",
+      "mentor_typing": "Shami připravuje odpověď...",
+      "mentor_ready": "Shami je připraven rozvinout tvou kariéru.",
       "mentor_subtitle": "Kariérní rozhovor bez vaty",
       "mentor_disclaimer": "Odpovědi využívají Azure AI a drží se přímé, datové práce s profilem. Když chybí data, má to říct nahlas.",
       "kompas_label": "Kompas profilu",

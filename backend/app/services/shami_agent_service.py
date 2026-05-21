@@ -8,6 +8,18 @@ from app.services.azure_ai_client import AzureAIClientError, call_ai_json
 
 logger = logging.getLogger(__name__)
 
+
+def _detect_recruiter_language(company: Dict[str, Any] | None, message: str = "") -> str:
+    """Detekuje jazyk z company settings nebo z primeira_messages."""
+    if company:
+        try:
+            language = company.get("language") or company.get("locale")
+            if language and isinstance(language, str):
+                return language.split('-')[0].lower()
+        except Exception:
+            pass
+    return "en"
+
 def get_agent_memory(user_id: str) -> dict:
     """Načte paměť agenta (historii chatu a agent_state) pro daného uživatele, nebo vrací default, pokud není záznam."""
     if not supabase or not user_id:
@@ -64,8 +76,10 @@ def build_shami_recruiter_agent_reply(
     if not cleaned_message:
         raise ValueError("message is required")
 
+    lang = _detect_recruiter_language(company, cleaned_message)
+
     # Format brief contexts to avoid overloading tokens
-    company_name = (company or {}).get("name") or "vaše firma"
+    company_name = (company or {}).get("name") or "company"
     company_context = {
         "name": company_name,
         "industry": (company or {}).get("industry"),
@@ -92,50 +106,113 @@ def build_shami_recruiter_agent_reply(
             "resonance_score": c.get("resonance_score") or c.get("match_score"),
         })
 
+    # Multilingual prompts for recruiter assistant
+    lang_prompts = {
+        "cs": {
+            "title": "Jsi Shami - roztomilý a velmi chytrý kyber-sob. Pomáháš nábor v JobShaman.",
+            "character": "Jsi přátelský, praktický a přímý. Bez mentorování, bez zbytečných rad.",
+            "nav_positions": "Pozice",
+            "nav_candidates": "Kandidáti",
+            "nav_settings": "Nastavení",
+            "nav_billing": "Billing",
+            "rules": [
+                "Odpovídej věcně a stručně (max 2 odstavce).",
+                "Navrhuj konkrétní cestu v aplikaci.",
+                "Bez mentoringu, bez tipů na kariéru.",
+                "Komunikuj česky.",
+            ],
+        },
+        "sk": {
+            "title": "Si Shami - roztomilý a veľmi múdry kyber sob. Pomáhaš náboru v JobShaman.",
+            "character": "Si priateľský, praktický a priamy. Bez mentoringu, bez zbytočných rád.",
+            "nav_positions": "Pozície",
+            "nav_candidates": "Kandidáti",
+            "nav_settings": "Nastavenia",
+            "nav_billing": "Faktúra",
+            "rules": [
+                "Odpovedaj vecne a stručne (max 2 odstavce).",
+                "Navrhuj konkrétnu cestu v aplikácii.",
+                "Bez mentoringu, bez tipov na kariéru.",
+                "Komunikuj po slovensky.",
+            ],
+        },
+        "pl": {
+            "title": "Jesteś Shami - rozkochany i bardzo mądry cyber renifer. Pomagasz w rekrutacji w JobShaman.",
+            "character": "Jesteś przyjazny, praktyczny i bezpośredni. Bez mentoringu, bez niepotrzebnych rad.",
+            "nav_positions": "Oferty",
+            "nav_candidates": "Kandydaci",
+            "nav_settings": "Ustawienia",
+            "nav_billing": "Rozliczenia",
+            "rules": [
+                "Odpowiadaj rzeczowo i zwięźle (max 2 akapity).",
+                "Zaproponuj konkretną ścieżkę w aplikacji.",
+                "Bez mentoringu, bez porad o karierę.",
+                "Komunikuj po polsku.",
+            ],
+        },
+        "en": {
+            "title": "You're Shami - adorable and very smart cyber reindeer. You help with recruitment in JobShaman.",
+            "character": "You're friendly, practical, and direct. No mentoring, no unnecessary advice.",
+            "nav_positions": "Positions",
+            "nav_candidates": "Candidates",
+            "nav_settings": "Settings",
+            "nav_billing": "Billing",
+            "rules": [
+                "Answer factually and concisely (max 2 paragraphs).",
+                "Suggest a specific path in the app.",
+                "No mentoring, no career advice.",
+                "Communicate in English.",
+            ],
+        },
+    }
+    
+    config = lang_prompts.get(lang, lang_prompts["en"])
+    rules_text = "\n".join([f"- {r}" for r in config["rules"]])
+
     prompt = f"""
-Systémové instrukce pro asistenta:
-Funguješ jako "Shami" — inteligentní, neuvěřitelně roztomilý a nesmírně užitečný IT kyber-sob (cyber reindeer), který slouží jako dedikovaný AI asistent a náborový agent pro firmu v platformě Jobshaman.
-Mluvíš přátelsky, pohotově, věcně a konstruktivně. Rád pomáháš s orientací a správou náborů.
+System Instructions:
+{config["title"]}
+{config["character"]}
 
-Hlavní úkoly:
-- Odpovídej věcně na dotazy ohledně pozic, kandidátů nebo správy profilu.
-- Pokud tě uživatel požádá o změnu profilu (například jazyky, dovednosti, pracovní údaje), vždy jen navrhni změnu a uživatele se explicitně zeptej, jestli to chce opravdu provést (např. „Chcete opravdu upravit svůj profil?“). Nikdy neprováděj změnu automaticky bez souhlasu! Pokud uživatel souhlasí, výstup musí obsahovat JSON pole „profile_update_request“ s jasným popisem změn.
-- Pokud tě uživatel požádá o vyhledání nebo zobrazení pozic/kandidátů, popiš je stručně v odpovědi a v poli "navigation_suggestion" uveď příslušnou cestu.
-- Můžeš doporučovat rychlé navigace a akce v rozhraní. Například:
-   - Zobrazení seznamu pozic: "/recruiter/roles"
-   - Zobrazení talent poolu (kandidátů): "/recruiter/talent-pool"
-   - Nastavení profilu firmy: "/recruiter/settings"
-   - Předplatné / billing: "/recruiter/billing"
-   - Zobrazení konkrétního kandidáta: "/recruiter/talent-pool?selected=<id_kandidata>"
+Rules:
+{rules_text}
 
-Pravidla pro odpovědi:
-- Odpovídej vždy konstruktivně, přátelsky a s respektem.
-- Komunikuj v jazyce uživatele (většinou česky, pokud se uživatel nezeptá anglicky).
-- Piš stručně a konkrétně, rozsah maximálně 3-4 kratší odstavce.
-- Pokud navrhuješ změnu profilu, vždy použij pole "profile_update_request", kde jasně popiš návrh na úpravu profilu jako platný JSON (například {"languages": ["angličtina (pokročilá)"]}). Profil aktualizuj až na základě výslovného souhlasu uživatele.
-- Pokud navrhuješ akci, uveď cestu v "navigation_suggestion" a popis tlačítka v "navigation_label".
+Available navigation paths:
+- {config["nav_positions"]}: "/recruiter/roles"
+- {config["nav_candidates"]}: "/recruiter/talent-pool"
+- {config["nav_settings"]}: "/recruiter/settings"
+- {config["nav_billing"]}: "/recruiter/billing"
+- Specific candidate: "/recruiter/talent-pool?selected=<id>"
 
-Kontext firmy:
+Company context:
 {json.dumps(company_context, ensure_ascii=False, default=str)}
 
-Aktivní pozice firmy:
+Active positions:
 {json.dumps(simplified_roles[:10], ensure_ascii=False, default=str)}
 
-Seznam kandidátů v Talent Poolu:
+Candidates in talent pool:
 {json.dumps(simplified_candidates[:12], ensure_ascii=False, default=str)}
 
-Poslední zprávy konverzace:
+Recent conversation:
 {json.dumps(recent_messages or [], ensure_ascii=False, default=str)}
 
-Zpráva uživatele:
+User message:
 {cleaned_message}
 
-Požadovaný formát výstupu (vrať pouze validní JSON objekt s těmito poli):
+IMPORTANT: If the user asks you to update their profile (e.g., change language, update preferences), 
+you MUST return profile_update_request with the fields to update. For example:
+- If user says "změň na angličtinu" (change to English), return {{"language": "en"}}
+- If user says "nastav češtinu" (set Czech), return {{"language": "cs"}}
+- For other profile fields, use the field name as key and desired value.
+If no profile update is requested, set profile_update_request to null.
+
+Output format (return only valid JSON):
 {{
-  "reply": "Vaše odpověď v markdownu. Může obsahovat odrážky nebo zvýrazněný text.",
-  "navigation_suggestion": "/recruiter/roles nebo /recruiter/talent-pool nebo /recruiter/talent-pool?selected=<id> nebo null",
-  "navigation_label": "Nápis na tlačítku akce (např. Zobrazit kandidáty) nebo null",
-  "suggested_prompts": ["doporučená otázka 1", "doporučená otázka 2", "doporučená otázka 3"]
+  "reply": "Your direct response to the user.",
+  "navigation_suggestion": "/recruiter/roles or /recruiter/talent-pool or null",
+  "navigation_label": "Button label or null",
+  "suggested_prompts": null,
+  "profile_update_request": null OR {{"language": "cs", "preferences": {{...}}}} if user asks for profile changes
 }}
 """
     try:
@@ -149,11 +226,15 @@ Požadovaný formát výstupu (vrať pouze validní JSON objekt s těmito poli):
     if not reply:
         raise AzureAIClientError("AI response did not include reply")
 
+    raw_pur = payload.get("profile_update_request")
+    profile_update_request = raw_pur if isinstance(raw_pur, dict) and raw_pur else None
+
     return {
         "reply": reply,
         "navigation_suggestion": payload.get("navigation_suggestion") or None,
         "navigation_label": payload.get("navigation_label") or None,
         "suggested_prompts": [str(x).strip() for x in payload.get("suggested_prompts") or [] if str(x).strip()][:3],
+        "profile_update_request": profile_update_request,
         "model": result.model_name,
         "latency_ms": result.latency_ms,
     }
