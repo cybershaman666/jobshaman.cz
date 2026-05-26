@@ -1,4 +1,5 @@
 import ApiService from './apiService';
+import type { HandshakeBlueprint, Role } from '../rebuild/models';
 
 export type MentorChatMessage = {
   role: 'user' | 'assistant';
@@ -60,6 +61,56 @@ export const sendRecruiterAgentMessage = async (
   const response = await ApiService.post<{ status: string; data: RecruiterAgentReply }>('/mentor/recruiter-chat', {
     message,
     recent_messages: recentMessages.slice(-8),
+  });
+  return response.data;
+};
+
+export type RoleInsightSignal = {
+  label: string;
+  text: string;
+};
+
+export type RoleInsightReply = {
+  headline: string;
+  summary: string;
+  signals: RoleInsightSignal[];
+  watch_out?: string;
+  suggested_first_move?: string;
+  model?: string;
+  latency_ms?: number;
+};
+
+export const getRoleInsight = async (
+  role: Role,
+  blueprint: HandshakeBlueprint,
+  locale: string,
+): Promise<RoleInsightReply> => {
+  const response = await ApiService.post<{ status: string; data: RoleInsightReply }>('/mentor/role-insight', {
+    role: {
+      id: role.id,
+      title: role.title,
+      companyName: role.companyName,
+      location: role.location,
+      workModel: role.workModel,
+      salaryFrom: role.salaryFrom,
+      salaryTo: role.salaryTo,
+      currency: role.currency,
+      contractType: role.contractType,
+      summary: role.summary,
+      roleSummary: role.roleSummary,
+      challenge: role.challenge,
+      mission: role.mission,
+      description: role.description,
+      firstStep: role.firstStep,
+      skills: role.skills,
+      benefits: role.benefits,
+    },
+    blueprint: {
+      id: blueprint.id,
+      overview: blueprint.overview,
+      steps: blueprint.steps,
+    },
+    locale,
   });
   return response.data;
 };

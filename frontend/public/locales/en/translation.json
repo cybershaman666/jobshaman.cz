@@ -6194,18 +6194,22 @@
       "role_briefing": "Role briefing",
       "next_step": "Next step",
       "slots_available": "Handshake slots",
-      "candidate_slots_full": "Your active handshake slots are full.",
+      "candidate_slots_full": "Your active handshake slots are currently full.",
       "company_slots_full": "This challenge is currently full.",
-      "the_challenge": "The challenge"
+      "the_challenge": "Work challenge",
+      "native_heading": "Work reality first, CV second."
     },
     "shami": {
       "guide_title": "What this company wants to understand about you",
       "guide_title_company": "What {{company}} wants to understand about you",
-      "guide_subtitle": "Before you start the handshake, here are the signals showing what a strong response looks like and what the team is really testing.",
+      "guide_subtitle": "The handshake does not grade CV keywords. It looks for reasoning, trade-offs, and your ability to name a practical first move.",
       "hint_first_step": "What the first signal looks like",
       "hint_journey": "How the hiring process works",
       "hint_context": "Company context",
-      "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested."
+      "guide_fallback": "Read the challenge carefully. Your first response should demonstrate that you understand the core problem — not just that you are interested.",
+      "guide_loading": "Shami is reading the role, reality layer, and your profile...",
+      "watch_out": "Watch out",
+      "first_move": "First move"
     },
     "prep": {
       "title": "Job ad detail",

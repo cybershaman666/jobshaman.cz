@@ -62,6 +62,7 @@ import { formatRoleCompensation } from './roleFormatting';
 import { RecommendationFitPanel } from './RecommendationFitPanel';
 import { ResilientImage, RoleCard } from './RoleCard';
 import { DetailMetaPill, HeroStatCard, DetailSection } from './CandidateShellComponents';
+import { getRoleInsight, type RoleInsightReply } from '../../services/v2MentorService';
 
 const MARKETPLACE_IMAGE_FALLBACK = '/hero-panorama.png';
 const MARKETPLACE_LOGO_FALLBACK = '/logo-alt.png';
@@ -125,6 +126,10 @@ const ShamiGuidePanel: React.FC<{
   company: Company;
   t: (key: string, opts: { defaultValue: string } & Record<string, any>) => string;
 }> = ({ role, blueprint, company, t }) => {
+  const { i18n } = useTranslation();
+  const [insight, setInsight] = React.useState<RoleInsightReply | null>(null);
+  const [loadingInsight, setLoadingInsight] = React.useState(false);
+
   const hints: { id: string; icon: React.ReactNode; label: string; text: string }[] = [];
 
   if (role.firstStep) {
@@ -154,6 +159,35 @@ const ShamiGuidePanel: React.FC<{
   }
 
   const companyName = company.name || role.companyName || '';
+  const aiSignals = insight?.signals?.length ? insight.signals.slice(0, 3).map((signal, index) => ({
+    id: `${signal.label}-${index}`,
+    icon: index === 0
+      ? <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />
+      : index === 1
+        ? <Compass size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />
+        : <Users size={14} className="mt-0.5 shrink-0 text-[#0f95ac]" />,
+    label: signal.label,
+    text: signal.text,
+  })) : [];
+  const visibleSignals = aiSignals.length ? aiSignals : hints;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoadingInsight(true);
+    void getRoleInsight(role, blueprint, i18n.language || 'en')
+      .then((next) => {
+        if (!cancelled) setInsight(next);
+      })
+      .catch(() => {
+        if (!cancelled) setInsight(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingInsight(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role.id, blueprint.id, i18n.language]);
 
   return (
     <ShellCard className="overflow-hidden">
@@ -166,18 +200,20 @@ const ShamiGuidePanel: React.FC<{
             <div className="min-w-0">
               <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#0f95ac]">Shami</div>
               <h3 className="mt-1 text-lg font-semibold tracking-normal text-slate-900">
-                {companyName
+                {insight?.headline || (companyName
                   ? t('rebuild.shami.guide_title_company', { defaultValue: `Co chce ${companyName} pochopit o tobe`, company: companyName })
-                  : t('rebuild.shami.guide_title', { defaultValue: 'Co chce firma pochopit o tobe' })}
+                  : t('rebuild.shami.guide_title', { defaultValue: 'Co chce firma pochopit o tobe' }))}
               </h3>
               <p className="mt-1.5 max-w-xl text-sm leading-6 text-slate-600">
-                {t('rebuild.shami.guide_subtitle', { defaultValue: 'Handshake neposuzuje CV keywordy. Hleda zpusob uvazovani, trade-offy a schopnost popsat prvni prakticky krok.' })}
+                {insight?.summary || (loadingInsight
+                  ? t('rebuild.shami.guide_loading', { defaultValue: 'Shami cte roli, realitu a tvuj profil...' })
+                  : t('rebuild.shami.guide_subtitle', { defaultValue: 'Handshake neposuzuje CV keywordy. Hleda zpusob uvazovani, trade-offy a schopnost popsat prvni prakticky krok.' }))}
               </p>
             </div>
           </div>
-          {hints.length > 0 ? (
+          {visibleSignals.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-3">
-              {hints.slice(0, 3).map((hint) => (
+              {visibleSignals.slice(0, 3).map((hint) => (
                 <div key={hint.id} className="rounded-lg border border-[rgba(18,175,203,0.14)] bg-white/86 p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f95ac]">
                     {hint.icon}
@@ -193,6 +229,20 @@ const ShamiGuidePanel: React.FC<{
             </div>
           )}
         </div>
+        {(insight?.watch_out || insight?.suggested_first_move) ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {insight.watch_out ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-900">
+                <span className="font-semibold">{t('rebuild.shami.watch_out', { defaultValue: 'Na co si dát pozor' })}: </span>{insight.watch_out}
+              </div>
+            ) : null}
+            {insight.suggested_first_move ? (
+              <div className="rounded-lg border border-[rgba(18,175,203,0.18)] bg-white/80 p-3 text-sm leading-6 text-slate-700">
+                <span className="font-semibold text-slate-900">{t('rebuild.shami.first_move', { defaultValue: 'První krok' })}: </span>{insight.suggested_first_move}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </ShellCard>
   );

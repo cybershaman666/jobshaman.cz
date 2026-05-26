@@ -8,7 +8,7 @@ from app.domains.identity.service import IdentityDomainService
 from app.domains.recommendation.service import RecommendationDomainService
 from app.domains.reality.service import RealityDomainService
 from app.services.cybershaman_service import build_cybershaman_reply
-from app.services.shami_agent_service import build_shami_recruiter_agent_reply, get_agent_memory, save_agent_memory
+from app.services.shami_agent_service import build_shami_recruiter_agent_reply, build_shami_role_detail_insight, get_agent_memory, save_agent_memory
 from app.services.azure_ai_client import AzureAIClientError
 
 
@@ -107,6 +107,12 @@ class RecruiterChatRequest(BaseModel):
     recent_messages: List[MentorMessage] = Field(default_factory=list, max_length=8)
 
 
+class RoleInsightRequest(BaseModel):
+    role: Dict[str, Any] = Field(..., description="Frontend role snapshot")
+    blueprint: Optional[Dict[str, Any]] = Field(default=None)
+    locale: str = Field(default="en", max_length=8)
+
+
 @router.post("/chat")
 async def mentor_chat(
     payload: MentorChatRequest,
@@ -159,6 +165,35 @@ async def mentor_chat(
         }
         logger.warning(f"🔄 Returning fallback response after exception: {data}")
         return {"status": "success", "data": data}
+    return {"status": "success", "data": data}
+
+
+@router.post("/role-insight")
+async def role_insight(
+    payload: RoleInsightRequest,
+    current_user: dict = Depends(AccessControlService.get_current_user),
+) -> Dict[str, object]:
+    domain_user = await IdentityDomainService.get_or_create_user_mirror(
+        supabase_id=current_user["id"],
+        email=current_user["email"],
+        role=current_user["role"],
+    )
+    profile = await IdentityDomainService.get_candidate_profile(domain_user["id"])
+    try:
+        data = build_shami_role_detail_insight(
+            role=payload.role,
+            blueprint=payload.blueprint,
+            profile=profile,
+            locale=payload.locale,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AzureAIClientError as exc:
+        logger.warning("AzureAIClientError in role_insight: %s", exc)
+        raise HTTPException(status_code=503, detail="Shami role insight is unavailable") from exc
+    except Exception as exc:
+        logger.exception("Unhandled exception in role_insight")
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
     return {"status": "success", "data": data}
 
 

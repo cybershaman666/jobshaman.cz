@@ -239,3 +239,131 @@ Output format (return only valid JSON):
         "latency_ms": result.latency_ms,
         "deployment_tag": "2026-05-21-PROD-DEPLOY",
     }
+
+
+def build_shami_role_detail_insight(
+    *,
+    role: Dict[str, Any],
+    blueprint: Dict[str, Any] | None,
+    profile: Dict[str, Any] | None,
+    locale: str = "en",
+) -> Dict[str, Any]:
+    """Build a concise candidate-facing interpretation for a role detail page."""
+    role_title = str(role.get("title") or "").strip()
+    if not role_title:
+        raise ValueError("role.title is required")
+
+    lang = str(locale or "en").split("-")[0].lower()
+    if lang == "se":
+        lang = "sv"
+
+    language_names = {
+        "cs": "Czech",
+        "sk": "Slovak",
+        "pl": "Polish",
+        "de": "German",
+        "at": "German",
+        "sv": "Swedish",
+        "da": "Danish",
+        "no": "Norwegian",
+        "fi": "Finnish",
+        "en": "English",
+    }
+    output_language = language_names.get(lang, "English")
+
+    compact_role = {
+        "title": role_title,
+        "company": role.get("companyName") or role.get("company_name"),
+        "summary": role.get("summary") or role.get("roleSummary"),
+        "challenge": role.get("challenge"),
+        "mission": role.get("mission") or role.get("description"),
+        "firstStep": role.get("firstStep"),
+        "skills": (role.get("skills") or [])[:8] if isinstance(role.get("skills"), list) else [],
+        "benefits": (role.get("benefits") or [])[:8] if isinstance(role.get("benefits"), list) else [],
+        "workModel": role.get("workModel"),
+        "location": role.get("location"),
+        "compensation": {
+            "salaryFrom": role.get("salaryFrom"),
+            "salaryTo": role.get("salaryTo"),
+            "currency": role.get("currency"),
+            "contractType": role.get("contractType"),
+        },
+    }
+    compact_blueprint = {
+        "overview": (blueprint or {}).get("overview"),
+        "steps": [
+            {
+                "title": step.get("title"),
+                "prompt": step.get("prompt"),
+                "helper": step.get("helper"),
+                "type": step.get("type"),
+            }
+            for step in ((blueprint or {}).get("steps") or [])[:5]
+            if isinstance(step, dict)
+        ],
+    }
+    compact_profile = {
+        "headline": (profile or {}).get("job_title") or (profile or {}).get("headline"),
+        "story": (profile or {}).get("story"),
+        "skills": (profile or {}).get("skills"),
+        "strengths": (profile or {}).get("strengths"),
+        "values": (profile or {}).get("values"),
+        "motivations": (profile or {}).get("motivations"),
+        "work_preferences": (profile or {}).get("work_preferences"),
+    }
+
+    prompt = f"""
+You are Shami, JobShaman's candidate-facing hiring analyst.
+Your job is to interpret a native JobShaman role for a candidate.
+
+Write in {output_language}. Be specific to the role and candidate context. Do not repeat the role text verbatim.
+Focus on skill-first hiring: what thinking, proof, trade-offs and practical judgment this role is likely testing.
+Do not invent facts, salary, guarantees, or private company information.
+If candidate context is thin, say what can be inferred from the role only.
+
+Role:
+{json.dumps(compact_role, ensure_ascii=False, default=str)}
+
+Handshake blueprint:
+{json.dumps(compact_blueprint, ensure_ascii=False, default=str)}
+
+Candidate profile context:
+{json.dumps(compact_profile, ensure_ascii=False, default=str)}
+
+Return only valid JSON:
+{{
+  "headline": "one useful sentence, max 110 chars",
+  "summary": "2 short sentences explaining Shami's actual read of the role",
+  "signals": [
+    {{"label": "short label", "text": "specific signal this role tests"}},
+    {{"label": "short label", "text": "specific signal this role tests"}},
+    {{"label": "short label", "text": "specific signal this role tests"}}
+  ],
+  "watch_out": "one honest caveat or trade-off to consider",
+  "suggested_first_move": "one concrete first move before starting the handshake"
+}}
+"""
+    payload, result = call_ai_json(prompt, temperature=0.35, timeout=45)
+
+    signals = payload.get("signals") if isinstance(payload.get("signals"), list) else []
+    cleaned_signals = []
+    for signal in signals[:3]:
+        if not isinstance(signal, dict):
+            continue
+        label = str(signal.get("label") or "").strip()
+        text = str(signal.get("text") or "").strip()
+        if label and text:
+            cleaned_signals.append({"label": label[:80], "text": text[:240]})
+
+    if len(cleaned_signals) < 2:
+        raise AzureAIClientError("AI response did not include enough role signals")
+
+    return {
+        "headline": str(payload.get("headline") or "").strip()[:140],
+        "summary": str(payload.get("summary") or "").strip()[:520],
+        "signals": cleaned_signals,
+        "watch_out": str(payload.get("watch_out") or "").strip()[:260],
+        "suggested_first_move": str(payload.get("suggested_first_move") or "").strip()[:260],
+        "model": result.model_name,
+        "latency_ms": result.latency_ms,
+    }
